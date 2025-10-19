@@ -68,6 +68,9 @@ module.exports = {
         'slide-in': 'slideIn 0.3s ease',
         'shimmer': 'shimmer 2s infinite',
         'pulse': 'pulse 2s infinite',
+        'button-shimmer': 'buttonShimmer 2s infinite',
+        'button-bounce': 'buttonBounce 0.6s ease-in-out',
+        'button-glow': 'buttonGlow 2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -85,6 +88,19 @@ module.exports = {
         shimmer: {
           '0%': { backgroundPosition: '-1000px 0' },
           '100%': { backgroundPosition: '1000px 0' },
+        },
+        buttonShimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        buttonBounce: {
+          '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
+          '40%': { transform: 'translateY(-4px)' },
+          '60%': { transform: 'translateY(-2px)' },
+        },
+        buttonGlow: {
+          '0%, 100%': { boxShadow: '0 0 5px rgba(0, 102, 204, 0.5)' },
+          '50%': { boxShadow: '0 0 20px rgba(0, 102, 204, 0.8), 0 0 30px rgba(0, 102, 204, 0.6)' },
         },
       },
     },
