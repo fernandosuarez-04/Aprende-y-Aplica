@@ -25,13 +25,9 @@ export function Navbar() {
     <motion.nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'backdrop-blur-md border-b'
+          ? 'backdrop-blur-md border-b navbar-scrolled'
           : 'bg-transparent'
       }`}
-      style={isScrolled ? {
-        backgroundColor: 'var(--glass-strong)',
-        borderBottomColor: 'var(--glass-light)'
-      } : {}}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -54,7 +50,7 @@ export function Navbar() {
                 className="w-full h-full object-contain logo-adaptive"
               />
             </div>
-            <span className="font-bold text-xl hidden sm:block" style={{ color: 'var(--color-contrast)' }}>
+            <span className="font-bold text-xl hidden sm:block navbar-logo-text">
               Aprende y Aplica
             </span>
           </motion.div>
@@ -75,12 +71,7 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <motion.button
-            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300"
-            style={{
-              backgroundColor: 'var(--glass)',
-              borderColor: 'var(--glass-light)',
-              color: 'var(--color-contrast)'
-            }}
+            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300 navbar-mobile-button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             whileTap={{ scale: 0.95 }}
           >
@@ -105,10 +96,7 @@ export function Navbar() {
             visible: { opacity: 1, height: "auto" }
           }}
         >
-          <div 
-            className="py-4 space-y-4 border-t"
-            style={{ borderTopColor: 'var(--glass-light)' }}
-          >
+          <div className="py-4 space-y-4 border-t navbar-mobile-menu">
             <div className="flex items-center justify-between">
               <ThemeToggle />
               <div className="flex gap-3">

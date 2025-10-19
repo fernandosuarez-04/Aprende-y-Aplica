@@ -102,12 +102,7 @@ export function ThemeToggle() {
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative h-10 px-3 rounded-lg backdrop-blur-sm border flex items-center gap-2 transition-all duration-300 group hover:bg-white/10"
-        style={{
-          backgroundColor: 'var(--glass)',
-          borderColor: 'var(--glass-light)',
-          color: 'var(--color-contrast)'
-        }}
+        className="relative h-10 px-3 rounded-lg backdrop-blur-sm border flex items-center gap-2 transition-all duration-300 group hover:bg-white/10 theme-toggle-button"
       >
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
@@ -129,33 +124,20 @@ export function ThemeToggle() {
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className={`w-40 rounded-lg backdrop-blur-md border overflow-hidden shadow-lg ${
-              isMobile ? 'fixed' : 'absolute top-full mt-2 right-0'
+              isMobile ? 'fixed theme-toggle-dropdown-mobile' : 'absolute top-full mt-2 right-0 theme-toggle-dropdown'
             }`}
             style={isMobile ? {
               top: `${dropdownPosition.top}px`,
               right: `${dropdownPosition.right}px`,
-              position: 'fixed',
-              zIndex: 9999,
-              backgroundColor: 'var(--glass-strong)',
-              borderColor: 'var(--glass-light)'
-            } : {
-              zIndex: 9999,
-              backgroundColor: 'var(--glass-strong)',
-              borderColor: 'var(--glass-light)'
-            }}
+            } : {}}
           >
             {themes.map((themeOption) => (
               <button
                 key={themeOption.value}
                 onClick={() => handleThemeChange(themeOption.value)}
-                className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all duration-200 ${
-                  theme === themeOption.value
-                    ? 'bg-primary/20 text-primary'
-                    : 'hover:bg-black/10 dark:hover:bg-white/10'
+                className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all duration-200 theme-toggle-option ${
+                  theme === themeOption.value ? 'active' : ''
                 }`}
-                style={{
-                  color: theme === themeOption.value ? 'var(--color-primary)' : 'var(--color-contrast)'
-                }}
               >
                 {themeOption.icon}
                 <span className="text-sm font-medium">{themeOption.label}</span>

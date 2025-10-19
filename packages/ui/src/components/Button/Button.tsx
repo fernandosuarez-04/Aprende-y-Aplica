@@ -71,27 +71,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       props.onClick?.(e);
     };
 
-    // Función para obtener estilos según la variante
-    const getButtonStyle = () => {
+    // Clase CSS específica para cada variante
+    const getVariantClass = () => {
       switch (variant) {
         case 'ghost':
-          return {
-            borderColor: 'var(--color-primary)',
-            color: 'var(--color-primary)',
-            backgroundColor: 'transparent',
-          };
+          return 'button-ghost';
         case 'primary':
-          return {
-            color: '#ffffff',
-          };
+          return 'button-primary';
         case 'secondary':
-          return {
-            borderColor: 'var(--color-primary)',
-            color: 'var(--color-primary)',
-            backgroundColor: 'transparent',
-          };
+          return 'button-secondary';
         default:
-          return {};
+          return '';
       }
     };
 
@@ -99,15 +89,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         className={cn(
           buttonVariants({ variant, size, className }),
-          variant === 'ghost' && 'btn-ghost'
+          variant === 'ghost' && 'btn-ghost',
+          getVariantClass()
         )}
         ref={ref}
         {...props}
         onClick={handleClick}
-        style={{
-          ...getButtonStyle(),
-          ...props.style,
-        }}
+        style={props.style}
       >
         {/* Efectos de animación - solo para botones que no sean ghost */}
         {variant !== 'ghost' && (

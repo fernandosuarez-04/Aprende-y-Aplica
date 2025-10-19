@@ -17,7 +17,7 @@ export function FeaturesSection({ title, subtitle, cards }: FeaturesSectionProps
   const parallaxOffset = useParallax(0.3);
 
   return (
-    <section className="py-24 relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
+    <section className="py-24 relative overflow-hidden features-section">
       {/* Background Effects con parallax */}
       <motion.div 
         className="absolute inset-0"
@@ -36,10 +36,10 @@ export function FeaturesSection({ title, subtitle, cards }: FeaturesSectionProps
           viewport={{ once: true, amount: 0.3 }}
           variants={fadeIn}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6" style={{ color: 'var(--color-contrast)' }}>
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6 features-title">
             {title}
           </h2>
-          <p className="text-xl max-w-3xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xl max-w-3xl mx-auto features-subtitle">
             {subtitle}
           </p>
         </motion.div>

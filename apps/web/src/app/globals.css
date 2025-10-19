@@ -713,3 +713,176 @@ button.btn-ghost {
   animation: none !important;
   transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
 }
+
+/* ===== CLASES PARA COMPONENTES - REEMPLAZAR ESTILOS INLINE ===== */
+
+/* ThemeToggle Component Classes */
+.theme-toggle-button {
+  background-color: var(--glass);
+  border-color: var(--glass-light);
+  color: var(--color-contrast);
+}
+
+.theme-toggle-dropdown {
+  background-color: var(--glass-strong);
+  border-color: var(--glass-light);
+  z-index: 9999;
+}
+
+.theme-toggle-dropdown-mobile {
+  position: fixed;
+  z-index: 9999;
+  background-color: var(--glass-strong);
+  border-color: var(--glass-light);
+}
+
+.theme-toggle-option {
+  color: var(--color-contrast);
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-option.active {
+  background-color: rgba(var(--color-primary-rgb), 0.2);
+  color: var(--color-primary);
+}
+
+.theme-toggle-option:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+:root.dark .theme-toggle-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* TestimonialsSection Component Classes */
+.testimonials-section {
+  background-color: var(--color-bg-dark);
+}
+
+.testimonials-title {
+  color: var(--color-contrast);
+}
+
+.testimonials-quote-icon {
+  color: var(--color-primary);
+}
+
+.testimonials-quote-text {
+  color: var(--text-secondary);
+}
+
+.testimonials-author-name {
+  color: var(--color-contrast);
+}
+
+.testimonials-author-role {
+  color: var(--color-primary);
+}
+
+.testimonials-nav-button {
+  background-color: var(--glass-strong);
+  color: var(--color-contrast);
+  border: 1px solid var(--glass-light);
+}
+
+.testimonials-nav-button-mobile {
+  background-color: var(--glass);
+  color: var(--color-contrast);
+  border: 1px solid var(--glass-light);
+}
+
+.testimonials-pagination-dot {
+  background-color: var(--glass);
+}
+
+.testimonials-pagination-dot.active {
+  background-color: var(--color-primary);
+}
+
+/* Navbar Component Classes */
+.navbar-scrolled {
+  background-color: var(--glass-strong);
+  border-bottom-color: var(--glass-light);
+}
+
+.navbar-logo-text {
+  color: var(--color-contrast);
+}
+
+.navbar-mobile-button {
+  background-color: var(--glass);
+  border-color: var(--glass-light);
+  color: var(--color-contrast);
+}
+
+.navbar-mobile-menu {
+  border-top-color: var(--glass-light);
+}
+
+/* HeroSection Component Classes */
+.hero-section {
+  background: var(--color-bg-dark);
+}
+
+.hero-title-text {
+  color: var(--color-contrast);
+}
+
+.hero-description-text {
+  color: var(--text-secondary);
+}
+
+.hero-benefits-title {
+  color: var(--color-contrast);
+}
+
+.hero-benefit-text {
+  color: var(--color-contrast);
+}
+
+.hero-benefit-description {
+  color: var(--text-secondary);
+}
+
+/* FeaturesSection Component Classes */
+.features-section {
+  background-color: var(--color-bg-dark);
+}
+
+.features-title {
+  color: var(--color-contrast);
+}
+
+.features-subtitle {
+  color: var(--text-secondary);
+}
+
+/* CTASection Component Classes */
+.cta-section {
+  background: var(--color-bg-dark);
+}
+
+.cta-title {
+  color: var(--color-contrast);
+}
+
+.cta-subtitle {
+  color: var(--text-secondary);
+}
+
+/* Button Component Classes */
+.button-ghost {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  background-color: transparent !important;
+}
+
+.button-primary {
+  color: #ffffff !important;
+}
+
+.button-secondary {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  background-color: transparent !important;
+}

@@ -42,7 +42,7 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
   };
 
   return (
-    <section className="py-24 relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
+    <section className="py-24 relative overflow-hidden testimonials-section">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent" />
       
@@ -55,7 +55,7 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
           viewport={{ once: true, amount: 0.3 }}
           variants={fadeIn}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6" style={{ color: 'var(--color-contrast)' }}>
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6 testimonials-title">
             {title}
           </h2>
         </motion.div>
@@ -74,7 +74,7 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
           >
             {/* Quote Icon - Posicionado completamente fuera del contenido */}
             <div className="absolute top-6 left-6 z-10">
-              <Quote className="w-8 h-8" style={{ color: 'var(--color-primary)' }} />
+              <Quote className="w-8 h-8 testimonials-quote-icon" />
             </div>
             
             <CardContent className="p-4 sm:p-8 lg:p-12 pt-16 pl-14 sm:pl-16 lg:pl-12 pr-14 sm:pr-16 lg:pr-12">
@@ -89,7 +89,7 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
                   onMouseLeave={() => setIsAutoPlaying(true)}
                 >
                   {/* Quote sin comillas manuales */}
-                  <blockquote className="text-xl lg:text-2xl leading-relaxed mb-8 font-light italic" style={{ color: 'var(--text-secondary)' }}>
+                  <blockquote className="text-xl lg:text-2xl leading-relaxed mb-8 font-light italic testimonials-quote-text">
                     {currentTestimonial.quote}
                   </blockquote>
 
@@ -103,10 +103,10 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
                       
                       {/* Author Info */}
                       <div>
-                        <h4 className="font-semibold text-lg" style={{ color: 'var(--color-contrast)' }}>
+                        <h4 className="font-semibold text-lg testimonials-author-name">
                           {currentTestimonial.author}
                         </h4>
-                        <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
+                        <p className="text-sm testimonials-author-role">
                           {currentTestimonial.role}
                         </p>
                       </div>
@@ -116,23 +116,13 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
                     <div className="flex items-center gap-2 sm:hidden">
                       <button
                         onClick={goToPrevious}
-                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
-                        style={{ 
-                          backgroundColor: 'var(--glass)', 
-                          color: 'var(--color-contrast)',
-                          border: '1px solid var(--glass-light)'
-                        }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 testimonials-nav-button-mobile"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button
                         onClick={goToNext}
-                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
-                        style={{ 
-                          backgroundColor: 'var(--glass)', 
-                          color: 'var(--color-contrast)',
-                          border: '1px solid var(--glass-light)'
-                        }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 testimonials-nav-button-mobile"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -147,23 +137,13 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
               <>
                 <button
                   onClick={goToPrevious}
-                  className="hidden sm:flex absolute -left-2 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-sm rounded-full items-center justify-center transition-all duration-300 group z-20 hover:scale-110"
-                  style={{ 
-                    backgroundColor: 'var(--glass-strong)', 
-                    color: 'var(--color-contrast)',
-                    border: '1px solid var(--glass-light)'
-                  }}
+                  className="hidden sm:flex absolute -left-2 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-sm rounded-full items-center justify-center transition-all duration-300 group z-20 hover:scale-110 testimonials-nav-button"
                 >
                   <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6 group-hover:-translate-x-0.5 transition-transform" />
                 </button>
                 <button
                   onClick={goToNext}
-                  className="hidden sm:flex absolute -right-2 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-sm rounded-full items-center justify-center transition-all duration-300 group z-20 hover:scale-110"
-                  style={{ 
-                    backgroundColor: 'var(--glass-strong)', 
-                    color: 'var(--color-contrast)',
-                    border: '1px solid var(--glass-light)'
-                  }}
+                  className="hidden sm:flex absolute -right-2 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-sm rounded-full items-center justify-center transition-all duration-300 group z-20 hover:scale-110 testimonials-nav-button"
                 >
                   <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6 group-hover:translate-x-0.5 transition-transform" />
                 </button>
@@ -186,12 +166,9 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
                   onClick={() => goToSlide(index)}
                   className={`w-3 h-3 rounded-full transition-all duration-300 ${
                     index === currentIndex
-                      ? 'bg-primary scale-125'
-                      : 'backdrop-blur-sm'
+                      ? 'testimonials-pagination-dot active scale-125'
+                      : 'testimonials-pagination-dot backdrop-blur-sm'
                   }`}
-                  style={{
-                    backgroundColor: index === currentIndex ? 'var(--color-primary)' : 'var(--glass)'
-                  }}
                 />
               ))}
             </motion.div>

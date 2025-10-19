@@ -18,7 +18,7 @@ export function HeroSection({ content }: HeroSectionProps) {
   const parallaxOffset = useParallax(0.5);
 
   return (
-    <section className="min-h-screen flex items-center relative overflow-hidden" style={{ background: 'var(--color-bg-dark)' }}>
+    <section className="min-h-screen flex items-center relative overflow-hidden hero-section">
       {/* Animated Background */}
       <AnimatedBackground />
       
@@ -78,7 +78,7 @@ export function HeroSection({ content }: HeroSectionProps) {
               className="text-5xl lg:text-7xl font-bold leading-tight"
               variants={slideUp}
             >
-              <span style={{ color: 'var(--color-contrast)' }}>{title}</span>
+              <span className="hero-title-text">{title}</span>
               <br />
               <motion.span 
                 className="bg-gradient-to-r from-primary via-blue-600 to-success bg-clip-text text-transparent"
@@ -100,8 +100,7 @@ export function HeroSection({ content }: HeroSectionProps) {
 
             {/* Description */}
             <motion.p
-              className="text-xl leading-relaxed max-w-2xl"
-              style={{ color: 'var(--text-secondary)' }}
+              className="text-xl leading-relaxed max-w-2xl hero-description-text"
               variants={fadeIn}
             >
               {description}
@@ -152,8 +151,7 @@ export function HeroSection({ content }: HeroSectionProps) {
                 
                 <CardContent className="p-8 relative z-10">
                   <motion.h3 
-                    className="text-2xl font-bold mb-6"
-                    style={{ color: 'var(--color-contrast)' }}
+                    className="text-2xl font-bold mb-6 hero-benefits-title"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
@@ -164,8 +162,7 @@ export function HeroSection({ content }: HeroSectionProps) {
                     {benefits.map((benefit, index) => (
                       <motion.div
                         key={index}
-                        className="flex items-center gap-3 group"
-                        style={{ color: 'var(--color-contrast)' }}
+                        className="flex items-center gap-3 group hero-benefit-text"
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.7 + index * 0.1 }}
@@ -188,7 +185,7 @@ export function HeroSection({ content }: HeroSectionProps) {
                         >
                           <Check className="w-4 h-4 text-white" />
                         </motion.div>
-                        <span className="transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="transition-colors hero-benefit-description">
                           {benefit.replace('✓ ', '')}
                         </span>
                       </motion.div>
