@@ -3,13 +3,13 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../utils/cn';
 
 const cardVariants = cva(
-  'rounded-xl border transition-all duration-300',
+  'rounded-xl border transition-all duration-500 ease-out transform-gpu relative overflow-hidden group',
   {
     variants: {
       variant: {
-        default: 'bg-surface border-border/20 text-white hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10',
-        gradient: 'bg-gradient-to-r from-primary to-success border-primary/30 text-white shadow-lg shadow-primary/20',
-        glassmorphism: 'bg-surface/80 backdrop-blur-sm border-white/10 text-white hover:bg-surface/90 hover:border-white/20 hover:shadow-xl hover:shadow-primary/10',
+        default: 'bg-surface border-border/20 text-white hover:border-primary/40 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-2 hover:scale-[1.02] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-primary/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500',
+        gradient: 'bg-gradient-to-r from-primary to-success border-primary/30 text-white shadow-lg shadow-primary/20 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-2 hover:scale-[1.02] relative overflow-hidden',
+        glassmorphism: 'bg-surface/80 backdrop-blur-sm border-white/10 text-white hover:bg-surface/90 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-3 hover:scale-[1.02] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500',
       },
       padding: {
         none: 'p-0',
@@ -44,12 +44,22 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         className={cn(
           cardVariants({ variant, padding, shadow }),
-          animate && 'hover:scale-[1.02] hover:-translate-y-1',
+          animate && 'hover:scale-[1.03] hover:-translate-y-3',
           className
         )}
         ref={ref}
         {...props}
-      />
+      >
+        {/* Efecto shimmer adicional para cards animadas */}
+        {animate && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out opacity-0 group-hover:opacity-100" />
+        )}
+        
+        {/* Contenido de la card */}
+        <div className="relative z-10">
+          {props.children}
+        </div>
+      </div>
     );
   }
 );

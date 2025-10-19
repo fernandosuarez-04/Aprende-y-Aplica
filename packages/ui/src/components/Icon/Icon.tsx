@@ -41,6 +41,7 @@ function Icon({
     <IconComponent
       width={iconSize}
       height={iconSize}
+      strokeWidth={2.5}
       className={cn(
         'transition-all duration-200',
         animate && 'hover:scale-110 hover:rotate-3',

@@ -21,19 +21,19 @@ const mockLandingPageContent: LandingPageContent = {
     cards: [
       {
         id: "fundamentos",
-        icon: "Cube",
+        icon: "BookOpen",
         title: "Fundamentos Sólidos",
         description: "Aprende los conceptos esenciales de IA sin perderte en teoría innecesaria."
       },
       {
         id: "herramientas",
-        icon: "Wrench",
+        icon: "Settings",
         title: "Herramientas Prácticas",
         description: "Utiliza las herramientas que realmente importan en el mercado laboral."
       },
       {
         id: "proyectos",
-        icon: "BarChart3",
+        icon: "Briefcase",
         title: "Proyectos Reales",
         description: "Aplica tus conocimientos en proyectos del mundo real."
       },

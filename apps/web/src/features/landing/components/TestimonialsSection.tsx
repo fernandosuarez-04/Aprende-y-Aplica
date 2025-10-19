@@ -72,12 +72,12 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
             variant="glassmorphism" 
             className="relative overflow-hidden"
           >
-            {/* Quote Icon */}
-            <div className="absolute top-6 left-6 text-primary/20">
-              <Quote className="w-12 h-12" />
+            {/* Quote Icon - Posicionado completamente fuera del contenido */}
+            <div className="absolute top-6 left-6 z-10">
+              <Quote className="w-8 h-8 text-primary/25" />
             </div>
-
-            <CardContent className="p-8 lg:p-12">
+            
+            <CardContent className="p-8 lg:p-12 pt-16">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentIndex}
@@ -88,9 +88,9 @@ export function TestimonialsSection({ title, items }: TestimonialsSectionProps) 
                   onMouseEnter={() => setIsAutoPlaying(false)}
                   onMouseLeave={() => setIsAutoPlaying(true)}
                 >
-                  {/* Quote */}
+                  {/* Quote sin comillas manuales */}
                   <blockquote className="text-xl lg:text-2xl text-white/90 leading-relaxed mb-8 font-light italic">
-                    "{currentTestimonial.quote}"
+                    {currentTestimonial.quote}
                   </blockquote>
 
                   {/* Author */}

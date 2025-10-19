@@ -71,6 +71,15 @@ module.exports = {
         'button-shimmer': 'buttonShimmer 2s infinite',
         'button-bounce': 'buttonBounce 0.6s ease-in-out',
         'button-glow': 'buttonGlow 2s ease-in-out infinite',
+        'gradient-shift': 'gradientShift 8s ease infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'parallax-float': 'parallaxFloat 8s ease-in-out infinite',
+        'border-glow': 'borderGlow 3s ease-in-out infinite',
+        'shimmer-gradient': 'shimmerGradient 2s ease-in-out infinite',
+        'slide-in-up': 'slideInUp 0.6s ease-out',
+        'scale-in': 'scaleIn 0.5s ease-out',
+        'ripple': 'ripple 0.6s linear',
+        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -101,6 +110,46 @@ module.exports = {
         buttonGlow: {
           '0%, 100%': { boxShadow: '0 0 5px rgba(0, 102, 204, 0.5)' },
           '50%': { boxShadow: '0 0 20px rgba(0, 102, 204, 0.8), 0 0 30px rgba(0, 102, 204, 0.6)' },
+        },
+        gradientShift: {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+          '33%': { transform: 'translateY(-10px) rotate(1deg)' },
+          '66%': { transform: 'translateY(5px) rotate(-1deg)' },
+        },
+        parallaxFloat: {
+          '0%': { transform: 'translateY(0px) translateX(0px)' },
+          '50%': { transform: 'translateY(-20px) translateX(10px)' },
+          '100%': { transform: 'translateY(0px) translateX(0px)' },
+        },
+        borderGlow: {
+          '0%': { borderColor: 'rgba(0, 102, 204, 0.3)', boxShadow: '0 0 5px rgba(0, 102, 204, 0.2)' },
+          '50%': { borderColor: 'rgba(0, 102, 204, 0.6)', boxShadow: '0 0 15px rgba(0, 102, 204, 0.4)' },
+          '100%': { borderColor: 'rgba(0, 102, 204, 0.3)', boxShadow: '0 0 5px rgba(0, 102, 204, 0.2)' },
+        },
+        shimmerGradient: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        slideInUp: {
+          'from': { transform: 'translateY(30px)', opacity: '0' },
+          'to': { transform: 'translateY(0)', opacity: '1' },
+        },
+        scaleIn: {
+          'from': { transform: 'scale(0.9)', opacity: '0' },
+          'to': { transform: 'scale(1)', opacity: '1' },
+        },
+        ripple: {
+          '0%': { transform: 'scale(0)', opacity: '1' },
+          '100%': { transform: 'scale(2)', opacity: '0' },
+        },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 5px rgba(0, 102, 204, 0.3)' },
+          '50%': { boxShadow: '0 0 20px rgba(0, 102, 204, 0.6), 0 0 30px rgba(0, 102, 204, 0.4)' },
         },
       },
     },

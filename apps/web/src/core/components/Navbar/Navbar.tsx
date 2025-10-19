@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Button } from '@aprende-y-aplica/ui';
 import { ThemeToggle } from '../ThemeToggle';
 import { Menu, X } from 'lucide-react';
@@ -44,8 +45,14 @@ export function Navbar() {
             initial="hidden"
             animate="visible"
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">A</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+              <Image
+                src="/icono.png"
+                alt="Aprende y Aplica Logo"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-white font-bold text-xl hidden sm:block">
               Aprende y Aplica
