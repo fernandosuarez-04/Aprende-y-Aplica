@@ -1,0 +1,46 @@
+{
+  "name": "aprende-y-aplica",
+  "version": "1.0.0",
+  "description": "Plataforma educativa Aprende y Aplica - Chat-Bot-LIA",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npx concurrently --kill-others-on-fail -n \"FRONTEND,BACKEND\" -c \"cyan,magenta\" \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "build": "npm run build --workspaces",
+    "build:web": "npm run build --workspace=apps/web",
+    "build:api": "npm run build --workspace=apps/api",
+    "prepare": "npm run build --workspace=packages/ui && npm run build --workspace=packages/shared",
+    "lint": "npm run lint --workspaces",
+    "type-check": "npm run type-check --workspaces && tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "tsx": "^4.6.2",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aprende-y-aplica/chat-bot-lia.git"
+  },
+  "keywords": [
+    "educacion",
+    "ia",
+    "chatbot",
+    "nextjs",
+    "express",
+    "typescript"
+  ],
+  "author": "Equipo Aprende y Aplica",
+  "license": "MIT"
+}

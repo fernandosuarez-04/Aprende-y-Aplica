@@ -1,0 +1,272 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800&family=Inter:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Colores primarios - Aprende y Aplica */
+  --color-primary: #0066CC;        /* Azul Principal */
+  --color-bg-dark: #0F1419;        /* Azul Profundo Oscuro */
+  --color-bg-light: #F2F2F2;       /* Gris Neblina */
+  --color-contrast: #FFFFFF;       /* Blanco Puro */
+  --color-accent: #0066CC;         /* Azul Principal */
+  --color-secondary: #0066CC;      /* Azul Principal */
+  
+  /* Colores semánticos */
+  --color-success: #10B981;        /* Éxito */
+  --color-warning: #F59E0B;        /* Advertencia */
+  --color-error: #EF4444;          /* Error */
+  --color-info: #3B82F6;           /* Información */
+  
+  /* Estados de módulos */
+  --status-locked: #6B7280;        /* Gris - módulo bloqueado */
+  --status-not-started: #9CA3AF;   /* Gris claro - no iniciado */
+  --status-in-progress: #0066CC;   /* Azul Principal - en progreso */
+  --status-completed: #10B981;     /* Verde - completado */
+  
+  /* Estados de sesión */
+  --session-active: #10B981;       /* Verde - sesión activa */
+  --session-scheduled: #F59E0B;    /* Amarillo - programada */
+  --session-ended: #6B7280;        /* Gris - finalizada */
+  
+  /* Tipografías */
+  --font-heading: 'Montserrat', Arial, Helvetica, sans-serif;
+  --font-body: 'Inter', Arial, Helvetica, sans-serif;
+  
+  /* Espaciado */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-base: 12px;
+  
+  /* Sombras */
+  --shadow-glass: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-glass-hover: 0 4px 16px rgba(0, 102, 204, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  /* Transiciones */
+  --duration-base: 0.3s;
+  --easing-base: ease;
+  
+  /* Glassmorphism */
+  --glass: rgba(15, 20, 25, 0.6);
+  --glass-strong: rgba(15, 20, 25, 0.8);
+  --glass-light: rgba(242, 242, 242, 0.1);
+  
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--color-bg-dark);
+  color: var(--color-contrast);
+  font-family: var(--font-body);
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+/* Utilidades personalizadas */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Componentes base */
+@layer components {
+  .btn-primary {
+    @apply text-white font-medium text-base px-6 py-3 rounded-lg border-none cursor-pointer transition-all duration-300 shadow-glass hover:shadow-glass-hover hover:-translate-y-0.5;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #4d94ff 0%, var(--color-primary) 100%);
+    box-shadow: 0 4px 16px rgba(0, 102, 204, 0.5);
+    transform: translateY(-2px);
+  }
+  
+  .btn-secondary {
+    @apply bg-transparent text-primary border-2 border-primary font-body font-medium text-base px-6 py-3 rounded-lg cursor-pointer transition-all duration-300;
+  }
+  
+  .btn-secondary:hover {
+    background-color: rgba(0, 102, 204, 0.1);
+    border-color: var(--color-primary);
+  }
+  
+  .card {
+    @apply border rounded-xl p-6 shadow-glass transition-all duration-300;
+    background: rgba(15, 20, 25, 0.8);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .card:hover {
+    border-color: rgba(0, 102, 204, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 102, 204, 0.2);
+    transform: translateY(-4px);
+  }
+  
+  .input-base {
+    @apply border rounded-lg px-4 py-3 font-medium text-base text-white w-full transition-all duration-300;
+    background: rgba(242, 242, 242, 0.1);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .input-base:focus {
+    @apply outline-none border-primary;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+  
+  .input-base::placeholder {
+    @apply text-gray-400;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease;
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(242, 242, 242, 0.1) 0%,
+    rgba(242, 242, 242, 0.2) 50%,
+    rgba(242, 242, 242, 0.1) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Layout específico de Aprende y Aplica */
+.main-container {
+  width: 1280px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+.min-width-1280 {
+  min-width: 1280px;
+}
+
+/* Tipografía específica */
+.h1 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.5;
+  letter-spacing: 0.3px;
+  color: var(--color-contrast);
+}
+
+.h2 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1.5;
+  letter-spacing: 0.3px;
+  color: var(--color-contrast);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}

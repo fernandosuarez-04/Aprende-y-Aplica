@@ -1,0 +1,34 @@
+export declare const isValidEmail: (email: string) => boolean;
+export declare const isValidPassword: (password: string) => boolean;
+export declare const sanitizeEmail: (email: string) => string;
+export declare const generateSlug: (text: string) => string;
+export declare const maskEmail: (email: string) => string;
+export declare const truncateText: (text: string, maxLength: number) => string;
+export declare const formatDate: (date: Date | string) => string;
+export declare const formatDateTime: (date: Date | string) => string;
+export declare const formatRelativeTime: (date: Date | string) => string;
+export declare const formatDuration: (seconds: number) => string;
+export declare const formatMinutes: (minutes: number) => string;
+export declare const calculateProgress: (completed: number, total: number) => number;
+export declare const isProgressComplete: (progress: number, threshold?: number) => boolean;
+export declare const calculatePagination: (page: number, limit: number, total: number) => {
+    page: number;
+    limit: number;
+    offset: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+};
+export declare const removeDuplicates: <T>(array: T[]) => T[];
+export declare const groupBy: <T, K extends keyof any>(array: T[], getKey: (item: T) => K) => Record<K, T[]>;
+export declare const sortBy: <T>(array: T[], getSortKey: (item: T) => string | number, order?: "asc" | "desc") => T[];
+export declare const pick: <T extends object, K extends keyof T>(obj: T, keys: K[]) => Pick<T, K>;
+export declare const omit: <T, K extends keyof T>(obj: T, keys: K[]) => Omit<T, K>;
+export declare const isValidFileSize: (fileSize: number, maxSize: number) => boolean;
+export declare const getFileExtension: (filename: string) => string;
+export declare const isValidFileType: (mimeType: string, allowedTypes: string[]) => boolean;
+export declare const buildQueryString: (params: Record<string, any>) => string;
+export declare const generateId: (length?: number) => string;
+export declare const generateFingerprint: (userAgent: string, screenResolution: string) => string;
+//# sourceMappingURL=index.d.ts.map

@@ -1,0 +1,29 @@
+{
+  "name": "@aprende-y-aplica/shared",
+  "version": "1.0.0",
+  "description": "Tipos, constantes y utilidades compartidas entre frontend y backend",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "require": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "src",
+    "dist"
+  ]
+}
