@@ -7,8 +7,24 @@ node_modules/
 /coverage
 
 # Next.js
-/.next/
+.next/
+**/.next/
 /out/
+**/out/
+.next/cache/
+.next/server/
+.next/static/
+apps/*/.next/
+apps/*/.next/cache/
+apps/*/.next/server/
+apps/*/.next/static/
+
+# Webpack cache and hot reload
+**/webpack*.js
+*.webpack.hot-update.*
+**/*.hot-update.*
+webpack-runtime.js
+.trace
 
 # Production
 /build
