@@ -17,11 +17,14 @@ export function FeaturesSection({ title, subtitle, cards }: FeaturesSectionProps
   const parallaxOffset = useParallax(0.3);
 
   return (
-    <section className="py-24 bg-surface/50 relative overflow-hidden">
+    <section className="py-24 relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
       {/* Background Effects con parallax */}
       <motion.div 
-        className="absolute inset-0 bg-gradient-to-t from-carbon/20 to-transparent"
-        style={{ y: parallaxOffset * 0.5 }}
+        className="absolute inset-0"
+        style={{ 
+          background: 'linear-gradient(to top, var(--color-bg-dark) / 10%, transparent)',
+          y: parallaxOffset * 0.5 
+        }}
       />
       
       <div className="container mx-auto px-4 relative z-10">
@@ -33,10 +36,10 @@ export function FeaturesSection({ title, subtitle, cards }: FeaturesSectionProps
           viewport={{ once: true, amount: 0.3 }}
           variants={fadeIn}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6" style={{ color: 'var(--color-contrast)' }}>
             {title}
           </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="text-xl max-w-3xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
             {subtitle}
           </p>
         </motion.div>
@@ -93,7 +96,7 @@ export function FeaturesSection({ title, subtitle, cards }: FeaturesSectionProps
                       whileHover={{ y: -2 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <CardTitle className="text-xl font-semibold text-white group-hover:text-primary transition-colors duration-300">
+                      <CardTitle className="text-xl font-semibold group-hover:text-primary transition-colors duration-300">
                         {card.title}
                       </CardTitle>
                     </motion.div>
@@ -103,7 +106,7 @@ export function FeaturesSection({ title, subtitle, cards }: FeaturesSectionProps
                       whileHover={{ y: -1 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <CardDescription className="text-center text-gray-300 group-hover:text-gray-200 transition-colors duration-300">
+                      <CardDescription className="text-center transition-colors duration-300">
                         {card.description}
                       </CardDescription>
                     </motion.div>

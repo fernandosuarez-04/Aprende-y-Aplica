@@ -29,8 +29,8 @@ export function Navbar() {
           : 'bg-transparent'
       }`}
       style={isScrolled ? {
-        backgroundColor: 'rgba(15, 20, 25, 0.8)',
-        borderBottomColor: 'rgba(255, 255, 255, 0.1)'
+        backgroundColor: 'var(--glass-strong)',
+        borderBottomColor: 'var(--glass-light)'
       } : {}}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
@@ -51,10 +51,10 @@ export function Navbar() {
                 alt="Aprende y Aplica Logo"
                 width={40}
                 height={40}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain logo-adaptive"
               />
             </div>
-            <span className="text-white font-bold text-xl hidden sm:block">
+            <span className="font-bold text-xl hidden sm:block" style={{ color: 'var(--color-contrast)' }}>
               Aprende y Aplica
             </span>
           </motion.div>
@@ -75,10 +75,11 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <motion.button
-            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center text-white transition-all duration-300"
+            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300"
             style={{
-              backgroundColor: 'rgba(15, 20, 25, 0.5)',
-              borderColor: 'rgba(255, 255, 255, 0.1)'
+              backgroundColor: 'var(--glass)',
+              borderColor: 'var(--glass-light)',
+              color: 'var(--color-contrast)'
             }}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             whileTap={{ scale: 0.95 }}
@@ -93,9 +94,10 @@ export function Navbar() {
 
         {/* Mobile Menu */}
         <motion.div
-          className={`lg:hidden overflow-hidden transition-all duration-300 ${
+          className={`lg:hidden transition-all duration-300 ${
             isMobileMenuOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'
           }`}
+          style={{ overflow: isMobileMenuOpen ? 'visible' : 'hidden' }}
           initial="hidden"
           animate={isMobileMenuOpen ? "visible" : "hidden"}
           variants={{
@@ -105,7 +107,7 @@ export function Navbar() {
         >
           <div 
             className="py-4 space-y-4 border-t"
-            style={{ borderTopColor: 'rgba(255, 255, 255, 0.1)' }}
+            style={{ borderTopColor: 'var(--glass-light)' }}
           >
             <div className="flex items-center justify-between">
               <ThemeToggle />

@@ -14,7 +14,7 @@ interface CTASectionProps {
 
 export function CTASection({ title, subtitle, buttonText }: CTASectionProps) {
   return (
-    <section className="py-24 bg-gradient-to-br from-carbon to-carbon/80 relative overflow-hidden">
+    <section className="py-24 relative overflow-hidden" style={{ background: 'var(--color-bg-dark)' }}>
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
@@ -32,7 +32,8 @@ export function CTASection({ title, subtitle, buttonText }: CTASectionProps) {
         >
           {/* Title */}
           <motion.h2
-            className="text-4xl lg:text-6xl font-bold text-white mb-6"
+            className="text-4xl lg:text-6xl font-bold mb-6"
+            style={{ color: 'var(--color-contrast)' }}
             variants={slideUp}
           >
             {title}
@@ -40,7 +41,8 @@ export function CTASection({ title, subtitle, buttonText }: CTASectionProps) {
 
           {/* Subtitle */}
           <motion.p
-            className="text-xl lg:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl lg:text-2xl mb-12 max-w-2xl mx-auto leading-relaxed"
+            style={{ color: 'var(--text-secondary)' }}
             variants={fadeIn}
           >
             {subtitle}

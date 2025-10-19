@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '../core/components/Navbar';
+import { ThemeProvider } from '../core/components/ThemeProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -36,13 +37,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={`${inter.variable} ${montserrat.variable}`}>
-      <body className={`${inter.className} bg-carbon text-white antialiased`}>
-        <div className="min-h-screen bg-carbon">
-          <Navbar />
-          <main className="pt-16 lg:pt-20">
-            {children}
-          </main>
-        </div>
+      <body className={`${inter.className} antialiased`} style={{ backgroundColor: 'var(--color-bg-dark)', color: 'var(--color-contrast)' }}>
+        <ThemeProvider>
+          <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
+            <Navbar />
+            <main className="pt-16 lg:pt-20">
+              {children}
+            </main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );

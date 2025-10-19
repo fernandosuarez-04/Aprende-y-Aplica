@@ -7,9 +7,9 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-surface border-border/20 text-white hover:border-primary/40 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-2 hover:scale-[1.02] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-primary/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500',
+        default: 'hover:border-primary/40 hover:shadow-xl hover:shadow-primary/25 hover:-translate-y-2 hover:scale-[1.02] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-primary/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500',
         gradient: 'bg-gradient-to-r from-primary to-success border-primary/30 text-white shadow-lg shadow-primary/20 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-2 hover:scale-[1.02] relative overflow-hidden',
-        glassmorphism: 'bg-surface/80 backdrop-blur-sm border-white/10 text-white hover:bg-surface/90 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-3 hover:scale-[1.02] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500',
+        glassmorphism: 'backdrop-blur-sm hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-3 hover:scale-[1.02] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-primary/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500',
       },
       padding: {
         none: 'p-0',
@@ -40,6 +40,25 @@ export interface CardProps
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant, padding, shadow, animate = false, ...props }, ref) => {
+    const getCardStyle = () => {
+      switch (variant) {
+        case 'glassmorphism':
+          return {
+            backgroundColor: 'var(--glass-strong)',
+            borderColor: 'var(--glass-light)',
+            color: 'var(--color-contrast)',
+          };
+        case 'gradient':
+          return {};
+        default:
+          return {
+            backgroundColor: 'var(--surface)',
+            borderColor: 'var(--border-color)',
+            color: 'var(--color-contrast)',
+          };
+      }
+    };
+
     return (
       <div
         className={cn(
@@ -47,6 +66,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
           animate && 'hover:scale-[1.03] hover:-translate-y-3',
           className
         )}
+        style={getCardStyle()}
         ref={ref}
         {...props}
       >
@@ -75,10 +95,11 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 CardHeader.displayName = 'CardHeader';
 
 const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
+  ({ className, style, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn('text-xl font-semibold leading-none tracking-tight text-white', className)}
+      className={cn('text-xl font-semibold leading-none tracking-tight', className)}
+      style={{ color: 'var(--color-contrast)', ...style }}
       {...props}
     />
   )
@@ -86,8 +107,13 @@ const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HT
 CardTitle.displayName = 'CardTitle';
 
 const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, ...props }, ref) => (
-    <p ref={ref} className={cn('text-sm text-gray-300 leading-relaxed', className)} {...props} />
+  ({ className, style, ...props }, ref) => (
+    <p 
+      ref={ref} 
+      className={cn('text-sm leading-relaxed', className)} 
+      style={{ color: 'var(--text-secondary)', ...style }}
+      {...props} 
+    />
   )
 );
 CardDescription.displayName = 'CardDescription';

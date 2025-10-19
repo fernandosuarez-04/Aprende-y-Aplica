@@ -6,11 +6,17 @@
 :root {
   /* Colores primarios - Aprende y Aplica */
   --color-primary: #0066CC;        /* Azul Principal */
-  --color-bg-dark: #0F1419;        /* Azul Profundo Oscuro */
-  --color-bg-light: #F2F2F2;       /* Gris Neblina */
-  --color-contrast: #FFFFFF;       /* Blanco Puro */
+  --color-primary-rgb: 0, 102, 204; /* RGB del color primario */
   --color-accent: #0066CC;         /* Azul Principal */
   --color-secondary: #0066CC;      /* Azul Principal */
+  
+  /* Variables por defecto (tema oscuro) */
+  --color-bg-dark: #0F1419;
+  --color-bg-light: #1A1F29;
+  --color-contrast: #FFFFFF;
+  --text-primary: #FFFFFF;
+  --text-secondary: #D1D5DB;
+  --text-tertiary: #9CA3AF;
   
   /* Colores semánticos */
   --color-success: #10B981;        /* Éxito */
@@ -70,6 +76,65 @@
   --breakpoint-2xl: 1536px;
 }
 
+/* Variables para tema claro */
+:root.light {
+  --color-bg-dark: #FFFFFF;
+  --color-bg-light: #FAFBFC;
+  --color-contrast: #0A0A0A;
+  
+  /* Ajustar colores de texto para tema claro */
+  --text-primary: #0A0A0A;
+  --text-secondary: #374151;
+  --text-tertiary: #6B7280;
+  
+  /* Ajustar superficies */
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-hover: rgba(255, 255, 255, 1);
+  
+  /* Ajustar bordes */
+  --border-color: rgba(0, 0, 0, 0.1);
+  
+  /* Ajustar glassmorphism */
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass-strong: rgba(255, 255, 255, 0.9);
+  --glass-light: rgba(0, 0, 0, 0.05);
+  
+  /* Ajustar sombras */
+  --shadow-glass: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-glass-hover: 0 4px 16px rgba(0, 102, 204, 0.15);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  
+  /* Establecer clase por defecto */
+  html {
+    color-scheme: light;
+  }
+}
+
+/* Tema oscuro explícito */
+:root.dark {
+  /* Mantener las variables existentes del tema oscuro */
+  --color-bg-dark: #0F1419;
+  --color-bg-light: #1A1F29;
+  --color-contrast: #FFFFFF;
+  
+  /* Colores de texto para tema oscuro */
+  --text-primary: #FFFFFF;
+  --text-secondary: #D1D5DB;
+  --text-tertiary: #9CA3AF;
+  
+  /* Superficies para tema oscuro */
+  --surface: rgba(15, 20, 25, 0.8);
+  --surface-hover: rgba(15, 20, 25, 0.9);
+  
+  /* Bordes para tema oscuro */
+  --border-color: rgba(255, 255, 255, 0.1);
+  
+  /* Glassmorphism para tema oscuro */
+  --glass: rgba(15, 20, 25, 0.6);
+  --glass-strong: rgba(15, 20, 25, 0.8);
+  --glass-light: rgba(255, 255, 255, 0.1);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -85,15 +150,7 @@ body {
   font-family: var(--font-body);
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
+/* Removed conflicting body styles - now using layout.tsx for dynamic theming */
 
 a {
   color: inherit;
@@ -544,4 +601,115 @@ a {
 
 .font-body {
   font-family: var(--font-body);
+}
+
+/* Logo adaptativo */
+.logo-adaptive {
+  transition: filter 0.3s ease;
+}
+
+:root.light .logo-adaptive {
+  filter: invert(1) brightness(0) saturate(100%);
+}
+
+:root.dark .logo-adaptive {
+  filter: none;
+}
+
+/* Botones con corrección de tema */
+button.btn-ghost,
+.btn-ghost {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  background-color: transparent !important;
+  position: relative;
+  z-index: 1;
+  box-shadow: none !important;
+  outline: none !important;
+  border-width: 1px !important;
+  transform: none !important;
+}
+
+button.btn-ghost:hover,
+.btn-ghost:hover {
+  color: var(--color-primary) !important;
+  background-color: rgba(var(--color-primary-rgb), 0.08) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  scale: 1 !important;
+}
+
+button.btn-ghost:active,
+button.btn-ghost:focus,
+.btn-ghost:active,
+.btn-ghost:focus {
+  color: var(--color-primary) !important;
+  background-color: rgba(var(--color-primary-rgb), 0.15) !important;
+}
+
+/* Asegurar que el texto del botón ghost siempre sea visible */
+button.btn-ghost span,
+.btn-ghost span {
+  color: var(--color-primary) !important;
+  position: relative !important;
+  z-index: 30 !important;
+  text-shadow: none !important;
+}
+
+button.btn-ghost:hover span,
+.btn-ghost:hover span {
+  color: var(--color-primary) !important;
+}
+
+button.btn-ghost:active span,
+button.btn-ghost:focus span,
+.btn-ghost:active span,
+.btn-ghost:focus span {
+  color: var(--color-primary) !important;
+}
+
+/* Eliminar completamente todos los efectos visuales en botones ghost */
+button.btn-ghost:focus,
+button.btn-ghost:focus-visible,
+button.btn-ghost:active,
+.btn-ghost:focus,
+.btn-ghost:focus-visible,
+.btn-ghost:active {
+  outline: none !important;
+  box-shadow: none !important;
+  ring: 0 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  border-color: var(--color-primary) !important;
+  transform: none !important;
+  scale: 1 !important;
+  --tw-shadow: none !important;
+  --tw-shadow-colored: none !important;
+}
+
+/* Asegurar que no haya efectos de glow o shadow en estados activos */
+button.btn-ghost *,
+.btn-ghost * {
+  box-shadow: none !important;
+}
+
+/* Eliminar cualquier efecto de animación o transición que cause glow */
+button.btn-ghost::before,
+button.btn-ghost::after,
+.btn-ghost::before,
+.btn-ghost::after {
+  display: none !important;
+}
+
+/* Deshabilitar cualquier animación en botones ghost */
+button.btn-ghost * {
+  animation: none !important;
+  transition: none !important;
+}
+
+button.btn-ghost {
+  animation: none !important;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
 }
