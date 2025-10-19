@@ -886,3 +886,296 @@ button.btn-ghost {
   color: var(--color-primary) !important;
   background-color: transparent !important;
 }
+
+/* ===== AUTH STYLES ===== */
+
+.auth-page-bg {
+  background: var(--color-bg-dark);
+  background-image: radial-gradient(
+      circle at 20% 50%,
+      rgba(0, 102, 204, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+}
+
+/* ===== ENHANCED AUTH STYLES ===== */
+
+.auth-page-enhanced {
+  background: linear-gradient(135deg, #0F1419 0%, #1A1F29 50%, #0F1419 100%);
+  position: relative;
+}
+
+.auth-card-enhanced {
+  perspective: 1000px;
+}
+
+.bg-glass-enhanced {
+  background: rgba(26, 31, 41, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.auth-card {
+  background: var(--color-bg-light);
+  border: 1px solid var(--glass-light);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(10px);
+}
+
+.auth-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(15, 20, 25, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  color: var(--color-contrast);
+  font-size: 0.875rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+.auth-input:hover {
+  border-color: rgba(0, 102, 204, 0.3);
+  background: rgba(15, 20, 25, 0.7);
+  transform: translateY(-1px);
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: rgba(15, 20, 25, 0.8);
+  box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1),
+              0 8px 16px rgba(0, 102, 204, 0.15);
+  transform: translateY(-2px);
+}
+
+.auth-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.auth-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.025em;
+}
+
+.auth-error {
+  font-size: 0.75rem;
+  color: var(--color-error);
+  margin-top: 0.25rem;
+}
+
+.auth-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 20, 25, 0.5);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.auth-checkbox:hover {
+  border-color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.auth-checkbox:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
+}
+
+.auth-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Animación de Gradiente en Fondo */
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Animaciones mejoradas para formularios */
+@keyframes fadeInUpStagger {
+  from {
+    opacity: 0;
+    transform: translateY(20px) translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 102, 204, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(0, 102, 204, 0);
+  }
+}
+
+.bg-gradient-radial {
+  background: radial-gradient(circle at center, var(--tw-gradient-stops));
+}
+
+/* Efectos de Hover en Botones */
+.auth-input:focus + .absolute {
+  color: var(--color-primary);
+}
+
+/* Mejoras de Glassmorphism */
+.auth-dropdown {
+  background: rgba(26, 31, 41, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  overflow: hidden;
+}
+
+/* Estilos específicos para el selector de países */
+.auth-dropdown input {
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.auth-dropdown input:focus {
+  box-shadow: none;
+}
+
+/* Scrollbar personalizado para el dropdown */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thumb-glass-light::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Eliminar elementos de navegación horizontal innecesarios */
+.auth-dropdown * {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.auth-dropdown *::-webkit-scrollbar:horizontal {
+  display: none;
+}
+
+/* Estilos específicos para el dropdown del selector de países */
+.country-dropdown {
+  min-width: 18rem !important;
+  width: max-content !important;
+  max-width: 24rem !important;
+}
+
+.country-dropdown button {
+  white-space: nowrap;
+}
+
+.country-dropdown .text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-modal {
+  background: rgba(26, 31, 41, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Animaciones de Entrada */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-card-enhanced {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Mejoras adicionales para el formulario */
+.auth-form-enhanced {
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Efectos de hover mejorados para inputs */
+.auth-input:focus {
+  animation: pulseGlow 2s infinite;
+}
+
+/* Botón principal mejorado */
+.auth-button-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #004499 100%);
+  box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 102, 204, 0.4);
+}
+
+/* Espaciado mejorado para elementos del formulario */
+.auth-field-group {
+  transition: all 0.3s ease;
+}
+
+.auth-field-group:hover {
+  transform: translateY(-1px);
+}
+
+/* Mejoras para el texto centrado */
+.auth-center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Animación suave para elementos que aparecen */
+.auth-fade-in {
+  animation: fadeInUpStagger 0.6s ease-out forwards;
+}

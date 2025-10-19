@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { ThemeToggle } from '../ThemeToggle';
 import { Menu, X } from 'lucide-react';
@@ -60,12 +61,16 @@ export function Navbar() {
             <ThemeToggle />
             
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm">
-                Iniciar Sesión
-              </Button>
-              <Button variant="primary" size="sm">
-                Registrarse
-              </Button>
+              <Link href="/auth">
+                <Button variant="ghost" size="sm">
+                  Iniciar Sesión
+                </Button>
+              </Link>
+              <Link href="/auth">
+                <Button variant="primary" size="sm">
+                  Registrarse
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -100,12 +105,16 @@ export function Navbar() {
             <div className="flex items-center justify-between">
               <ThemeToggle />
               <div className="flex gap-3">
-                <Button variant="ghost" size="sm">
-                  Iniciar Sesión
-                </Button>
-                <Button variant="primary" size="sm">
-                  Registrarse
-                </Button>
+                <Link href="/auth">
+                  <Button variant="ghost" size="sm">
+                    Iniciar Sesión
+                  </Button>
+                </Link>
+                <Link href="/auth">
+                  <Button variant="primary" size="sm">
+                    Registrarse
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

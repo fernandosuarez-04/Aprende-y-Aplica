@@ -1,0 +1,25 @@
+[build]
+  node_version = "18"
+
+[build.environment]
+  NODE_ENV = "production"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/login"
+  to   = "/.netlify/functions/login"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/issue"
+  to   = "/.netlify/functions/auth-issue"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to   = "/.netlify/functions/:splat"
+  status = 200
+
+

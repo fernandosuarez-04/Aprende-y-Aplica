@@ -15,7 +15,7 @@ function Icon({ name, size = 'md', color = 'currentColor', className, animate = 
         return null;
     }
     const iconSize = typeof size === 'number' ? size : sizeMap[size];
-    return (_jsx(IconComponent, { width: iconSize, height: iconSize, className: cn('transition-all duration-200', animate && 'hover:scale-110 hover:rotate-3', className), style: { color }, ...props }));
+    return (_jsx(IconComponent, { width: iconSize, height: iconSize, strokeWidth: 2.5, className: cn('transition-all duration-200', animate && 'hover:scale-110 hover:rotate-3', className), style: { color }, ...props }));
 }
 export { Icon };
 //# sourceMappingURL=Icon.js.map

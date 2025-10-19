@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { Card, CardContent, Badge, Button } from '@aprende-y-aplica/ui';
 import { ArrowRight, Check } from 'lucide-react';
 import { HeroContent } from '@shared/types/content';
@@ -112,21 +113,23 @@ export function HeroSection({ content }: HeroSectionProps) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Button
-                size="lg"
-                variant="gradient"
-                className="group shadow-lg shadow-primary/25 hover:shadow-primary/50 relative overflow-hidden"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  {ctaText}
-                  <motion.div
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <ArrowRight className="w-5 h-5" />
-                  </motion.div>
-                </span>
-              </Button>
+              <Link href="/auth">
+                <Button
+                  size="lg"
+                  variant="gradient"
+                  className="group shadow-lg shadow-primary/25 hover:shadow-primary/50 relative overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    {ctaText}
+                    <motion.div
+                      animate={{ x: [0, 4, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <ArrowRight className="w-5 h-5" />
+                    </motion.div>
+                  </span>
+                </Button>
+              </Link>
             </motion.div>
           </motion.div>
 

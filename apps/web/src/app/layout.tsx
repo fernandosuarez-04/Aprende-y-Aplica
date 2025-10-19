@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
-import { Navbar } from '../core/components/Navbar';
 import { ThemeProvider } from '../core/components/ThemeProvider';
+import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -40,10 +40,9 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`} style={{ backgroundColor: 'var(--color-bg-dark)', color: 'var(--color-contrast)' }}>
         <ThemeProvider>
           <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
-            <Navbar />
-            <main className="pt-16 lg:pt-20">
+            <ConditionalNavbar>
               {children}
-            </main>
+            </ConditionalNavbar>
           </div>
         </ThemeProvider>
       </body>

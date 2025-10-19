@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { ArrowRight } from 'lucide-react';
 import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../shared/utils/animations';
@@ -48,19 +49,21 @@ export function CTASection({ title, subtitle, buttonText }: CTASectionProps) {
 
           {/* CTA Button */}
           <motion.div variants={staggerItem}>
-            <Button
-              size="lg"
-              variant="gradient"
-              className="group shadow-2xl shadow-primary/25 hover:shadow-primary/40 text-lg px-12 py-4 relative overflow-hidden"
-            >
-              {/* Shimmer Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              
-              <span className="relative z-10 flex items-center gap-3">
-                {buttonText}
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" />
-              </span>
-            </Button>
+            <Link href="/auth">
+              <Button
+                size="lg"
+                variant="gradient"
+                className="group shadow-2xl shadow-primary/25 hover:shadow-primary/40 text-lg px-12 py-4 relative overflow-hidden"
+              >
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                
+                <span className="relative z-10 flex items-center gap-3">
+                  {buttonText}
+                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" />
+                </span>
+              </Button>
+            </Link>
           </motion.div>
 
           {/* Additional Visual Elements */}
