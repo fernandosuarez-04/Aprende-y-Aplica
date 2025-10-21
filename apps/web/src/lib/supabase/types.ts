@@ -15,6 +15,15 @@ export interface Database {
           phone: string | null
           country_code: string | null
           cargo_rol: string
+          profile_picture_url: string | null
+          curriculum_url: string | null
+          bio: string | null
+          location: string | null
+          linkedin_url: string | null
+          github_url: string | null
+          website_url: string | null
+          points: number | null
+          last_login_at: string | null
           created_at: string
           updated_at: string
         }
@@ -31,6 +40,15 @@ export interface Database {
           phone?: string | null
           country_code?: string | null
           cargo_rol?: string
+          profile_picture_url?: string | null
+          curriculum_url?: string | null
+          bio?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          website_url?: string | null
+          points?: number | null
+          last_login_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -47,6 +65,15 @@ export interface Database {
           phone?: string | null
           country_code?: string | null
           cargo_rol?: string
+          profile_picture_url?: string | null
+          curriculum_url?: string | null
+          bio?: string | null
+          location?: string | null
+          linkedin_url?: string | null
+          github_url?: string | null
+          website_url?: string | null
+          points?: number | null
+          last_login_at?: string | null
           updated_at?: string
         }
       }

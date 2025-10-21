@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { createClient } from '../../../lib/supabase/client'
+import type { Database } from '../../../lib/supabase/types'
 
 export interface UserProfile {
   id: string
@@ -67,54 +68,57 @@ export function useProfile(): UseProfileReturn {
   const { user } = useAuth()
 
   const fetchProfile = useCallback(async () => {
-    if (!user?.id) return
+    if (!user?.id) {
+      setProfile(null)
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
       setError(null)
       
-      // Intentar cargar desde la API
-      try {
-        const response = await fetch('/api/profile', {
-          credentials: 'include'
-        })
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-        
-        const profileData = await response.json()
-        setProfile(profileData)
-        return
-      } catch (apiError) {
-        console.warn('API error, using mock data:', apiError)
+      // Consultar directamente la base de datos
+      const supabase = createClient()
+      
+      const { data, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single() as { data: Database['public']['Tables']['users']['Row'] | null, error: any }
+
+      if (fetchError || !data) {
+        console.error('Error fetching user profile:', fetchError)
+        throw new Error(`Error al obtener perfil: ${fetchError?.message || 'No data found'}`)
+      }
+
+      // Convertir los datos de la base de datos al formato esperado
+      const profileData: UserProfile = {
+        id: data.id,
+        username: data.username || 'usuario',
+        email: data.email || 'usuario@ejemplo.com',
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
+        display_name: data.display_name || data.first_name || 'Usuario',
+        phone: data.phone || data.phone_number || '',
+        bio: data.bio || '',
+        location: data.location || '',
+        cargo_rol: data.cargo_rol || '',
+        type_rol: '', // Campo no existe en la base de datos
+        profile_picture_url: data.profile_picture_url || '',
+        curriculum_url: data.curriculum_url || '',
+        linkedin_url: data.linkedin_url || '',
+        github_url: data.github_url || '',
+        website_url: data.website_url || '',
+        country_code: data.country_code || '',
+        points: data.points || 0,
+        created_at: data.created_at,
+        last_login_at: data.last_login_at || '',
+        email_verified: data.email_verified || false
       }
       
-      // Fallback a datos mock si la API falla
-      const mockProfile: UserProfile = {
-        id: user.id,
-        username: user.username || 'usuario',
-        email: user.email || 'usuario@ejemplo.com',
-        first_name: 'Fernando',
-        last_name: 'Suarez',
-        display_name: user.display_name || 'Fernando Suarez',
-        phone: '+52 55 1234 5678',
-        bio: 'Desarrollador de software apasionado por la tecnología y el aprendizaje continuo.',
-        location: 'Ciudad de México, México',
-        cargo_rol: 'Desarrollador de Software',
-        type_rol: 'Senior',
-        profile_picture_url: '',
-        curriculum_url: '',
-        linkedin_url: 'https://linkedin.com/in/fernando-suarez',
-        github_url: 'https://github.com/fernando-suarez',
-        website_url: 'https://fernando-suarez.dev',
-        country_code: 'MX',
-        points: 1250,
-        created_at: '2024-01-15T10:30:00Z',
-        last_login_at: new Date().toISOString(),
-        email_verified: true
-      }
-      
-      setProfile(mockProfile)
+      setProfile(profileData)
+      console.log('🔍 Profile data loaded:', profileData)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
@@ -133,30 +137,50 @@ export function useProfile(): UseProfileReturn {
       setSaving(true)
       setError(null)
       
-      // Intentar actualizar via API
-      try {
-        const response = await fetch('/api/profile', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(updates)
-        })
-        
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-        
-        const updatedProfile = await response.json()
-        setProfile(updatedProfile)
-        return
-      } catch (apiError) {
-        console.warn('API error, updating local state:', apiError)
+      // Actualizar directamente en la base de datos
+      const supabase = createClient()
+      
+      const { data, error: updateError } = await supabase
+        .from('users')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', user.id)
+        .select('*')
+        .single() as { data: Database['public']['Tables']['users']['Row'] | null, error: any }
+
+      if (updateError || !data) {
+        console.error('Error updating profile:', updateError)
+        throw new Error(`Error al actualizar perfil: ${updateError?.message || 'No data found'}`)
+      }
+
+      // Convertir los datos actualizados al formato esperado
+      const updatedProfileData: UserProfile = {
+        id: data.id,
+        username: data.username || 'usuario',
+        email: data.email || 'usuario@ejemplo.com',
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
+        display_name: data.display_name || data.first_name || 'Usuario',
+        phone: data.phone || data.phone_number || '',
+        bio: data.bio || '',
+        location: data.location || '',
+        cargo_rol: data.cargo_rol || '',
+        type_rol: '', // Campo no existe en la base de datos
+        profile_picture_url: data.profile_picture_url || '',
+        curriculum_url: data.curriculum_url || '',
+        linkedin_url: data.linkedin_url || '',
+        github_url: data.github_url || '',
+        website_url: data.website_url || '',
+        country_code: data.country_code || '',
+        points: data.points || 0,
+        created_at: data.created_at,
+        last_login_at: data.last_login_at || '',
+        email_verified: data.email_verified || false
       }
       
-      // Fallback: actualizar estado local
-      setProfile(prev => prev ? { ...prev, ...updates } : null)
+      setProfile(updatedProfileData)
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
@@ -177,13 +201,14 @@ export function useProfile(): UseProfileReturn {
       setSaving(true)
       setError(null)
       
-      // Verificar que el usuario esté autenticado
-      const supabase = createClient()
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      // Usar el usuario del hook useAuth (ya verificado)
+      const currentUser = user
       
       if (!currentUser) {
-        throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+        throw new Error('Usuario no autenticado')
       }
+      
+      console.log('🔍 Usuario autenticado:', currentUser.id)
       
       // Validar archivo
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
@@ -196,28 +221,34 @@ export function useProfile(): UseProfileReturn {
         throw new Error('El archivo es demasiado grande. Máximo 5MB.')
       }
       
-      const formData = new FormData()
-      formData.append('file', file)
+      console.log('📁 Archivo válido:', file.name, file.type, file.size)
       
       // Subir directamente a Supabase Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`
       const filePath = `profile-pictures/${fileName}`
 
+      console.log('📤 Subiendo archivo:', filePath)
+
       // Subir archivo a Supabase Storage
+      const supabase = createClient()
       const { data, error: uploadError } = await supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('Error uploading profile picture:', uploadError)
+        console.error('❌ Error uploading profile picture:', uploadError)
         throw new Error(`Error al subir imagen: ${uploadError.message}`)
       }
 
+      console.log('✅ Upload exitoso directo a Supabase')
+
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .getPublicUrl(filePath)
+
+      console.log('🔗 URL pública:', publicUrl)
 
       // Actualizar perfil en la base de datos
       const { error: updateError } = await supabase
@@ -229,9 +260,11 @@ export function useProfile(): UseProfileReturn {
         .eq('id', currentUser.id)
 
       if (updateError) {
-        console.error('Error updating profile:', updateError)
+        console.error('❌ Error updating profile:', updateError)
         throw new Error(`Error al actualizar perfil: ${updateError.message}`)
       }
+      
+      console.log('✅ Perfil actualizado en base de datos')
       
       // Actualizar perfil local con nueva URL
       setProfile(prev => prev ? { ...prev, profile_picture_url: publicUrl } : null)
@@ -256,12 +289,11 @@ export function useProfile(): UseProfileReturn {
       setSaving(true)
       setError(null)
       
-      // Verificar que el usuario esté autenticado
-      const supabase = createClient()
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      // Usar el usuario del hook useAuth (ya verificado)
+      const currentUser = user
       
       if (!currentUser) {
-        throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+        throw new Error('Usuario no autenticado')
       }
       
       // Validar archivo
@@ -284,6 +316,7 @@ export function useProfile(): UseProfileReturn {
       const filePath = `curriculums/${fileName}`
 
       // Subir archivo a Supabase Storage
+      const supabase = createClient()
       const { data, error: uploadError } = await supabase.storage
         .from('curriculums')
         .upload(filePath, file)

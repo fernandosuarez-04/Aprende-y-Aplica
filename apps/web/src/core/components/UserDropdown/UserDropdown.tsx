@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   User, 
-  BarChart3, 
+  BarChart, 
   BookOpen, 
   Edit3, 
   Moon, 
@@ -12,6 +12,7 @@ import {
   ChevronDown
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
+import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
 import { useTheme } from '../../hooks/useTheme'
 import { useRouter } from 'next/navigation'
 
@@ -23,8 +24,12 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
+  const { userProfile, loading: profileLoading } = useUserProfile()
   const { toggleTheme, isDark } = useTheme()
   const router = useRouter()
+
+  console.log('🔍 UserDropdown renderizado, user:', user)
+  console.log('🔍 UserProfile:', userProfile)
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -49,7 +54,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
     {
       id: 'stats',
       label: 'Mis Estadísticas',
-      icon: BarChart3,
+      icon: BarChart,
       onClick: () => {
         console.log('Estadísticas clicked')
         setIsOpen(false)
@@ -92,7 +97,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   ]
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className={`relative ${className}`} ref={dropdownRef} style={{ zIndex: 1000 }}>
       {/* Botón del usuario */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
@@ -101,11 +106,19 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         whileTap={{ scale: 0.98 }}
       >
         <motion.div 
-          className="relative w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg"
+          className="relative w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
           whileHover={{ scale: 1.1 }}
           transition={{ duration: 0.2 }}
         >
-          <User className="w-5 h-5 text-white" />
+          {userProfile?.profile_picture_url ? (
+            <img 
+              src={userProfile.profile_picture_url} 
+              alt="Avatar" 
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            <User className="w-5 h-5 text-white" />
+          )}
           <motion.div
             className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-full"
             animate={{ 
@@ -122,10 +135,10 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         
         <div className="hidden sm:block text-left">
           <p className="text-sm font-medium text-text-primary">
-            {user?.display_name || user?.username || 'Usuario'}
+            {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
           </p>
           <p className="text-xs text-text-tertiary">
-            {user?.cargo_rol || 'Usuario'}
+            {userProfile?.email || user?.email || 'usuario@ejemplo.com'}
           </p>
         </div>
 
@@ -165,15 +178,23 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
             {/* Header del usuario */}
             <div className="px-6 py-5 border-b border-gray-600 bg-gray-800/50">
               <div className="flex items-center space-x-5">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg">
-                  <User className="w-8 h-8 text-white" />
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+                  {userProfile?.profile_picture_url ? (
+                    <img 
+                      src={userProfile.profile_picture_url} 
+                      alt="Avatar" 
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-8 h-8 text-white" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-text-primary truncate">
-                    {user?.display_name || user?.username || 'Usuario'}
+                    {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
                   </h3>
                   <p className="text-sm text-text-tertiary truncate">
-                    {user?.email || 'usuario@ejemplo.com'}
+                    {userProfile?.email || user?.email || 'usuario@ejemplo.com'}
                   </p>
                 </div>
               </div>

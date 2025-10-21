@@ -262,7 +262,9 @@ export default function DashboardPage() {
               </motion.button>
 
               {/* User Dropdown */}
-              <UserDropdown />
+              <div className="relative">
+                <UserDropdown />
+              </div>
             </motion.div>
           </div>
         </div>

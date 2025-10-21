@@ -5,18 +5,8 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     
-    // Intentar obtener el usuario de las cookies primero
-    let { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    // Si falla con cookies, intentar con header de autorización
-    if (userError || !user) {
-      const authHeader = request.headers.get('authorization')
-      if (authHeader) {
-        const { data: { user: headerUser }, error: headerError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-        user = headerUser
-        userError = headerError
-      }
-    }
+    // Obtener el usuario de las cookies
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
       console.error('Auth error:', userError)
@@ -49,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Subir archivo a Supabase Storage
     const { data, error: uploadError } = await supabase.storage
-      .from('profile-pictures')
+      .from('avatars')
       .upload(filePath, file)
 
     if (uploadError) {
@@ -59,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Obtener URL pública
     const { data: { publicUrl } } = supabase.storage
-      .from('profile-pictures')
+      .from('avatars')
       .getPublicUrl(filePath)
 
     // Actualizar perfil con nueva URL
@@ -68,7 +58,7 @@ export async function POST(request: NextRequest) {
       .update({ 
         profile_picture_url: publicUrl,
         updated_at: new Date().toISOString()
-      })
+      } as any)
       .eq('id', user.id)
 
     if (updateError) {
