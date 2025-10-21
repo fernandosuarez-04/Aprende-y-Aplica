@@ -82,6 +82,71 @@ export interface Database {
           revoked?: boolean
         }
       }
+      courses: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          category: string
+          level: string
+          instructor_id: string
+          duration_total_minutes: number
+          thumbnail_url: string
+          slug: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description: string
+          category: string
+          level: string
+          instructor_id: string
+          duration_total_minutes: number
+          thumbnail_url: string
+          slug: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          category?: string
+          level?: string
+          instructor_id?: string
+          duration_total_minutes?: number
+          thumbnail_url?: string
+          slug?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+      }
+      user_favorites: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

@@ -12,15 +12,19 @@ import {
   User,
   LogOut,
   Settings,
-  Bell
+  Bell,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useAuth } from '../../features/auth/hooks/useAuth';
+import { useCourses } from '../../features/courses/hooks/useCourses';
+import { useFavorites } from '../../features/courses/hooks/useFavorites';
+import { useCategories } from '../../features/courses/hooks/useCategories';
 
-// Mock data - en el futuro vendrá de la API
+// Mock data como fallback - se usará cuando no haya datos de la API
 const mockWorkshops = [
   {
-    id: 1,
+    id: '1',
     title: 'Introducción a la IA',
     instructor: 'Ernesto Hernandez',
     rating: 4.9,
@@ -31,7 +35,7 @@ const mockWorkshops = [
     isFavorite: false,
   },
   {
-    id: 2,
+    id: '2',
     title: 'Machine Learning Avanzado',
     instructor: 'María García',
     rating: 4.8,
@@ -42,7 +46,7 @@ const mockWorkshops = [
     isFavorite: true,
   },
   {
-    id: 3,
+    id: '3',
     title: 'Análisis de Datos con Python',
     instructor: 'Carlos López',
     rating: 4.7,
@@ -54,17 +58,7 @@ const mockWorkshops = [
   },
 ];
 
-const categories = [
-  { id: 'all', name: 'Todos', active: true },
-  { id: 'favorites', name: 'Favoritos', active: false },
-  { id: 'ai', name: 'IA', active: false },
-  { id: 'data', name: 'Datos', active: false },
-  { id: 'development', name: 'Desarrollo', active: false },
-  { id: 'design', name: 'Diseño', active: false },
-  { id: 'it', name: 'IT & Software', active: false },
-  { id: 'marketing', name: 'Marketing', active: false },
-  { id: 'business', name: 'Negocios', active: false },
-];
+// Las categorías ahora se obtienen dinámicamente desde la base de datos
 
 const navigationItems = [
   { id: 'workshops', name: 'Talleres', icon: BookOpen, active: true },
@@ -74,24 +68,52 @@ const navigationItems = [
 ];
 
 export default function DashboardPage() {
-  const [activeCategory, setActiveCategory] = useState('all');
   const [activeNav, setActiveNav] = useState('workshops');
   const { user, loading, logout } = useAuth();
+  const { 
+    courses, 
+    loading: coursesLoading, 
+    error: coursesError, 
+    filteredCourses, 
+    setFilter, 
+    activeFilter,
+    setFavorites
+  } = useCourses();
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+
+  // Sincronizar favoritos entre hooks
+  React.useEffect(() => {
+    setFavorites(favorites);
+  }, [favorites, setFavorites]);
 
   const handleLogout = async () => {
     await logout();
   };
 
-  const toggleFavorite = (workshopId: number) => {
-    // TODO: Implementar toggle de favoritos
-    console.log('Toggle favorite:', workshopId);
+  const handleToggleFavorite = async (courseId: string) => {
+    try {
+      await toggleFavorite(courseId);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
-  const filteredWorkshops = activeCategory === 'all' 
-    ? mockWorkshops 
-    : activeCategory === 'favorites'
-    ? mockWorkshops.filter(w => w.isFavorite)
-    : mockWorkshops.filter(w => w.category.toLowerCase() === activeCategory);
+  // Usar datos de la API o fallback a mock data (sin favoritos hardcodeados)
+  const workshops = filteredCourses.length > 0 ? filteredCourses.map(course => ({
+    id: course.id,
+    title: course.title,
+    instructor: course.instructor_name || 'Instructor',
+    rating: course.rating || 4.5,
+    price: course.price || 'MX$0',
+    status: course.status || 'Disponible',
+    image: course.thumbnail || '/api/placeholder/300/200',
+    category: course.category || 'General',
+    isFavorite: isFavorite(course.id), // Usar el hook de favoritos
+  })) : mockWorkshops.map(workshop => ({
+    ...workshop,
+    isFavorite: isFavorite(workshop.id) // Usar el hook de favoritos para mock también
+  }));
 
   // Mostrar loading mientras se obtienen los datos del usuario
   if (loading) {
@@ -331,29 +353,88 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Category Filters */}
         <div className="mb-8">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeCategory === category.id
-                    ? 'bg-primary text-white'
-                    : 'bg-carbon-700 text-text-secondary hover:bg-carbon-600 hover:text-text-primary'
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
+          {/* Loading state for categories */}
+          {categoriesLoading && (
+            <div className="flex flex-wrap gap-2">
+              {[...Array(5)].map((_, index) => (
+                <div
+                  key={index}
+                  className="px-4 py-2 rounded-full bg-carbon-700 animate-pulse"
+                >
+                  <div className="w-16 h-4 bg-carbon-600 rounded"></div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error state for categories */}
+          {categoriesError && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-400 text-sm">!</span>
+                </div>
+                <div>
+                  <h3 className="text-yellow-400 font-medium">Error al cargar categorías</h3>
+                  <p className="text-yellow-300/70 text-sm">Usando categorías por defecto</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Categories */}
+          {!categoriesLoading && (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setFilter(category.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    activeFilter === category.id
+                      ? 'bg-primary text-white'
+                      : 'bg-carbon-700 text-text-secondary hover:bg-carbon-600 hover:text-text-primary'
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Workshops Grid */}
           <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredWorkshops.map((workshop) => (
+            {/* Loading State */}
+            {coursesLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+                  <p className="text-text-secondary">Cargando cursos...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {coursesError && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                    <span className="text-red-400 text-sm">!</span>
+                  </div>
+                  <div>
+                    <h3 className="text-red-400 font-medium">Error al cargar cursos</h3>
+                    <p className="text-red-300/70 text-sm">{coursesError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Courses Grid */}
+            {!coursesLoading && !coursesError && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {workshops.map((workshop) => (
                 <motion.div
                   key={workshop.id}
                   className="bg-carbon-800 rounded-lg overflow-hidden border border-carbon-700 hover:border-primary/50 transition-colors"
@@ -371,7 +452,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <button
-                      onClick={() => toggleFavorite(workshop.id)}
+                      onClick={() => handleToggleFavorite(workshop.id)}
                       className="absolute top-3 right-3 p-2 bg-carbon-800/80 rounded-full hover:bg-carbon-700 transition-colors"
                     >
                       <Heart 
@@ -408,8 +489,29 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 </motion.div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!coursesLoading && !coursesError && workshops.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8 text-text-secondary" />
+                </div>
+                <h3 className="text-lg font-medium text-text-primary mb-2">
+                  No hay cursos disponibles
+                </h3>
+                <p className="text-text-secondary">
+                  {activeFilter === 'favorites' 
+                    ? 'No tienes cursos favoritos aún'
+                    : activeFilter === 'all'
+                    ? 'No hay cursos en la plataforma'
+                    : `No hay cursos en la categoría ${activeFilter}`
+                  }
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
