@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useTheme } from '../../hooks/useTheme'
+import { useRouter } from 'next/navigation'
 
 interface UserDropdownProps {
   className?: string
@@ -23,6 +24,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
   const { toggleTheme, isDark } = useTheme()
+  const router = useRouter()
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -67,7 +69,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       label: 'Editar perfil',
       icon: Edit3,
       onClick: () => {
-        console.log('Editar perfil clicked')
+        router.push('/profile')
         setIsOpen(false)
       }
     },
