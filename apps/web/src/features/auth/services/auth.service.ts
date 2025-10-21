@@ -23,10 +23,11 @@ export class AuthService {
       const supabase = await createClient()
       
       const { data, error } = await supabase
-        .from('user_sessions')
+        .from('user_session')
         .select('id, expires_at')
         .eq('user_id', userId)
-        .eq('fingerprint', fingerprint)
+        .eq('jwt_id', fingerprint) // Usamos jwt_id en lugar de fingerprint
+        .eq('revoked', false)
         .gt('expires_at', new Date().toISOString())
         .single()
 
@@ -45,8 +46,8 @@ export class AuthService {
       const supabase = await createClient()
       
       await supabase
-        .from('user_sessions')
-        .delete()
+        .from('user_session')
+        .update({ revoked: true })
         .lt('expires_at', new Date().toISOString())
     } catch (error) {
       // Log error but don't throw to avoid breaking auth flow

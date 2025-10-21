@@ -2,6 +2,7 @@
 
 import { createClient } from '../../../lib/supabase/server'
 import { AuthService } from '../services/auth.service'
+import { SessionService } from '../services/session.service'
 import { z } from 'zod'
 import { redirect } from 'next/navigation'
 import bcrypt from 'bcryptjs'
@@ -63,20 +64,16 @@ export async function loginAction(formData: FormData) {
     //   }
     // }
 
-    // 5. Guardar fingerprint (RF-004)
-    const fingerprint = await AuthService.getFingerprint()
-    await supabase
-      .from('user_sessions')
-      .insert({
-        user_id: user.id,
-        fingerprint,
-        expires_at: new Date(Date.now() + (parsed.rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000).toISOString(),
-      })
+    // 5. Crear sesión personalizada (sin Supabase Auth)
+    console.log('🔐 Iniciando creación de sesión...');
+    await SessionService.createSession(user.id, parsed.rememberMe)
+    console.log('✅ Sesión creada exitosamente');
 
     // 6. Limpiar sesiones expiradas (mantenimiento)
     await AuthService.clearExpiredSessions()
 
     // 7. Redirigir
+    console.log('🔄 Redirigiendo a /dashboard...');
     redirect('/dashboard')
   } catch (error) {
     // Manejar redirect de Next.js (no es un error real)

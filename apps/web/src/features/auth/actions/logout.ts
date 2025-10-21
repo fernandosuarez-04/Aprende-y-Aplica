@@ -1,30 +1,28 @@
 'use server'
 
-import { createClient } from '../../../lib/supabase/server'
+import { SessionService } from '../services/session.service'
 import { redirect } from 'next/navigation'
 
 export async function logoutAction() {
   try {
-    const supabase = await createClient()
+    // Destruir sesión personalizada
+    await SessionService.destroySession()
     
-    // Obtener sesión actual
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      // Eliminar sesión de user_sessions
-      await supabase
-        .from('user_sessions')
-        .delete()
-        .eq('user_id', user.id)
-    }
-    
-    // Cerrar sesión de Supabase Auth
-    await supabase.auth.signOut()
-    
+    // Redirigir a la página de auth
     redirect('/auth')
   } catch (error) {
     console.error('Logout error:', error)
-    // Aún así redirigir en caso de error
+    
+    // Manejar redirect de Next.js (no es un error real)
+    if (error && typeof error === 'object' && 'digest' in error) {
+      const digest = (error as any).digest
+      if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
+        // Es una redirección, no un error
+        throw error // Re-lanzar para que Next.js maneje la redirección
+      }
+    }
+    
+    // En caso de error real, aún así redirigir
     redirect('/auth')
   }
 }

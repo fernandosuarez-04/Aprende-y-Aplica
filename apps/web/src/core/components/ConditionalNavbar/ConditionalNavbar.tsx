@@ -10,11 +10,12 @@ interface ConditionalNavbarProps {
 export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/auth';
+  const isDashboardPage = pathname.startsWith('/dashboard');
   
   return (
     <>
-      {!isAuthPage && <Navbar />}
-      <main className={isAuthPage ? '' : 'pt-16 lg:pt-20'}>
+      {!isAuthPage && !isDashboardPage && <Navbar />}
+      <main className={isAuthPage || isDashboardPage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>

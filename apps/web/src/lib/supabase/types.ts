@@ -50,26 +50,36 @@ export interface Database {
           updated_at?: string
         }
       }
-      user_sessions: {
+      user_session: {
         Row: {
           id: string
           user_id: string
-          fingerprint: string
+          jwt_id: string
+          issued_at: string
           expires_at: string
-          created_at: string
+          ip: string
+          user_agent: string
+          revoked: boolean
         }
         Insert: {
           id?: string
           user_id: string
-          fingerprint: string
+          jwt_id: string
+          issued_at: string
           expires_at: string
-          created_at?: string
+          ip: string
+          user_agent: string
+          revoked?: boolean
         }
         Update: {
           id?: string
           user_id?: string
-          fingerprint?: string
+          jwt_id?: string
+          issued_at?: string
           expires_at?: string
+          ip?: string
+          user_agent?: string
+          revoked?: boolean
         }
       }
     }
