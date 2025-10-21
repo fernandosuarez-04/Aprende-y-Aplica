@@ -12,11 +12,12 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isAuthPage = pathname === '/auth';
   const isDashboardPage = pathname.startsWith('/dashboard');
   const isProfilePage = pathname.startsWith('/profile');
+  const isNewsPage = pathname.startsWith('/news');
   
   return (
     <>
-      {!isAuthPage && !isDashboardPage && !isProfilePage && <Navbar />}
-      <main className={isAuthPage || isDashboardPage || isProfilePage ? '' : 'pt-16 lg:pt-20'}>
+      {!isAuthPage && !isDashboardPage && !isProfilePage && !isNewsPage && <Navbar />}
+      <main className={isAuthPage || isDashboardPage || isProfilePage || isNewsPage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>

@@ -177,6 +177,65 @@ export interface Database {
     }
     Views: {
       [_ in never]: never
+      }
+      news: {
+        Row: {
+          id: string
+          slug: string
+          title: string
+          subtitle: string | null
+          language: string
+          hero_image_url: string | null
+          tldr: any | null
+          intro: string | null
+          sections: any | null
+          metrics: any | null
+          links: any | null
+          cta: any | null
+          status: string
+          published_at: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          title: string
+          subtitle?: string | null
+          language?: string
+          hero_image_url?: string | null
+          tldr?: any | null
+          intro?: string | null
+          sections?: any | null
+          metrics?: any | null
+          links?: any | null
+          cta?: any | null
+          status?: string
+          published_at?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          title?: string
+          subtitle?: string | null
+          language?: string
+          hero_image_url?: string | null
+          tldr?: any | null
+          intro?: string | null
+          sections?: any | null
+          metrics?: any | null
+          links?: any | null
+          cta?: any | null
+          status?: string
+          published_at?: string | null
+          created_by?: string
+          updated_at?: string
+        }
+      }
     }
     Functions: {
       [_ in never]: never

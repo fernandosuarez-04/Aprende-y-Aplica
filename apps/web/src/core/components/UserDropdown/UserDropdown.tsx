@@ -50,6 +50,11 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
     setIsOpen(false)
   }
 
+  const truncateEmail = (email: string, maxLength: number = 20) => {
+    if (email.length <= maxLength) return email
+    return email.substring(0, maxLength) + '...'
+  }
+
   const menuItems = [
     {
       id: 'stats',
@@ -138,7 +143,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
             {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
           </p>
           <p className="text-xs text-text-tertiary">
-            {userProfile?.email || user?.email || 'usuario@ejemplo.com'}
+            {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
           </p>
         </div>
 
@@ -194,7 +199,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                     {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
                   </h3>
                   <p className="text-sm text-text-tertiary truncate">
-                    {userProfile?.email || user?.email || 'usuario@ejemplo.com'}
+                    {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
                   </p>
                 </div>
               </div>
