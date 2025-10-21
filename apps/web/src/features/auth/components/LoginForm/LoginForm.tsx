@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -9,18 +9,18 @@ import { Button } from '@aprende-y-aplica/ui';
 import { LoginFormData } from '../../types/auth.types';
 import { loginSchema } from './LoginForm.schema';
 import { PasswordInput } from '../PasswordInput';
-import { useAuthStore } from '../../../../core/stores/authStore';
-import { useRouter } from 'next/navigation';
+import { loginAction } from '../../actions/login';
 
 export function LoginForm() {
-  const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = React.useState<string | null>(null);
   
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setError: setFormError,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -31,12 +31,26 @@ export function LoginForm() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    try {
-      await login(data.emailOrUsername, data.password);
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-    }
+    setError(null);
+    
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append('emailOrUsername', data.emailOrUsername);
+      formData.append('password', data.password);
+      formData.append('rememberMe', data.rememberMe.toString());
+
+      try {
+        const result = await loginAction(formData);
+        
+        if (result?.error) {
+          setError(result.error);
+        }
+        // Si no hay error, la acción redirect ya maneja la navegación
+      } catch (error) {
+        console.error('Login error:', error);
+        setError('Error inesperado al iniciar sesión');
+      }
+    });
   };
 
   return (
@@ -51,6 +65,18 @@ export function LoginForm() {
         <h2 className="text-3xl font-bold text-color-contrast">Bienvenido de vuelta</h2>
         <p className="text-text-secondary">Ingresa a tu cuenta para continuar</p>
       </motion.div>
+
+      {/* Error Message */}
+      {error && (
+        <motion.div 
+          className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {error}
+        </motion.div>
+      )}
 
       {/* Email or Username */}
       <motion.div 
@@ -152,10 +178,10 @@ export function LoginForm() {
             variant="primary"
             size="lg"
             className="w-full relative overflow-hidden group"
-            disabled={isLoading}
+            disabled={isPending}
           >
             <span className="relative z-10">
-              {isLoading ? 'Ingresando...' : 'Ingresar'}
+              {isPending ? 'Ingresando...' : 'Ingresar'}
             </span>
             {/* Efecto de brillo al hover */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />

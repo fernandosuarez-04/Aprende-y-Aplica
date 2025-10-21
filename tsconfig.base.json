@@ -28,7 +28,7 @@
       "@core/*": ["apps/web/src/core/*"],
       "@/app/*": ["apps/web/src/app/*"],
       "@/components/*": ["apps/web/src/shared/components/*"],
-      "@/lib/*": ["apps/web/src/core/*"],
+      "@/lib/*": ["apps/web/src/lib/*"],
       "@/utils/*": ["apps/web/src/shared/utils/*"],
       "@/hooks/*": ["apps/web/src/shared/hooks/*"]
     }

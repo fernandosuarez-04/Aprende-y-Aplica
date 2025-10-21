@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -11,11 +11,15 @@ import { registerSchema } from './RegisterForm.schema';
 import { PasswordInput } from '../PasswordInput';
 import { CountrySelector } from '../CountrySelector';
 import { LegalDocumentsModal } from '../LegalDocumentsModal';
+import { registerAction } from '../../actions/register';
 
 export function RegisterForm() {
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [selectedCountryCode, setSelectedCountryCode] = useState('MX');
   const [dialCode, setDialCode] = useState('+52');
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const {
     register,
@@ -40,8 +44,34 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    console.log('Register data:', data);
-    // TODO: Implement registration logic
+    setError(null);
+    setSuccess(null);
+    
+    startTransition(async () => {
+      const formData = new FormData();
+      
+      // Añadir todos los campos del formulario
+      Object.entries(data).forEach(([key, value]) => {
+        if (typeof value === 'boolean') {
+          formData.append(key, value ? 'true' : 'false');
+        } else {
+          formData.append(key, String(value));
+        }
+      });
+
+      try {
+        const result = await registerAction(formData);
+        
+        if (result?.error) {
+          setError(result.error);
+        } else if (result?.success) {
+          setSuccess(result.message);
+        }
+      } catch (error) {
+        console.error('Register error:', error);
+        setError('Error inesperado al crear la cuenta');
+      }
+    });
   };
 
   return (
@@ -71,6 +101,30 @@ export function RegisterForm() {
             Únete a la comunidad de aprendizaje IA
           </motion.p>
         </motion.div>
+
+        {/* Error Message */}
+        {error && (
+          <motion.div 
+            className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {error}
+          </motion.div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <motion.div 
+            className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {success}
+          </motion.div>
+        )}
 
         {/* Form Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -427,8 +481,11 @@ export function RegisterForm() {
                 variant="primary"
                 size="lg"
                 className="w-full relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
+                disabled={isPending}
               >
-                <span className="relative z-10 font-semibold text-lg">Crear cuenta</span>
+                <span className="relative z-10 font-semibold text-lg">
+                  {isPending ? 'Creando cuenta...' : 'Crear cuenta'}
+                </span>
                 {/* Efecto de brillo mejorado */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out" />
                 {/* Efecto de glow */}
