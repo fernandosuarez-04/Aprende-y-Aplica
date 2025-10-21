@@ -20,6 +20,7 @@ import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useCourses } from '../../features/courses/hooks/useCourses';
 import { useFavorites } from '../../features/courses/hooks/useFavorites';
 import { useCategories } from '../../features/courses/hooks/useCategories';
+import { UserDropdown } from '../../core/components/UserDropdown';
 
 // Mock data como fallback - se usará cuando no haya datos de la API
 const mockWorkshops = [
@@ -69,7 +70,7 @@ const navigationItems = [
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('workshops');
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const { 
     courses, 
     loading: coursesLoading, 
@@ -87,9 +88,6 @@ export default function DashboardPage() {
     setFavorites(favorites);
   }, [favorites, setFavorites]);
 
-  const handleLogout = async () => {
-    await logout();
-  };
 
   const handleToggleFavorite = async (courseId: string) => {
     try {
@@ -263,51 +261,8 @@ export default function DashboardPage() {
                 <Settings className="w-5 h-5" />
               </motion.button>
 
-              {/* Perfil de usuario */}
-              <motion.div 
-                className="flex items-center space-x-4 px-4 py-2 rounded-xl hover:bg-carbon-700/50 transition-colors cursor-pointer"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <motion.div 
-                  className="relative w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <User className="w-5 h-5 text-white" />
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-full"
-                    animate={{ 
-                      opacity: [0.3, 0.6, 0.3],
-                      scale: [1, 1.1, 1]
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  />
-                </motion.div>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-text-primary">
-                    {user?.display_name || user?.username || 'Usuario'}
-                  </p>
-                  <p className="text-xs text-text-tertiary">
-                    {user?.cargo_rol || 'Usuario'}
-                  </p>
-                </div>
-              </motion.div>
-
-              {/* Logout */}
-              <motion.button
-                onClick={handleLogout}
-                className="p-3 text-text-secondary hover:text-red-400 transition-colors rounded-xl hover:bg-red-500/10"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                title="Cerrar sesión"
-              >
-                <LogOut className="w-5 h-5" />
-              </motion.button>
+              {/* User Dropdown */}
+              <UserDropdown />
             </motion.div>
           </div>
         </div>
