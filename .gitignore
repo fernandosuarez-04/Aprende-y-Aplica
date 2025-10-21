@@ -57,6 +57,9 @@ webpack.*.hot-update.*
 # Production
 /build
 /dist
+**/dist/
+packages/*/dist/
+packages/**/dist/
 
 # Misc
 .DS_Store
