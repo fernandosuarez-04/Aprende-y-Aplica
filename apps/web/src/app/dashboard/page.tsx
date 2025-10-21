@@ -11,7 +11,8 @@ import {
   Heart,
   User,
   LogOut,
-  Settings
+  Settings,
+  Bell
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useAuth } from '../../features/auth/hooks/useAuth';
@@ -106,63 +107,224 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-carbon">
-      {/* Header */}
-      <header className="bg-carbon-800 border-b border-carbon-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-primary">
-                  APRENDE Y APLICA IA®
-                </h1>
-              </div>
-            </div>
+      {/* Modern Header */}
+      <header className="sticky top-0 z-50 bg-carbon-900/95 backdrop-blur-xl border-b border-carbon-700/50 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo con animación */}
+            <motion.div 
+              className="flex items-center"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <motion.div
+                className="relative"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg">
+                  <img 
+                    src="/icono.png" 
+                    alt="Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-xl"
+                  animate={{ 
+                    opacity: [0.3, 0.6, 0.3],
+                    scale: [1, 1.05, 1]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              </motion.div>
+            </motion.div>
 
-            {/* Navigation */}
-            <nav className="hidden md:flex space-x-8">
-              {navigationItems.map((item) => {
+            {/* Navigation con animaciones */}
+            <nav className="hidden lg:flex items-center space-x-4">
+              {navigationItems.map((item, index) => {
                 const Icon = item.icon;
+                const isActive = activeNav === item.id;
                 return (
-                  <button
+                  <motion.button
                     key={item.id}
                     onClick={() => setActiveNav(item.id)}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      item.active
-                        ? 'text-primary bg-primary/10'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-carbon-700'
+                    className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                      isActive
+                        ? 'text-white'
+                        : 'text-text-secondary hover:text-text-primary'
                     }`}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </button>
+                    {/* Fondo activo con gradiente */}
+                    {isActive && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 rounded-xl shadow-lg"
+                        layoutId="activeTab"
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    )}
+                    
+                    {/* Fondo hover */}
+                    {!isActive && (
+                      <motion.div
+                        className="absolute inset-0 bg-carbon-700/50 rounded-xl opacity-0"
+                        whileHover={{ opacity: 1 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                    
+                    <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-white' : ''}`} />
+                    <span className="relative z-10">{item.name}</span>
+                    
+                    {/* Indicador de notificación */}
+                    {item.id === 'community' && (
+                      <motion.div
+                        className="relative z-10 w-2 h-2 bg-red-500 rounded-full"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                    )}
+                  </motion.button>
                 );
               })}
             </nav>
 
-            {/* User Menu */}
-            <div className="flex items-center space-x-4">
-              <button className="p-2 text-text-secondary hover:text-text-primary transition-colors">
-                <Settings className="w-5 h-5" />
-              </button>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-sm text-text-primary hidden sm:block">
-                  {user?.display_name || user?.username || 'Usuario'}
+            {/* User Menu con animaciones */}
+            <motion.div 
+              className="flex items-center space-x-4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              {/* Notificaciones */}
+              <motion.button 
+                className="relative p-3 text-text-secondary hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold">
+                  3
                 </span>
-              </div>
-              <button
+                <motion.div
+                  className="absolute inset-0 bg-primary/20 rounded-full"
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.3, 0.6, 0.3]
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              </motion.button>
+
+              {/* Configuración */}
+              <motion.button 
+                className="p-3 text-text-secondary hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50"
+                whileHover={{ scale: 1.05, rotate: 90 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Settings className="w-5 h-5" />
+              </motion.button>
+
+              {/* Perfil de usuario */}
+              <motion.div 
+                className="flex items-center space-x-4 px-4 py-2 rounded-xl hover:bg-carbon-700/50 transition-colors cursor-pointer"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <motion.div 
+                  className="relative w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <User className="w-5 h-5 text-white" />
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-full"
+                    animate={{ 
+                      opacity: [0.3, 0.6, 0.3],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                </motion.div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-text-primary">
+                    {user?.display_name || user?.username || 'Usuario'}
+                  </p>
+                  <p className="text-xs text-text-tertiary">
+                    {user?.cargo_rol || 'Usuario'}
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Logout */}
+              <motion.button
                 onClick={handleLogout}
-                className="p-2 text-text-secondary hover:text-red-400 transition-colors"
+                className="p-3 text-text-secondary hover:text-red-400 transition-colors rounded-xl hover:bg-red-500/10"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 title="Cerrar sesión"
               >
                 <LogOut className="w-5 h-5" />
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        <motion.div 
+          className="lg:hidden border-t border-carbon-700/50"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="px-6 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              {navigationItems.map((item, index) => {
+                const Icon = item.icon;
+                const isActive = activeNav === item.id;
+                return (
+                  <motion.button
+                    key={item.id}
+                    onClick={() => setActiveNav(item.id)}
+                    className={`flex items-center justify-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      isActive
+                        ? 'text-white bg-gradient-to-r from-primary to-primary/80'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-carbon-700/50'
+                    }`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.name}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
       </header>
 
       {/* Main Content */}
