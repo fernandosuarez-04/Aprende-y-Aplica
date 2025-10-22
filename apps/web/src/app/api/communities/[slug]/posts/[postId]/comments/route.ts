@@ -1,179 +1,189 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '../../../../../../../lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 
-export async function POST(
+export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string; postId: string }> }
+  { params }: { params: { slug: string; postId: string } }
 ) {
   try {
-    const supabase = await createClient();
-    const { slug, postId } = await params;
-    
-    // Obtener el usuario actual usando el sistema de sesiones personalizado
-    const { SessionService } = await import('../../../../../../../features/auth/services/session.service');
-    const user = await SessionService.getCurrentUser();
-    
-    if (!user) {
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { content, parent_id } = await request.json();
+    const { postId } = params;
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = (page - 1) * limit;
+
+    // Obtener comentarios del post con información del usuario
+    const { data: comments, error } = await supabase
+      .from('community_comments')
+      .select(`
+        *,
+        user:user_id (
+          id,
+          full_name,
+          avatar_url,
+          username
+        ),
+        reactions:community_reactions (
+          id,
+          reaction_type,
+          user_id
+        )
+      `)
+      .eq('post_id', postId)
+      .eq('is_deleted', false)
+      .is('parent_comment_id', null) // Solo comentarios principales
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('Error fetching comments:', error);
+      return NextResponse.json({ error: 'Error al obtener comentarios' }, { status: 500 });
+    }
+
+    // Obtener respuestas para cada comentario
+    const commentsWithReplies = await Promise.all(
+      comments.map(async (comment) => {
+        const { data: replies, error: repliesError } = await supabase
+          .from('community_comments')
+          .select(`
+            *,
+            user:user_id (
+              id,
+              full_name,
+              avatar_url,
+              username
+            ),
+            reactions:community_reactions (
+              id,
+              reaction_type,
+              user_id
+            )
+          `)
+          .eq('parent_comment_id', comment.id)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: true });
+
+        if (repliesError) {
+          console.error('Error fetching replies:', repliesError);
+        }
+
+        return {
+          ...comment,
+          replies: replies || []
+        };
+      })
+    );
+
+    // Obtener total de comentarios para paginación
+    const { count: totalComments, error: countError } = await supabase
+      .from('community_comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', postId)
+      .eq('is_deleted', false)
+      .is('parent_comment_id', null);
+
+    if (countError) {
+      console.error('Error counting comments:', countError);
+    }
+
+    return NextResponse.json({
+      comments: commentsWithReplies,
+      pagination: {
+        page,
+        limit,
+        total: totalComments || 0,
+        totalPages: Math.ceil((totalComments || 0) / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error in comments GET:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { slug: string; postId: string } }
+) {
+  try {
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const { postId, slug } = params;
+    const { content, parent_comment_id } = await request.json();
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json({ error: 'El contenido del comentario es requerido' }, { status: 400 });
     }
 
-    // Verificar que el post existe y obtener la comunidad
-    const { data: post, error: postError } = await supabase
-      .from('community_posts')
-      .select(`
-        id,
-        community_id,
-        communities!inner(slug)
-      `)
-      .eq('id', postId)
-      .eq('communities.slug', slug)
-      .single();
-
-    if (postError || !post) {
-      return NextResponse.json({ error: 'Post no encontrado' }, { status: 404 });
+    if (content.trim().length > 1000) {
+      return NextResponse.json({ error: 'El comentario es demasiado largo' }, { status: 400 });
     }
 
-    // Si es una respuesta a un comentario, verificar que el comentario padre existe
-    if (parent_id) {
-      const { data: parentComment, error: parentError } = await supabase
-        .from('community_comments')
-        .select('id')
-        .eq('id', parent_id)
-        .eq('post_id', postId)
-        .single();
+    // Obtener el community_id desde el slug
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
+      .select('id')
+      .eq('slug', slug)
+      .single();
 
-      if (parentError || !parentComment) {
-        return NextResponse.json({ error: 'Comentario padre no encontrado' }, { status: 404 });
-      }
+    if (communityError || !community) {
+      return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 
     // Crear el comentario
-    const { data: newComment, error: commentError } = await supabase
+    const { data: newComment, error: insertError } = await supabase
       .from('community_comments')
       .insert({
         post_id: postId,
+        community_id: community.id,
         user_id: user.id,
         content: content.trim(),
-        parent_id: parent_id || null,
-        likes_count: 0,
-        is_edited: false
+        parent_comment_id: parent_comment_id || null
       })
       .select(`
         *,
         user:user_id (
           id,
-          email,
-          username,
-          first_name,
-          last_name,
-          profile_picture_url
+          full_name,
+          avatar_url,
+          username
         )
       `)
       .single();
 
-    if (commentError) {
-      console.error('Error creating comment:', commentError);
-      return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    if (insertError) {
+      console.error('Error creating comment:', insertError);
+      return NextResponse.json({ error: 'Error al crear comentario' }, { status: 500 });
     }
 
-    // Actualizar contador de comentarios del post
-    const { error: updateError } = await supabase
-      .from('community_posts')
-      .update({ 
-        comments_count: supabase.raw('comments_count + 1')
-      })
-      .eq('id', postId);
+    // Actualizar contador de comentarios en el post
+    const { error: updateError } = await supabase.rpc('increment_comment_count', {
+      post_id: postId
+    });
 
     if (updateError) {
-      console.error('Error updating post comments count:', updateError);
+      console.error('Error updating comment count:', updateError);
     }
 
     return NextResponse.json({ 
-      success: true, 
+      message: 'Comentario creado exitosamente',
       comment: newComment 
     });
   } catch (error) {
-    console.error('Error in comments POST API:', error);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
-  }
-}
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string; postId: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { slug, postId } = await params;
-    
-    // Obtener el usuario actual usando el sistema de sesiones personalizado
-    const { SessionService } = await import('../../../../../../../features/auth/services/session.service');
-    const user = await SessionService.getCurrentUser();
-    
-    if (!user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    // Verificar que el post existe
-    const { data: post, error: postError } = await supabase
-      .from('community_posts')
-      .select(`
-        id,
-        communities!inner(slug)
-      `)
-      .eq('id', postId)
-      .eq('communities.slug', slug)
-      .single();
-
-    if (postError || !post) {
-      return NextResponse.json({ error: 'Post no encontrado' }, { status: 404 });
-    }
-
-    // Obtener comentarios del post (solo comentarios principales, no respuestas)
-    const { data: comments, error: commentsError } = await supabase
-      .from('community_comments')
-      .select(`
-        *,
-        user:user_id (
-          id,
-          email,
-          username,
-          first_name,
-          last_name,
-          profile_picture_url
-        ),
-        replies:community_comments!parent_id (
-          *,
-          user:user_id (
-            id,
-            email,
-            username,
-            first_name,
-            last_name,
-            profile_picture_url
-          )
-        )
-      `)
-      .eq('post_id', postId)
-      .is('parent_id', null)
-      .order('created_at', { ascending: true });
-
-    if (commentsError) {
-      console.error('Error fetching comments:', commentsError);
-      return NextResponse.json({ error: 'Error interno' }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      comments: comments || []
-    });
-  } catch (error) {
-    console.error('Error in comments GET API:', error);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    console.error('Error in comments POST:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
