@@ -61,8 +61,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
         setIsDirectoryDropdownOpen(!isDirectoryDropdownOpen)
         break
       case 'community':
-        // TODO: Implementar página de comunidad
-        console.log('Comunidad clicked')
+        router.push('/communities')
         break
       case 'news':
         router.push('/news')

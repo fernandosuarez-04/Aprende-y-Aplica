@@ -15,9 +15,10 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isProfilePage = pathname.startsWith('/profile');
   const isNewsPage = pathname.startsWith('/news');
   const isAIDirectoryPage = pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory');
+  const isCommunitiesPage = pathname.startsWith('/communities');
   
   // Determine which navbar to show
-  const shouldShowDashboardNavbar = isDashboardPage || isNewsPage || isAIDirectoryPage;
+  const shouldShowDashboardNavbar = isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage;
   const shouldShowRegularNavbar = !isAuthPage && !shouldShowDashboardNavbar && !isProfilePage;
   
   return (
@@ -36,5 +37,6 @@ function getActiveItem(pathname: string): string {
   if (pathname.startsWith('/dashboard')) return 'workshops';
   if (pathname.startsWith('/news')) return 'news';
   if (pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory')) return 'directory';
+  if (pathname.startsWith('/communities')) return 'community';
   return 'workshops';
 }

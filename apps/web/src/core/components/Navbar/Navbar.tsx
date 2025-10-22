@@ -151,6 +151,10 @@ export function Navbar() {
                 )}
               </div>
               
+              <Link href="/communities" className="text-sm font-medium hover:text-blue-400 transition-colors">
+                Comunidad
+              </Link>
+              
               <Link href="/news" className="text-sm font-medium hover:text-blue-400 transition-colors">
                 Noticias
               </Link>
@@ -231,6 +235,14 @@ export function Navbar() {
                   </Link>
                 </div>
               </div>
+              
+              <Link 
+                href="/communities" 
+                className="block text-sm font-medium hover:text-blue-400 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Comunidad
+              </Link>
               
               <Link 
                 href="/news" 
