@@ -269,20 +269,20 @@ Fecha: ${new Date().toLocaleString()}
         </div>
       </motion.header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-180px)]">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-8 min-h-[calc(100vh-140px)] sm:min-h-[calc(100vh-180px)]">
           {/* Chat Section */}
           <motion.div
-            className="lg:col-span-2 flex flex-col bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden"
+            className="lg:col-span-2 flex flex-col bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden order-1 lg:order-1 h-[60vh] sm:h-auto"
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             {/* Chat Header */}
-            <div className="p-6 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/80 to-slate-700/80">
-              <div className="flex items-center gap-4">
+            <div className="p-4 sm:p-6 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/80 to-slate-700/80 flex-shrink-0">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-lg">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-lg">
                     <Image
                       src="/lia-avatar.png"
                       alt="Lia - Asistente de IA"
@@ -291,15 +291,15 @@ Fecha: ${new Date().toLocaleString()}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-800 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-slate-800 flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
                   </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Lia</h2>
-                  <p className="text-slate-400 text-sm">Especialista en creación de prompts</p>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg sm:text-xl font-bold text-white truncate">Lia</h2>
+                  <p className="text-slate-400 text-xs sm:text-sm truncate">Especialista en creación de prompts</p>
                 </div>
-                <div className="ml-auto flex items-center gap-2 text-green-400 text-sm">
+                <div className="hidden sm:flex items-center gap-2 text-green-400 text-sm">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   En línea
                 </div>
@@ -307,7 +307,7 @@ Fecha: ${new Date().toLocaleString()}
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar min-h-0 max-h-[calc(100vh-400px)]">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar min-h-0">
               {messages.map((msg, index) => (
                 <motion.div
                   key={msg.id}
@@ -316,10 +316,10 @@ Fecha: ${new Date().toLocaleString()}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
                 >
-                  <div className={`max-w-[80%] ${msg.sender === 'user' ? 'order-2' : 'order-1'}`}>
+                  <div className={`max-w-[85%] sm:max-w-[80%] ${msg.sender === 'user' ? 'order-2' : 'order-1'}`}>
                     {msg.sender === 'ai' && (
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-full overflow-hidden border border-purple-500/50">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden border border-purple-500/50">
                           <Image
                             src="/lia-avatar.png"
                             alt="Lia"
@@ -328,17 +328,17 @@ Fecha: ${new Date().toLocaleString()}
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <span className="text-sm text-slate-400">Lia</span>
+                        <span className="text-xs sm:text-sm text-slate-400">Lia</span>
                       </div>
                     )}
                     <div
-                      className={`p-4 rounded-2xl shadow-lg ${
+                      className={`p-3 sm:p-4 rounded-2xl shadow-lg ${
                         msg.sender === 'user'
                           ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
                           : 'bg-slate-700/80 text-slate-100 border border-slate-600/50'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                      <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
                       <span className="text-xs opacity-70 block mt-2 text-right">
                         {msg.timestamp}
                       </span>
@@ -353,9 +353,9 @@ Fecha: ${new Date().toLocaleString()}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex justify-start"
                 >
-                  <div className="max-w-[80%]">
+                  <div className="max-w-[85%] sm:max-w-[80%]">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full overflow-hidden border border-purple-500/50">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden border border-purple-500/50">
                         <Image
                           src="/lia-avatar.png"
                           alt="Lia"
@@ -364,11 +364,11 @@ Fecha: ${new Date().toLocaleString()}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <span className="text-sm text-slate-400">Lia</span>
+                      <span className="text-xs sm:text-sm text-slate-400">Lia</span>
                     </div>
-                    <div className="p-4 rounded-2xl bg-slate-700/80 text-slate-100 border border-slate-600/50 flex items-center gap-3">
-                      <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-                      <span className="text-sm">Pensando...</span>
+                    <div className="p-3 sm:p-4 rounded-2xl bg-slate-700/80 text-slate-100 border border-slate-600/50 flex items-center gap-3">
+                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin text-purple-400" />
+                      <span className="text-xs sm:text-sm">Pensando...</span>
                     </div>
                   </div>
                 </motion.div>
@@ -377,31 +377,31 @@ Fecha: ${new Date().toLocaleString()}
             </div>
 
             {/* Input */}
-            <div className="p-6 border-t border-slate-700/50 bg-slate-800/30">
-              <div className="flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-slate-700/50 bg-slate-800/30 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    className="w-full p-4 pr-12 rounded-xl bg-slate-700/80 border border-slate-600/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full p-4 sm:p-4 pr-12 sm:pr-12 rounded-xl bg-slate-700/80 border border-slate-600/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base sm:text-base h-12 sm:h-auto"
                     placeholder="Describe qué tipo de prompt quieres crear..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     disabled={isLoading}
                   />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="w-2 h-2 bg-slate-500 rounded-full animate-pulse"></div>
+                  <div className="absolute right-3 sm:right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="w-2 h-2 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-pulse"></div>
                   </div>
                 </div>
                 <Button
                   onClick={handleSendMessage}
                   disabled={isLoading || !input.trim()}
-                  className="px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-6 sm:px-6 py-4 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 h-12 sm:h-auto"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 sm:w-5 sm:h-5 animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5" />
+                    <Send className="w-5 h-5 sm:w-5 sm:h-5" />
                   )}
                 </Button>
               </div>
@@ -410,40 +410,40 @@ Fecha: ${new Date().toLocaleString()}
 
           {/* Sidebar */}
           <motion.div
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6 flex flex-col order-2 lg:order-2 lg:h-full"
             initial={{ x: 50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             {/* Generated Prompt */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500">
-                  <Sparkles className="w-5 h-5 text-white" />
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4 sm:p-6 lg:flex-1 lg:flex lg:flex-col lg:min-h-0">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-white">Prompt Generado</h3>
+                <h3 className="text-base sm:text-lg font-bold text-white">Prompt Generado</h3>
               </div>
               
               {generatedPrompt ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
+                  className="space-y-3 sm:space-y-4 lg:flex-1 lg:overflow-y-auto lg:custom-scrollbar"
                 >
-                  <div className="bg-slate-700/50 rounded-xl p-4 border border-slate-600/30">
+                  <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-slate-600/30">
                     <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
-                      <Target className="w-4 h-4 text-purple-400" />
-                      Título
+                      <Target className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+                      <span className="text-sm sm:text-base">Título</span>
                     </h4>
-                    <p className="text-slate-300 text-sm">{generatedPrompt.title}</p>
+                    <p className="text-slate-300 text-xs sm:text-sm">{generatedPrompt.title}</p>
                   </div>
                   
-                  <div className="bg-slate-700/50 rounded-xl p-4 border border-slate-600/30">
+                  <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-slate-600/30">
                     <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-blue-400" />
-                      Contenido
+                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
+                      <span className="text-sm sm:text-base">Contenido</span>
                     </h4>
-                    <div className="text-slate-300 text-sm max-h-32 overflow-y-auto custom-scrollbar prose prose-invert prose-sm max-w-none">
+                    <div className="text-slate-300 text-xs sm:text-sm max-h-20 sm:max-h-32 overflow-y-auto custom-scrollbar prose prose-invert prose-sm max-w-none">
                       <ReactMarkdown 
                         components={{
                           h1: ({children}) => <h1 className="text-white text-lg font-bold mb-2">{children}</h1>,
@@ -470,12 +470,12 @@ Fecha: ${new Date().toLocaleString()}
                     ))}
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       onClick={handleDownloadPrompt}
-                      className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-2 sm:py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                       Descargar
                     </Button>
                     <Button
@@ -484,9 +484,9 @@ Fecha: ${new Date().toLocaleString()}
                         setSavePromptDescription(generatedPrompt.description);
                         setIsSaveModalOpen(true);
                       }}
-                      className="flex-1 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+                      className="flex-1 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white py-2 sm:py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"
                     >
-                      <Save className="w-4 h-4" />
+                      <Save className="w-3 h-3 sm:w-4 sm:h-4" />
                       Guardar
                     </Button>
                   </div>
@@ -504,29 +504,29 @@ Fecha: ${new Date().toLocaleString()}
             </div>
 
             {/* Tips */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500">
-                  <Lightbulb className="w-5 h-5 text-white" />
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4 sm:p-6 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500">
+                  <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-white">Consejos para mejores resultados</h3>
+                <h3 className="text-base sm:text-lg font-bold text-white">Consejos para mejores resultados</h3>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {tips.map((tip, index) => (
                   <motion.div
                     key={index}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-700/30 border border-slate-600/30 hover:bg-slate-700/50 transition-colors"
+                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl bg-slate-700/30 border border-slate-600/30 hover:bg-slate-700/50 transition-colors"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <div className="p-2 rounded-lg bg-slate-600/50">
-                      <tip.icon className="w-4 h-4 text-blue-400" />
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-slate-600/50 flex-shrink-0">
+                      <tip.icon className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-white text-sm">{tip.title}</h4>
-                      <p className="text-slate-400 text-xs mt-1">{tip.description}</p>
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-white text-xs sm:text-sm">{tip.title}</h4>
+                      <p className="text-slate-400 text-xs mt-1 leading-relaxed">{tip.description}</p>
                     </div>
                   </motion.div>
                 ))}
