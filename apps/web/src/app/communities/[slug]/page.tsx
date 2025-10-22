@@ -26,6 +26,40 @@ import {
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
+// import { useAuth } from '@/features/auth/hooks/useAuth';
+
+// Hook local para evitar problemas de importación
+function useAuth() {
+  const [user, setUser] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getCurrentUser();
+  }, []);
+
+  return {
+    user,
+    loading,
+    isAuthenticated: !!user,
+  };
+}
 
 interface Community {
   id: string;
@@ -117,6 +151,7 @@ export default function CommunityDetailPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
+  const { user } = useAuth();
   
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -491,8 +526,24 @@ export default function CommunityDetailPage() {
                   className="bg-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-6 mb-6"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
+                      {user?.profile_picture_url ? (
+                        <img 
+                          src={user.profile_picture_url} 
+                          alt={user?.first_name || 'Usuario'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : user?.first_name && user?.last_name ? (
+                        <span className="text-white font-semibold text-sm">
+                          {user.first_name.charAt(0)}{user.last_name.charAt(0)}
+                        </span>
+                      ) : user?.username ? (
+                        <span className="text-white font-semibold text-sm">
+                          {user.username.charAt(0).toUpperCase()}
+                        </span>
+                      ) : (
+                        <Users className="w-5 h-5 text-white" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <textarea
@@ -537,12 +588,31 @@ export default function CommunityDetailPage() {
                     {/* Post Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
+                          {post.user?.profile_picture_url ? (
+                            <img 
+                              src={post.user.profile_picture_url} 
+                              alt={post.user?.first_name || 'Usuario'}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : post.user?.first_name && post.user?.last_name ? (
+                            <span className="text-white font-semibold text-sm">
+                              {post.user.first_name.charAt(0)}{post.user.last_name.charAt(0)}
+                            </span>
+                          ) : post.user?.username ? (
+                            <span className="text-white font-semibold text-sm">
+                              {post.user.username.charAt(0).toUpperCase()}
+                            </span>
+                          ) : (
+                            <Users className="w-5 h-5 text-white" />
+                          )}
                         </div>
                         <div>
                           <h3 className="font-semibold text-white">
-                            {post.user?.user_metadata?.full_name || post.user?.email || 'Usuario'}
+                            {post.user?.first_name && post.user?.last_name 
+                              ? `${post.user.first_name} ${post.user.last_name}`
+                              : post.user?.username || post.user?.email || 'Usuario'
+                            }
                           </h3>
                           <p className="text-sm text-slate-400">
                             Hace {Math.floor(Math.random() * 30)} días • general

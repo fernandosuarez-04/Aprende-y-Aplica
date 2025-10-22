@@ -1,9 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { updateSession } from './src/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   console.log('🚀 Middleware ejecutándose para:', pathname);
+  
+  // Actualizar sesión de Supabase
+  const response = await updateSession(request);
   
   // Rutas protegidas que requieren autenticación
   const protectedRoutes = ['/dashboard'];
@@ -36,7 +40,7 @@ export async function middleware(request: NextRequest) {
   }
   
   console.log('➡️ Continuando sin redirección');
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

@@ -3,21 +3,22 @@ import { createClient } from '../../../../../lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { slug } = params;
+    const { slug } = await params;
     
     console.log('🔍 Fetching posts for community slug:', slug);
     
-    // Obtener el usuario actual (opcional)
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
     
-    if (userError) {
+    if (!user) {
       console.log('⚠️ User not authenticated');
     } else {
-      console.log('✅ User authenticated:', user?.id);
+      console.log('✅ User authenticated:', user.id);
     }
 
     // Primero obtener la comunidad por slug
@@ -93,7 +94,10 @@ export async function GET(
         user:user_id (
           id,
           email,
-          user_metadata
+          username,
+          first_name,
+          last_name,
+          profile_picture_url
         )
       `)
       .eq('community_id', community.id)
@@ -146,16 +150,17 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { slug } = params;
+    const { slug } = await params;
     
-    // Obtener el usuario actual
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
     
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

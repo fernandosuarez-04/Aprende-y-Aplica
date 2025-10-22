@@ -466,7 +466,8 @@ export default function CommunitiesPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     whileHover={{ y: -5, scale: 1.02 }}
-                    className={`relative group ${cardStyle.background} ${cardStyle.border} border rounded-3xl overflow-hidden backdrop-blur-sm ${cardStyle.shadow} shadow-2xl`}
+                    className={`relative group ${cardStyle.background} ${cardStyle.border} border rounded-3xl overflow-hidden backdrop-blur-sm ${cardStyle.shadow} shadow-2xl cursor-pointer`}
+                    onClick={() => router.push(`/communities/${community.slug}`)}
                   >
                       {/* Community Header with Gradient */}
                       <div className={`${cardStyle.headerBg} p-6 pb-4 relative overflow-hidden`}>
@@ -514,14 +515,14 @@ export default function CommunitiesPage() {
                         )}
 
                         {/* Action Button */}
-                        <div className="mt-4">
+                        <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                           {community.is_member ? (
                             <Button
-                              className="w-full bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 rounded-xl py-3 font-medium"
-                              disabled
+                              onClick={() => router.push(`/communities/${community.slug}`)}
+                              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25 rounded-xl py-3 font-medium transition-all duration-300"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
-                              Ya eres miembro
+                              Entrar a la Comunidad
                             </Button>
                           ) : community.has_pending_request ? (
                             <Button

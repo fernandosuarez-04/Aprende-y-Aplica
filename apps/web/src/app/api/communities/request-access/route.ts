@@ -5,10 +5,11 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    // Obtener el usuario actual
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
     
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

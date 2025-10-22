@@ -7,13 +7,14 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 Fetching communities...');
     
-    // Obtener el usuario actual (opcional)
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
     
-    if (userError) {
+    if (!user) {
       console.log('⚠️ User not authenticated, showing public communities only');
     } else {
-      console.log('✅ User authenticated:', user?.id);
+      console.log('✅ User authenticated:', user.id);
     }
 
     // Obtener todas las comunidades activas

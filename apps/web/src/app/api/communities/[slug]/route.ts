@@ -3,21 +3,22 @@ import { createClient } from '../../../../lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { slug } = params;
+    const { slug } = await params;
     
     console.log('🔍 Fetching community detail for slug:', slug);
     
-    // Obtener el usuario actual (opcional)
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
     
-    if (userError) {
+    if (!user) {
       console.log('⚠️ User not authenticated, showing public community info only');
     } else {
-      console.log('✅ User authenticated:', user?.id, 'Email:', user?.email);
+      console.log('✅ User authenticated:', user.id, 'Email:', user.email);
     }
 
     // Obtener la comunidad por slug
@@ -52,84 +53,24 @@ export async function GET(
     }
 
     // Verificar si el usuario tiene CUALQUIER membresía activa en otras comunidades
-    // Buscar por ID directo primero, luego por email si no encuentra
-    let allMemberships = null;
-    let allMembershipsError = null;
-    
-    // Intentar con el ID directo de auth.users
-    const { data: directMemberships, error: directError } = await supabase
+    const { data: allMemberships, error: allMembershipsError } = await supabase
       .from('community_members')
       .select('community_id, role')
       .eq('user_id', user.id)
       .eq('is_active', true);
-    
-    if (directMemberships && directMemberships.length > 0) {
-      allMemberships = directMemberships;
-    } else {
-      // Si no encuentra con el ID directo, buscar por email en public.users
-      const { data: userByEmail } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', user.email)
-        .single();
-      
-      if (userByEmail) {
-        const { data: emailMemberships, error: emailError } = await supabase
-          .from('community_members')
-          .select('community_id, role')
-          .eq('user_id', userByEmail.id)
-          .eq('is_active', true);
-        
-        allMemberships = emailMemberships;
-        allMembershipsError = emailError;
-      } else {
-        allMembershipsError = directError;
-      }
-    }
 
     console.log('🔍 All user memberships:', allMemberships);
 
     // Obtener membresía específica en esta comunidad
     console.log('🔍 Checking membership for user:', user.id, 'in community:', community.id);
     
-    // Buscar membresía específica: primero por ID directo, luego por email
-    let membership = null;
-    let membershipError = null;
-    
-    // Intentar con el ID directo de auth.users
-    const { data: directMembership, error: directMembershipError } = await supabase
+    const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role, is_active')
       .eq('community_id', community.id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
-    
-    if (directMembership) {
-      membership = directMembership;
-    } else {
-      // Si no encuentra con el ID directo, buscar por email en public.users
-      const { data: userByEmail } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', user.email)
-        .single();
-      
-      if (userByEmail) {
-        const { data: emailMembership, error: emailMembershipError } = await supabase
-          .from('community_members')
-          .select('role, is_active')
-          .eq('community_id', community.id)
-          .eq('user_id', userByEmail.id)
-          .eq('is_active', true)
-          .single();
-        
-        membership = emailMembership;
-        membershipError = emailMembershipError;
-      } else {
-        membershipError = directMembershipError;
-      }
-    }
 
     console.log('📊 Membership query result:', { membership, membershipError });
 
