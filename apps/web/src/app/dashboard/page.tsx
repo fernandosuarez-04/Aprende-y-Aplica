@@ -21,7 +21,6 @@ import { useCourses } from '../../features/courses/hooks/useCourses';
 import { useFavorites } from '../../features/courses/hooks/useFavorites';
 import { useCategories } from '../../features/courses/hooks/useCategories';
 import { UserDropdown } from '../../core/components/UserDropdown';
-import { DashboardNavbar } from '../../core/components/DashboardNavbar';
 import { useRouter } from 'next/navigation';
 
 // Mock data como fallback - se usará cuando no haya datos de la API
@@ -138,9 +137,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-carbon">
-      {/* Dashboard Navbar */}
-      <DashboardNavbar activeItem={activeNav} />
-
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Category Filters */}

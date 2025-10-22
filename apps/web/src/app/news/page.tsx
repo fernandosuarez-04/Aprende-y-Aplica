@@ -20,7 +20,6 @@ import {
 import { useNews, useNewsStats, useFeaturedNews } from '../../features/news/hooks/useNews'
 import { NewsWithMetrics } from '../../features/news/services/news.service'
 import { useRouter } from 'next/navigation'
-import { DashboardNavbar } from '../../core/components/DashboardNavbar'
 
 export default function NewsPage() {
   const router = useRouter()
@@ -58,9 +57,6 @@ export default function NewsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-carbon-950 via-carbon-900 to-carbon-800">
-      {/* Dashboard Navbar */}
-      <DashboardNavbar activeItem="news" />
-      
       {/* Header Section */}
       <motion.div 
         className="relative overflow-hidden"
