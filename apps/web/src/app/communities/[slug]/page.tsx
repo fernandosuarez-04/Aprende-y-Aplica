@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft,
@@ -22,16 +22,947 @@ import {
   Lock,
   UserPlus,
   Eye,
-  EyeOff
+  EyeOff,
+  File,
+  ThumbsUp,
+  Laugh,
+  Angry,
+  Sad,
+  Surprised,
+  Copy,
+  Twitter,
+  Facebook,
+  ExternalLink,
+  Download,
+  X,
+  Image as ImageIcon,
+  Link2,
+  Globe
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
+// Importaciones temporales comentadas para evitar errores
+// import { ReactionButton } from '../../../../features/communities/components/ReactionButton';
+// import { CommentsSection } from '../../../../features/communities/components/CommentsSection';
+// import { ShareButton } from '../../../../features/communities/components/ShareButton';
+// import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
 // import { useAuth } from '@/features/auth/hooks/useAuth';
+
+// Componentes completos para la comunidad
+function ReactionButton({ postId, currentReaction, reactionCount, onReaction }: any) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const reactions = [
+    { type: 'like', emoji: '👍', icon: ThumbsUp, color: 'text-blue-500' },
+    { type: 'love', emoji: '❤️', icon: Heart, color: 'text-red-500' },
+    { type: 'laugh', emoji: '😂', icon: Laugh, color: 'text-yellow-500' },
+    { type: 'wow', emoji: '😮', icon: Surprised, color: 'text-purple-500' },
+    { type: 'sad', emoji: '😢', icon: Sad, color: 'text-blue-400' },
+    { type: 'angry', emoji: '😡', icon: Angry, color: 'text-red-600' },
+  ];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        buttonRef.current && 
+        menuRef.current &&
+        !buttonRef.current.contains(event.target as Node) &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleReaction = (reactionType: string) => {
+    if (currentReaction === reactionType) {
+      onReaction(postId, null);
+    } else {
+      onReaction(postId, reactionType);
+    }
+    setShowMenu(false);
+  };
+
+  const getCurrentReaction = () => {
+    return reactions.find(r => r.type === currentReaction);
+  };
+
+  const currentReactionData = getCurrentReaction();
+
+  return (
+    <div className="relative" ref={buttonRef}>
+      <motion.button
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        onClick={() => setShowMenu(!showMenu)}
+        className={`
+          flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-200
+          ${currentReactionData 
+            ? `${currentReactionData.color} bg-opacity-10` 
+            : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'
+          }
+        `}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        {currentReactionData ? (
+          <>
+            <span className="text-lg">{currentReactionData.emoji}</span>
+            <span className="text-sm font-medium">
+              {reactionCount > 0 ? reactionCount : ''}
+            </span>
+          </>
+        ) : (
+          <>
+            <Heart className="w-4 h-4" />
+            <span className="text-sm">
+              {reactionCount > 0 ? reactionCount : 'Reaccionar'}
+            </span>
+          </>
+        )}
+      </motion.button>
+
+      <AnimatePresence>
+        {showMenu && (
+          <motion.div
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-2 shadow-2xl backdrop-blur-sm z-50"
+          >
+            <div className="flex items-center gap-1">
+              {reactions.map((reaction, index) => (
+                <motion.button
+                  key={reaction.type}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05, duration: 0.2 }}
+                  onClick={() => handleReaction(reaction.type)}
+                  className={`
+                    w-10 h-10 rounded-full flex items-center justify-center text-xl
+                    transition-all duration-200 hover:scale-125
+                    ${currentReaction === reaction.type 
+                      ? 'bg-slate-700 scale-110' 
+                      : 'hover:bg-slate-700/50'
+                    }
+                  `}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  {reaction.emoji}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function CommentsSection({ postId, communitySlug, onCommentAdded }: any) {
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+
+  const fetchComments = async () => {
+    try {
+      const response = await fetch(`/api/communities/${communitySlug}/posts/${postId}/comments`);
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.comments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (showComments) {
+      fetchComments();
+    }
+  }, [showComments, postId, communitySlug]);
+
+  const handleSubmitComment = async () => {
+    if (!newComment.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/communities/${communitySlug}/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: newComment.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setComments(prev => [...prev, data.comment]);
+        setNewComment('');
+        onCommentAdded?.(data.comment);
+      } else {
+        const errorData = await response.json();
+        console.error('Error creating comment:', errorData.error);
+        alert('Error al crear el comentario: ' + errorData.error);
+      }
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      alert('Error al crear el comentario');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-4">
+      <button
+        onClick={() => setShowComments(!showComments)}
+        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors mb-4"
+      >
+        <MessageSquare className="w-4 h-4" />
+        <span>{comments.length} comentarios</span>
+      </button>
+
+      <AnimatePresence>
+        {showComments && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
+            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                  U
+                </div>
+                <div className="flex-1">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Escribe un comentario..."
+                    className="w-full bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
+                    rows={2}
+                  />
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      onClick={handleSubmitComment}
+                      disabled={!newComment.trim() || isSubmitting}
+                      className="bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      ) : (
+                        <Send className="w-4 h-4 mr-2" />
+                      )}
+                      {isSubmitting ? 'Enviando...' : 'Comentar'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <motion.div
+                  key={comment.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50"
+                >
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                      {comment.user?.first_name?.charAt(0) || 'U'}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-white">
+                          {comment.user?.first_name && comment.user?.last_name 
+                            ? `${comment.user.first_name} ${comment.user.last_name}`
+                            : comment.user?.username || 'Usuario'
+                          }
+                        </span>
+                        <span className="text-slate-400 text-sm">
+                          {new Date(comment.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-slate-200">{comment.content}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ShareButton({ postId, postContent, communityName, communitySlug }: any) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        buttonRef.current && 
+        menuRef.current &&
+        !buttonRef.current.contains(event.target as Node) &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const postUrl = `${window.location.origin}/communities/${communitySlug}#post-${postId}`;
+  const shareText = `Mira este post de ${communityName}: "${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}"`;
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Error copying to clipboard:', err);
+    }
+  };
+
+  const shareToTwitter = () => {
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(postUrl)}`;
+    window.open(twitterUrl, '_blank', 'width=600,height=400');
+  };
+
+  const shareToFacebook = () => {
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
+    window.open(facebookUrl, '_blank', 'width=600,height=400');
+  };
+
+  return (
+    <div className="relative" ref={buttonRef}>
+      <motion.button
+        onClick={() => setShowMenu(!showMenu)}
+        className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Share2 className="w-5 h-5" />
+        <span>Compartir</span>
+      </motion.button>
+
+      <AnimatePresence>
+        {showMenu && (
+          <motion.div
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
+          >
+            <div className="space-y-2">
+              <button
+                onClick={() => copyToClipboard(postUrl)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+              >
+                <Copy className="w-4 h-4 text-blue-400" />
+                <span className="text-slate-200 text-sm">Copiar enlace</span>
+              </button>
+              <button
+                onClick={shareToTwitter}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+              >
+                <Twitter className="w-4 h-4 text-blue-400" />
+                <span className="text-slate-200 text-sm">Compartir en Twitter</span>
+              </button>
+              <button
+                onClick={shareToFacebook}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+              >
+                <Facebook className="w-4 h-4 text-blue-600" />
+                <span className="text-slate-200 text-sm">Compartir en Facebook</span>
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {copied && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="mt-2 pt-2 border-t border-slate-600"
+                >
+                  <div className="flex items-center gap-2 text-green-400 text-sm">
+                    <Copy className="w-3 h-3" />
+                    ¡Enlace copiado!
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: any) {
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // Debug: ver qué datos llegan
+  console.log('AttachmentViewer props:', { attachmentUrl, attachmentType, fileName });
+
+  if (!attachmentUrl) return null;
+
+  // Detectar si es una URL de YouTube
+  const isYouTubeUrl = (url: string) => {
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    return youtubeRegex.test(url);
+  };
+
+  // Detectar si es una imagen por URL
+  const isImageUrl = (url: string) => {
+    // URLs de Supabase Storage
+    if (url.includes('supabase') && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp'))) {
+      return true;
+    }
+    
+    // URLs base64 de imágenes
+    if (url.startsWith('data:image/')) {
+      return true;
+    }
+    
+    // Extensiones de imagen
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i;
+    if (imageExtensions.test(url)) {
+      return true;
+    }
+    
+    // Dominios conocidos de imágenes
+    const imageDomains = /\.(picsum\.photos|unsplash\.com|images\.unsplash\.com|via\.placeholder\.com)/i;
+    return imageDomains.test(url);
+  };
+
+  // Detectar si es un video por URL
+  const isVideoUrl = (url: string) => {
+    // URLs de Supabase Storage
+    if (url.includes('supabase') && (url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') || url.includes('.avi'))) {
+      return true;
+    }
+    
+    // Extensiones de video
+    const videoExtensions = /\.(mp4|webm|mov|avi|mkv|flv|wmv)(\?.*)?$/i;
+    return videoExtensions.test(url);
+  };
+
+  // Función para extraer el nombre de la página desde la URL
+  const getPageNameFromUrl = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+      
+      // Mapeo de dominios conocidos a nombres más amigables
+      const domainNames: { [key: string]: string } = {
+        'claude.ai': 'Claude AI',
+        'chatgpt.com': 'ChatGPT',
+        'openai.com': 'OpenAI',
+        'google.com': 'Google',
+        'youtube.com': 'YouTube',
+        'youtu.be': 'YouTube',
+        'github.com': 'GitHub',
+        'stackoverflow.com': 'Stack Overflow',
+        'medium.com': 'Medium',
+        'dev.to': 'Dev.to',
+        'linkedin.com': 'LinkedIn',
+        'twitter.com': 'Twitter',
+        'x.com': 'X (Twitter)',
+        'supabase.com': 'Supabase',
+        'vercel.com': 'Vercel',
+        'netlify.com': 'Netlify',
+        'figma.com': 'Figma',
+        'notion.so': 'Notion',
+        'discord.com': 'Discord',
+        'slack.com': 'Slack'
+      };
+      
+      // Si es un dominio conocido, usar el nombre amigable
+      if (domainNames[hostname]) {
+        return domainNames[hostname];
+      }
+      
+      // Si no, usar el hostname sin www
+      return hostname.replace(/^www\./, '');
+    } catch (error) {
+      // Si hay error al parsear la URL, devolver la URL truncada
+      return url.length > 30 ? url.substring(0, 30) + '...' : url;
+    }
+  };
+
+  // Detectar si es un enlace externo (no archivo)
+  const isExternalLink = (url: string) => {
+    // URLs que claramente son enlaces externos
+    const externalDomains = [
+      'claude.ai',
+      'chatgpt.com',
+      'openai.com',
+      'google.com',
+      'youtube.com',
+      'youtu.be',
+      'github.com',
+      'stackoverflow.com',
+      'medium.com',
+      'dev.to',
+      'linkedin.com',
+      'twitter.com',
+      'x.com'
+    ];
+    
+    // Si contiene un dominio externo conocido
+    if (externalDomains.some(domain => url.includes(domain))) {
+      return true;
+    }
+    
+    // Si es una URL HTTP/HTTPS pero no tiene extensión de archivo
+    if (url.startsWith('http') && !url.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|rtf|zip|rar|7z|mp4|webm|mov|avi|jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i)) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Detectar si es un documento/archivo
+  const isDocumentFile = (url: string, type?: string) => {
+    // Por tipo MIME
+    if (type && (type.includes('document') || type.includes('pdf') || type.includes('application'))) {
+      return true;
+    }
+    
+    // Por extensión
+    const documentExtensions = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|rtf|zip|rar|7z)(\?.*)?$/i;
+    return documentExtensions.test(url);
+  };
+
+  // Extraer ID de video de YouTube
+  const getYouTubeVideoId = (url: string) => {
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(youtubeRegex);
+    return match ? match[1] : null;
+  };
+
+  // Si es una URL de YouTube, mostrar video embebido
+  if (isYouTubeUrl(attachmentUrl)) {
+    const videoId = getYouTubeVideoId(attachmentUrl);
+    if (videoId) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-4"
+        >
+        <div className="community-video-player">
+          <div className="relative w-full" style={{ paddingBottom: '56.25%', minHeight: '400px' }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}`}
+                title={fileName || 'Video de YouTube'}
+                className="absolute top-0 left-0 w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+  }
+
+  // Si es un video nativo (por tipo o por URL)
+  if (attachmentType?.startsWith('video/') || attachmentType === 'video/youtube' || isVideoUrl(attachmentUrl)) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="mb-4"
+      >
+        <div className="community-video-player">
+          <video
+            src={attachmentUrl}
+            controls
+            className="w-full h-auto max-h-[500px]"
+            preload="metadata"
+          >
+            Tu navegador no soporta la reproducción de video.
+          </video>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Si es una imagen (por tipo o por URL)
+  if (attachmentType?.startsWith('image/') || attachmentType === 'image/jpeg' || attachmentType === 'image/png' || attachmentType === 'image/gif' || isImageUrl(attachmentUrl)) {
+    return (
+      <>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative group cursor-pointer mb-4"
+          onClick={() => setShowFullscreen(true)}
+        >
+          <div className="community-media-container">
+            {!imageError ? (
+              <img
+                src={attachmentUrl}
+                alt={fileName || 'Imagen adjunta'}
+                className="w-full h-auto max-h-[600px] object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64 bg-slate-800 text-slate-400">
+                <div className="text-center">
+                  <ImageIcon className="w-16 h-16 mx-auto mb-3" />
+                  <p className="text-lg">Error al cargar la imagen</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
+                  <ImageIcon className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <AnimatePresence>
+          {showFullscreen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+              onClick={() => setShowFullscreen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                className="relative max-w-[95vw] max-h-[95vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={attachmentUrl}
+                  alt={fileName || 'Imagen adjunta'}
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                />
+                <button
+                  onClick={() => setShowFullscreen(false)}
+                  className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-full p-3 text-white hover:bg-black/90 transition-colors z-10"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  }
+
+  // Si es un video (no YouTube)
+  if (attachmentType?.startsWith('video/')) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative group mb-4"
+      >
+        <div className="community-video-player">
+          <video
+            src={attachmentUrl}
+            controls
+            className="w-full h-auto max-h-[500px]"
+            poster=""
+          >
+            Tu navegador no soporta el elemento de video.
+          </video>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Determinar el tipo de contenido
+  const isLink = isExternalLink(attachmentUrl);
+  const isDocument = isDocumentFile(attachmentUrl, attachmentType);
+  
+  // Para enlaces externos
+  if (isLink) {
+    const pageName = getPageNameFromUrl(attachmentUrl);
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-indigo-500/10 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
+      >
+        {/* Efecto de brillo sutil */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+        
+        <div className="relative p-6">
+          <div className="flex items-start gap-5">
+            {/* Icono mejorado */}
+            <div className="relative">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-all duration-300 group-hover:scale-105">
+                <Link2 className="w-7 h-7 text-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+            </div>
+            
+            {/* Contenido principal */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <Globe className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                <h4 className="text-white font-semibold text-lg truncate">
+                  {pageName}
+                </h4>
+              </div>
+              
+              <p className="text-blue-200/80 text-sm mb-3 font-medium">
+                {fileName || 'Enlace web'}
+              </p>
+              
+              <div className="flex items-center gap-2 text-xs text-blue-400/70 bg-blue-500/10 rounded-lg px-3 py-2 border border-blue-400/20">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="truncate">{attachmentUrl}</span>
+              </div>
+            </div>
+            
+            {/* Botones de acción mejorados */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => window.open(attachmentUrl, '_blank')}
+                className="group/btn p-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105 active:scale-95"
+                title="Abrir enlace"
+              >
+                <ExternalLink className="w-5 h-5 group-hover/btn:rotate-12 transition-transform duration-200" />
+              </button>
+              
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(attachmentUrl);
+                  // Aquí podrías agregar una notificación de "copiado"
+                }}
+                className="group/btn p-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white shadow-lg shadow-purple-600/25 hover:shadow-purple-600/40 transition-all duration-300 hover:scale-105 active:scale-95"
+                title="Copiar enlace"
+              >
+                <Copy className="w-5 h-5 group-hover/btn:scale-110 transition-transform duration-200" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+  
+  // Para documentos/archivos
+  if (isDocument) {
+    // Función para extraer el nombre del archivo desde la URL si no se proporciona fileName
+    const getDocumentName = () => {
+      if (fileName) return fileName;
+      
+      try {
+        const urlObj = new URL(attachmentUrl);
+        const pathname = urlObj.pathname;
+        const filename = pathname.split('/').pop();
+        
+        if (filename && filename.includes('.')) {
+          return filename;
+        }
+        
+        // Si no hay nombre de archivo en la URL, usar el tipo de archivo
+        if (attachmentType) {
+          const extension = attachmentType.split('/').pop();
+          return `documento.${extension}`;
+        }
+        
+        return 'Documento adjunto';
+      } catch (error) {
+        return 'Documento adjunto';
+      }
+    };
+
+    const documentName = getDocumentName();
+    
+    // Función para obtener el color del tipo de archivo
+    const getFileTypeColor = (type?: string) => {
+      if (!type) return 'from-slate-500 to-slate-600';
+      if (type.includes('pdf')) return 'from-red-500 to-red-600';
+      if (type.includes('doc') || type.includes('word')) return 'from-blue-500 to-blue-600';
+      if (type.includes('xls') || type.includes('excel')) return 'from-green-500 to-green-600';
+      if (type.includes('ppt') || type.includes('powerpoint')) return 'from-orange-500 to-orange-600';
+      if (type.includes('txt')) return 'from-gray-500 to-gray-600';
+      return 'from-slate-500 to-slate-600';
+    };
+
+    const fileTypeGradient = getFileTypeColor(attachmentType);
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-500/10 via-gray-500/5 to-slate-500/10 border border-slate-400/20 hover:border-slate-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
+      >
+        {/* Efecto de brillo sutil */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+        
+        <div className="relative p-6">
+          <div className="flex items-start gap-5">
+            {/* Icono mejorado */}
+            <div className="relative">
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${fileTypeGradient} shadow-lg shadow-slate-500/25 group-hover:shadow-slate-500/40 transition-all duration-300 group-hover:scale-105`}>
+                <FileText className="w-7 h-7 text-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+            </div>
+            
+            {/* Contenido principal */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <File className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                <h4 className="text-white font-semibold text-lg truncate">
+                  {documentName}
+                </h4>
+              </div>
+              
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-slate-300/80 text-sm font-medium">
+                  {attachmentType || 'Archivo adjunto'}
+                </span>
+                <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                <span className="text-slate-400/70 text-xs">
+                  Documento
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2 text-xs text-slate-400/70 bg-slate-500/10 rounded-lg px-3 py-2 border border-slate-400/20">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <span>Archivo adjunto disponible</span>
+              </div>
+            </div>
+            
+            {/* Botones de acción mejorados */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => window.open(attachmentUrl, '_blank')}
+                className="group/btn p-3 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white shadow-lg shadow-slate-600/25 hover:shadow-slate-600/40 transition-all duration-300 hover:scale-105 active:scale-95"
+                title="Abrir documento"
+              >
+                <ExternalLink className="w-5 h-5 group-hover/btn:rotate-12 transition-transform duration-200" />
+              </button>
+              
+              <button
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = attachmentUrl;
+                  link.download = fileName || documentName;
+                  link.target = '_blank';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="group/btn p-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105 active:scale-95"
+                title="Descargar"
+              >
+                <Download className="w-5 h-5 group-hover/btn:scale-110 transition-transform duration-200" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+  
+  // Fallback para otros tipos
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="bg-slate-800/50 border border-slate-600/50 rounded-xl p-4 hover:bg-slate-700/50 transition-colors mb-4"
+    >
+      <div className="flex items-center gap-4">
+        <div className="p-3 rounded-lg bg-slate-700/50 text-slate-400">
+          <File className="w-8 h-8" />
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <h4 className="text-white font-medium truncate">
+            {fileName || 'Archivo adjunto'}
+          </h4>
+          <p className="text-slate-400 text-sm">
+            {attachmentType || 'Tipo desconocido'}
+          </p>
+          <p className="text-slate-500 text-xs mt-1">
+            URL: {attachmentUrl.length > 50 ? attachmentUrl.substring(0, 50) + '...' : attachmentUrl}
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => window.open(attachmentUrl, '_blank')}
+            className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white transition-colors"
+            title="Abrir en nueva pestaña"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              const link = document.createElement('a');
+              link.href = attachmentUrl;
+              link.download = fileName || 'archivo';
+              link.target = '_blank';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            className="p-2 rounded-lg bg-blue-600/50 hover:bg-blue-600 text-blue-300 hover:text-white transition-colors"
+            title="Descargar"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 // Hook local para evitar problemas de importación
 function useAuth() {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -54,9 +985,28 @@ function useAuth() {
     getCurrentUser();
   }, []);
 
+  const logout = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/auth/logout', { method: 'POST' });
+      if (response.ok) {
+        setUser(null);
+        router.push('/auth');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Fallback: limpiar estado local y redirigir
+      setUser(null);
+      router.push('/auth');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     user,
     loading,
+    logout,
     isAuthenticated: !!user,
   };
 }
@@ -160,6 +1110,8 @@ export default function CommunityDetailPage() {
   const [newPostContent, setNewPostContent] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [activeTab, setActiveTab] = useState('comunidad');
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [postReactions, setPostReactions] = useState<Record<string, { type: string | null; count: number }>>({});
 
   useEffect(() => {
     if (slug) {
@@ -203,6 +1155,94 @@ export default function CommunityDetailPage() {
       console.error('Error fetching posts:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreatePost = async () => {
+    if (!newPostContent.trim() || !community) return;
+    
+    setIsCreatingPost(true);
+    try {
+      const response = await fetch(`/api/communities/${slug}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: newPostContent.trim(),
+          title: null,
+          attachment_url: null,
+          attachment_type: null,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Agregar el nuevo post al inicio de la lista
+        setPosts(prev => [data.post, ...prev]);
+        setNewPostContent('');
+        // Actualizar contador de posts en la comunidad
+        setCommunity(prev => prev ? { ...prev, member_count: prev.member_count + 1 } : null);
+      } else {
+        const errorData = await response.json();
+        console.error('Error creating post:', errorData.error);
+        alert('Error al crear el post: ' + errorData.error);
+      }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('Error al crear el post');
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  const handleReaction = async (postId: string, reactionType: string | null) => {
+    try {
+      const response = await fetch(`/api/communities/${slug}/posts/${postId}/reactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reaction_type: reactionType,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Actualizar el estado local de reacciones
+        setPostReactions(prev => ({
+          ...prev,
+          [postId]: {
+            type: data.reaction,
+            count: data.action === 'added' 
+              ? (prev[postId]?.count || 0) + 1
+              : data.action === 'removed'
+              ? Math.max((prev[postId]?.count || 0) - 1, 0)
+              : (prev[postId]?.count || 0)
+          }
+        }));
+
+        // Actualizar el post en la lista
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                reaction_count: data.action === 'added' 
+                  ? post.reaction_count + 1
+                  : data.action === 'removed'
+                  ? Math.max(post.reaction_count - 1, 0)
+                  : post.reaction_count
+              }
+            : post
+        ));
+      } else {
+        const errorData = await response.json();
+        console.error('Error handling reaction:', errorData.error);
+      }
+    } catch (error) {
+      console.error('Error handling reaction:', error);
     }
   };
 
@@ -555,17 +1595,22 @@ export default function CommunityDetailPage() {
                       />
                       <div className="flex items-center justify-between mt-4">
                         <div className="flex items-center gap-2">
-                          <Button className="bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 border border-slate-600/50">
+                          <Button className="btn-secondary">
                             <Plus className="w-4 h-4 mr-2" />
                             Adjuntar
                           </Button>
                         </div>
                         <Button
-                          disabled={!newPostContent.trim()}
-                          className="bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
+                          onClick={handleCreatePost}
+                          disabled={!newPostContent.trim() || isCreatingPost}
+                          className="btn-primary disabled:opacity-50"
                         >
-                          <Send className="w-4 h-4 mr-2" />
-                          Publicar
+                          {isCreatingPost ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          ) : (
+                            <Send className="w-4 h-4 mr-2" />
+                          )}
+                          {isCreatingPost ? 'Publicando...' : 'Publicar'}
                         </Button>
                       </div>
                     </div>
@@ -583,12 +1628,12 @@ export default function CommunityDetailPage() {
                     key={post.id}
                     variants={cardVariants}
                     whileHover="hover"
-                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-6"
+                    className="community-post"
                   >
                     {/* Post Header */}
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="community-post-header">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
+                        <div className="community-post-avatar">
                           {post.user?.profile_picture_url ? (
                             <img 
                               src={post.user.profile_picture_url} 
@@ -625,24 +1670,64 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Post Content */}
-                    <div className="mb-4">
-                      <p className="text-white leading-relaxed">{post.content}</p>
+                    <div className="community-post-content">
+                      <p>{post.content}</p>
                     </div>
 
+                    {/* Post Attachments */}
+                    {post.attachment_url && (
+                      <div className="mb-4">
+                        <AttachmentViewer
+                          attachmentUrl={post.attachment_url}
+                          attachmentType={post.attachment_type || 'application/octet-stream'}
+                          fileName={post.title || undefined}
+                        />
+                      </div>
+                    )}
+
                     {/* Post Actions */}
-                    <div className="flex items-center gap-6 pt-4 border-t border-slate-700/50">
-                      <button className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors">
-                        <Heart className="w-5 h-5" />
-                        <span>{post.likes_count}</span>
-                      </button>
-                      <button className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors">
+                    <div className="community-post-actions">
+                      <ReactionButton
+                        postId={post.id}
+                        currentReaction={postReactions[post.id]?.type || null}
+                        reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
+                        onReaction={handleReaction}
+                      />
+                      <button 
+                        onClick={() => {
+                          // Toggle comments section for this post
+                          const commentsSection = document.getElementById(`comments-${post.id}`);
+                          if (commentsSection) {
+                            commentsSection.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors"
+                      >
                         <MessageSquare className="w-5 h-5" />
                         <span>{post.comments_count}</span>
                       </button>
-                      <button className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors">
-                        <Share2 className="w-5 h-5" />
-                        <span>Compartir</span>
-                      </button>
+                      <ShareButton
+                        postId={post.id}
+                        postContent={post.content}
+                        communityName={community.name}
+                        communitySlug={slug}
+                      />
+                    </div>
+
+                    {/* Sección de comentarios */}
+                    <div id={`comments-${post.id}`}>
+                      <CommentsSection
+                        postId={post.id}
+                        communitySlug={slug}
+                        onCommentAdded={(comment) => {
+                          // Actualizar contador de comentarios
+                          setPosts(prev => prev.map(p => 
+                            p.id === post.id 
+                              ? { ...p, comments_count: p.comments_count + 1 }
+                              : p
+                          ));
+                        }}
+                      />
                     </div>
                   </motion.div>
                 ))}
