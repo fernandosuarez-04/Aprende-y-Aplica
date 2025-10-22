@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Sparkles, Clock, Star, Eye, Download, ChevronDown, X } from 'lucide-react';
+import { Search, Filter, Sparkles, Clock, Star, Eye, Download, ChevronDown, X, Plus, Wand2 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { PromptCard } from '../../features/ai-directory/components/PromptCard';
 import { CategoryFilter } from '../../features/ai-directory/components/CategoryFilter';
@@ -11,6 +11,7 @@ import { AdvancedFilters } from '../../features/ai-directory/components/Advanced
 import { LoadingSpinner } from '../../features/ai-directory/components/LoadingSpinner';
 import { usePrompts } from '../../features/ai-directory/hooks/usePrompts';
 import { useCategories } from '../../features/ai-directory/hooks/useCategories';
+import { useRouter } from 'next/navigation';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,6 +37,7 @@ const itemVariants = {
 };
 
 export default function PromptDirectoryPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
@@ -121,6 +123,23 @@ export default function PromptDirectoryPage() {
             >
               Descubre y utiliza los mejores prompts de IA para maximizar tu productividad y creatividad
             </motion.p>
+
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8"
+              variants={itemVariants}
+            >
+              <Button
+                onClick={() => router.push('/prompt-directory/create')}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Wand2 className="w-5 h-5 mr-2" />
+                Crear Prompt con IA
+              </Button>
+              
+              <div className="text-sm text-gray-400">
+                o explora nuestra colección
+              </div>
+            </motion.div>
 
             <motion.div variants={itemVariants}>
               <SearchBar
