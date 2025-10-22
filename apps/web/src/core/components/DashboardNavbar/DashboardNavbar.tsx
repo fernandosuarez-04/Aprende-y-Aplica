@@ -153,7 +153,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-                          className="absolute top-full left-0 mt-2 w-64 bg-carbon-900 border border-carbon-700 rounded-xl shadow-2xl z-[60]"
+                          className="absolute top-full left-0 mt-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-[60]"
                         >
                           <div className="p-2">
                             <motion.button
@@ -161,7 +161,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 router.push('/prompt-directory')
                                 setIsDirectoryDropdownOpen(false)
                               }}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-carbon-800 transition-colors group w-full text-left"
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors group w-full text-left"
                               whileHover={{ x: 4 }}
                             >
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -182,7 +182,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 router.push('/apps-directory')
                                 setIsDirectoryDropdownOpen(false)
                               }}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-carbon-800 transition-colors group w-full text-left"
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors group w-full text-left"
                               whileHover={{ x: 4 }}
                             >
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
@@ -353,7 +353,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               router.push('/prompt-directory')
                               setIsDirectoryDropdownOpen(false)
                             }}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-carbon-800 hover:bg-carbon-700 transition-colors w-full text-left"
+                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors w-full text-left"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 }}
@@ -372,7 +372,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               router.push('/apps-directory')
                               setIsDirectoryDropdownOpen(false)
                             }}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-carbon-800 hover:bg-carbon-700 transition-colors w-full text-left"
+                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors w-full text-left"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2 }}
