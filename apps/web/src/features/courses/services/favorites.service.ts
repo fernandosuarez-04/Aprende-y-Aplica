@@ -18,9 +18,16 @@ export class FavoritesService {
         throw new Error(`Error al obtener favoritos: ${error.message}`)
       }
 
-      return data.map(favorite => favorite.course_id)
+      return data?.map(favorite => favorite.course_id) || []
     } catch (error) {
       console.error('Error in FavoritesService.getUserFavorites:', error)
+      
+      // Si es un error de configuración de Supabase, devolver array vacío
+      if (error instanceof Error && error.message.includes('Variables de entorno')) {
+        console.warn('Supabase no configurado correctamente, devolviendo favoritos vacíos')
+        return []
+      }
+      
       throw error
     }
   }

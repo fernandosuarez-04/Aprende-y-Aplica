@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { createClient } from '../../../lib/supabase/client'
 import type { Database } from '../../../lib/supabase/types'
+import { createBrowserClient } from '@supabase/ssr'
 
 export interface UserProfile {
   id: string
@@ -138,17 +139,20 @@ export function useProfile(): UseProfileReturn {
       setError(null)
       
       // Actualizar directamente en la base de datos
-      const supabase = createClient()
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
       
       const { data, error: updateError } = await supabase
         .from('users')
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
-        } as any)
+        })
         .eq('id', user.id)
         .select('*')
-        .single() as { data: Database['public']['Tables']['users']['Row'] | null, error: any }
+        .single()
 
       if (updateError || !data) {
         console.error('Error updating profile:', updateError)
@@ -157,27 +161,27 @@ export function useProfile(): UseProfileReturn {
 
       // Convertir los datos actualizados al formato esperado
       const updatedProfileData: UserProfile = {
-        id: data.id,
-        username: data.username || 'usuario',
-        email: data.email || 'usuario@ejemplo.com',
-        first_name: data.first_name || '',
-        last_name: data.last_name || '',
-        display_name: data.display_name || data.first_name || 'Usuario',
-        phone: data.phone || data.phone_number || '',
-        bio: data.bio || '',
-        location: data.location || '',
-        cargo_rol: data.cargo_rol || '',
+        id: (data as any).id,
+        username: (data as any).username || 'usuario',
+        email: (data as any).email || 'usuario@ejemplo.com',
+        first_name: (data as any).first_name || '',
+        last_name: (data as any).last_name || '',
+        display_name: (data as any).display_name || (data as any).first_name || 'Usuario',
+        phone: (data as any).phone || (data as any).phone_number || '',
+        bio: (data as any).bio || '',
+        location: (data as any).location || '',
+        cargo_rol: (data as any).cargo_rol || '',
         type_rol: '', // Campo no existe en la base de datos
-        profile_picture_url: data.profile_picture_url || '',
-        curriculum_url: data.curriculum_url || '',
-        linkedin_url: data.linkedin_url || '',
-        github_url: data.github_url || '',
-        website_url: data.website_url || '',
-        country_code: data.country_code || '',
-        points: data.points || 0,
-        created_at: data.created_at,
-        last_login_at: data.last_login_at || '',
-        email_verified: data.email_verified || false
+        profile_picture_url: (data as any).profile_picture_url || '',
+        curriculum_url: (data as any).curriculum_url || '',
+        linkedin_url: (data as any).linkedin_url || '',
+        github_url: (data as any).github_url || '',
+        website_url: (data as any).website_url || '',
+        country_code: (data as any).country_code || '',
+        points: (data as any).points || 0,
+        created_at: (data as any).created_at,
+        last_login_at: (data as any).last_login_at || '',
+        email_verified: (data as any).email_verified || false
       }
       
       setProfile(updatedProfileData)
@@ -231,7 +235,10 @@ export function useProfile(): UseProfileReturn {
       console.log('📤 Subiendo archivo:', filePath)
 
       // Subir archivo a Supabase Storage
-      const supabase = createClient()
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
       const { data, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file)
@@ -256,7 +263,7 @@ export function useProfile(): UseProfileReturn {
         .update({ 
           profile_picture_url: publicUrl,
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', currentUser.id)
 
       if (updateError) {
@@ -316,7 +323,10 @@ export function useProfile(): UseProfileReturn {
       const filePath = `curriculums/${fileName}`
 
       // Subir archivo a Supabase Storage
-      const supabase = createClient()
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
       const { data, error: uploadError } = await supabase.storage
         .from('curriculums')
         .upload(filePath, file)
@@ -337,7 +347,7 @@ export function useProfile(): UseProfileReturn {
         .update({ 
           curriculum_url: publicUrl,
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', currentUser.id)
 
       if (updateError) {

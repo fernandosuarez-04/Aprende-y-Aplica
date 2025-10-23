@@ -32,6 +32,12 @@ export function useFavorites(): UseFavoritesReturn {
       const response = await fetch(`/api/favorites?userId=${user.id}`)
       
       if (!response.ok) {
+        // Si es un error 500, probablemente es un problema de configuración
+        if (response.status === 500) {
+          console.warn('Error 500 en favoritos - probablemente Supabase no configurado')
+          setFavorites([]) // Devolver array vacío en lugar de error
+          return
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
       
@@ -39,8 +45,16 @@ export function useFavorites(): UseFavoritesReturn {
       setFavorites(data)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      console.error('Error fetching favorites:', err)
+      
+      // Si es un error de configuración, no mostrar error al usuario
+      if (errorMessage.includes('Variables de entorno') || errorMessage.includes('500')) {
+        console.warn('Supabase no configurado, usando favoritos vacíos')
+        setFavorites([])
+        setError(null)
+      } else {
+        setError(errorMessage)
+        console.error('Error fetching favorites:', err)
+      }
     } finally {
       setLoading(false)
     }
