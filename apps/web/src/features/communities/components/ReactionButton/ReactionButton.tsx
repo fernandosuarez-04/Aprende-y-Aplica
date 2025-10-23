@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ThumbsUp, Laugh, Angry, Sad, Surprised } from 'lucide-react';
+import { Heart, ThumbsUp, Laugh, Angry, Frown, Zap } from 'lucide-react';
 
 interface ReactionButtonProps {
   postId: string;
@@ -15,8 +15,8 @@ const reactions = [
   { type: '❤️', emoji: '❤️', icon: Heart, color: 'from-red-400 to-pink-500', label: 'Me encanta' },
   { type: '👍', emoji: '👍', icon: ThumbsUp, color: 'from-blue-400 to-blue-600', label: 'Me gusta' },
   { type: '😂', emoji: '😂', icon: Laugh, color: 'from-yellow-400 to-orange-500', label: 'Me divierte' },
-  { type: '😮', emoji: '😮', icon: Surprised, color: 'from-purple-400 to-purple-600', label: 'Me asombra' },
-  { type: '😢', emoji: '😢', icon: Sad, color: 'from-gray-400 to-gray-600', label: 'Me entristece' },
+  { type: '😮', emoji: '😮', icon: Zap, color: 'from-purple-400 to-purple-600', label: 'Me asombra' },
+  { type: '😢', emoji: '😢', icon: Frown, color: 'from-gray-400 to-gray-600', label: 'Me entristece' },
   { type: '😡', emoji: '😡', icon: Angry, color: 'from-red-500 to-red-700', label: 'Me enoja' },
   { type: '🔥', emoji: '🔥', icon: Heart, color: 'from-orange-400 to-red-500', label: 'Increíble' },
   { type: '✨', emoji: '✨', icon: Heart, color: 'from-indigo-400 to-purple-500', label: 'Mágico' },
