@@ -1,13 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+async function createClient() {
+  const cookieStore = await cookies();
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Variables de entorno de Supabase faltantes');
+  }
+  
+  return createServerClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component - ignore
+          }
+        },
+      },
+    }
+  );
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string; postId: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -17,7 +48,7 @@ export async function GET(
     const { postId } = params;
 
     // Obtener todas las reacciones del post
-    const { data: reactions, error } = await supabase
+    const { data: reactions, error } = await (supabase as any)
       .from('community_reactions')
       .select(`
         *,
@@ -36,7 +67,7 @@ export async function GET(
     }
 
     // Agrupar reacciones por tipo
-    const groupedReactions = reactions.reduce((acc, reaction) => {
+    const groupedReactions = reactions.reduce((acc: any, reaction: any) => {
       const type = reaction.reaction_type;
       if (!acc[type]) {
         acc[type] = {
@@ -73,7 +104,7 @@ export async function POST(
   { params }: { params: { slug: string; postId: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -88,7 +119,7 @@ export async function POST(
     }
 
     // Verificar si el usuario ya reaccionó con este tipo
-    const { data: existingReaction, error: checkError } = await supabase
+    const { data: existingReaction, error: checkError } = await (supabase as any)
       .from('community_reactions')
       .select('id')
       .eq('post_id', postId)
@@ -103,7 +134,7 @@ export async function POST(
 
     if (existingReaction) {
       // Si ya existe, eliminar la reacción (toggle)
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('community_reactions')
         .delete()
         .eq('id', existingReaction.id);
@@ -114,7 +145,7 @@ export async function POST(
       }
 
       // Actualizar contador en el post
-      const { error: updateError } = await supabase.rpc('decrement_reaction_count', {
+      const { error: updateError } = await (supabase as any).rpc('decrement_reaction_count', {
         post_id: postId
       });
 
@@ -125,7 +156,7 @@ export async function POST(
       return NextResponse.json({ message: 'Reacción eliminada', action: 'removed' });
     } else {
       // Crear nueva reacción
-      const { data: newReaction, error: insertError } = await supabase
+      const { data: newReaction, error: insertError } = await (supabase as any)
         .from('community_reactions')
         .insert({
           post_id: postId,
@@ -141,7 +172,7 @@ export async function POST(
       }
 
       // Actualizar contador en el post
-      const { error: updateError } = await supabase.rpc('increment_reaction_count', {
+      const { error: updateError } = await (supabase as any).rpc('increment_reaction_count', {
         post_id: postId
       });
 
