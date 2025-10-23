@@ -18,7 +18,8 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isCommunitiesPage = pathname.startsWith('/communities');
   
   // Determine which navbar to show
-  const shouldShowDashboardNavbar = isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage;
+  // For the home page (/), always show the regular navbar
+  const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage);
   const shouldShowRegularNavbar = !isAuthPage && !shouldShowDashboardNavbar && !isProfilePage;
   
   return (

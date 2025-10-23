@@ -27,8 +27,8 @@ import {
   ThumbsUp,
   Laugh,
   Angry,
-  Sad,
-  Surprised,
+  Frown,
+  Zap,
   Copy,
   Twitter,
   Facebook,
@@ -51,7 +51,7 @@ import { CommentsSection } from '../../../features/communities/components/Commen
 // Componentes completos para la comunidad
 // ReactionButton component is now imported from features/communities/components
 
-function CommentsSection({ postId, communitySlug, onCommentAdded }: any) {
+function LocalCommentsSection({ postId, communitySlug, onCommentAdded }: any) {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -308,12 +308,281 @@ function ShareButton({ postId, postContent, communityName, communitySlug }: any)
   );
 }
 
-function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: any) {
+// Componente para renderizar encuestas
+function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
+  const [hasVoted, setHasVoted] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentPollData, setCurrentPollData] = useState(pollData);
+
+  console.log('🎯 PollViewer received data:', pollData);
+  console.log('🎯 PollViewer - Raw pollData keys:', Object.keys(pollData || {}));
+
+  // Normalizar los datos de la encuesta
+  const normalizedData = {
+    question: currentPollData.question || currentPollData.title || 'Encuesta',
+    options: currentPollData.options || currentPollData.choices || currentPollData.responses || []
+  };
+  
+  console.log('🎯 PollViewer - Normalized data:', normalizedData);
+
+  // Calcular votos totales usando la estructura del sistema anterior
+  const totalVotes = normalizedData.options?.reduce((sum: number, option: any) => {
+    const optionKey = option.text || option.option || option;
+    const votes = currentPollData.votes?.[optionKey] || currentPollData.votes?.[option] || 0;
+    return sum + (Array.isArray(votes) ? votes.length : votes);
+  }, 0) || 0;
+
+  // Obtener el voto actual del usuario al cargar
+  useEffect(() => {
+    const getUserVote = async () => {
+      try {
+        const response = await fetch(`/api/communities/ecos-de-liderazgo/polls/${postId}/vote`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.userVote) {
+            setSelectedOption(data.userVote);
+            setHasVoted(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error obteniendo voto del usuario:', error);
+      }
+    };
+
+    getUserVote();
+  }, [postId]);
+
+  const handleVote = async (optionKey: string) => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const action = hasVoted && selectedOption === optionKey ? 'remove' : 'vote';
+      
+      const response = await fetch(`/api/communities/ecos-de-liderazgo/polls/${postId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          option: optionKey,
+          action: action
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          // Actualizar los datos de la encuesta
+          setCurrentPollData(data.pollData);
+          
+          if (action === 'vote') {
+            setSelectedOption(optionKey);
+            setHasVoted(true);
+          } else {
+            setSelectedOption(null);
+            setHasVoted(false);
+          }
+          
+          console.log('✅ Voto procesado:', data.message);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Error en votación:', errorData.error);
+        // Aquí podrías mostrar un toast de error
+      }
+    } catch (error) {
+      console.error('Error enviando voto:', error);
+      // Aquí podrías mostrar un toast de error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 via-slate-900/60 to-slate-800/80 border border-slate-700/40 backdrop-blur-xl shadow-2xl mb-6"
+    >
+      {/* Efecto de brillo sutil */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+      
+      {/* Header con gradiente */}
+      <div className="relative bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-indigo-500/10 border-b border-slate-700/30">
+        <div className="flex items-center gap-4 p-6">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+          </div>
+          <div className="flex-1">
+            <h4 className="text-white font-bold text-xl mb-1">
+              {normalizedData.question}
+            </h4>
+            <p className="text-slate-400 text-sm">Selecciona tu respuesta</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Opciones de la encuesta */}
+      <div className="p-6 space-y-4">
+        {normalizedData.options?.map((option: any, index: number) => {
+          const optionKey = option.text || option.option || option;
+          const votes = currentPollData.votes?.[optionKey] || currentPollData.votes?.[option] || 0;
+          const voteCount = Array.isArray(votes) ? votes.length : votes;
+          const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+          const isSelected = selectedOption === optionKey;
+          
+          return (
+            <motion.div
+              key={option.id || index}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.3 }}
+              className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+              } ${
+                isSelected 
+                  ? 'border-blue-400 bg-gradient-to-r from-blue-500/20 via-blue-500/10 to-indigo-500/20 shadow-lg shadow-blue-500/30 scale-[1.02]' 
+                  : 'border-slate-600/50 bg-slate-800/40 hover:border-blue-400/60 hover:bg-slate-700/50 hover:scale-[1.01] hover:shadow-lg hover:shadow-blue-500/20'
+              }`}
+              onClick={() => !isLoading && handleVote(optionKey)}
+            >
+              {/* Efecto de brillo en hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
+              
+              <div className="relative p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {isSelected && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center"
+                      >
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </motion.div>
+                    )}
+                    <span className="text-white font-semibold text-lg">
+                      {optionKey}
+                    </span>
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className="text-blue-400 font-bold text-lg">
+                      {percentage}%
+                    </div>
+                    <div className="text-slate-400 text-sm">
+                      {voteCount} votos
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Barra de progreso mejorada */}
+                {hasVoted && (
+                  <div className="relative">
+                    <div className="w-full h-3 bg-slate-700/50 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-indigo-500 rounded-full relative"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 0.8, delay: index * 0.1, ease: "easeOut" }}
+                      >
+                        {/* Efecto de brillo en la barra */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                      </motion.div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Footer mejorado */}
+      <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 border-t border-slate-700/30 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+            <span className="text-slate-300 font-medium">
+              {totalVotes} votos totales
+            </span>
+          </div>
+          
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 rounded-lg px-3 py-2 border border-slate-600/30">
+              <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+              <span>Procesando voto...</span>
+            </div>
+          ) : hasVoted ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 rounded-lg px-3 py-2 border border-slate-600/30"
+            >
+              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Haz click en tu voto para quitarlo o en otra opción para cambiar</span>
+            </motion.div>
+          ) : null}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileName, postId }: any) {
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   // Debug: ver qué datos llegan
-  console.log('AttachmentViewer props:', { attachmentUrl, attachmentType, fileName });
+  console.log('🔍 AttachmentViewer props:', { 
+    attachmentUrl, 
+    attachmentType, 
+    attachmentData, 
+    fileName,
+    isPoll: attachmentType === 'poll',
+    hasAttachmentData: !!attachmentData
+  });
+  
+  // Debug más detallado para encuestas
+  if (attachmentType === 'poll') {
+    console.log('🎯 POLL DETECTED - Full data:', {
+      attachmentType,
+      attachmentData,
+      attachmentUrl,
+      fileName
+    });
+  }
+
+  // Si es una encuesta, renderizar el componente de encuesta
+  // Verificar diferentes tipos de encuestas
+  const isPoll = attachmentType === 'poll' || 
+                 attachmentType === 'encuesta' || 
+                 attachmentType === 'survey' ||
+                 (attachmentData && (attachmentData.question || attachmentData.options));
+  
+  if (isPoll && attachmentData) {
+    console.log('✅ Rendering PollViewer with data:', attachmentData);
+    return <PollViewer pollData={attachmentData} postId={postId} />;
+  }
+
+  // Debug: si parece ser poll pero no tiene datos
+  if (isPoll && !attachmentData) {
+    console.log('❌ Poll type detected but no attachment data:', { attachmentType, attachmentData });
+  }
 
   if (!attachmentUrl) return null;
 
@@ -921,6 +1190,7 @@ interface Post {
   content: string;
   attachment_url?: string;
   attachment_type?: string;
+  attachment_data?: any; // Para datos de encuestas y otros adjuntos estructurados
   likes_count: number;
   comments_count: number;
   reaction_count: number;
@@ -949,35 +1219,13 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.25, 0.46, 0.45, 0.94]
-    }
-  }
+  visible: { opacity: 1, y: 0 }
 };
 
 const cardVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.25, 0.46, 0.45, 0.94]
-    }
-  },
-  hover: {
-    y: -2,
-    scale: 1.01,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.46, 0.45, 0.94]
-    }
-  }
+  visible: { opacity: 1, scale: 1, y: 0 },
+  hover: { y: -2, scale: 1.01 }
 };
 
 export default function CommunityDetailPage() {
@@ -1022,6 +1270,12 @@ export default function CommunityDetailPage() {
       const response = await fetch(`/api/communities/${slug}/posts`);
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Posts data received:', data.posts);
+        
+        // Debug: buscar posts con encuestas
+        const pollPosts = data.posts?.filter((post: any) => post.attachment_type === 'poll');
+        console.log('🔍 Poll posts found:', pollPosts);
+        
         setPosts(data.posts || []);
       } else {
         const errorData = await response.json();
@@ -1558,12 +1812,25 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Post Attachments */}
-                    {post.attachment_url && (
+                    {(post.attachment_url || post.attachment_data) && (
                       <div className="mb-4">
+                        {(() => {
+                          // Debug: ver datos del post antes de renderizar AttachmentViewer
+                          console.log('🔍 POST DATA before AttachmentViewer:', {
+                            postId: post.id,
+                            attachment_type: post.attachment_type,
+                            attachment_url: post.attachment_url,
+                            attachment_data: post.attachment_data,
+                            title: post.title
+                          });
+                          return null;
+                        })()}
                         <AttachmentViewer
                           attachmentUrl={post.attachment_url}
                           attachmentType={post.attachment_type || 'application/octet-stream'}
+             attachmentData={post.attachment_data}
                           fileName={post.title || undefined}
+             postId={post.id}
                         />
                       </div>
                     )}
@@ -1599,10 +1866,10 @@ export default function CommunityDetailPage() {
 
                     {/* Sección de comentarios */}
                     <div id={`comments-${post.id}`}>
-                      <CommentsSection
+                      <LocalCommentsSection
                         postId={post.id}
                         communitySlug={slug}
-                        onCommentAdded={(comment) => {
+                        onCommentAdded={(comment: any) => {
                           // Actualizar contador de comentarios
                           setPosts(prev => prev.map(p => 
                             p.id === post.id 
