@@ -51,15 +51,16 @@ import { CommentsSection } from '../../../features/communities/components/Commen
 // Componentes completos para la comunidad
 // ReactionButton component is now imported from features/communities/components
 
-function LocalCommentsSection({ postId, communitySlug, onCommentAdded }: any) {
+function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComments, setShowComments }: any) {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showComments, setShowComments] = useState(false);
 
   const fetchComments = async () => {
     try {
-      const response = await fetch(`/api/communities/${communitySlug}/posts/${postId}/comments`);
+      const response = await fetch(`/api/communities/${communitySlug}/posts/${postId}/comments`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setComments(data.comments || []);
@@ -85,6 +86,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded }: any) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           content: newComment.trim(),
         }),
@@ -110,14 +112,6 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded }: any) {
 
   return (
     <div className="mt-4">
-      <button
-        onClick={() => setShowComments(!showComments)}
-        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors mb-4"
-      >
-        <MessageSquare className="w-4 h-4" />
-        <span>{comments.length} comentarios</span>
-      </button>
-
       <AnimatePresence>
         {showComments && (
           <motion.div
@@ -1243,6 +1237,7 @@ export default function CommunityDetailPage() {
   const [activeTab, setActiveTab] = useState('comunidad');
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postReactions, setPostReactions] = useState<Record<string, { type: string | null; count: number }>>({});
+  const [showCommentsForPost, setShowCommentsForPost] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (slug) {
@@ -1845,10 +1840,23 @@ export default function CommunityDetailPage() {
                       />
                       <button 
                         onClick={() => {
+                          // Check if comments are currently showing for this post
+                          const isCurrentlyShowing = showCommentsForPost[post.id] || false;
+                          
                           // Toggle comments section for this post
-                          const commentsSection = document.getElementById(`comments-${post.id}`);
-                          if (commentsSection) {
-                            commentsSection.scrollIntoView({ behavior: 'smooth' });
+                          setShowCommentsForPost(prev => ({
+                            ...prev,
+                            [post.id]: !prev[post.id]
+                          }));
+                          
+                          // Only scroll if we're opening the comments (not closing)
+                          if (!isCurrentlyShowing) {
+                            setTimeout(() => {
+                              const commentsSection = document.getElementById(`comments-${post.id}`);
+                              if (commentsSection) {
+                                commentsSection.scrollIntoView({ behavior: 'smooth' });
+                              }
+                            }, 100);
                           }
                         }}
                         className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors"
@@ -1869,6 +1877,13 @@ export default function CommunityDetailPage() {
                       <LocalCommentsSection
                         postId={post.id}
                         communitySlug={slug}
+                        showComments={showCommentsForPost[post.id] || false}
+                        setShowComments={(show: boolean) => {
+                          setShowCommentsForPost(prev => ({
+                            ...prev,
+                            [post.id]: show
+                          }));
+                        }}
                         onCommentAdded={(comment: any) => {
                           // Actualizar contador de comentarios
                           setPosts(prev => prev.map(p => 

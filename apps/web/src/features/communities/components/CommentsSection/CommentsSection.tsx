@@ -43,7 +43,9 @@ export function CommentsSection({
 
   const fetchComments = async () => {
     try {
-      const response = await fetch(`/api/communities/${communitySlug}/posts/${postId}/comments`);
+      const response = await fetch(`/api/communities/${communitySlug}/posts/${postId}/comments`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setComments(data.comments || []);
@@ -69,6 +71,7 @@ export function CommentsSection({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           content: newComment.trim(),
         }),
@@ -102,6 +105,7 @@ export function CommentsSection({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           content: replyContent.trim(),
           parent_id: parentId,
