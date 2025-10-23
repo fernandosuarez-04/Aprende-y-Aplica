@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../../../../lib/supabase/server';
+import { SessionService } from '../../../../../../../features/auth/services/session.service';
 
 export async function POST(
   request: NextRequest,
@@ -11,9 +12,9 @@ export async function POST(
     
     const supabase = await createClient();
     
-    // Verificar autenticación
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Verificar autenticación usando el sistema de sesiones personalizado
+    const user = await SessionService.getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -167,9 +168,9 @@ export async function GET(
     
     const supabase = await createClient();
     
-    // Verificar autenticación
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Verificar autenticación usando el sistema de sesiones personalizado
+    const user = await SessionService.getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
