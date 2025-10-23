@@ -69,25 +69,27 @@ export async function GET(
       return NextResponse.json({ error: 'Error al obtener comentarios' }, { status: 500 });
     }
 
-    // Obtener información de usuarios para los comentarios
+    // Obtener información de usuarios para los comentarios (optimizado)
     const userIds = [...new Set(comments.map(comment => comment.user_id))];
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, full_name, avatar_url, username, first_name, last_name, profile_picture_url')
+      .select('id, username, first_name, last_name, display_name, profile_picture_url')
       .in('id', userIds);
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
     }
 
-    // Crear mapa de usuarios para acceso rápido
+    // Crear mapa de usuarios para acceso rápido (optimizado)
     const usersMap = new Map();
     if (users) {
       users.forEach(user => {
         usersMap.set(user.id, {
           id: user.id,
-          full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
-          avatar_url: user.profile_picture_url || user.avatar_url,
+          full_name: user.display_name || 
+                    (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+                    user.username,
+          avatar_url: user.profile_picture_url,
           username: user.username
         });
       });
@@ -203,12 +205,14 @@ export async function POST(
       return NextResponse.json({ error: 'Error al crear comentario' }, { status: 500 });
     }
 
-    // Agregar información del usuario al comentario
+    // Agregar información del usuario al comentario (optimizado)
     const commentWithUser = {
       ...newComment,
       user: {
         id: user.id,
-        full_name: user.full_name || user.first_name + ' ' + user.last_name || user.username,
+        full_name: user.display_name || 
+                  (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+                  user.username,
         avatar_url: user.profile_picture_url,
         username: user.username
       }
