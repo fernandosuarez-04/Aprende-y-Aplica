@@ -1589,6 +1589,8 @@ export default function CommunityDetailPage() {
                     onClick={() => {
                       if (tab === 'miembros') {
                         router.push(`/communities/${slug}/members`);
+                      } else if (tab === 'ligas') {
+                        router.push(`/communities/${slug}/leagues`);
                       } else {
                         setActiveTab(tab);
                       }

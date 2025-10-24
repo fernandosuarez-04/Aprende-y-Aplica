@@ -350,6 +350,8 @@ export default function MembersPage() {
                     onClick={() => {
                       if (tab === 'comunidad') {
                         router.push(`/communities/${slug}`);
+                      } else if (tab === 'ligas') {
+                        router.push(`/communities/${slug}/leagues`);
                       } else if (tab === 'miembros') {
                         // Ya estamos aquí
                       }
