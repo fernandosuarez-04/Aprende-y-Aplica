@@ -16,14 +16,17 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'Aprende y Aplica - Chat-Bot-LIA',
+  title: 'Aprende y Aplica',
   description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.',
   keywords: ['educación', 'inteligencia artificial', 'chatbot', 'capacitación', 'IA', 'LIA'],
   authors: [{ name: 'Equipo Aprende y Aplica' }],
   viewport: 'width=device-width, initial-scale=1',
   robots: 'index, follow',
+  icons: {
+    icon: '/icono.ico',
+  },
   openGraph: {
-    title: 'Aprende y Aplica - Chat-Bot-LIA',
+    title: 'Aprende y Aplica',
     description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA',
     type: 'website',
     locale: 'es_ES',
