@@ -467,6 +467,40 @@ a {
   @apply bg-slate-800/60 border-slate-600/60 shadow-lg shadow-slate-900/20;
 }
 
+/* Facebook-style post stats bar */
+.facebook-stats-bar {
+  @apply flex items-center justify-between py-2 px-4 text-sm text-slate-400 border-b border-slate-700/30;
+}
+
+.facebook-stats-bar .reaction-icons {
+  @apply flex items-center gap-1;
+}
+
+.facebook-stats-bar .reaction-icon {
+  @apply w-5 h-5 rounded-full flex items-center justify-center;
+}
+
+.facebook-stats-bar .reaction-count {
+  @apply text-slate-300;
+}
+
+.facebook-stats-bar .comment-count {
+  @apply text-slate-400 hover:text-blue-400 transition-colors cursor-pointer;
+}
+
+/* Facebook-style action buttons */
+.facebook-actions-bar {
+  @apply flex items-center justify-around py-2;
+}
+
+.facebook-action-button {
+  @apply flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30;
+}
+
+.facebook-action-button:hover {
+  @apply text-blue-400;
+}
+
 /* Enhanced media display */
 .community-media-container {
   @apply relative overflow-hidden rounded-xl bg-slate-800/50 border border-slate-700/50;
