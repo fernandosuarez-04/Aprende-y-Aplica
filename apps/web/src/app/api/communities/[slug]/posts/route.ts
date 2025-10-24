@@ -110,6 +110,10 @@ export async function GET(
     }
 
     console.log('📊 Found posts:', posts?.length || 0);
+    
+    // Debug: ver todos los attachment_types
+    const attachmentTypes = posts?.map(p => p.attachment_type).filter(Boolean);
+    console.log('🔍 Attachment types found:', [...new Set(attachmentTypes)]);
 
     // Obtener reacciones del usuario para cada post (si está autenticado)
     let userReactions: any[] = [];
@@ -127,8 +131,20 @@ export async function GET(
     // Enriquecer posts con información del usuario
     const enrichedPosts = posts?.map(post => {
       const userReaction = userReactions.find(r => r.post_id === post.id);
+      
+      // Debug: verificar datos de encuestas
+      if (post.attachment_type === 'poll') {
+        console.log('✅ Poll post found with data:', {
+          id: post.id,
+          question: post.attachment_data?.question,
+          options: post.attachment_data?.options,
+          votes: post.attachment_data?.votes
+        });
+      }
+      
       return {
         ...post,
+        // Los datos ya están en attachment_data, no necesitamos mapear
         user_has_liked: userReaction?.reaction_type === 'like',
         user_reaction_type: userReaction?.reaction_type || null
       };

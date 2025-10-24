@@ -22,14 +22,15 @@ import { useRouter } from 'next/navigation'
 import { notFound } from 'next/navigation'
 
 interface NewsDetailPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export default function NewsDetailPage({ params }: NewsDetailPageProps) {
   const router = useRouter()
-  const { news, loading, error } = useNewsDetail(params.slug)
+  const resolvedParams = React.use(params)
+  const { news, loading, error } = useNewsDetail(resolvedParams.slug)
 
   if (loading) {
     return (
