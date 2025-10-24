@@ -35,39 +35,29 @@ async function createClient() {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string; postId: string } }
+  { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
+    
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { postId } = params;
+    const { postId } = await params;
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = (page - 1) * limit;
 
-    // Obtener comentarios del post con información del usuario
+    // Obtener comentarios del post
     const { data: comments, error } = await (supabase as any)
       .from('community_comments')
-      .select(`
-        *,
-        user:user_id (
-          id,
-          full_name,
-          avatar_url,
-          username
-        ),
-        reactions:community_reactions (
-          id,
-          reaction_type,
-          user_id
-        )
-      `)
+      .select('*')
       .eq('post_id', postId)
       .eq('is_deleted', false)
       .is('parent_comment_id', null) // Solo comentarios principales
@@ -79,25 +69,38 @@ export async function GET(
       return NextResponse.json({ error: 'Error al obtener comentarios' }, { status: 500 });
     }
 
+    // Obtener información de usuarios para los comentarios (optimizado)
+    const userIds = [...new Set(comments.map(comment => comment.user_id))];
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, username, first_name, last_name, display_name, profile_picture_url')
+      .in('id', userIds);
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+    }
+
+    // Crear mapa de usuarios para acceso rápido (optimizado)
+    const usersMap = new Map();
+    if (users) {
+      users.forEach(user => {
+        usersMap.set(user.id, {
+          id: user.id,
+          full_name: user.display_name || 
+                    (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+                    user.username,
+          avatar_url: user.profile_picture_url,
+          username: user.username
+        });
+      });
+    }
+
     // Obtener respuestas para cada comentario
     const commentsWithReplies = await Promise.all(
       comments.map(async (comment: any) => {
         const { data: replies, error: repliesError } = await (supabase as any)
           .from('community_comments')
-          .select(`
-            *,
-            user:user_id (
-              id,
-              full_name,
-              avatar_url,
-              username
-            ),
-            reactions:community_reactions (
-              id,
-              reaction_type,
-              user_id
-            )
-          `)
+          .select('*')
           .eq('parent_comment_id', comment.id)
           .eq('is_deleted', false)
           .order('created_at', { ascending: true });
@@ -106,9 +109,16 @@ export async function GET(
           console.error('Error fetching replies:', repliesError);
         }
 
+        // Agregar información del usuario a las respuestas
+        const repliesWithUsers = (replies || []).map(reply => ({
+          ...reply,
+          user: usersMap.get(reply.user_id) || { id: reply.user_id, full_name: 'Usuario', avatar_url: null, username: 'usuario' }
+        }));
+
         return {
           ...comment,
-          replies: replies || []
+          user: usersMap.get(comment.user_id) || { id: comment.user_id, full_name: 'Usuario', avatar_url: null, username: 'usuario' },
+          replies: repliesWithUsers
         };
       })
     );
@@ -142,17 +152,20 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string; postId: string } }
+  { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
+    
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { postId, slug } = params;
+    const { postId, slug } = await params;
     const { content, parent_comment_id } = await request.json();
 
     if (!content || content.trim().length === 0) {
@@ -184,21 +197,26 @@ export async function POST(
         content: content.trim(),
         parent_comment_id: parent_comment_id || null
       })
-      .select(`
-        *,
-        user:user_id (
-          id,
-          full_name,
-          avatar_url,
-          username
-        )
-      `)
+      .select('*')
       .single();
 
     if (insertError) {
       console.error('Error creating comment:', insertError);
       return NextResponse.json({ error: 'Error al crear comentario' }, { status: 500 });
     }
+
+    // Agregar información del usuario al comentario (optimizado)
+    const commentWithUser = {
+      ...newComment,
+      user: {
+        id: user.id,
+        full_name: user.display_name || 
+                  (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+                  user.username,
+        avatar_url: user.profile_picture_url,
+        username: user.username
+      }
+    };
 
     // Actualizar contador de comentarios en el post
     const { error: updateError } = await (supabase as any).rpc('increment_comment_count', {
@@ -211,7 +229,7 @@ export async function POST(
 
     return NextResponse.json({ 
       message: 'Comentario creado exitosamente',
-      comment: newComment 
+      comment: commentWithUser 
     });
   } catch (error) {
     console.error('Error in comments POST:', error);
