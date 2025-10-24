@@ -43,6 +43,9 @@ import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
 // Importaciones usando rutas relativas
 import { ReactionButton } from '../../../features/communities/components/ReactionButton';
+import { ReactionBanner } from '../../../features/communities/components/ReactionBanner';
+import { PostInteractions } from '../../../features/communities/components/PostInteractions';
+import { useReactions } from '../../../features/communities/hooks';
 import { CommentsSection } from '../../../features/communities/components/CommentsSection';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
@@ -1308,6 +1311,7 @@ export default function CommunityDetailPage() {
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postReactions, setPostReactions] = useState<Record<string, { type: string | null; count: number }>>({});
   const [showCommentsForPost, setShowCommentsForPost] = useState<Record<string, boolean>>({});
+  const [userReactions, setUserReactions] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (slug) {
@@ -1342,6 +1346,11 @@ export default function CommunityDetailPage() {
         console.log('🔍 Poll posts found:', pollPosts);
         
         setPosts(data.posts || []);
+        
+        // Cargar reacciones del usuario para cada post
+        if (data.posts && data.posts.length > 0) {
+          await loadUserReactions(data.posts);
+        }
       } else {
         const errorData = await response.json();
         console.error('Error fetching posts:', errorData);
@@ -1357,6 +1366,34 @@ export default function CommunityDetailPage() {
       console.error('Error fetching posts:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadUserReactions = async (posts: Post[]) => {
+    try {
+      const reactionPromises = posts.map(async (post) => {
+        try {
+          const response = await fetch(`/api/communities/${slug}/posts/${post.id}/reactions`);
+          if (response.ok) {
+            const data = await response.json();
+            return { postId: post.id, userReaction: data.userReaction };
+          }
+        } catch (error) {
+          console.error(`Error loading reactions for post ${post.id}:`, error);
+        }
+        return { postId: post.id, userReaction: null };
+      });
+
+      const reactions = await Promise.all(reactionPromises);
+      const userReactionsMap: Record<string, string | null> = {};
+      
+      reactions.forEach(({ postId, userReaction }) => {
+        userReactionsMap[postId] = userReaction;
+      });
+
+      setUserReactions(userReactionsMap);
+    } catch (error) {
+      console.error('Error loading user reactions:', error);
     }
   };
 
@@ -1417,13 +1454,19 @@ export default function CommunityDetailPage() {
         setPostReactions(prev => ({
           ...prev,
           [postId]: {
-            type: data.reaction,
+            type: data.action === 'removed' ? null : reactionType,
             count: data.action === 'added' 
               ? (prev[postId]?.count || 0) + 1
               : data.action === 'removed'
               ? Math.max((prev[postId]?.count || 0) - 1, 0)
-              : (prev[postId]?.count || 0)
+              : (prev[postId]?.count || 0) // Para 'updated' y 'none' no cambia el conteo
           }
+        }));
+
+        // Actualizar las reacciones del usuario
+        setUserReactions(prev => ({
+          ...prev,
+          [postId]: data.action === 'removed' ? null : reactionType
         }));
 
         // Actualizar el post en la lista
@@ -1435,7 +1478,7 @@ export default function CommunityDetailPage() {
                   ? post.reaction_count + 1
                   : data.action === 'removed'
                   ? Math.max(post.reaction_count - 1, 0)
-                  : post.reaction_count
+                  : post.reaction_count // Para 'updated' y 'none' no cambia el conteo
               }
             : post
         ));
@@ -1956,11 +1999,22 @@ export default function CommunityDetailPage() {
                       </button>
                     </div>
 
+                    {/* Banner de Reacciones */}
+                    {(postReactions[post.id]?.count || post.reaction_count || 0) > 0 && (
+                      <div className="px-4 py-2">
+                        <ReactionBanner
+                          totalReactions={postReactions[post.id]?.count || post.reaction_count || 0}
+                          showTopReactions={false} // Por ahora solo mostrar conteo
+                        />
+                      </div>
+                    )}
+
                     {/* Facebook-style Action Buttons */}
                     <div className="flex items-center justify-around py-2">
+                      {/* Botón de Reacciones */}
                       <ReactionButton
                         postId={post.id}
-                        currentReaction={postReactions[post.id]?.type || null}
+                        currentReaction={userReactions[post.id] || null}
                         reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
                         onReaction={handleReaction}
                         isFacebookStyle={true}
