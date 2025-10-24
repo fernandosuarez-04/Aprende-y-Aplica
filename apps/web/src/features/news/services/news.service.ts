@@ -1,7 +1,25 @@
 import { createClient } from '../../../lib/supabase/client'
 import type { Database } from '../../../lib/supabase/types'
 
-export type NewsItem = Database['public']['Tables']['news']['Row']
+// Tipo temporal para news hasta que se actualice la base de datos
+export interface NewsItem {
+  id: string
+  title: string
+  slug: string
+  intro?: string
+  content: string
+  hero_image_url?: string
+  language: string
+  status: string
+  published_at?: string
+  created_at: string
+  updated_at: string
+  author_id?: string
+  category?: string
+  tags?: string[]
+  view_count?: number
+  comment_count?: number
+}
 
 export interface NewsWithMetrics extends NewsItem {
   view_count?: number

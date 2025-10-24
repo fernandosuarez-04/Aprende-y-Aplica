@@ -15,7 +15,9 @@ import {
   Users,
   BookOpen,
   ArrowRight,
-  Loader2
+  Loader2,
+  Video,
+  Play
 } from 'lucide-react'
 import { useNews, useNewsStats, useFeaturedNews } from '../../features/news/hooks/useNews'
 import { NewsWithMetrics } from '../../features/news/services/news.service'
@@ -26,6 +28,7 @@ export default function NewsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [activeTab, setActiveTab] = useState<'news' | 'reels'>('news')
   
   const { news, loading, error, loadMore, hasMore } = useNews({
     language: selectedCategory === 'all' ? undefined : selectedCategory
@@ -148,8 +151,73 @@ export default function NewsPage() {
         </div>
       </motion.div>
 
+      {/* Navigation Tabs */}
+      <motion.div 
+        className="sticky top-0 z-40 bg-carbon-950/80 backdrop-blur-sm border-b border-carbon-700/50"
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
+        <div className="px-6 py-4 lg:px-8">
+          <div className="flex items-center gap-1">
+            {[
+              { key: 'news', label: 'Noticias', icon: Newspaper },
+              { key: 'reels', label: 'Reels', icon: Video }
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as 'news' | 'reels')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === tab.key
+                    ? 'bg-primary text-white'
+                    : 'text-text-tertiary hover:text-text-primary hover:bg-carbon-800/50'
+                }`}
+              >
+                <tab.icon className="w-5 h-5" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Reels Section */}
+      {activeTab === 'reels' && (
+        <motion.section 
+          className="px-6 py-16 lg:px-8"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-text-primary mb-4">Reels</h2>
+              <p className="text-text-secondary">Videos cortos con las últimas noticias y tendencias</p>
+            </div>
+            
+            {/* Empty State for Reels */}
+            <div className="text-center py-16">
+              <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Video className="w-12 h-12 text-primary/70" />
+              </div>
+              <h3 className="text-2xl font-bold text-text-primary mb-4">No hay reels disponibles</h3>
+              <p className="text-text-secondary mb-8 max-w-md mx-auto">
+                Los reels aparecerán aquí una vez que se suban videos a la plataforma.
+              </p>
+              <button
+                onClick={() => router.push('/reels')}
+                className="px-8 py-3 bg-primary text-white rounded-xl hover:bg-primary/80 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/30 flex items-center gap-2 mx-auto"
+              >
+                <Video className="w-5 h-5" />
+                Ir a Reels
+              </button>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
       {/* Featured News Section */}
-      {!featuredLoading && featuredNews.length > 0 && (
+      {activeTab === 'news' && !featuredLoading && featuredNews.length > 0 && (
         <motion.section 
           className="px-6 py-16 lg:px-8"
           initial={{ y: 50, opacity: 0 }}
@@ -231,12 +299,13 @@ export default function NewsPage() {
       )}
 
       {/* Main News Section */}
-      <motion.section 
-        className="px-6 py-16 lg:px-8"
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.6 }}
-      >
+      {activeTab === 'news' && (
+        <motion.section 
+          className="px-6 py-16 lg:px-8"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
         <div className="mx-auto max-w-7xl">
           {/* Controls */}
           <div className="flex flex-col lg:flex-row gap-6 mb-12">
@@ -391,43 +460,9 @@ export default function NewsPage() {
             </motion.div>
           )}
         </div>
-      </motion.section>
+        </motion.section>
+      )}
 
-      {/* Newsletter Section */}
-      <motion.section 
-        className="px-6 py-16 lg:px-8"
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.7 }}
-      >
-        <div className="mx-auto max-w-4xl">
-          <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-3xl p-8 lg:p-12 text-center border border-primary/20">
-            <h2 className="text-3xl font-bold text-text-primary mb-4">
-              ¡No te pierdas nada!
-            </h2>
-            <p className="text-text-secondary mb-8 text-lg">
-              Suscríbete a nuestro boletín para recibir las últimas noticias y actualizaciones 
-              directamente en tu correo electrónico.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Tu correo electrónico"
-                className="flex-1 px-4 py-3 bg-carbon-800/50 border border-carbon-700/50 rounded-xl text-text-primary placeholder-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-              <button className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/80 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
-                <span>Suscribirse</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-            
-            <p className="text-text-tertiary text-sm mt-4">
-              No spam, solo contenido relevante. Puedes cancelar en cualquier momento.
-            </p>
-          </div>
-        </div>
-      </motion.section>
     </div>
   )
 }
