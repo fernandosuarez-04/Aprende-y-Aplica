@@ -1586,7 +1586,13 @@ export default function CommunityDetailPage() {
                 {['comunidad', 'miembros', 'ligas', 'acerca'].map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => {
+                      if (tab === 'miembros') {
+                        router.push(`/communities/${slug}/members`);
+                      } else {
+                        setActiveTab(tab);
+                      }
+                    }}
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
                       activeTab === tab
                         ? 'bg-blue-500 text-white'
