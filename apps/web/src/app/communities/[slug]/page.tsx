@@ -189,7 +189,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
   );
 }
 
-function ShareButton({ postId, postContent, communityName, communitySlug }: any) {
+function ShareButton({ postId, postContent, communityName, communitySlug, isFacebookStyle = false }: any) {
   const [showMenu, setShowMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
@@ -233,6 +233,76 @@ function ShareButton({ postId, postContent, communityName, communitySlug }: any)
     const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
     window.open(facebookUrl, '_blank', 'width=600,height=400');
   };
+
+  // Estilo de Facebook
+  if (isFacebookStyle) {
+    return (
+      <div className="relative" ref={buttonRef}>
+        <motion.button
+          onClick={() => setShowMenu(!showMenu)}
+          className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Share2 className="w-5 h-5" />
+          <span>Compartir</span>
+        </motion.button>
+
+        <AnimatePresence>
+          {showMenu && (
+            <motion.div
+              ref={menuRef}
+              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 10 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
+            >
+              <div className="space-y-2">
+                <button
+                  onClick={() => copyToClipboard(postUrl)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                >
+                  <Copy className="w-4 h-4 text-blue-400" />
+                  <span className="text-slate-200 text-sm">Copiar enlace</span>
+                </button>
+                <button
+                  onClick={shareToTwitter}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                >
+                  <Twitter className="w-4 h-4 text-blue-400" />
+                  <span className="text-slate-200 text-sm">Compartir en Twitter</span>
+                </button>
+                <button
+                  onClick={shareToFacebook}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                >
+                  <Facebook className="w-4 h-4 text-blue-600" />
+                  <span className="text-slate-200 text-sm">Compartir en Facebook</span>
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {copied && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="mt-2 pt-2 border-t border-slate-600"
+                  >
+                    <div className="flex items-center gap-2 text-green-400 text-sm">
+                      <Copy className="w-3 h-3" />
+                      ¡Enlace copiado!
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div className="relative" ref={buttonRef}>
@@ -1186,7 +1256,7 @@ interface Post {
   attachment_type?: string;
   attachment_data?: any; // Para datos de encuestas y otros adjuntos estructurados
   likes_count: number;
-  comments_count: number;
+  comment_count: number;
   reaction_count: number;
   is_pinned: boolean;
   is_edited: boolean;
@@ -1830,26 +1900,15 @@ export default function CommunityDetailPage() {
                       </div>
                     )}
 
-                    {/* Post Actions */}
-                    <div className="community-post-actions">
-                      <ReactionButton
-                        postId={post.id}
-                        currentReaction={postReactions[post.id]?.type || null}
-                        reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
-                        onReaction={handleReaction}
-                      />
+                    {/* Facebook-style Post Stats Bar - Solo comentarios */}
+                    <div className="flex items-center justify-end py-2 px-4 text-sm text-slate-400 border-b border-slate-700/30">
                       <button 
                         onClick={() => {
-                          // Check if comments are currently showing for this post
                           const isCurrentlyShowing = showCommentsForPost[post.id] || false;
-                          
-                          // Toggle comments section for this post
                           setShowCommentsForPost(prev => ({
                             ...prev,
                             [post.id]: !prev[post.id]
                           }));
-                          
-                          // Only scroll if we're opening the comments (not closing)
                           if (!isCurrentlyShowing) {
                             setTimeout(() => {
                               const commentsSection = document.getElementById(`comments-${post.id}`);
@@ -1859,16 +1918,48 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors"
+                        className="text-slate-400 hover:text-blue-400 transition-colors"
+                      >
+                        {post.comment_count} comentarios
+                      </button>
+                    </div>
+
+                    {/* Facebook-style Action Buttons */}
+                    <div className="flex items-center justify-around py-2">
+                      <ReactionButton
+                        postId={post.id}
+                        currentReaction={postReactions[post.id]?.type || null}
+                        reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
+                        onReaction={handleReaction}
+                        isFacebookStyle={true}
+                      />
+                      <button 
+                        onClick={() => {
+                          const isCurrentlyShowing = showCommentsForPost[post.id] || false;
+                          setShowCommentsForPost(prev => ({
+                            ...prev,
+                            [post.id]: !prev[post.id]
+                          }));
+                          if (!isCurrentlyShowing) {
+                            setTimeout(() => {
+                              const commentsSection = document.getElementById(`comments-${post.id}`);
+                              if (commentsSection) {
+                                commentsSection.scrollIntoView({ behavior: 'smooth' });
+                              }
+                            }, 100);
+                          }
+                        }}
+                        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30"
                       >
                         <MessageSquare className="w-5 h-5" />
-                        <span>{post.comments_count}</span>
+                        <span>Comentar</span>
                       </button>
                       <ShareButton
                         postId={post.id}
                         postContent={post.content}
                         communityName={community.name}
                         communitySlug={slug}
+                        isFacebookStyle={true}
                       />
                     </div>
 
@@ -1888,7 +1979,7 @@ export default function CommunityDetailPage() {
                           // Actualizar contador de comentarios
                           setPosts(prev => prev.map(p => 
                             p.id === post.id 
-                              ? { ...p, comments_count: p.comments_count + 1 }
+                              ? { ...p, comment_count: p.comment_count + 1 }
                               : p
                           ));
                         }}
