@@ -1625,21 +1625,45 @@ export default function CommunityDetailPage() {
         initial="hidden"
         animate="visible"
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+        {/* Community Image as Background */}
+        {community.image_url ? (
+          <div className="absolute inset-0">
+            <img
+              src={community.image_url}
+              alt={community.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Si la imagen falla al cargar, mostrar el gradiente
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const gradient = target.nextElementSibling as HTMLElement;
+                if (gradient) gradient.style.display = 'block';
+              }}
+            />
+            {/* Overlay oscuro para mejorar legibilidad del texto */}
+            <div className="absolute inset-0 bg-black/50" />
+          </div>
+        ) : (
+          <>
+            {/* Background Effects - solo si no hay imagen */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10" />
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+          </>
+        )}
         
-        <div className="relative max-w-7xl mx-auto">
+        <div className="relative max-w-7xl mx-auto z-10">
           <motion.div
             className="flex items-start justify-between"
             variants={itemVariants}
           >
             <div className="flex items-start gap-6">
-              {/* Community Avatar */}
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                <Users className="w-10 h-10 text-white" />
-              </div>
+              {/* Community Avatar - solo si no hay imagen de fondo */}
+              {!community.image_url && (
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                  <Users className="w-10 h-10 text-white" />
+                </div>
+              )}
 
               <div className="flex-1">
                 <h1 className="text-4xl font-bold text-white mb-2">

@@ -101,6 +101,17 @@ export class FavoritesService {
       return !!data
     } catch (error) {
       console.error('Error in FavoritesService.isFavorite:', error)
+      
+      // Si es un error de configuración de Supabase, devolver false
+      if (error instanceof Error && (
+        error.message.includes('Variables de entorno') ||
+        error.message.includes('NEXT_PUBLIC_SUPABASE_URL') ||
+        error.message.includes('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+      )) {
+        console.warn('Supabase no configurado, asumiendo que no es favorito')
+        return false
+      }
+      
       throw error
     }
   }
@@ -121,6 +132,18 @@ export class FavoritesService {
       }
     } catch (error) {
       console.error('Error in FavoritesService.toggleFavorite:', error)
+      
+      // Si es un error de configuración de Supabase, simular comportamiento
+      if (error instanceof Error && (
+        error.message.includes('Variables de entorno') ||
+        error.message.includes('NEXT_PUBLIC_SUPABASE_URL') ||
+        error.message.includes('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+      )) {
+        console.warn('Supabase no configurado, simulando toggle de favorito')
+        // Simular que se agregó a favoritos (puedes cambiar esta lógica según necesites)
+        return true
+      }
+      
       throw error
     }
   }

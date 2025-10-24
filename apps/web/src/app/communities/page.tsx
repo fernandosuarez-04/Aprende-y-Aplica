@@ -140,6 +140,10 @@ export default function CommunitiesPage() {
   // Log para depuración del renderizado
   useEffect(() => {
     console.log('🎨 Rendering communities:', filteredCommunities.length, filteredCommunities);
+    // Debug: verificar que se estén obteniendo las imágenes
+    filteredCommunities.forEach(community => {
+      console.log(`Comunidad: ${community.name}, Image URL: ${community.image_url}`);
+    });
   }, [filteredCommunities]);
 
   const fetchCommunities = async () => {
@@ -469,9 +473,30 @@ export default function CommunitiesPage() {
                     className={`relative group ${cardStyle.background} ${cardStyle.border} border rounded-3xl overflow-hidden backdrop-blur-sm ${cardStyle.shadow} shadow-2xl cursor-pointer`}
                     onClick={() => router.push(`/communities/${community.slug}`)}
                   >
-                      {/* Community Header with Gradient */}
+                      {/* Community Header with Image or Gradient */}
                       <div className={`${cardStyle.headerBg} p-6 pb-4 relative overflow-hidden`}>
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent" />
+                        {/* Community Image */}
+                        {community.image_url ? (
+                          <div className="absolute inset-0">
+                            <img
+                              src={community.image_url}
+                              alt={community.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Si la imagen falla al cargar, mostrar el gradiente
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const gradient = target.nextElementSibling as HTMLElement;
+                                if (gradient) gradient.style.display = 'block';
+                              }}
+                            />
+                            {/* Overlay para mejorar legibilidad del texto */}
+                            <div className="absolute inset-0 bg-black/40" />
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent" />
+                        )}
+                        
                         <div className="relative z-10">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">

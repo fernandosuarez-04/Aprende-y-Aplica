@@ -23,42 +23,7 @@ import { useCategories } from '../../features/courses/hooks/useCategories';
 import { UserDropdown } from '../../core/components/UserDropdown';
 import { useRouter } from 'next/navigation';
 
-// Mock data como fallback - se usará cuando no haya datos de la API
-const mockWorkshops = [
-  {
-    id: '1',
-    title: 'Introducción a la IA',
-    instructor: 'Ernesto Hernandez',
-    rating: 4.9,
-    price: 'MX$0',
-    status: 'Adquirido',
-    image: '/api/placeholder/300/200',
-    category: 'IA',
-    isFavorite: false,
-  },
-  {
-    id: '2',
-    title: 'Machine Learning Avanzado',
-    instructor: 'María García',
-    rating: 4.8,
-    price: 'MX$299',
-    status: 'Disponible',
-    image: '/api/placeholder/300/200',
-    category: 'IA',
-    isFavorite: true,
-  },
-  {
-    id: '3',
-    title: 'Análisis de Datos con Python',
-    instructor: 'Carlos López',
-    rating: 4.7,
-    price: 'MX$199',
-    status: 'Disponible',
-    image: '/api/placeholder/300/200',
-    category: 'Datos',
-    isFavorite: false,
-  },
-];
+// Los talleres ahora se obtienen únicamente de la API
 
 // Las categorías ahora se obtienen dinámicamente desde la base de datos
 
@@ -96,6 +61,10 @@ export default function DashboardPage() {
       await toggleFavorite(courseId);
     } catch (error) {
       console.error('Error toggling favorite:', error);
+      // Mostrar mensaje de error al usuario si es necesario
+      if (error instanceof Error && error.message.includes('Variables de entorno')) {
+        alert('Error: Supabase no está configurado. Por favor, configura las variables de entorno.');
+      }
     }
   };
 
@@ -107,21 +76,23 @@ export default function DashboardPage() {
     }
   };
 
-  // Usar datos de la API o fallback a mock data (sin favoritos hardcodeados)
-  const workshops = filteredCourses.length > 0 ? filteredCourses.map(course => ({
-    id: course.id,
-    title: course.title,
-    instructor: course.instructor_name || 'Instructor',
-    rating: course.rating || 4.5,
-    price: course.price || 'MX$0',
-    status: course.status || 'Disponible',
-    image: course.thumbnail || '/api/placeholder/300/200',
-    category: course.category || 'General',
-    isFavorite: isFavorite(course.id), // Usar el hook de favoritos
-  })) : mockWorkshops.map(workshop => ({
-    ...workshop,
-    isFavorite: isFavorite(workshop.id) // Usar el hook de favoritos para mock también
-  }));
+  // Usar únicamente datos de la API
+  const workshops = filteredCourses.map(course => {
+    // Debug: verificar que se esté obteniendo la imagen
+    console.log(`Curso: ${course.title}, Thumbnail: ${course.thumbnail}`);
+    
+    return {
+      id: course.id,
+      title: course.title,
+      instructor: course.instructor_name || 'Instructor',
+      rating: course.rating || 4.5,
+      price: course.price || 'MX$0',
+      status: course.status || 'Disponible',
+      image: course.thumbnail || null, // Usar null en lugar de placeholder para detectar si hay imagen
+      category: course.category || 'General',
+      isFavorite: isFavorite(course.id), // Usar el hook de favoritos
+    };
+  });
 
   // Mostrar loading mientras se obtienen los datos del usuario
   if (loading) {
@@ -230,8 +201,28 @@ export default function DashboardPage() {
                   transition={{ duration: 0.2 }}
                 >
                   {/* Workshop Image */}
-                  <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/5">
-                    <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">
+                    {workshop.image ? (
+                      <img
+                        src={workshop.image}
+                        alt={workshop.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Si la imagen falla al cargar, mostrar el placeholder
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const placeholder = target.nextElementSibling as HTMLElement;
+                          if (placeholder) placeholder.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    
+                    {/* Placeholder cuando no hay imagen o falla al cargar */}
+                    <div 
+                      className={`absolute inset-0 flex items-center justify-center ${
+                        workshop.image ? 'hidden' : 'flex'
+                      }`}
+                    >
                       <div className="text-center">
                         <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
                           <Brain className="w-8 h-8 text-primary" />
@@ -239,9 +230,10 @@ export default function DashboardPage() {
                         <p className="text-sm text-text-secondary">APRENDE Y APLICA IA®</p>
                       </div>
                     </div>
+                    
                     <button
                       onClick={() => handleToggleFavorite(workshop.id)}
-                      className="absolute top-3 right-3 p-2 bg-carbon-800/80 rounded-full hover:bg-carbon-700 transition-colors"
+                      className="absolute top-3 right-3 p-2 bg-carbon-800/80 rounded-full hover:bg-carbon-700 transition-colors z-10"
                     >
                       <Heart 
                         className={`w-4 h-4 ${
@@ -322,15 +314,21 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-text-secondary">Talleres Completados</span>
-                  <span className="text-primary font-semibold">1</span>
+                  <span className="text-primary font-semibold">
+                    {courses.filter(course => course.status === 'Completado').length}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-text-secondary">En Progreso</span>
-                  <span className="text-primary font-semibold">0</span>
+                  <span className="text-primary font-semibold">
+                    {courses.filter(course => course.status === 'En Progreso').length}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-text-secondary">Favoritos</span>
-                  <span className="text-primary font-semibold">1</span>
+                  <span className="text-primary font-semibold">
+                    {favorites.length}
+                  </span>
                 </div>
               </div>
             </div>
@@ -341,14 +339,22 @@ export default function DashboardPage() {
                 Actividad Reciente
               </h3>
               <div className="space-y-3">
-                <div className="text-sm text-text-secondary">
-                  <p>Completaste "Introducción a la IA"</p>
-                  <p className="text-xs text-text-tertiary">Hace 2 días</p>
-                </div>
-                <div className="text-sm text-text-secondary">
-                  <p>Te uniste a la plataforma</p>
-                  <p className="text-xs text-text-tertiary">Hace 1 semana</p>
-                </div>
+                {courses.filter(course => course.status === 'Completado').length > 0 ? (
+                  courses
+                    .filter(course => course.status === 'Completado')
+                    .slice(0, 2)
+                    .map((course) => (
+                      <div key={course.id} className="text-sm text-text-secondary">
+                        <p>Completaste "{course.title}"</p>
+                        <p className="text-xs text-text-tertiary">Recientemente</p>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-sm text-text-secondary">
+                    <p>No hay actividad reciente</p>
+                    <p className="text-xs text-text-tertiary">Comienza un curso para ver tu progreso</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
