@@ -12,6 +12,7 @@ interface User {
   last_name?: string;
   display_name?: string;
   cargo_rol?: string;
+  type_rol?: string;
 }
 
 export function useAuth() {

@@ -105,7 +105,7 @@ export function useProfile(): UseProfileReturn {
         bio: data.bio || '',
         location: data.location || '',
         cargo_rol: data.cargo_rol || '',
-        type_rol: '', // Campo no existe en la base de datos
+        type_rol: data.type_rol || '',
         profile_picture_url: data.profile_picture_url || '',
         curriculum_url: data.curriculum_url || '',
         linkedin_url: data.linkedin_url || '',
@@ -171,7 +171,7 @@ export function useProfile(): UseProfileReturn {
         bio: (data as any).bio || '',
         location: (data as any).location || '',
         cargo_rol: (data as any).cargo_rol || '',
-        type_rol: '', // Campo no existe en la base de datos
+        type_rol: (data as any).type_rol || '',
         profile_picture_url: (data as any).profile_picture_url || '',
         curriculum_url: (data as any).curriculum_url || '',
         linkedin_url: (data as any).linkedin_url || '',

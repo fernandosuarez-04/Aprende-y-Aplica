@@ -16,10 +16,12 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isNewsPage = pathname.startsWith('/news');
   const isAIDirectoryPage = pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory');
   const isCommunitiesPage = pathname.startsWith('/communities');
+  const isStatisticsPage = pathname.startsWith('/statistics');
+  const isQuestionnairePage = pathname.startsWith('/questionnaire');
   
   // Determine which navbar to show
   // For the home page (/), always show the regular navbar
-  const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage);
+  const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage);
   const shouldShowRegularNavbar = !isAuthPage && !shouldShowDashboardNavbar && !isProfilePage;
   
   return (
@@ -39,5 +41,7 @@ function getActiveItem(pathname: string): string {
   if (pathname.startsWith('/news')) return 'news';
   if (pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory')) return 'directory';
   if (pathname.startsWith('/communities')) return 'community';
+  if (pathname.startsWith('/statistics')) return 'statistics';
+  if (pathname.startsWith('/questionnaire')) return 'workshops'; // El cuestionario se considera parte de workshops
   return 'workshops';
 }

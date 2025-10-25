@@ -34,7 +34,7 @@ export async function loginAction(formData: FormData) {
     // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol')
       .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .single()
 

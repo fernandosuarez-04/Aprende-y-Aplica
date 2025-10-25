@@ -80,6 +80,7 @@ export async function registerAction(formData: FormData) {
         country_code: parsed.countryCode,
         phone: parsed.phoneNumber, // Campo phone para el número de teléfono (varchar en DB)
         cargo_rol: 'Usuario', // Rol por defecto para nuevos usuarios
+        type_rol: 'Usuario', // Tipo de rol por defecto para nuevos usuarios
         email_verified: false, // Se verificará después con email manual
       })
       .select()

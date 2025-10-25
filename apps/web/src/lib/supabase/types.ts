@@ -15,6 +15,7 @@ export interface Database {
           phone: string | null
           country_code: string | null
           cargo_rol: string
+          type_rol: string
           profile_picture_url: string | null
           curriculum_url: string | null
           bio: string | null
@@ -40,6 +41,7 @@ export interface Database {
           phone?: string | null
           country_code?: string | null
           cargo_rol?: string
+          type_rol?: string
           profile_picture_url?: string | null
           curriculum_url?: string | null
           bio?: string | null
@@ -65,6 +67,7 @@ export interface Database {
           phone?: string | null
           country_code?: string | null
           cargo_rol?: string
+          type_rol?: string
           profile_picture_url?: string | null
           curriculum_url?: string | null
           bio?: string | null

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { 
   User, 
   BarChart, 
@@ -14,7 +15,6 @@ import {
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
 import { useTheme } from '../../hooks/useTheme'
-import { useRouter } from 'next/navigation'
 
 interface UserDropdownProps {
   className?: string
@@ -61,7 +61,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       label: 'Mis Estadísticas',
       icon: BarChart,
       onClick: () => {
-        console.log('Estadísticas clicked')
+        router.push('/statistics')
         setIsOpen(false)
       }
     },

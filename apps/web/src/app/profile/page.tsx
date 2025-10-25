@@ -208,7 +208,7 @@ export default function ProfilePage() {
                   {profile.display_name}
                 </h3>
                 <p className="text-sm text-text-tertiary">
-                  {profile.cargo_rol}
+                  {profile.type_rol}
                 </p>
               </div>
 
@@ -348,10 +348,10 @@ export default function ProfilePage() {
                     </label>
                     <input
                       type="text"
-                      value={formData.cargo_rol || ''}
-                      onChange={(e) => handleInputChange('cargo_rol', e.target.value)}
+                      value={formData.type_rol || ''}
+                      onChange={(e) => handleInputChange('type_rol', e.target.value)}
                       className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
-                      placeholder="Ej: Gerente de Ventas, Desarrollador, Analista..."
+                      placeholder="Ej: CEO, CTO/CIO, Desarrollador UX/UI, Gerencia Media..."
                     />
                   </div>
 

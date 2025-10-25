@@ -86,7 +86,7 @@ export class SessionService {
       // Obtener datos del usuario
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('id, username, email, first_name, last_name, display_name, cargo_rol, profile_picture_url')
+        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url')
         .eq('id', session.user_id)
         .single();
 
