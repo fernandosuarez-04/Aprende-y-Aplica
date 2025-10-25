@@ -2,27 +2,47 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ThumbsUp, Laugh, Angry, Frown, Zap } from 'lucide-react';
+import { Heart, ThumbsUp, Laugh, Angry, Frown } from 'lucide-react';
+
+// Componente SVG personalizado para cara de sorpresa 😮
+const SurprisedFace = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* Círculo de la cara */}
+    <circle cx="12" cy="12" r="10" />
+    {/* Ojos sorprendidos (puntos) */}
+    <circle cx="8" cy="9" r="0.4" fill="currentColor" />
+    <circle cx="16" cy="9" r="0.4" fill="currentColor" />
+    {/* Boca abierta en forma de "o" (sin relleno) */}
+    <circle cx="12" cy="15" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
+  </svg>
+);
 
 interface ReactionButtonProps {
   postId: string;
   currentReaction?: string | null;
   reactionCount: number;
   onReaction: (postId: string, reaction: string | null) => void;
+  isFacebookStyle?: boolean;
 }
 
 const reactions = [
-  { type: '❤️', emoji: '❤️', icon: Heart, color: 'from-red-400 to-pink-500', label: 'Me encanta' },
-  { type: '👍', emoji: '👍', icon: ThumbsUp, color: 'from-blue-400 to-blue-600', label: 'Me gusta' },
-  { type: '😂', emoji: '😂', icon: Laugh, color: 'from-yellow-400 to-orange-500', label: 'Me divierte' },
-  { type: '😮', emoji: '😮', icon: Zap, color: 'from-purple-400 to-purple-600', label: 'Me asombra' },
-  { type: '😢', emoji: '😢', icon: Frown, color: 'from-gray-400 to-gray-600', label: 'Me entristece' },
-  { type: '😡', emoji: '😡', icon: Angry, color: 'from-red-500 to-red-700', label: 'Me enoja' },
-  { type: '🔥', emoji: '🔥', icon: Heart, color: 'from-orange-400 to-red-500', label: 'Increíble' },
-  { type: '✨', emoji: '✨', icon: Heart, color: 'from-indigo-400 to-purple-500', label: 'Mágico' },
+  { type: 'like', emoji: '👍', icon: ThumbsUp, color: 'from-blue-400 to-blue-600', label: 'Me gusta' },
+  { type: 'love', emoji: '❤️', icon: Heart, color: 'from-red-400 to-pink-500', label: 'Me encanta' },
+  { type: 'haha', emoji: '😂', icon: Laugh, color: 'from-yellow-400 to-orange-500', label: 'Me divierte' },
+  { type: 'wow', emoji: '😮', icon: SurprisedFace, color: 'from-purple-400 to-purple-600', label: 'Me asombra' },
+  { type: 'sad', emoji: '😢', icon: Frown, color: 'from-gray-400 to-gray-600', label: 'Me entristece' },
+  { type: 'angry', emoji: '😡', icon: Angry, color: 'from-red-500 to-red-700', label: 'Me enoja' },
 ];
 
-export function ReactionButton({ postId, currentReaction, reactionCount, onReaction }: ReactionButtonProps) {
+export function ReactionButton({ postId, currentReaction, reactionCount, onReaction, isFacebookStyle = false }: ReactionButtonProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
@@ -61,6 +81,105 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
   };
 
   const currentReactionData = getCurrentReaction();
+
+  // Estilo de Facebook
+  if (isFacebookStyle) {
+    return (
+      <div className="relative" ref={buttonRef}>
+        <motion.button
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+          onClick={() => setShowMenu(!showMenu)}
+          className={`
+            flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30
+            ${currentReactionData 
+              ? currentReactionData.type === 'like' ? 'text-blue-400' :
+                currentReactionData.type === 'love' ? 'text-red-400' :
+                currentReactionData.type === 'haha' ? 'text-yellow-400' :
+                currentReactionData.type === 'wow' ? 'text-purple-400' :
+                currentReactionData.type === 'sad' ? 'text-gray-400' :
+                currentReactionData.type === 'angry' ? 'text-red-500' : 'text-blue-400'
+              : 'text-slate-400 hover:text-blue-400'
+            }
+          `}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {currentReactionData ? (
+            <>
+              {(() => {
+                const IconComponent = currentReactionData.icon;
+                return <IconComponent className="w-5 h-5" />;
+              })()}
+              <span>{currentReactionData.label}</span>
+            </>
+          ) : (
+            <>
+              <ThumbsUp className="w-5 h-5" />
+              <span>Me gusta</span>
+            </>
+          )}
+        </motion.button>
+
+        {/* Menú de reacciones para Facebook style */}
+        <AnimatePresence>
+          {showMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowMenu(false)}
+              />
+              
+              <motion.div
+                ref={menuRef}
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="absolute bottom-full left-0 mb-3 bg-slate-800/95 backdrop-blur-xl border border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
+              >
+                <div className="flex items-center gap-2">
+                  {reactions.map((reaction, index) => {
+                    const IconComponent = reaction.icon;
+                    return (
+                      <motion.button
+                        key={reaction.type}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05, duration: 0.2 }}
+                        onClick={() => handleReaction(reaction.type)}
+                        className={`
+                          relative group p-3 rounded-full transition-all duration-300
+                          ${currentReaction === reaction.type 
+                            ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30' 
+                            : 'hover:bg-slate-700/50 border border-transparent hover:border-slate-600/30'
+                          }
+                        `}
+                        whileHover={{ scale: 1.2, y: -2 }}
+                        whileTap={{ scale: 0.9 }}
+                        title={reaction.label}
+                      >
+                        <IconComponent 
+                          className={`w-6 h-6 group-hover:scale-110 transition-transform duration-200 ${
+                            reaction.type === 'like' ? 'text-blue-400' :
+                            reaction.type === 'love' ? 'text-red-400' :
+                            reaction.type === 'haha' ? 'text-yellow-400' :
+                            reaction.type === 'wow' ? 'text-purple-400' :
+                            reaction.type === 'sad' ? 'text-gray-400' :
+                            reaction.type === 'angry' ? 'text-red-500' : 'text-slate-400'
+                          }`}
+                        />
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div className="relative" ref={buttonRef}>

@@ -251,7 +251,7 @@ export async function POST(
         attachment_url: attachment_url || null,
         attachment_type: attachment_type || null,
         likes_count: 0,
-        comments_count: 0,
+        comment_count: 0,
         reaction_count: 0,
         is_pinned: false,
         is_edited: false

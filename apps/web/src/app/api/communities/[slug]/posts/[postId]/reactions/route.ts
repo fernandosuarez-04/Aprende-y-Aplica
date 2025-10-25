@@ -1,72 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-async function createClient() {
-  const cookieStore = await cookies();
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Variables de entorno de Supabase faltantes');
-  }
-  
-  return createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Component - ignore
-          }
-        },
-      },
-    }
-  );
-}
+import { createClient } from '../../../../../../../lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string; postId: string } }
+  { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
+    
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { postId } = params;
+    const { postId } = await params;
 
-    // Obtener todas las reacciones del post
-    const { data: reactions, error } = await (supabase as any)
+    // Obtener todas las reacciones del post con información del usuario
+    const { data: reactions, error: reactionsError } = await supabase
       .from('community_reactions')
       .select(`
-        *,
+        id,
+        reaction_type,
+        created_at,
         user:user_id (
           id,
-          full_name,
-          avatar_url
+          first_name,
+          last_name,
+          display_name,
+          profile_picture_url
         )
       `)
       .eq('post_id', postId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching reactions:', error);
+    if (reactionsError) {
+      console.error('Error fetching reactions:', reactionsError);
       return NextResponse.json({ error: 'Error al obtener reacciones' }, { status: 500 });
     }
 
-    // Agrupar reacciones por tipo
+    // Agrupar reacciones por tipo con información optimizada
     const groupedReactions = reactions.reduce((acc: any, reaction: any) => {
       const type = reaction.reaction_type;
       if (!acc[type]) {
@@ -74,15 +49,22 @@ export async function GET(
           type,
           count: 0,
           users: [],
-          hasUserReacted: false
+          hasUserReacted: false,
+          emoji: getReactionEmoji(type)
         };
       }
       acc[type].count++;
-      acc[type].users.push({
-        id: reaction.user.id,
-        name: reaction.user.full_name,
-        avatar: reaction.user.avatar_url
-      });
+      
+      // Solo incluir usuarios si no hay muchos (para performance)
+      if (acc[type].users.length < 10) {
+        acc[type].users.push({
+          id: reaction.user.id,
+          name: reaction.user.display_name || 
+                `${reaction.user.first_name || ''} ${reaction.user.last_name || ''}`.trim() ||
+                'Usuario',
+          avatar: reaction.user.profile_picture_url
+        });
+      }
       
       // Verificar si el usuario actual ha reaccionado
       if (reaction.user_id === user.id) {
@@ -92,99 +74,193 @@ export async function GET(
       return acc;
     }, {} as Record<string, any>);
 
-    return NextResponse.json({ reactions: groupedReactions });
+    // Obtener estadísticas adicionales si se solicitan
+    let stats = null;
+    let topReactions = null;
+    
+    const url = new URL(request.url);
+    const includeStats = url.searchParams.get('include_stats') === 'true';
+    
+    if (includeStats) {
+      try {
+        // Obtener estadísticas usando RPC
+        const { data: statsData, error: statsError } = await supabase
+          .rpc('get_post_reaction_stats', { post_id: postId });
+        
+        if (!statsError && statsData) {
+          stats = statsData;
+        }
+        
+        // Obtener top reacciones
+        const { data: topData, error: topError } = await supabase
+          .rpc('get_top_reactions', { 
+            post_id: postId,
+            limit_count: 3 
+          });
+        
+        if (!topError && topData) {
+          topReactions = topData;
+        }
+      } catch (error) {
+        console.warn('Error fetching top reactions:', error);
+      }
+    }
+
+    // Calcular total de reacciones
+    const totalReactions = Object.values(groupedReactions).reduce(
+      (sum: number, reaction: any) => sum + reaction.count, 0
+    );
+
+    return NextResponse.json({ 
+      reactions: groupedReactions,
+      totalReactions,
+      stats,
+      topReactions,
+      userReaction: getUserCurrentReaction(reactions, user.id)
+    });
   } catch (error) {
     console.error('Error in reactions GET:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
+// Función auxiliar para obtener emoji de reacción
+function getReactionEmoji(type: string): string {
+  const emojiMap: Record<string, string> = {
+    'like': '👍',
+    'love': '❤️',
+    'laugh': '😂',
+    'wow': '😮',
+    'sad': '😢',
+    'angry': '😡'
+  };
+  return emojiMap[type] || '👍';
+}
+
+// Función auxiliar para obtener la reacción actual del usuario
+function getUserCurrentReaction(reactions: any[], userId: string): string | null {
+  const userReaction = reactions.find(r => r.user_id === userId);
+  return userReaction ? userReaction.reaction_type : null;
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string; postId: string } }
+  { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
+    
+    if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { postId } = params;
-    const { reaction_type } = await request.json();
+    const { postId } = await params;
+    const { reaction_type, action } = await request.json();
 
     if (!reaction_type) {
       return NextResponse.json({ error: 'Tipo de reacción requerido' }, { status: 400 });
     }
 
-    // Verificar si el usuario ya reaccionó con este tipo
-    const { data: existingReaction, error: checkError } = await (supabase as any)
-      .from('community_reactions')
-      .select('id')
-      .eq('post_id', postId)
-      .eq('user_id', user.id)
-      .eq('reaction_type', reaction_type)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing reaction:', checkError);
-      return NextResponse.json({ error: 'Error al verificar reacción' }, { status: 500 });
+    // Validar tipo de reacción
+    const validReactions = ['like', 'love', 'laugh', 'wow', 'sad', 'angry'];
+    if (!validReactions.includes(reaction_type)) {
+      return NextResponse.json({ 
+        error: 'Tipo de reacción inválido',
+        validTypes: validReactions 
+      }, { status: 400 });
     }
 
-    if (existingReaction) {
-      // Si ya existe, eliminar la reacción (toggle)
-      const { error: deleteError } = await (supabase as any)
-        .from('community_reactions')
-        .delete()
-        .eq('id', existingReaction.id);
+    // Verificar si el usuario ya tiene alguna reacción en este post
+    const { data: existingReactions, error: checkError } = await supabase
+      .from('community_reactions')
+      .select('id, reaction_type')
+      .eq('post_id', postId)
+      .eq('user_id', user.id);
 
-      if (deleteError) {
-        console.error('Error deleting reaction:', deleteError);
-        return NextResponse.json({ error: 'Error al eliminar reacción' }, { status: 500 });
+    if (checkError) {
+      console.error('Error checking existing reactions:', checkError);
+      return NextResponse.json({ error: 'Error al verificar reacciones' }, { status: 500 });
+    }
+
+    const currentReaction = existingReactions?.[0];
+
+    // Lógica de manejo de reacciones
+    if (action === 'remove' || (currentReaction && currentReaction.reaction_type === reaction_type)) {
+      // Eliminar reacción existente
+      if (currentReaction) {
+        const { error: deleteError } = await supabase
+          .from('community_reactions')
+          .delete()
+          .eq('id', currentReaction.id);
+
+        if (deleteError) {
+          console.error('Error deleting reaction:', deleteError);
+          return NextResponse.json({ error: 'Error al eliminar reacción' }, { status: 500 });
+        }
+
+        // El trigger automáticamente decrementará el contador
+        return NextResponse.json({ 
+          message: 'Reacción eliminada', 
+          action: 'removed',
+          previousReaction: currentReaction.reaction_type
+        });
+      } else {
+        return NextResponse.json({ 
+          message: 'No hay reacción para eliminar', 
+          action: 'none' 
+        });
       }
-
-      // Actualizar contador en el post
-      const { error: updateError } = await (supabase as any).rpc('decrement_reaction_count', {
-        post_id: postId
-      });
-
-      if (updateError) {
-        console.error('Error updating reaction count:', updateError);
-      }
-
-      return NextResponse.json({ message: 'Reacción eliminada', action: 'removed' });
     } else {
-      // Crear nueva reacción
-      const { data: newReaction, error: insertError } = await (supabase as any)
-        .from('community_reactions')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          reaction_type
-        })
-        .select()
-        .single();
+      // Agregar o cambiar reacción
+      if (currentReaction) {
+        // Cambiar reacción existente
+        const { error: updateError } = await supabase
+          .from('community_reactions')
+          .update({ 
+            reaction_type,
+            created_at: new Date().toISOString()
+          })
+          .eq('id', currentReaction.id);
 
-      if (insertError) {
-        console.error('Error creating reaction:', insertError);
-        return NextResponse.json({ error: 'Error al crear reacción' }, { status: 500 });
+        if (updateError) {
+          console.error('Error updating reaction:', updateError);
+          return NextResponse.json({ error: 'Error al actualizar reacción' }, { status: 500 });
+        }
+
+        return NextResponse.json({ 
+          message: 'Reacción actualizada', 
+          action: 'updated',
+          previousReaction: currentReaction.reaction_type,
+          newReaction: reaction_type
+        });
+      } else {
+        // Crear nueva reacción
+        const { data: newReaction, error: insertError } = await supabase
+          .from('community_reactions')
+          .insert({
+            post_id: postId,
+            user_id: user.id,
+            reaction_type
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating reaction:', insertError);
+          return NextResponse.json({ error: 'Error al crear reacción' }, { status: 500 });
+        }
+
+        // El trigger automáticamente incrementará el contador
+        return NextResponse.json({ 
+          message: 'Reacción agregada', 
+          action: 'added',
+          reaction: newReaction 
+        });
       }
-
-      // Actualizar contador en el post
-      const { error: updateError } = await (supabase as any).rpc('increment_reaction_count', {
-        post_id: postId
-      });
-
-      if (updateError) {
-        console.error('Error updating reaction count:', updateError);
-      }
-
-      return NextResponse.json({ 
-        message: 'Reacción agregada', 
-        action: 'added',
-        reaction: newReaction 
-      });
     }
   } catch (error) {
     console.error('Error in reactions POST:', error);
