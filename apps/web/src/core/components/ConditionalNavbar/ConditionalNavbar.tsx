@@ -18,16 +18,18 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isCommunitiesPage = pathname.startsWith('/communities');
   const isStatisticsPage = pathname.startsWith('/statistics');
   const isQuestionnairePage = pathname.startsWith('/questionnaire');
+  const isCoursePage = pathname.startsWith('/courses');
   
   // Determine which navbar to show
   // For the home page (/), always show the regular navbar
-  const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage);
+  const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage);
   const shouldShowRegularNavbar = !isAuthPage && !shouldShowDashboardNavbar && !isProfilePage;
   
   return (
     <>
-      {/* Navbar removido - no se muestra ningún navbar */}
-      <main>
+      {/* Solo mostrar DashboardNavbar para páginas del dashboard, sin navbar general */}
+      {shouldShowDashboardNavbar && <DashboardNavbar activeItem={getActiveItem(pathname)} />}
+      <main className={isAuthPage || shouldShowDashboardNavbar || isProfilePage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>
@@ -42,5 +44,6 @@ function getActiveItem(pathname: string): string {
   if (pathname.startsWith('/communities')) return 'community';
   if (pathname.startsWith('/statistics')) return 'statistics';
   if (pathname.startsWith('/questionnaire')) return 'workshops'; // El cuestionario se considera parte de workshops
+  if (pathname.startsWith('/courses')) return 'workshops'; // Las páginas de cursos se consideran parte de workshops
   return 'workshops';
 }
