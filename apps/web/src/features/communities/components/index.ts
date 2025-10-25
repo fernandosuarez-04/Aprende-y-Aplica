@@ -4,3 +4,8 @@ export { ReactionDetailsModal } from './ReactionDetailsModal';
 export { CommentsSection } from './CommentsSection';
 export { ShareButton } from './ShareButton';
 export { AttachmentViewer } from './AttachmentViewer';
+export { AttachmentButton } from './AttachmentButton';
+export { AttachmentPreview } from './AttachmentPreview';
+export { InlineAttachmentButtons } from './InlineAttachmentButtons';
+export { PostAttachment } from './PostAttachment';
+export { YouTubeLinkModal, PollModal } from './AttachmentModals';

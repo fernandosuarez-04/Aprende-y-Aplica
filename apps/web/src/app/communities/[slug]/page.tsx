@@ -46,8 +46,10 @@ import { ReactionButton } from '../../../features/communities/components/Reactio
 import { ReactionBanner } from '../../../features/communities/components/ReactionBanner';
 import { ReactionDetailsModal } from '../../../features/communities/components/ReactionDetailsModal';
 import { PostInteractions } from '../../../features/communities/components/PostInteractions';
-import { useReactions } from '../../../features/communities/hooks';
+import { useReactions, useAttachments } from '../../../features/communities/hooks';
 import { CommentsSection } from '../../../features/communities/components/CommentsSection';
+import { InlineAttachmentButtons, AttachmentPreview, PostAttachment, YouTubeLinkModal, PollModal } from '../../../features/communities/components';
+import { YouTubeTest } from '../../../features/communities/components/YouTubeTest/YouTubeTest';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
 // import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -1310,6 +1312,10 @@ export default function CommunityDetailPage() {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [activeTab, setActiveTab] = useState('comunidad');
   const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [postAttachment, setPostAttachment] = useState<{ type: string; data: any } | null>(null);
+  const [showYouTubeModal, setShowYouTubeModal] = useState(false);
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [pendingAttachmentType, setPendingAttachmentType] = useState<string | null>(null);
   const [postReactions, setPostReactions] = useState<Record<string, { type: string | null; count: number }>>({});
   const [showCommentsForPost, setShowCommentsForPost] = useState<Record<string, boolean>>({});
   const [userReactions, setUserReactions] = useState<Record<string, string | null>>({});
@@ -1407,39 +1413,67 @@ export default function CommunityDetailPage() {
     }
   };
 
+  const handleAttachmentSelect = (type: string, data: any) => {
+    if (type === 'youtube' || type === 'link') {
+      setPendingAttachmentType(type);
+      setShowYouTubeModal(true);
+    } else if (type === 'poll') {
+      setShowPollModal(true);
+    } else {
+      // Para archivos (imagen, documento, video)
+      setPostAttachment({ type, data });
+    }
+  };
+
+  const handleYouTubeLinkConfirm = (url: string, type: 'youtube' | 'link') => {
+    setPostAttachment({ 
+      type, 
+      data: { url, name: type === 'youtube' ? 'Video de YouTube' : 'Enlace web' }
+    });
+    setShowYouTubeModal(false);
+    setPendingAttachmentType(null);
+  };
+
+  const handlePollConfirm = (pollData: any) => {
+    setPostAttachment({ type: 'poll', data: pollData });
+    setShowPollModal(false);
+  };
+
+  const handleRemoveAttachment = () => {
+    setPostAttachment(null);
+  };
+
+  const { createPostWithAttachment, isProcessing: isProcessingAttachment, error: attachmentError } = useAttachments();
+
   const handleCreatePost = async () => {
     if (!newPostContent.trim() || !community) return;
     
     setIsCreatingPost(true);
     try {
-      const response = await fetch(`/api/communities/${slug}/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: newPostContent.trim(),
-          title: null,
-          attachment_url: null,
-          attachment_type: null,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Agregar el nuevo post al inicio de la lista
-        setPosts(prev => [data.post, ...prev]);
-        setNewPostContent('');
-        // Actualizar contador de posts en la comunidad
-        setCommunity(prev => prev ? { ...prev, member_count: prev.member_count + 1 } : null);
-      } else {
-        const errorData = await response.json();
-        console.error('Error creating post:', errorData.error);
-        alert('Error al crear el post: ' + errorData.error);
+      // Preparar datos del adjunto si existe
+      let attachmentData = null;
+      if (postAttachment) {
+        attachmentData = {
+          type: postAttachment.type,
+          ...postAttachment.data
+        };
+        console.log('🎥 [YOUTUBE] handleCreatePost - TIPO ANTES DE ENVIAR:', postAttachment.type, attachmentData);
       }
+
+      const result = await createPostWithAttachment(slug, newPostContent, attachmentData);
+      
+      // Agregar el nuevo post al inicio de la lista
+      setPosts(prev => [result.post, ...prev]);
+      setNewPostContent('');
+      setPostAttachment(null);
+      
+      // Actualizar contador de posts en la comunidad
+      setCommunity(prev => prev ? { ...prev, member_count: prev.member_count + 1 } : null);
+      
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Error al crear el post');
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear el post';
+      alert(errorMessage);
     } finally {
       setIsCreatingPost(false);
     }
@@ -1935,30 +1969,50 @@ export default function CommunityDetailPage() {
                         className="w-full bg-transparent text-white placeholder-slate-400 resize-none focus:outline-none"
                         rows={3}
                       />
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="flex items-center gap-2">
-                          <Button className="btn-secondary">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Adjuntar
+                      {/* Preview del adjunto */}
+                      {postAttachment && (
+                        <div className="mt-4">
+                          <AttachmentPreview
+                            type={postAttachment.type}
+                            data={postAttachment.data}
+                            onRemove={handleRemoveAttachment}
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between mt-4 gap-4">
+                        <div className="flex-1">
+                          <InlineAttachmentButtons
+                            onAttachmentSelect={handleAttachmentSelect}
+                          />
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Button
+                            onClick={handleCreatePost}
+                            disabled={!newPostContent.trim() || isCreatingPost || isProcessingAttachment}
+                            className="btn-primary disabled:opacity-50"
+                          >
+                            {(isCreatingPost || isProcessingAttachment) ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            ) : (
+                              <Send className="w-4 h-4 mr-2" />
+                            )}
+                            {(isCreatingPost || isProcessingAttachment) ? 'Publicando...' : 'Publicar'}
                           </Button>
                         </div>
-                        <Button
-                          onClick={handleCreatePost}
-                          disabled={!newPostContent.trim() || isCreatingPost}
-                          className="btn-primary disabled:opacity-50"
-                        >
-                          {isCreatingPost ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          ) : (
-                            <Send className="w-4 h-4 mr-2" />
-                          )}
-                          {isCreatingPost ? 'Publicando...' : 'Publicar'}
-                        </Button>
                       </div>
                     </div>
                   </div>
                 </motion.div>
               )}
+
+              {/* YouTube Test Component - TEMPORAL */}
+              <motion.div
+                variants={containerVariants}
+                className="mb-6"
+              >
+                <YouTubeTest />
+              </motion.div>
 
               {/* Posts Feed */}
               <motion.div
@@ -2017,27 +2071,14 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Post Attachments */}
-                    {(post.attachment_url || post.attachment_data) && (
-                      <div className="mb-4">
-                        {(() => {
-                          // Debug: ver datos del post antes de renderizar AttachmentViewer
-                          console.log('🔍 POST DATA before AttachmentViewer:', {
-                            postId: post.id,
-                            attachment_type: post.attachment_type,
-                            attachment_url: post.attachment_url,
-                            attachment_data: post.attachment_data,
-                            title: post.title
-                          });
-                          return null;
-                        })()}
-                        <AttachmentViewer
-                          attachmentUrl={post.attachment_url}
-                          attachmentType={post.attachment_type || 'application/octet-stream'}
-             attachmentData={post.attachment_data}
-                          fileName={post.title || undefined}
-             postId={post.id}
-                        />
-                      </div>
+                    {post.attachment_type && (
+                      <PostAttachment
+                        attachmentType={post.attachment_type}
+                        attachmentUrl={post.attachment_url}
+                        attachmentData={post.attachment_data}
+                        postId={post.id}
+                        communitySlug={slug}
+                      />
                     )}
 
                     {/* Facebook-style Post Stats Bar - Reacciones y comentarios */}
@@ -2213,6 +2254,23 @@ export default function CommunityDetailPage() {
           selectedReactionType={selectedReactionType}
         />
       ))}
+
+      {/* Modales de adjuntos */}
+      <YouTubeLinkModal
+        isOpen={showYouTubeModal}
+        onClose={() => {
+          setShowYouTubeModal(false);
+          setPendingAttachmentType(null);
+        }}
+        onConfirm={handleYouTubeLinkConfirm}
+        type={pendingAttachmentType as 'youtube' | 'link' || 'link'}
+      />
+
+      <PollModal
+        isOpen={showPollModal}
+        onClose={() => setShowPollModal(false)}
+        onConfirm={handlePollConfirm}
+      />
     </div>
   );
 }

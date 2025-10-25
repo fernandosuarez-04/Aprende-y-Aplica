@@ -180,7 +180,7 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { title, content, attachment_url, attachment_type } = await request.json();
+    const { title, content, attachment_url, attachment_type, attachment_data } = await request.json();
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json({ error: 'El contenido es requerido' }, { status: 400 });
@@ -250,6 +250,7 @@ export async function POST(
         content: content.trim(),
         attachment_url: attachment_url || null,
         attachment_type: attachment_type || null,
+        attachment_data: attachment_data || null,
         likes_count: 0,
         comment_count: 0,
         reaction_count: 0,
@@ -261,7 +262,10 @@ export async function POST(
         user:user_id (
           id,
           email,
-          user_metadata
+          username,
+          first_name,
+          last_name,
+          profile_picture_url
         )
       `)
       .single();
