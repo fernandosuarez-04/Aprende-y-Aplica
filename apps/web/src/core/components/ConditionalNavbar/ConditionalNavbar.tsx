@@ -26,9 +26,8 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   
   return (
     <>
-      {shouldShowRegularNavbar && <Navbar />}
-      {shouldShowDashboardNavbar && <DashboardNavbar activeItem={getActiveItem(pathname)} />}
-      <main className={isAuthPage || shouldShowDashboardNavbar || isProfilePage ? '' : 'pt-16 lg:pt-20'}>
+      {/* Navbar removido - no se muestra ningún navbar */}
+      <main>
         {children}
       </main>
     </>

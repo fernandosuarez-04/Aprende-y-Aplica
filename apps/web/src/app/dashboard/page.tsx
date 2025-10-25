@@ -264,6 +264,15 @@ export default function DashboardPage() {
                       variant={workshop.status === 'Adquirido' ? 'secondary' : 'primary'}
                       size="sm"
                       className="w-full"
+                      onClick={() => {
+                        if (workshop.status === 'Disponible') {
+                          // Navegar al slug del curso
+                          const course = courses.find(c => c.id === workshop.id);
+                          if (course?.slug) {
+                            window.location.href = `/courses/${course.slug}`;
+                          }
+                        }
+                      }}
                     >
                       {workshop.status}
                     </Button>
