@@ -308,10 +308,60 @@ class ModalManager {
   }
 
   private static handleDownload(url: string, name: string) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name || 'imagen';
-    link.click();
+    // Obtener el nombre del archivo con extensión
+    const getFileName = (url: string, fallbackName: string) => {
+      if (url.startsWith('data:')) {
+        const mimeType = url.split(';')[0].split(':')[1];
+        const extension = mimeType.split('/')[1] || 'png';
+        return `${fallbackName || 'imagen'}.${extension}`;
+      }
+      
+      // Extraer extensión de la URL
+      const urlPath = url.split('?')[0];
+      const extension = urlPath.split('.').pop() || 'jpg';
+      return `${fallbackName || 'imagen'}.${extension}`;
+    };
+
+    const fileName = getFileName(url, name);
+
+    // Si es una imagen base64, descargar directamente
+    if (url.startsWith('data:')) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      return;
+    }
+
+    // Para URLs externas, descargar la imagen
+    fetch(url, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'image/*'
+      }
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      })
+      .catch(error => {
+        console.error('Error downloading image:', error);
+        // Fallback: abrir en nueva pestaña
+        window.open(url, '_blank');
+      });
   }
 
   private static formatFileSize(bytes: number): string {
