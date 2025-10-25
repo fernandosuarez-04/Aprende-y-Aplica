@@ -8,4 +8,5 @@ export { AttachmentButton } from './AttachmentButton';
 export { AttachmentPreview } from './AttachmentPreview';
 export { InlineAttachmentButtons } from './InlineAttachmentButtons';
 export { PostAttachment } from './PostAttachment';
+export { ImageModal } from './ImageModal';
 export { YouTubeLinkModal, PollModal } from './AttachmentModals';

@@ -49,7 +49,6 @@ import { PostInteractions } from '../../../features/communities/components/PostI
 import { useReactions, useAttachments } from '../../../features/communities/hooks';
 import { CommentsSection } from '../../../features/communities/components/CommentsSection';
 import { InlineAttachmentButtons, AttachmentPreview, PostAttachment, YouTubeLinkModal, PollModal } from '../../../features/communities/components';
-import { YouTubeTest } from '../../../features/communities/components/YouTubeTest/YouTubeTest';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
 // import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -2005,14 +2004,6 @@ export default function CommunityDetailPage() {
                   </div>
                 </motion.div>
               )}
-
-              {/* YouTube Test Component - TEMPORAL */}
-              <motion.div
-                variants={containerVariants}
-                className="mb-6"
-              >
-                <YouTubeTest />
-              </motion.div>
 
               {/* Posts Feed */}
               <motion.div

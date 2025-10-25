@@ -13,6 +13,7 @@ import {
   Download,
   Play
 } from 'lucide-react';
+import { ImageModal } from '../ImageModal';
 
 interface PostAttachmentProps {
   attachmentType: string;
@@ -31,6 +32,8 @@ export function PostAttachment({
   postId,
   communitySlug
 }: PostAttachmentProps) {
+  const [showImageModal, setShowImageModal] = useState(false);
+
   if (!attachmentType) return null;
 
   // Validar que tenemos una URL válida para tipos que la requieren
@@ -74,17 +77,7 @@ export function PostAttachment({
               src={attachmentUrl}
               alt={attachmentData?.name || 'Imagen adjunta'}
               className="w-full max-h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => {
-                if (isExternalUrl) {
-                  window.open(attachmentUrl, '_blank');
-                } else {
-                  // Para base64, crear un enlace de descarga
-                  const link = document.createElement('a');
-                  link.href = attachmentUrl;
-                  link.download = attachmentData?.name || 'imagen';
-                  link.click();
-                }
-              }}
+              onClick={() => setShowImageModal(true)}
               onLoad={() => {
                 if (isBase64) {
                   console.log('🎨 [IMAGE] Base64 cargado exitosamente');
@@ -109,7 +102,11 @@ export function PostAttachment({
               }}
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <ExternalLink className="w-8 h-8 text-white" />
+              <div className="bg-black/50 rounded-full p-2">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
           </div>
         );
@@ -359,14 +356,27 @@ export function PostAttachment({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={`mt-3 ${className}`}
-    >
-      {renderAttachment()}
-    </motion.div>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={`mt-3 ${className}`}
+      >
+        {renderAttachment()}
+      </motion.div>
+      
+      {/* Modal de imagen */}
+      {attachmentType === 'image' && attachmentUrl && (
+        <ImageModal
+          isOpen={showImageModal}
+          onClose={() => setShowImageModal(false)}
+          imageUrl={attachmentUrl}
+          imageName={attachmentData?.name}
+          imageData={attachmentData}
+        />
+      )}
+    </>
   );
 }
 
