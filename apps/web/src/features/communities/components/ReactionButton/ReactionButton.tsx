@@ -36,7 +36,7 @@ interface ReactionButtonProps {
 const reactions = [
   { type: 'like', emoji: '👍', icon: ThumbsUp, color: 'from-blue-400 to-blue-600', label: 'Me gusta' },
   { type: 'love', emoji: '❤️', icon: Heart, color: 'from-red-400 to-pink-500', label: 'Me encanta' },
-  { type: 'haha', emoji: '😂', icon: Laugh, color: 'from-yellow-400 to-orange-500', label: 'Me divierte' },
+  { type: 'laugh', emoji: '😂', icon: Laugh, color: 'from-yellow-400 to-orange-500', label: 'Me divierte' },
   { type: 'wow', emoji: '😮', icon: SurprisedFace, color: 'from-purple-400 to-purple-600', label: 'Me asombra' },
   { type: 'sad', emoji: '😢', icon: Frown, color: 'from-gray-400 to-gray-600', label: 'Me entristece' },
   { type: 'angry', emoji: '😡', icon: Angry, color: 'from-red-500 to-red-700', label: 'Me enoja' },
@@ -45,8 +45,10 @@ const reactions = [
 export function ReactionButton({ postId, currentReaction, reactionCount, onReaction, isFacebookStyle = false }: ReactionButtonProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isHoveringMenu, setIsHoveringMenu] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cerrar menú al hacer click fuera
   useEffect(() => {
@@ -65,16 +67,55 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Manejar hover con delay para evitar cierre accidental
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setIsHovering(true);
+    setShowMenu(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    hoverTimeoutRef.current = setTimeout(() => {
+      if (!isHoveringMenu) {
+        setShowMenu(false);
+      }
+    }, 150); // Pequeño delay para permitir mover el cursor al menú
+  };
+
+  const handleMenuMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setIsHoveringMenu(true);
+  };
+
+  const handleMenuMouseLeave = () => {
+    setIsHoveringMenu(false);
+    setShowMenu(false);
+  };
+
   const handleReaction = (reactionType: string) => {
     if (currentReaction === reactionType) {
-      // Si ya tiene esta reacción, quitarla
-      onReaction(postId, null);
+      // Si ya tiene esta reacción, quitarla enviando el tipo actual
+      onReaction(postId, reactionType);
     } else {
       // Agregar nueva reacción
       onReaction(postId, reactionType);
     }
     setShowMenu(false);
   };
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getCurrentReaction = () => {
     return reactions.find(r => r.type === currentReaction);
@@ -87,15 +128,23 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
     return (
       <div className="relative" ref={buttonRef}>
         <motion.button
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-          onClick={() => setShowMenu(!showMenu)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onClick={() => {
+            // Si ya tiene una reacción, quitarla al hacer click
+            if (currentReaction) {
+              onReaction(postId, currentReaction);
+            } else {
+              // Si no tiene reacción, agregar "Me gusta"
+              onReaction(postId, 'like');
+            }
+          }}
           className={`
             flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30
             ${currentReactionData 
               ? currentReactionData.type === 'like' ? 'text-blue-400' :
                 currentReactionData.type === 'love' ? 'text-red-400' :
-                currentReactionData.type === 'haha' ? 'text-yellow-400' :
+                currentReactionData.type === 'laugh' ? 'text-yellow-400' :
                 currentReactionData.type === 'wow' ? 'text-purple-400' :
                 currentReactionData.type === 'sad' ? 'text-gray-400' :
                 currentReactionData.type === 'angry' ? 'text-red-500' : 'text-blue-400'
@@ -124,57 +173,63 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
         {/* Menú de reacciones para Facebook style */}
         <AnimatePresence>
           {showMenu && (
-            <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setShowMenu(false)}
-              />
-              
-              <motion.div
-                ref={menuRef}
-                initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="absolute bottom-full left-0 mb-3 bg-slate-800/95 backdrop-blur-xl border border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
-              >
-                <div className="flex items-center gap-2">
-                  {reactions.map((reaction, index) => {
-                    const IconComponent = reaction.icon;
-                    return (
-                      <motion.button
-                        key={reaction.type}
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05, duration: 0.2 }}
-                        onClick={() => handleReaction(reaction.type)}
-                        className={`
-                          relative group p-3 rounded-full transition-all duration-300
-                          ${currentReaction === reaction.type 
-                            ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30' 
-                            : 'hover:bg-slate-700/50 border border-transparent hover:border-slate-600/30'
-                          }
-                        `}
-                        whileHover={{ scale: 1.2, y: -2 }}
-                        whileTap={{ scale: 0.9 }}
-                        title={reaction.label}
-                      >
-                        <IconComponent 
-                          className={`w-6 h-6 group-hover:scale-110 transition-transform duration-200 ${
-                            reaction.type === 'like' ? 'text-blue-400' :
-                            reaction.type === 'love' ? 'text-red-400' :
-                            reaction.type === 'haha' ? 'text-yellow-400' :
-                            reaction.type === 'wow' ? 'text-purple-400' :
-                            reaction.type === 'sad' ? 'text-gray-400' :
-                            reaction.type === 'angry' ? 'text-red-500' : 'text-slate-400'
-                          }`}
+            <motion.div
+              ref={menuRef}
+              onMouseEnter={handleMenuMouseEnter}
+              onMouseLeave={handleMenuMouseLeave}
+              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 10 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="absolute bottom-full left-0 mb-3 bg-slate-800/95 backdrop-blur-xl border border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
+            >
+              <div className="flex items-center gap-2">
+                {reactions.map((reaction, index) => {
+                  const IconComponent = reaction.icon;
+                  const isCurrentReaction = currentReaction === reaction.type;
+                  
+                  return (
+                    <motion.button
+                      key={reaction.type}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05, duration: 0.2 }}
+                      onClick={() => handleReaction(reaction.type)}
+                      className={`
+                        relative group p-3 rounded-full transition-all duration-300
+                        ${isCurrentReaction 
+                          ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30' 
+                          : 'hover:bg-slate-700/50 border border-transparent hover:border-slate-600/30'
+                        }
+                      `}
+                      whileHover={{ scale: 1.2, y: -2 }}
+                      whileTap={{ scale: 0.9 }}
+                      title={isCurrentReaction ? `Quitar ${reaction.label}` : reaction.label}
+                    >
+                      <IconComponent 
+                        className={`w-6 h-6 group-hover:scale-110 transition-transform duration-200 ${
+                          reaction.type === 'like' ? 'text-blue-400' :
+                          reaction.type === 'love' ? 'text-red-400' :
+                          reaction.type === 'laugh' ? 'text-yellow-400' :
+                          reaction.type === 'wow' ? 'text-purple-400' :
+                          reaction.type === 'sad' ? 'text-gray-400' :
+                          reaction.type === 'angry' ? 'text-red-500' : 'text-slate-400'
+                        }`}
+                      />
+                      
+                      {/* Indicador visual para la reacción actual */}
+                      {isCurrentReaction && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-slate-800"
                         />
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            </>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

@@ -25,6 +25,7 @@ export async function GET(
         id,
         reaction_type,
         created_at,
+        user_id,
         user:user_id (
           id,
           first_name,
@@ -55,16 +56,16 @@ export async function GET(
       }
       acc[type].count++;
       
-      // Solo incluir usuarios si no hay muchos (para performance)
-      if (acc[type].users.length < 10) {
-        acc[type].users.push({
-          id: reaction.user.id,
-          name: reaction.user.display_name || 
-                `${reaction.user.first_name || ''} ${reaction.user.last_name || ''}`.trim() ||
-                'Usuario',
-          avatar: reaction.user.profile_picture_url
-        });
-      }
+      // Incluir información del usuario para el modal de detalles
+      acc[type].users.push({
+        id: reaction.user.id,
+        name: reaction.user.display_name || 
+              `${reaction.user.first_name || ''} ${reaction.user.last_name || ''}`.trim() ||
+              'Usuario',
+        avatar: reaction.user.profile_picture_url,
+        reaction_type: reaction.reaction_type,
+        created_at: reaction.created_at
+      });
       
       // Verificar si el usuario actual ha reaccionado
       if (reaction.user_id === user.id) {

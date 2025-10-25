@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ReactionBannerProps {
   totalReactions: number;
@@ -12,16 +12,42 @@ interface ReactionBannerProps {
   }>;
   className?: string;
   showTopReactions?: boolean;
+  onReactionClick?: (reactionType: string) => void;
+  postId?: string;
 }
 
 export function ReactionBanner({ 
   totalReactions, 
   topReactions = [], 
   className = '',
-  showTopReactions = true
+  showTopReactions = true,
+  onReactionClick,
+  postId
 }: ReactionBannerProps) {
+  const [showDetails, setShowDetails] = useState(false);
+
+  // Debug temporal
+  console.log('ReactionBanner debug:', { totalReactions, topReactions, showTopReactions, postId });
+
+  // Si no hay reacciones, no mostrar nada
   if (totalReactions === 0) {
     return null;
+  }
+
+  // Si hay reacciones pero no tenemos datos de topReactions, mostrar contador simple
+  if (showTopReactions && (!topReactions || topReactions.length === 0)) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={`flex items-center space-x-1 text-sm text-slate-400 ${className}`}
+      >
+        <span className="font-medium">
+          {totalReactions} {totalReactions === 1 ? 'reacción' : 'reacciones'}
+        </span>
+      </motion.div>
+    );
   }
 
   return (
@@ -29,43 +55,35 @@ export function ReactionBanner({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 ${className}`}
+      className={`flex items-center space-x-1 text-sm ${className}`}
     >
-      {/* Contador total de reacciones */}
-      <span className="font-medium">
-        {totalReactions} {totalReactions === 1 ? 'reacción' : 'reacciones'}
-      </span>
-
-      {/* Separador */}
+      {/* Top reacciones (máximo 3) - Estilo Facebook */}
       {showTopReactions && topReactions.length > 0 && (
-        <span className="text-gray-400">•</span>
-      )}
-
-      {/* Top reacciones (máximo 3) */}
-      {showTopReactions && (
-        <div className="flex items-center space-x-1">
+        <>
           {topReactions.slice(0, 3).map((reaction, index) => (
-          <motion.div
-            key={reaction.reaction_type}
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ 
-              delay: index * 0.1,
-              type: "spring", 
-              stiffness: 500, 
-              damping: 30 
-            }}
-            className="flex items-center space-x-1"
-          >
-            <span className="text-lg" role="img" aria-label={reaction.reaction_type}>
-              {reaction.emoji}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-500">
-              {reaction.count}
-            </span>
-          </motion.div>
-        ))}
-        </div>
+            <motion.button
+              key={reaction.reaction_type}
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ 
+                delay: index * 0.1,
+                type: "spring", 
+                stiffness: 500, 
+                damping: 30 
+              }}
+              onClick={() => onReactionClick?.(reaction.reaction_type)}
+              className="flex items-center space-x-1 hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-colors group"
+              title={`Ver quién reaccionó con ${reaction.emoji}`}
+            >
+              <span className="text-lg group-hover:scale-110 transition-transform duration-200" role="img" aria-label={reaction.reaction_type}>
+                {reaction.emoji}
+              </span>
+              <span className="text-xs text-slate-400 group-hover:text-slate-300">
+                {reaction.count}
+              </span>
+            </motion.button>
+          ))}
+        </>
       )}
     </motion.div>
   );

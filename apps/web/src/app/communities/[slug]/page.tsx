@@ -44,6 +44,7 @@ import { useRouter, useParams } from 'next/navigation';
 // Importaciones usando rutas relativas
 import { ReactionButton } from '../../../features/communities/components/ReactionButton';
 import { ReactionBanner } from '../../../features/communities/components/ReactionBanner';
+import { ReactionDetailsModal } from '../../../features/communities/components/ReactionDetailsModal';
 import { PostInteractions } from '../../../features/communities/components/PostInteractions';
 import { useReactions } from '../../../features/communities/hooks';
 import { CommentsSection } from '../../../features/communities/components/CommentsSection';
@@ -1312,6 +1313,9 @@ export default function CommunityDetailPage() {
   const [postReactions, setPostReactions] = useState<Record<string, { type: string | null; count: number }>>({});
   const [showCommentsForPost, setShowCommentsForPost] = useState<Record<string, boolean>>({});
   const [userReactions, setUserReactions] = useState<Record<string, string | null>>({});
+  const [showReactionDetails, setShowReactionDetails] = useState<Record<string, boolean>>({});
+  const [selectedReactionType, setSelectedReactionType] = useState<string | null>(null);
+  const [postReactionStats, setPostReactionStats] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (slug) {
@@ -1373,25 +1377,31 @@ export default function CommunityDetailPage() {
     try {
       const reactionPromises = posts.map(async (post) => {
         try {
-          const response = await fetch(`/api/communities/${slug}/posts/${post.id}/reactions`);
+          const response = await fetch(`/api/communities/${slug}/posts/${post.id}/reactions?include_stats=true`);
           if (response.ok) {
             const data = await response.json();
-            return { postId: post.id, userReaction: data.userReaction };
+            return { 
+              postId: post.id, 
+              userReaction: data.userReaction,
+              reactionStats: data.reactions || {}
+            };
           }
         } catch (error) {
           console.error(`Error loading reactions for post ${post.id}:`, error);
         }
-        return { postId: post.id, userReaction: null };
+        return { postId: post.id, userReaction: null, reactionStats: {} };
       });
 
       const reactions = await Promise.all(reactionPromises);
       const userReactionsMap: Record<string, string | null> = {};
+      const reactionStatsMap: Record<string, any> = {};
       
-      reactions.forEach(({ postId, userReaction }) => {
+      reactions.forEach(({ postId, userReaction, reactionStats }) => {
         userReactionsMap[postId] = userReaction;
+        reactionStatsMap[postId] = reactionStats;
       });
-
       setUserReactions(userReactionsMap);
+      setPostReactionStats(reactionStatsMap);
     } catch (error) {
       console.error('Error loading user reactions:', error);
     }
@@ -1435,15 +1445,56 @@ export default function CommunityDetailPage() {
     }
   };
 
+  const handleReactionClick = (postId: string, reactionType: string) => {
+    setSelectedReactionType(reactionType);
+    setShowReactionDetails(prev => ({
+      ...prev,
+      [postId]: true
+    }));
+  };
+
+  const closeReactionDetails = (postId: string) => {
+    setShowReactionDetails(prev => ({
+      ...prev,
+      [postId]: false
+    }));
+    setSelectedReactionType(null);
+  };
+
   const handleReaction = async (postId: string, reactionType: string | null) => {
     try {
+      // Determinar la acción basada en la reacción actual del usuario
+      const currentUserReaction = userReactions[postId];
+      let action = 'add';
+      let typeToSend = reactionType;
+      
+      if (reactionType === null) {
+        // Si queremos quitar la reacción, necesitamos enviar el tipo actual
+        action = 'remove';
+        typeToSend = currentUserReaction;
+      } else if (currentUserReaction === reactionType) {
+        // Si clickeamos en la misma reacción, quitarla
+        action = 'remove';
+        typeToSend = reactionType;
+      } else if (currentUserReaction && currentUserReaction !== reactionType) {
+        // Cambiar de una reacción a otra
+        action = 'update';
+        typeToSend = reactionType;
+      }
+
+      // Si no hay reacción actual y queremos quitar, no hacer nada
+      if (action === 'remove' && !typeToSend) {
+        return;
+      }
+
       const response = await fetch(`/api/communities/${slug}/posts/${postId}/reactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reaction_type: reactionType,
+          reaction_type: typeToSend,
+          action: action,
         }),
       });
 
@@ -1482,6 +1533,20 @@ export default function CommunityDetailPage() {
               }
             : post
         ));
+
+        // Recargar las estadísticas de reacciones para este post
+        try {
+          const statsResponse = await fetch(`/api/communities/${slug}/posts/${postId}/reactions?include_stats=true`);
+          if (statsResponse.ok) {
+            const statsData = await statsResponse.json();
+            setPostReactionStats(prev => ({
+              ...prev,
+              [postId]: statsData.reactions || {}
+            }));
+          }
+        } catch (error) {
+          console.error('Error reloading reaction stats:', error);
+        }
       } else {
         const errorData = await response.json();
         console.error('Error handling reaction:', errorData.error);
@@ -1975,8 +2040,39 @@ export default function CommunityDetailPage() {
                       </div>
                     )}
 
-                    {/* Facebook-style Post Stats Bar - Solo comentarios */}
-                    <div className="flex items-center justify-end py-2 px-4 text-sm text-slate-400 border-b border-slate-700/30">
+                    {/* Facebook-style Post Stats Bar - Reacciones y comentarios */}
+                    <div className="flex items-center justify-between py-2 px-4 text-sm text-slate-400 border-b border-slate-700/30">
+                      {/* Reacciones */}
+                      {(() => {
+                        const totalReactions = postReactions[post.id]?.count || post.reaction_count || 0;
+                        const reactionStats = postReactionStats[post.id] || {};
+                        const topReactions = Object.values(reactionStats).map((reaction: any) => ({
+                          reaction_type: reaction.type,
+                          count: reaction.count,
+                          emoji: reaction.emoji
+                        }));
+                        
+                        console.log('Post reaction data:', {
+                          postId: post.id,
+                          totalReactions,
+                          reactionStats,
+                          topReactions,
+                          postReactions: postReactions[post.id],
+                          postReactionCount: post.reaction_count
+                        });
+                        
+                        return (
+                          <ReactionBanner
+                            totalReactions={totalReactions}
+                            topReactions={topReactions}
+                            showTopReactions={true}
+                            onReactionClick={(reactionType) => handleReactionClick(post.id, reactionType)}
+                            postId={post.id}
+                          />
+                        );
+                      })()}
+                      
+                      {/* Comentarios */}
                       <button 
                         onClick={() => {
                           const isCurrentlyShowing = showCommentsForPost[post.id] || false;
@@ -1998,16 +2094,6 @@ export default function CommunityDetailPage() {
                         {post.comment_count} comentarios
                       </button>
                     </div>
-
-                    {/* Banner de Reacciones */}
-                    {(postReactions[post.id]?.count || post.reaction_count || 0) > 0 && (
-                      <div className="px-4 py-2">
-                        <ReactionBanner
-                          totalReactions={postReactions[post.id]?.count || post.reaction_count || 0}
-                          showTopReactions={false} // Por ahora solo mostrar conteo
-                        />
-                      </div>
-                    )}
 
                     {/* Facebook-style Action Buttons */}
                     <div className="flex items-center justify-around py-2">
@@ -2115,6 +2201,18 @@ export default function CommunityDetailPage() {
           )}
         </div>
       </motion.section>
+
+      {/* Modales de detalles de reacciones */}
+      {posts.map((post) => (
+        <ReactionDetailsModal
+          key={`reaction-modal-${post.id}`}
+          isOpen={showReactionDetails[post.id] || false}
+          onClose={() => closeReactionDetails(post.id)}
+          postId={post.id}
+          communitySlug={slug}
+          selectedReactionType={selectedReactionType}
+        />
+      ))}
     </div>
   );
 }
