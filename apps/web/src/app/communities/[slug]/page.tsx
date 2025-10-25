@@ -49,6 +49,7 @@ import { PostInteractions } from '../../../features/communities/components/PostI
 import { useReactions, useAttachments } from '../../../features/communities/hooks';
 import { CommentsSection } from '../../../features/communities/components/CommentsSection';
 import { InlineAttachmentButtons, AttachmentPreview, PostAttachment, YouTubeLinkModal, PollModal } from '../../../features/communities/components';
+import { AttachmentImage, UserAvatar } from '../../../features/communities/components/OptimizedImage';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
 // import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -842,72 +843,13 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
   // Si es una imagen (por tipo o por URL)
   if (attachmentType?.startsWith('image/') || attachmentType === 'image/jpeg' || attachmentType === 'image/png' || attachmentType === 'image/gif' || isImageUrl(attachmentUrl)) {
     return (
-      <>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="relative group cursor-pointer mb-4"
-          onClick={() => setShowFullscreen(true)}
-        >
-          <div className="community-media-container">
-            {!imageError ? (
-              <img
+      <AttachmentImage
                 src={attachmentUrl}
                 alt={fileName || 'Imagen adjunta'}
-                className="w-full h-auto max-h-[600px] object-contain transition-transform duration-300 group-hover:scale-[1.02]"
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-64 bg-slate-800 text-slate-400">
-                <div className="text-center">
-                  <ImageIcon className="w-16 h-16 mx-auto mb-3" />
-                  <p className="text-lg">Error al cargar la imagen</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
-                  <ImageIcon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        <AnimatePresence>
-          {showFullscreen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-              onClick={() => setShowFullscreen(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.8 }}
-                className="relative max-w-[95vw] max-h-[95vh]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <img
-                  src={attachmentUrl}
-                  alt={fileName || 'Imagen adjunta'}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                />
-                <button
-                  onClick={() => setShowFullscreen(false)}
-                  className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-full p-3 text-white hover:bg-black/90 transition-colors z-10"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </>
+        className="w-full h-auto max-h-[600px] transition-transform duration-300 group-hover:scale-[1.02]"
+        containerClassName="relative group cursor-pointer mb-4"
+        showModal={true}
+      />
     );
   }
 
@@ -2022,10 +1964,12 @@ export default function CommunityDetailPage() {
                       <div className="flex items-center gap-3">
                         <div className="community-post-avatar">
                           {post.user?.profile_picture_url ? (
-                            <img 
+                            <UserAvatar
                               src={post.user.profile_picture_url} 
                               alt={post.user?.first_name || 'Usuario'}
+                              size="md"
                               className="w-full h-full object-cover"
+                              showModal={false}
                             />
                           ) : post.user?.first_name && post.user?.last_name ? (
                             <span className="text-white font-semibold text-sm">

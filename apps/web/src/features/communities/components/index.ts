@@ -10,3 +10,14 @@ export { InlineAttachmentButtons } from './InlineAttachmentButtons';
 export { PostAttachment } from './PostAttachment';
 export { ImageModal } from './ImageModal';
 export { YouTubeLinkModal, PollModal } from './AttachmentModals';
+export { 
+  OptimizedImage, 
+  CommunityHeaderImage, 
+  PostImage, 
+  UserAvatar, 
+  AttachmentImage,
+  ImageType, 
+  ImageSize, 
+  AspectRatio, 
+  Quality 
+} from './OptimizedImage';

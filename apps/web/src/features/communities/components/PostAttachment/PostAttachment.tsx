@@ -14,6 +14,7 @@ import {
   Play
 } from 'lucide-react';
 import { ImageModal } from '../ImageModal';
+import { AttachmentImage } from '../OptimizedImage';
 
 interface PostAttachmentProps {
   attachmentType: string;
@@ -72,43 +73,15 @@ export function PostAttachment({
         }
         
         return (
-          <div className="relative group">
-            <img
+          <AttachmentImage
               src={attachmentUrl}
               alt={attachmentData?.name || 'Imagen adjunta'}
-              className="w-full max-h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => setShowImageModal(true)}
-              onLoad={() => {
-                if (isBase64) {
-                  console.log('🎨 [IMAGE] Base64 cargado exitosamente');
-                }
-              }}
-              onError={(e) => {
-                console.error('🎨 [IMAGE] Error loading image:', isBase64 ? 'Base64 image failed to load' : attachmentUrl);
-                // En lugar de ocultar, mostrar un placeholder
-                e.currentTarget.style.display = 'none';
-                // Crear un placeholder
-                const placeholder = document.createElement('div');
-                placeholder.className = 'w-full h-48 bg-slate-700 rounded-lg flex items-center justify-center';
-                placeholder.innerHTML = `
-                  <div class="text-center">
-                    <svg class="w-12 h-12 text-slate-400 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-                    </svg>
-                    <p class="text-slate-400 text-sm">Error al cargar imagen</p>
-                  </div>
-                `;
-                e.currentTarget.parentNode?.appendChild(placeholder);
-              }}
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <div className="bg-black/50 rounded-full p-2">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-          </div>
+            attachmentData={attachmentData}
+            fileName={attachmentData?.name}
+            className="w-full max-h-96 rounded-lg"
+            containerClassName="relative group"
+            showModal={true}
+          />
         );
 
       case 'video':
@@ -654,3 +627,5 @@ function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+
