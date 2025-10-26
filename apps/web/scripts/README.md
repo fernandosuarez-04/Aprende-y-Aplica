@@ -1,6 +1,6 @@
-# Scripts de Base de Datos - Directorio de IA
+# Scripts de Base de Datos
 
-Este directorio contiene los scripts necesarios para configurar la base de datos del nuevo sistema de Directorio de IA.
+Este directorio contiene scripts para configurar y mantener la base de datos del proyecto.
 
 ## Archivos Incluidos
 
@@ -22,6 +22,36 @@ Script para poblar las tablas con datos de ejemplo basados en las imágenes prop
 - 10+ apps de IA populares (ChatGPT, Claude, Midjourney, etc.)
 - 5+ prompts de ejemplo con diferentes niveles de dificultad
 - Datos de ejemplo para ratings y estadísticas
+
+### 3. `create-password-reset-tokens-table.sql` ✨ NUEVO
+Script para crear la tabla de tokens de recuperación de contraseña:
+
+- **password_reset_tokens**: Almacena tokens seguros para recuperación de contraseña
+  - `id` (UUID, PK)
+  - `user_id` (UUID, FK → users.id)
+  - `token` (VARCHAR 255, UNIQUE) - Token aleatorio de 64 caracteres
+  - `expires_at` (TIMESTAMP) - Expiración de 1 hora
+  - `created_at` (TIMESTAMP) - Fecha de creación
+  - `used_at` (TIMESTAMP) - Fecha de uso (NULL si no usado)
+
+**Características de Seguridad**:
+- Tokens de un solo uso
+- Expiración automática en 1 hora
+- Índices optimizados para búsqueda rápida
+- Foreign key con cascada al eliminar usuario
+
+### 4. `setup-password-reset.js` ✨ NUEVO
+Script Node.js helper para ejecutar la migración de password reset:
+
+```bash
+node scripts/setup-password-reset.js
+```
+
+**Características**:
+- Verifica variables de entorno
+- Intenta ejecutar SQL automáticamente
+- Proporciona instrucciones detalladas si falla
+- Valida que la tabla se creó correctamente
 
 ## Cómo Ejecutar los Scripts
 
@@ -45,6 +75,51 @@ psql -h localhost -U tu_usuario -d tu_base_de_datos
 
 ### Opción 3: Desde la aplicación (si tienes acceso)
 Si tu aplicación tiene acceso directo a la base de datos, puedes ejecutar estos scripts desde el código.
+
+### ✨ Para Password Reset (Nuevo Sistema)
+
+#### Método Recomendado: Script Automatizado
+```bash
+# Desde la carpeta apps/web
+cd apps/web
+node scripts/setup-password-reset.js
+```
+
+#### Método Manual: Supabase Dashboard
+1. Abre [Supabase Dashboard](https://app.supabase.com)
+2. Selecciona tu proyecto
+3. Ve a **SQL Editor** → **New Query**
+4. Copia el contenido de `scripts/create-password-reset-tokens-table.sql`
+5. Ejecuta el SQL
+6. Verifica: `SELECT * FROM password_reset_tokens LIMIT 1;`
+
+#### Verificar Instalación
+```sql
+-- Verificar que la tabla existe
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'password_reset_tokens';
+
+-- Verificar índices
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'password_reset_tokens';
+
+-- Verificar foreign key
+SELECT
+    tc.constraint_name,
+    tc.table_name,
+    kcu.column_name,
+    ccu.table_name AS foreign_table_name,
+    ccu.column_name AS foreign_column_name
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+  ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage AS ccu
+  ON ccu.constraint_name = tc.constraint_name
+WHERE tc.table_name = 'password_reset_tokens'
+  AND tc.constraint_type = 'FOREIGN KEY';
+```
 
 ## Estructura de las Tablas
 
