@@ -85,10 +85,10 @@ export default function CreditsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
 
-      {/* Botón de volver */}
+      {/* Botón de volver fijo */}
       <motion.button
         onClick={() => router.back()}
-        className="fixed top-8 left-8 px-6 py-3 bg-gray-700/80 backdrop-blur-sm hover:bg-gray-600/80 text-white rounded-lg transition-all duration-300 border border-gray-600/50 flex items-center space-x-2 z-50"
+        className="fixed top-8 left-8 px-6 py-3 bg-gray-700/90 backdrop-blur-sm hover:bg-gray-600/90 text-white rounded-lg transition-all duration-300 border border-gray-600/50 flex items-center space-x-2 z-50 shadow-lg"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0, x: -50 }}
