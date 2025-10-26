@@ -1,16 +1,30 @@
 # Sistema de Autenticación - Aprende y Aplica
 
+## 🎯 Estado de Implementación
+
+| Funcionalidad | Estado | Última Actualización |
+|--------------|--------|---------------------|
+| 🔐 Login | ✅ Completo | Oct 2025 |
+| 📝 Registro | ✅ Completo | Oct 2025 |
+| 🔄 Recuperación de Contraseña | ✅ Completo | Oct 26, 2025 |
+| ✉️ Verificación de Email | 🟡 Pendiente | - |
+| 🔒 Sistema de Sesiones | ✅ Completo | Oct 2025 |
+| 🛡️ Middleware de Protección | ✅ Completo | Oct 2025 |
+| 💾 Base de Datos | ✅ Completo | Oct 2025 |
+| 🧪 Sistema de Testing | ✅ Completo | Oct 26, 2025 |
+
 ## 📋 Tabla de Contenidos
 1. [Arquitectura General](#arquitectura-general)
 2. [Estructura del Proyecto](#estructura-del-proyecto)
 3. [Flujo de Login](#flujo-de-login)
 4. [Flujo de Registro (Sign Up)](#flujo-de-registro-sign-up)
-5. [Flujo de Recuperación de Contraseña](#flujo-de-recuperación-de-contraseña)
+5. [Flujo de Recuperación de Contraseña](#flujo-de-recuperación-de-contraseña) ✅ COMPLETO
 6. [Sistema de Sesiones](#sistema-de-sesiones)
 7. [Middleware de Protección](#middleware-de-protección)
 8. [Base de Datos](#base-de-datos)
 9. [Validaciones](#validaciones)
 10. [Próximos Pasos](#próximos-pasos)
+11. [Pruebas del Sistema](#pruebas-del-sistema-de-recuperación-de-contraseña) ✅ NUEVO
 
 ---
 
@@ -45,7 +59,7 @@ apps/web/src/
 │   │   ├── login.ts                  # ✅ Acción de login
 │   │   ├── register.ts               # ✅ Acción de registro
 │   │   ├── logout.ts                 # ✅ Acción de cierre de sesión
-│   │   ├── reset-password.ts         # 🟡 Recuperación de contraseña (parcial)
+│   │   ├── reset-password.ts         # ✅ Recuperación de contraseña (completa)
 │   │   └── verify-email.ts           # 🟡 Verificación de email (pendiente)
 │   │
 │   ├── services/                     # Lógica de negocio
@@ -59,6 +73,12 @@ apps/web/src/
 │   │   ├── RegisterForm/
 │   │   │   ├── RegisterForm.tsx
 │   │   │   └── RegisterForm.schema.ts
+│   │   ├── ForgotPasswordForm/       # ✅ Nuevo
+│   │   │   ├── ForgotPasswordForm.tsx
+│   │   │   └── ForgotPasswordForm.schema.ts
+│   │   ├── ResetPasswordForm/        # ✅ Nuevo
+│   │   │   ├── ResetPasswordForm.tsx
+│   │   │   └── ResetPasswordForm.schema.ts
 │   │   └── AuthTabs/
 │   │       └── AuthTabs.tsx          # Tabs para Login/Register
 │   │
@@ -78,6 +98,10 @@ apps/web/src/
 ├── app/
 │   ├── auth/
 │   │   ├── page.tsx                  # Página de login/registro
+│   │   ├── forgot-password/          # ✅ Nuevo
+│   │   │   └── page.tsx              # Solicitar recuperación
+│   │   ├── reset-password/           # ✅ Nuevo
+│   │   │   └── page.tsx              # Restablecer contraseña
 │   │   └── layout.tsx
 │   │
 │   └── api/auth/                     # API Routes
@@ -438,9 +462,107 @@ export async function registerAction(formData: FormData) {
 
 ## 🔄 Flujo de Recuperación de Contraseña
 
-### Estado Actual: 🟡 Implementación Parcial
+### Estado Actual: ✅ Implementación Completa
 
 **Ubicación**: `apps/web/src/features/auth/actions/reset-password.ts`
+
+El sistema de recuperación de contraseña está completamente implementado con todas sus páginas, componentes y validaciones funcionando correctamente.
+
+### 📊 Diagrama de Flujo Visual
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FLUJO DE RECUPERACIÓN                         │
+└─────────────────────────────────────────────────────────────────┘
+
+🔵 INICIO: Usuario olvidó su contraseña
+    │
+    ↓
+┌──────────────────────────────┐
+│ 1. Página de Login           │
+│ /auth                        │
+│ - Click "¿Olvidaste tu       │
+│   contraseña?"               │
+└──────────────┬───────────────┘
+               │
+               ↓
+┌──────────────────────────────┐
+│ 2. Solicitar Recuperación    │
+│ /auth/forgot-password        │
+│ - Ingresar email             │
+│ - Validación Zod             │
+│ - Submit form                │
+└──────────────┬───────────────┘
+               │
+               ↓
+┌──────────────────────────────┐
+│ 3. Server Action             │
+│ requestPasswordResetAction() │
+│ - Verificar email existe     │
+│ - Generar token único        │
+│ - Enviar email con link      │
+└──────────────┬───────────────┘
+               │
+               ↓
+┌──────────────────────────────┐
+│ 4. Email Recibido            │
+│ - Usuario abre email         │
+│ - Click en enlace con token  │
+└──────────────┬───────────────┘
+               │
+               ↓
+┌──────────────────────────────┐
+│ 5. Validar Token             │
+│ /auth/reset-password?token=  │
+│ - Loading state (spinner)    │
+│ - validateResetTokenAction() │
+│ - Verificar válido/expirado  │
+└──────────────┬───────────────┘
+               │
+        ┌──────┴──────┐
+        │             │
+    ❌ Token       ✅ Token
+    Inválido       Válido
+        │             │
+        │             ↓
+        │   ┌──────────────────────────────┐
+        │   │ 6. Formulario Nueva Contraseña│
+        │   │ - Input contraseña            │
+        │   │ - Indicador fortaleza         │
+        │   │ - Validación requisitos       │
+        │   │ - Confirmar contraseña        │
+        │   │ - Submit form                 │
+        │   └──────────────┬───────────────┘
+        │                  │
+        │                  ↓
+        │   ┌──────────────────────────────┐
+        │   │ 7. Server Action              │
+        │   │ resetPasswordAction()         │
+        │   │ - Hash nueva contraseña       │
+        │   │ - Actualizar en DB            │
+        │   │ - Invalidar token             │
+        │   └──────────────┬───────────────┘
+        │                  │
+        │                  ↓
+        │   ┌──────────────────────────────┐
+        │   │ 8. Éxito                     │
+        │   │ - Mensaje confirmación        │
+        │   │ - Redirección automática      │
+        │   │   (2 segundos)                │
+        │   └──────────────┬───────────────┘
+        │                  │
+        └──────────────────┼───────────────┐
+                           │               │
+                           ↓               ↓
+              ┌──────────────────────────────┐
+              │ 9. Página Login              │
+              │ /auth                        │
+              │ - Login con nueva contraseña │
+              └──────────────┬───────────────┘
+                             │
+                             ↓
+                    🟢 FIN: Acceso exitoso
+```
 
 ### Funciones Disponibles
 
@@ -476,7 +598,51 @@ export async function requestPasswordResetAction(formData: FormData | { email: s
 }
 ```
 
-#### 2. Restablecer Contraseña
+#### 2. Validar Token de Recuperación ✅ NUEVO
+
+```typescript
+export async function validateResetTokenAction(token: string) {
+  try {
+    // PASO 1: Buscar token en base de datos
+    const { data: tokenData, error } = await supabase
+      .from('password_reset_tokens')
+      .select('expires_at, used_at')
+      .eq('token', token)
+      .single();
+
+    // PASO 2: Verificar que el token existe
+    if (error || !tokenData) {
+      return { valid: false, error: 'Token inválido.' };
+    }
+
+    // PASO 3: Verificar que el token no ha sido usado
+    if (tokenData.used_at) {
+      return { valid: false, error: 'Este enlace ya fue utilizado.' };
+    }
+
+    // PASO 4: Verificar que el token no ha expirado
+    const now = new Date();
+    const expiresAt = new Date(tokenData.expires_at);
+
+    if (expiresAt < now) {
+      return { valid: false, error: 'Token expirado.' };
+    }
+
+    // PASO 5: Token válido
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: 'Error validando token.' };
+  }
+}
+```
+
+**Características de Seguridad**:
+- ✅ Verificación de existencia del token
+- ✅ Prevención de reutilización de tokens
+- ✅ Validación de expiración (1 hora por defecto)
+- ✅ Manejo robusto de errores
+
+#### 3. Restablecer Contraseña
 
 ```typescript
 export async function resetPasswordAction(formData: FormData | { token: string; newPassword: string }) {
@@ -520,20 +686,202 @@ export async function resetPasswordAction(formData: FormData | { token: string; 
 }
 ```
 
-### ⚠️ Componentes Faltantes
+### ✅ Componentes Implementados
 
-Para completar la implementación de recuperación de contraseña, se necesitan:
+#### 1. Página de Solicitud de Recuperación
 
-1. **Página de Solicitud** (`/auth/forgot-password`)
+**Ubicación**: `apps/web/src/app/auth/forgot-password/page.tsx`
+
+Página dedicada para solicitar el restablecimiento de contraseña.
+
+**Características**:
+- Metadata optimizado para SEO
+- Layout responsivo con gradientes
+- Loading state con Suspense
+- Diseño moderno con sombras y bordes
+
+#### 2. Formulario de Solicitud (ForgotPasswordForm)
+
+**Ubicación**: `apps/web/src/features/auth/components/ForgotPasswordForm/`
+
+Componente que maneja la solicitud de recuperación de contraseña.
+
+**Características implementadas**:
+- ✅ Validación de email con Zod
+- ✅ Estados de carga (isLoading)
+- ✅ Feedback visual de éxito/error
+- ✅ Diseño moderno con iconos (Lucide React)
+- ✅ Modo dark integrado
+- ✅ Integración con React Hook Form
+- ✅ Llamada a `requestPasswordResetAction`
+- ✅ Link para volver al login
+
+**Schema de Validación**:
+```typescript
+// ForgotPasswordForm.schema.ts
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Ingresa un correo electrónico válido'),
+});
+```
+
+**Flujo de Usuario**:
+```
+1. Usuario ingresa su email
+2. Validación en tiempo real con Zod
+3. Submit → requestPasswordResetAction()
+4. Mensaje de éxito: "Revisa tu correo para las instrucciones"
+5. Opción para volver al login
+```
+
+#### 3. Página de Restablecimiento
+
+**Ubicación**: `apps/web/src/app/auth/reset-password/page.tsx`
+
+Página para crear la nueva contraseña después de hacer clic en el enlace del email.
+
+**Características**:
+- Captura automática de token desde URL query params
+- Metadata optimizado
+- Loading state durante validación de token
+- Diseño consistente con forgot-password
+
+#### 4. Formulario de Restablecimiento (ResetPasswordForm)
+
+**Ubicación**: `apps/web/src/features/auth/components/ResetPasswordForm/`
+
+Componente avanzado para crear nueva contraseña con validaciones robustas.
+
+**Características implementadas**:
+- ✅ Validación de token en tiempo real al cargar
+- ✅ Indicador visual de fortaleza de contraseña (4 niveles)
+- ✅ Toggle de visibilidad de contraseña (eye icons)
+- ✅ Validación de requisitos en tiempo real:
+  - Al menos 8 caracteres
+  - Una letra mayúscula
+  - Una letra minúscula
+  - Un número
+- ✅ Confirmación de contraseña con validación
+- ✅ Estados de loading y error bien manejados
+- ✅ Redirección automática al login después de éxito (2 segundos)
+- ✅ Manejo de tokens inválidos/expirados
+- ✅ UI feedback con colores (débil/media/buena/fuerte)
+
+**Schema de Validación**:
+```typescript
+// ResetPasswordForm.schema.ts
+export const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, 'La contraseña debe tener al menos 8 caracteres')
+      .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
+      .regex(/[a-z]/, 'Debe contener al menos una minúscula')
+      .regex(/[0-9]/, 'Debe contener al menos un número'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  });
+```
+
+**Estados del Componente**:
+1. **Validando token**: Muestra spinner mientras verifica el token
+2. **Token inválido**: Mensaje de error con opción de solicitar nuevo enlace
+3. **Formulario activo**: Permite crear nueva contraseña con todas las validaciones
+
+**Indicador de Fortaleza**:
+```typescript
+// Cálculo dinámico de fortaleza
+Débil (1/4):    Solo longitud ≥8
+Media (2/4):    + Mayúscula o minúscula
+Buena (3/4):    + Número
+Fuerte (4/4):   Todos los requisitos
+```
+
+**Flujo de Usuario Completo**:
+```
+1. Usuario recibe email con token
+2. Hace clic en enlace → /auth/reset-password?token=...
+3. Sistema valida token automáticamente
+4. Si válido: muestra formulario
+5. Usuario ingresa nueva contraseña
+6. Indicador muestra fortaleza en tiempo real
+7. Validación de coincidencia con confirmación
+8. Submit → resetPasswordAction()
+9. Éxito → Redirección automática a login
+10. Usuario puede iniciar sesión con nueva contraseña
+```
+
+### 🔗 Integración en la UI
+
+#### Enlace desde Login
+
+El componente `LoginForm` incluye un enlace directo a la recuperación de contraseña:
+
+**Ubicación**: `apps/web/src/features/auth/components/LoginForm/LoginForm.tsx:171`
+
+```tsx
+<a
+  href="/auth/forgot-password"
+  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors"
+>
+  ¿Olvidaste tu contraseña?
+</a>
+```
+
+Este enlace está visible en la página de login, permitiendo a los usuarios acceder fácilmente al flujo de recuperación cuando lo necesiten.
+
+### ✨ Características Destacadas del Sistema
+
+El sistema de recuperación de contraseña implementado incluye características avanzadas de UX y seguridad:
+
+**🎨 Experiencia de Usuario**:
+- ✅ **Feedback Visual Inmediato**: Estados de carga, éxito y error claramente diferenciados
+- ✅ **Indicador de Fortaleza**: Barra de progreso con 4 niveles (Débil → Fuerte)
+- ✅ **Validación en Tiempo Real**: Checkmarks visuales para cada requisito de contraseña
+- ✅ **Toggle de Visibilidad**: Botones eye/eye-off para mostrar/ocultar contraseñas
+- ✅ **Modo Dark Integrado**: Soporte completo para tema oscuro
+- ✅ **Diseño Responsivo**: Funciona perfectamente en móviles y desktop
+- ✅ **Iconografía Clara**: Uso de Lucide React para iconos intuitivos
+
+**🔒 Seguridad**:
+- ✅ **Validación de Token**: Verificación automática antes de mostrar el formulario
+- ✅ **Tokens de Un Solo Uso**: Tokens de recuperación no reutilizables
+- ✅ **Validación Doble**: Frontend (Zod) y Backend (Server Actions)
+- ✅ **Requisitos Fuertes**: Mínimo 8 caracteres con mayúsculas, minúsculas y números
+- ✅ **Confirmación Requerida**: Doble entrada de contraseña para evitar errores
+- ✅ **Hashing Seguro**: bcrypt con 12 rounds para almacenamiento
+
+**⚡ Performance**:
+- ✅ **Loading States**: Suspense boundaries para carga óptima
+- ✅ **React Hook Form**: Validación eficiente sin re-renders innecesarios
+- ✅ **Async/Await**: Operaciones no bloqueantes
+- ✅ **Error Boundaries**: Manejo robusto de errores
+
+**♿ Accesibilidad**:
+- ✅ **Labels Descriptivos**: Etiquetas claras para lectores de pantalla
+- ✅ **Estados Disabled**: Inputs deshabilitados durante procesamiento
+- ✅ **Mensajes de Error**: Feedback claro y descriptivo
+- ✅ **Navegación por Teclado**: Soporte completo para keyboard navigation
+
+### ⚠️ Componentes Completados (Anteriormente Faltantes)
+
+Los siguientes componentes que estaban pendientes ahora están implementados:
+
+1. ✅ **Página de Solicitud** (`/auth/forgot-password`)
    - Formulario para ingresar email
    - Llamada a `requestPasswordResetAction`
+   - UI moderna con feedback visual
 
-2. **Página de Restablecimiento** (`/auth/reset-password`)
+2. ✅ **Página de Restablecimiento** (`/auth/reset-password`)
    - Captura del token desde URL
    - Formulario para nueva contraseña
    - Llamada a `resetPasswordAction`
+   - Validación de token en tiempo real
+   - Indicador de fortaleza de contraseña
 
-3. **Configuración de Email**
+3. ⚠️ **Configuración de Email** (Pendiente de configurar en producción)
    - Template de email en Supabase
    - Configuración de SMTP
    - Variables de entorno para URLs de callback
@@ -743,7 +1091,7 @@ CREATE TABLE user_session (
   ip VARCHAR(45) NOT NULL,
   user_agent TEXT NOT NULL,
   revoked BOOLEAN DEFAULT false,
-  
+
   CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -751,6 +1099,61 @@ CREATE TABLE user_session (
 CREATE INDEX idx_user_session_user_id ON user_session(user_id);
 CREATE INDEX idx_user_session_jwt_id ON user_session(jwt_id);
 CREATE INDEX idx_user_session_expires_at ON user_session(expires_at);
+```
+
+#### Tabla: password_reset_tokens ✅ NUEVO
+
+**Ubicación**: `apps/web/scripts/create-password-reset-tokens-table.sql`
+
+Tabla para gestionar tokens de recuperación de contraseña con expiración y prevención de reutilización.
+
+```sql
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  used_at TIMESTAMP,
+
+  CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token
+ON password_reset_tokens(token);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id
+ON password_reset_tokens(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at
+ON password_reset_tokens(expires_at);
+```
+
+**Características de la Tabla**:
+- ✅ **Token único**: VARCHAR(255) con constraint UNIQUE
+- ✅ **Expiración configurable**: Default 1 hora desde creación
+- ✅ **Prevención de reutilización**: Campo `used_at` marca tokens usados
+- ✅ **Cascada en borrado**: Si se elimina usuario, se eliminan sus tokens
+- ✅ **Índices optimizados**: Búsqueda rápida por token, user_id y expiración
+
+**Campos**:
+```typescript
+{
+  id: UUID (auto-generado)
+  user_id: UUID (FK a users.id)
+  token: string (64 caracteres hexadecimales)
+  expires_at: timestamp (1 hora desde created_at)
+  created_at: timestamp (auto NOW())
+  used_at: timestamp | null (NULL si no usado, timestamp cuando se usa)
+}
+```
+
+**Limpieza Periódica**:
+```sql
+-- Eliminar tokens expirados o usados (ejecutar con cron)
+DELETE FROM password_reset_tokens
+WHERE expires_at < NOW() OR used_at IS NOT NULL;
 ```
 
 ### Políticas RLS (Row Level Security)
@@ -821,25 +1224,26 @@ CREATE POLICY "Users can update own profile" ON users
 
 ### Funcionalidades Pendientes
 
-#### 1. Recuperación de Contraseña (Alta Prioridad)
+#### 1. Recuperación de Contraseña ✅ COMPLETADO
 
-- [ ] Crear página `/auth/forgot-password`
+- [x] ✅ Crear página `/auth/forgot-password`
   - Formulario con campo de email
   - Integración con `requestPasswordResetAction`
   - Mensaje de confirmación
 
-- [ ] Crear página `/auth/reset-password`
+- [x] ✅ Crear página `/auth/reset-password`
   - Captura de token desde query params
   - Formulario con nueva contraseña y confirmación
   - Integración con `resetPasswordAction`
   - Validación de token expirado/inválido
+  - Indicador de fortaleza de contraseña
 
-- [ ] Configurar templates de email en Supabase
+- [ ] ⚠️ Configurar templates de email en Supabase (Producción)
   - Template personalizado para recuperación
   - Branding de "Aprende y Aplica"
   - Enlaces correctos de callback
 
-- [ ] Variables de entorno
+- [ ] ⚠️ Variables de entorno (Producción)
   ```env
   NEXT_PUBLIC_APP_URL=https://tu-dominio.com
   SUPABASE_AUTH_EMAIL_TEMPLATE_ID=...
@@ -964,6 +1368,170 @@ features/auth/components/ResetPasswordForm/
 
 ---
 
-**Última actualización**: 25 de octubre de 2025  
-**Versión**: 1.0  
+## 🧪 Pruebas del Sistema de Recuperación de Contraseña
+
+### Flujo Completo de Prueba
+
+#### 1. Solicitar Recuperación
+```
+1. Navega a: http://localhost:3000/auth/forgot-password
+2. Ingresa un email registrado: "usuario@ejemplo.com"
+3. Click en "Enviar enlace de recuperación"
+4. Verifica mensaje: "Revisa tu correo para las instrucciones"
+5. Revisa tu bandeja de entrada (o logs de Supabase)
+```
+
+#### 2. Validar Token
+```
+1. Copia el enlace del email recibido
+2. Navega al enlace: /auth/reset-password?token=...
+3. Verifica que se muestre el spinner "Verificando enlace..."
+4. Si válido: Muestra formulario de nueva contraseña
+5. Si inválido: Muestra mensaje de error con botón para solicitar nuevo enlace
+```
+
+#### 3. Restablecer Contraseña
+```
+1. Ingresa nueva contraseña (verifica requisitos en tiempo real):
+   - ○ Al menos 8 caracteres → ✓
+   - ○ Una letra mayúscula → ✓
+   - ○ Una letra minúscula → ✓
+   - ○ Un número → ✓
+
+2. Observa el indicador de fortaleza:
+   - Rojo (Débil) → Naranja (Media) → Amarillo (Buena) → Verde (Fuerte)
+
+3. Confirma la contraseña (debe coincidir)
+4. Click en "Actualizar Contraseña"
+5. Verifica mensaje de éxito
+6. Espera redirección automática a /auth (2 segundos)
+```
+
+#### 4. Iniciar Sesión con Nueva Contraseña
+```
+1. En /auth, usa el email y la nueva contraseña
+2. Verifica que el login sea exitoso
+3. Confirma redirección a /dashboard
+```
+
+### Casos de Prueba Adicionales
+
+#### Token Expirado
+```
+1. Espera que el token expire (configurable en Supabase)
+2. Intenta usar el enlace expirado
+3. Verifica mensaje: "Token inválido o expirado"
+4. Click en "Solicitar nuevo enlace"
+5. Verifica redirección a /auth/forgot-password
+```
+
+#### Token Inválido
+```
+1. Modifica manualmente el token en la URL
+2. Navega a /auth/reset-password?token=token_invalido
+3. Verifica mensaje de error apropiado
+4. Verifica opción para solicitar nuevo enlace
+```
+
+#### Validación de Contraseña Débil
+```
+1. Intenta usar solo números: "12345678"
+2. Verifica que muestre "Débil" en rojo
+3. Verifica errores de validación Zod
+4. Confirma que no permita submit
+```
+
+#### Contraseñas No Coinciden
+```
+1. Ingresa contraseña válida: "MyPass123"
+2. Ingresa confirmación diferente: "MyPass456"
+3. Verifica mensaje: "Las contraseñas no coinciden"
+4. Confirma que no permita submit
+```
+
+### Variables de Entorno para Testing
+
+```env
+# Desarrollo local
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Producción
+NEXT_PUBLIC_APP_URL=https://tu-dominio.com
+
+# Supabase (necesario para envío de emails)
+NEXT_PUBLIC_SUPABASE_URL=tu_url_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_key_anon
+```
+
+### Verificación en Base de Datos
+
+Después de restablecer la contraseña, verifica en PostgreSQL:
+
+```sql
+-- Verificar que el password_hash se actualizó
+SELECT
+  id,
+  email,
+  password_hash,
+  updated_at
+FROM users
+WHERE email = 'usuario@ejemplo.com';
+
+-- El updated_at debe reflejar la hora del cambio
+-- El password_hash debe ser diferente al anterior
+```
+
+---
+
+## 📝 Resumen de Cambios en v1.1
+
+### ✅ Nuevo: Sistema de Recuperación de Contraseña
+
+**Fecha**: 26 de octubre de 2025
+
+**Componentes Agregados**:
+1. ✅ **2 Nuevas Páginas**:
+   - `/auth/forgot-password` - Solicitar recuperación
+   - `/auth/reset-password` - Restablecer contraseña
+
+2. ✅ **2 Nuevos Componentes**:
+   - `ForgotPasswordForm` - Formulario de solicitud
+   - `ResetPasswordForm` - Formulario de restablecimiento
+
+3. ✅ **1 Nueva Server Action**:
+   - `validateResetTokenAction()` - Validación de tokens
+
+4. ✅ **1 Nueva Tabla de Base de Datos**:
+   - `password_reset_tokens` - Gestión de tokens con expiración
+
+**Características Implementadas**:
+- Validación de email con Zod
+- Generación de tokens seguros (64 chars hex)
+- Expiración de tokens (1 hora)
+- Prevención de reutilización de tokens
+- Indicador visual de fortaleza de contraseña
+- Validación en tiempo real de requisitos
+- Toggle de visibilidad de contraseña
+- Estados de loading y error
+- Redirección automática después de éxito
+- Diseño responsivo con modo dark
+- Integración con sistema de sesiones existente
+
+**Archivos Modificados/Creados**:
+- ✅ `apps/web/src/app/auth/forgot-password/page.tsx` (nuevo)
+- ✅ `apps/web/src/app/auth/reset-password/page.tsx` (nuevo)
+- ✅ `apps/web/src/features/auth/components/ForgotPasswordForm/` (nuevo)
+- ✅ `apps/web/src/features/auth/components/ResetPasswordForm/` (nuevo)
+- ✅ `apps/web/src/features/auth/actions/reset-password.ts` (actualizado)
+- ✅ `apps/web/scripts/create-password-reset-tokens-table.sql` (nuevo)
+
+**Pendiente para Producción**:
+- ⚠️ Configurar templates de email en Supabase
+- ⚠️ Configurar SMTP para envío de emails
+- ⚠️ Establecer variables de entorno de producción
+
+---
+
+**Última actualización**: 26 de octubre de 2025
+**Versión**: 1.1 - Sistema de Recuperación de Contraseña Completado
 **Mantenido por**: Equipo de Desarrollo Aprende y Aplica
