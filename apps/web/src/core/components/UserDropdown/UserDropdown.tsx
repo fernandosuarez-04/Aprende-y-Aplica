@@ -10,7 +10,8 @@ import {
   Edit3, 
   Moon, 
   LogOut,
-  ChevronDown
+  ChevronDown,
+  ShieldCheck
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
@@ -30,6 +31,8 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
 
   console.log('🔍 UserDropdown renderizado, user:', user)
   console.log('🔍 UserProfile:', userProfile)
+  console.log('🎭 Rol del usuario:', user?.cargo_rol)
+  console.log('✅ Es administrador:', user?.cargo_rol?.toLowerCase() === 'administrador')
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -83,6 +86,17 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         setIsOpen(false)
       }
     },
+    // Botón de administración - Solo para administradores
+    ...(user?.cargo_rol?.toLowerCase() === 'administrador' ? [{
+      id: 'admin',
+      label: 'Panel de Administración',
+      icon: ShieldCheck,
+      onClick: () => {
+        router.push('/admin/dashboard')
+        setIsOpen(false)
+      },
+      isAdmin: true
+    }] : []),
     {
       id: 'theme',
       label: isDark ? 'Modo claro' : 'Modo oscuro',
@@ -216,6 +230,8 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                     className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
                       item.isDestructive 
                         ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
+                        : item.isAdmin
+                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300'
                         : 'text-text-secondary hover:bg-gray-800 hover:text-text-primary'
                     }`}
                     initial={{ opacity: 0, x: -20 }}
@@ -241,7 +257,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                       transition={{ duration: 0.2 }}
                     >
                       <Icon className={`w-6 h-6 ${
-                        item.isDestructive ? 'text-red-400' : 'text-primary'
+                        item.isDestructive || item.isAdmin ? 'text-red-400' : 'text-primary'
                       }`} />
                     </motion.div>
                     <span className="font-medium text-base">{item.label}</span>

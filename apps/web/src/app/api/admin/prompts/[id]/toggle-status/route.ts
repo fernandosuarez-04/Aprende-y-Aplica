@@ -1,0 +1,31 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: promptId } = await params
+    const { isActive } = await request.json()
+    
+    console.log('🔄 Cambiando estado del prompt:', promptId, 'isActive:', isActive)
+    
+    const updatedPrompt = await AdminPromptsService.togglePromptStatus(promptId, isActive)
+
+    console.log('✅ Estado del prompt actualizado:', updatedPrompt)
+    return NextResponse.json({
+      success: true,
+      prompt: updatedPrompt
+    })
+  } catch (error) {
+    console.error('💥 Error in PATCH /api/admin/prompts/[id]/toggle-status:', error)
+    return NextResponse.json(
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : 'Error al cambiar estado del prompt'
+      },
+      { status: 500 }
+    )
+  }
+}

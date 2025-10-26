@@ -20,7 +20,6 @@ export const metadata: Metadata = {
   description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.',
   keywords: ['educación', 'inteligencia artificial', 'chatbot', 'capacitación', 'IA', 'LIA'],
   authors: [{ name: 'Equipo Aprende y Aplica' }],
-  viewport: 'width=device-width, initial-scale=1',
   robots: 'index, follow',
   icons: {
     icon: '/icono.ico',
@@ -31,6 +30,11 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'es_ES',
   },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

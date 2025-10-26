@@ -61,16 +61,20 @@ export class SessionService {
 
   static async getCurrentUser(): Promise<any | null> {
     try {
+      console.log('🔍 SessionService.getCurrentUser: Iniciando...')
       const cookieStore = await cookies();
       const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
       
+      console.log('🍪 Session token encontrado:', sessionToken ? 'Sí' : 'No')
       if (!sessionToken) {
+        console.log('❌ No hay session token')
         return null;
       }
 
       const supabase = await createClient();
       
       // Buscar sesión válida
+      console.log('🔍 Buscando sesión en DB...')
       const { data: session, error: sessionError } = await supabase
         .from('user_session')
         .select('user_id, expires_at')
@@ -79,24 +83,34 @@ export class SessionService {
         .gt('expires_at', new Date().toISOString())
         .single();
 
+      console.log('📋 Sesión encontrada:', session ? 'Sí' : 'No')
+      console.log('❌ Error de sesión:', sessionError)
+      
       if (sessionError || !session) {
+        console.log('❌ Sesión no válida o no encontrada')
         return null;
       }
 
       // Obtener datos del usuario
+      console.log('👤 Buscando usuario con ID:', session.user_id)
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url')
         .eq('id', session.user_id)
         .single();
 
+      console.log('👤 Usuario encontrado:', user ? 'Sí' : 'No')
+      console.log('❌ Error de usuario:', userError)
+      
       if (userError || !user) {
+        console.log('❌ Usuario no encontrado')
         return null;
       }
 
+      console.log('✅ Usuario obtenido exitosamente:', user)
       return user;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error('💥 Error getting current user:', error);
       return null;
     }
   }

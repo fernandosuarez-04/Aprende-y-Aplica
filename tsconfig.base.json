@@ -25,6 +25,7 @@
       "@shared/*": ["packages/shared/src/*"],
       "@ui/*": ["packages/ui/src/*"],
       "@features/*": ["apps/web/src/features/*"],
+      "@/features/*": ["apps/web/src/features/*"],
       "@core/*": ["apps/web/src/core/*"],
       "@/app/*": ["apps/web/src/app/*"],
       "@/components/*": ["apps/web/src/shared/components/*"],

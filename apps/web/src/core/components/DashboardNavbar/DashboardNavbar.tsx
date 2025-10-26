@@ -14,6 +14,8 @@ import {
   Grid3X3
 } from 'lucide-react'
 import { UserDropdown } from '../UserDropdown'
+import { HiddenAdminButton } from '../HiddenAdminButton'
+import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg'
 import { useRouter } from 'next/navigation'
 
 interface DashboardNavbarProps {
@@ -30,6 +32,7 @@ const navigationItems = [
 export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarProps) {
   const router = useRouter()
   const [isDirectoryDropdownOpen, setIsDirectoryDropdownOpen] = useState(false)
+  const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -82,18 +85,44 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
         <div className="flex items-center justify-between">
           {/* Logo */}
           <motion.div 
-            className="flex items-center"
+            className="flex items-center cursor-pointer"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
+            onClick={handleLogoClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <div className="w-10 h-10 rounded-lg overflow-hidden">
+            <motion.div 
+              className="w-10 h-10 rounded-lg overflow-hidden relative"
+              animate={isActivated ? { 
+                rotate: [0, 360, 0],
+                scale: [1, 1.2, 1]
+              } : {}}
+              transition={{ duration: 0.6 }}
+            >
               <img 
                 src="/icono.png" 
                 alt="Aprende y Aplica" 
                 className="w-full h-full object-contain"
               />
-            </div>
+              {/* Efecto visual cuando está activado */}
+              {isActivated && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-lg opacity-50"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.5, 0] }}
+                  transition={{ duration: 0.6 }}
+                />
+              )}
+            </motion.div>
+            
+            {/* Contador oculto - solo para debugging */}
+            {clickCount > 0 && clickCount < 5 && (
+              <div className="sr-only">
+                Contador: {clickCount}/5
+              </div>
+            )}
           </motion.div>
 
           {/* Desktop Navigation */}
@@ -415,6 +444,9 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
           </div>
         </div>
       </motion.div>
+      
+      {/* Botón oculto de administración */}
+      <HiddenAdminButton />
     </motion.header>
   )
 }

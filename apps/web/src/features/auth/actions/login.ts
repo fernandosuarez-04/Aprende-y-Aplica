@@ -72,16 +72,26 @@ export async function loginAction(formData: FormData) {
     // 6. Limpiar sesiones expiradas (mantenimiento)
     await AuthService.clearExpiredSessions()
 
-    // 7. Redirigir
-    console.log('🔄 Redirigiendo a /dashboard...');
-    redirect('/dashboard')
+    // 7. Redirigir según el rol del usuario
+    console.log('🔄 Redirigiendo según rol:', user.cargo_rol);
+    
+    if (user.cargo_rol === 'Administrador') {
+      console.log('🎯 Redirigiendo a /admin/dashboard');
+      redirect('/admin/dashboard')
+    } else if (user.cargo_rol === 'Instructor') {
+      console.log('🎯 Redirigiendo a /instructor/dashboard');
+      redirect('/instructor/dashboard')
+    } else {
+      console.log('🎯 Redirigiendo a /dashboard');
+      redirect('/dashboard')
+    }
   } catch (error) {
     // Manejar redirect de Next.js (no es un error real)
     if (error && typeof error === 'object' && 'digest' in error) {
       const digest = (error as any).digest
       if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
-        // Es una redirección, no un error
-        throw error // Re-lanzar para que Next.js maneje la redirección
+        // Es una redirección, no un error - re-lanzar para que Next.js la maneje
+        throw error
       }
     }
     
@@ -93,6 +103,6 @@ export async function loginAction(formData: FormData) {
     }
     
     console.log('❌ Unexpected error:', error)
-    return { error: 'Error inesperado' }
+    return { error: 'Error inesperado al iniciar sesión' }
   }
 }

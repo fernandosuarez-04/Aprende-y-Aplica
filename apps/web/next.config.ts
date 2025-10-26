@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Deshabilitar checks durante builds de producción
@@ -30,6 +31,21 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_NAME: 'Aprende y Aplica',
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
+  },
+  
+  // Configuración de Webpack para resolver alias en el monorepo
+  webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@/features': path.resolve(__dirname, 'src/features'),
+      '@/core': path.resolve(__dirname, 'src/core'),
+      '@/app': path.resolve(__dirname, 'src/app'),
+      '@/components': path.resolve(__dirname, 'src/shared/components'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@/utils': path.resolve(__dirname, 'src/shared/utils'),
+      '@/hooks': path.resolve(__dirname, 'src/shared/hooks'),
+    };
+    return config;
   },
 };
 

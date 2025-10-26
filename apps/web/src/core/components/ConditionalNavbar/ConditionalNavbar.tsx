@@ -11,6 +11,7 @@ interface ConditionalNavbarProps {
 export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/auth';
+  const isAdminPage = pathname.startsWith('/admin');
   const isDashboardPage = pathname.startsWith('/dashboard');
   const isProfilePage = pathname.startsWith('/profile');
   const isNewsPage = pathname.startsWith('/news');
@@ -19,17 +20,22 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isStatisticsPage = pathname.startsWith('/statistics');
   const isQuestionnairePage = pathname.startsWith('/questionnaire');
   const isCoursePage = pathname.startsWith('/courses');
+  const isCreditsPage = pathname.startsWith('/credits');
   
   // Determine which navbar to show
   // For the home page (/), always show the regular navbar
   const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage);
-  const shouldShowRegularNavbar = !isAuthPage && !shouldShowDashboardNavbar && !isProfilePage;
+  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isCreditsPage;
   
   return (
     <>
-      {/* Solo mostrar DashboardNavbar para páginas del dashboard, sin navbar general */}
+      {/* Mostrar DashboardNavbar para páginas del dashboard */}
       {shouldShowDashboardNavbar && <DashboardNavbar activeItem={getActiveItem(pathname)} />}
-      <main className={isAuthPage || shouldShowDashboardNavbar || isProfilePage ? '' : 'pt-16 lg:pt-20'}>
+      
+      {/* Mostrar Navbar regular para páginas que no son del dashboard */}
+      {shouldShowRegularNavbar && <Navbar />}
+      
+      <main className={shouldShowDashboardNavbar || isProfilePage || isAdminPage || isCreditsPage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>

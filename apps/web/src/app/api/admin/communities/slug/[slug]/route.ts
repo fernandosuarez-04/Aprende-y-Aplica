@@ -1,0 +1,30 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  try {
+    const { slug } = await params
+    const community = await AdminCommunitiesService.getCommunityBySlug(slug)
+
+    if (!community) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Comunidad no encontrada' 
+      }, { status: 404 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      community 
+    })
+  } catch (error: any) {
+    console.error('Error fetching community by slug via API:', error)
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || 'Error al obtener la comunidad' 
+    }, { status: 500 })
+  }
+}

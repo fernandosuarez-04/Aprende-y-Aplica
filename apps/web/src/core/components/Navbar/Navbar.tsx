@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
 import { ThemeToggle } from '../ThemeToggle';
+import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg';
 import { Menu, X } from 'lucide-react';
 import { fadeIn, slideUp } from '../../../shared/utils/animations';
 
@@ -14,6 +15,7 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,12 +41,22 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <motion.div
-            className="flex items-center gap-3"
+            className="flex items-center gap-3 cursor-pointer"
             variants={fadeIn}
             initial="hidden"
             animate="visible"
+            onClick={handleLogoClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+            <motion.div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden relative"
+              animate={isActivated ? { 
+                rotate: [0, 360, 0],
+                scale: [1, 1.2, 1]
+              } : {}}
+              transition={{ duration: 0.6 }}
+            >
               <Image
                 src="/icono.png"
                 alt="Aprende y Aplica Logo"
@@ -52,10 +64,26 @@ export function Navbar() {
                 height={40}
                 className="w-full h-full object-contain logo-adaptive"
               />
-            </div>
+              {/* Efecto visual cuando está activado */}
+              {isActivated && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-xl opacity-50"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.5, 0] }}
+                  transition={{ duration: 0.6 }}
+                />
+              )}
+            </motion.div>
             <span className="font-bold text-xl hidden sm:block navbar-logo-text">
               Aprende y Aplica
             </span>
+            
+            {/* Contador oculto - solo para debugging */}
+            {clickCount > 0 && clickCount < 5 && (
+              <div className="sr-only">
+                Contador: {clickCount}/5
+              </div>
+            )}
           </motion.div>
 
           {/* Desktop Navigation */}

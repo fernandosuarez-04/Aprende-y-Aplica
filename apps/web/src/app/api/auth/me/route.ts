@@ -6,12 +6,21 @@ export async function GET() {
     const user = await SessionService.getCurrentUser();
     
     if (!user) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'No autenticado' 
+      }, { status: 401 });
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json({ 
+      success: true, 
+      user: user 
+    });
   } catch (error) {
     console.error('Error getting current user:', error);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Error interno' 
+    }, { status: 500 });
   }
 }

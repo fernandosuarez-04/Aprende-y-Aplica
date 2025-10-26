@@ -13,6 +13,8 @@
   "dependencies": {
     "@aprende-y-aplica/shared": "*",
     "@aprende-y-aplica/ui": "*",
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-select": "^2.0.0",

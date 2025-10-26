@@ -47,6 +47,15 @@ export function LoginForm() {
         }
         // Si no hay error, la acción redirect ya maneja la navegación
       } catch (error) {
+        // Verificar si es una redirección de Next.js (no es un error real)
+        if (error && typeof error === 'object' && 'digest' in error) {
+          const digest = (error as any).digest;
+          if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
+            // Es una redirección exitosa, no mostrar error
+            return;
+          }
+        }
+        
         console.error('Login error:', error);
         setError('Error inesperado al iniciar sesión');
       }
