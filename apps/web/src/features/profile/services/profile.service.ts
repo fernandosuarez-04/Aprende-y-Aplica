@@ -155,7 +155,7 @@ export class ProfileService {
 
       // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .upload(filePath, file)
 
       if (error) {
@@ -165,7 +165,7 @@ export class ProfileService {
 
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .getPublicUrl(filePath)
 
       // Actualizar perfil con nueva URL

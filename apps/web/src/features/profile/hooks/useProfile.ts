@@ -137,13 +137,10 @@ export function useProfile(): UseProfileReturn {
     try {
       setSaving(true)
       setError(null)
-      
-      // Actualizar directamente en la base de datos
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      
+
+      // Actualizar directamente en la base de datos usando el cliente correcto
+      const supabase = createClient()
+
       const { data, error: updateError } = await supabase
         .from('users')
         .update({
@@ -226,7 +223,7 @@ export function useProfile(): UseProfileReturn {
       }
       
       console.log('📁 Archivo válido:', file.name, file.type, file.size)
-      
+
       // Subir directamente a Supabase Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`
@@ -234,11 +231,11 @@ export function useProfile(): UseProfileReturn {
 
       console.log('📤 Subiendo archivo:', filePath)
 
-      // Subir archivo a Supabase Storage
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Usar el cliente de Supabase existente con la sesión autenticada
+      const supabase = createClient()
+
+      console.log('✅ Usuario autenticado:', currentUser.id)
+
       const { data, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file)
@@ -260,7 +257,7 @@ export function useProfile(): UseProfileReturn {
       // Actualizar perfil en la base de datos
       const { error: updateError } = await supabase
         .from('users')
-        .update({ 
+        .update({
           profile_picture_url: publicUrl,
           updated_at: new Date().toISOString()
         })
@@ -314,19 +311,14 @@ export function useProfile(): UseProfileReturn {
         throw new Error('El archivo es demasiado grande. Máximo 10MB.')
       }
       
-      const formData = new FormData()
-      formData.append('file', file)
-      
       // Subir directamente a Supabase Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${currentUser.id}-cv-${Date.now()}.${fileExt}`
       const filePath = `curriculums/${fileName}`
 
-      // Subir archivo a Supabase Storage
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Usar el cliente de Supabase existente con la sesión autenticada
+      const supabase = createClient()
+
       const { data, error: uploadError } = await supabase.storage
         .from('curriculums')
         .upload(filePath, file)
@@ -344,7 +336,7 @@ export function useProfile(): UseProfileReturn {
       // Actualizar perfil en la base de datos
       const { error: updateError } = await supabase
         .from('users')
-        .update({ 
+        .update({
           curriculum_url: publicUrl,
           updated_at: new Date().toISOString()
         })
