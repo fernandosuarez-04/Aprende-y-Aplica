@@ -42,6 +42,7 @@ const navigation = [
   { name: 'Noticias', href: '/admin/news', icon: NewspaperIcon, current: false },
   { name: 'Reels', href: '/admin/reels', icon: PlayIcon, current: false },
   { name: 'Estadísticas', href: '/admin/statistics', icon: ChartBarIcon, current: false },
+  { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon, current: false },
   { name: 'Configuración', href: '/admin/settings', icon: Cog6ToothIcon, current: false },
 ]
 

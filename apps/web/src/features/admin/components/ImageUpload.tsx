@@ -110,11 +110,11 @@ export function ImageUpload({
 
       {/* Área de carga */}
       {!value ? (
-        <div
-          onClick={handleClick}
-          className={`
+      <div
+        onClick={handleClick}
+        className={`
             relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-            ${disabled || isUploading 
+          ${disabled || isUploading 
               ? 'border-gray-600 bg-gray-800 cursor-not-allowed' 
               : 'border-gray-500 bg-gray-800 hover:border-blue-500 hover:bg-gray-750'
             }
@@ -148,20 +148,20 @@ export function ImageUpload({
         </div>
       ) : (
         /* Preview de imagen */
-        <div className="relative">
-          <img
+          <div className="relative">
+            <img
             src={value}
-            alt="Preview"
+              alt="Preview"
             className="w-full h-48 object-cover rounded-lg border border-gray-600"
-          />
-          <button
-            type="button"
+            />
+              <button
+                type="button"
             onClick={handleRemoveImage}
             disabled={disabled || isUploading}
             className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-full transition-colors"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
+              >
+                <XMarkIcon className="h-4 w-4" />
+              </button>
           
           {/* Botón para cambiar imagen */}
           <button
@@ -172,8 +172,8 @@ export function ImageUpload({
           >
             Cambiar
           </button>
-        </div>
-      )}
+          </div>
+        )}
 
       {/* Mostrar error */}
       {error && (

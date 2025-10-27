@@ -164,7 +164,7 @@ export default function ReelsPage() {
         
         if (pageNum === 1) {
           setReels(reelsData);
-        } else {
+      } else {
           setReels(prev => [...prev, ...reelsData]);
         }
         setHasMore(reelsData.length === 10);
@@ -675,12 +675,12 @@ export default function ReelsPage() {
                   <img
                     src={reels[currentReelIndex].users.profile_picture_url}
                     alt={reels[currentReelIndex].users.username || 'Usuario'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
                   <User className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-white`} />
-                )}
-              </div>
+                      )}
+                    </div>
               <span className="text-white text-xs font-semibold">
                 {reels[currentReelIndex].users?.username || 'Usuario'}
               </span>
