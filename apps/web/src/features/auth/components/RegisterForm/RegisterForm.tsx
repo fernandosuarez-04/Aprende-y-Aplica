@@ -12,6 +12,7 @@ import { PasswordInput } from '../PasswordInput';
 import { CountrySelector } from '../CountrySelector';
 import { LegalDocumentsModal } from '../LegalDocumentsModal';
 import { registerAction } from '../../actions/register';
+import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 
 export function RegisterForm() {
   const [showLegalModal, setShowLegalModal] = useState(false);
@@ -116,7 +117,7 @@ export function RegisterForm() {
 
         {/* Success Message */}
         {success && (
-          <motion.div 
+          <motion.div
             className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -125,6 +126,32 @@ export function RegisterForm() {
             {success}
           </motion.div>
         )}
+
+        {/* Social Login Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <SocialLoginButtons />
+        </motion.div>
+
+        {/* Divisor */}
+        <motion.div
+          className="relative my-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+              O regístrate con email
+            </span>
+          </div>
+        </motion.div>
 
         {/* Form Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">

@@ -11,6 +11,7 @@ import { LoginFormData } from '../../types/auth.types';
 import { loginSchema } from './LoginForm.schema';
 import { PasswordInput } from '../PasswordInput';
 import { loginAction } from '../../actions/login';
+import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 
 export function LoginForm() {
   const [isPending, startTransition] = useTransition();
@@ -200,6 +201,15 @@ export function LoginForm() {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
           </Button>
         </motion.div>
+      </motion.div>
+
+      {/* Social Login Buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+        <SocialLoginButtons />
       </motion.div>
     </form>
   );
