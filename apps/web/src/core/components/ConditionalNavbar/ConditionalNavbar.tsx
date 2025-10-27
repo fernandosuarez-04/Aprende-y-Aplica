@@ -21,11 +21,12 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isQuestionnairePage = pathname.startsWith('/questionnaire');
   const isCoursePage = pathname.startsWith('/courses');
   const isCreditsPage = pathname.startsWith('/credits');
+  const isReelsPage = pathname.startsWith('/reels');
   
   // Determine which navbar to show
   // For the home page (/), always show the regular navbar
   const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage);
-  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isCreditsPage;
+  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isCreditsPage && !isReelsPage;
   
   return (
     <>
@@ -35,7 +36,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
       {/* Mostrar Navbar regular para páginas que no son del dashboard */}
       {shouldShowRegularNavbar && <Navbar />}
       
-      <main className={shouldShowDashboardNavbar || isProfilePage || isAdminPage || isCreditsPage ? '' : 'pt-16 lg:pt-20'}>
+      <main className={shouldShowDashboardNavbar || isProfilePage || isAdminPage || isCreditsPage || isReelsPage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>

@@ -5,6 +5,7 @@ export interface AdminStats {
   activeCourses: number
   totalAIApps: number
   totalNews: number
+  totalReels: number
   engagementRate: number
 }
 
@@ -13,6 +14,7 @@ export interface AdminStatsWithChanges extends AdminStats {
   courseGrowth: number
   aiAppGrowth: number
   newsGrowth: number
+  reelsGrowth: number
   engagementGrowth: number
 }
 
@@ -29,6 +31,7 @@ export class AdminStatsService {
         coursesResult,
         aiAppsResult,
         newsResult,
+        reelsResult,
         favoritesResult
       ] = await Promise.all([
         // Total de usuarios
@@ -52,6 +55,11 @@ export class AdminStatsService {
           .from('news')
           .select('id', { count: 'exact' }),
         
+        // Total de reels
+        supabase
+          .from('reels')
+          .select('id', { count: 'exact' }),
+        
         // Total de favoritos (como proxy para engagement)
         supabase
           .from('user_favorites')
@@ -63,6 +71,7 @@ export class AdminStatsService {
       console.log('📚 Cursos:', coursesResult.count)
       console.log('🤖 Apps de IA:', aiAppsResult.count, 'Error:', aiAppsResult.error)
       console.log('📰 Noticias:', newsResult.count)
+      console.log('🎬 Reels:', reelsResult.count)
       console.log('❤️ Favoritos:', favoritesResult.count)
 
       // Obtener estadísticas de crecimiento (últimos 30 días)
@@ -74,6 +83,7 @@ export class AdminStatsService {
         coursesGrowthResult,
         aiAppsGrowthResult,
         newsGrowthResult,
+        reelsGrowthResult,
         favoritesGrowthResult
       ] = await Promise.all([
         // Crecimiento de usuarios
@@ -98,6 +108,12 @@ export class AdminStatsService {
         // Crecimiento de noticias
         supabase
           .from('news')
+          .select('id', { count: 'exact' })
+          .gte('created_at', thirtyDaysAgo.toISOString()),
+        
+        // Crecimiento de reels
+        supabase
+          .from('reels')
           .select('id', { count: 'exact' })
           .gte('created_at', thirtyDaysAgo.toISOString()),
         
@@ -140,11 +156,13 @@ export class AdminStatsService {
         activeCourses: coursesResult.count || 0,
         totalAIApps: aiAppsResult.count || 0,
         totalNews: newsResult.count || 0,
+        totalReels: reelsResult.count || 0,
         engagementRate: engagementRate,
         userGrowth: calculateGrowthPercentage(totalUsers, usersGrowthResult.count || 0),
         courseGrowth: calculateGrowthPercentage(coursesResult.count || 0, coursesGrowthResult.count || 0),
         aiAppGrowth: calculateGrowthPercentage(aiAppsResult.count || 0, aiAppsGrowthResult.count || 0),
         newsGrowth: calculateGrowthPercentage(newsResult.count || 0, newsGrowthResult.count || 0),
+        reelsGrowth: calculateGrowthPercentage(reelsResult.count || 0, reelsGrowthResult.count || 0),
         engagementGrowth: calculateGrowthPercentage(favoritesResult.count || 0, favoritesGrowthResult.count || 0)
       }
 
@@ -162,11 +180,13 @@ export class AdminStatsService {
         activeCourses: 0,
         totalAIApps: 0,
         totalNews: 0,
+        totalReels: 0,
         engagementRate: 0,
         userGrowth: 0,
         courseGrowth: 0,
         aiAppGrowth: 0,
         newsGrowth: 0,
+        reelsGrowth: 0,
         engagementGrowth: 0
       }
     }

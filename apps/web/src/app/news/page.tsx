@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import { useNews, useNewsStats, useFeaturedNews } from '../../features/news/hooks/useNews'
 import { NewsWithMetrics } from '../../features/news/services/news.service'
+import { useFeaturedReels } from '../../features/reels/hooks/useFeaturedReels'
+import { FeaturedReelsSection } from '../../features/reels/components/FeaturedReelsSection'
 import { useRouter } from 'next/navigation'
 
 export default function NewsPage() {
@@ -35,6 +37,7 @@ export default function NewsPage() {
   })
   const { stats, loading: statsLoading } = useNewsStats()
   const { featuredNews, loading: featuredLoading } = useFeaturedNews(3)
+  const { reels: featuredReels, loading: reelsLoading, error: reelsError } = useFeaturedReels(6)
 
   const filteredNews = news.filter(item =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -195,23 +198,12 @@ export default function NewsPage() {
               <p className="text-text-secondary">Videos cortos con las últimas noticias y tendencias</p>
             </div>
             
-            {/* Empty State for Reels */}
-            <div className="text-center py-16">
-              <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Video className="w-12 h-12 text-primary/70" />
-              </div>
-              <h3 className="text-2xl font-bold text-text-primary mb-4">No hay reels disponibles</h3>
-              <p className="text-text-secondary mb-8 max-w-md mx-auto">
-                Los reels aparecerán aquí una vez que se suban videos a la plataforma.
-              </p>
-              <button
-                onClick={() => router.push('/reels')}
-                className="px-8 py-3 bg-primary text-white rounded-xl hover:bg-primary/80 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/30 flex items-center gap-2 mx-auto"
-              >
-                <Video className="w-5 h-5" />
-                Ir a Reels
-              </button>
-            </div>
+            {/* Featured Reels */}
+            <FeaturedReelsSection 
+              reels={featuredReels}
+              loading={reelsLoading}
+              error={reelsError}
+            />
           </div>
         </motion.section>
       )}
