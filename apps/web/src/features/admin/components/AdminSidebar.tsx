@@ -37,7 +37,7 @@ const navigation = [
   { name: 'Talleres', href: '/admin/workshops', icon: BookOpenIcon, current: false },
   { name: 'Comunidades', href: '/admin/communities', icon: UserGroupIcon, current: false },
   { name: 'Prompts', href: '/admin/prompts', icon: ChatBubbleLeftRightIcon, current: false },
-  { name: 'Apps de IA', href: '/admin/ai-apps', icon: CpuChipIcon, current: false },
+  { name: 'Apps de IA', href: '/admin/apps', icon: CpuChipIcon, current: false },
   { name: 'Noticias', href: '/admin/news', icon: NewspaperIcon, current: false },
   { name: 'Estadísticas', href: '/admin/statistics', icon: ChartBarIcon, current: false },
   { name: 'Configuración', href: '/admin/settings', icon: Cog6ToothIcon, current: false },

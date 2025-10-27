@@ -21,6 +21,8 @@ export class AdminStatsService {
     const supabase = await createClient()
 
     try {
+      console.log('🔍 AdminStatsService: Iniciando consultas a la base de datos...')
+      
       // Obtener estadísticas actuales
       const [
         usersResult,
@@ -40,11 +42,10 @@ export class AdminStatsService {
           .select('id', { count: 'exact' })
           .eq('is_active', true),
         
-        // Total de apps de IA
+        // Total de apps de IA (todas, no solo las activas)
         supabase
           .from('ai_apps')
-          .select('id', { count: 'exact' })
-          .eq('is_active', true),
+          .select('app_id', { count: 'exact' }),
         
         // Total de noticias
         supabase
@@ -56,6 +57,13 @@ export class AdminStatsService {
           .from('user_favorites')
           .select('id', { count: 'exact' })
       ])
+
+      console.log('📊 Resultados de consultas:')
+      console.log('👥 Usuarios:', usersResult.count)
+      console.log('📚 Cursos:', coursesResult.count)
+      console.log('🤖 Apps de IA:', aiAppsResult.count, 'Error:', aiAppsResult.error)
+      console.log('📰 Noticias:', newsResult.count)
+      console.log('❤️ Favoritos:', favoritesResult.count)
 
       // Obtener estadísticas de crecimiento (últimos 30 días)
       const thirtyDaysAgo = new Date()
@@ -81,12 +89,11 @@ export class AdminStatsService {
           .gte('created_at', thirtyDaysAgo.toISOString())
           .eq('is_active', true),
         
-        // Crecimiento de apps de IA
+        // Crecimiento de apps de IA (todas, no solo las activas)
         supabase
           .from('ai_apps')
-          .select('id', { count: 'exact' })
-          .gte('created_at', thirtyDaysAgo.toISOString())
-          .eq('is_active', true),
+          .select('app_id', { count: 'exact' })
+          .gte('created_at', thirtyDaysAgo.toISOString()),
         
         // Crecimiento de noticias
         supabase
@@ -118,25 +125,32 @@ export class AdminStatsService {
       // Calcular porcentajes de crecimiento
       const calculateGrowthPercentage = (current: number, growth: number): number => {
         if (current === 0) return 0
-        return Math.round((growth / (current - growth)) * 100)
+        if (growth === 0) return 0
+        if (current <= growth) return 100 // Si el crecimiento es igual o mayor al total actual
+        
+        const previous = current - growth
+        if (previous <= 0) return 0
+        
+        const percentage = Math.round((growth / previous) * 100)
+        return Math.max(0, Math.min(1000, percentage)) // Limitar entre 0 y 1000%
       }
-
-      // Si no hay apps de IA, usar datos de prueba
-      const aiAppsCount = aiAppsResult.count || 0
-      const mockAIAppsCount = aiAppsCount === 0 ? 3 : aiAppsCount // 3 apps de prueba si no hay datos reales
 
       const stats: AdminStatsWithChanges = {
         totalUsers: totalUsers,
         activeCourses: coursesResult.count || 0,
-        totalAIApps: mockAIAppsCount,
+        totalAIApps: aiAppsResult.count || 0,
         totalNews: newsResult.count || 0,
         engagementRate: engagementRate,
         userGrowth: calculateGrowthPercentage(totalUsers, usersGrowthResult.count || 0),
         courseGrowth: calculateGrowthPercentage(coursesResult.count || 0, coursesGrowthResult.count || 0),
-        aiAppGrowth: calculateGrowthPercentage(mockAIAppsCount, aiAppsGrowthResult.count || 0),
+        aiAppGrowth: calculateGrowthPercentage(aiAppsResult.count || 0, aiAppsGrowthResult.count || 0),
         newsGrowth: calculateGrowthPercentage(newsResult.count || 0, newsGrowthResult.count || 0),
         engagementGrowth: calculateGrowthPercentage(favoritesResult.count || 0, favoritesGrowthResult.count || 0)
       }
+
+      console.log('📊 AdminStats - Apps de IA encontradas:', aiAppsResult.count || 0)
+      console.log('📊 AdminStats - Apps de IA crecimiento (30 días):', aiAppsGrowthResult.count || 0)
+      console.log('📊 AdminStats - Datos completos:', stats)
 
       return stats
     } catch (error) {

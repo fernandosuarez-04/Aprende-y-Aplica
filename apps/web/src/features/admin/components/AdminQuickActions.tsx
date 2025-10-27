@@ -58,7 +58,7 @@ const quickActions: QuickAction[] = [
     id: 'add-ai-app',
     name: 'Agregar App de IA',
     description: 'Añadir una nueva aplicación de IA',
-    href: '/admin/ai-apps/create',
+    href: '/admin/apps/create',
     icon: CpuChipIcon,
     color: 'red'
   },
