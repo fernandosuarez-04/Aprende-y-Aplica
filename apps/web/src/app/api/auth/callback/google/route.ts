@@ -31,8 +31,19 @@ export async function GET(request: NextRequest) {
     }
 
     // El éxito se maneja con redirect en handleGoogleCallback
+    // Si llegamos aquí, es porque no hubo redirección ni error
     return NextResponse.redirect(new URL('/dashboard', request.url));
   } catch (error) {
+    // Verificar si es una redirección de Next.js (no es un error real)
+    if (error && typeof error === 'object' && 'digest' in error) {
+      const digest = (error as any).digest;
+      if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
+        // Es una redirección exitosa, relanzar para que Next.js la maneje
+        throw error;
+      }
+    }
+
+    // Solo es un error real si llegamos aquí
     console.error('Error en callback route:', error);
 
     return NextResponse.redirect(

@@ -172,7 +172,7 @@ export class OAuthService {
         display_name: `${firstName} ${lastName}`.trim(),
         email_verified: true, // OAuth emails ya están verificados
         profile_picture_url: profilePicture || null,
-        password_hash: null, // No hay contraseña para usuarios OAuth
+        password_hash: '', // String vacío para usuarios OAuth (workaround si NULL falla)
         cargo_rol: 'Usuario',
         type_rol: 'Usuario',
       })

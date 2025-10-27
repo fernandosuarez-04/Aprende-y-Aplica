@@ -49,10 +49,37 @@ export async function middleware(request: NextRequest) {
   // Verificar sesión personalizada
   const sessionCookie = request.cookies.get('aprende-y-aplica-session')
   console.log('🍪 Cookie de sesión:', sessionCookie ? 'Encontrada' : 'No encontrada')
-  
+
   if (!sessionCookie) {
     console.log('❌ No hay sesión, redirigiendo a /auth')
     // Redirigir a login si no hay sesión
+    return NextResponse.redirect(new URL('/auth', request.url))
+  }
+
+  // Validar que la sesión sea válida en la base de datos
+  console.log('🔍 Validando sesión en base de datos...')
+  try {
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('user_session')
+      .select('user_id')
+      .eq('jwt_id', sessionCookie.value)
+      .eq('revoked', false)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    console.log('📋 Sesión en DB:', sessionData ? 'Válida' : 'No válida')
+    console.log('❌ Error de sesión:', sessionError?.message || 'Ninguno')
+
+    if (sessionError || !sessionData) {
+      console.log('❌ Sesión inválida o expirada, redirigiendo a /auth')
+      // Eliminar cookie inválida
+      response.cookies.delete('aprende-y-aplica-session')
+      return NextResponse.redirect(new URL('/auth', request.url))
+    }
+
+    console.log('✅ Sesión válida para usuario:', sessionData.user_id)
+  } catch (error) {
+    console.error('❌ Error validando sesión:', error)
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
