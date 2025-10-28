@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   BookOpenIcon, 
   PlusIcon, 
@@ -19,6 +20,7 @@ import { useAdminWorkshops } from '../hooks/useAdminWorkshops'
 import { AdminWorkshop } from '../services/adminWorkshops.service'
 
 export function AdminWorkshopsPage() {
+  const router = useRouter()
   const { workshops, stats, isLoading, error, refetch } = useAdminWorkshops()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
@@ -284,13 +286,32 @@ export function AdminWorkshopsPage() {
                     {workshop.student_count || 0} estudiantes
                   </div>
                   <div className="flex space-x-2">
-                    <button className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <button 
+                      onClick={() => router.push(`/admin/workshops/${workshop.id}`)}
+                      className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      title="Ver detalle"
+                    >
                       <EyeIcon className="h-4 w-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    <button 
+                      onClick={() => {
+                        // TODO: Implementar modal de edición
+                        console.log('Editar taller:', workshop.id)
+                      }}
+                      className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                      title="Editar taller"
+                    >
                       <PencilIcon className="h-4 w-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                    <button 
+                      onClick={() => {
+                        if (confirm('¿Estás seguro de eliminar este taller?')) {
+                          console.log('Eliminar taller:', workshop.id)
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      title="Eliminar taller"
+                    >
                       <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
