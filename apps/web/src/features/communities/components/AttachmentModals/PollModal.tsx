@@ -50,13 +50,24 @@ export function PollModal({ isOpen, onClose, onConfirm }: PollModalProps) {
 
     setIsLoading(true);
     try {
+      // Crear estructura de datos compatible con el sistema de votación
+      const optionTexts = options.map(option => option.text.trim());
+
+      // Inicializar votes con cada opción como key y array vacío como valor
+      const initialVotes: Record<string, string[]> = {};
+      optionTexts.forEach(optionText => {
+        initialVotes[optionText] = [];
+      });
+
       const pollData = {
         question: question.trim(),
-        options: options.map(option => option.text.trim()),
+        options: optionTexts,
         duration: parseInt(duration),
-        type: 'poll'
+        type: 'poll',
+        votes: initialVotes,        // Objeto con arrays vacíos para cada opción
+        userVotes: {}                // Objeto vacío para mapear userId → opción votada
       };
-      
+
       onConfirm(pollData);
       // Reset form
       setQuestion('');
