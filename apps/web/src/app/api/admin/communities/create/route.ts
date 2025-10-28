@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Iniciando creación de comunidad...')
-    
+
     const communityData = await request.json()
     console.log('📋 Datos recibidos:', communityData)
-    
+
     // Obtener información del administrador desde el token/sesión
     const adminUserId = 'admin-user-id' // TODO: Obtener del token JWT
-    
+
     // Obtener información de la request para auditoría
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
 
     console.log('🔧 Llamando a AdminCommunitiesService.createCommunity...')
     const newCommunity = await AdminCommunitiesService.createCommunity(
-      communityData, 
+      communityData,
       adminUserId,
       { ip, userAgent }
     )
@@ -28,19 +29,9 @@ export async function POST(request: NextRequest) {
       community: newCommunity
     })
   } catch (error) {
-    console.error('💥 Error in POST /api/admin/communities/create:', error)
-    console.error('💥 Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : undefined
-    })
-    
+    logError('POST /api/admin/communities/create', error)
     return NextResponse.json(
-      { 
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al crear comunidad',
-        details: error instanceof Error ? error.stack : undefined
-      },
+      formatApiError(error, 'Error al crear comunidad'),
       { status: 500 }
     )
   }

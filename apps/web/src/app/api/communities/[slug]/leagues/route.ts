@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { formatApiError, logError } from '@/core/utils/api-errors';
 
 // Definir las ligas basadas en puntos
 const LEAGUE_SYSTEM = {
@@ -194,9 +195,9 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ Error in leagues API:', error);
+    logError('GET /api/communities/[slug]/leagues', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
+      formatApiError(error, 'Error al obtener datos de las ligas'),
       { status: 500 }
     );
   }

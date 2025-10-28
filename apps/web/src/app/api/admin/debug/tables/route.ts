@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 export async function GET() {
   try {
@@ -13,10 +14,10 @@ export async function GET() {
       .order('table_name')
 
     if (error) {
-      console.error('Error getting tables:', error)
+      logError('GET /api/admin/debug/tables - database query', error)
       return NextResponse.json({
         success: false,
-        error: error.message,
+        error: 'Error al obtener información de tablas',
         tables: []
       })
     }
@@ -26,10 +27,10 @@ export async function GET() {
       tables: tables?.map(t => t.table_name) || []
     })
   } catch (error) {
-    console.error('Error in debug tables API:', error)
+    logError('GET /api/admin/debug/tables', error)
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Error desconocido',
+      ...formatApiError(error, 'Error al obtener información de tablas'),
       tables: []
     })
   }

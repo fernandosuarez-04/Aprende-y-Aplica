@@ -2,20 +2,18 @@
 node_modules/
 /.pnp
 .pnp.js
-
+.env.local
+.env
 # Testing
 /coverage
-*.sql
-.env
-.env.local
-
+settings.local.json
 # Next.js - All patterns to cover any location
 .next/
 **/.next/
 */.next/
 apps/*/.next/
 apps/**/.next/
-
+*.sql
 # Next.js build outputs
 /out/
 **/out/

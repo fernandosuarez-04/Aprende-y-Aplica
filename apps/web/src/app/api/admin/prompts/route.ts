@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🔄 Cargando prompts desde API...')
-    
+
     const [prompts, stats] = await Promise.all([
       AdminPromptsService.getPrompts(),
       AdminPromptsService.getPromptStats()
@@ -18,11 +19,10 @@ export async function GET(request: NextRequest) {
       stats: stats || {}
     })
   } catch (error) {
-    console.error('💥 Error in GET /api/admin/prompts:', error)
+    logError('GET /api/admin/prompts', error)
     return NextResponse.json(
-      { 
-        success: false,
-        error: 'Error al obtener prompts',
+      {
+        ...formatApiError(error, 'Error al obtener prompts'),
         prompts: [],
         stats: {}
       },
@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Creando nuevo prompt...')
-    
+
     const promptData = await request.json()
     console.log('📋 Datos recibidos:', promptData)
-    
+
     // Obtener información del administrador desde el token/sesión
     const adminUserId = 'admin-user-id' // TODO: Obtener del token JWT
-    
+
     const newPrompt = await AdminPromptsService.createPrompt(promptData, adminUserId)
 
     console.log('✅ Prompt creado exitosamente:', newPrompt)
@@ -49,12 +49,9 @@ export async function POST(request: NextRequest) {
       prompt: newPrompt
     })
   } catch (error) {
-    console.error('💥 Error in POST /api/admin/prompts:', error)
+    logError('POST /api/admin/prompts', error)
     return NextResponse.json(
-      { 
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al crear prompt'
-      },
+      formatApiError(error, 'Error al crear prompt'),
       { status: 500 }
     )
   }

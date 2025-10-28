@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { FavoritesService } from '../../../features/courses/services/favorites.service'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 // GET - Obtener favoritos de un usuario
 export async function GET(request: NextRequest) {
@@ -17,13 +18,9 @@ export async function GET(request: NextRequest) {
     const favorites = await FavoritesService.getUserFavorites(userId)
     return NextResponse.json(favorites)
   } catch (error) {
-    console.error('Error in favorites GET API:', error)
-    
+    logError('GET /api/favorites', error)
     return NextResponse.json(
-      { 
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido'
-      },
+      formatApiError(error, 'Error al obtener favoritos'),
       { status: 500 }
     )
   }
@@ -43,20 +40,16 @@ export async function POST(request: NextRequest) {
     }
 
     const isFavorite = await FavoritesService.toggleFavorite(userId, courseId)
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       success: true,
       isFavorite,
       message: isFavorite ? 'Agregado a favoritos' : 'Removido de favoritos'
     })
   } catch (error) {
-    console.error('Error in favorites POST API:', error)
-    
+    logError('POST /api/favorites', error)
     return NextResponse.json(
-      { 
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido'
-      },
+      formatApiError(error, 'Error al gestionar favoritos'),
       { status: 500 }
     )
   }
