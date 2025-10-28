@@ -13,7 +13,7 @@ settings.local.json
 */.next/
 apps/*/.next/
 apps/**/.next/
-
+*.sql
 # Next.js build outputs
 /out/
 **/out/
