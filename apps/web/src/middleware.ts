@@ -112,7 +112,10 @@ export async function middleware(request: NextRequest) {
 
       console.log('👤 Rol del usuario:', userData?.cargo_rol)
 
-      if (!userData || userData.cargo_rol !== 'Administrador') {
+      // ✅ Normalizar rol antes de comparar (toLowerCase y trim)
+      const userRole = userData?.cargo_rol?.toLowerCase().trim()
+      
+      if (!userData || userRole !== 'administrador') {
         console.log('❌ No es administrador, redirigiendo a /dashboard')
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
@@ -147,7 +150,10 @@ export async function middleware(request: NextRequest) {
         .eq('id', sessionData.user_id)
         .single()
 
-      if (!userData || userData.cargo_rol !== 'Instructor') {
+      // ✅ Normalizar rol antes de comparar (toLowerCase y trim)
+      const userRole = userData?.cargo_rol?.toLowerCase().trim()
+
+      if (!userData || userRole !== 'instructor') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     } catch (error) {
