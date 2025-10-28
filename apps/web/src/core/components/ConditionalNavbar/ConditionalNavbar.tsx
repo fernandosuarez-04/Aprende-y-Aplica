@@ -19,14 +19,17 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isCommunitiesPage = pathname.startsWith('/communities');
   const isStatisticsPage = pathname.startsWith('/statistics');
   const isQuestionnairePage = pathname.startsWith('/questionnaire');
-  const isCoursePage = pathname.startsWith('/courses');
+  const isCoursePage = pathname.startsWith('/courses') && !pathname.includes('/learn');
+  const isMyCoursesPage = pathname.startsWith('/my-courses');
   const isCreditsPage = pathname.startsWith('/credits');
   const isReelsPage = pathname.startsWith('/reels');
+  const isLearnPage = pathname.includes('/learn');
   
   // Determine which navbar to show
   // For the home page (/), always show the regular navbar
-  const shouldShowDashboardNavbar = pathname !== '/' && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage);
-  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isCreditsPage && !isReelsPage;
+  // NO mostrar navbar en páginas de /learn
+  const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage);
+  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isCreditsPage && !isReelsPage && !isLearnPage;
   
   return (
     <>
@@ -46,6 +49,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
 // Helper function to determine active item based on pathname
 function getActiveItem(pathname: string): string {
   if (pathname.startsWith('/dashboard')) return 'workshops';
+  if (pathname.startsWith('/my-courses')) return 'workshops'; // Mis cursos se considera parte de workshops
   if (pathname.startsWith('/news')) return 'news';
   if (pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory')) return 'directory';
   if (pathname.startsWith('/communities')) return 'community';

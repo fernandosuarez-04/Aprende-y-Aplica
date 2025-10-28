@@ -29,6 +29,8 @@ export default function CourseDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isPurchased, setIsPurchased] = useState(false);
+  const [checkingPurchase, setCheckingPurchase] = useState(false);
 
   useEffect(() => {
     async function loadCourse() {
@@ -51,19 +53,55 @@ export default function CourseDetailPage() {
       }
     }
 
+    async function checkPurchase() {
+      try {
+        setCheckingPurchase(true);
+        const response = await fetch(`/api/courses/${slug}/check-purchase`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsPurchased(data.isPurchased);
+        }
+      } catch (err) {
+        console.error('Error checking purchase:', err);
+      } finally {
+        setCheckingPurchase(false);
+      }
+    }
+
     if (slug) {
       loadCourse();
+      checkPurchase();
     }
   }, [slug]);
 
   const handlePurchase = async () => {
+    if (!course) return;
+    
     setIsPurchasing(true);
     try {
-      // Simular proceso de compra
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert('¡Curso adquirido exitosamente!');
+      const response = await fetch(`/api/courses/${slug}/purchase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al adquirir el curso');
+      }
+
+      // Mostrar mensaje de éxito
+      alert(`¡Curso "${data.data.course_title}" adquirido exitosamente! 🎉`);
+      
+      // Actualizar el estado de compra
+      setIsPurchased(true);
+      
     } catch (error) {
-      alert('Error al adquirir el curso');
+      console.error('Error purchasing course:', error);
+      alert(error instanceof Error ? error.message : 'Error al adquirir el curso');
     } finally {
       setIsPurchasing(false);
     }
@@ -313,20 +351,35 @@ export default function CourseDetailPage() {
                   <div className="text-slate-400">Precio único</div>
                 </div>
                 
-                <button
-                  onClick={handlePurchase}
-                  disabled={isPurchasing}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isPurchasing ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Procesando...
-                    </div>
-                  ) : (
-                    'Adquirir Curso'
-                  )}
-                </button>
+                {isPurchased ? (
+                  <button
+                    onClick={() => router.push(`/courses/${slug}/learn`)}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    <Play className="w-5 h-5" />
+                    Ir a Taller
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePurchase}
+                    disabled={isPurchasing || checkingPurchase}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isPurchasing ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Procesando...
+                      </div>
+                    ) : checkingPurchase ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Verificando...
+                      </div>
+                    ) : (
+                      'Adquirir Curso'
+                    )}
+                  </button>
+                )}
                 
                 <div className="mt-4 text-center text-sm text-slate-400">
                   Garantía de 30 días
