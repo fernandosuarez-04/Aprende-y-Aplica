@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 export async function PUT(
   request: NextRequest,
@@ -20,12 +21,9 @@ export async function PUT(
       prompt: updatedPrompt
     })
   } catch (error) {
-    console.error('💥 Error in PUT /api/admin/prompts/[id]:', error)
+    logError('PUT /api/admin/prompts/[id]', error)
     return NextResponse.json(
-      { 
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al actualizar prompt'
-      },
+      formatApiError(error, 'Error al actualizar prompt'),
       { status: 500 }
     )
   }
@@ -37,9 +35,9 @@ export async function DELETE(
 ) {
   try {
     const { id: promptId } = await params
-    
+
     console.log('🔄 Eliminando prompt:', promptId)
-    
+
     await AdminPromptsService.deletePrompt(promptId)
 
     console.log('✅ Prompt eliminado exitosamente')
@@ -48,12 +46,9 @@ export async function DELETE(
       message: 'Prompt eliminado exitosamente'
     })
   } catch (error) {
-    console.error('💥 Error in DELETE /api/admin/prompts/[id]:', error)
+    logError('DELETE /api/admin/prompts/[id]', error)
     return NextResponse.json(
-      { 
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al eliminar prompt'
-      },
+      formatApiError(error, 'Error al eliminar prompt'),
       { status: 500 }
     )
   }

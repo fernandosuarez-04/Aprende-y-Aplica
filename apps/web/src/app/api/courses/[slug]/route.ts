@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { CourseService } from '../../../../features/courses/services/course.service'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 export async function GET(
   request: NextRequest,
@@ -21,13 +22,9 @@ export async function GET(
 
     return NextResponse.json(course)
   } catch (error) {
-    console.error('Error in course detail API:', error)
-    
+    logError('GET /api/courses/[slug]', error)
     return NextResponse.json(
-      { 
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido'
-      },
+      formatApiError(error, 'Error al obtener detalles del curso'),
       { status: 500 }
     )
   }

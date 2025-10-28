@@ -1125,7 +1125,7 @@ if (!accessToken) {
 
 ---
 
-#### 18. 🟠 **N+1 queries en getAllCommunities**
+#### 18. 🟠 **N+1 queries en getAllCommunities** (ARREGLADO)
 - **Archivo**: `apps/web/src/features/admin/services/adminCommunities.service.ts` (líneas 68-149)
 - **Severidad**: ALTO (crítico con 1000+ comunidades)
 - **Impacto UX**: Admin panel se congela con muchas comunidades
