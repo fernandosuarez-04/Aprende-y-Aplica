@@ -19,60 +19,12 @@
 
 **Última actualización**: 27 de Enero, 2025
 - ✅ **Issue #2 (Stack traces expuestos)** - RESUELTO (17 endpoints corregidos)
-
+- ✅  **Issue #18. 🟠 **N+1 queries en getAllCommunities** (ARREGLADO)
 ---
 
 ## 🎯 CATEGORIZACIÓN POR DIFICULTAD
 
 ### ⚡ NIVEL 1: FÁCIL (30 min - 2 horas cada uno)
-
-#### 1. 🔴 **Secretos expuestos en archivo .env**
-- **Archivo**: `.env` (líneas 1-24)
-- **Severidad**: CRÍTICO
-- **Impacto UX**: Comprometimiento total de seguridad
-- **Tiempo estimado**: 1-2 horas (incluye revocación y regeneración)
-
-**Problema**:
-```env
-OPENAI_API_KEY=sk-proj-VujZXS1lCKcZa1lNV3nv5tjldaDiJxwa4lUZ0Ypif...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SMTP_PASS = irkj jyrt cloj coud
-GOOGLE_OAUTH_CLIENT_SECRET=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
-```
-
-**Impacto real**:
-- ✅ Cualquiera con acceso al repositorio puede usar tu API de OpenAI
-- ✅ Acceso administrativo completo a Supabase
-- ✅ Envío de emails desde tu cuenta
-- ✅ Robo de credenciales OAuth
-
-**Solución**:
-```bash
-# 1. Verificar que .env está en .gitignore
-echo ".env" >> .gitignore
-
-# 2. Remover .env del historial de Git
-git rm --cached .env
-git commit -m "Remove .env from version control"
-
-# 3. Limpiar historial (OPCIONAL pero recomendado)
-# Usar BFG Repo-Cleaner: https://rtyley.github.io/bfg-repo-cleaner/
-java -jar bfg.jar --delete-files .env
-
-# 4. Revocar TODAS las claves:
-# - OpenAI: https://platform.openai.com/api-keys
-# - Supabase: Dashboard → Settings → API
-# - Gmail: Revocar app password
-# - Google OAuth: Console → Credentials
-
-# 5. Generar nuevas claves y actualizar .env (solo local)
-```
-
-**Archivos a modificar**:
-- `.gitignore` - verificar que incluye `.env`
-- `.env.example` - crear template sin valores reales
-
----
 
 #### 2. ✅ **Stack traces expuestos en respuestas de error** [CORREGIDO - 27 Enero 2025]
 - **Archivos**: Múltiples API routes en `apps/web/src/app/api/admin/`

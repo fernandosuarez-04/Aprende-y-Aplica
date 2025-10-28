@@ -93,7 +93,6 @@ export async function GET(
         *,
         user:user_id (
           id,
-          email,
           username,
           first_name,
           last_name,
@@ -115,8 +114,8 @@ export async function GET(
     const attachmentTypes = posts?.map(p => p.attachment_type).filter(Boolean);
     console.log('🔍 Attachment types found:', [...new Set(attachmentTypes)]);
 
-    // Obtener reacciones del usuario para cada post (si está autenticado)
-    let userReactions: any[] = [];
+    // ✅ OPTIMIZACIÓN: Obtener TODAS las reacciones del usuario en 1 sola query
+    let userReactionsMap: Record<string, string> = {};
     if (user && posts && posts.length > 0) {
       const postIds = posts.map(post => post.id);
       const { data: reactions } = await supabase
@@ -125,12 +124,18 @@ export async function GET(
         .eq('user_id', user.id)
         .in('post_id', postIds);
 
-      userReactions = reactions || [];
+      // Crear mapa para acceso O(1)
+      if (reactions) {
+        userReactionsMap = reactions.reduce((acc, r) => {
+          acc[r.post_id] = r.reaction_type;
+          return acc;
+        }, {} as Record<string, string>);
+      }
     }
 
     // Enriquecer posts con información del usuario
     const enrichedPosts = posts?.map(post => {
-      const userReaction = userReactions.find(r => r.post_id === post.id);
+      const userReaction = userReactionsMap[post.id] || null;
       
       // Debug: verificar datos de encuestas
       if (post.attachment_type === 'poll') {
@@ -144,9 +149,8 @@ export async function GET(
       
       return {
         ...post,
-        // Los datos ya están en attachment_data, no necesitamos mapear
-        user_has_liked: userReaction?.reaction_type === 'like',
-        user_reaction_type: userReaction?.reaction_type || null
+        user_has_liked: userReaction === 'like',
+        user_reaction_type: userReaction
       };
     }) || [];
 

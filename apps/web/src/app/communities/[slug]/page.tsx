@@ -1325,8 +1325,19 @@ export default function CommunityDetailPage() {
 
   useEffect(() => {
     if (slug) {
-      fetchCommunityDetail();
-      fetchPosts();
+      console.log('🚀 Loading community in parallel mode');
+      console.time('Total Community Load');
+      
+      // ✅ Ejecutar ambas llamadas en PARALELO en lugar de secuencial
+      Promise.all([
+        fetchCommunityDetail(),
+        fetchPosts()
+      ]).then(() => {
+        console.timeEnd('Total Community Load');
+        console.log('✅ Community fully loaded');
+      }).catch(error => {
+        console.error('❌ Error loading community:', error);
+      });
     }
   }, [slug]);
 
@@ -1381,33 +1392,43 @@ export default function CommunityDetailPage() {
 
   const loadUserReactions = async (posts: Post[]) => {
     try {
-      const reactionPromises = posts.map(async (post) => {
-        try {
-          const response = await fetch(`/api/communities/${slug}/posts/${post.id}/reactions?include_stats=true`);
-          if (response.ok) {
-            const data = await response.json();
-            return { 
-              postId: post.id, 
-              userReaction: data.userReaction,
-              reactionStats: data.reactions || {}
-            };
-          }
-        } catch (error) {
-          console.error(`Error loading reactions for post ${post.id}:`, error);
-        }
-        return { postId: post.id, userReaction: null, reactionStats: {} };
+      if (posts.length === 0) return;
+
+      const postIds = posts.map(post => post.id);
+      
+      console.log(`🚀 Loading reactions for ${postIds.length} posts using batch endpoint`);
+      console.time('Batch Reactions Load');
+
+      // ✅ 1 SOLA LLAMADA HTTP para obtener todas las reacciones
+      const response = await fetch(`/api/communities/${slug}/posts/reactions/batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ postIds }),
       });
 
-      const reactions = await Promise.all(reactionPromises);
+      if (!response.ok) {
+        console.error('Error loading batch reactions:', response.statusText);
+        return;
+      }
+
+      const data = await response.json();
+      console.timeEnd('Batch Reactions Load');
+      console.log(`✅ Batch reactions loaded successfully for ${data.totalPosts} posts`);
+
+      // Mapear los datos recibidos al formato esperado
       const userReactionsMap: Record<string, string | null> = {};
       const reactionStatsMap: Record<string, any> = {};
       
-      reactions.forEach(({ postId, userReaction, reactionStats }) => {
-        userReactionsMap[postId] = userReaction;
-        reactionStatsMap[postId] = reactionStats;
+      Object.entries(data.reactionsByPost).forEach(([postId, postData]: [string, any]) => {
+        userReactionsMap[postId] = postData.userReaction;
+        reactionStatsMap[postId] = postData.reactions;
       });
+
       setUserReactions(userReactionsMap);
       setPostReactionStats(reactionStatsMap);
+
     } catch (error) {
       console.error('Error loading user reactions:', error);
     }
