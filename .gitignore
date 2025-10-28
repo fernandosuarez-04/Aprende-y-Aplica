@@ -2,10 +2,11 @@
 node_modules/
 /.pnp
 .pnp.js
-
+.env.local
+.env
 # Testing
 /coverage
-
+settings.local.json
 # Next.js - All patterns to cover any location
 .next/
 **/.next/
