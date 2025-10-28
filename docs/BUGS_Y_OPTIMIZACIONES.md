@@ -12,14 +12,17 @@
 |-----------|----------|------------|------------|
 | 🔴 **CRÍTICO** | 6 | 6 | 0 |
 | 🟠 **ALTO** | 9 | 8 | ✅ 1 |
-| 🟡 **MEDIO** | 10 | 10 | 0 |
+| 🟡 **MEDIO** | 10 | 8 | ✅ 2 |
 | 🟢 **BAJO** | 2 | 2 | 0 |
 
 **Estado general**: El proyecto tiene **6 vulnerabilidades críticas de seguridad** que requieren atención inmediata, especialmente en autenticación OAuth y manejo de secretos.
 
-**Última actualización**: 27 de Enero, 2025
+**Última actualización**: 28 de Octubre, 2025
 - ✅ **Issue #2 (Stack traces expuestos)** - RESUELTO (17 endpoints corregidos)
-- ✅  **Issue #18. 🟠 **N+1 queries en getAllCommunities** (ARREGLADO)
+- ✅ **Issue #4 (Comparación de roles sin normalización)** - RESUELTO (28 Oct 2025)
+- ✅ **Issue #8 (Cookie de sesión sin destrucción explícita)** - RESUELTO (28 Oct 2025)
+- ✅ **Issue #18 (N+1 queries en getAllCommunities)** - RESUELTO
+- ✅ **Optimización de carga de comunidades (Batch endpoint)** - IMPLEMENTADO (28 Oct 2025)
 ---
 
 ## 🎯 CATEGORIZACIÓN POR DIFICULTAD
@@ -167,39 +170,47 @@ if (!profile.email || !validator.isEmail(profile.email)) {
 
 ---
 
-#### 4. 🟡 **Comparación de roles sin normalización**
+#### 4. ✅ **Comparación de roles sin normalización** [CORREGIDO - 28 Oct 2025]
 - **Archivo**: `apps/web/src/core/hooks/useUserRole.ts` (línea 18)
-- **Severidad**: MEDIO
+- **Severidad**: MEDIO (RESUELTO)
 - **Impacto UX**: Permisos fallan si el rol no está en lowercase exacto
 - **Tiempo estimado**: 15 min
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
 **Problema**:
 ```typescript
 const role = user.cargo_rol?.toLowerCase()
-setIsAdmin(role === 'administrador')  // ❌ Falla si BD tiene "ADMINISTRADOR"
+setIsAdmin(role === 'administrador')  // ❌ Falla si BD tiene "ADMINISTRADOR" o " administrador "
 setIsInstructor(role === 'instructor')
 setIsUser(role === 'usuario')
 ```
 
-**Solución**:
+**Solución Implementada**: ✅
 ```typescript
-const role = user.cargo_rol?.toLowerCase().trim()
-setIsAdmin(role === 'administrador')
-setIsInstructor(role === 'instructor')
-setIsUser(role === 'usuario')
-
-// Mejor aún: usar constantes
+// ✅ Constantes para evitar typos
 const ROLES = {
   ADMIN: 'administrador',
   INSTRUCTOR: 'instructor',
   USER: 'usuario'
 } as const;
 
+// ✅ Normalización con toLowerCase() y trim()
+const role = user.cargo_rol?.toLowerCase().trim()
 setIsAdmin(role === ROLES.ADMIN)
+setIsInstructor(role === ROLES.INSTRUCTOR)
+setIsUser(role === ROLES.USER)
 ```
 
-**Archivos a modificar**:
-- `apps/web/src/core/hooks/useUserRole.ts:16-20`
+**Archivos Modificados**: ✅
+- ✅ `apps/web/src/core/hooks/useUserRole.ts` - Agregado `.trim()` y constantes
+- ✅ `apps/web/src/middleware.ts:116` - Normalización en verificación de Admin
+- ✅ `apps/web/src/middleware.ts:154` - Normalización en verificación de Instructor
+
+**Resultado**:
+- ✅ Roles funcionan con cualquier combinación de mayúsculas/minúsculas
+- ✅ Espacios antes/después son ignorados automáticamente
+- ✅ Código más mantenible con constantes
+- ✅ Consistencia entre frontend (hook) y backend (middleware)
 
 ---
 
@@ -314,31 +325,44 @@ NEXT_PUBLIC_APP_URL=https://aprende-y-aplica.com
 
 ---
 
-#### 8. 🟡 **Cookie de sesión sin destrucción explícita**
+#### 8. ✅ **Cookie de sesión sin destrucción explícita** [CORREGIDO - 28 Oct 2025]
 - **Archivo**: `apps/web/src/features/auth/services/session.service.ts` (línea 134)
-- **Severidad**: MEDIO
+- **Severidad**: MEDIO (RESUELTO)
 - **Impacto UX**: Logout puede no borrar cookie completamente
 - **Tiempo estimado**: 15 min
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
 **Problema**:
 ```typescript
 cookieStore.delete(this.SESSION_COOKIE_NAME);
-// ❌ No especifica path, domain, etc.
+// ❌ No especifica opciones, puede no borrar completamente
 ```
 
-**Solución**:
+**Solución Implementada**: ✅
 ```typescript
-cookieStore.delete(this.SESSION_COOKIE_NAME, {
-  path: '/',
-  domain: process.env.COOKIE_DOMAIN || undefined,
-  secure: process.env.NODE_ENV === 'production',
+// ✅ Primero establecer la cookie con valor vacío y expiración inmediata
+cookieStore.set(this.SESSION_COOKIE_NAME, '', {
   httpOnly: true,
-  sameSite: 'lax'
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 0, // Expira inmediatamente
+  path: '/',
 });
+
+// ✅ Luego eliminar la cookie
+cookieStore.delete(this.SESSION_COOKIE_NAME);
+
+console.log('✅ Cookie de sesión eliminada correctamente');
 ```
 
-**Archivos a modificar**:
-- `apps/web/src/features/auth/services/session.service.ts:134`
+**Archivos Modificados**: ✅
+- ✅ `apps/web/src/features/auth/services/session.service.ts:134-145`
+
+**Resultado**:
+- ✅ Cookie se elimina con todas las opciones correctas
+- ✅ Logout más seguro y confiable
+- ✅ Doble verificación: set con maxAge:0 + delete
+- ✅ Log de confirmación agregado
 
 ---
 

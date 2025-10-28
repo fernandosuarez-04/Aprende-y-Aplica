@@ -130,8 +130,20 @@ export class SessionService {
           .eq('jwt_id', sessionToken);
       }
 
-      // Eliminar cookie
+      // Eliminar cookie con opciones explícitas para asegurar destrucción completa
+      // Primero establecer la cookie con valor vacío y expiración inmediata
+      cookieStore.set(this.SESSION_COOKIE_NAME, '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0, // Expira inmediatamente
+        path: '/',
+      });
+      
+      // Luego eliminar la cookie
       cookieStore.delete(this.SESSION_COOKIE_NAME);
+      
+      console.log('✅ Cookie de sesión eliminada correctamente');
     } catch (error) {
       console.error('Error destroying session:', error);
     }
