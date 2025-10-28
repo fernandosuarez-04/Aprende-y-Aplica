@@ -23,6 +23,7 @@ import { useNews, useNewsStats, useFeaturedNews } from '../../features/news/hook
 import { NewsWithMetrics } from '../../features/news/services/news.service'
 import { useFeaturedReels } from '../../features/reels/hooks/useFeaturedReels'
 import { FeaturedReelsSection } from '../../features/reels/components/FeaturedReelsSection'
+import { AIChatAgent } from '../../core/components/AIChatAgent'
 import { useRouter } from 'next/navigation'
 
 export default function NewsPage() {
@@ -455,6 +456,13 @@ export default function NewsPage() {
         </motion.section>
       )}
 
+      {/* AI Chat Agent */}
+      <AIChatAgent
+        assistantName="Lia"
+        initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre las últimas noticias, tendencias y actualizaciones en IA y tecnología. ¿En qué puedo asistirte?"
+        promptPlaceholder="Pregunta sobre noticias..."
+        context="news"
+      />
     </div>
   )
 }
