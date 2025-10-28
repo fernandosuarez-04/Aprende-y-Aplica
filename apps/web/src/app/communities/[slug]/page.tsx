@@ -49,6 +49,7 @@ import { PostInteractions } from '../../../features/communities/components/PostI
 import { useReactions, useAttachments } from '../../../features/communities/hooks';
 import { CommentsSection } from '../../../features/communities/components/CommentsSection';
 import { InlineAttachmentButtons, AttachmentPreview, PostAttachment, YouTubeLinkModal, PollModal } from '../../../features/communities/components';
+import { formatRelativeTime } from '../../../core/utils/date-utils';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
 // import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -2047,7 +2048,7 @@ export default function CommunityDetailPage() {
                             }
                           </h3>
                           <p className="text-sm text-slate-400">
-                            Hace {Math.floor(Math.random() * 30)} días • general
+                            {formatRelativeTime(post.created_at)} • general
                           </p>
                         </div>
                       </div>
