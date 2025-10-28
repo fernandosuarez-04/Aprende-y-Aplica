@@ -5,6 +5,9 @@ node_modules/
 
 # Testing
 /coverage
+*.sql
+.env
+.env.local
 
 # Next.js - All patterns to cover any location
 .next/
