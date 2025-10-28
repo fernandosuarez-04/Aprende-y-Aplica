@@ -16,10 +16,37 @@ export interface AdminCommunity {
     id: string
     title: string
     slug: string
+    thumbnail_url?: string
   }
   created_at: string
   updated_at: string
+  creator?: {
+    id: string
+    username: string
+    email: string
+    display_name?: string
+    avatar?: string
+  }
   creator_name?: string
+  stats?: {
+    members_count: number
+    admin_count: number
+    moderator_count: number
+    active_members_count: number
+    posts_count: number
+    pinned_posts_count: number
+    total_posts_likes: number
+    total_posts_views: number
+    comments_count: number
+    active_comments_count: number
+    videos_count: number
+    active_videos_count: number
+    pending_requests_count: number
+    approved_requests_count: number
+    rejected_requests_count: number
+    total_reactions_count: number
+  }
+  // Campos legacy para compatibilidad
   posts_count?: number
   comments_count?: number
   videos_count?: number
@@ -41,22 +68,10 @@ export class AdminCommunitiesService {
     const supabase = await createClient()
 
     try {
+      // ✅ OPTIMIZACIÓN: Usar VIEW community_stats (1 query en lugar de N+1)
       const { data, error } = await supabase
-        .from('communities')
-        .select(`
-          id,
-          name,
-          description,
-          slug,
-          image_url,
-          member_count,
-          is_active,
-          visibility,
-          access_type,
-          course_id,
-          created_at,
-          updated_at
-        `)
+        .from('community_stats')
+        .select('*')
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -64,91 +79,73 @@ export class AdminCommunitiesService {
         throw error
       }
 
-      // Obtener información adicional para cada comunidad
-      const communitiesWithDetails = await Promise.all(
-        (data || []).map(async (community) => {
-          // Obtener información del creador (primer miembro con rol de admin/creator)
-          const { data: creator } = await supabase
-            .from('community_members')
-            .select(`
-              user_id,
-              role,
-              users!inner(display_name, first_name, last_name)
-            `)
-            .eq('community_id', community.id)
-            .eq('role', 'admin')
-            .limit(1)
-            .single()
+      // Mapear datos de la VIEW al formato AdminCommunity
+      const communities = (data || []).map((row) => ({
+        // Información básica
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        slug: row.slug,
+        image_url: row.image_url,
+        member_count: row.member_count || 0,
+        is_active: row.is_active,
+        visibility: row.visibility,
+        access_type: row.access_type,
+        course_id: row.course_id,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
 
-          // Obtener información del curso si está vinculado
-          let courseInfo = null
-          if (community.course_id) {
-            const { data: course } = await supabase
-              .from('courses')
-              .select('id, title, slug')
-              .eq('id', community.course_id)
-              .single()
-            
-            if (course) {
-              courseInfo = course
-            }
-          }
+        // Información del curso (si existe)
+        course: row.course_id_full ? {
+          id: row.course_id_full,
+          title: row.course_title,
+          slug: row.course_slug,
+          thumbnail_url: row.course_thumbnail
+        } : undefined,
 
-          // Obtener conteo de posts
-          const { count: postsCount, error: postsError } = await supabase
-            .from('community_posts')
-            .select('*', { count: 'exact', head: true })
-            .eq('community_id', community.id)
+        // Información del creador
+        creator: row.creator_id ? {
+          id: row.creator_id,
+          username: row.creator_username || '',
+          email: row.creator_email || '',
+          display_name: row.creator_display_name ||
+                       `${row.creator_first_name || ''} ${row.creator_last_name || ''}`.trim(),
+          avatar: row.creator_avatar
+        } : undefined,
 
-          if (postsError) {
-            console.warn(`Error counting posts for community ${community.id}:`, postsError)
-          }
+        // Campo legacy creator_name para compatibilidad
+        creator_name: row.creator_display_name ||
+                     `${row.creator_first_name || ''} ${row.creator_last_name || ''}`.trim() ||
+                     'Sin creador',
 
-          // Obtener conteo de comentarios
-          const { count: commentsCount, error: commentsError } = await supabase
-            .from('community_comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('community_id', community.id)
+        // Estadísticas completas
+        stats: {
+          members_count: row.members_count || 0,
+          admin_count: row.admin_count || 0,
+          moderator_count: row.moderator_count || 0,
+          active_members_count: row.active_members_count || 0,
+          posts_count: row.posts_count || 0,
+          pinned_posts_count: row.pinned_posts_count || 0,
+          total_posts_likes: row.total_posts_likes || 0,
+          total_posts_views: row.total_posts_views || 0,
+          comments_count: row.comments_count || 0,
+          active_comments_count: row.active_comments_count || 0,
+          videos_count: row.videos_count || 0,
+          active_videos_count: row.active_videos_count || 0,
+          pending_requests_count: row.pending_requests_count || 0,
+          approved_requests_count: row.approved_requests_count || 0,
+          rejected_requests_count: row.rejected_requests_count || 0,
+          total_reactions_count: row.total_reactions_count || 0
+        },
 
-          if (commentsError) {
-            console.warn(`Error counting comments for community ${community.id}:`, commentsError)
-          }
+        // Campos legacy para compatibilidad con código existente
+        posts_count: row.posts_count || 0,
+        comments_count: row.comments_count || 0,
+        videos_count: row.videos_count || 0,
+        access_requests_count: row.pending_requests_count || 0
+      }))
 
-          // Obtener conteo de videos
-          const { count: videosCount, error: videosError } = await supabase
-            .from('community_videos')
-            .select('*', { count: 'exact', head: true })
-            .eq('community_id', community.id)
-
-          if (videosError) {
-            console.warn(`Error counting videos for community ${community.id}:`, videosError)
-          }
-
-          // Obtener conteo de solicitudes de acceso
-          const { count: accessRequestsCount, error: requestsError } = await supabase
-            .from('community_access_requests')
-            .select('*', { count: 'exact', head: true })
-            .eq('community_id', community.id)
-
-          if (requestsError) {
-            console.warn(`Error counting access requests for community ${community.id}:`, requestsError)
-          }
-
-          return {
-            ...community,
-            course: courseInfo,
-            creator_name: creator?.users?.display_name || 
-                         `${creator?.users?.first_name || ''} ${creator?.users?.last_name || ''}`.trim() ||
-                         'Creador no encontrado',
-            posts_count: postsCount || 0,
-            comments_count: commentsCount || 0,
-            videos_count: videosCount || 0,
-            access_requests_count: accessRequestsCount || 0
-          }
-        })
-      )
-
-      return communitiesWithDetails
+      return communities
     } catch (error) {
       console.error('Error in AdminCommunitiesService.getAllCommunities:', error)
       throw error
@@ -159,68 +156,39 @@ export class AdminCommunitiesService {
     const supabase = await createClient()
 
     try {
-      // Obtener estadísticas básicas
-      const { count: totalCommunities } = await supabase
-        .from('communities')
-        .select('*', { count: 'exact', head: true })
+      // ✅ OPTIMIZACIÓN: Usar VIEW community_stats para agregaciones
+      const { data, error } = await supabase
+        .from('community_stats')
+        .select('*')
 
-      const { count: activeCommunities } = await supabase
-        .from('communities')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
-
-      // Obtener total de miembros (suma de member_count)
-      const { data: communitiesData } = await supabase
-        .from('communities')
-        .select('member_count')
-
-      const totalMembers = communitiesData ? communitiesData.reduce((sum, community) => sum + (community.member_count || 0), 0) : 0
-
-      // Obtener total de posts
-      const { count: totalPosts, error: postsError } = await supabase
-        .from('community_posts')
-        .select('*', { count: 'exact', head: true })
-
-      if (postsError) {
-        console.warn('Error counting posts:', postsError)
+      if (error) {
+        console.error('Error fetching community stats:', error)
+        throw error
       }
 
-      // Obtener total de comentarios
-      const { count: totalComments, error: commentsError } = await supabase
-        .from('community_comments')
-        .select('*', { count: 'exact', head: true })
+      // Calcular estadísticas agregadas desde la VIEW
+      const stats = (data || []).reduce(
+        (acc, row) => ({
+          totalCommunities: acc.totalCommunities + 1,
+          activeCommunities: acc.activeCommunities + (row.is_active ? 1 : 0),
+          totalMembers: acc.totalMembers + (row.members_count || 0),
+          totalPosts: acc.totalPosts + (row.posts_count || 0),
+          totalComments: acc.totalComments + (row.comments_count || 0),
+          totalVideos: acc.totalVideos + (row.videos_count || 0),
+          totalAccessRequests: acc.totalAccessRequests + (row.pending_requests_count || 0)
+        }),
+        {
+          totalCommunities: 0,
+          activeCommunities: 0,
+          totalMembers: 0,
+          totalPosts: 0,
+          totalComments: 0,
+          totalVideos: 0,
+          totalAccessRequests: 0
+        }
+      )
 
-      if (commentsError) {
-        console.warn('Error counting comments:', commentsError)
-      }
-
-      // Obtener total de videos
-      const { count: totalVideos, error: videosError } = await supabase
-        .from('community_videos')
-        .select('*', { count: 'exact', head: true })
-
-      if (videosError) {
-        console.warn('Error counting videos:', videosError)
-      }
-
-      // Obtener total de solicitudes de acceso
-      const { count: totalAccessRequests, error: requestsError } = await supabase
-        .from('community_access_requests')
-        .select('*', { count: 'exact', head: true })
-
-      if (requestsError) {
-        console.warn('Error counting access requests:', requestsError)
-      }
-
-      return {
-        totalCommunities: totalCommunities || 0,
-        activeCommunities: activeCommunities || 0,
-        totalMembers,
-        totalPosts: totalPosts || 0,
-        totalComments: totalComments || 0,
-        totalVideos: totalVideos || 0,
-        totalAccessRequests: totalAccessRequests || 0
-      }
+      return stats
     } catch (error) {
       console.error('Error in AdminCommunitiesService.getCommunityStats:', error)
       throw error
@@ -439,79 +407,81 @@ export class AdminCommunitiesService {
     const supabase = await createClient()
 
     try {
-      const { data: community, error } = await supabase
-        .from('communities')
-        .select(`
-          id,
-          name,
-          description,
-          slug,
-          image_url,
-          member_count,
-          is_active,
-          visibility,
-          access_type,
-          course_id,
-          created_at,
-          updated_at
-        `)
+      // ✅ OPTIMIZACIÓN: Usar VIEW community_stats (1 query en lugar de 6)
+      const { data: row, error } = await supabase
+        .from('community_stats')
+        .select('*')
         .eq('slug', slug)
         .single()
 
-      if (error || !community) {
+      if (error || !row) {
         return null
       }
 
-      // Obtener información del creador
-      const { data: creatorMember } = await supabase
-        .from('community_members')
-        .select('user_id')
-        .eq('community_id', community.id)
-        .eq('role', 'admin')
-        .limit(1)
-        .single()
-
-      let creator = null
-      if (creatorMember?.user_id) {
-        const { data: creatorUser } = await supabase
-          .from('users')
-          .select('display_name, first_name, last_name')
-          .eq('id', creatorMember.user_id)
-          .single()
-        
-        creator = creatorUser ? { users: creatorUser } : null
-      }
-
-      // Obtener conteos
-      const { count: postsCount } = await supabase
-        .from('community_posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('community_id', community.id)
-
-      const { count: commentsCount } = await supabase
-        .from('community_comments')
-        .select('*', { count: 'exact', head: true })
-        .eq('community_id', community.id)
-
-      const { count: videosCount } = await supabase
-        .from('community_videos')
-        .select('*', { count: 'exact', head: true })
-        .eq('community_id', community.id)
-
-      const { count: accessRequestsCount } = await supabase
-        .from('community_access_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('community_id', community.id)
-
+      // Mapear datos de la VIEW al formato AdminCommunity
       return {
-        ...community,
-        creator_name: creator?.users?.display_name || 
-                     `${creator?.users?.first_name || ''} ${creator?.users?.last_name || ''}`.trim() ||
-                     'Creador no encontrado',
-        posts_count: postsCount || 0,
-        comments_count: commentsCount || 0,
-        videos_count: videosCount || 0,
-        access_requests_count: accessRequestsCount || 0
+        // Información básica
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        slug: row.slug,
+        image_url: row.image_url,
+        member_count: row.member_count || 0,
+        is_active: row.is_active,
+        visibility: row.visibility,
+        access_type: row.access_type,
+        course_id: row.course_id,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+
+        // Información del curso (si existe)
+        course: row.course_id_full ? {
+          id: row.course_id_full,
+          title: row.course_title,
+          slug: row.course_slug,
+          thumbnail_url: row.course_thumbnail
+        } : undefined,
+
+        // Información del creador
+        creator: row.creator_id ? {
+          id: row.creator_id,
+          username: row.creator_username || '',
+          email: row.creator_email || '',
+          display_name: row.creator_display_name ||
+                       `${row.creator_first_name || ''} ${row.creator_last_name || ''}`.trim(),
+          avatar: row.creator_avatar
+        } : undefined,
+
+        // Campo legacy creator_name para compatibilidad
+        creator_name: row.creator_display_name ||
+                     `${row.creator_first_name || ''} ${row.creator_last_name || ''}`.trim() ||
+                     'Sin creador',
+
+        // Estadísticas completas
+        stats: {
+          members_count: row.members_count || 0,
+          admin_count: row.admin_count || 0,
+          moderator_count: row.moderator_count || 0,
+          active_members_count: row.active_members_count || 0,
+          posts_count: row.posts_count || 0,
+          pinned_posts_count: row.pinned_posts_count || 0,
+          total_posts_likes: row.total_posts_likes || 0,
+          total_posts_views: row.total_posts_views || 0,
+          comments_count: row.comments_count || 0,
+          active_comments_count: row.active_comments_count || 0,
+          videos_count: row.videos_count || 0,
+          active_videos_count: row.active_videos_count || 0,
+          pending_requests_count: row.pending_requests_count || 0,
+          approved_requests_count: row.approved_requests_count || 0,
+          rejected_requests_count: row.rejected_requests_count || 0,
+          total_reactions_count: row.total_reactions_count || 0
+        },
+
+        // Campos legacy para compatibilidad con código existente
+        posts_count: row.posts_count || 0,
+        comments_count: row.comments_count || 0,
+        videos_count: row.videos_count || 0,
+        access_requests_count: row.pending_requests_count || 0
       }
     } catch (error) {
       console.error('Error in AdminCommunitiesService.getCommunityBySlug:', error)
