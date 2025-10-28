@@ -17,11 +17,12 @@ export async function GET(
       success: true, 
       members 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching community members via API:', error)
+    const message = error instanceof Error ? error.message : 'Error al obtener los miembros';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error al obtener los miembros' 
+      message 
     }, { status: 500 })
   }
 }

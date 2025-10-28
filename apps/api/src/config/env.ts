@@ -6,12 +6,12 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 export const config = {
   // Server
-  PORT: parseInt(process.env.PORT || '3000', 10),
+  PORT: parseInt(process.env.PORT || '3001', 10),
   NODE_ENV: process.env.NODE_ENV || 'development',
   API_VERSION: process.env.API_VERSION || 'v1',
 
   // CORS
-  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
+  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001',
 
   // JWT
   JWT_SECRET: process.env.USER_JWT_SECRET || process.env.JWT_SECRET || 'dev-secret-key-change-in-production',

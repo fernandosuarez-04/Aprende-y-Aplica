@@ -77,11 +77,12 @@ export async function PATCH(
       post: updatedPost,
       message: `Post ${newPinnedState ? 'fijado' : 'desfijado'} exitosamente` 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in toggle post pin API:', error)
+    const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error interno del servidor' 
+      message 
     }, { status: 500 })
   }
 }

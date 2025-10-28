@@ -123,11 +123,12 @@ export async function PATCH(
       request: updatedRequest,
       message: 'Solicitud aprobada exitosamente' 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in approve access request API:', error)
+    const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error interno del servidor' 
+      message 
     }, { status: 500 })
   }
 }

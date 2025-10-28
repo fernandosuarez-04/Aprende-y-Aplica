@@ -17,11 +17,12 @@ export async function GET(
       success: true, 
       posts 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching community posts via API:', error)
+    const message = error instanceof Error ? error.message : 'Error al obtener los posts';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error al obtener los posts' 
+      message 
     }, { status: 500 })
   }
 }

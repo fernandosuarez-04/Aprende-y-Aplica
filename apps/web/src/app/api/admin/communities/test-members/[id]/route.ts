@@ -99,11 +99,12 @@ export async function GET(
         users: usersError
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in test members endpoint:', error)
+    const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: message 
     }, { status: 500 })
   }
 }

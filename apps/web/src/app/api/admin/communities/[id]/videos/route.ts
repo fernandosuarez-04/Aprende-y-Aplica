@@ -17,11 +17,12 @@ export async function GET(
       success: true, 
       videos 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching community videos via API:', error)
+    const message = error instanceof Error ? error.message : 'Error al obtener los videos';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error al obtener los videos' 
+      message 
     }, { status: 500 })
   }
 }

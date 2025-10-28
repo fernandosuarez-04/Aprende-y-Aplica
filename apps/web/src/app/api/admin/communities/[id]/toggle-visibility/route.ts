@@ -21,11 +21,12 @@ export async function PATCH(
       success: true, 
       community: updatedCommunity 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error toggling community visibility via API:', error)
+    const message = error instanceof Error ? error.message : 'Error al cambiar visibilidad de la comunidad';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error al cambiar visibilidad de la comunidad' 
+      message 
     }, { status: 500 })
   }
 }
