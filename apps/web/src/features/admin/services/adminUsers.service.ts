@@ -326,7 +326,7 @@ export class AdminUsersService {
 
       // Luego eliminar favoritos del usuario
       await supabase
-        .from('user_favorites')
+        .from('app_favorites')
         .delete()
         .eq('user_id', userId)
 
@@ -359,3 +359,4 @@ export class AdminUsersService {
     }
   }
 }
+

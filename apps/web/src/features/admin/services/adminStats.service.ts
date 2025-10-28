@@ -53,7 +53,7 @@ export class AdminStatsService {
         
         // Total de favoritos (como proxy para engagement)
         supabase
-          .from('user_favorites')
+          .from('app_favorites')
           .select('id', { count: 'exact' })
       ])
 
@@ -96,7 +96,7 @@ export class AdminStatsService {
         
         // Crecimiento de favoritos
         supabase
-          .from('user_favorites')
+          .from('app_favorites')
           .select('id', { count: 'exact' })
           .gte('created_at', thirtyDaysAgo.toISOString())
       ])
@@ -158,3 +158,4 @@ export class AdminStatsService {
     }
   }
 }
+
