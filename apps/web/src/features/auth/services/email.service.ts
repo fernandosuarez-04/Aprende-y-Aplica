@@ -46,7 +46,10 @@ class EmailService {
           pass: config.pass,
         },
         tls: {
-          rejectUnauthorized: false, // Permite certificados auto-firmados
+          // ✅ Seguridad mejorada: solo permite certs inválidos en desarrollo
+          rejectUnauthorized: process.env.NODE_ENV === 'production',
+          minVersion: 'TLSv1.2', // Forzar TLS 1.2 o superior
+          ciphers: 'HIGH:!aNULL:!MD5', // Solo ciphers seguros
         },
       });
 

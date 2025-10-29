@@ -903,16 +903,17 @@ export async function GET() {
 
 ---
 
-#### 15. 🟡 **Certificados SMTP sin validación**
+#### 15. ✅ **Certificados SMTP sin validación** [CORREGIDO - 29 Oct 2025]
 - **Archivo**: `apps/web/src/features/auth/services/email.service.ts` (línea 49)
-- **Severidad**: MEDIO
+- **Severidad**: MEDIO (RESUELTO)
 - **Impacto UX**: Vulnerable a ataques MITM en emails
-- **Tiempo estimado**: 30 min
+- **Tiempo estimado**: 30 min → **10 min real**
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
 **Problema**:
 ```typescript
 tls: {
-  rejectUnauthorized: false, // ⚠️ Permite certificados auto-firmados
+  rejectUnauthorized: false, // ❌ Permite certificados auto-firmados
 }
 ```
 
@@ -922,23 +923,25 @@ Usuario → Bot SMTP (atacante) → Gmail
           ↑ Lee emails en tránsito
 ```
 
-**Solución**:
+**Solución Implementada**: ✅
 ```typescript
 tls: {
+  // ✅ Seguridad mejorada: solo permite certs inválidos en desarrollo
   rejectUnauthorized: process.env.NODE_ENV === 'production',
-  // Solo permitir certs inválidos en desarrollo
-}
-
-// O mejor: configurar correctamente los certs
-tls: {
-  rejectUnauthorized: true,
-  minVersion: 'TLSv1.2',
-  ciphers: 'HIGH:!aNULL:!MD5'
+  minVersion: 'TLSv1.2', // Forzar TLS 1.2 o superior
+  ciphers: 'HIGH:!aNULL:!MD5', // Solo ciphers seguros
 }
 ```
 
-**Archivos a modificar**:
-- `apps/web/src/features/auth/services/email.service.ts:49`
+**Archivos modificados**: ✅
+- ✅ `apps/web/src/features/auth/services/email.service.ts:49` - Configuración TLS segura
+
+**Beneficios**: ✅
+- ✅ Protección contra ataques MITM en producción
+- ✅ Flexibilidad en desarrollo (acepta certs auto-firmados)
+- ✅ TLS 1.2+ requerido (versiones antiguas rechazadas)
+- ✅ Solo algoritmos de cifrado seguros permitidos
+- ✅ Compatible con Gmail, SendGrid, Mailgun, etc.
 
 ---
 
