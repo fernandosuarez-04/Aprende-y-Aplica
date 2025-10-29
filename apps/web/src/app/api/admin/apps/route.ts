@@ -1,0 +1,153 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '../../../../lib/supabase/server'
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    
+    // TODO: Agregar verificación de admin cuando esté funcionando
+    // const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // 
+    // if (authError || !user) {
+    //   return NextResponse.json(
+    //     { error: 'No autorizado' },
+    //     { status: 401 }
+    //   )
+    // }
+
+    const { data: apps, error } = await supabase
+      .from('ai_apps')
+      .select(`
+        app_id,
+        name,
+        slug,
+        description,
+        long_description,
+        category_id,
+        website_url,
+        logo_url,
+        pricing_model,
+        pricing_details,
+        features,
+        use_cases,
+        advantages,
+        disadvantages,
+        alternatives,
+        tags,
+        supported_languages,
+        integrations,
+        api_available,
+        mobile_app,
+        desktop_app,
+        browser_extension,
+        is_featured,
+        is_verified,
+        view_count,
+        like_count,
+        rating,
+        rating_count,
+        is_active,
+        created_at,
+        updated_at,
+        ai_categories!inner(
+          category_id,
+          name,
+          slug,
+          description,
+          icon,
+          color
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching admin apps:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch apps' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ apps: apps || [] })
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    
+    // TODO: Agregar verificación de admin cuando esté funcionando
+    // const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // 
+    // if (authError || !user) {
+    //   return NextResponse.json(
+    //     { error: 'No autorizado' },
+    //     { status: 401 }
+    //   )
+    // }
+
+    const body = await request.json()
+    
+    console.log('🔄 Creando nueva app con datos:', body)
+    
+    const { data: newApp, error } = await supabase
+      .from('ai_apps')
+      .insert({
+        name: body.name,
+        slug: body.slug || body.name?.toLowerCase().replace(/\s+/g, '-'),
+        description: body.description,
+        long_description: body.long_description,
+        category_id: body.category_id,
+        website_url: body.website_url,
+        logo_url: body.logo_url,
+        pricing_model: body.pricing_model || 'free',
+        pricing_details: body.pricing_details || {},
+        features: body.features || [],
+        use_cases: body.use_cases || [],
+        advantages: body.advantages || [],
+        disadvantages: body.disadvantages || [],
+        alternatives: body.alternatives || [],
+        tags: body.tags || [],
+        supported_languages: body.supported_languages || [],
+        integrations: body.integrations || [],
+        api_available: body.api_available || false,
+        mobile_app: body.mobile_app || false,
+        desktop_app: body.desktop_app || false,
+        browser_extension: body.browser_extension || false,
+        is_featured: body.is_featured || false,
+        is_verified: body.is_verified || false,
+        view_count: 0,
+        like_count: 0,
+        rating: 0,
+        rating_count: 0,
+        is_active: body.is_active !== undefined ? body.is_active : true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('❌ Error creating app:', error)
+      return NextResponse.json(
+        { error: 'Failed to create app' },
+        { status: 500 }
+      )
+    }
+
+    console.log('✅ App creada exitosamente:', newApp)
+    return NextResponse.json({ app: newApp }, { status: 201 })
+  } catch (error) {
+    console.error('💥 Unexpected error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

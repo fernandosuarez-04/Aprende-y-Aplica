@@ -10,6 +10,7 @@ import {
   ChatBubbleLeftRightIcon,
   CpuChipIcon,
   NewspaperIcon,
+  PlayIcon,
   UserGroupIcon,
   Cog6ToothIcon,
   ChartBarIcon,
@@ -37,9 +38,11 @@ const navigation = [
   { name: 'Talleres', href: '/admin/workshops', icon: BookOpenIcon, current: false },
   { name: 'Comunidades', href: '/admin/communities', icon: UserGroupIcon, current: false },
   { name: 'Prompts', href: '/admin/prompts', icon: ChatBubbleLeftRightIcon, current: false },
-  { name: 'Apps de IA', href: '/admin/ai-apps', icon: CpuChipIcon, current: false },
+  { name: 'Apps de IA', href: '/admin/apps', icon: CpuChipIcon, current: false },
   { name: 'Noticias', href: '/admin/news', icon: NewspaperIcon, current: false },
+  { name: 'Reels', href: '/admin/reels', icon: PlayIcon, current: false },
   { name: 'Estadísticas', href: '/admin/statistics', icon: ChartBarIcon, current: false },
+  { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon, current: false },
   { name: 'Configuración', href: '/admin/settings', icon: Cog6ToothIcon, current: false },
 ]
 

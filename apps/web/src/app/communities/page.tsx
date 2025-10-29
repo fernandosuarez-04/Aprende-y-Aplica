@@ -31,6 +31,7 @@ import {
   X
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { AIChatAgent } from '../../core/components/AIChatAgent';
 import { useRouter } from 'next/navigation';
 
 interface Community {
@@ -722,6 +723,14 @@ export default function CommunitiesPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* AI Chat Agent */}
+      <AIChatAgent
+        assistantName="Lia"
+        initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre nuestras comunidades, cómo unirte y participar. ¿En qué puedo asistirte?"
+        promptPlaceholder="Pregunta sobre comunidades..."
+        context="communities"
+      />
     </div>
   );
 }

@@ -1,106 +1,89 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { 
-  PhotoIcon, 
-  XMarkIcon, 
-  CloudArrowUpIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/react/24/outline'
-import { SupabaseStorageService } from '../services/supabaseStorage.service'
+import { PhotoIcon, XMarkIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline'
+import { createClient } from '../../../lib/supabase/client'
 
 interface ImageUploadProps {
-  value: string
+  value?: string
   onChange: (url: string) => void
-  onError?: (error: string) => void
-  communityName?: string
+  bucket?: string
+  folder?: string
+  className?: string
   disabled?: boolean
 }
 
 export function ImageUpload({ 
   value, 
   onChange, 
-  onError, 
-  communityName = 'comunidad',
+  bucket = 'news', 
+  folder = 'hero-images',
+  className = '',
   disabled = false 
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
-  const [preview, setPreview] = useState<string | null>(value || null)
-  const [dragActive, setDragActive] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileSelect = async (file: File) => {
-    // Validar archivo
-    const validation = SupabaseStorageService.validateImageFile(file)
-    if (!validation.valid) {
-      onError?.(validation.error!)
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      setError('Solo se permiten archivos de imagen')
       return
     }
 
-    setIsUploading(true)
-    
-    try {
-      // Crear preview local
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen debe ser menor a 5MB')
+      return
+    }
 
-      // Subir a Supabase
-      const result = await SupabaseStorageService.uploadCommunityImage(file, communityName)
+    setError(null)
+    setIsUploading(true)
+    setUploadProgress(0)
+
+    try {
+      const supabase = createClient()
       
-      if (result.success && result.url) {
-        onChange(result.url)
-      } else {
-        onError?.(result.error || 'Error al subir la imagen')
-        setPreview(null)
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `${folder}/${fileName}`
+
+      // Subir archivo a Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        throw uploadError
       }
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      onError?.('Error inesperado al subir la imagen')
-      setPreview(null)
+
+      // Obtener URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath)
+
+      setUploadProgress(100)
+      onChange(publicUrl)
+      
+    } catch (err: any) {
+      console.error('Error uploading image:', err)
+      setError(err.message || 'Error al subir la imagen')
     } finally {
       setIsUploading(false)
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-
-    if (disabled || isUploading) return
-
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
-      handleFileSelect(files[0])
-    }
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!disabled && !isUploading) {
-      setDragActive(true)
-    }
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-  }
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      handleFileSelect(files[0])
+      setUploadProgress(0)
     }
   }
 
   const handleRemoveImage = () => {
-    setPreview(null)
     onChange('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -114,99 +97,88 @@ export function ImageUpload({
   }
 
   return (
-    <div className="space-y-3">
+    <div className={`space-y-3 ${className}`}>
       {/* Input oculto */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={handleFileInputChange}
+        onChange={handleFileSelect}
         className="hidden"
-        disabled={disabled}
+        disabled={disabled || isUploading}
       />
 
-      {/* Área de subida */}
+      {/* Área de carga */}
+      {!value ? (
       <div
         onClick={handleClick}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
         className={`
-          relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200
-          ${dragActive 
-            ? 'border-blue-400 bg-blue-50/10' 
-            : 'border-gray-600 hover:border-gray-500'
-          }
+            relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
           ${disabled || isUploading 
-            ? 'opacity-50 cursor-not-allowed' 
-            : 'hover:bg-gray-700/20'
-          }
-        `}
-      >
-        {preview ? (
-          // Preview de imagen
+              ? 'border-gray-600 bg-gray-800 cursor-not-allowed' 
+              : 'border-gray-500 bg-gray-800 hover:border-blue-500 hover:bg-gray-750'
+            }
+          `}
+        >
+          {isUploading ? (
+            <div className="space-y-3">
+              <CloudArrowUpIcon className="mx-auto h-12 w-12 text-blue-500 animate-pulse" />
+              <div className="text-sm text-gray-300">
+                <div className="mb-2">Subiendo imagen...</div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <div className="text-xs text-gray-400 mt-1">{uploadProgress}%</div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="text-sm text-gray-300">
+                <div className="font-medium">Hacer clic para subir imagen</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  PNG, JPG, GIF hasta 5MB
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Preview de imagen */
           <div className="relative">
             <img
-              src={preview}
+            src={value}
               alt="Preview"
-              className="w-full h-32 object-cover rounded-lg"
+            className="w-full h-48 object-cover rounded-lg border border-gray-600"
             />
-            {!disabled && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleRemoveImage()
-                }}
-                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
                 type="button"
+            onClick={handleRemoveImage}
+            disabled={disabled || isUploading}
+            className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-full transition-colors"
               >
                 <XMarkIcon className="h-4 w-4" />
               </button>
-            )}
-          </div>
-        ) : (
-          // Estado vacío
-          <div className="space-y-3">
-            <div className="mx-auto w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
-              {isUploading ? (
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
-              ) : (
-                <PhotoIcon className="h-6 w-6 text-gray-400" />
-              )}
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium text-white">
-                {isUploading ? 'Subiendo imagen...' : 'Subir imagen de la comunidad'}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Arrastra una imagen aquí o haz clic para seleccionar
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                PNG, JPG, WebP, GIF hasta 5MB
-              </p>
-            </div>
+          
+          {/* Botón para cambiar imagen */}
+          <button
+            type="button"
+            onClick={handleClick}
+            disabled={disabled || isUploading}
+            className="absolute bottom-2 right-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+          >
+            Cambiar
+          </button>
           </div>
         )}
 
-        {/* Indicador de drag */}
-        {dragActive && (
-          <div className="absolute inset-0 bg-blue-500/10 rounded-xl flex items-center justify-center">
-            <div className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-              <CloudArrowUpIcon className="h-5 w-5" />
-              <span className="text-sm font-medium">Suelta la imagen aquí</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* URL actual (solo para mostrar) */}
-      {value && (
-        <div className="bg-gray-700/30 rounded-lg p-3">
-          <p className="text-xs text-gray-400 mb-1">URL de la imagen:</p>
-          <p className="text-xs text-gray-300 break-all font-mono">
-            {value}
-          </p>
+      {/* Mostrar error */}
+      {error && (
+        <div className="text-sm text-red-400 bg-red-900/20 border border-red-800 rounded p-2">
+          {error}
         </div>
       )}
     </div>

@@ -73,7 +73,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       label: 'Mi aprendizaje',
       icon: BookOpen,
       onClick: () => {
-        console.log('Aprendizaje clicked')
+        router.push('/my-courses')
         setIsOpen(false)
       }
     },
