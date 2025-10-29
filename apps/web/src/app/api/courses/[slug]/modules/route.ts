@@ -3,22 +3,22 @@ import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
 
 /**
- * GET /api/courses/[id]/modules
- * Obtiene todos los módulos y lecciones de un curso
+ * GET /api/courses/[slug]/modules
+ * Obtiene todos los módulos y lecciones de un curso por slug
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await params;
     const supabase = await createClient();
-    const { id } = await params;
 
-    // Obtener el curso para verificar que existe
+    // Obtener el curso por slug para obtener su ID
     const { data: course, error: courseError } = await supabase
       .from('courses')
       .select('id')
-      .eq('id', id)
+      .eq('slug', slug)
       .single();
 
     if (courseError || !course) {
@@ -27,6 +27,8 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    const courseId = course.id;
 
     // Obtener módulos del curso
     const { data: modules, error: modulesError } = await supabase
@@ -38,7 +40,7 @@ export async function GET(
         module_duration_minutes,
         is_published
       `)
-      .eq('course_id', id)
+      .eq('course_id', courseId)
       .eq('is_published', true)
       .order('module_order_index', { ascending: true });
 
@@ -81,7 +83,7 @@ export async function GET(
             .from('user_course_enrollments')
             .select('enrollment_id')
             .eq('user_id', currentUser.id)
-            .eq('course_id', id)
+            .eq('course_id', courseId)
             .single();
 
           if (enrollment) {

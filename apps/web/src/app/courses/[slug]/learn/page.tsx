@@ -75,8 +75,8 @@ export default function CourseLearnPage() {
         console.log('Course data loaded:', courseData);
         setCourse(courseData);
         
-        // Cargar módulos y lecciones
-        await loadModules(courseData.id);
+        // Cargar módulos y lecciones usando slug
+        await loadModules(slug);
       } catch (error) {
         console.error('Error loading course:', error);
       } finally {
@@ -89,9 +89,9 @@ export default function CourseLearnPage() {
     }
   }, [slug]);
 
-  const loadModules = async (courseId: string) => {
+  const loadModules = async (courseSlug: string) => {
     try {
-      const response = await fetch(`/api/courses/${courseId}/modules`);
+      const response = await fetch(`/api/courses/${courseSlug}/modules`);
       if (response.ok) {
         const data = await response.json();
         console.log('Modules data loaded:', data);

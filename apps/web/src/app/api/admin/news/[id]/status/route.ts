@@ -3,9 +3,10 @@ import { createClient } from '../../../../../../lib/supabase/server'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // TODO: Agregar verificación de admin cuando esté funcionando
@@ -28,7 +29,7 @@ export async function PATCH(
       )
     }
 
-    console.log('🔄 Cambiando estado de noticia con ID:', params.id, 'a:', status)
+    console.log('🔄 Cambiando estado de noticia con ID:', id, 'a:', status)
 
     const updateData: any = {
       status,
@@ -40,7 +41,7 @@ export async function PATCH(
       const { data: currentNews } = await supabase
         .from('news')
         .select('published_at')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
 
       if (!currentNews?.published_at) {
@@ -51,7 +52,7 @@ export async function PATCH(
     const { data: updatedNews, error } = await supabase
       .from('news')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
