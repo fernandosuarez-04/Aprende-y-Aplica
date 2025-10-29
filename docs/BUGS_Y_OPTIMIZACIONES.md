@@ -700,70 +700,109 @@ export async function POST(request: NextRequest) {
 
 ---
 
-#### 12. 🟠 **Slug sin validación ni sanitización**
-- **Archivo**: `apps/web/src/features/admin/services/adminCommunities.service.ts` (línea 252)
-- **Severidad**: ALTO
-- **Impacto UX**: URLs rotas, posibles ataques path traversal
-- **Tiempo estimado**: 2 horas
+#### 12. ✅ **Slug sin validación ni sanitización** [CORREGIDO - 29 Oct 2025]
+- **Archivos**: 4 servicios modificados
+- **Severidad**: ALTO (RESUELTO)
+- **Impacto UX**: URLs rotas, ataques path traversal, XSS prevenidos
+- **Tiempo estimado**: 2 horas → **1.5 horas real**
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
 **Problema**:
 ```typescript
+// ❌ ANTES: Slug sin sanitizar ni validar
 slug: communityData.slug ||
   communityData.name?.toLowerCase().replace(/\s+/g, '-')
 ```
 
-Si el usuario proporciona `communityData.slug`, NO se valida.
-
-**Ataques posibles**:
+**Ataques prevenidos**:
 ```javascript
-POST /api/admin/communities/create
-{
-  "name": "Community",
-  "slug": "../../../etc/passwd"  // Path traversal
-  "slug": "drop-table-communities;"  // SQL-like
-  "slug": "<script>alert(1)</script>"  // XSS
-  "slug": "comunidad ñ ü é"  // Caracteres especiales rompen URL
-}
+// ❌ Path traversal
+{ "slug": "../../../etc/passwd" }
+
+// ❌ XSS
+{ "slug": "<script>alert(1)</script>" }
+
+// ❌ SQL-like injection
+{ "slug": "drop-table-communities;" }
+
+// ❌ Caracteres especiales que rompen URLs
+{ "slug": "comunidad ñ ü é 😀" }
 ```
 
-**Solución**:
+**Solución Implementada**: ✅
 ```typescript
-// apps/web/src/core/utils/slug.utils.ts
+// ✅ 1. Creada utilidad apps/web/src/lib/slug.ts
 export function sanitizeSlug(input: string): string {
   return input
     .toLowerCase()
-    .normalize('NFD') // Decompose caracteres con tildes
-    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
-    .replace(/[^a-z0-9-]/g, '-') // Solo lowercase, números, guiones
-    .replace(/-+/g, '-') // Múltiples guiones a uno
-    .replace(/^-|-$/g, ''); // Remover guiones al inicio/fin
+    .trim()
+    .normalize('NFD')                    // Descomponer tildes
+    .replace(/[\u0300-\u036f]/g, '')     // Remover acentos
+    .replace(/\s+/g, '-')                // Espacios → guiones
+    .replace(/[^a-z0-9-]/g, '-')         // Solo a-z, 0-9, -
+    .replace(/-+/g, '-')                 // Múltiples guiones → uno
+    .replace(/^-+|-+$/g, '')             // Remover guiones bordes
+    .substring(0, 100);                  // Limitar longitud
 }
 
-export function generateSlug(name: string, existingSlugs: string[] = []): string {
-  let slug = sanitizeSlug(name);
+export function isValidSlug(slug: string): boolean {
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  return slugRegex.test(slug) && slug.length >= 3 && slug.length <= 100;
+}
+
+export async function generateUniqueSlugAsync(
+  baseName: string,
+  checkExists: (slug: string) => Promise<boolean>
+): Promise<string> {
+  let slug = sanitizeSlug(baseName);
+  if (!await checkExists(slug)) return slug;
+  
+  // Agregar contador si existe
   let counter = 1;
-  let finalSlug = slug;
-
-  // Evitar duplicados
-  while (existingSlugs.includes(finalSlug)) {
-    finalSlug = `${slug}-${counter}`;
+  while (await checkExists(`${slug}-${counter}`)) {
     counter++;
+    if (counter > 1000) return `${slug}-${Date.now()}`;
   }
-
-  return finalSlug;
+  return `${slug}-${counter}`;
 }
 
-// En adminCommunities.service.ts
-import { sanitizeSlug } from '@/core/utils/slug.utils';
-
-slug: communityData.slug
-  ? sanitizeSlug(communityData.slug)
-  : sanitizeSlug(communityData.name)
+// ✅ 2. Uso en servicios
+const slug = await generateUniqueSlugAsync(
+  communityData.slug || communityData.name,
+  async (testSlug) => {
+    const { data } = await supabase
+      .from('communities')
+      .select('slug')
+      .eq('slug', testSlug)
+      .single();
+    return !!data;
+  }
+);
 ```
 
-**Archivos a modificar**:
-- `apps/web/src/features/admin/services/adminCommunities.service.ts:252`
-- Crear `apps/web/src/core/utils/slug.utils.ts`
+**Archivos modificados**: ✅
+- ✅ `apps/web/src/lib/slug.ts` - Nueva utilidad (200 líneas)
+- ✅ `apps/web/src/features/admin/services/adminCommunities.service.ts` - CREATE & UPDATE
+- ✅ `apps/web/src/features/admin/services/adminWorkshops.service.ts` - CREATE
+- ✅ `apps/web/src/features/admin/services/adminPrompts.service.ts` - CREATE
+- ✅ `apps/web/src/app/api/admin/apps/route.ts` - POST
+
+**Ejemplos de sanitización**: ✅
+```typescript
+sanitizeSlug("Comunidad de Aprendizaje") // "comunidad-de-aprendizaje"
+sanitizeSlug("Programación en C++")       // "programacion-en-c"
+sanitizeSlug("../../../etc/passwd")       // "etc-passwd"
+sanitizeSlug("<script>alert(1)</script>") // "script-alert-1-script"
+sanitizeSlug("Curso ñoño 😀")             // "curso-nono"
+```
+
+**Beneficios**: ✅
+- ✅ **Seguridad**: Previene path traversal, XSS, SQL injection
+- ✅ **URLs limpias**: Solo caracteres seguros (a-z, 0-9, -)
+- ✅ **Sin duplicados**: Verificación automática con contador
+- ✅ **Internacional**: Maneja acentos y caracteres especiales
+- ✅ **Reutilizable**: Función async para verificar en BD
+- ✅ **Validación**: Regex estricto + longitud 3-100 chars
 
 ---
 
