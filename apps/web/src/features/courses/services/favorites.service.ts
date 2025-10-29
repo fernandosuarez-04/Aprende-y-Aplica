@@ -9,7 +9,7 @@ export class FavoritesService {
       const supabase = await createClient()
       
       const { data, error } = await supabase
-        .from('user_favorites')
+        .from('app_favorites')
         .select('course_id')
         .eq('user_id', userId)
 
@@ -40,7 +40,7 @@ export class FavoritesService {
       const supabase = await createClient()
       
       const { error } = await supabase
-        .from('user_favorites')
+        .from('app_favorites')
         .insert({
           user_id: userId,
           course_id: courseId
@@ -64,7 +64,7 @@ export class FavoritesService {
       const supabase = await createClient()
       
       const { error } = await supabase
-        .from('user_favorites')
+        .from('app_favorites')
         .delete()
         .eq('user_id', userId)
         .eq('course_id', courseId)
@@ -87,7 +87,7 @@ export class FavoritesService {
       const supabase = await createClient()
       
       const { data, error } = await supabase
-        .from('user_favorites')
+        .from('app_favorites')
         .select('id')
         .eq('user_id', userId)
         .eq('course_id', courseId)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,12 +90,11 @@ export async function POST(request: NextRequest) {
       })
 
     if (error) {
-      console.error('❌ Error uploading file:', error)
+      logError('POST /api/admin/upload/community-image - storage upload', error)
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Error al subir la imagen: ${error.message}`,
-          details: error
+        {
+          success: false,
+          error: 'Error al subir la imagen'
         },
         { status: 500 }
       )
@@ -115,12 +115,11 @@ export async function POST(request: NextRequest) {
       fileName: data.path
     })
   } catch (error) {
-    console.error('💥 Error in POST /api/admin/upload/community-image:', error)
+    logError('POST /api/admin/upload/community-image', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error interno del servidor',
-        details: error instanceof Error ? error.message : 'Error desconocido'
+      {
+        success: false,
+        ...formatApiError(error, 'Error al subir la imagen')
       },
       { status: 500 }
     )

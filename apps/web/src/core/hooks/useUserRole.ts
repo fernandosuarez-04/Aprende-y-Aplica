@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 
+// ✅ Constantes para roles - evita typos y facilita mantenimiento
+const ROLES = {
+  ADMIN: 'administrador',
+  INSTRUCTOR: 'instructor',
+  USER: 'usuario'
+} as const
+
 export function useUserRole() {
   const { user, loading } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
@@ -15,17 +22,18 @@ export function useUserRole() {
     console.log('⏳ Loading:', loading)
     
     if (user && !loading) {
-      const role = user.cargo_rol?.toLowerCase()
+      // ✅ Normalizar con toLowerCase() y trim() para evitar bugs con espacios
+      const role = user.cargo_rol?.toLowerCase().trim()
       console.log('🎭 Rol detectado:', role)
       
-      setIsAdmin(role === 'administrador')
-      setIsInstructor(role === 'instructor')
-      setIsUser(role === 'usuario')
+      setIsAdmin(role === ROLES.ADMIN)
+      setIsInstructor(role === ROLES.INSTRUCTOR)
+      setIsUser(role === ROLES.USER)
       
       console.log('✅ Estados actualizados:', {
-        isAdmin: role === 'administrador',
-        isInstructor: role === 'instructor',
-        isUser: role === 'usuario'
+        isAdmin: role === ROLES.ADMIN,
+        isInstructor: role === ROLES.INSTRUCTOR,
+        isUser: role === ROLES.USER
       })
     } else {
       console.log('❌ No hay usuario o está cargando')

@@ -17,11 +17,12 @@ export async function GET(
       success: true, 
       requests 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching access requests via API:', error)
+    const message = error instanceof Error ? error.message : 'Error al obtener las solicitudes';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error al obtener las solicitudes' 
+      message 
     }, { status: 500 })
   }
 }

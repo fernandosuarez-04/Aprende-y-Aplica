@@ -20,11 +20,12 @@ export async function GET(
       success: true, 
       community 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching community by slug via API:', error)
+    const message = error instanceof Error ? error.message : 'Error al obtener la comunidad';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error al obtener la comunidad' 
+      message 
     }, { status: 500 })
   }
 }

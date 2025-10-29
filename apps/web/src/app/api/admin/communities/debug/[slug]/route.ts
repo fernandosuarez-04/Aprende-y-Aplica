@@ -68,11 +68,12 @@ export async function GET(
         }
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in debug endpoint:', error)
+    const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: message 
     }, { status: 500 })
   }
 }

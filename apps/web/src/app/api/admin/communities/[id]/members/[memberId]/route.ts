@@ -75,11 +75,12 @@ export async function DELETE(
       success: true, 
       message: 'Miembro removido exitosamente' 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in remove member API:', error)
+    const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Error interno del servidor' 
+      message 
     }, { status: 500 })
   }
 }

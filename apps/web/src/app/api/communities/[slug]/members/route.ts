@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { formatApiError, logError } from '@/core/utils/api-errors';
 
 export async function GET(
   request: NextRequest,
@@ -243,9 +244,9 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ Error in members API:', error);
+    logError('GET /api/communities/[slug]/members', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
+      formatApiError(error, 'Error al obtener miembros de la comunidad'),
       { status: 500 }
     );
   }

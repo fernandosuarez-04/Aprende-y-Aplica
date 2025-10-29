@@ -3,9 +3,10 @@ import { createClient } from '../../../../../lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     
     // TODO: Agregar verificación de admin cuando esté funcionando
@@ -61,7 +62,7 @@ export async function GET(
           color
         )
       `)
-      .eq('app_id', params.id)
+      .eq('app_id', id)
       .single()
 
     if (error) {
@@ -84,9 +85,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     
     // TODO: Agregar verificación de admin cuando esté funcionando
@@ -134,13 +136,13 @@ export async function PUT(
     if (body.is_verified !== undefined) updateData.is_verified = body.is_verified
     if (body.is_active !== undefined) updateData.is_active = body.is_active
 
-    console.log('🔄 Actualizando app con ID:', params.id)
+    console.log('🔄 Actualizando app con ID:', id)
     console.log('📋 Datos a actualizar:', updateData)
 
     const { data: updatedApp, error } = await supabase
       .from('ai_apps')
       .update(updateData)
-      .eq('app_id', params.id)
+      .eq('app_id', id)
       .select()
       .single()
 
@@ -165,9 +167,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     
     // TODO: Agregar verificación de admin cuando esté funcionando
@@ -183,7 +186,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('ai_apps')
       .delete()
-      .eq('app_id', params.id)
+      .eq('app_id', id)
 
     if (error) {
       console.error('Error deleting app:', error)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
+import { formatApiError, logError } from '@/core/utils/api-errors';
 
 // Configuración de Lia directamente en el archivo
 const LIA_CONFIG = {
@@ -244,30 +245,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(finalResponse);
 
   } catch (error) {
-    console.error('❌ Error in generate-prompt API:', error);
-    console.error('❌ Error message:', error.message);
-    console.error('❌ Error code:', error.code);
-    console.error('❌ Error stack:', error.stack);
-    
+    logError('POST /api/ai-directory/generate-prompt', error);
+
     // Manejar errores específicos de OpenAI
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
         return NextResponse.json(
-          { error: 'Error de configuración de API' },
+          formatApiError(error, 'Error de configuración de API'),
           { status: 500 }
         );
       }
-      
+
       if (error.message.includes('rate limit')) {
         return NextResponse.json(
-          { error: 'Límite de solicitudes excedido. Inténtalo más tarde.' },
+          formatApiError(error, 'Límite de solicitudes excedido. Inténtalo más tarde.'),
           { status: 429 }
         );
       }
     }
 
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      formatApiError(error, 'Error al generar prompt'),
       { status: 500 }
     );
   }

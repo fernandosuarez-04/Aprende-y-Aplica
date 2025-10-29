@@ -175,13 +175,23 @@ class SupabaseStorageService {
         };
 
       case 'poll':
+        // Inicializar la estructura votes con arrays vacíos para cada opción
+        const initialVotes: { [key: string]: string[] } = {};
+        if (attachmentData.options) {
+          attachmentData.options.forEach((option: string) => {
+            initialVotes[option] = [];
+          });
+        }
+
         return {
           attachment_url: null,
           attachment_type: 'poll',
           attachment_data: {
             question: attachmentData.question,
             options: attachmentData.options,
-            duration: attachmentData.duration
+            duration: attachmentData.duration,
+            votes: initialVotes,      // ✅ Inicializar votes
+            userVotes: {}             // ✅ Inicializar userVotes
           }
         };
 

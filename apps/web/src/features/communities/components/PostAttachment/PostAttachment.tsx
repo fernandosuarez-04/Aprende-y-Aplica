@@ -413,6 +413,10 @@ function InteractivePoll({
         const data = await response.json();
         setUserVote(data.userVote);
         setSelectedOption(data.userVote);
+        // Actualizar pollData con los datos actuales de la base de datos
+        if (data.pollData) {
+          setPollData(data.pollData);
+        }
       }
     } catch (error) {
       console.error('Error loading user vote:', error);
@@ -456,18 +460,31 @@ function InteractivePoll({
   };
 
   const calculatePercentage = (option: string) => {
-    if (!pollData?.votes || !pollData.votes[option]) return 0;
+    // Validar que pollData y votes existan
+    if (!pollData || !pollData.votes || typeof pollData.votes !== 'object') {
+      return 0;
+    }
+
+    // Si la opción no existe en votes, retornar 0
+    if (!pollData.votes[option]) {
+      return 0;
+    }
+
     const totalVotes = Object.values(pollData.votes).reduce((total: number, votes: any) => {
       return total + (Array.isArray(votes) ? votes.length : 0);
     }, 0);
-    
+
     if (totalVotes === 0) return 0;
     const optionVotes = Array.isArray(pollData.votes[option]) ? pollData.votes[option].length : 0;
     return Math.round((optionVotes / totalVotes) * 100);
   };
 
   const getTotalVotes = () => {
-    if (!pollData?.votes) return 0;
+    // Validar que pollData y votes existan
+    if (!pollData || !pollData.votes || typeof pollData.votes !== 'object') {
+      return 0;
+    }
+
     return Object.values(pollData.votes).reduce((total: number, votes: any) => {
       return total + (Array.isArray(votes) ? votes.length : 0);
     }, 0);

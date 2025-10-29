@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
+import { formatApiError, logError } from '@/core/utils/api-errors'
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,12 +33,9 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query
 
     if (error) {
-      console.error('Error fetching news:', error)
+      logError('GET /api/news - database query', error)
       return NextResponse.json(
-        { 
-          error: 'Error al obtener noticias',
-          message: error.message
-        },
+        formatApiError(error, 'Error al obtener noticias'),
         { status: 500 }
       )
     }
@@ -51,12 +49,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(newsWithMetrics)
   } catch (error) {
-    console.error('Error in news API:', error)
+    logError('GET /api/news', error)
     return NextResponse.json(
-      { 
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido'
-      },
+      formatApiError(error, 'Error al obtener noticias'),
       { status: 500 }
     )
   }

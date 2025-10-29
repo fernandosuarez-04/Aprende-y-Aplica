@@ -47,9 +47,20 @@ export async function POST(
       return NextResponse.json({ error: 'Este post no es una encuesta' }, { status: 400 });
     }
 
-    const pollData = (post as any).attachment_data;
-    if (!pollData || !pollData.options || !pollData.votes) {
+    let pollData = (post as any).attachment_data;
+    if (!pollData || !pollData.options) {
       return NextResponse.json({ error: 'Datos de encuesta inválidos' }, { status: 400 });
+    }
+
+    // Si no tiene estructura votes, inicializarla automáticamente
+    if (!pollData.votes || typeof pollData.votes !== 'object') {
+      console.log('⚠️ [POLL VOTE] Inicializando estructura votes para encuesta antigua...');
+      const initialVotes: Record<string, string[]> = {};
+      pollData.options.forEach((option: string) => {
+        initialVotes[option] = [];
+      });
+      pollData.votes = initialVotes;
+      pollData.userVotes = pollData.userVotes || {};
     }
 
     // Verificar que la opción existe
@@ -185,12 +196,25 @@ export async function GET(
       return NextResponse.json({ error: 'Post no encontrado' }, { status: 404 });
     }
 
-    const pollData = (post as any).attachment_data;
+    let pollData = (post as any).attachment_data;
+
+    // Si no tiene estructura votes, inicializarla automáticamente
+    if (pollData && pollData.options && (!pollData.votes || typeof pollData.votes !== 'object')) {
+      console.log('⚠️ [POLL GET] Inicializando estructura votes para encuesta antigua...');
+      const initialVotes: Record<string, string[]> = {};
+      pollData.options.forEach((option: string) => {
+        initialVotes[option] = [];
+      });
+      pollData.votes = initialVotes;
+      pollData.userVotes = pollData.userVotes || {};
+    }
+
     const userVote = pollData?.userVotes?.[user.id] || null;
 
     return NextResponse.json({
       success: true,
-      userVote: userVote
+      userVote: userVote,
+      pollData: pollData  // Agregar pollData completo para que el componente pueda actualizarse
     });
 
   } catch (error) {
