@@ -357,19 +357,58 @@ Si alguien corre en `localhost:3000` o en un server real, OAuth redirect falla.
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ||
   (typeof window !== 'undefined'
     ? window.location.origin
-    : 'http://localhost:3001');
+---
 
-// O usar variable de entorno dinámica
-// .env.development
-NEXT_PUBLIC_APP_URL=http://localhost:3001
+#### 7. ✅ **URL dinámica para OAuth** [CORREGIDO - 28 Oct 2025]
+- **Archivo**: `apps/web/src/lib/oauth/google.ts` (línea 9)
+- **Severidad**: MEDIO (RESUELTO)
+- **Impacto UX**: OAuth falla si cambia el puerto en desarrollo
+- **Tiempo estimado**: 30 min → **20 min real**
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
-// .env.production
-NEXT_PUBLIC_APP_URL=https://aprende-y-aplica.com
+**Problema**:
+```typescript
+redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/google`,
+// ❌ URL hardcodeada, falla si puerto cambia
 ```
 
-**Archivos a modificar**:
-- `.env` - cambiar a variable de entorno por ambiente
-- `apps/web/src/features/auth/actions/oauth.ts` - usar `APP_URL`
+**Solución Implementada**: ✅
+```typescript
+// ✅ Sistema dinámico que detecta URL automáticamente
+// 1. Creado apps/web/src/lib/env.ts
+export function getBaseUrl(): string {
+  // En servidor
+  if (typeof window === 'undefined') {
+    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+    const port = process.env.PORT || '3000';
+    return `http://localhost:${port}`;
+  }
+  // En cliente
+  return window.location.origin;
+}
+
+// 2. Actualizado apps/web/src/lib/oauth/google.ts
+import { getBaseUrl } from '@/lib/env';
+redirectUri: `${getBaseUrl()}/api/auth/callback/google`,
+
+// 3. Variables de entorno simplificadas
+// .env y .env.local - NEXT_PUBLIC_APP_URL ahora es opcional
+// El sistema detecta automáticamente en desarrollo
+```
+
+**Archivos modificados**: ✅
+- ✅ `apps/web/src/lib/env.ts` - nueva utilidad creada
+- ✅ `apps/web/src/lib/oauth/google.ts` - usa getBaseUrl()
+- ✅ `apps/web/src/features/auth/actions/oauth.ts` - importa getBaseUrl()
+- ✅ `.env` - documentado sistema dinámico
+- ✅ `apps/web/.env.local` - documentado sistema dinámico
+
+**Beneficios**: ✅
+- ✅ No más errores de redirección por cambio de puerto
+- ✅ Funciona automáticamente en desarrollo/producción
+- ✅ Compatible con Vercel y otros servicios
+- ✅ Menos configuración manual requerida
 
 ---
 

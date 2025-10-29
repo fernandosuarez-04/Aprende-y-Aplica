@@ -1,4 +1,5 @@
 import { GoogleOAuthConfig } from '@/features/auth/types/oauth.types';
+import { getBaseUrl } from '@/lib/env';
 
 /**
  * Configuración de Google OAuth 2.0
@@ -6,7 +7,7 @@ import { GoogleOAuthConfig } from '@/features/auth/types/oauth.types';
 export const GOOGLE_OAUTH_CONFIG: GoogleOAuthConfig = {
   clientId: process.env.GOOGLE_OAUTH_CLIENT_ID!,
   clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
-  redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/google`,
+  redirectUri: `${getBaseUrl()}/api/auth/callback/google`,
   scopes: [
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
