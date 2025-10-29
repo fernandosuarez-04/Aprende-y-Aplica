@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import validator from 'validator';
 import { GoogleOAuthService } from '../services/google-oauth.service';
 import { OAuthService } from '../services/oauth.service';
 import { SessionService } from '../services/session.service';
@@ -59,9 +60,15 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     const profile = await GoogleOAuthService.getUserProfile(tokens.access_token);
     console.log('✅ [OAuth] Perfil obtenido:', { email: profile.email, name: profile.name });
 
+    // Validar que el email existe y tiene formato válido
     if (!profile.email) {
       console.error('❌ [OAuth] Email no disponible en el perfil');
       return { error: 'No se pudo obtener el email del usuario' };
+    }
+
+    if (!validator.isEmail(profile.email)) {
+      console.error('❌ [OAuth] Email con formato inválido:', profile.email);
+      return { error: 'El email proporcionado no tiene un formato válido' };
     }
 
     // PASO 3: Buscar si el usuario ya existe

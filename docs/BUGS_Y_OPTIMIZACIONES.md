@@ -11,7 +11,7 @@
 | Severidad | Cantidad | Pendientes | Corregidos |
 |-----------|----------|------------|------------|
 | 🔴 **CRÍTICO** | 6 | 6 | 0 |
-| 🟠 **ALTO** | 9 | 8 | ✅ 1 |
+| 🟠 **ALTO** | 9 | 7 | ✅ 2 |
 | 🟡 **MEDIO** | 10 | 7 | ✅ 3 |
 | 🟢 **BAJO** | 2 | 2 | 0 |
 
@@ -19,11 +19,13 @@
 
 **Última actualización**: 28 de Octubre, 2025
 - ✅ **Issue #2 (Stack traces expuestos)** - RESUELTO (17 endpoints corregidos)
+- ✅ **Issue #3 (Email sin validación de formato en OAuth)** - RESUELTO (28 Oct 2025)
 - ✅ **Issue #4 (Comparación de roles sin normalización)** - RESUELTO (28 Oct 2025)
 - ✅ **Issue #6 (Tipos TypeScript `any` en catch blocks)** - RESUELTO (15 endpoints corregidos - 28 Oct 2025)
 - ✅ **Issue #8 (Cookie de sesión sin destrucción explícita)** - RESUELTO (28 Oct 2025)
 - ✅ **Issue #18 (N+1 queries en getAllCommunities)** - RESUELTO
 - ✅ **Optimización de carga de comunidades (Batch endpoint)** - IMPLEMENTADO (28 Oct 2025)
+- ✅ **Corrección tabla favoritos (user_favorites → app_favorites)** - RESUELTO (28 Oct 2025)
 ---
 
 ## 🎯 CATEGORIZACIÓN POR DIFICULTAD
@@ -129,11 +131,12 @@ catch (error) {
 
 ---
 
-#### 3. 🟠 **Email sin validación de formato en OAuth**
+#### 3. ✅ **Email sin validación de formato en OAuth** [CORREGIDO - 28 Oct 2025]
 - **Archivo**: `apps/web/src/features/auth/actions/oauth.ts` (líneas 62-65)
-- **Severidad**: ALTO
+- **Severidad**: ALTO (RESUELTO)
 - **Impacto UX**: Usuarios con emails inválidos en la BD
 - **Tiempo estimado**: 30 min
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
 **Problema**:
 ```typescript
@@ -145,19 +148,42 @@ if (!profile.email) {
 
 **Casos problemáticos**:
 ```javascript
-profile.email = "notanemail"  // ✅ Pasa
-profile.email = "@example.com"  // ✅ Pasa
-profile.email = "user@"  // ✅ Pasa
+profile.email = "notanemail"  // ❌ Ahora rechazado
+profile.email = "@example.com"  // ❌ Ahora rechazado
+profile.email = "user@"  // ❌ Ahora rechazado
 ```
 
-**Solución**:
+**Solución Implementada**: ✅
 ```typescript
-// Instalar validator
-npm install validator
-npm install --save-dev @types/validator
-
-// En oauth.ts
 import validator from 'validator';
+
+// Validar que el email existe
+if (!profile.email) {
+  return { error: 'No se pudo obtener el email del usuario' };
+}
+
+// ✅ Validar formato del email
+if (!validator.isEmail(profile.email)) {
+  console.error('❌ [OAuth] Email con formato inválido:', profile.email);
+  return { error: 'El email proporcionado no tiene un formato válido' };
+}
+```
+
+**Paquetes Instalados**: ✅
+- ✅ `validator@13.12.0` - Librería de validación
+- ✅ `@types/validator` - Tipos de TypeScript
+
+**Archivos Modificados**: ✅
+- ✅ `apps/web/src/features/auth/actions/oauth.ts` - Validación agregada
+- ✅ `apps/web/package.json` - Dependencias agregadas
+
+**Resultado**:
+- ✅ Emails con formato inválido son rechazados
+- ✅ Prevención de datos corruptos en base de datos
+- ✅ Mensaje de error claro para el usuario
+- ✅ Compliance con mejores prácticas de validación
+
+---
 
 if (!profile.email || !validator.isEmail(profile.email)) {
   return {
