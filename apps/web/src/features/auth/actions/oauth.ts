@@ -1,7 +1,9 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import validator from 'validator';
+import crypto from 'crypto';
 import { getBaseUrl } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { GoogleOAuthService } from '../services/google-oauth.service';
@@ -16,10 +18,23 @@ import { OAuthCallbackParams } from '../types/oauth.types';
 export async function initiateGoogleLogin() {
   const { getGoogleAuthUrl } = await import('@/lib/oauth/google');
 
-  // Generar state para prevenir CSRF
-  const state = crypto.randomUUID();
+  // ✅ SEGURIDAD: Generar state CSRF con 32 bytes de entropía
+  const stateBuffer = crypto.randomBytes(32);
+  const state = stateBuffer.toString('base64url');
+  
+  logger.auth('OAuth: Generando state CSRF', { stateLength: state.length });
 
-  // TODO: Guardar state en sesión temporal para validar después
+  // ✅ SEGURIDAD: Guardar state en cookie HttpOnly para validación posterior
+  const cookieStore = await cookies();
+  cookieStore.set('oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 10 * 60, // 10 minutos (expira si no se completa el flujo)
+    path: '/',
+  });
+
+  logger.debug('State CSRF guardado en cookie');
 
   const authUrl = getGoogleAuthUrl(state);
 
@@ -50,7 +65,45 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
 
     logger.debug('Código de autorización recibido');
 
-    // TODO: Validar state para prevenir CSRF
+    // ✅ SEGURIDAD: Validar state CSRF para prevenir ataques
+    const cookieStore = await cookies();
+    const storedState = cookieStore.get('oauth_state')?.value;
+    const receivedState = params.state;
+
+    logger.debug('Validando state CSRF', { 
+      hasStoredState: !!storedState, 
+      hasReceivedState: !!receivedState 
+    });
+
+    if (!storedState) {
+      logger.error('CSRF: State no encontrado en cookie (posible ataque o sesión expirada)');
+      return { 
+        error: 'Sesión de autenticación expirada. Por favor, inicia el proceso nuevamente.' 
+      };
+    }
+
+    if (!receivedState) {
+      logger.error('CSRF: State no recibido del proveedor OAuth (posible manipulación)');
+      return { 
+        error: 'Error de validación de seguridad. Intenta nuevamente.' 
+      };
+    }
+
+    if (storedState !== receivedState) {
+      logger.error('CSRF: State mismatch detectado', { 
+        storedLength: storedState.length, 
+        receivedLength: receivedState.length 
+      });
+      return { 
+        error: 'Error de validación de seguridad. Posible ataque CSRF detectado.' 
+      };
+    }
+
+    logger.auth('State CSRF validado exitosamente');
+
+    // ✅ SEGURIDAD: Limpiar cookie de state después de validación
+    cookieStore.delete('oauth_state');
+    logger.debug('Cookie de state CSRF eliminada')
 
     // PASO 1: Intercambiar código por tokens
     logger.info('OAuth: Intercambiando código por tokens');
