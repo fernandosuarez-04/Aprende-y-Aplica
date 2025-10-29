@@ -1,4 +1,5 @@
 import { createClient } from '../../../lib/supabase/client'
+import { logger } from '../../../lib/logger'
 
 export interface UploadResult {
   success: boolean
@@ -12,7 +13,7 @@ export class SupabaseStorageService {
     communityName: string
   ): Promise<UploadResult> {
     try {
-      console.log('🔄 Intentando subir imagen...', { fileName: file.name, communityName })
+      logger.info('Uploading community image', { fileName: file.name, communityName })
       
       // Usar la API del servidor para evitar problemas de RLS
       const formData = new FormData()
@@ -25,23 +26,23 @@ export class SupabaseStorageService {
       })
 
       const result = await response.json()
-      console.log('📡 Respuesta de la API:', result)
+      logger.debug('API response received', { success: result.success })
 
       if (!response.ok) {
-        console.error('❌ Error en la respuesta:', result)
+        logger.error('Error in API response', { error: result.error })
         return {
           success: false,
           error: result.error || 'Error al subir la imagen'
         }
       }
 
-      console.log('✅ Imagen subida exitosamente:', result.url)
+      logger.info('Image uploaded successfully', { hasUrl: !!result.url })
       return {
         success: true,
         url: result.url
       }
     } catch (error) {
-      console.error('💥 Error in SupabaseStorageService.uploadCommunityImage:', error)
+      logger.error('Error in SupabaseStorageService.uploadCommunityImage', { error: error instanceof Error ? error.message : String(error) })
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -63,13 +64,13 @@ export class SupabaseStorageService {
         .remove([fileName])
 
       if (error) {
-        console.error('Error deleting file:', error)
+        logger.error('Error deleting file', { error: error.message })
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Error in SupabaseStorageService.deleteCommunityImage:', error)
+      logger.error('Error in SupabaseStorageService.deleteCommunityImage', { error: error instanceof Error ? error.message : String(error) })
       return false
     }
   }

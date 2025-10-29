@@ -1,5 +1,6 @@
 import { createClient } from '../../../lib/supabase/server'
 import { sanitizeSlug, generateUniqueSlugAsync } from '../../../lib/slug'
+import { logger } from '../../../lib/logger'
 import { AuditLogService } from './auditLog.service'
 
 export interface AdminCommunity {
@@ -76,7 +77,7 @@ export class AdminCommunitiesService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching communities:', error)
+        logger.error('Error fetching communities', { error: error.message })
         throw error
       }
 
@@ -148,7 +149,7 @@ export class AdminCommunitiesService {
 
       return communities
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getAllCommunities:', error)
+      logger.error('Error in AdminCommunitiesService.getAllCommunities', { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
@@ -163,7 +164,7 @@ export class AdminCommunitiesService {
         .select('*')
 
       if (error) {
-        console.error('Error fetching community stats:', error)
+        logger.error('Error fetching community stats', { error: error.message })
         throw error
       }
 
@@ -191,7 +192,7 @@ export class AdminCommunitiesService {
 
       return stats
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getCommunityStats:', error)
+      logger.error('Error in AdminCommunitiesService.getCommunityStats', { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
@@ -200,7 +201,7 @@ export class AdminCommunitiesService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminCommunitiesService.createCommunity: Iniciando...')
+      logger.info('AdminCommunitiesService.createCommunity: Starting')
       
       // ✅ SEGURIDAD: Sanitizar y generar slug único
       let slug: string;
@@ -225,16 +226,11 @@ export class AdminCommunitiesService {
         return !!data;
       });
 
-      console.log('📋 Datos a insertar:', {
+      logger.debug('Data to insert', {
         name: communityData.name,
-        description: communityData.description,
         slug,
-        image_url: communityData.image_url,
-        member_count: 0,
-        is_active: communityData.is_active || true,
         visibility: communityData.visibility || 'public',
-        access_type: communityData.access_type || 'open',
-        course_id: communityData.course_id || null
+        access_type: communityData.access_type || 'open'
       })
 
       const { data, error } = await supabase
@@ -269,17 +265,15 @@ export class AdminCommunitiesService {
         .single()
 
       if (error) {
-        console.error('❌ Error creating community:', error)
-        console.error('❌ Error details:', {
+        logger.error('Error creating community', {
           message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
+          code: error.code,
+          details: error.details
         })
         throw error
       }
 
-      console.log('✅ Comunidad creada exitosamente:', data)
+      logger.info('Community created successfully', { communityId: data.id, slug: data.slug })
 
       // Registrar en el log de auditoría (comentado temporalmente para debug)
       try {
@@ -294,15 +288,15 @@ export class AdminCommunitiesService {
           ip_address: requestInfo?.ip,
           user_agent: requestInfo?.userAgent
         })
-        console.log('✅ Log de auditoría registrado')
+        logger.info('Audit log registered')
       } catch (auditError) {
-        console.warn('⚠️ Error en log de auditoría (no crítico):', auditError)
+        logger.warn('Error in audit log (non-critical)', { error: auditError instanceof Error ? auditError.message : String(auditError) })
         // No lanzar error por problemas de auditoría
       }
 
       return data
     } catch (error) {
-      console.error('💥 Error in AdminCommunitiesService.createCommunity:', error)
+      logger.error('Error in AdminCommunitiesService.createCommunity', { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
@@ -365,7 +359,7 @@ export class AdminCommunitiesService {
         .single()
 
       if (error) {
-        console.error('Error updating community:', error)
+        logger.error('Error updating community', { error: error.message, communityId })
         throw error
       }
 
@@ -384,7 +378,7 @@ export class AdminCommunitiesService {
 
       return data
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.updateCommunity:', error)
+      logger.error('Error in AdminCommunitiesService.updateCommunity', { error: error instanceof Error ? error.message : String(error), communityId })
       throw error
     }
   }
@@ -440,7 +434,7 @@ export class AdminCommunitiesService {
 
       return updatedCommunity as AdminCommunity
     } catch (error) {
-      console.error('Error toggling community visibility:', error)
+      logger.error('Error toggling community visibility', { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
@@ -526,7 +520,7 @@ export class AdminCommunitiesService {
         access_requests_count: row.pending_requests_count || 0
       }
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getCommunityBySlug:', error)
+      logger.error('Error in AdminCommunitiesService.getCommunityBySlug', { error: error instanceof Error ? error.message : String(error), slug })
       return null
     }
   }
@@ -552,12 +546,12 @@ export class AdminCommunitiesService {
         .range((page - 1) * limit, page * limit - 1)
 
       if (error) {
-        console.error('Error fetching community members:', error)
+        logger.error('Error fetching community members', { error: error.message, communityId })
         return []
       }
 
       if (!members || members.length === 0) {
-        console.log('No members found for community:', communityId)
+        logger.debug('No members found for community', { communityId })
         return []
       }
 
@@ -571,7 +565,7 @@ export class AdminCommunitiesService {
 
 
       if (usersError) {
-        console.error('Error fetching users for members:', usersError)
+        logger.error('Error fetching users for members', { error: usersError.message })
         return members.map(member => ({ 
           ...member, 
           users: {
@@ -607,7 +601,7 @@ export class AdminCommunitiesService {
 
       return membersWithUsers
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getCommunityMembers:', error)
+      logger.error('Error in AdminCommunitiesService.getCommunityMembers', { error: error instanceof Error ? error.message : String(error), communityId })
       return []
     }
   }
@@ -633,7 +627,7 @@ export class AdminCommunitiesService {
         .range((page - 1) * limit, page * limit - 1)
 
       if (error) {
-        console.error('Error fetching access requests:', error)
+        logger.error('Error fetching access requests', { error: error.message, communityId })
         return []
       }
 
@@ -652,7 +646,7 @@ export class AdminCommunitiesService {
         .in('id', allUserIds)
 
       if (usersError) {
-        console.error('Error fetching users for requests:', usersError)
+        logger.error('Error fetching users for requests', { error: usersError.message })
         return requests.map(request => ({ ...request, requester: null, reviewer: null }))
       }
 
@@ -669,7 +663,7 @@ export class AdminCommunitiesService {
 
       return requestsWithUsers
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getCommunityAccessRequests:', error)
+      logger.error('Error in AdminCommunitiesService.getCommunityAccessRequests', { error: error instanceof Error ? error.message : String(error), communityId })
       return []
     }
   }
@@ -701,13 +695,13 @@ export class AdminCommunitiesService {
         .range((page - 1) * limit, page * limit - 1)
 
       if (error) {
-        console.error('Error fetching community videos:', error)
+        logger.error('Error fetching community videos', { error: error.message, communityId })
         return []
       }
 
       return videos || []
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getCommunityVideos:', error)
+      logger.error('Error in AdminCommunitiesService.getCommunityVideos', { error: error instanceof Error ? error.message : String(error), communityId })
       return []
     }
   }
@@ -767,7 +761,7 @@ export class AdminCommunitiesService {
         .eq('id', communityId)
 
       if (error) {
-        console.error('Error deleting community:', error)
+        logger.error('Error deleting community', { error: error.message, communityId })
         throw error
       }
 
@@ -784,7 +778,7 @@ export class AdminCommunitiesService {
         user_agent: requestInfo?.userAgent
       })
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.deleteCommunity:', error)
+      logger.error('Error in AdminCommunitiesService.deleteCommunity', { error: error instanceof Error ? error.message : String(error), communityId })
       throw error
     }
   }
@@ -806,7 +800,7 @@ export class AdminCommunitiesService {
         .order('joined_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching community members:', error)
+        logger.error('Error fetching community members', { error: error.message, communityId })
         throw error
       }
 
@@ -819,7 +813,7 @@ export class AdminCommunitiesService {
         joined_at: member.joined_at
       }))
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getCommunityMembers:', error)
+      logger.error('Error in AdminCommunitiesService.getCommunityMembers', { error: error instanceof Error ? error.message : String(error), communityId })
       throw error
     }
   }
@@ -851,7 +845,7 @@ export class AdminCommunitiesService {
         .limit(20)
 
       if (postsError) {
-        console.error('Error fetching community posts:', postsError)
+        logger.error('Error fetching community posts', { error: postsError.message, communityId })
         throw postsError
       }
 
@@ -867,7 +861,7 @@ export class AdminCommunitiesService {
         .in('id', userIds)
 
       if (usersError) {
-        console.error('Error fetching users for posts:', usersError)
+        logger.error('Error fetching users for posts', { error: usersError.message })
       }
 
       // Crear un mapa de usuarios para acceso rápido
@@ -940,7 +934,7 @@ export class AdminCommunitiesService {
 
       return postsWithDetails
     } catch (error) {
-      console.error('Error in AdminCommunitiesService.getCommunityPosts:', error)
+      logger.error('Error in AdminCommunitiesService.getCommunityPosts', { error: error instanceof Error ? error.message : String(error), communityId })
       throw error
     }
   }

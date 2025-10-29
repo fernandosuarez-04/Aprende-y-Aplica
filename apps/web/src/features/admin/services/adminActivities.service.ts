@@ -1,4 +1,5 @@
 import { createClient } from '../../../lib/supabase/server'
+import { logger } from '../../../lib/logger'
 
 export interface AdminActivity {
   activity_id: string
@@ -43,13 +44,13 @@ export class AdminActivitiesService {
         .order('activity_order_index', { ascending: true })
 
       if (error) {
-        console.error('Error fetching activities:', error)
+        logger.error('Error fetching activities', { error: error.message, lessonId })
         throw error
       }
 
       return data || []
     } catch (error) {
-      console.error('Error in AdminActivitiesService.getLessonActivities:', error)
+      logger.error('Error in AdminActivitiesService.getLessonActivities', { error: error instanceof Error ? error.message : String(error), lessonId })
       throw error
     }
   }
@@ -65,13 +66,13 @@ export class AdminActivitiesService {
         .single()
 
       if (error) {
-        console.error('Error fetching activity:', error)
+        logger.error('Error fetching activity', { error: error.message, activityId })
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminActivitiesService.getActivityById:', error)
+      logger.error('Error in AdminActivitiesService.getActivityById', { error: error instanceof Error ? error.message : String(error), activityId })
       return null
     }
   }
@@ -105,13 +106,13 @@ export class AdminActivitiesService {
         .single()
 
       if (error) {
-        console.error('Error creating activity:', error)
+        logger.error('Error creating activity', { error: error.message, lessonId })
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminActivitiesService.createActivity:', error)
+      logger.error('Error in AdminActivitiesService.createActivity', { error: error instanceof Error ? error.message : String(error), lessonId })
       throw error
     }
   }
@@ -128,13 +129,13 @@ export class AdminActivitiesService {
         .single()
 
       if (error) {
-        console.error('Error updating activity:', error)
+        logger.error('Error updating activity', { error: error.message, activityId })
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminActivitiesService.updateActivity:', error)
+      logger.error('Error in AdminActivitiesService.updateActivity', { error: error instanceof Error ? error.message : String(error), activityId })
       throw error
     }
   }
@@ -149,11 +150,11 @@ export class AdminActivitiesService {
         .eq('activity_id', activityId)
 
       if (error) {
-        console.error('Error deleting activity:', error)
+        logger.error('Error deleting activity', { error: error.message, activityId })
         throw error
       }
     } catch (error) {
-      console.error('Error in AdminActivitiesService.deleteActivity:', error)
+      logger.error('Error in AdminActivitiesService.deleteActivity', { error: error instanceof Error ? error.message : String(error), activityId })
       throw error
     }
   }
@@ -173,11 +174,11 @@ export class AdminActivitiesService {
       const errors = results.filter(r => r.error)
 
       if (errors.length > 0) {
-        console.error('Error reordering activities:', errors)
+        logger.error('Error reordering activities', { errorCount: errors.length, lessonId })
         throw new Error('Error al reordenar actividades')
       }
     } catch (error) {
-      console.error('Error in AdminActivitiesService.reorderActivities:', error)
+      logger.error('Error in AdminActivitiesService.reorderActivities', { error: error instanceof Error ? error.message : String(error), lessonId })
       throw error
     }
   }

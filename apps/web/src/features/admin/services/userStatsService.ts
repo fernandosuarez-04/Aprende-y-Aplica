@@ -23,6 +23,7 @@ import {
   CreateGenAIAdoptionData,
   UpdateGenAIAdoptionData
 } from './userStats.service'
+import { logger } from '../../../lib/logger'
 
 export class UserStatsService {
   private static baseUrl = '/api/admin/user-stats'
@@ -34,7 +35,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch user profiles')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching user profiles:', error)
+      logger.error('Error fetching user profiles', { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
@@ -45,7 +46,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch user profile')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching user profile:', error)
+      logger.error('Error fetching user profile', { error: error instanceof Error ? error.message : String(error), profileId: id })
       throw error
     }
   }

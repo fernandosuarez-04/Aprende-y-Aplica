@@ -288,10 +288,14 @@ logger.auth('Perfil obtenido', { hasEmail: !!profile.email, hasName: !!profile.n
 ```
 
 **Archivos modificados**: ✅
-- ✅ `apps/web/src/lib/logger.ts` - Nueva utilidad creada
-- ✅ `apps/web/src/features/auth/actions/oauth.ts` - Migrado a logger
+- ✅ `apps/web/src/lib/logger.ts` - Nueva utilidad creada (140 líneas)
+- ✅ `apps/web/src/features/auth/actions/oauth.ts` - Migrado a logger (18 logs)
 - ✅ `apps/web/src/features/auth/services/session.service.ts` - Migrado a logger
 - ✅ `apps/web/src/features/auth/services/email.service.ts` - Migrado a logger
+- ✅ `apps/web/src/features/admin/services/adminCommunities.service.ts` - Migrado a logger (30+ logs)
+- ✅ `apps/web/src/features/admin/services/adminActivities.service.ts` - Migrado a logger (12+ logs)
+- ✅ `apps/web/src/features/admin/services/supabaseStorage.service.ts` - Migrado a logger (7 logs)
+- ✅ `apps/web/src/features/admin/services/userStatsService.ts` - Migrado a logger (2 logs)
 
 **Beneficios**: ✅
 - ✅ **Seguridad**: Información sensible sanitizada automáticamente
