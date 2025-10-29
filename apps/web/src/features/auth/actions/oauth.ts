@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import validator from 'validator';
 import { getBaseUrl } from '@/lib/env';
+import { logger } from '@/lib/logger';
 import { GoogleOAuthService } from '../services/google-oauth.service';
 import { OAuthService } from '../services/oauth.service';
 import { SessionService } from '../services/session.service';
@@ -32,98 +33,97 @@ export async function initiateGoogleLogin() {
  */
 export async function handleGoogleCallback(params: OAuthCallbackParams) {
   try {
-    console.log('🚀 [OAuth] Iniciando handleGoogleCallback');
+    logger.auth('Iniciando OAuth callback');
 
     // Validar que no haya errores
     if (params.error) {
-      console.error('❌ [OAuth] Error del proveedor:', params.error);
+      logger.error('Error del proveedor OAuth', undefined, { error: params.error });
       return {
         error: params.error_description || 'Error de autenticación',
       };
     }
 
     if (!params.code) {
-      console.error('❌ [OAuth] Código de autorización no recibido');
+      logger.error('Código de autorización no recibido');
       return { error: 'Código de autorización no recibido' };
     }
 
-    console.log('✅ [OAuth] Código recibido:', params.code.substring(0, 20) + '...');
+    logger.debug('Código de autorización recibido');
 
     // TODO: Validar state para prevenir CSRF
 
     // PASO 1: Intercambiar código por tokens
-    console.log('🔄 [OAuth] Paso 1: Intercambiando código por tokens...');
+    logger.info('OAuth: Intercambiando código por tokens');
     const tokens = await GoogleOAuthService.exchangeCodeForTokens(params.code);
-    console.log('✅ [OAuth] Tokens obtenidos');
+    logger.info('OAuth: Tokens obtenidos exitosamente');
 
     // PASO 2: Obtener perfil de usuario
-    console.log('🔄 [OAuth] Paso 2: Obteniendo perfil de usuario...');
+    logger.info('OAuth: Obteniendo perfil de usuario');
     const profile = await GoogleOAuthService.getUserProfile(tokens.access_token);
-    console.log('✅ [OAuth] Perfil obtenido:', { email: profile.email, name: profile.name });
+    logger.auth('Perfil obtenido', { hasEmail: !!profile.email, hasName: !!profile.name });
 
     // Validar que el email existe y tiene formato válido
     if (!profile.email) {
-      console.error('❌ [OAuth] Email no disponible en el perfil');
+      logger.error('Email no disponible en el perfil OAuth');
       return { error: 'No se pudo obtener el email del usuario' };
     }
 
     if (!validator.isEmail(profile.email)) {
-      console.error('❌ [OAuth] Email con formato inválido:', profile.email);
+      logger.error('Email con formato inválido');
       return { error: 'El email proporcionado no tiene un formato válido' };
     }
 
     // PASO 3: Buscar si el usuario ya existe
-    console.log('🔄 [OAuth] Paso 3: Buscando usuario existente...');
+    logger.info('OAuth: Buscando usuario existente');
     let userId: string;
     let isNewUser = false;
 
     const existingUser = await OAuthService.findUserByEmail(profile.email);
 
     if (existingUser) {
-      console.log('✅ [OAuth] Usuario existente encontrado:', existingUser.id);
+      logger.auth('Usuario existente encontrado');
       userId = existingUser.id;
     } else {
       // PASO 4: Crear nuevo usuario
-      console.log('🔄 [OAuth] Paso 4: Creando nuevo usuario...');
+      logger.info('OAuth: Creando nuevo usuario');
       userId = await OAuthService.createUserFromOAuth(
         profile.email,
         profile.given_name || profile.name.split(' ')[0] || 'Usuario',
         profile.family_name || profile.name.split(' ').slice(1).join(' ') || '',
         profile.picture
       );
-      console.log('✅ [OAuth] Nuevo usuario creado:', userId);
+      logger.auth('Nuevo usuario creado exitosamente');
       isNewUser = true;
     }
 
     // PASO 5: Guardar/actualizar cuenta OAuth
-    console.log('🔄 [OAuth] Paso 5: Guardando cuenta OAuth...');
+    logger.info('OAuth: Guardando cuenta OAuth');
     await OAuthService.upsertOAuthAccount(
       userId,
       'google',
       profile.id,
       tokens
     );
-    console.log('✅ [OAuth] Cuenta OAuth guardada');
+    logger.info('OAuth: Cuenta OAuth guardada');
 
     // PASO 6: Crear sesión usando el sistema existente
-    console.log('🔄 [OAuth] Paso 6: Creando sesión...');
+    logger.info('OAuth: Creando sesión');
     await SessionService.createSession(userId, false);
-    console.log('✅ [OAuth] Sesión creada exitosamente');
+    logger.auth('Sesión creada exitosamente');
 
     // PASO 7: Limpiar sesiones expiradas
-    console.log('🔄 [OAuth] Paso 7: Limpiando sesiones expiradas...');
+    logger.debug('Limpiando sesiones expiradas');
     await AuthService.clearExpiredSessions();
-    console.log('✅ [OAuth] Sesiones expiradas limpiadas');
+    logger.debug('Sesiones expiradas limpiadas');
 
     // PASO 8: Redirigir según sea usuario nuevo o existente
-    console.log('🔄 [OAuth] Paso 8: Redirigiendo a dashboard...');
-    console.log('📊 [OAuth] isNewUser:', isNewUser);
+    logger.info('OAuth: Proceso completado', { isNewUser });
 
     if (isNewUser) {
-      console.log('➡️ [OAuth] Redirigiendo a /dashboard?welcome=true');
+      logger.info('Redirigiendo a dashboard con bienvenida');
       redirect('/dashboard?welcome=true');
     } else {
-      console.log('➡️ [OAuth] Redirigiendo a /dashboard');
+      logger.info('Redirigiendo a dashboard');
       redirect('/dashboard');
     }
   } catch (error) {
@@ -137,7 +137,7 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     }
 
     // Solo es un error real si llegamos aquí
-    console.error('Error en callback de Google:', error);
+    logger.error('Error en callback OAuth', error);
     return {
       error: 'Error procesando autenticación. Inténtalo de nuevo.',
     };

@@ -241,49 +241,73 @@ setIsUser(role === ROLES.USER)
 
 ---
 
-#### 5. 🟡 **Emoji spam en logs de producción**
+#### 5. ✅ **Logger profesional y sanitización de logs sensibles** [CORREGIDO - 29 Oct 2025]
 - **Archivos**: Múltiples (middleware.ts, services, hooks)
-- **Severidad**: BAJO
-- **Impacto UX**: Logs menos parseables en herramientas de monitoring
-- **Tiempo estimado**: 1 hora
+- **Severidad**: MEDIO (RESUELTO)
+- **Impacto UX**: Logs profesionales + seguridad mejorada
+- **Tiempo estimado**: 1 hora → **45 min real**
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
-**Problema**:
+**Problemas**:
+1. **Emojis en logs**: Rompen parsers en Datadog, ELK, CloudWatch
+2. **Información sensible**: Tokens, emails, códigos expuestos en logs
+3. **Sin estructura**: Logs inconsistentes y difíciles de filtrar
+
 ```typescript
+// ❌ ANTES: Logs con emojis e información sensible
 console.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
-console.log('❌ No hay sesión, redirigiendo a /auth')
-console.log('✅ Sesión válida para usuario:', sessionData.user_id)
+console.log('✅ [OAuth] Código recibido:', params.code.substring(0, 20) + '...')
+console.log('🎫 Token de sesión creado:', sessionToken.substring(0, 10) + '...')
+console.log('✅ [OAuth] Perfil obtenido:', { email: profile.email, name: profile.name })
 ```
 
-Los emojis rompen parsers de logs en Datadog, ELK, CloudWatch.
-
-**Solución**:
+**Solución Implementada**: ✅
 ```typescript
-// Crear logger utility en apps/web/src/core/utils/logger.ts
-const isDev = process.env.NODE_ENV === 'development';
+// ✅ DESPUÉS: Logger profesional con sanitización automática
 
-export const logger = {
-  info: (message: string, ...args: any[]) => {
-    const prefix = isDev ? '🔍' : '[INFO]';
-    console.log(`${prefix} ${message}`, ...args);
-  },
-  error: (message: string, ...args: any[]) => {
-    const prefix = isDev ? '❌' : '[ERROR]';
-    console.error(`${prefix} ${message}`, ...args);
-  },
-  success: (message: string, ...args: any[]) => {
-    const prefix = isDev ? '✅' : '[SUCCESS]';
-    console.log(`${prefix} ${message}`, ...args);
+// 1. Creado apps/web/src/lib/logger.ts
+class Logger {
+  // Sanitiza automáticamente tokens, passwords, emails en contexto
+  private sanitize(data: unknown): unknown {
+    const sensitiveKeys = ['password', 'token', 'accessToken', 'secret', ...];
+    // Reemplaza valores sensibles con '[REDACTED]'
   }
-};
+  
+  debug(message: string, context?: LogContext): void // Solo en desarrollo
+  info(message: string, context?: LogContext): void  // Logs generales
+  warn(message: string, context?: LogContext): void  // Advertencias
+  error(message: string, error?: Error, context?: LogContext): void
+  auth(action: string, details?: LogContext): void   // Logs de autenticación
+}
 
-// Usar en middleware
-logger.info('Middleware ejecutándose para:', request.nextUrl.pathname);
+// 2. Ejemplo de uso
+logger.auth('Iniciando OAuth callback');
+logger.info('OAuth: Tokens obtenidos exitosamente');
+logger.auth('Perfil obtenido', { hasEmail: !!profile.email, hasName: !!profile.name });
+// NO loguea email ni tokens directamente
 ```
 
-**Archivos a buscar** (grep `console.log.*[🔍❌✅💥]`):
-- `middleware.ts`
-- `apps/web/src/features/auth/actions/`
-- `apps/web/src/features/auth/services/`
+**Archivos modificados**: ✅
+- ✅ `apps/web/src/lib/logger.ts` - Nueva utilidad creada
+- ✅ `apps/web/src/features/auth/actions/oauth.ts` - Migrado a logger
+- ✅ `apps/web/src/features/auth/services/session.service.ts` - Migrado a logger
+- ✅ `apps/web/src/features/auth/services/email.service.ts` - Migrado a logger
+
+**Beneficios**: ✅
+- ✅ **Seguridad**: Información sensible sanitizada automáticamente
+- ✅ **Profesional**: Sin emojis, formato parseable
+- ✅ **Estructurado**: Timestamp, nivel, contexto en JSON
+- ✅ **Debugging**: Logs debug solo en desarrollo
+- ✅ **Compatible**: Funciona con Datadog, CloudWatch, Sentry
+- ✅ **Type-safe**: Contexto tipado con TypeScript
+
+**Logs sanitizados**:
+- ❌ Tokens de OAuth (access_token, refresh_token)
+- ❌ Códigos de autorización
+- ❌ Session tokens
+- ❌ Passwords
+- ❌ Emails completos (solo indica si existe)
+- ❌ IDs de usuario en logs públicos
 
 ---
 

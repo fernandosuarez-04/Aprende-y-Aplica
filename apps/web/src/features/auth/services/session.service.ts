@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { createClient } from '../../../lib/supabase/server';
+import { logger } from '../../../lib/logger';
 import crypto from 'crypto';
 
 export class SessionService {
@@ -7,7 +8,7 @@ export class SessionService {
   private static readonly SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 días
 
   static async createSession(userId: string, rememberMe: boolean = false): Promise<void> {
-    console.log('🔐 Creando sesión para usuario:', userId, 'rememberMe:', rememberMe);
+    logger.auth('Creando sesión', { rememberMe });
     
     const cookieStore = await cookies();
     
@@ -15,8 +16,8 @@ export class SessionService {
     const sessionToken = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000);
     
-    console.log('🎫 Token de sesión creado:', sessionToken.substring(0, 10) + '...');
-    console.log('⏰ Expira en:', expiresAt.toISOString());
+    logger.debug('Token de sesión generado');
+    logger.debug('Sesión expira', { expiresAt: expiresAt.toISOString() });
     
     // Guardar sesión en base de datos usando la estructura real de la tabla
     const supabase = await createClient();
@@ -41,11 +42,11 @@ export class SessionService {
       });
     
     if (dbError) {
-      console.error('❌ Error guardando sesión en DB:', dbError);
+      logger.error('Error guardando sesión en DB', dbError);
       throw new Error('Error al guardar sesión');
     }
 
-    console.log('✅ Sesión guardada en DB correctamente');
+    logger.info('Sesión guardada en DB');
 
     // Crear cookie
     cookieStore.set(this.SESSION_COOKIE_NAME, sessionToken, {
@@ -56,25 +57,24 @@ export class SessionService {
       path: '/',
     });
 
-    console.log('🍪 Cookie creada:', this.SESSION_COOKIE_NAME, 'con valor:', sessionToken.substring(0, 10) + '...');
+    logger.debug('Cookie de sesión creada');
   }
 
   static async getCurrentUser(): Promise<any | null> {
     try {
-      console.log('🔍 SessionService.getCurrentUser: Iniciando...')
+      logger.debug('SessionService: Obteniendo usuario actual');
       const cookieStore = await cookies();
       const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
       
-      console.log('🍪 Session token encontrado:', sessionToken ? 'Sí' : 'No')
       if (!sessionToken) {
-        console.log('❌ No hay session token')
+        logger.debug('No hay token de sesión en cookie');
         return null;
       }
 
       const supabase = await createClient();
       
       // Buscar sesión válida
-      console.log('🔍 Buscando sesión en DB...')
+      logger.debug('Buscando sesión en DB');
       const { data: session, error: sessionError } = await supabase
         .from('user_session')
         .select('user_id, expires_at')

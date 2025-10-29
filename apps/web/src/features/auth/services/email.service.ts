@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { logger } from '../../../lib/logger';
 
 interface EmailConfig {
   host: string;
@@ -32,7 +33,7 @@ class EmailService {
     const config = this.getConfig();
 
     if (!this.isConfigured(config)) {
-      console.error('❌ Email service not configured - check SMTP_* env variables');
+      logger.error('Email service not configured - check SMTP_* env variables');
       return;
     }
 
@@ -53,9 +54,9 @@ class EmailService {
         },
       });
 
-      console.log('✅ Email service initialized');
+      logger.info('Email service initialized');
     } catch (error) {
-      console.error('❌ Error initializing email service:', error);
+      logger.error('Error initializing email service', error);
       this.transporter = null;
     }
   }
@@ -119,15 +120,14 @@ class EmailService {
         html: htmlContent,
       });
 
-      console.log('📧 Password reset email sent:', {
-        to,
+      logger.info('Password reset email sent', {
         messageId: info.messageId,
         timestamp: new Date().toISOString(),
       });
 
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      console.error('❌ Error sending password reset email:', error);
+      logger.error('Error sending password reset email', error);
       throw new Error('Error sending password reset email');
     }
   }
