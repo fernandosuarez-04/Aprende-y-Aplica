@@ -56,18 +56,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const supabase = await createClient()
-
-    // TODO: Agregar verificación de admin cuando esté funcionando
-    // const { data: { user }, error: authError } = await supabase.auth.getUser()
-    //
-    // if (authError || !user) {
-    //   return NextResponse.json(
-    //     { error: 'No autorizado' },
-    //     { status: 401 }
-    //   )
-    // }
-
     const body = await request.json()
 
     console.log('🔄 Creando nueva noticia con datos:', JSON.stringify(body, null, 2))

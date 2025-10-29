@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminModulesService, CreateModuleData } from '@/features/admin/services/adminModules.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: courseId } = await params
 
     if (!courseId) {

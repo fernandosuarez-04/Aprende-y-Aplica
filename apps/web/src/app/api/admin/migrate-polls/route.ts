@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
 
 /**
  * Endpoint para migrar encuestas antiguas sin estructura votes/userVotes
@@ -10,6 +11,9 @@ import { createClient } from '../../../../lib/supabase/server';
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const supabase = await createClient();
 
     console.log('🔄 [POLL MIGRATION] Iniciando migración de encuestas...');

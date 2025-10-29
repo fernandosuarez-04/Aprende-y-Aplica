@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: promptId } = await params
     const { isActive } = await request.json()
 

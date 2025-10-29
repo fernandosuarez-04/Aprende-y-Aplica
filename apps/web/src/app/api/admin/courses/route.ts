@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { AdminCoursesService } from '@/features/admin/services/adminCourses.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET() {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const courses = await AdminCoursesService.getAllCourses()
     
     return NextResponse.json({

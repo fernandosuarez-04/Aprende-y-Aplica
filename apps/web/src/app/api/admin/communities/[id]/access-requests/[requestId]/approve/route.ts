@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { AuditLogService } from '@/features/admin/services/auditLog.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string, requestId: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: communityId, requestId } = await params
     console.log('🔍 Approve API - communityId:', communityId, 'requestId:', requestId)
     const supabase = await createClient()

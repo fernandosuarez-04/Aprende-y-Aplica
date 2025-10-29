@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
     
-    // TODO: Agregar verificación de admin cuando esté funcionando
-    // const { data: { user }, error: authError } = await supabase.auth.getUser()
-    // 
-    // if (authError || !user) {
-    //   return NextResponse.json(
-    //     { error: 'No autorizado' },
-    //     { status: 401 }
-    //   )
-    // }
+    const supabase = await createClient()
 
     // Obtener estadísticas básicas
     const { count: totalApps, error: totalError } = await supabase

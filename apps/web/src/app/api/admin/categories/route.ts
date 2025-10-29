@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     console.log('🔄 Cargando categorías desde API...')
     
     const categories = await AdminPromptsService.getCategories()

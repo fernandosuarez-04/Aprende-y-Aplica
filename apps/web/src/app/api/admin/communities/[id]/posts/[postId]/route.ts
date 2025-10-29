@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { AuditLogService } from '@/features/admin/services/auditLog.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string, postId: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: communityId, postId } = await params
     console.log('🔍 Delete Post API - communityId:', communityId, 'postId:', postId)
     const supabase = await createClient()

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminCheckpointsService, CreateCheckpointData } from '@/features/admin/services/adminCheckpoints.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { lessonId } = await params
 
     if (!lessonId) {

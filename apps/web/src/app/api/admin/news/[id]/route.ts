@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const supabase = await createClient()
     const { id } = await params
-
-    // TODO: Agregar verificación de admin cuando esté funcionando
-    // const { data: { user }, error: authError } = await supabase.auth.getUser()
-    //
-    // if (authError || !user) {
-    //   return NextResponse.json(
-    //     { error: 'No autorizado' },
-    //     { status: 401 }
-    //   )
-    // }
 
     console.log('🔄 Obteniendo noticia con ID:', params.id)
 
@@ -69,19 +63,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const supabase = await createClient()
     const { id } = await params
-
-    // TODO: Agregar verificación de admin cuando esté funcionando
-    // const { data: { user }, error: authError } = await supabase.auth.getUser()
-    //
-    // if (authError || !user) {
-    //   return NextResponse.json(
-    //     { error: 'No autorizado' },
-    //     { status: 401 }
-    //   )
-    // }
-
     const body = await request.json()
 
     console.log('🔄 Body recibido:', JSON.stringify(body, null, 2))
@@ -156,20 +142,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const supabase = await createClient()
     const { id } = await params
 
-    // TODO: Agregar verificación de admin cuando esté funcionando
-    // const { data: { user }, error: authError } = await supabase.auth.getUser()
-    //
-    // if (authError || !user) {
-    //   return NextResponse.json(
-    //     { error: 'No autorizado' },
-    //     { status: 401 }
-    //   )
-    // }
-
-    console.log('🔄 Eliminando noticia con ID:', params.id)
+    console.log('🔄 Eliminando noticia con ID:', id)
 
     const { error } = await supabase
       .from('news')

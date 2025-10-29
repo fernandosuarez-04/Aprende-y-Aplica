@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET() {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const stats = await AdminCommunitiesService.getCommunityStats()
     return NextResponse.json({ stats }, { status: 200 })
   } catch (error) {
