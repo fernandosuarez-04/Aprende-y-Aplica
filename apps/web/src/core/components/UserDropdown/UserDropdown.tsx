@@ -11,7 +11,8 @@ import {
   Moon, 
   LogOut,
   ChevronDown,
-  ShieldCheck
+  ShieldCheck,
+  GraduationCap
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
@@ -96,6 +97,17 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         setIsOpen(false)
       },
       isAdmin: true
+    }] : []),
+    // Botón de instructor - Solo para instructores
+    ...(user?.cargo_rol?.toLowerCase() === 'instructor' ? [{
+      id: 'instructor',
+      label: 'Panel de Instructor',
+      icon: GraduationCap,
+      onClick: () => {
+        router.push('/instructor/dashboard')
+        setIsOpen(false)
+      },
+      isInstructor: true
     }] : []),
     {
       id: 'theme',
