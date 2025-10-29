@@ -6,6 +6,7 @@ import {
   UserGroupIcon, 
   CpuChipIcon,
   NewspaperIcon,
+  PlayIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline'
 import { useAdminStats } from '../hooks/useAdminStats'
@@ -62,6 +63,15 @@ export function AdminStats() {
       color: 'red'
     },
     {
+      id: 'reels',
+      name: 'Reels',
+      value: dbStats.totalReels.toLocaleString(),
+      change: `${dbStats.reelsGrowth >= 0 ? '+' : ''}${dbStats.reelsGrowth}%`,
+      changeType: dbStats.reelsGrowth >= 0 ? 'increase' : 'decrease',
+      icon: PlayIcon,
+      color: 'purple'
+    },
+    {
       id: 'engagement',
       name: 'Engagement',
       value: `${dbStats.engagementRate}%`,
@@ -111,7 +121,7 @@ export function AdminStats() {
       if (isLoading) {
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(6)].map((_, i) => (
           <div key={i} className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6 animate-pulse">
             <div className="flex items-center">
               <div className="flex-shrink-0">

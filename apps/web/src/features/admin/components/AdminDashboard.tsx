@@ -1,7 +1,6 @@
 'use client'
 
 import { AdminStats } from './AdminStats'
-import { AdminQuickActions } from './AdminQuickActions'
 import { AdminRecentActivity } from './AdminRecentActivity'
 
 export function AdminDashboard() {
@@ -26,13 +25,6 @@ export function AdminDashboard() {
           <AdminStats />
         </div>
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-4">
-            Acciones Rápidas
-          </h2>
-          <AdminQuickActions />
-        </div>
 
         {/* Recent Activity */}
         <div>

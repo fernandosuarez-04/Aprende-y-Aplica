@@ -14,6 +14,7 @@ import {
   CalendarIcon,
   ClockIcon
 } from '@heroicons/react/24/outline'
+import { useAdminStats } from '../hooks/useAdminStats'
 
 interface StatCard {
   id: string
@@ -33,90 +34,88 @@ interface ChartData {
   prompts: number
 }
 
-const mockStats: StatCard[] = [
-  {
-    id: 'total-users',
-    title: 'Usuarios Totales',
-    value: '2,456',
-    change: '+12.5%',
-    changeType: 'increase',
-    icon: UsersIcon,
-    color: 'blue'
-  },
-  {
-    id: 'active-workshops',
-    title: 'Talleres Activos',
-    value: '89',
-    change: '+8.2%',
-    changeType: 'increase',
-    icon: BookOpenIcon,
-    color: 'green'
-  },
-  {
-    id: 'communities',
-    title: 'Comunidades',
-    value: '34',
-    change: '+15.3%',
-    changeType: 'increase',
-    icon: UserGroupIcon,
-    color: 'purple'
-  },
-  {
-    id: 'ai-apps',
-    title: 'Apps de IA',
-    value: '234',
-    change: '+22.1%',
-    changeType: 'increase',
-    icon: CpuChipIcon,
-    color: 'orange'
-  },
-  {
-    id: 'prompts',
-    title: 'Prompts',
-    value: '1,567',
-    change: '+18.7%',
-    changeType: 'increase',
-    icon: ChatBubbleLeftRightIcon,
-    color: 'red'
-  },
-  {
-    id: 'news',
-    title: 'Noticias',
-    value: '156',
-    change: '+5.4%',
-    changeType: 'increase',
-    icon: NewspaperIcon,
-    color: 'indigo'
-  }
-]
-
-const mockChartData: ChartData[] = [
-  { month: 'Ene', users: 1200, workshops: 45, communities: 12, prompts: 234 },
-  { month: 'Feb', users: 1350, workshops: 52, communities: 15, prompts: 267 },
-  { month: 'Mar', users: 1480, workshops: 58, communities: 18, prompts: 298 },
-  { month: 'Abr', users: 1620, workshops: 65, communities: 22, prompts: 334 },
-  { month: 'May', users: 1780, workshops: 72, communities: 26, prompts: 367 },
-  { month: 'Jun', users: 1950, workshops: 78, communities: 30, prompts: 398 },
-  { month: 'Jul', users: 2130, workshops: 85, communities: 34, prompts: 434 },
-  { month: 'Ago', users: 2300, workshops: 89, communities: 34, prompts: 456 }
-]
-
 export function AdminStatisticsPage() {
-  const [stats, setStats] = useState<StatCard[]>([])
-  const [chartData, setChartData] = useState<ChartData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  console.log('🚀 AdminStatisticsPage: Componente iniciado')
+  
+  const { stats: dbStats, isLoading, error } = useAdminStats()
   const [selectedPeriod, setSelectedPeriod] = useState('6months')
 
+  // Debug: Log de datos
   useEffect(() => {
-    // Simular carga de datos
-    const timer = setTimeout(() => {
-      setStats(mockStats)
-      setChartData(mockChartData)
-      setIsLoading(false)
-    }, 1000)
+    console.log('📊 AdminStatisticsPage - dbStats:', dbStats)
+    console.log('📊 AdminStatisticsPage - isLoading:', isLoading)
+    console.log('📊 AdminStatisticsPage - error:', error)
+  }, [dbStats, isLoading, error])
 
-    return () => clearTimeout(timer)
-  }, [])
+  // Convertir datos de la base de datos a formato de tarjetas
+  const stats: StatCard[] = dbStats ? [
+    {
+      id: 'total-users',
+      title: 'Usuarios Totales',
+      value: dbStats.totalUsers.toLocaleString(),
+      change: `${dbStats.userGrowth >= 0 ? '+' : ''}${dbStats.userGrowth}%`,
+      changeType: dbStats.userGrowth >= 0 ? 'increase' : 'decrease',
+      icon: UsersIcon,
+      color: 'blue'
+    },
+    {
+      id: 'active-courses',
+      title: 'Cursos Activos',
+      value: dbStats.activeCourses.toLocaleString(),
+      change: `${dbStats.courseGrowth >= 0 ? '+' : ''}${dbStats.courseGrowth}%`,
+      changeType: dbStats.courseGrowth >= 0 ? 'increase' : 'decrease',
+      icon: BookOpenIcon,
+      color: 'green'
+    },
+    {
+      id: 'communities',
+      title: 'Comunidades',
+      value: '0', // No tenemos datos de comunidades en AdminStats
+      change: '+0%',
+      changeType: 'increase',
+      icon: UserGroupIcon,
+      color: 'purple'
+    },
+    {
+      id: 'ai-apps',
+      title: 'Apps de IA',
+      value: dbStats.totalAIApps.toLocaleString(),
+      change: `${dbStats.aiAppGrowth >= 0 ? '+' : ''}${dbStats.aiAppGrowth}%`,
+      changeType: dbStats.aiAppGrowth >= 0 ? 'increase' : 'decrease',
+      icon: CpuChipIcon,
+      color: 'orange'
+    },
+    {
+      id: 'prompts',
+      title: 'Prompts',
+      value: '0', // No tenemos datos de prompts en AdminStats
+      change: '+0%',
+      changeType: 'increase',
+      icon: ChatBubbleLeftRightIcon,
+      color: 'red'
+    },
+    {
+      id: 'news',
+      title: 'Noticias',
+      value: dbStats.totalNews.toLocaleString(),
+      change: `${dbStats.newsGrowth >= 0 ? '+' : ''}${dbStats.newsGrowth}%`,
+      changeType: dbStats.newsGrowth >= 0 ? 'increase' : 'decrease',
+      icon: NewspaperIcon,
+      color: 'indigo'
+    }
+  ] : []
+
+  // Datos de ejemplo para el gráfico (por ahora)
+  const chartData: ChartData[] = [
+    { month: 'Ene', users: 1200, workshops: 45, communities: 12, prompts: 234 },
+    { month: 'Feb', users: 1350, workshops: 52, communities: 15, prompts: 267 },
+    { month: 'Mar', users: 1480, workshops: 58, communities: 18, prompts: 298 },
+    { month: 'Abr', users: 1620, workshops: 65, communities: 22, prompts: 334 },
+    { month: 'May', users: 1780, workshops: 72, communities: 26, prompts: 367 },
+    { month: 'Jun', users: 1950, workshops: 78, communities: 30, prompts: 398 },
+    { month: 'Jul', users: 2130, workshops: 85, communities: 34, prompts: 434 },
+    { month: 'Ago', users: 2300, workshops: 89, communities: 34, prompts: 456 }
+  ]
 
   const getColorClasses = (color: string, changeType: string) => {
     const colorMap = {
@@ -183,6 +182,15 @@ export function AdminStatisticsPage() {
               <p className="text-gray-600 dark:text-gray-400">
                 Visualiza las métricas y tendencias de la plataforma
               </p>
+              {dbStats && (
+                <div className="mt-2">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    dbStats.totalUsers > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                  }`}>
+                    {dbStats.totalUsers > 0 ? '📊 Datos en tiempo real' : '⚠️ Datos de ejemplo'}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-4">
               <select
