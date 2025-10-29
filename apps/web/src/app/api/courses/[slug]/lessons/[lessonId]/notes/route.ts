@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { NoteService } from '@/features/courses/services/note.service'
 import { CourseService } from '@/features/courses/services/course.service'
+import { SessionService } from '@/features/auth/services/session.service'
 
 /**
  * GET /api/courses/[slug]/lessons/[lessonId]/notes
@@ -13,12 +13,11 @@ export async function GET(
 ) {
   try {
     const { slug, lessonId } = await params
-    const supabase = await createClient()
 
-    // Obtener usuario autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Obtener usuario autenticado usando el sistema de sesiones personalizado
+    const currentUser = await SessionService.getCurrentUser()
 
-    if (authError || !user) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -26,7 +25,7 @@ export async function GET(
     }
 
     // Verificar que el curso existe (opcional, para validación)
-    const course = await CourseService.getCourseBySlug(slug, user.id)
+    const course = await CourseService.getCourseBySlug(slug, currentUser.id)
     
     if (!course) {
       return NextResponse.json(
@@ -35,7 +34,7 @@ export async function GET(
       )
     }
 
-    const notes = await NoteService.getNotesByLesson(user.id, lessonId)
+    const notes = await NoteService.getNotesByLesson(currentUser.id, lessonId)
 
     return NextResponse.json(notes)
   } catch (error) {
@@ -60,12 +59,11 @@ export async function POST(
 ) {
   try {
     const { slug, lessonId } = await params
-    const supabase = await createClient()
 
-    // Obtener usuario autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Obtener usuario autenticado usando el sistema de sesiones personalizado
+    const currentUser = await SessionService.getCurrentUser()
 
-    if (authError || !user) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -73,7 +71,7 @@ export async function POST(
     }
 
     // Verificar que el curso existe (opcional, para validación)
-    const course = await CourseService.getCourseBySlug(slug, user.id)
+    const course = await CourseService.getCourseBySlug(slug, currentUser.id)
     
     if (!course) {
       return NextResponse.json(
@@ -108,7 +106,7 @@ export async function POST(
       )
     }
 
-    const note = await NoteService.createNote(user.id, lessonId, {
+    const note = await NoteService.createNote(currentUser.id, lessonId, {
       note_title: note_title.trim(),
       note_content: note_content.trim(),
       note_tags: note_tags && Array.isArray(note_tags) ? note_tags.filter(tag => tag.trim().length > 0) : [],

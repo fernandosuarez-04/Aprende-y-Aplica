@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { NoteService } from '@/features/courses/services/note.service'
 import { CourseService } from '@/features/courses/services/course.service'
+import { SessionService } from '@/features/auth/services/session.service'
 
 /**
  * GET /api/courses/[slug]/notes/stats
@@ -13,12 +13,11 @@ export async function GET(
 ) {
   try {
     const { slug } = await params
-    const supabase = await createClient()
 
-    // Obtener usuario autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Obtener usuario autenticado usando el sistema de sesiones personalizado
+    const currentUser = await SessionService.getCurrentUser()
 
-    if (authError || !user) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -26,7 +25,7 @@ export async function GET(
     }
 
     // Obtener el curso por slug para obtener el courseId
-    const course = await CourseService.getCourseBySlug(slug, user.id)
+    const course = await CourseService.getCourseBySlug(slug, currentUser.id)
     
     if (!course) {
       return NextResponse.json(
@@ -35,7 +34,7 @@ export async function GET(
       )
     }
 
-    const stats = await NoteService.getNotesStats(user.id, course.id)
+    const stats = await NoteService.getNotesStats(currentUser.id, course.id)
 
     return NextResponse.json(stats)
   } catch (error) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { NoteService } from '@/features/courses/services/note.service'
 import { CourseService } from '@/features/courses/services/course.service'
+import { SessionService } from '@/features/auth/services/session.service'
 
 /**
  * PUT /api/courses/[slug]/lessons/[lessonId]/notes/[noteId]
@@ -13,12 +13,11 @@ export async function PUT(
 ) {
   try {
     const { slug, noteId } = await params
-    const supabase = await createClient()
 
-    // Obtener usuario autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Obtener usuario autenticado usando el sistema de sesiones personalizado
+    const currentUser = await SessionService.getCurrentUser()
 
-    if (authError || !user) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -26,7 +25,7 @@ export async function PUT(
     }
 
     // Verificar que el curso existe (opcional, para validación)
-    const course = await CourseService.getCourseBySlug(slug, user.id)
+    const course = await CourseService.getCourseBySlug(slug, currentUser.id)
     
     if (!course) {
       return NextResponse.json(
@@ -38,7 +37,7 @@ export async function PUT(
     const body = await request.json()
     const { note_title, note_content, note_tags } = body
 
-    const note = await NoteService.updateNote(user.id, noteId, {
+    const note = await NoteService.updateNote(currentUser.id, noteId, {
       note_title,
       note_content,
       note_tags
@@ -67,12 +66,11 @@ export async function DELETE(
 ) {
   try {
     const { slug, noteId } = await params
-    const supabase = await createClient()
 
-    // Obtener usuario autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Obtener usuario autenticado usando el sistema de sesiones personalizado
+    const currentUser = await SessionService.getCurrentUser()
 
-    if (authError || !user) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -80,7 +78,7 @@ export async function DELETE(
     }
 
     // Verificar que el curso existe (opcional, para validación)
-    const course = await CourseService.getCourseBySlug(slug, user.id)
+    const course = await CourseService.getCourseBySlug(slug, currentUser.id)
     
     if (!course) {
       return NextResponse.json(
@@ -89,7 +87,7 @@ export async function DELETE(
       )
     }
 
-    await NoteService.deleteNote(user.id, noteId)
+    await NoteService.deleteNote(currentUser.id, noteId)
 
     return NextResponse.json({ success: true })
   } catch (error) {

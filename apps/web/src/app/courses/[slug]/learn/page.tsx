@@ -20,8 +20,10 @@ import {
   TrendingUp,
   Save,
   FileDown,
-  Send
+  Send,
+  User
 } from 'lucide-react';
+import { UserDropdown } from '../../../../core/components/UserDropdown';
 
 interface Lesson {
   lesson_id: string;
@@ -42,9 +44,12 @@ interface Module {
 interface CourseData {
   id: string;
   course_id?: string;
-  course_title: string;
-  course_description: string;
-  course_thumbnail: string;
+  title?: string;
+  course_title?: string; // Para compatibilidad con datos antiguos
+  description?: string;
+  course_description?: string; // Para compatibilidad
+  thumbnail?: string;
+  course_thumbnail?: string; // Para compatibilidad
 }
 
 export default function CourseLearnPage() {
@@ -399,49 +404,56 @@ export default function CourseLearnPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900/30 to-slate-900 overflow-hidden -mt-0">
-      {/* Header superior mejorado */}
+    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900/30 to-slate-900 overflow-hidden">
+      {/* Header superior con nueva estructura */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 px-6 py-3 flex items-center justify-between"
+        className="bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 px-6 py-4 shrink-0 relative z-50"
       >
-        {/* Botón de regreso */}
-        <button
-          onClick={() => router.back()}
-          className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-white" />
-        </button>
+        <div className="flex items-center justify-between w-full">
+          {/* Sección izquierda: Botón regresar | Logo | Nombre del taller */}
+          <div className="flex items-center gap-4">
+            {/* Botón de regreso */}
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
 
-        {/* Icono de empresa y nombre del taller */}
-        <div className="flex items-center gap-3 mx-6">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+            {/* Logo de la empresa */}
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
             <img 
               src="/icono.png" 
               alt="Aprende y Aplica" 
-              className="w-6 h-6 rounded"
+                className="w-7 h-7 rounded"
               onError={(e) => {
-                // Fallback si no carga la imagen
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';
                 const parent = target.parentElement;
                 if (parent) {
-                  parent.innerHTML = '<div class="w-6 h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
+                    parent.innerHTML = '<div class="w-7 h-7 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-sm">A&A</span></div>';
                 }
               }}
             />
           </div>
+
+            {/* Separador visual */}
+            <div className="w-px h-6 bg-slate-600/50"></div>
+
+            {/* Nombre del taller */}
           <div>
-            <h1 className="text-lg font-bold text-white">{course.course_title}</h1>
+              <h1 className="text-lg font-bold text-white">{course.title || course.course_title}</h1>
             <p className="text-xs text-slate-400">Taller de Aprende y Aplica</p>
           </div>
         </div>
 
-        {/* Barra de progreso mejorada */}
-        <div className="flex-1 mx-4">
+          {/* Sección central: Progreso */}
+          <div className="flex items-center gap-4">
+            {/* Barra de progreso */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 bg-slate-700/50 rounded-full overflow-hidden">
+              <div className="w-48 h-2 bg-slate-700/50 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${courseProgress}%` }}
@@ -449,33 +461,22 @@ export default function CourseLearnPage() {
                 className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
               />
             </div>
-            <span className="text-sm text-white/80 font-medium bg-slate-700/30 px-3 py-1 rounded-full">
+              <span className="text-sm text-white/80 font-medium bg-slate-700/30 px-3 py-1 rounded-full min-w-[3rem] text-center">
               {courseProgress}%
             </span>
           </div>
         </div>
 
-        {/* Botones de acción adicionales */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
-            className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
-            title="Material del curso"
-          >
-            <BookOpen className="w-5 h-5 text-white" />
-          </button>
-          <button
-            onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
-            className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
-            title="LIA y Notas"
-          >
-            <MessageSquare className="w-5 h-5 text-white" />
-          </button>
+          {/* Sección derecha: Usuario */}
+          <div className="flex items-center gap-3">
+            {/* Menú de usuario */}
+            <UserDropdown />
+          </div>
         </div>
       </motion.div>
 
       {/* Contenido principal - 3 paneles */}
-      <div className="flex-1 flex overflow-hidden bg-slate-900/50 backdrop-blur-sm">
+      <div className="flex-1 flex overflow-hidden bg-slate-900/50 backdrop-blur-sm relative z-10">
         {/* Panel Izquierdo - Material del Curso */}
         <AnimatePresence>
           {isLeftPanelOpen && (
@@ -484,12 +485,12 @@ export default function CourseLearnPage() {
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-slate-800/80 backdrop-blur-sm rounded-lg overflow-y-auto shadow-xl my-2 ml-2"
+              className="bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col overflow-hidden shadow-xl my-2 ml-2"
             >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-blue-400" />
+              {/* Header con línea separadora alineada con panel central */}
+              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-blue-400" />
                     Material del Curso
                   </h2>
                   <button
@@ -500,6 +501,8 @@ export default function CourseLearnPage() {
                   </button>
                 </div>
 
+              {/* Contenido con scroll */}
+              <div className="flex-1 overflow-y-auto p-6">
                 {modules.map((module, moduleIndex) => (
                   <div key={module.module_id} className="mb-8">
                     <div className="flex items-center gap-3 mb-4">
@@ -583,7 +586,8 @@ export default function CourseLearnPage() {
 
         {/* Barra vertical para abrir panel izquierdo */}
         {!isLeftPanelOpen && (
-          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-start pt-4 z-10 shadow-lg my-2 ml-2">
+          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10">
+            <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => setIsLeftPanelOpen(true)}
               className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
@@ -591,11 +595,12 @@ export default function CourseLearnPage() {
             >
               <ChevronRight className="w-5 h-5 text-white" />
             </button>
+            </div>
           </div>
         )}
 
         {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-slate-900/50 backdrop-blur-sm">
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-2 mx-2">
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -609,7 +614,7 @@ export default function CourseLearnPage() {
           ) : currentLesson ? (
             <>
               {/* Tabs mejorados */}
-              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex gap-2 p-3">
+              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex gap-2 p-3 rounded-t-lg h-[56px] items-center">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -670,23 +675,27 @@ export default function CourseLearnPage() {
               transition={{ duration: 0.3 }}
               className="bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2"
             >
-          {/* LIA Assistant */}
-          <div className="p-6 border-b border-slate-700/50">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-                <MessageSquare className="w-6 h-6 text-white" />
+          {/* Header LIA con línea separadora alineada con panel central */}
+          <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
+                <MessageSquare className="w-4 h-4 text-white" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-white text-lg">LIA</h3>
-                <p className="text-xs text-slate-400">Tu tutora personalizada</p>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-white text-sm leading-tight">LIA</h3>
+                <p className="text-xs text-slate-400 leading-tight">Tu tutora</p>
+              </div>
               </div>
               <button
                 onClick={() => setIsRightPanelOpen(false)}
-                className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
               >
                 <ChevronRight className="w-4 h-4 text-white/70" />
               </button>
             </div>
+
+          {/* Contenido LIA con scroll */}
+          <div className="p-6">
 
             <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4 mb-4">
               <p className="text-sm text-white/90 leading-relaxed">
@@ -889,7 +898,8 @@ export default function CourseLearnPage() {
 
         {/* Barra vertical para abrir panel derecho */}
         {!isRightPanelOpen && (
-          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-start pt-4 z-10 shadow-lg my-2 mr-2">
+          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10">
+            <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => setIsRightPanelOpen(true)}
               className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
@@ -897,6 +907,7 @@ export default function CourseLearnPage() {
             >
               <ChevronLeft className="w-5 h-5 text-white" />
             </button>
+            </div>
           </div>
         )}
       </div>
