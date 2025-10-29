@@ -10,6 +10,7 @@ import {
   FileText, 
   Activity,
   ChevronRight,
+  ChevronLeft,
   Clock,
   CheckCircle2,
   ArrowLeft,
@@ -56,6 +57,7 @@ export default function CourseLearnPage() {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'community'>('video');
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(6);
   const [liaMessage, setLiaMessage] = useState('');
@@ -462,11 +464,18 @@ export default function CourseLearnPage() {
           >
             <BookOpen className="w-5 h-5 text-white" />
           </button>
+          <button
+            onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
+            className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+            title="LIA y Notas"
+          >
+            <MessageSquare className="w-5 h-5 text-white" />
+          </button>
         </div>
       </motion.div>
 
       {/* Contenido principal - 3 paneles */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden bg-slate-900/50 backdrop-blur-sm">
         {/* Panel Izquierdo - Material del Curso */}
         <AnimatePresence>
           {isLeftPanelOpen && (
@@ -475,7 +484,7 @@ export default function CourseLearnPage() {
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-slate-800/80 backdrop-blur-sm border-r border-slate-700/50 overflow-y-auto shadow-xl"
+              className="bg-slate-800/80 backdrop-blur-sm rounded-lg overflow-y-auto shadow-xl my-2 ml-2"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -487,7 +496,7 @@ export default function CourseLearnPage() {
                     onClick={() => setIsLeftPanelOpen(false)}
                     className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
                   >
-                    <ChevronRight className="w-4 h-4 text-white/70" />
+                    <ChevronLeft className="w-4 h-4 text-white/70" />
                   </button>
                 </div>
 
@@ -572,14 +581,17 @@ export default function CourseLearnPage() {
           )}
         </AnimatePresence>
 
-        {/* Botón para abrir panel izquierdo */}
+        {/* Barra vertical para abrir panel izquierdo */}
         {!isLeftPanelOpen && (
-          <button
-            onClick={() => setIsLeftPanelOpen(true)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-slate-800/80 backdrop-blur-sm border-r border-slate-700/50 p-3 hover:bg-slate-700/80 transition-colors z-10 rounded-r-lg shadow-lg"
-          >
-            <ChevronRight className="w-5 h-5 text-white" />
-          </button>
+          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-start pt-4 z-10 shadow-lg my-2 ml-2">
+            <button
+              onClick={() => setIsLeftPanelOpen(true)}
+              className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
+              title="Mostrar material del curso"
+            >
+              <ChevronRight className="w-5 h-5 text-white" />
+            </button>
+          </div>
         )}
 
         {/* Panel Central - Contenido del video */}
@@ -649,7 +661,15 @@ export default function CourseLearnPage() {
         </div>
 
         {/* Panel Derecho - LIA y Notas */}
-        <div className="w-80 bg-slate-800/80 backdrop-blur-sm border-l border-slate-700/50 flex flex-col shadow-xl">
+        <AnimatePresence>
+          {isRightPanelOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 320, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2"
+            >
           {/* LIA Assistant */}
           <div className="p-6 border-b border-slate-700/50">
             <div className="flex items-center gap-3 mb-4">
@@ -660,6 +680,12 @@ export default function CourseLearnPage() {
                 <h3 className="font-bold text-white text-lg">LIA</h3>
                 <p className="text-xs text-slate-400">Tu tutora personalizada</p>
               </div>
+              <button
+                onClick={() => setIsRightPanelOpen(false)}
+                className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 text-white/70" />
+              </button>
             </div>
 
             <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4 mb-4">
@@ -709,13 +735,13 @@ export default function CourseLearnPage() {
               {/* Campo de contenido */}
               <div>
                 <label className="block text-sm text-slate-300 mb-2">Contenido *</label>
-                <textarea
-                  placeholder="Comienza a escribir tu nota aquí..."
+              <textarea
+                placeholder="Comienza a escribir tu nota aquí..."
                   value={currentNote}
                   onChange={(e) => setCurrentNote(e.target.value)}
                   className="w-full h-32 bg-slate-600/50 border border-slate-600/50 rounded-lg p-3 text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder:text-slate-400"
-                />
-              </div>
+              />
+            </div>
 
               {/* Campo de etiquetas */}
               <div>
@@ -761,7 +787,7 @@ export default function CourseLearnPage() {
                   </div>
                 )}
               </div>
-            </div>
+                </div>
 
             {/* Botones de acción */}
             <div className="flex gap-2 mb-6">
@@ -783,12 +809,12 @@ export default function CourseLearnPage() {
               >
                 <Save className="w-4 h-4" />
                 {savingNote ? 'Guardando...' : 'Guardar'}
-              </button>
+                      </button>
               <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25">
                 <FileDown className="w-4 h-4" />
-                Exportar
-              </button>
-        </div>
+                        Exportar
+                      </button>
+                    </div>
 
             {/* Notas guardadas */}
             <div className="space-y-3 mb-6">
@@ -810,7 +836,7 @@ export default function CourseLearnPage() {
                         setNoteTags(note.tags || []);
                       }}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-blue-400 font-medium">{note.title}</span>
                         <span className="text-xs text-slate-400">{note.timestamp}</span>
                       </div>
@@ -832,32 +858,47 @@ export default function CourseLearnPage() {
                     </div>
                   ))
                 )}
-              </div>
-            </div>
+                    </div>
+                  </div>
 
             {/* Progreso de Notas */}
-            <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
+                  <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
               <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                Progreso de Notas
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/70">Notas creadas</span>
+                      <TrendingUp className="w-4 h-4 text-green-400" />
+                      Progreso de Notas
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Notas creadas</span>
                   <span className="text-green-400 font-medium">{notesStats.totalNotes}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/70">Lecciones con notas</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Lecciones con notas</span>
                   <span className="text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/70">Última actualización</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Última actualización</span>
                   <span className="text-slate-400">{notesStats.lastUpdate}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-                </div>
-              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Barra vertical para abrir panel derecho */}
+        {!isRightPanelOpen && (
+          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-start pt-4 z-10 shadow-lg my-2 mr-2">
+            <button
+              onClick={() => setIsRightPanelOpen(true)}
+              className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
+              title="Mostrar LIA y Notas"
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
