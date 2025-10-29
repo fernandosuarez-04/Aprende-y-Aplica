@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { sanitizeSlug, generateUniqueSlugAsync } from '../../../../lib/slug'
 
 export async function GET(request: NextRequest) {
   try {
@@ -96,11 +97,35 @@ export async function POST(request: NextRequest) {
     
     console.log('🔄 Creando nueva app con datos:', body)
     
+    // ✅ SEGURIDAD: Sanitizar y generar slug único
+    let slug: string;
+    
+    if (body.slug) {
+      slug = sanitizeSlug(body.slug);
+    } else if (body.name) {
+      slug = sanitizeSlug(body.name);
+    } else {
+      return NextResponse.json(
+        { error: 'Se requiere nombre o slug' },
+        { status: 400 }
+      );
+    }
+
+    // Verificar unicidad
+    slug = await generateUniqueSlugAsync(slug, async (testSlug) => {
+      const { data } = await supabase
+        .from('ai_apps')
+        .select('slug')
+        .eq('slug', testSlug)
+        .single();
+      return !!data;
+    });
+    
     const { data: newApp, error } = await supabase
       .from('ai_apps')
       .insert({
         name: body.name,
-        slug: body.slug || body.name?.toLowerCase().replace(/\s+/g, '-'),
+        slug,
         description: body.description,
         long_description: body.long_description,
         category_id: body.category_id,

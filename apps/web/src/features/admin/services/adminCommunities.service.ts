@@ -1,4 +1,5 @@
 import { createClient } from '../../../lib/supabase/server'
+import { sanitizeSlug, generateUniqueSlugAsync } from '../../../lib/slug'
 import { AuditLogService } from './auditLog.service'
 
 export interface AdminCommunity {
@@ -200,10 +201,34 @@ export class AdminCommunitiesService {
 
     try {
       console.log('🔄 AdminCommunitiesService.createCommunity: Iniciando...')
+      
+      // ✅ SEGURIDAD: Sanitizar y generar slug único
+      let slug: string;
+      
+      if (communityData.slug) {
+        // Si se proporciona slug, sanitizarlo
+        slug = sanitizeSlug(communityData.slug);
+      } else if (communityData.name) {
+        // Si no hay slug, generarlo desde el nombre
+        slug = sanitizeSlug(communityData.name);
+      } else {
+        throw new Error('Se requiere nombre o slug para crear la comunidad');
+      }
+
+      // Verificar que el slug sea único y generar alternativa si es necesario
+      slug = await generateUniqueSlugAsync(slug, async (testSlug) => {
+        const { data } = await supabase
+          .from('communities')
+          .select('slug')
+          .eq('slug', testSlug)
+          .single();
+        return !!data;
+      });
+
       console.log('📋 Datos a insertar:', {
         name: communityData.name,
         description: communityData.description,
-        slug: communityData.slug || communityData.name?.toLowerCase().replace(/\s+/g, '-'),
+        slug,
         image_url: communityData.image_url,
         member_count: 0,
         is_active: communityData.is_active || true,
@@ -217,7 +242,7 @@ export class AdminCommunitiesService {
         .insert({
           name: communityData.name,
           description: communityData.description,
-          slug: communityData.slug || communityData.name?.toLowerCase().replace(/\s+/g, '-'),
+          slug,
           image_url: communityData.image_url,
           member_count: 0,
           is_active: communityData.is_active || true,
@@ -293,12 +318,29 @@ export class AdminCommunitiesService {
         .eq('id', communityId)
         .single()
 
+      // ✅ SEGURIDAD: Sanitizar slug si se proporciona
+      let slug = communityData.slug;
+      if (slug) {
+        slug = sanitizeSlug(slug);
+        
+        // Verificar que el slug sea único (excluyendo la comunidad actual)
+        slug = await generateUniqueSlugAsync(slug, async (testSlug) => {
+          const { data } = await supabase
+            .from('communities')
+            .select('slug')
+            .eq('slug', testSlug)
+            .neq('id', communityId)  // Excluir la comunidad actual
+            .single();
+          return !!data;
+        });
+      }
+
       const { data, error } = await supabase
         .from('communities')
         .update({
           name: communityData.name,
           description: communityData.description,
-          slug: communityData.slug,
+          slug,
           image_url: communityData.image_url,
           is_active: communityData.is_active,
           visibility: communityData.visibility,

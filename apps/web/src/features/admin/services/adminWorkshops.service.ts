@@ -1,4 +1,5 @@
 import { createClient } from '../../../lib/supabase/server'
+import { sanitizeSlug, generateUniqueSlugAsync } from '../../../lib/slug'
 import { AuditLogService } from './auditLog.service'
 
 export interface AdminWorkshop {
@@ -148,6 +149,27 @@ export class AdminWorkshopsService {
     const supabase = await createClient()
 
     try {
+      // ✅ SEGURIDAD: Sanitizar y generar slug único
+      let slug: string;
+      
+      if (workshopData.slug) {
+        slug = sanitizeSlug(workshopData.slug);
+      } else if (workshopData.title) {
+        slug = sanitizeSlug(workshopData.title);
+      } else {
+        throw new Error('Se requiere título o slug para crear el taller');
+      }
+
+      // Verificar unicidad
+      slug = await generateUniqueSlugAsync(slug, async (testSlug) => {
+        const { data } = await supabase
+          .from('courses')
+          .select('slug')
+          .eq('slug', testSlug)
+          .single();
+        return !!data;
+      });
+
       const { data, error } = await supabase
         .from('courses')
         .insert({
@@ -159,7 +181,7 @@ export class AdminWorkshopsService {
           instructor_id: workshopData.instructor_id,
           is_active: workshopData.is_active || false,
           thumbnail_url: workshopData.thumbnail_url,
-          slug: workshopData.slug || workshopData.title.toLowerCase().replace(/\s+/g, '-'),
+          slug,
           price: workshopData.price,
           average_rating: 0,
           student_count: 0,

@@ -1,4 +1,5 @@
 import { createClient } from '../../../lib/supabase/server'
+import { sanitizeSlug, generateUniqueSlugAsync } from '../../../lib/slug'
 
 export interface AdminPrompt {
   prompt_id: string
@@ -256,11 +257,32 @@ export class AdminPromptsService {
       console.log('🔄 AdminPromptsService.createPrompt: Iniciando...')
       console.log('📋 Datos a insertar:', promptData)
       
+      // ✅ SEGURIDAD: Sanitizar y generar slug único
+      let slug: string;
+      
+      if (promptData.slug) {
+        slug = sanitizeSlug(promptData.slug);
+      } else if (promptData.title) {
+        slug = sanitizeSlug(promptData.title);
+      } else {
+        throw new Error('Se requiere título o slug para crear el prompt');
+      }
+
+      // Verificar unicidad
+      slug = await generateUniqueSlugAsync(slug, async (testSlug) => {
+        const { data } = await supabase
+          .from('ai_prompts')
+          .select('slug')
+          .eq('slug', testSlug)
+          .single();
+        return !!data;
+      });
+      
       const { data, error } = await supabase
         .from('ai_prompts')
         .insert({
           title: promptData.title,
-          slug: promptData.slug || promptData.title?.toLowerCase().replace(/\s+/g, '-'),
+          slug,
           description: promptData.description,
           content: promptData.content,
           tags: promptData.tags && typeof promptData.tags === 'string' && promptData.tags.trim() 
