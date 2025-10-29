@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { Mail } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { LoginFormData } from '../../types/auth.types';
 import { loginSchema } from './LoginForm.schema';
@@ -153,14 +154,17 @@ export function LoginForm() {
           />
           <span className="text-sm text-text-secondary">Recordarme</span>
         </label>
-        <motion.button
-          type="button"
-          className="text-sm text-primary hover:text-primary/80 transition-colors"
+        <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          ¿Olvidaste tu contraseña?
-        </motion.button>
+          <Link
+            href="/auth/forgot-password"
+            className="text-sm text-primary hover:text-primary/80 transition-colors"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </motion.div>
       </motion.div>
 
       {/* Submit Button */}
