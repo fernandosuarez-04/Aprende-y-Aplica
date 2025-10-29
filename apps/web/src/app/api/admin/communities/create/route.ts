@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 Iniciando creación de comunidad...')
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth // Retornar error si no es admin
 
     const communityData = await request.json()
-    console.log('📋 Datos recibidos:', communityData)
 
-    // Obtener información del administrador desde el token/sesión
-    const adminUserId = 'admin-user-id' // TODO: Obtener del token JWT
+    // ✅ SEGURIDAD: Usar ID real del administrador autenticado
+    const adminUserId = auth.userId
 
     // Obtener información de la request para auditoría
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'

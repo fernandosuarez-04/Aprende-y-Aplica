@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { AuditLogService } from '@/features/admin/services/auditLog.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string, memberId: string }> }
 ) {
   try {
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: communityId, memberId } = await params
     const supabase = await createClient()
 
@@ -55,7 +60,8 @@ export async function DELETE(
     }
 
     // Log de auditoría
-    const adminUserId = 'admin-user-id' // TODO: Obtener del token JWT
+    // ✅ SEGURIDAD: Usar ID real del administrador autenticado
+    const adminUserId = auth.userId
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
 

@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: communityId } = await params
     const communityData = await request.json()
     
-    // Obtener información del administrador desde el token/sesión
-    const adminUserId = 'admin-user-id' // TODO: Obtener del token JWT
+    // ✅ SEGURIDAD: Usar ID real del administrador autenticado
+    const adminUserId = auth.userId
     
     // Obtener información de la request para auditoría
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
@@ -41,10 +46,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: communityId } = await params
     
-    // Obtener información del administrador desde el token/sesión
-    const adminUserId = 'admin-user-id' // TODO: Obtener del token JWT
+    // ✅ SEGURIDAD: Usar ID real del administrador autenticado
+    const adminUserId = auth.userId
     
     // Obtener información de la request para auditoría
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
