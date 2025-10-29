@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '../../../../../../../lib/supabase/server'
-import { NoteService } from '../../../../../../../features/courses/services/note.service'
+import { createClient } from '@/lib/supabase/server'
+import { NoteService } from '@/features/courses/services/note.service'
+import { CourseService } from '@/features/courses/services/course.service'
 
 /**
- * PUT /api/courses/[courseId]/lessons/[lessonId]/notes/[noteId]
+ * PUT /api/courses/[slug]/lessons/[lessonId]/notes/[noteId]
  * Actualiza una nota existente
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ courseId: string; lessonId: string; noteId: string }> }
+  { params }: { params: Promise<{ slug: string; lessonId: string; noteId: string }> }
 ) {
   try {
-    const { noteId } = await params
+    const { slug, noteId } = await params
     const supabase = await createClient()
 
     // Obtener usuario autenticado
@@ -21,6 +22,16 @@ export async function PUT(
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
+      )
+    }
+
+    // Verificar que el curso existe (opcional, para validación)
+    const course = await CourseService.getCourseBySlug(slug, user.id)
+    
+    if (!course) {
+      return NextResponse.json(
+        { error: 'Curso no encontrado' },
+        { status: 404 }
       )
     }
 
@@ -47,15 +58,15 @@ export async function PUT(
 }
 
 /**
- * DELETE /api/courses/[courseId]/lessons/[lessonId]/notes/[noteId]
+ * DELETE /api/courses/[slug]/lessons/[lessonId]/notes/[noteId]
  * Elimina una nota
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ courseId: string; lessonId: string; noteId: string }> }
+  { params }: { params: Promise<{ slug: string; lessonId: string; noteId: string }> }
 ) {
   try {
-    const { noteId } = await params
+    const { slug, noteId } = await params
     const supabase = await createClient()
 
     // Obtener usuario autenticado
@@ -65,6 +76,16 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
+      )
+    }
+
+    // Verificar que el curso existe (opcional, para validación)
+    const course = await CourseService.getCourseBySlug(slug, user.id)
+    
+    if (!course) {
+      return NextResponse.json(
+        { error: 'Curso no encontrado' },
+        { status: 404 }
       )
     }
 

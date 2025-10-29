@@ -100,9 +100,9 @@ export default function CourseLearnPage() {
   };
 
   // Función para cargar notas de una lección
-  const loadLessonNotes = async (lessonId: string, courseId: string) => {
+  const loadLessonNotes = async (lessonId: string, courseSlug: string) => {
     try {
-      const response = await fetch(`/api/courses/${courseId}/lessons/${lessonId}/notes`);
+      const response = await fetch(`/api/courses/${courseSlug}/lessons/${lessonId}/notes`);
       if (response.ok) {
         const notes = await response.json();
         // Mapear notas de BD al formato del frontend
@@ -127,9 +127,9 @@ export default function CourseLearnPage() {
   };
 
   // Función para cargar estadísticas del curso
-  const loadNotesStats = async (courseId: string) => {
+  const loadNotesStats = async (courseSlug: string) => {
     try {
-      const response = await fetch(`/api/courses/${courseId}/notes/stats`);
+      const response = await fetch(`/api/courses/${courseSlug}/notes/stats`);
       if (response.ok) {
         const stats = await response.json();
         setNotesStats({
@@ -202,7 +202,7 @@ export default function CourseLearnPage() {
 
     setSavingNote(true);
     try {
-      const response = await fetch(`/api/courses/${course.id}/lessons/${currentLesson.lesson_id}/notes`, {
+      const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +240,7 @@ export default function CourseLearnPage() {
         setNoteTags([]);
         
         // Recargar estadísticas
-        await loadNotesStats(course.id);
+        await loadNotesStats(slug);
       } else if (response.status === 401) {
         console.error('Error de autenticación:', responseData);
         alert('Debes iniciar sesión para guardar notas. Por favor, inicia sesión e intenta nuevamente.');
@@ -275,11 +275,11 @@ export default function CourseLearnPage() {
         console.log('Course data loaded:', courseData);
         setCourse(courseData);
         
-        // Cargar módulos y lecciones
-        await loadModules(courseData.id);
+        // Cargar módulos y lecciones usando el slug
+        await loadModules(slug);
         
-        // Cargar estadísticas de notas del curso
-        await loadNotesStats(courseData.id);
+        // Cargar estadísticas de notas del curso usando el slug
+        await loadNotesStats(slug);
       } catch (error) {
         console.error('Error loading course:', error);
       } finally {
@@ -294,8 +294,8 @@ export default function CourseLearnPage() {
 
   // Cargar notas cuando cambia la lección actual
   useEffect(() => {
-    if (currentLesson && course) {
-      loadLessonNotes(currentLesson.lesson_id, course.id);
+    if (currentLesson && slug) {
+      loadLessonNotes(currentLesson.lesson_id, slug);
       setCurrentNote(''); // Limpiar nota actual al cambiar de lección
       setNoteTitle(currentLesson.lesson_title); // Establecer título por defecto
       setNoteTags([]); // Limpiar etiquetas
@@ -305,7 +305,7 @@ export default function CourseLearnPage() {
       setNoteTitle('');
       setNoteTags([]);
     }
-  }, [currentLesson?.lesson_id, course?.id]);
+  }, [currentLesson?.lesson_id, slug]);
 
   // Debug: Log para verificar estado del botón
   useEffect(() => {
@@ -319,9 +319,9 @@ export default function CourseLearnPage() {
     }
   }, [currentLesson, noteTitle, currentNote, savingNote]);
 
-  const loadModules = async (courseId: string) => {
+  const loadModules = async (courseSlug: string) => {
     try {
-      const response = await fetch(`/api/courses/${courseId}/modules`);
+      const response = await fetch(`/api/courses/${courseSlug}/modules`);
       if (response.ok) {
         const data = await response.json();
         console.log('Modules data loaded:', data);
