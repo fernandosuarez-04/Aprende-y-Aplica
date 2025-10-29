@@ -10,10 +10,8 @@ import {
   FileText, 
   Activity,
   ChevronRight,
-  ChevronLeft,
   Clock,
   CheckCircle2,
-  Circle,
   ArrowLeft,
   ScrollText,
   HelpCircle,
@@ -21,8 +19,7 @@ import {
   TrendingUp,
   Save,
   FileDown,
-  Send,
-  X
+  Send
 } from 'lucide-react';
 
 interface Lesson {
@@ -42,7 +39,8 @@ interface Module {
 }
 
 interface CourseData {
-  course_id: string;
+  id: string;
+  course_id?: string;
   course_title: string;
   course_description: string;
   course_thumbnail: string;
@@ -58,10 +56,210 @@ export default function CourseLearnPage() {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'community'>('video');
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(6);
   const [liaMessage, setLiaMessage] = useState('');
+  const [currentNote, setCurrentNote] = useState('');
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteTags, setNoteTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [savedNotes, setSavedNotes] = useState<Array<{
+    id: string;
+    title: string;
+    content: string;
+    timestamp: string;
+    lessonId: string;
+    fullContent?: string;
+    tags?: string[];
+  }>>([]);
+  const [notesStats, setNotesStats] = useState({
+    totalNotes: 0,
+    lessonsWithNotes: '0/0',
+    lastUpdate: '-'
+  });
+  const [savingNote, setSavingNote] = useState(false);
+
+  // Función para formatear timestamp
+  const formatTimestamp = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins > 1 ? 's' : ''}`;
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    if (diffDays === 1) return 'Ayer';
+    if (diffDays < 7) return `Hace ${diffDays} días`;
+    
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  };
+
+  // Función para cargar notas de una lección
+  const loadLessonNotes = async (lessonId: string, courseId: string) => {
+    try {
+      const response = await fetch(`/api/courses/${courseId}/lessons/${lessonId}/notes`);
+      if (response.ok) {
+        const notes = await response.json();
+        // Mapear notas de BD al formato del frontend
+        const mappedNotes = notes.map((note: any) => ({
+          id: note.note_id,
+          title: note.note_title,
+          content: note.note_content.substring(0, 50) + (note.note_content.length > 50 ? '...' : ''),
+          timestamp: formatTimestamp(note.updated_at || note.created_at),
+          lessonId: note.lesson_id,
+          fullContent: note.note_content, // Guardar contenido completo
+          tags: note.note_tags || []
+        }));
+        setSavedNotes(mappedNotes);
+      } else if (response.status === 401) {
+        // Usuario no autenticado, dejar notas vacías
+        setSavedNotes([]);
+      }
+    } catch (error) {
+      console.error('Error loading notes:', error);
+      setSavedNotes([]);
+    }
+  };
+
+  // Función para cargar estadísticas del curso
+  const loadNotesStats = async (courseId: string) => {
+    try {
+      const response = await fetch(`/api/courses/${courseId}/notes/stats`);
+      if (response.ok) {
+        const stats = await response.json();
+        setNotesStats({
+          totalNotes: stats.totalNotes,
+          lessonsWithNotes: `${stats.lessonsWithNotes}/${stats.totalLessons}`,
+          lastUpdate: stats.lastUpdate ? formatTimestamp(stats.lastUpdate) : '-'
+        });
+      } else if (response.status === 401) {
+        // Usuario no autenticado - usar valores por defecto
+        const allLessons = modules.flatMap((m: Module) => m.lessons);
+        const totalLessons = allLessons.length;
+        setNotesStats({
+          totalNotes: 0,
+          lessonsWithNotes: `0/${totalLessons}`,
+          lastUpdate: '-'
+        });
+      } else if (response.status === 404) {
+        // Endpoint no encontrado - usar valores por defecto sin mostrar error
+        const allLessons = modules.flatMap((m: Module) => m.lessons);
+        const totalLessons = allLessons.length;
+        setNotesStats({
+          totalNotes: 0,
+          lessonsWithNotes: `0/${totalLessons}`,
+          lastUpdate: '-'
+        });
+      }
+    } catch (error) {
+      // Silenciar errores de stats, usar valores por defecto
+      const allLessons = modules.flatMap((m: Module) => m.lessons);
+      const totalLessons = allLessons.length;
+      setNotesStats({
+        totalNotes: 0,
+        lessonsWithNotes: `0/${totalLessons}`,
+        lastUpdate: '-'
+      });
+    }
+  };
+
+  // Función para agregar etiqueta
+  const addTag = () => {
+    const tag = tagInput.trim();
+    if (tag && !noteTags.includes(tag)) {
+      setNoteTags([...noteTags, tag]);
+      setTagInput('');
+    }
+  };
+
+  // Función para eliminar etiqueta
+  const removeTag = (tagToRemove: string) => {
+    setNoteTags(noteTags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Función para guardar una nota
+  const saveNote = async () => {
+    // Validaciones
+    if (!currentNote.trim()) {
+      alert('El contenido de la nota es requerido');
+      return;
+    }
+
+    if (!noteTitle.trim()) {
+      alert('El título de la nota es requerido');
+      return;
+    }
+
+    if (!currentLesson || !course) {
+      alert('Debe seleccionar una lección');
+      return;
+    }
+
+    setSavingNote(true);
+    try {
+      const response = await fetch(`/api/courses/${course.id}/lessons/${currentLesson.lesson_id}/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          note_title: noteTitle.trim(),
+          note_content: currentNote.trim(),
+          note_tags: noteTags.length > 0 ? noteTags : [],
+          source_type: 'manual'
+        })
+      });
+
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (e) {
+        responseData = { error: 'Error al procesar respuesta del servidor' };
+      }
+
+      if (response.ok) {
+        const savedNote = responseData;
+        // Agregar la nota al estado local
+        const newNote = {
+          id: savedNote.note_id,
+          title: savedNote.note_title,
+          content: savedNote.note_content.substring(0, 50) + (savedNote.note_content.length > 50 ? '...' : ''),
+          timestamp: formatTimestamp(savedNote.created_at),
+          lessonId: savedNote.lesson_id,
+          fullContent: savedNote.note_content,
+          tags: savedNote.note_tags || []
+        };
+        setSavedNotes([newNote, ...savedNotes]);
+        setCurrentNote('');
+        setNoteTitle('');
+        setNoteTags([]);
+        
+        // Recargar estadísticas
+        await loadNotesStats(course.id);
+      } else if (response.status === 401) {
+        console.error('Error de autenticación:', responseData);
+        alert('Debes iniciar sesión para guardar notas. Por favor, inicia sesión e intenta nuevamente.');
+      } else if (response.status === 400) {
+        console.error('Error de validación:', responseData);
+        alert(`Error de validación: ${responseData.error || 'Datos inválidos'}\n\nDetalles: ${JSON.stringify(responseData, null, 2)}`);
+      } else {
+        console.error('Error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData
+        });
+        alert(`Error al guardar nota (${response.status}): ${responseData.error || responseData.message || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error saving note:', error);
+      alert(`Error al guardar la nota: ${error instanceof Error ? error.message : 'Error de conexión'}`);
+    } finally {
+      setSavingNote(false);
+    }
+  };
 
   useEffect(() => {
     async function loadCourse() {
@@ -77,6 +275,9 @@ export default function CourseLearnPage() {
         
         // Cargar módulos y lecciones
         await loadModules(courseData.id);
+        
+        // Cargar estadísticas de notas del curso
+        await loadNotesStats(courseData.id);
       } catch (error) {
         console.error('Error loading course:', error);
       } finally {
@@ -88,6 +289,33 @@ export default function CourseLearnPage() {
       loadCourse();
     }
   }, [slug]);
+
+  // Cargar notas cuando cambia la lección actual
+  useEffect(() => {
+    if (currentLesson && course) {
+      loadLessonNotes(currentLesson.lesson_id, course.id);
+      setCurrentNote(''); // Limpiar nota actual al cambiar de lección
+      setNoteTitle(currentLesson.lesson_title); // Establecer título por defecto
+      setNoteTags([]); // Limpiar etiquetas
+    } else {
+      // Si no hay lección, limpiar campos
+      setCurrentNote('');
+      setNoteTitle('');
+      setNoteTags([]);
+    }
+  }, [currentLesson?.lesson_id, course?.id]);
+
+  // Debug: Log para verificar estado del botón
+  useEffect(() => {
+    if (!currentLesson || !noteTitle.trim() || !currentNote.trim()) {
+      console.log('Botón deshabilitado:', {
+        currentLesson: !!currentLesson,
+        noteTitle: noteTitle.trim(),
+        currentNote: currentNote.trim(),
+        savingNote
+      });
+    }
+  }, [currentLesson, noteTitle, currentNote, savingNote]);
 
   const loadModules = async (courseId: string) => {
     try {
@@ -105,10 +333,18 @@ export default function CourseLearnPage() {
           : 0;
         setCourseProgress(totalProgress);
         
+        // Actualizar estadísticas de notas con el total de lecciones
+        const totalLessons = allLessons.length;
+        setNotesStats(prev => ({
+          ...prev,
+          lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0'
+        }));
+        
         // Seleccionar la primera lección disponible o la siguiente no completada
         if (data.length > 0 && data[0].lessons.length > 0) {
           const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
-          setCurrentLesson(nextIncomplete || data[0].lessons[0]);
+          const selectedLesson = nextIncomplete || data[0].lessons[0];
+          setCurrentLesson(selectedLesson);
         }
       } else {
         console.error('Error fetching modules:', response.statusText);
@@ -161,33 +397,71 @@ export default function CourseLearnPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-carbon overflow-hidden">
-      {/* Header con progreso */}
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900/30 to-slate-900 overflow-hidden -mt-0">
+      {/* Header superior mejorado */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-carbon-700 border-b border-carbon-600 px-6 py-4 flex items-center justify-between"
+        className="bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 px-6 py-3 flex items-center justify-between"
       >
+        {/* Botón de regreso */}
         <button
           onClick={() => router.back()}
-          className="p-2 hover:bg-carbon-600 rounded-lg transition-colors"
+          className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
 
-        <div className="flex-1 mx-8">
-          <h1 className="text-xl font-bold text-white mb-1">{course.course_title}</h1>
+        {/* Icono de empresa y nombre del taller */}
+        <div className="flex items-center gap-3 mx-6">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+            <img 
+              src="/icono.png" 
+              alt="Aprende y Aplica" 
+              className="w-6 h-6 rounded"
+              onError={(e) => {
+                // Fallback si no carga la imagen
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  parent.innerHTML = '<div class="w-6 h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
+                }
+              }}
+            />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-white">{course.course_title}</h1>
+            <p className="text-xs text-slate-400">Taller de Aprende y Aplica</p>
+          </div>
+        </div>
+
+        {/* Barra de progreso mejorada */}
+        <div className="flex-1 mx-4">
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 bg-carbon-600 rounded-full overflow-hidden">
+            <div className="flex-1 h-2 bg-slate-700/50 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${courseProgress}%` }}
                 transition={{ duration: 1 }}
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
               />
             </div>
-            <span className="text-sm text-white/70 font-medium">{courseProgress}%</span>
+            <span className="text-sm text-white/80 font-medium bg-slate-700/30 px-3 py-1 rounded-full">
+              {courseProgress}%
+            </span>
           </div>
+        </div>
+
+        {/* Botones de acción adicionales */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+            className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+            title="Material del curso"
+          >
+            <BookOpen className="w-5 h-5 text-white" />
+          </button>
         </div>
       </motion.div>
 
@@ -201,39 +475,42 @@ export default function CourseLearnPage() {
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-carbon-700 border-r border-carbon-600 overflow-y-auto"
+              className="bg-slate-800/80 backdrop-blur-sm border-r border-slate-700/50 overflow-y-auto shadow-xl"
             >
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <BookOpen className="w-5 h-5" />
+                    <BookOpen className="w-5 h-5 text-blue-400" />
                     Material del Curso
                   </h2>
                   <button
                     onClick={() => setIsLeftPanelOpen(false)}
-                    className="p-1 hover:bg-carbon-600 rounded transition-colors"
+                    className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
                   >
                     <ChevronRight className="w-4 h-4 text-white/70" />
                   </button>
                 </div>
 
                 {modules.map((module, moduleIndex) => (
-                  <div key={module.module_id} className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <h3 className="font-semibold text-white">{module.module_title}</h3>
+                  <div key={module.module_id} className="mb-8">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
+                      </div>
+                      <h3 className="font-semibold text-white text-lg">{module.module_title}</h3>
                     </div>
 
-                    {/* Estadísticas del módulo */}
-                    <div className="flex gap-2 mb-3">
-                      <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                    {/* Estadísticas del módulo mejoradas */}
+                    <div className="flex gap-3 mb-4">
+                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
                         {module.lessons.filter(l => l.is_completed).length}/{module.lessons.length} completados
                       </span>
-                      <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
-                        6% completado
+                      <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
+                        {Math.round((module.lessons.filter(l => l.is_completed).length / module.lessons.length) * 100)}% completado
                       </span>
                     </div>
 
-                    {/* Lista de lecciones */}
+                    {/* Lista de lecciones mejorada */}
                     <div className="space-y-2">
                       {module.lessons.map((lesson, lessonIndex) => {
                         const isActive = currentLesson?.lesson_id === lesson.lesson_id;
@@ -242,36 +519,45 @@ export default function CourseLearnPage() {
                         return (
                           <motion.button
                             key={lesson.lesson_id}
-                            whileHover={{ x: 4 }}
+                            whileHover={{ x: 4, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => setCurrentLesson(lesson)}
-                            className={`w-full p-3 rounded-lg transition-all ${
+                            className={`w-full p-4 rounded-xl transition-all duration-200 ${
                               isActive
-                                ? 'bg-blue-500/20 border-2 border-blue-500'
-                                : 'bg-carbon-600/50 border-2 border-transparent hover:bg-carbon-600'
+                                ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-blue-400/50 shadow-lg shadow-blue-500/20'
+                                : 'bg-slate-700/50 border-2 border-transparent hover:bg-slate-700/70 hover:border-slate-600/50'
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              {isCompleted ? (
-                                <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
-                              ) : (
-                                <Play className="w-5 h-5 text-white/50 flex-shrink-0" />
-                              )}
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                isCompleted 
+                                  ? 'bg-green-500/20 text-green-400' 
+                                  : isActive 
+                                    ? 'bg-blue-500/20 text-blue-400' 
+                                    : 'bg-slate-600/50 text-slate-400'
+                              }`}>
+                                {isCompleted ? (
+                                  <CheckCircle2 className="w-5 h-5" />
+                                ) : (
+                                  <Play className="w-4 h-4" />
+                                )}
+                              </div>
                               
                               <div className="flex-1 text-left">
-                                <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-white/70'}`}>
+                                <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-white/80'}`}>
                                   {lesson.lesson_title}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <Clock className="w-3 h-3 text-white/40" />
-                                  <span className="text-xs text-white/40">{formatDuration(lesson.duration_seconds)}</span>
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  <span className="text-xs text-slate-400">{formatDuration(lesson.duration_seconds)}</span>
                                 </div>
                               </div>
 
                               {isActive && (
                                 <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  className="w-2 h-2 bg-blue-500 rounded-full"
+                                  initial={{ opacity: 0, scale: 0 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  className="w-3 h-3 bg-blue-400 rounded-full shadow-lg"
                                 />
                               )}
                             </div>
@@ -290,28 +576,28 @@ export default function CourseLearnPage() {
         {!isLeftPanelOpen && (
           <button
             onClick={() => setIsLeftPanelOpen(true)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-carbon-700 border-r border-carbon-600 p-2 hover:bg-carbon-600 transition-colors z-10"
+            className="absolute left-0 top-1/2 -translate-y-1/2 bg-slate-800/80 backdrop-blur-sm border-r border-slate-700/50 p-3 hover:bg-slate-700/80 transition-colors z-10 rounded-r-lg shadow-lg"
           >
             <ChevronRight className="w-5 h-5 text-white" />
           </button>
         )}
 
         {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-900/50 backdrop-blur-sm">
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-20 h-20 rounded-full bg-carbon-600 flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="w-10 h-10 text-white/50" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
+                  <BookOpen className="w-10 h-10 text-blue-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Este curso aún no tiene contenido</h3>
-                <p className="text-white/70">Los módulos y lecciones se agregarán pronto</p>
+                <p className="text-slate-400">Los módulos y lecciones se agregarán pronto</p>
               </div>
             </div>
           ) : currentLesson ? (
             <>
-              {/* Tabs */}
-              <div className="bg-carbon-700 border-b border-carbon-600 flex gap-1 p-2">
+              {/* Tabs mejorados */}
+              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex gap-2 p-3">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -320,10 +606,10 @@ export default function CourseLearnPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 ${
                         isActive
-                          ? 'bg-blue-500 text-white'
-                          : 'text-white/50 hover:text-white hover:bg-carbon-600'
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -356,33 +642,27 @@ export default function CourseLearnPage() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <p className="text-white/70">No hay lecciones disponibles</p>
+                <p className="text-slate-400">No hay lecciones disponibles</p>
               </div>
             </div>
           )}
         </div>
 
         {/* Panel Derecho - LIA y Notas */}
-        <div className="w-80 bg-carbon-700 border-l border-carbon-600 flex flex-col">
+        <div className="w-80 bg-slate-800/80 backdrop-blur-sm border-l border-slate-700/50 flex flex-col shadow-xl">
           {/* LIA Assistant */}
-          <div className="p-4 border-b border-carbon-600">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-white" />
+          <div className="p-6 border-b border-slate-700/50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+                <MessageSquare className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-white">LIA</h3>
-                <p className="text-xs text-white/50">Tu tutora personalizada</p>
+                <h3 className="font-bold text-white text-lg">LIA</h3>
+                <p className="text-xs text-slate-400">Tu tutora personalizada</p>
               </div>
-              <button
-                onClick={() => setIsNotesOpen(!isNotesOpen)}
-                className="p-2 hover:bg-carbon-600 rounded transition-colors"
-              >
-                <FileText className="w-4 h-4 text-white/70" />
-              </button>
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-3">
+            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4 mb-4">
               <p className="text-sm text-white/90 leading-relaxed">
                 ¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje
                 con conceptos fundamentales explicados de forma clara.
@@ -395,50 +675,189 @@ export default function CourseLearnPage() {
                 placeholder="Pregunta a LIA..."
                 value={liaMessage}
                 onChange={(e) => setLiaMessage(e.target.value)}
-                className="flex-1 px-3 py-2 bg-carbon-600 border border-carbon-500 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
               />
-              <button className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-                <Send className="w-4 h-4 text-white" />
+              <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg transition-all duration-200 shadow-lg hover:shadow-blue-500/25">
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Notas */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4" />
+          {/* Notas - Sección completa integrada */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-white flex items-center gap-2 text-lg">
+                <FileText className="w-5 h-5 text-blue-400" />
                 Mis Notas
               </h3>
-              <div className="flex gap-1">
-                <button className="p-1.5 hover:bg-carbon-600 rounded transition-colors">
-                  <FileDown className="w-4 h-4 text-white/70" />
-                </button>
-                <button className="p-1.5 hover:bg-carbon-600 rounded transition-colors">
-                  <X className="w-4 h-4 text-white/70" />
-                </button>
+            </div>
+
+            {/* Área de escritura de notas */}
+            <div className="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 mb-4 space-y-4">
+              {/* Campo de título */}
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Título de la nota *</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Conceptos clave de la lección"
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  className="w-full bg-slate-600/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Campo de contenido */}
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Contenido *</label>
+                <textarea
+                  placeholder="Comienza a escribir tu nota aquí..."
+                  value={currentNote}
+                  onChange={(e) => setCurrentNote(e.target.value)}
+                  className="w-full h-32 bg-slate-600/50 border border-slate-600/50 rounded-lg p-3 text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Campo de etiquetas */}
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Etiquetas</label>
+                <div className="flex gap-2 mb-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="Agregar etiqueta..."
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTag();
+                      }
+                    }}
+                    className="flex-1 h-8 bg-slate-600/50 border border-slate-600/50 rounded-lg px-2 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder:text-slate-400"
+                  />
+                  <button
+                    onClick={addTag}
+                    className="w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold transition-colors shrink-0"
+                    title="Agregar etiqueta"
+                  >
+                    +
+                  </button>
+                </div>
+                {noteTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {noteTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30"
+                      >
+                        {tag}
+                        <button
+                          onClick={() => removeTag(tag)}
+                          className="hover:text-blue-300 transition-colors"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="bg-carbon-600 rounded-lg p-4 min-h-[200px]">
-              <textarea
-                placeholder="Comienza a escribir tu nota aquí..."
-                className="w-full h-full bg-transparent text-white text-sm resize-none focus:outline-none placeholder:text-white/30"
-              />
+            {/* Botones de acción */}
+            <div className="flex gap-2 mb-6">
+              <button 
+                onClick={saveNote}
+                disabled={savingNote || !currentNote.trim() || !noteTitle.trim() || !currentLesson}
+                title={
+                  !currentLesson 
+                    ? 'Debe seleccionar una lección'
+                    : !noteTitle.trim() 
+                    ? 'El título es requerido'
+                    : !currentNote.trim()
+                    ? 'El contenido es requerido'
+                    : savingNote
+                    ? 'Guardando...'
+                    : 'Guardar nota'
+                }
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-green-500/25"
+              >
+                <Save className="w-4 h-4" />
+                {savingNote ? 'Guardando...' : 'Guardar'}
+              </button>
+              <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25">
+                <FileDown className="w-4 h-4" />
+                Exportar
+              </button>
+        </div>
+
+            {/* Notas guardadas */}
+            <div className="space-y-3 mb-6">
+              <h3 className="text-white font-semibold text-sm">Notas guardadas</h3>
+              <div className="space-y-2">
+                {savedNotes.length === 0 ? (
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 text-center">
+                    <p className="text-sm text-slate-400">No hay notas guardadas aún</p>
+                    <p className="text-xs text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
+                  </div>
+                ) : (
+                  savedNotes.map((note) => (
+                    <div 
+                      key={note.id} 
+                      className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/30 hover:bg-slate-700/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setCurrentNote(note.fullContent || note.content);
+                        setNoteTitle(note.title);
+                        setNoteTags(note.tags || []);
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-blue-400 font-medium">{note.title}</span>
+                        <span className="text-xs text-slate-400">{note.timestamp}</span>
+                      </div>
+                      <p className="text-sm text-white/70 line-clamp-2 mb-2">
+                        {note.content}
+                      </p>
+                      {note.tags && note.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {note.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
-              <button className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                <Save className="w-4 h-4" />
-                Guardar
-              </button>
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                <FileDown className="w-4 h-4" />
-                PDF
-              </button>
+            {/* Progreso de Notas */}
+            <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
+              <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm">
+                <TrendingUp className="w-4 h-4 text-green-400" />
+                Progreso de Notas
+              </h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/70">Notas creadas</span>
+                  <span className="text-green-400 font-medium">{notesStats.totalNotes}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/70">Lecciones con notas</span>
+                  <span className="text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/70">Última actualización</span>
+                  <span className="text-slate-400">{notesStats.lastUpdate}</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+                </div>
+              </div>
       </div>
     </div>
   );

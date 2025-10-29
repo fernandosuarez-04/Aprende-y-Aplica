@@ -3,10 +3,10 @@ import { CourseService } from '../../../../features/courses/services/course.serv
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
