@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import { createClient } from '../../../lib/supabase/server';
 import { logger } from '../../../lib/logger';
+import { cacheGet, cacheSet } from '@/lib/cache/ttlCache'
 import crypto from 'crypto';
 
 export class SessionService {
@@ -71,6 +72,12 @@ export class SessionService {
         return null;
       }
 
+      // Cache de 30s por token para evitar golpear DB en cada request
+      const cached = cacheGet<any>(`user-by-session:${sessionToken}`)
+      if (cached) {
+        return cached
+      }
+
       const supabase = await createClient();
       
       // Buscar sesión válida
@@ -108,6 +115,7 @@ export class SessionService {
       }
 
       console.log('✅ Usuario obtenido exitosamente:', user)
+      cacheSet(`user-by-session:${sessionToken}`, user, 30_000)
       return user;
     } catch (error) {
       console.error('💥 Error getting current user:', error);

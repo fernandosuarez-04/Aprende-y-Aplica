@@ -15,7 +15,7 @@ export function InstructorHeader({ onMenuClick, title }: InstructorHeaderProps) 
   const { user, isLoading } = useInstructorUser()
 
   return (
-    <header className="bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 shadow-lg border-b border-purple-700/50 w-full backdrop-blur-sm">
+    <header className="bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 shadow-lg border-b border-purple-700/50 w-full backdrop-blur-sm relative z-50">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side */}

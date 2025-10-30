@@ -18,9 +18,13 @@ export function useAdminLessons(): UseAdminLessonsReturn {
   const [lessons, setLessons] = useState<AdminLesson[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const loadedModules = new Set<string>()
 
   const fetchLessons = async (moduleId: string) => {
     try {
+      if (loadedModules.has(moduleId) && lessons.some(l => l.module_id === moduleId)) {
+        return
+      }
       setLoading(true)
       setError(null)
 
@@ -28,7 +32,10 @@ export function useAdminLessons(): UseAdminLessonsReturn {
       if (!response.ok) throw new Error('Error al obtener lecciones')
 
       const data = await response.json()
-      setLessons(data.lessons || [])
+      // mezclamos con otras lecciones ya cargadas de otros módulos
+      const other = lessons.filter(l => l.module_id !== moduleId)
+      setLessons([...(data.lessons || []), ...other])
+      loadedModules.add(moduleId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
       setLessons([])

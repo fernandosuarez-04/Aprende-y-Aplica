@@ -101,12 +101,14 @@ export function InstructorLayout({ children }: InstructorLayoutProps) {
         sidebarCollapsed && !sidebarPinned ? 'lg:ml-16' : 'lg:ml-64'
       }`}>
         {/* Header */}
-        <InstructorHeader 
-          onMenuClick={() => setSidebarOpen(true)}
-          title="Panel de Instructor"
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        <div className="relative z-30">
+          <InstructorHeader 
+            onMenuClick={() => setSidebarOpen(true)}
+            title="Panel de Instructor"
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        </div>
 
         {/* Page Content */}
         <main className="bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 min-h-screen">

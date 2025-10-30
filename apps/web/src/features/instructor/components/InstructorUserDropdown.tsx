@@ -63,7 +63,7 @@ export function InstructorUserDropdown({ user }: InstructorUserDropdownProps) {
   }
 
   return (
-    <Menu as="div" className="relative">
+    <Menu as="div" className="relative z-50">
       <Menu.Button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-purple-700/50 transition-all duration-200 hover:scale-105"

@@ -20,6 +20,7 @@ import {
   Bars3Icon,
   MapPinIcon
 } from '@heroicons/react/24/outline'
+import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
 
 interface AdminSidebarProps {
   isOpen: boolean
@@ -51,6 +52,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
   const [isHovered, setIsHovered] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isClicking, setIsClicking] = useState(false)
+  const [showPinFeedback, setShowPinFeedback] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
 
   // Lógica para determinar si el sidebar debe estar expandido
@@ -116,13 +118,6 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
     }
   }, [isCollapsed])
 
-  // Limpiar estado de pin cuando se colapsa
-  useEffect(() => {
-    // Si el sidebar se colapsa, limpiar el estado de pin
-    if (isCollapsed && isPinned) {
-      onTogglePin()
-    }
-  }, [isCollapsed, isPinned, onTogglePin])
 
   return (
     <>
@@ -152,13 +147,22 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                 setIsHovered(false)
               }
             }}
+            onDoubleClick={(event) => {
+              // Solo activar doble click si no se hace click en un enlace o botón
+              const target = event.target as HTMLElement
+              if (target.tagName !== 'A' && target.tagName !== 'BUTTON' && !target.closest('a') && !target.closest('button')) {
+                onTogglePin()
+                setShowPinFeedback(true)
+                setTimeout(() => setShowPinFeedback(false), 2000)
+              }
+            }}
             onClick={(event) => {
+              // Manejar clicks en el sidebar colapsado
               if (isCollapsed && isHovered && !isPinned && !isClicking) {
                 setIsClicking(true)
                 event.preventDefault()
                 event.stopPropagation()
                 onTogglePin()
-                // Reset clicking state after a short delay
                 setTimeout(() => setIsClicking(false), 300)
               }
             }}
@@ -171,52 +175,25 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                   alt="Aprende y Aplica" 
                   className="h-8 w-8 rounded-lg flex-shrink-0"
                 />
-                {(!isCollapsed || shouldExpand) && (
-                  <span className="ml-3 text-white font-semibold text-sm truncate">
-                    Aprende y Aplica
-                  </span>
-                )}
               </div>
               <div className="flex items-center space-x-2">
-                {/* Indicador de pin - solo visible cuando está pinned */}
-                {isPinned && (
-                  <div className="hidden lg:block p-1 rounded-md bg-blue-600/20">
-                    <MapPinIcon className="h-4 w-4 text-blue-400" />
-                  </div>
-                )}
-                {/* Botón de colapso - solo visible en desktop */}
+                {/* Botón de fijar - siempre visible en desktop */}
                 <button
                   onClick={(event) => {
-                    event.stopPropagation() // Prevenir que el clic llegue al contenedor
-                    if (isCollapsed) {
-                      if (isHovered && !isPinned) {
-                        // Cerrar hover temporal
-                        setIsHovered(false)
-                      } else if (isPinned) {
-                        // Desfijar pero mantener colapsado
-                        onTogglePin()
-                      } else {
-                        // Expandir normalmente
-                        onToggleCollapse()
-                      }
-                    } else {
-                      // Colapsar y desfijar si estaba fijado
-                      if (isPinned) {
-                        onTogglePin()
-                      }
-                      onToggleCollapse()
-                    }
+                    event.stopPropagation()
+                    onTogglePin()
                   }}
                   className="hidden lg:block p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700 transition-colors"
-                  title={isCollapsed ? (isHovered && !isPinned ? 'Cerrar sidebar' : 'Expandir sidebar') : 'Colapsar sidebar'}
+                  title={isPinned ? 'Desfijar panel' : 'Fijar panel'}
                 >
-                  {isCollapsed ? (
-                    <ChevronRightIcon className="h-5 w-5" />
+                  {isPinned ? (
+                    <MapPinIconSolid className="h-4 w-4 text-blue-400" />
                   ) : (
-                    <ChevronLeftIcon className="h-5 w-5" />
+                    <MapPinIcon className="h-4 w-4" />
                   )}
                 </button>
-                {/* Botón de cerrar - solo visible en mobile */}
+                
+                {/* Botón de cerrar en mobile */}
                 <button
                   onClick={(event) => {
                     event.stopPropagation()
@@ -231,9 +208,30 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
 
             {/* Indicador de hover para fijar */}
             {isCollapsed && isHovered && !isPinned && (
-              <div className="px-4 py-2 bg-blue-600/10 border-b border-blue-600/20">
-                <p className="text-xs text-blue-400">
-                  Haz clic para fijar el panel
+              <div className="px-4 py-1.5 bg-gradient-to-r from-blue-600/10 to-transparent border-b border-blue-600/30">
+                <p className="text-xs text-blue-400/80 font-light flex items-center gap-1.5">
+                  <MapPinIcon className="h-3 w-3 text-blue-400/60" />
+                  Doble clic para fijar
+                </p>
+              </div>
+            )}
+            
+            {/* Indicador de panel fijado */}
+            {isPinned && !isCollapsed && (
+              <div className="px-4 py-1.5 bg-gradient-to-r from-blue-600/15 to-transparent border-b border-blue-600/30">
+                <p className="text-xs text-blue-200/90 font-light flex items-center gap-1.5">
+                  <MapPinIconSolid className="h-3 w-3 text-blue-400" />
+                  Panel fijado
+                </p>
+              </div>
+            )}
+            
+            {/* Feedback temporal de doble click */}
+            {showPinFeedback && (
+              <div className="px-4 py-1.5 bg-gradient-to-r from-blue-500/20 to-transparent border-b border-blue-700/40">
+                <p className="text-xs text-blue-200 font-light flex items-center gap-1.5 animate-in fade-in duration-200">
+                  <MapPinIconSolid className="h-3 w-3 text-blue-400" />
+                  {isPinned ? 'Panel fijado' : 'Panel desfijado'}
                 </p>
               </div>
             )}
