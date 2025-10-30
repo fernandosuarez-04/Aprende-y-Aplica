@@ -9,8 +9,11 @@ import {
   MessageSquare, 
   FileText, 
   Activity,
+  Layers,
   ChevronRight,
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   Clock,
   CheckCircle2,
   ArrowLeft,
@@ -24,6 +27,7 @@ import {
   User
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
+import { NotesModal } from '../../../../core/components/NotesModal';
 
 interface Lesson {
   lesson_id: string;
@@ -63,13 +67,31 @@ export default function CourseLearnPage() {
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'community'>('video');
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
+  const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<{
+    id: string;
+    title: string;
+    content: string;
+    tags: string[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(6);
   const [liaMessage, setLiaMessage] = useState('');
-  const [currentNote, setCurrentNote] = useState('');
-  const [noteTitle, setNoteTitle] = useState('');
-  const [noteTags, setNoteTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const [liaMessages, setLiaMessages] = useState<Array<{
+    id: string;
+    type: 'user' | 'lia';
+    content: string;
+    timestamp: Date;
+  }>>([
+    {
+      id: '1',
+      type: 'lia',
+      content: '¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?',
+      timestamp: new Date()
+    }
+  ]);
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -84,7 +106,6 @@ export default function CourseLearnPage() {
     lessonsWithNotes: '0/0',
     lastUpdate: '-'
   });
-  const [savingNote, setSavingNote] = useState(false);
 
   // Función para formatear timestamp
   const formatTimestamp = (dateString: string): string => {
@@ -173,100 +194,172 @@ export default function CourseLearnPage() {
     }
   };
 
-  // Función para agregar etiqueta
-  const addTag = () => {
-    const tag = tagInput.trim();
-    if (tag && !noteTags.includes(tag)) {
-      setNoteTags([...noteTags, tag]);
-      setTagInput('');
-    }
+
+  // Función para enviar mensaje a LIA
+  const sendLiaMessage = () => {
+    if (!liaMessage.trim()) return;
+
+    const userMessage = {
+      id: Date.now().toString(),
+      type: 'user' as const,
+      content: liaMessage.trim(),
+      timestamp: new Date()
+    };
+
+    setLiaMessages(prev => [...prev, userMessage]);
+    setLiaMessage('');
+
+    // Simular respuesta de LIA (en una implementación real, esto sería una llamada a la API)
+    setTimeout(() => {
+      const liaResponse = {
+        id: (Date.now() + 1).toString(),
+        type: 'lia' as const,
+        content: `Entiendo tu pregunta sobre "${liaMessage.trim()}". Como tu tutora personalizada, te ayudo a comprender mejor los conceptos. ¿Te gustaría que profundice en algún aspecto específico?`,
+        timestamp: new Date()
+      };
+      setLiaMessages(prev => [...prev, liaResponse]);
+    }, 1000);
   };
 
-  // Función para eliminar etiqueta
-  const removeTag = (tagToRemove: string) => {
-    setNoteTags(noteTags.filter(tag => tag !== tagToRemove));
+  // Función para abrir modal de nueva nota
+  const openNewNoteModal = () => {
+    setEditingNote(null);
+    setIsNotesModalOpen(true);
   };
 
-  // Función para guardar una nota
-  const saveNote = async () => {
-    // Validaciones
-    if (!currentNote.trim()) {
-      alert('El contenido de la nota es requerido');
-      return;
-    }
+  // Función para abrir modal de editar nota
+  const openEditNoteModal = (note: any) => {
+    setEditingNote({
+      id: note.id,
+      title: note.title,
+      content: note.fullContent || note.content,
+      tags: note.tags || []
+    });
+    setIsNotesModalOpen(true);
+  };
 
-    if (!noteTitle.trim()) {
-      alert('El título de la nota es requerido');
-      return;
-    }
-
-    if (!currentLesson || !course) {
-      alert('Debe seleccionar una lección');
-      return;
-    }
-
-    setSavingNote(true);
+  // Función para guardar nota (nueva o editada)
+  const handleSaveNote = async (noteData: { title: string; content: string; tags: string[] }) => {
     try {
-      const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          note_title: noteTitle.trim(),
-          note_content: currentNote.trim(),
-          note_tags: noteTags.length > 0 ? noteTags : [],
-          source_type: 'manual'
-        })
-      });
-
-      let responseData;
-      try {
-        responseData = await response.json();
-      } catch (e) {
-        responseData = { error: 'Error al procesar respuesta del servidor' };
+      if (!currentLesson?.lesson_id || !slug) {
+        alert('Debe seleccionar una lección para guardar la nota');
+        return;
       }
+      // Preparar payload según el formato que espera la API REST
+      const notePayload = {
+        note_title: noteData.title.trim(),
+        note_content: noteData.content.trim(),
+        note_tags: noteData.tags || [],
+        source_type: 'manual' // Siempre manual desde el modal
+      };
 
-      if (response.ok) {
-        const savedNote = responseData;
-        // Agregar la nota al estado local
-        const newNote = {
-          id: savedNote.note_id,
-          title: savedNote.note_title,
-          content: savedNote.note_content.substring(0, 50) + (savedNote.note_content.length > 50 ? '...' : ''),
-          timestamp: formatTimestamp(savedNote.created_at),
-          lessonId: savedNote.lesson_id,
-          fullContent: savedNote.note_content,
-          tags: savedNote.note_tags || []
-        };
-        setSavedNotes([newNote, ...savedNotes]);
-        setCurrentNote('');
-        setNoteTitle('');
-        setNoteTags([]);
-        
-        // Recargar estadísticas
-        await loadNotesStats(slug);
-      } else if (response.status === 401) {
-        console.error('Error de autenticación:', responseData);
-        alert('Debes iniciar sesión para guardar notas. Por favor, inicia sesión e intenta nuevamente.');
-      } else if (response.status === 400) {
-        console.error('Error de validación:', responseData);
-        alert(`Error de validación: ${responseData.error || 'Datos inválidos'}\n\nDetalles: ${JSON.stringify(responseData, null, 2)}`);
-      } else {
-        console.error('Error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: responseData
+      if (editingNote) {
+        // Editar nota existente
+        const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${editingNote.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notePayload)
         });
-        alert(`Error al guardar nota (${response.status}): ${responseData.error || responseData.message || 'Error desconocido'}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          alert(`Error al actualizar la nota: ${errorData.error || 'Error desconocido'}`);
+          return;
+        }
+        
+        const updatedNote = await response.json();
+        
+        // Actualizar la nota en la lista local
+        setSavedNotes(prev => prev.map(note => 
+          note.id === editingNote.id 
+            ? {
+                id: updatedNote.note_id || updatedNote.id,
+                title: noteData.title,
+                content: noteData.content.substring(0, 50) + (noteData.content.length > 50 ? '...' : ''),
+                fullContent: noteData.content,
+                tags: noteData.tags,
+                timestamp: formatTimestamp(updatedNote.updated_at || updatedNote.created_at || new Date().toISOString()),
+                lessonId: currentLesson.lesson_id
+              }
+            : note
+        ));
+        
+        // Actualizar estadísticas y recargar notas
+        updateNotesStats();
+        loadLessonNotes(currentLesson.lesson_id, slug);
+      } else {
+        // Crear nueva nota
+        const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notePayload)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          alert(`Error al guardar la nota: ${errorData.error || 'Error desconocido'}`);
+          return;
+        }
+        
+        const newNote = await response.json();
+        
+        // Formatear la nota según la estructura esperada
+        const formattedNote = {
+          id: newNote.note_id || newNote.id,
+          title: noteData.title,
+          content: noteData.content.substring(0, 50) + (noteData.content.length > 50 ? '...' : ''),
+          fullContent: noteData.content,
+          tags: noteData.tags,
+          timestamp: formatTimestamp(newNote.created_at || new Date().toISOString()),
+          lessonId: currentLesson.lesson_id
+        };
+        
+        setSavedNotes(prev => [formattedNote, ...prev]);
+        
+        // Actualizar estadísticas y recargar notas
+        updateNotesStats();
+        loadLessonNotes(currentLesson.lesson_id, typeof params.slug === 'string' ? params.slug : params.slug[0]);
+      }
+      
+      setIsNotesModalOpen(false);
+      setEditingNote(null);
+    } catch (error) {
+      console.error('Error al guardar nota:', error);
+    }
+  };
+
+  // Función para eliminar nota
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) return;
+    
+    try {
+      const response = await fetch(`/api/courses/${params.slug}/lessons/${currentLesson?.lesson_id}/notes/${noteId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        setSavedNotes(prev => prev.filter(note => note.id !== noteId));
+        // Actualizar estadísticas
+        updateNotesStats();
       }
     } catch (error) {
-      console.error('Error saving note:', error);
-      alert(`Error al guardar la nota: ${error instanceof Error ? error.message : 'Error de conexión'}`);
-    } finally {
-      setSavingNote(false);
+      console.error('Error al eliminar nota:', error);
     }
   };
+
+  // Función para actualizar estadísticas de notas
+  const updateNotesStats = () => {
+    const totalNotes = savedNotes.length;
+    const uniqueLessons = new Set(savedNotes.map(note => note.lessonId)).size;
+    const totalLessons = modules.reduce((acc, module) => acc + module.lessons.length, 0);
+    
+    setNotesStats({
+      totalNotes,
+      lessonsWithNotes: `${uniqueLessons}/${totalLessons}`,
+      lastUpdate: new Date().toLocaleString()
+    });
+  };
+
 
   useEffect(() => {
     async function loadCourse() {
@@ -301,28 +394,9 @@ export default function CourseLearnPage() {
   useEffect(() => {
     if (currentLesson && slug) {
       loadLessonNotes(currentLesson.lesson_id, slug);
-      setCurrentNote(''); // Limpiar nota actual al cambiar de lección
-      setNoteTitle(currentLesson.lesson_title); // Establecer título por defecto
-      setNoteTags([]); // Limpiar etiquetas
-    } else {
-      // Si no hay lección, limpiar campos
-      setCurrentNote('');
-      setNoteTitle('');
-      setNoteTags([]);
     }
   }, [currentLesson?.lesson_id, slug]);
 
-  // Debug: Log para verificar estado del botón
-  useEffect(() => {
-    if (!currentLesson || !noteTitle.trim() || !currentNote.trim()) {
-      console.log('Botón deshabilitado:', {
-        currentLesson: !!currentLesson,
-        noteTitle: noteTitle.trim(),
-        currentNote: currentNote.trim(),
-        savingNote
-      });
-    }
-  }, [currentLesson, noteTitle, currentNote, savingNote]);
 
   const loadModules = async (courseSlug: string) => {
     try {
@@ -409,51 +483,51 @@ export default function CourseLearnPage() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 px-6 py-4 shrink-0 relative z-50"
+        className="bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 px-4 py-2 shrink-0 relative z-50"
       >
         <div className="flex items-center justify-between w-full">
           {/* Sección izquierda: Botón regresar | Logo | Nombre del taller */}
-          <div className="flex items-center gap-4">
-            {/* Botón de regreso */}
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-white" />
-            </button>
+          <div className="flex items-center gap-3">
+        {/* Botón de regreso */}
+        <button
+          onClick={() => router.back()}
+              className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+        >
+              <ArrowLeft className="w-4 h-4 text-white" />
+        </button>
 
             {/* Logo de la empresa */}
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
             <img 
               src="/icono.png" 
               alt="Aprende y Aplica" 
-                className="w-7 h-7 rounded"
+              className="w-6 h-6 rounded"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';
                 const parent = target.parentElement;
                 if (parent) {
-                    parent.innerHTML = '<div class="w-7 h-7 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-sm">A&A</span></div>';
+                  parent.innerHTML = '<div class="w-6 h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
                 }
               }}
             />
           </div>
 
             {/* Separador visual */}
-            <div className="w-px h-6 bg-slate-600/50"></div>
+            <div className="w-px h-5 bg-slate-600/50"></div>
 
             {/* Nombre del taller */}
           <div>
-              <h1 className="text-lg font-bold text-white">{course.title || course.course_title}</h1>
+              <h1 className="text-base font-bold text-white">{course.title || course.course_title}</h1>
             <p className="text-xs text-slate-400">Taller de Aprende y Aplica</p>
           </div>
         </div>
 
           {/* Sección central: Progreso */}
-          <div className="flex items-center gap-4">
-            {/* Barra de progreso */}
           <div className="flex items-center gap-3">
-              <div className="w-48 h-2 bg-slate-700/50 rounded-full overflow-hidden">
+            {/* Barra de progreso */}
+          <div className="flex items-center gap-2">
+              <div className="w-40 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${courseProgress}%` }}
@@ -461,14 +535,14 @@ export default function CourseLearnPage() {
                 className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
               />
             </div>
-              <span className="text-sm text-white/80 font-medium bg-slate-700/30 px-3 py-1 rounded-full min-w-[3rem] text-center">
+              <span className="text-xs text-white/80 font-medium bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center">
               {courseProgress}%
             </span>
           </div>
         </div>
 
           {/* Sección derecha: Usuario */}
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
             {/* Menú de usuario */}
             <UserDropdown />
           </div>
@@ -503,6 +577,37 @@ export default function CourseLearnPage() {
 
               {/* Contenido con scroll */}
               <div className="flex-1 overflow-y-auto p-6">
+                {/* Sección de Material del Curso */}
+                <div className="mb-8">
+                  {/* Header de Contenido con botón de colapsar */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-blue-400" />
+                      Contenido
+                    </h3>
+                    <button
+                      onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
+                      className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+                      title={isMaterialCollapsed ? "Expandir Contenido" : "Colapsar Contenido"}
+                    >
+                      {isMaterialCollapsed ? (
+                        <ChevronDown className="w-4 h-4 text-white/70" />
+                      ) : (
+                        <ChevronUp className="w-4 h-4 text-white/70" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Contenido de Material del Curso - Colapsable */}
+                  <AnimatePresence>
+                    {!isMaterialCollapsed && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
                 {modules.map((module, moduleIndex) => (
                   <div key={module.module_id} className="mb-8">
                     <div className="flex items-center gap-3 mb-4">
@@ -579,6 +684,150 @@ export default function CourseLearnPage() {
                     </div>
                   </div>
                 ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+          </div>
+
+                {/* Línea separadora entre Material y Notas */}
+                <div className="border-b border-slate-700/50 mb-6"></div>
+
+                {/* Sección de Notas */}
+                <div className="space-y-4">
+                  {/* Header de Notas con botones de colapsar y nueva nota */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-white flex items-center gap-2 text-lg">
+                      <FileText className="w-5 h-5 text-blue-400" />
+                      Mis Notas
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {!isNotesCollapsed && (
+                        <button
+                          onClick={openNewNoteModal}
+                          className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                          title="Nueva Nota"
+                        >
+                          <span className="text-sm font-bold">+</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
+                        className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+                        title={isNotesCollapsed ? "Expandir Notas" : "Colapsar Notas"}
+                      >
+                        {isNotesCollapsed ? (
+                          <ChevronDown className="w-4 h-4 text-white/70" />
+                        ) : (
+                          <ChevronUp className="w-4 h-4 text-white/70" />
+                        )}
+                      </button>
+                    </div>
+        </div>
+
+                  {/* Contenido de Notas - Colapsable */}
+                  <AnimatePresence>
+                    {!isNotesCollapsed && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
+
+            {/* Notas guardadas */}
+            <div className="space-y-3 mb-6">
+              <h3 className="text-white font-semibold text-sm">Notas guardadas</h3>
+              <div className="space-y-2">
+                {savedNotes.length === 0 ? (
+                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 text-center">
+                    <p className="text-sm text-slate-400">No hay notas guardadas aún</p>
+                    <p className="text-xs text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
+                  </div>
+                ) : (
+                  savedNotes.map((note) => (
+                    <div 
+                      key={note.id} 
+                            className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/30 hover:bg-slate-700/50 transition-colors group"
+                    >
+                        <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-blue-400 font-medium">{note.title}</span>
+                              <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400">{note.timestamp}</span>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditNoteModal(note);
+                                    }}
+                                    className="p-1 hover:bg-blue-500/20 rounded text-blue-400 hover:text-blue-300 transition-colors"
+                                    title="Editar nota"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteNote(note.id);
+                                    }}
+                                    className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
+                                    title="Eliminar nota"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                      </div>
+                      <p className="text-sm text-white/70 line-clamp-2 mb-2">
+                        {note.content}
+                      </p>
+                      {note.tags && note.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {note.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                    </div>
+                  </div>
+
+            {/* Progreso de Notas */}
+                  <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
+              <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm">
+                      <TrendingUp className="w-4 h-4 text-green-400" />
+                      Progreso de Notas
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Notas creadas</span>
+                  <span className="text-green-400 font-medium">{notesStats.totalNotes}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Lecciones con notas</span>
+                  <span className="text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/70">Última actualización</span>
+                  <span className="text-slate-400">{notesStats.lastUpdate}</span>
+                    </div>
+                    </div>
+                  </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
           )}
@@ -665,7 +914,7 @@ export default function CourseLearnPage() {
           )}
         </div>
 
-        {/* Panel Derecho - LIA y Notas */}
+        {/* Panel Derecho - Solo LIA */}
         <AnimatePresence>
           {isRightPanelOpen && (
             <motion.div
@@ -675,220 +924,76 @@ export default function CourseLearnPage() {
               transition={{ duration: 0.3 }}
               className="bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2"
             >
-          {/* Header LIA con línea separadora alineada con panel central */}
-          <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
-                <MessageSquare className="w-4 h-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="font-semibold text-white text-sm leading-tight">LIA</h3>
-                <p className="text-xs text-slate-400 leading-tight">Tu tutora</p>
-              </div>
-              </div>
-              <button
-                onClick={() => setIsRightPanelOpen(false)}
-              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-              >
-                <ChevronRight className="w-4 h-4 text-white/70" />
-              </button>
-            </div>
-
-          {/* Contenido LIA con scroll */}
-          <div className="p-6">
-
-            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4 mb-4">
-              <p className="text-sm text-white/90 leading-relaxed">
-                ¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje
-                con conceptos fundamentales explicados de forma clara.
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Pregunta a LIA..."
-                value={liaMessage}
-                onChange={(e) => setLiaMessage(e.target.value)}
-                className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
-              />
-              <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg transition-all duration-200 shadow-lg hover:shadow-blue-500/25">
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Notas - Sección completa integrada */}
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-white flex items-center gap-2 text-lg">
-                <FileText className="w-5 h-5 text-blue-400" />
-                Mis Notas
-              </h3>
-            </div>
-
-            {/* Área de escritura de notas */}
-            <div className="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 mb-4 space-y-4">
-              {/* Campo de título */}
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">Título de la nota *</label>
-                <input
-                  type="text"
-                  placeholder="Ej: Conceptos clave de la lección"
-                  value={noteTitle}
-                  onChange={(e) => setNoteTitle(e.target.value)}
-                  className="w-full bg-slate-600/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder:text-slate-400"
-                />
-              </div>
-
-              {/* Campo de contenido */}
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">Contenido *</label>
-              <textarea
-                placeholder="Comienza a escribir tu nota aquí..."
-                  value={currentNote}
-                  onChange={(e) => setCurrentNote(e.target.value)}
-                  className="w-full h-32 bg-slate-600/50 border border-slate-600/50 rounded-lg p-3 text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder:text-slate-400"
-              />
-            </div>
-
-              {/* Campo de etiquetas */}
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">Etiquetas</label>
-                <div className="flex gap-2 mb-2 items-center">
-                  <input
-                    type="text"
-                    placeholder="Agregar etiqueta..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addTag();
-                      }
-                    }}
-                    className="flex-1 h-8 bg-slate-600/50 border border-slate-600/50 rounded-lg px-2 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent placeholder:text-slate-400"
-                  />
-                  <button
-                    onClick={addTag}
-                    className="w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-lg font-semibold transition-colors shrink-0"
-                    title="Agregar etiqueta"
-                  >
-                    +
-                  </button>
-                </div>
-                {noteTags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {noteTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30"
-                      >
-                        {tag}
-                        <button
-                          onClick={() => removeTag(tag)}
-                          className="hover:text-blue-300 transition-colors"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+              {/* Header LIA con línea separadora alineada con panel central */}
+              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
+                    <MessageSquare className="w-4 h-4 text-white" />
                   </div>
-                )}
-              </div>
-                </div>
-
-            {/* Botones de acción */}
-            <div className="flex gap-2 mb-6">
-              <button 
-                onClick={saveNote}
-                disabled={savingNote || !currentNote.trim() || !noteTitle.trim() || !currentLesson}
-                title={
-                  !currentLesson 
-                    ? 'Debe seleccionar una lección'
-                    : !noteTitle.trim() 
-                    ? 'El título es requerido'
-                    : !currentNote.trim()
-                    ? 'El contenido es requerido'
-                    : savingNote
-                    ? 'Guardando...'
-                    : 'Guardar nota'
-                }
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-green-500/25"
-              >
-                <Save className="w-4 h-4" />
-                {savingNote ? 'Guardando...' : 'Guardar'}
-                      </button>
-              <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25">
-                <FileDown className="w-4 h-4" />
-                        Exportar
-                      </button>
-                    </div>
-
-            {/* Notas guardadas */}
-            <div className="space-y-3 mb-6">
-              <h3 className="text-white font-semibold text-sm">Notas guardadas</h3>
-              <div className="space-y-2">
-                {savedNotes.length === 0 ? (
-                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 text-center">
-                    <p className="text-sm text-slate-400">No hay notas guardadas aún</p>
-                    <p className="text-xs text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-white text-sm leading-tight">LIA</h3>
+                    <p className="text-xs text-slate-400 leading-tight">Tu tutora personalizada</p>
                   </div>
-                ) : (
-                  savedNotes.map((note) => (
-                    <div 
-                      key={note.id} 
-                      className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/30 hover:bg-slate-700/50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        setCurrentNote(note.fullContent || note.content);
-                        setNoteTitle(note.title);
-                        setNoteTags(note.tags || []);
-                      }}
+                </div>
+                <button
+                  onClick={() => setIsRightPanelOpen(false)}
+                  className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                >
+                  <ChevronRight className="w-4 h-4 text-white/70" />
+                </button>
+              </div>
+
+              {/* Chat de LIA expandido */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Área de mensajes */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {liaMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                        <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-blue-400 font-medium">{note.title}</span>
-                        <span className="text-xs text-slate-400">{note.timestamp}</span>
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                          message.type === 'user'
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                            : 'bg-slate-700/50 text-white/90 border border-slate-600/50'
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-xs mt-1 opacity-70">
+                          {message.timestamp.toLocaleTimeString('es-ES', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
                       </div>
-                      <p className="text-sm text-white/70 line-clamp-2 mb-2">
-                        {note.content}
-                      </p>
-                      {note.tags && note.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {note.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
-                  ))
-                )}
-                    </div>
-                  </div>
+                  ))}
+                </div>
 
-            {/* Progreso de Notas */}
-                  <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
-              <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm">
-                      <TrendingUp className="w-4 h-4 text-green-400" />
-                      Progreso de Notas
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Notas creadas</span>
-                  <span className="text-green-400 font-medium">{notesStats.totalNotes}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Lecciones con notas</span>
-                  <span className="text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Última actualización</span>
-                  <span className="text-slate-400">{notesStats.lastUpdate}</span>
-                    </div>
+                {/* Área de entrada */}
+                <div className="border-t border-slate-700/50 p-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Escribe tu pregunta a LIA..."
+                      value={liaMessage}
+                      onChange={(e) => setLiaMessage(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          sendLiaMessage();
+                        }
+                      }}
+                      className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                    />
+                    <button
+                      onClick={sendLiaMessage}
+                      disabled={!liaMessage.trim()}
+                      className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25 shrink-0"
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -903,7 +1008,7 @@ export default function CourseLearnPage() {
             <button
               onClick={() => setIsRightPanelOpen(true)}
               className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
-              title="Mostrar LIA y Notas"
+              title="Mostrar LIA"
             >
               <ChevronLeft className="w-5 h-5 text-white" />
             </button>
@@ -911,6 +1016,18 @@ export default function CourseLearnPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Notas */}
+      <NotesModal
+        isOpen={isNotesModalOpen}
+        onClose={() => {
+          setIsNotesModalOpen(false);
+          setEditingNote(null);
+        }}
+        onSave={handleSaveNote}
+        initialNote={editingNote}
+        isEditing={!!editingNote}
+      />
     </div>
   );
 }
