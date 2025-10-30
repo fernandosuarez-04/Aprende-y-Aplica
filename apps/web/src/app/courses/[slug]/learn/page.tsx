@@ -24,7 +24,9 @@ import {
   Save,
   FileDown,
   Send,
-  User
+  User,
+  Copy,
+  Check
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
@@ -902,7 +904,7 @@ export default function CourseLearnPage() {
                     className="h-full p-6"
                   >
                     {activeTab === 'video' && <VideoContent lesson={currentLesson} />}
-                    {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} />}
+                    {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && <SummaryContent lesson={currentLesson} />}
                     {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} />}
                     {activeTab === 'community' && <CommunityContent />}
@@ -1085,15 +1087,219 @@ function VideoContent({ lesson }: { lesson: Lesson }) {
   );
 }
 
-function TranscriptContent({ lesson }: { lesson: Lesson }) {
+function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: string }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  
+  // Verificar si existe contenido de transcripción
+  const hasTranscript = lesson?.transcript_content && lesson.transcript_content.trim().length > 0;
+  
+  // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
+  const estimatedReadingTime = lesson?.transcript_content 
+    ? Math.ceil(lesson.transcript_content.split(/\s+/).length / 200)
+    : 0;
+  
+  // Función para descargar la transcripción
+  const handleDownloadTranscript = () => {
+    if (!lesson?.transcript_content) return;
+    
+    const blob = new Blob([lesson.transcript_content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transcripcion-${lesson.lesson_title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+  
+  // Función para copiar al portapapeles
+  const handleCopyToClipboard = async () => {
+    if (!lesson?.transcript_content) return;
+    
+    try {
+      await navigator.clipboard.writeText(lesson.transcript_content);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000); // Reset después de 2 segundos
+    } catch (error) {
+      console.error('Error al copiar al portapapeles:', error);
+      alert('Error al copiar al portapapeles');
+    }
+  };
+  
+  // Función para guardar en notas
+  const handleSaveToNotes = async () => {
+    if (!lesson?.transcript_content) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Preparar payload según el formato que espera la API REST
+      const notePayload = {
+        note_title: `Transcripción: ${lesson?.lesson_title}`,
+        note_content: lesson.transcript_content,
+        note_tags: ['transcripción', 'automática'],
+        source_type: 'manual' // Usar valor válido según la restricción de la BD
+      };
+
+      console.log('=== DEBUG TRANSCRIPCIÓN ===');
+      console.log('Enviando payload de nota:', notePayload);
+      console.log('URL de la API:', `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`);
+
+      const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(notePayload)
+      });
+      
+      console.log('Respuesta del servidor:', response.status, response.statusText);
+      console.log('Headers de respuesta:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          const responseText = await response.text();
+          console.log('Respuesta del servidor (texto):', responseText);
+          
+          if (responseText) {
+            errorData = JSON.parse(responseText);
+          } else {
+            errorData = { error: 'Respuesta vacía del servidor' };
+          }
+        } catch (parseError) {
+          console.error('Error al parsear respuesta JSON:', parseError);
+          errorData = { error: 'Error al procesar respuesta del servidor' };
+        }
+        
+        console.error('Error detallado del servidor:', errorData);
+        alert(`Error al guardar la transcripción en notas:\n\n${errorData.error || 'Error desconocido'}\n\nDetalles: ${errorData.message || 'Sin detalles adicionales'}\n\nCódigo de estado: ${response.status}`);
+        return;
+      }
+      
+      const newNote = await response.json();
+      console.log('Nota creada exitosamente:', newNote);
+      console.log('=== FIN DEBUG ===');
+      
+      // Mostrar mensaje de éxito
+      alert('✅ Transcripción guardada exitosamente en notas');
+      
+      // Aquí podrías actualizar la lista de notas si es necesario
+      // loadLessonNotes(lesson.lesson_id, slug);
+      
+    } catch (error) {
+      console.error('Error al guardar transcripción en notas:', error);
+      console.log('=== FIN DEBUG (ERROR) ===');
+      alert(`❌ Error al guardar la transcripción en notas:\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nRevisa la consola para más detalles.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  if (!lesson) {
   return (
+      <div className="space-y-6">
     <div>
-      <h2 className="text-2xl font-bold text-white mb-4">Transcripción del Video - {lesson.lesson_title}</h2>
-      <div className="bg-carbon-600 rounded-lg p-6">
-        <p className="text-white/70 text-center py-8">
-          Esta lección aún no tiene transcripción disponible
+          <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
+        </div>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Selecciona una lección</h3>
+          <p className="text-slate-400">
+            Selecciona una lección del panel izquierdo para ver su transcripción
         </p>
       </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
+        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+      </div>
+      
+      {hasTranscript ? (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+          {/* Header de la transcripción */}
+          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <ScrollText className="w-5 h-5 text-blue-400" />
+                <h3 className="text-white font-semibold">Transcripción Completa</h3>
+              </div>
+              <div className="flex items-center space-x-4 text-sm text-slate-400">
+                <span>{lesson.transcript_content?.length || 0} caracteres</span>
+                <span>•</span>
+                <span>{estimatedReadingTime} min lectura</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contenido de la transcripción */}
+          <div className="p-6">
+            <div className="prose prose-invert max-w-none">
+              <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                {lesson.transcript_content}
+              </div>
+            </div>
+          </div>
+          
+          {/* Footer con acciones */}
+          <div className="bg-carbon-700 px-6 py-4 border-t border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={handleCopyToClipboard}
+                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  <span className="text-sm">{isCopied ? 'Copiado!' : 'Copiar'}</span>
+                </button>
+                <button 
+                  onClick={handleDownloadTranscript}
+                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg"
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span className="text-sm">Descargar</span>
+                </button>
+                <button 
+                  onClick={handleSaveToNotes}
+                  disabled={isSaving}
+                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+                  <span className="text-sm">{isSaving ? 'Guardando...' : 'Guardar en notas'}</span>
+                </button>
+              </div>
+              <div className="text-xs text-slate-500">
+                Última actualización: {new Date().toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Transcripción no disponible</h3>
+          <p className="text-slate-400 mb-4">
+            Esta lección aún no tiene transcripción disponible. La transcripción se agregará próximamente.
+          </p>
+          <div className="text-sm text-slate-500">
+            <p>• Verifica que el video tenga audio</p>
+            <p>• La transcripción se genera automáticamente</p>
+            <p>• Contacta al instructor si necesitas ayuda</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
