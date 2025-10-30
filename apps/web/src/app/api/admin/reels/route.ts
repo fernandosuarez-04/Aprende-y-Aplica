@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
     const bodyRaw = await request.json()
     const body = CreateReelSchema.parse({
       ...bodyRaw,
-      author_id: bodyRaw.created_by || auth.userId
+      created_by: bodyRaw.created_by || auth.userId
     })
     
-    console.log('🔄 Creando nuevo reel con datos:', JSON.stringify(body, null, 2))
+    console.log('🔄 Creando nuevo reel con datos validados:', JSON.stringify(body, null, 2))
 
     const { data: newReel, error } = await supabase
       .from('reels')

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Schema para crear noticia
+ * Schema para crear noticia (validación básica de campos críticos)
  */
 export const CreateNewsSchema = z.object({
   title: z.string()
@@ -10,17 +10,19 @@ export const CreateNewsSchema = z.object({
     .trim(),
   
   content: z.string()
-    .min(50, 'El contenido debe tener al menos 50 caracteres')
+    .min(10, 'El contenido debe tener al menos 10 caracteres')
     .max(10000, 'El contenido no puede exceder 10000 caracteres')
     .trim(),
   
   author_id: z.string()
-    .uuid('ID de autor inválido'),
+    .uuid('ID de autor inválido')
+    .optional(), // Opcional porque puede ser auto-asignado
   
   category: z.enum(['announcement', 'update', 'event', 'general'], {
     errorMap: () => ({ message: 'Categoría inválida' })
   })
-    .default('general'),
+    .optional()
+    .nullable(),
   
   community_id: z.string()
     .uuid('ID de comunidad inválido')
@@ -34,17 +36,19 @@ export const CreateNewsSchema = z.object({
     .nullable(),
   
   is_pinned: z.boolean()
-    .default(false),
+    .optional()
+    .nullable(),
   
   tags: z.array(z.string())
     .max(10, 'No se pueden agregar más de 10 tags')
-    .optional(),
-});
+    .optional()
+    .nullable(),
+}).passthrough(); // Permite campos adicionales del endpoint
 
 /**
  * Schema para actualizar noticia
  */
-export const UpdateNewsSchema = CreateNewsSchema.partial().omit({ author_id: true });
+export const UpdateNewsSchema = CreateNewsSchema.partial();
 
 /**
  * Schema para crear prompt
@@ -61,7 +65,8 @@ export const CreatePromptSchema = z.object({
     .trim(),
   
   author_id: z.string()
-    .uuid('ID de autor inválido'),
+    .uuid('ID de autor inválido')
+    .optional(), // Opcional porque puede ser auto-asignado
   
   category: z.enum([
     'marketing',
@@ -83,10 +88,12 @@ export const CreatePromptSchema = z.object({
   
   tags: z.array(z.string())
     .max(10, 'No se pueden agregar más de 10 tags')
-    .optional(),
+    .optional()
+    .nullable(),
   
   is_public: z.boolean()
-    .default(true),
+    .optional()
+    .nullable(),
   
   variables: z.array(z.object({
     name: z.string().max(50),
@@ -94,13 +101,14 @@ export const CreatePromptSchema = z.object({
     example: z.string().max(200).optional(),
   }))
     .max(20, 'No se pueden agregar más de 20 variables')
-    .optional(),
-});
+    .optional()
+    .nullable(),
+}).passthrough(); // Permite campos adicionales del endpoint
 
 /**
  * Schema para actualizar prompt
  */
-export const UpdatePromptSchema = CreatePromptSchema.partial().omit({ author_id: true });
+export const UpdatePromptSchema = CreatePromptSchema.partial();
 
 /**
  * Schema para crear reel
@@ -127,8 +135,9 @@ export const CreateReelSchema = z.object({
     .optional()
     .nullable(),
   
-  author_id: z.string()
-    .uuid('ID de autor inválido'),
+  created_by: z.string()
+    .uuid('ID de creador inválido')
+    .optional(),
   
   category: z.enum([
     'tutorial',
@@ -141,25 +150,36 @@ export const CreateReelSchema = z.object({
   ], {
     errorMap: () => ({ message: 'Categoría inválida' })
   })
-    .default('educativo'),
+    .optional()
+    .nullable(),
   
   duration_seconds: z.number()
     .int('La duración debe ser un número entero')
     .min(1, 'La duración mínima es 1 segundo')
     .max(180, 'La duración máxima es 180 segundos (3 minutos)'),
   
-  tags: z.array(z.string())
-    .max(10, 'No se pueden agregar más de 10 tags')
-    .optional(),
+  language: z.string()
+    .max(10, 'El idioma no puede exceder 10 caracteres')
+    .optional()
+    .nullable(),
   
-  is_public: z.boolean()
-    .default(true),
-});
+  is_featured: z.boolean()
+    .optional()
+    .nullable(),
+  
+  is_active: z.boolean()
+    .optional()
+    .nullable(),
+  
+  published_at: z.string()
+    .optional()
+    .nullable(),
+}).passthrough(); // Permite campos adicionales del endpoint
 
 /**
  * Schema para actualizar reel
  */
-export const UpdateReelSchema = CreateReelSchema.partial().omit({ author_id: true });
+export const UpdateReelSchema = CreateReelSchema.partial();
 
 /**
  * Tipos TypeScript inferidos

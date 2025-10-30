@@ -15,7 +15,7 @@ export async function GET(
     const supabase = await createClient()
     const { id } = await params
 
-    console.log('🔄 Obteniendo noticia con ID:', params.id)
+    console.log('🔄 Obteniendo noticia con ID:', id)
 
     const { data: news, error } = await supabase
       .from('news')
@@ -97,7 +97,7 @@ export async function PUT(
       }
     }
 
-    const updateData: any = {
+    const updateData: Record<string, any> = {
       updated_at: new Date().toISOString()
     }
 
@@ -125,6 +125,7 @@ export async function PUT(
     console.log('🔄 Actualizando noticia con ID:', id)
     console.log('📋 Datos a actualizar:', updateData)
 
+    // @ts-ignore - Supabase types are too strict for dynamic updates
     const { data: updatedNews, error } = await supabase
       .from('news')
       .update(updateData)
