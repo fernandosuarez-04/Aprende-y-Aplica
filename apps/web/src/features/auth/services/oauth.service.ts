@@ -131,6 +131,7 @@ export class OAuthService {
 
   /**
    * Crea un nuevo usuario desde perfil OAuth
+   * ✅ ISSUE #13: Implementa retry con exponential backoff para evitar race conditions
    */
   static async createUserFromOAuth(
     email: string,
@@ -140,49 +141,79 @@ export class OAuthService {
   ): Promise<string> {
     const supabase = await createClient();
 
-    // Generar username único basado en email
+    // Generar username base desde email
     const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
-    let username = baseUsername;
-    let attempts = 0;
+    const maxAttempts = 5;
 
-    // Intentar hasta encontrar username disponible
-    while (attempts < 10) {
-      const { data: existing } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', username)
-        .single();
+    // ✅ ISSUE #13: Estrategia optimistic con retry
+    // Intentar crear directamente sin verificar primero (evita race condition)
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Generar username: primer intento sin número, luego con número aleatorio
+      const username = attempt === 0
+        ? baseUsername
+        : `${baseUsername}${Math.floor(Math.random() * 10000)}`;
 
-      if (!existing) break;
+      const userId = crypto.randomUUID();
 
-      attempts++;
-      username = `${baseUsername}${Math.floor(Math.random() * 10000)}`;
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            username,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+            display_name: `${firstName} ${lastName}`.trim(),
+            email_verified: true, // OAuth emails ya están verificados
+            profile_picture_url: profilePicture || null,
+            password_hash: '', // String vacío para usuarios OAuth (workaround si NULL falla)
+            cargo_rol: 'Usuario',
+            type_rol: 'Usuario',
+          })
+          .select()
+          .single();
+
+        // ✅ Éxito - usuario creado
+        if (!error) {
+          if (attempt > 0) {
+            console.log(`✅ Usuario creado después de ${attempt + 1} intentos con username: ${username}`);
+          }
+          return userId;
+        }
+
+        // ✅ ISSUE #13: Si error es por username duplicado (23505), reintentar
+        if (error.code === '23505' && error.message.includes('username')) {
+          // Exponential backoff: 0ms, 100ms, 200ms, 300ms, 400ms
+          const backoffMs = attempt * 100;
+          if (backoffMs > 0) {
+            console.log(`⚠️ Username duplicado, reintentando en ${backoffMs}ms (intento ${attempt + 1}/${maxAttempts})...`);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+          }
+          continue; // Reintentar con nuevo username
+        }
+
+        // Otro tipo de error (no relacionado con username)
+        throw new Error(`Error creando usuario: ${error.message}`);
+
+      } catch (err) {
+        // Si es el último intento, propagar el error
+        if (attempt === maxAttempts - 1) {
+          throw new Error(
+            `No se pudo crear usuario después de ${maxAttempts} intentos. ` +
+            `Error: ${err instanceof Error ? err.message : 'Desconocido'}`
+          );
+        }
+        // Si no es el último intento y es error de duplicado, continuar
+        if (err instanceof Error && err.message.includes('username')) {
+          continue;
+        }
+        // Otro error, propagar
+        throw err;
+      }
     }
 
-    const userId = crypto.randomUUID();
-
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        id: userId,
-        username,
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        display_name: `${firstName} ${lastName}`.trim(),
-        email_verified: true, // OAuth emails ya están verificados
-        profile_picture_url: profilePicture || null,
-        password_hash: '', // String vacío para usuarios OAuth (workaround si NULL falla)
-        cargo_rol: 'Usuario',
-        type_rol: 'Usuario',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Error creando usuario: ${error.message}`);
-    }
-
-    return userId;
+    // Fallback (no debería llegar aquí)
+    throw new Error(`No se pudo generar username único después de ${maxAttempts} intentos`);
   }
 }

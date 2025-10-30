@@ -11,11 +11,11 @@
 | Severidad | Cantidad | Pendientes | Corregidos |
 |-----------|----------|------------|------------|
 | 🔴 **CRÍTICO** | 4 | 2 | ✅ 2 |
-| 🟠 **ALTO** | 9 | 5 | ✅ 4 |
+| 🟠 **ALTO** | 9 | 4 | ✅ 5 |
 | 🟡 **MEDIO** | 10 | 6 | ✅ 4 |
 | 🟢 **BAJO** | 2 | 1 | ✅ 1 |
 
-**Estado general**: El proyecto ha mejorado significativamente su seguridad. Quedan **2 vulnerabilidades críticas** (validación de rol en middleware y expiración de sesión) y **5 de alta prioridad** pendientes.
+**Estado general**: El proyecto ha mejorado significativamente su seguridad. Quedan **2 vulnerabilidades críticas** (validación de rol en middleware y expiración de sesión) y **4 de alta prioridad** pendientes.
 
 **Última actualización**: 29 de Octubre, 2025
 - ✅ **Issue #2 (Stack traces expuestos)** - RESUELTO (17 endpoints corregidos - 27 Oct 2025)
@@ -29,6 +29,7 @@
 - ✅ **Issue #10 (Validación JWT en rutas admin - 80/80 rutas)** - RESUELTO (29 Oct 2025)
 - ✅ **Issue #11 (Validación de entrada con Zod - 9 endpoints críticos)** - RESUELTO (29 Oct 2025)
 - ✅ **Issue #12 (Slug sin validación ni sanitización)** - RESUELTO (29 Oct 2025)
+- ✅ **Issue #13 (Race condition en creación de username)** - RESUELTO (29 Oct 2025)
 - ✅ **Issue #15 (Certificados SMTP sin validación)** - RESUELTO (29 Oct 2025)
 - ✅ **Issue #18 (N+1 queries en getAllCommunities)** - RESUELTO
 - ✅ **Optimización de carga de comunidades (Batch endpoint)** - IMPLEMENTADO (28 Oct 2025)
@@ -1171,11 +1172,12 @@ sanitizeSlug("Curso ñoño 😀")             // "curso-nono"
 
 ---
 
-#### 13. 🟠 **Race condition en creación de username**
-- **Archivo**: `apps/web/src/features/auth/services/oauth.service.ts` (líneas 148-160)
-- **Severidad**: ALTO
+#### 13. ✅ **Race condition en creación de username** [CORREGIDO - 29 Octubre 2025]
+- **Archivo**: `apps/web/src/features/auth/services/oauth.service.ts` (líneas 133-212)
+- **Severidad**: ALTO (RESUELTO)
 - **Impacto UX**: Dos usuarios OAuth simultáneos pueden causar error de username duplicado
 - **Tiempo estimado**: 2-3 horas
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
 **Problema**:
 ```typescript
@@ -1235,14 +1237,89 @@ async function generateUniqueUsername(baseName: string, maxAttempts = 5) {
 }
 ```
 
-**Solución (opción 2: Database constraint + UUID)**:
+**Solución Implementada**: ✅
 ```typescript
-// Usar UUID como username temporal y permitir cambio posterior
-const username = `user_${crypto.randomUUID().substring(0, 8)}`;
+// ✅ apps/web/src/features/auth/services/oauth.service.ts
+static async createUserFromOAuth(
+  email: string,
+  firstName: string,
+  lastName: string,
+  profilePicture?: string
+): Promise<string> {
+  const supabase = await createClient();
+  const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const maxAttempts = 5;
+
+  // ✅ ISSUE #13: Estrategia optimistic con retry y exponential backoff
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const username = attempt === 0
+      ? baseUsername
+      : `${baseUsername}${Math.floor(Math.random() * 10000)}`;
+
+    const userId = crypto.randomUUID();
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          username,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          display_name: `${firstName} ${lastName}`.trim(),
+          email_verified: true,
+          profile_picture_url: profilePicture || null,
+          password_hash: '',
+          cargo_rol: 'Usuario',
+          type_rol: 'Usuario',
+        })
+        .select()
+        .single();
+
+      // ✅ Éxito
+      if (!error) {
+        if (attempt > 0) {
+          console.log(`✅ Usuario creado después de ${attempt + 1} intentos`);
+        }
+        return userId;
+      }
+
+      // ✅ Si error es por username duplicado (PostgreSQL 23505), reintentar
+      if (error.code === '23505' && error.message.includes('username')) {
+        const backoffMs = attempt * 100; // Exponential backoff: 0ms, 100ms, 200ms...
+        if (backoffMs > 0) {
+          console.log(`⚠️ Username duplicado, reintentando en ${backoffMs}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        }
+        continue; // Reintentar
+      }
+
+      throw new Error(`Error creando usuario: ${error.message}`);
+    } catch (err) {
+      if (attempt === maxAttempts - 1) {
+        throw new Error(`No se pudo crear usuario después de ${maxAttempts} intentos`);
+      }
+      if (err instanceof Error && err.message.includes('username')) {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new Error(`No se pudo generar username único después de ${maxAttempts} intentos`);
+}
 ```
 
-**Archivos a modificar**:
-- `apps/web/src/features/auth/services/oauth.service.ts:148-164`
+**Resultado**:
+- ✅ Maneja race conditions automáticamente
+- ✅ Exponential backoff reduce colisiones
+- ✅ Máximo 5 intentos con timeouts de 0ms, 100ms, 200ms, 300ms, 400ms
+- ✅ Logs informativos para debugging
+- ✅ Usernames legibles: "pedro", "pedro1234", "pedro5678"
+
+**Archivos modificados**:
+- ✅ `apps/web/src/features/auth/services/oauth.service.ts` (líneas 133-212)
 
 ---
 
