@@ -168,22 +168,47 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header con navegación */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/30 to-slate-900">
+      {/* Header con navegación mejorado */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50"
+        className="sticky top-0 z-50 bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 -mt-0"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Volver</span>
-            </button>
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.back()}
+                className="flex items-center gap-2 text-white/70 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Volver</span>
+              </button>
+              
+              {/* Icono de empresa y nombre del curso */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+                  <img 
+                    src="/icono.png" 
+                    alt="Aprende y Aplica" 
+                    className="w-6 h-6 rounded"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<div class="w-6 h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-white">{course.title}</h1>
+                  <p className="text-xs text-slate-400">Taller de Aprende y Aplica</p>
+                </div>
+              </div>
+            </div>
             
             <div className="flex items-center gap-3">
               <button

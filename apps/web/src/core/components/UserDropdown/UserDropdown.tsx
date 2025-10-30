@@ -179,7 +179,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+              className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm"
               onClick={() => setIsOpen(false)}
             />
             
@@ -192,7 +192,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                 duration: 0.2,
                 ease: "easeOut"
               }}
-              className="absolute right-0 top-full mt-2 w-96 bg-gray-900 rounded-xl shadow-2xl border-2 border-gray-600 z-50 ring-1 ring-white/10"
+              className="absolute right-0 top-full mt-2 w-96 bg-gray-900 rounded-xl shadow-2xl border-2 border-gray-600 z-[9999] ring-1 ring-white/10"
             >
             {/* Header del usuario */}
             <div className="px-6 py-5 border-b border-gray-600 bg-gray-800/50">
