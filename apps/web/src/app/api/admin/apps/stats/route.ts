@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../../lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
 
     if (totalError) {
-      console.warn('Error counting total apps:', totalError)
+      logger.warn('Error counting total apps:', totalError)
     }
 
     const { count: activeApps, error: activeError } = await supabase
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
 
     if (activeError) {
-      console.warn('Error counting active apps:', activeError)
+      logger.warn('Error counting active apps:', activeError)
     }
 
     const { count: featuredApps, error: featuredError } = await supabase
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
       .eq('is_featured', true)
 
     if (featuredError) {
-      console.warn('Error counting featured apps:', featuredError)
+      logger.warn('Error counting featured apps:', featuredError)
     }
 
     const { count: verifiedApps, error: verifiedError } = await supabase
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
       .eq('is_verified', true)
 
     if (verifiedError) {
-      console.warn('Error counting verified apps:', verifiedError)
+      logger.warn('Error counting verified apps:', verifiedError)
     }
 
     // Obtener estadísticas agregadas
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
 
     if (statsError) {
-      console.warn('Error fetching app stats:', statsError)
+      logger.warn('Error fetching app stats:', statsError)
     }
 
     const stats = statsData || []
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ stats: result })
   } catch (error) {
-    console.error('Unexpected error:', error)
+    logger.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

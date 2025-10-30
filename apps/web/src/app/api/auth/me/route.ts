@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SessionService } from '../../../../features/auth/services/session.service';
 import { cacheHeaders } from '../../../../lib/utils/cache-headers';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET() {
   try {
@@ -23,7 +24,7 @@ export async function GET() {
       headers: cacheHeaders.private // NO cachear - datos de usuario
     });
   } catch (error) {
-    console.error('Error getting current user:', error);
+    logger.error('Error getting current user:', error);
     return NextResponse.json({ 
       success: false, 
       error: 'Error interno' 

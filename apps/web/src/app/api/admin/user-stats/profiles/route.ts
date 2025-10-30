@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -7,9 +8,9 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Iniciando GET /api/admin/user-stats/profiles')
+    logger.log('🔄 Iniciando GET /api/admin/user-stats/profiles')
     const supabase = await createClient()
-    console.log('✅ Supabase client creado')
+    logger.log('✅ Supabase client creado')
     
     // Primero obtener perfiles básicos
     const { data: userProfiles, error: profilesError } = await supabase
@@ -37,11 +38,11 @@ export async function GET() {
       .order('creado_en', { ascending: false })
 
     if (profilesError) {
-      console.error('❌ Error fetching user profiles:', profilesError)
+      logger.error('❌ Error fetching user profiles:', profilesError)
       return NextResponse.json({ error: 'Failed to fetch user profiles', details: profilesError.message }, { status: 500 })
     }
 
-    console.log('✅ User profiles obtenidos:', userProfiles?.length)
+    logger.log('✅ User profiles obtenidos:', userProfiles?.length)
 
     // Obtener datos de lookup tables por separado
     const [rolesResult, nivelesResult, areasResult, relacionesResult, tamanosResult, sectoresResult] = await Promise.all([
@@ -53,7 +54,7 @@ export async function GET() {
       supabase.from('sectores').select('id, nombre, slug')
     ])
 
-    console.log('📊 Lookup tables:', {
+    logger.log('📊 Lookup tables:', {
       roles: rolesResult.data?.length || 0,
       niveles: nivelesResult.data?.length || 0,
       areas: areasResult.data?.length || 0,
@@ -81,11 +82,11 @@ export async function GET() {
       sectores: profile.sector_id ? sectoresMap.get(profile.sector_id) : null
     })) || []
 
-    console.log('✅ Profiles enriquecidos:', enrichedProfiles.length)
-    console.log('🔍 Ejemplo de perfil enriquecido:', enrichedProfiles[0])
+    logger.log('✅ Profiles enriquecidos:', enrichedProfiles.length)
+    logger.log('🔍 Ejemplo de perfil enriquecido:', enrichedProfiles[0])
     return NextResponse.json(enrichedProfiles)
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/user-stats/profiles:', error)
+    logger.error('❌ Error in GET /api/admin/user-stats/profiles:', error)
     return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }

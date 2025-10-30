@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server'
 
 export async function POST(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      console.error('Auth error:', userError)
+      logger.error('Auth error:', userError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       .upload(filePath, file)
 
     if (uploadError) {
-      console.error('Error uploading profile picture:', uploadError)
+      logger.error('Error uploading profile picture:', uploadError)
       return NextResponse.json({ error: 'Error uploading file' }, { status: 500 })
     }
 
@@ -62,13 +63,13 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
 
     if (updateError) {
-      console.error('Error updating profile:', updateError)
+      logger.error('Error updating profile:', updateError)
       return NextResponse.json({ error: 'Error updating profile' }, { status: 500 })
     }
     
     return NextResponse.json({ imageUrl: publicUrl })
   } catch (error) {
-    console.error('Error in upload-picture API:', error)
+    logger.error('Error in upload-picture API:', error)
     return NextResponse.json(
       { 
         error: 'Internal Server Error',

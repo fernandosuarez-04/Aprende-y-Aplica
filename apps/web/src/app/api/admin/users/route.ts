@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { AdminUsersService } from '@/features/admin/services/adminUsers.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -8,14 +9,14 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Cargando usuarios desde API...')
+    logger.log('🔄 Cargando usuarios desde API...')
     
     const [users, stats] = await Promise.all([
       AdminUsersService.getUsers(),
       AdminUsersService.getUserStats()
     ])
 
-    console.log('✅ Usuarios cargados:', users?.length || 0)
+    logger.log('✅ Usuarios cargados:', users?.length || 0)
 
     return NextResponse.json({
       success: true,
@@ -23,7 +24,7 @@ export async function GET() {
       stats: stats || {}
     })
   } catch (error) {
-    console.error('💥 Error in /api/admin/users:', error)
+    logger.error('💥 Error in /api/admin/users:', error)
     return NextResponse.json(
       { 
         success: false,

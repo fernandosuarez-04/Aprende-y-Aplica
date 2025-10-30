@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -7,7 +8,7 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Iniciando GET /api/admin/user-stats/stats/users')
+    logger.log('🔄 Iniciando GET /api/admin/user-stats/stats/users')
     const supabase = await createClient()
     
     // Obtener perfiles de usuario sin relaciones complejas
@@ -27,7 +28,7 @@ export async function GET() {
       `)
 
     if (profilesError) {
-      console.error('❌ Error fetching user profiles for stats:', profilesError)
+      logger.error('❌ Error fetching user profiles for stats:', profilesError)
       return NextResponse.json({ error: 'Failed to fetch user profiles' }, { status: 500 })
     }
 
@@ -116,10 +117,10 @@ export async function GET() {
       usersByCompanySize: usersByCompanySize.sort((a, b) => b.count - a.count)
     }
 
-    console.log('✅ User stats calculadas:', stats)
+    logger.log('✅ User stats calculadas:', stats)
     return NextResponse.json(stats)
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/user-stats/stats/users:', error)
+    logger.error('❌ Error in GET /api/admin/user-stats/stats/users:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

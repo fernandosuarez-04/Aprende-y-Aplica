@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -6,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '6')
     
-    console.log('🔄 Fetching featured reels with limit:', limit)
+    logger.log('🔄 Fetching featured reels with limit:', limit)
     
     const supabase = await createClient()
     
@@ -30,21 +31,21 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(limit)
 
-    console.log('📊 Featured reels query result:', { 
+    logger.log('📊 Featured reels query result:', { 
       count: reels?.length, 
       error: error?.message,
       reels: reels?.map(r => ({ id: r.id, title: r.title, is_active: true }))
     })
 
     if (error) {
-      console.error('Error fetching featured reels:', error)
+      logger.error('Error fetching featured reels:', error)
       return NextResponse.json({ error: 'Failed to fetch featured reels' }, { status: 500 })
     }
 
-    console.log('✅ Returning featured reels:', reels?.length)
+    logger.log('✅ Returning featured reels:', reels?.length)
     return NextResponse.json(reels || [])
   } catch (error) {
-    console.error('Error in GET /api/reels/featured:', error)
+    logger.error('Error in GET /api/reels/featured:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

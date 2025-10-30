@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
       .eq('status', 'published')
 
     if (error) {
-      console.error('Error fetching news stats:', error)
+      logger.error('Error fetching news stats:', error)
       return NextResponse.json(
         { 
           error: 'Error al obtener estadísticas',
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       totalViews
     })
   } catch (error) {
-    console.error('Error in news stats API:', error)
+    logger.error('Error in news stats API:', error)
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

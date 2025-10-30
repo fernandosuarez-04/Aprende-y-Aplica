@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -7,16 +8,16 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Iniciando GET /api/admin/reels/stats')
+    logger.log('🔄 Iniciando GET /api/admin/reels/stats')
     const supabase = await createClient()
-    console.log('✅ Supabase client creado para stats')
+    logger.log('✅ Supabase client creado para stats')
     
     // Obtener estadísticas generales
     const { data: totalReels, error: totalError } = await supabase
       .from('reels')
       .select('id', { count: 'exact' })
 
-    console.log('📊 Total reels:', totalReels?.length, 'Error:', totalError)
+    logger.log('📊 Total reels:', totalReels?.length, 'Error:', totalError)
 
     const { data: activeReels, error: activeError } = await supabase
       .from('reels')
@@ -33,10 +34,10 @@ export async function GET() {
       .from('reels')
       .select('view_count, like_count, share_count, comment_count')
 
-    console.log('📊 Engagement stats:', engagementStats?.length, 'Error:', engagementError)
+    logger.log('📊 Engagement stats:', engagementStats?.length, 'Error:', engagementError)
 
     if (totalError || activeError || featuredError || engagementError) {
-      console.error('❌ Error fetching reel stats:', { totalError, activeError, featuredError, engagementError })
+      logger.error('❌ Error fetching reel stats:', { totalError, activeError, featuredError, engagementError })
       return NextResponse.json({ error: 'Failed to fetch reel stats', details: { totalError, activeError, featuredError, engagementError } }, { status: 500 })
     }
 
@@ -73,11 +74,11 @@ export async function GET() {
       growthPercentage: Math.max(0, Math.min(1000, growthPercentage)) // Clamp between 0 and 1000%
     }
 
-    console.log('📊 Reel stats calculadas:', stats)
+    logger.log('📊 Reel stats calculadas:', stats)
 
     return NextResponse.json(stats)
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/reels/stats:', error)
+    logger.error('❌ Error in GET /api/admin/reels/stats:', error)
     return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }

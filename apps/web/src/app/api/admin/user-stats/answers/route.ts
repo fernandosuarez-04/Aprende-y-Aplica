@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -7,7 +8,7 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Iniciando GET /api/admin/user-stats/answers')
+    logger.log('🔄 Iniciando GET /api/admin/user-stats/answers')
     const supabase = await createClient()
     
     // Obtener respuestas con información del usuario
@@ -32,14 +33,14 @@ export async function GET() {
       .order('respondido_en', { ascending: false })
 
     if (error) {
-      console.error('❌ Error fetching answers:', error)
+      logger.error('❌ Error fetching answers:', error)
       return NextResponse.json({ error: 'Failed to fetch answers', details: error.message }, { status: 500 })
     }
 
-    console.log('✅ Answers obtenidos:', answers?.length)
+    logger.log('✅ Answers obtenidos:', answers?.length)
     return NextResponse.json(answers || [])
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/user-stats/answers:', error)
+    logger.error('❌ Error in GET /api/admin/user-stats/answers:', error)
     return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }

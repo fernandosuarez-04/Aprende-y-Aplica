@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -7,7 +8,7 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Iniciando GET /api/admin/user-stats/lookup/roles')
+    logger.log('🔄 Iniciando GET /api/admin/user-stats/lookup/roles')
     const supabase = await createClient()
     
     const { data: roles, error } = await supabase
@@ -26,14 +27,14 @@ export async function GET() {
       .order('nombre', { ascending: true })
 
     if (error) {
-      console.error('❌ Error fetching roles:', error)
+      logger.error('❌ Error fetching roles:', error)
       return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 })
     }
 
-    console.log('✅ Roles obtenidos:', roles?.length)
+    logger.log('✅ Roles obtenidos:', roles?.length)
     return NextResponse.json(roles || [])
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/user-stats/lookup/roles:', error)
+    logger.error('❌ Error in GET /api/admin/user-stats/lookup/roles:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

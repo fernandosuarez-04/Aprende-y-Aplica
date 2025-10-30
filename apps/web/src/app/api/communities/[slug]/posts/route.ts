@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '../../../../../lib/supabase/server';
-import { cacheHeaders } from '../../../../../lib/utils/cache-headers';
+import { createClient } from '@/lib/supabase/server';
+import { cacheHeaders } from '@/lib/utils/cache-headers';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(
   request: NextRequest,
@@ -10,16 +11,16 @@ export async function GET(
     const supabase = await createClient();
     const { slug } = await params;
     
-    console.log('🔍 Fetching posts for community slug:', slug);
+    logger.log('🔍 Fetching posts for community slug:', slug);
     
     // Obtener el usuario actual usando el sistema de sesiones personalizado
     const { SessionService } = await import('../../../../../features/auth/services/session.service');
     const user = await SessionService.getCurrentUser();
     
     if (!user) {
-      console.log('⚠️ User not authenticated');
+      logger.log('⚠️ User not authenticated');
     } else {
-      console.log('✅ User authenticated:', user.id);
+      logger.log('✅ User authenticated:', user.id);
     }
 
     // Primero obtener la comunidad por slug
@@ -31,14 +32,14 @@ export async function GET(
       .single();
 
     if (communityError || !community) {
-      console.error('❌ Community not found:', communityError);
+      logger.error('❌ Community not found:', communityError);
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 
     // Verificar acceso según el tipo de comunidad
     if (community.access_type === 'invitation_only') {
       if (!user) {
-        console.log('🔒 User not authenticated for private community');
+        logger.log('🔒 User not authenticated for private community');
         return NextResponse.json({ 
           error: 'Debes iniciar sesión para ver esta comunidad',
           requires_auth: true 
@@ -54,7 +55,7 @@ export async function GET(
         .single();
 
       if (!membership) {
-        console.log('🔒 User not member of private community');
+        logger.log('🔒 User not member of private community');
         return NextResponse.json({ 
           error: 'No tienes acceso a esta comunidad',
           requires_membership: true 
@@ -63,7 +64,7 @@ export async function GET(
     } else if (community.slug === 'profesionales') {
       // Lógica especial para Profesionales
       if (!user) {
-        console.log('🔓 Free community: user not authenticated, showing limited content');
+        logger.log('🔓 Free community: user not authenticated, showing limited content');
         // Permitir ver posts pero no crear
       } else {
         // Verificar si el usuario tiene membresía en otras comunidades
@@ -76,13 +77,13 @@ export async function GET(
         const hasOtherMemberships = allMemberships && allMemberships.length > 0;
         
         if (hasOtherMemberships) {
-          console.log('🔒 User has other memberships: blocking access to Profesionales posts');
+          logger.log('🔒 User has other memberships: blocking access to Profesionales posts');
           return NextResponse.json({ 
             error: 'Ya perteneces a otra comunidad',
             requires_membership: true 
           }, { status: 403 });
         } else {
-          console.log('🔓 Free community: authenticated user has access to Profesionales');
+          logger.log('🔓 Free community: authenticated user has access to Profesionales');
         }
       }
     }
@@ -105,15 +106,15 @@ export async function GET(
       .limit(50);
 
     if (postsError) {
-      console.error('❌ Error fetching posts:', postsError);
+      logger.error('❌ Error fetching posts:', postsError);
       return NextResponse.json({ error: 'Error al obtener posts' }, { status: 500 });
     }
 
-    console.log('📊 Found posts:', posts?.length || 0);
+    logger.log('📊 Found posts:', posts?.length || 0);
     
     // Debug: ver todos los attachment_types
     const attachmentTypes = posts?.map(p => p.attachment_type).filter(Boolean);
-    console.log('🔍 Attachment types found:', [...new Set(attachmentTypes)]);
+    logger.log('🔍 Attachment types found:', [...new Set(attachmentTypes)]);
 
     // ✅ OPTIMIZACIÓN: Obtener TODAS las reacciones del usuario en 1 sola query
     let userReactionsMap: Record<string, string> = {};
@@ -140,7 +141,7 @@ export async function GET(
       
       // Debug: verificar datos de encuestas
       if (post.attachment_type === 'poll') {
-        console.log('✅ Poll post found with data:', {
+        logger.log('✅ Poll post found with data:', {
           id: post.id,
           question: post.attachment_data?.question,
           options: post.attachment_data?.options,
@@ -163,7 +164,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ Error in posts API:', error);
+    logger.error('❌ Error in posts API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -278,11 +279,11 @@ export async function POST(
       .single();
 
     if (postError) {
-      console.error('❌ Error creating post:', postError);
+      logger.error('❌ Error creating post:', postError);
       return NextResponse.json({ error: 'Error al crear el post' }, { status: 500 });
     }
 
-    console.log('✅ Post created successfully:', newPost.id);
+    logger.log('✅ Post created successfully:', newPost.id);
 
     return NextResponse.json({
       post: newPost,
@@ -290,7 +291,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('❌ Error in create post API:', error);
+    logger.error('❌ Error in create post API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

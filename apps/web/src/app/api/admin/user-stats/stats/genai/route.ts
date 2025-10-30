@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -7,7 +8,7 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Iniciando GET /api/admin/user-stats/stats/genai')
+    logger.log('🔄 Iniciando GET /api/admin/user-stats/stats/genai')
     const supabase = await createClient()
     
     const { data: genAIAdoption, error } = await supabase
@@ -15,7 +16,7 @@ export async function GET() {
       .select('id, pais, indice_aipi, fuente, fecha_fuente')
 
     if (error) {
-      console.error('❌ Error fetching GenAI adoption for stats:', error)
+      logger.error('❌ Error fetching GenAI adoption for stats:', error)
       return NextResponse.json({ error: 'Failed to fetch GenAI adoption', details: error.message }, { status: 500 })
     }
 
@@ -45,10 +46,10 @@ export async function GET() {
       topCountries
     }
 
-    console.log('✅ GenAI stats calculadas:', stats)
+    logger.log('✅ GenAI stats calculadas:', stats)
     return NextResponse.json(stats)
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/user-stats/stats/genai:', error)
+    logger.error('❌ Error in GET /api/admin/user-stats/stats/genai:', error)
     return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }

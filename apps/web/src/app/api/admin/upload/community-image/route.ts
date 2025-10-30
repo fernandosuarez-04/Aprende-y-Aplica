@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { formatApiError, logError } from '@/core/utils/api-errors'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
@@ -8,13 +9,13 @@ export async function POST(request: NextRequest) {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('📤 Iniciando subida de imagen...')
+    logger.log('📤 Iniciando subida de imagen...')
     
     const formData = await request.formData()
     const file = formData.get('file') as File
     const communityName = formData.get('communityName') as string
 
-    console.log('📋 Datos recibidos:', { 
+    logger.log('📋 Datos recibidos:', { 
       fileName: file?.name, 
       fileSize: file?.size, 
       fileType: file?.type,
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
-    console.log('🔗 Cliente Supabase creado')
+    logger.log('🔗 Cliente Supabase creado')
 
     // Generar nombre único para el archivo
     const timestamp = Date.now()
@@ -67,24 +68,24 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split('.').pop()
     const fileName = `${sanitizedName}-${timestamp}.${fileExtension}`
 
-    console.log('📝 Nombre de archivo generado:', fileName)
+    logger.log('📝 Nombre de archivo generado:', fileName)
 
     // Convertir File a Buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    console.log('🔄 Buffer creado, tamaño:', buffer.length)
+    logger.log('🔄 Buffer creado, tamaño:', buffer.length)
 
     // Verificar que el bucket existe
     const { data: buckets, error: bucketError } = await supabase.storage.listBuckets()
-    console.log('🪣 Buckets disponibles:', buckets?.map(b => b.name))
+    logger.log('🪣 Buckets disponibles:', buckets?.map(b => b.name))
     
     if (bucketError) {
-      console.error('Error listando buckets:', bucketError)
+      logger.error('Error listando buckets:', bucketError)
     }
 
     // Subir el archivo al bucket community-images
-    console.log('⬆️ Subiendo archivo...')
+    logger.log('⬆️ Subiendo archivo...')
     const { data, error } = await supabase.storage
       .from('community-images')
       .upload(fileName, buffer, {
@@ -104,14 +105,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ Archivo subido exitosamente:', data.path)
+    logger.log('✅ Archivo subido exitosamente:', data.path)
 
     // Obtener la URL pública del archivo
     const { data: urlData } = supabase.storage
       .from('community-images')
       .getPublicUrl(data.path)
 
-    console.log('🔗 URL generada:', urlData.publicUrl)
+    logger.log('🔗 URL generada:', urlData.publicUrl)
 
     return NextResponse.json({
       success: true,

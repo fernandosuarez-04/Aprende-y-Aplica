@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { handleGoogleCallback } from '@/features/auth/actions/oauth';
 
 /**
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Solo es un error real si llegamos aquí
-    console.error('Error en callback route:', error);
+    logger.error('Error en callback route:', error);
 
     return NextResponse.redirect(
       new URL('/auth?error=callback_error', request.url)

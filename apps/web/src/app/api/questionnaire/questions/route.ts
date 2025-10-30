@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
@@ -6,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase no configurado - usando datos mock');
+  logger.warn('Supabase no configurado - usando datos mock');
 }
 
 const supabase = supabaseUrl && supabaseAnonKey 
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError) {
-      console.error('Error de autenticación:', authError);
+      logger.error('Error de autenticación:', authError);
       return NextResponse.json(
         { error: 'Error de autenticación. Por favor inicia sesión nuevamente.' },
         { status: 401 }
@@ -40,14 +41,14 @@ export async function GET(request: NextRequest) {
     }
     
     if (!user) {
-      console.warn('Usuario no autenticado');
+      logger.warn('Usuario no autenticado');
       return NextResponse.json(
         { error: 'Usuario no autenticado. Por favor inicia sesión.' },
         { status: 401 }
       );
     }
     
-    console.log('Usuario autenticado:', user.id);
+    logger.log('Usuario autenticado:', user.id);
 
     // Obtener perfil del usuario
     const { data: userProfile, error: profileError } = await supabase
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     // Si no hay perfil, retornar error
     if (profileError || !userProfile) {
-      console.error('Error fetching user profile:', profileError);
+      logger.error('Error fetching user profile:', profileError);
       return NextResponse.json(
         { error: 'Perfil de usuario no encontrado. Por favor completa tu perfil profesional primero.' },
         { status: 404 }
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
       .order('id', { ascending: true });
 
     if (questionsError) {
-      console.error('Error fetching questions:', questionsError);
+      logger.error('Error fetching questions:', questionsError);
       return NextResponse.json(
         { error: 'Error al obtener las preguntas' },
         { status: 500 }
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
       .eq('user_perfil_id', userProfile.id);
 
     if (answersError) {
-      console.error('Error fetching existing answers:', answersError);
+      logger.error('Error fetching existing answers:', answersError);
     }
 
     // Mapear respuestas existentes
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in questionnaire API:', error);
+    logger.error('Error in questionnaire API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

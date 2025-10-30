@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -17,8 +18,8 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('id, cargo_rol, display_name, first_name, last_name, username')
 
-    console.log('🔍 Todos los usuarios:', allUsers?.slice(0, 5))
-    console.log('🔍 Valores únicos de cargo_rol:', [...new Set(allUsers?.map(u => u.cargo_rol))])
+    logger.log('🔍 Todos los usuarios:', allUsers?.slice(0, 5))
+    logger.log('🔍 Valores únicos de cargo_rol:', [...new Set(allUsers?.map(u => u.cargo_rol))])
 
     // Obtener todos los instructores y administradores (probar con diferentes variaciones)
     const { data: instructors, error } = await supabase
@@ -28,10 +29,10 @@ export async function GET(request: NextRequest) {
       .order('cargo_rol', { ascending: true })
       .order('display_name', { ascending: true })
 
-    console.log('🔍 Instructores encontrados:', instructors)
+    logger.log('🔍 Instructores encontrados:', instructors)
 
     if (error) {
-      console.error('Error fetching instructors:', error)
+      logger.error('Error fetching instructors:', error)
       return NextResponse.json(
         { error: 'Error al obtener instructores', details: error.message },
         { status: 500 }
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
             'Usuario sin nombre'
     }))
 
-    console.log('✅ Instructores formateados:', formattedInstructors)
+    logger.log('✅ Instructores formateados:', formattedInstructors)
 
     return NextResponse.json({
       success: true,
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error in GET /api/admin/instructors:', error)
+    logger.error('Error in GET /api/admin/instructors:', error)
     return NextResponse.json(
       { 
         success: false,

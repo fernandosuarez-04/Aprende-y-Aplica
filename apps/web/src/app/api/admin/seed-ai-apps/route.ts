@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -36,7 +37,7 @@ export async function POST() {
       .select()
 
     if (categoriesError) {
-      console.error('Error creando categorías:', categoriesError)
+      logger.error('Error creando categorías:', categoriesError)
       return NextResponse.json({ error: 'Error creando categorías' }, { status: 500 })
     }
 
@@ -151,7 +152,7 @@ export async function POST() {
       .select()
 
     if (appsError) {
-      console.error('Error creando apps:', appsError)
+      logger.error('Error creando apps:', appsError)
       return NextResponse.json({ error: 'Error creando apps' }, { status: 500 })
     }
 
@@ -162,7 +163,7 @@ export async function POST() {
     })
 
   } catch (error) {
-    console.error('Error en seed:', error)
+    logger.error('Error en seed:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

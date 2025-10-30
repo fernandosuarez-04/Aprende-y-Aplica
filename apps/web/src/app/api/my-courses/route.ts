@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '../lib/utils/logger';
 import { SessionService } from '@/features/auth/services/session.service';
 import { PurchasedCoursesService } from '@/features/courses/services/purchased-courses.service';
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(courses);
   } catch (error) {
-    console.error('Error in my-courses API:', error);
+    logger.error('Error in my-courses API:', error);
     return NextResponse.json(
       { 
         error: 'Error al obtener tus cursos',

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 
 export async function POST(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
         .eq('is_active', true);
 
       if (allMembershipsError) {
-        console.error('Error checking all memberships:', allMembershipsError);
+        logger.error('Error checking all memberships:', allMembershipsError);
         return NextResponse.json({ error: 'Error al verificar membresías' }, { status: 500 });
       }
 
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (membershipError && membershipError.code !== 'PGRST116') {
-      console.error('Error checking membership:', membershipError);
+      logger.error('Error checking membership:', membershipError);
       return NextResponse.json({ error: 'Error al verificar membresía' }, { status: 500 });
     }
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (joinError) {
-      console.error('Error joining community:', joinError);
+      logger.error('Error joining community:', joinError);
       return NextResponse.json({ error: 'Error al unirse a la comunidad' }, { status: 500 });
     }
 
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
       .eq('id', communityId);
 
     if (updateError) {
-      console.error('Error updating member count:', updateError);
+      logger.error('Error updating member count:', updateError);
       // No fallar la operación por esto, solo logear
     }
 
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in join community API:', error);
+    logger.error('Error in join community API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

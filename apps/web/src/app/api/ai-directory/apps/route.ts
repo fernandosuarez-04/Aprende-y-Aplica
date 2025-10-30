@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 
 export async function GET(request: NextRequest) {
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
     const { data: apps, error } = await query;
 
     if (error) {
-      console.error('Error fetching apps:', error);
+      logger.error('Error fetching apps:', error);
       return NextResponse.json(
         { error: 'Failed to fetch apps' },
         { status: 500 }
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
     const { count, error: countError } = await countQuery;
 
     if (countError) {
-      console.error('Error fetching count:', countError);
+      logger.error('Error fetching count:', countError);
       return NextResponse.json(
         { error: 'Failed to fetch count' },
         { status: 500 }
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Unexpected error:', error);
+    logger.error('Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

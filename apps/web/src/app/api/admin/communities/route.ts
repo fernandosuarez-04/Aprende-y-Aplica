@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { cacheHeaders } from '@/lib/utils/cache-headers'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * ✅ ISSUE #19: GET con soporte para paginación cursor-based
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
       })
     }
   } catch (error) {
-    console.error('Error fetching admin communities:', error)
+    logger.error('Error fetching admin communities:', error)
     return NextResponse.json(
       { 
         success: false,

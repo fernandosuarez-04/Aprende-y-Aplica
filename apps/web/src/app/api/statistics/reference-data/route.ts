@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 
 export async function GET(request: NextRequest) {
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching reference data:', error);
+    logger.error('Error fetching reference data:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

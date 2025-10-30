@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { cacheHeaders } from '../../../lib/utils/cache-headers';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    console.log('🔍 Fetching communities...');
+    logger.log('🔍 Fetching communities...');
     
     // Obtener el usuario actual usando el sistema de sesiones personalizado
     const { SessionService } = await import('../../../features/auth/services/session.service');
     const user = await SessionService.getCurrentUser();
     
     if (!user) {
-      console.log('⚠️ User not authenticated, showing public communities only');
+      logger.log('⚠️ User not authenticated, showing public communities only');
     } else {
-      console.log('✅ User authenticated:', user.id);
+      logger.log('✅ User authenticated:', user.id);
     }
 
     // Obtener todas las comunidades activas
@@ -26,11 +27,11 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (communitiesError) {
-      console.error('❌ Error fetching communities:', communitiesError);
+      logger.error('❌ Error fetching communities:', communitiesError);
       return NextResponse.json({ error: 'Error al obtener comunidades' }, { status: 500 });
     }
 
-    console.log('📊 Found communities:', communities?.length || 0);
+    logger.log('📊 Found communities:', communities?.length || 0);
 
     // Si no hay usuario autenticado, retornar comunidades sin enriquecimiento
     if (!user) {
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
         user_role: null
       })) || [];
 
-      console.log('🌐 Returning public communities:', publicCommunities.length);
+      logger.log('🌐 Returning public communities:', publicCommunities.length);
       
       return NextResponse.json({
         communities: publicCommunities,
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true);
 
     if (membershipsError) {
-      console.error('❌ Error fetching memberships:', membershipsError);
+      logger.error('❌ Error fetching memberships:', membershipsError);
     }
 
     // Obtener solicitudes pendientes del usuario
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
       .eq('status', 'pending');
 
     if (requestsError) {
-      console.error('❌ Error fetching pending requests:', requestsError);
+      logger.error('❌ Error fetching pending requests:', requestsError);
     }
 
     // Crear mapas para búsqueda rápida
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
       user_role: membershipMap.get(community.id) || null
     })) || [];
 
-    console.log('✅ Returning enriched communities:', enrichedCommunities.length);
+    logger.log('✅ Returning enriched communities:', enrichedCommunities.length);
 
     return NextResponse.json({
       communities: enrichedCommunities,
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error in communities API:', error);
+    logger.error('❌ Error in communities API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

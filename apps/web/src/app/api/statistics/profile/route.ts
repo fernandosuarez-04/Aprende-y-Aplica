@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 
 export async function GET(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
-      console.error('Error fetching user profile:', profileError);
+      logger.error('Error fetching user profile:', profileError);
       return NextResponse.json(
         { error: 'Error al obtener el perfil' },
         { status: 500 }
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(profile);
 
   } catch (error) {
-    console.error('Error in profile GET:', error);
+    logger.error('Error in profile GET:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('Error updating profile:', error);
+        logger.error('Error updating profile:', error);
         return NextResponse.json(
           { error: 'Error al actualizar el perfil' },
           { status: 500 }
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
         .eq('id', user.id);
 
       if (userError) {
-        console.error('Error updating user type_rol:', userError);
+        logger.error('Error updating user type_rol:', userError);
         // No retornamos error aquí para no interrumpir el flujo principal
       }
 
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('Error creating profile:', error);
+        logger.error('Error creating profile:', error);
         return NextResponse.json(
           { error: 'Error al crear el perfil' },
           { status: 500 }
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
         .eq('id', user.id);
 
       if (userError) {
-        console.error('Error updating user type_rol:', userError);
+        logger.error('Error updating user type_rol:', userError);
         // No retornamos error aquí para no interrumpir el flujo principal
       }
 
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('Error in profile POST:', error);
+    logger.error('Error in profile POST:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

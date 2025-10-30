@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '../lib/utils/logger';
 import { createClient } from '../../../lib/supabase/server'
 import { ProfileServerService } from '../../../features/profile/services/profile-server.service'
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const profile = await ProfileServerService.getProfile(user.id)
     return NextResponse.json(profile)
   } catch (error) {
-    console.error('Error in profile GET API:', error)
+    logger.error('Error in profile GET API:', error)
     return NextResponse.json(
       { 
         error: 'Internal Server Error',
@@ -39,7 +40,7 @@ export async function PUT(request: NextRequest) {
     
     return NextResponse.json(updatedProfile)
   } catch (error) {
-    console.error('Error in profile PUT API:', error)
+    logger.error('Error in profile PUT API:', error)
     return NextResponse.json(
       { 
         error: 'Internal Server Error',

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
@@ -11,14 +12,14 @@ export async function GET(request: NextRequest) {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Cargando prompts desde API...')
+    logger.log('🔄 Cargando prompts desde API...')
 
     const [prompts, stats] = await Promise.all([
       AdminPromptsService.getPrompts(),
       AdminPromptsService.getPromptStats()
     ])
 
-    console.log('✅ Prompts cargados:', prompts?.length || 0)
+    logger.log('✅ Prompts cargados:', prompts?.length || 0)
 
     return NextResponse.json({
       success: true,
@@ -44,19 +45,19 @@ export async function POST(request: NextRequest) {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Creando nuevo prompt...')
+    logger.log('🔄 Creando nuevo prompt...')
 
     // ✅ SEGURIDAD: Validar datos de entrada con Zod
     const body = await request.json()
     const promptData = CreatePromptSchema.parse(body)
-    console.log('📋 Datos recibidos:', promptData)
+    logger.log('📋 Datos recibidos:', promptData)
 
     // ✅ SEGURIDAD: Usar ID real del administrador autenticado
     const adminUserId = auth.userId
 
     const newPrompt = await AdminPromptsService.createPrompt(promptData, adminUserId)
 
-    console.log('✅ Prompt creado exitosamente:', newPrompt)
+    logger.log('✅ Prompt creado exitosamente:', newPrompt)
     return NextResponse.json({
       success: true,
       prompt: newPrompt

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     
     const supabase = await createClient();
 
-    console.log('🔄 [POLL MIGRATION] Iniciando migración de encuestas...');
+    logger.log('🔄 [POLL MIGRATION] Iniciando migración de encuestas...');
 
     // Obtener todos los posts de tipo 'poll'
     const { data: polls, error: pollsError } = await supabase
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       .eq('attachment_type', 'poll');
 
     if (pollsError) {
-      console.error('Error obteniendo encuestas:', pollsError);
+      logger.error('Error obteniendo encuestas:', pollsError);
       return NextResponse.json({ error: 'Error obteniendo encuestas' }, { status: 500 });
     }
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`📊 [POLL MIGRATION] Encontradas ${polls.length} encuestas`);
+    logger.log(`📊 [POLL MIGRATION] Encontradas ${polls.length} encuestas`);
 
     let migratedCount = 0;
     const errors: string[] = [];
@@ -48,16 +49,16 @@ export async function GET(request: NextRequest) {
 
         // Verificar si ya tiene la estructura correcta
         if (pollData.votes && typeof pollData.votes === 'object') {
-          console.log(`✅ [POLL MIGRATION] Encuesta ${poll.id} ya tiene estructura correcta`);
+          logger.log(`✅ [POLL MIGRATION] Encuesta ${poll.id} ya tiene estructura correcta`);
           continue;
         }
 
         // La encuesta necesita migración
-        console.log(`🔧 [POLL MIGRATION] Migrando encuesta ${poll.id}...`);
+        logger.log(`🔧 [POLL MIGRATION] Migrando encuesta ${poll.id}...`);
 
         // Verificar que tenga options
         if (!pollData.options || !Array.isArray(pollData.options)) {
-          console.warn(`⚠️ [POLL MIGRATION] Encuesta ${poll.id} no tiene options válidas`);
+          logger.warn(`⚠️ [POLL MIGRATION] Encuesta ${poll.id} no tiene options válidas`);
           errors.push(`Poll ${poll.id}: No options array`);
           continue;
         }
@@ -85,21 +86,21 @@ export async function GET(request: NextRequest) {
           .eq('id', poll.id);
 
         if (updateError) {
-          console.error(`❌ [POLL MIGRATION] Error actualizando ${poll.id}:`, updateError);
+          logger.error(`❌ [POLL MIGRATION] Error actualizando ${poll.id}:`, updateError);
           errors.push(`Poll ${poll.id}: ${updateError.message}`);
           continue;
         }
 
         migratedCount++;
-        console.log(`✅ [POLL MIGRATION] Encuesta ${poll.id} migrada exitosamente`);
+        logger.log(`✅ [POLL MIGRATION] Encuesta ${poll.id} migrada exitosamente`);
 
       } catch (error) {
-        console.error(`❌ [POLL MIGRATION] Error procesando poll ${poll.id}:`, error);
+        logger.error(`❌ [POLL MIGRATION] Error procesando poll ${poll.id}:`, error);
         errors.push(`Poll ${poll.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
-    console.log(`🎉 [POLL MIGRATION] Migración completa: ${migratedCount}/${polls.length} encuestas migradas`);
+    logger.log(`🎉 [POLL MIGRATION] Migración completa: ${migratedCount}/${polls.length} encuestas migradas`);
 
     return NextResponse.json({
       success: true,
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ [POLL MIGRATION] Error en migración:', error);
+    logger.error('❌ [POLL MIGRATION] Error en migración:', error);
     return NextResponse.json(
       { error: 'Error en migración', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

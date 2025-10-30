@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       })
 
     if (error) {
-      console.error('Error uploading file:', error)
+      logger.error('Error uploading file:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in upload API:', error)
+    logger.error('Error in upload API:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' }, 
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 
 export async function POST(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (membershipError && membershipError.code !== 'PGRST116') {
-      console.error('Error checking membership:', membershipError);
+      logger.error('Error checking membership:', membershipError);
       return NextResponse.json({ error: 'Error al verificar membresía' }, { status: 500 });
     }
 
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (requestError && requestError.code !== 'PGRST116') {
-      console.error('Error checking existing request:', requestError);
+      logger.error('Error checking existing request:', requestError);
       return NextResponse.json({ error: 'Error al verificar solicitud existente' }, { status: 500 });
     }
 
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (createRequestError) {
-      console.error('Error creating access request:', createRequestError);
+      logger.error('Error creating access request:', createRequestError);
       return NextResponse.json({ error: 'Error al crear solicitud de acceso' }, { status: 500 });
     }
 
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in request access API:', error);
+    logger.error('Error in request access API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { cacheHeaders } from '../../../../lib/utils/cache-headers';
+import { logger } from '../../../../lib/utils/logger';
 
 export async function GET(
   request: NextRequest,
@@ -10,16 +11,16 @@ export async function GET(
     const supabase = await createClient();
     const { slug } = await params;
     
-    console.log('🔍 Fetching community detail for slug:', slug);
+    logger.log('🔍 Fetching community detail for slug:', slug);
     
     // Obtener el usuario actual usando el sistema de sesiones personalizado
     const { SessionService } = await import('../../../../features/auth/services/session.service');
     const user = await SessionService.getCurrentUser();
     
     if (!user) {
-      console.log('⚠️ User not authenticated, showing public community info only');
+      logger.log('⚠️ User not authenticated, showing public community info only');
     } else {
-      console.log('✅ User authenticated:', user.id, 'Email:', user.email);
+      logger.log('✅ User authenticated:', user.id, 'Email:', user.email);
     }
 
     // Obtener la comunidad por slug
@@ -31,11 +32,11 @@ export async function GET(
       .single();
 
     if (communityError || !community) {
-      console.error('❌ Community not found:', communityError);
+      logger.error('❌ Community not found:', communityError);
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 
-    console.log('📊 Found community:', community.name, 'ID:', community.id, 'Access type:', community.access_type);
+    logger.log('📊 Found community:', community.name, 'ID:', community.id, 'Access type:', community.access_type);
 
     // Si no hay usuario autenticado, retornar comunidad sin enriquecimiento
     if (!user) {
@@ -46,7 +47,7 @@ export async function GET(
         user_role: null
       };
 
-      console.log('🌐 Returning public community info');
+      logger.log('🌐 Returning public community info');
       
       return NextResponse.json({
         community: publicCommunity
@@ -62,10 +63,10 @@ export async function GET(
       .eq('user_id', user.id)
       .eq('is_active', true);
 
-    console.log('🔍 All user memberships:', allMemberships);
+    logger.log('🔍 All user memberships:', allMemberships);
 
     // Obtener membresía específica en esta comunidad
-    console.log('🔍 Checking membership for user:', user.id, 'in community:', community.id);
+    logger.log('🔍 Checking membership for user:', user.id, 'in community:', community.id);
     
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
@@ -75,10 +76,10 @@ export async function GET(
       .eq('is_active', true)
       .single();
 
-    console.log('📊 Membership query result:', { membership, membershipError });
+    logger.log('📊 Membership query result:', { membership, membershipError });
 
     if (membershipError && membershipError.code !== 'PGRST116') {
-      console.error('❌ Error fetching membership:', membershipError);
+      logger.error('❌ Error fetching membership:', membershipError);
     }
 
     // Obtener solicitud pendiente del usuario
@@ -91,7 +92,7 @@ export async function GET(
       .single();
 
     if (requestError && requestError.code !== 'PGRST116') {
-      console.error('❌ Error fetching pending request:', requestError);
+      logger.error('❌ Error fetching pending request:', requestError);
     }
 
     // Lógica especial para "Profesionales"
@@ -104,12 +105,12 @@ export async function GET(
       
       if (!hasAnyMembership) {
         // Usuario sin comunidad: acceso libre a Profesionales
-        console.log('🔓 User has no memberships: allowing free access to Profesionales');
+        logger.log('🔓 User has no memberships: allowing free access to Profesionales');
         isMember = true;
         userRole = 'member';
       } else {
         // Usuario con comunidad: bloqueado de Profesionales
-        console.log('🔒 User has other memberships: blocking access to Profesionales');
+        logger.log('🔒 User has other memberships: blocking access to Profesionales');
         isMember = false;
         canJoin = false;
       }
@@ -128,7 +129,7 @@ export async function GET(
       can_join: canJoin
     };
 
-    console.log('✅ Returning enriched community:', enrichedCommunity.name);
+    logger.log('✅ Returning enriched community:', enrichedCommunity.name);
 
     return NextResponse.json({
       community: enrichedCommunity
@@ -137,7 +138,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ Error in community detail API:', error);
+    logger.error('❌ Error in community detail API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

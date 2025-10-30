@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '../lib/utils/logger';
 import { createClient } from '@/lib/supabase/server';
 
 // Contextos específicos para diferentes secciones
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
       try {
         response = await callOpenAI(message, contextPrompt, conversationHistory);
       } catch (error) {
-        console.error('Error con OpenAI, usando fallback:', error);
+        logger.error('Error con OpenAI, usando fallback:', error);
         response = generateAIResponse(message, context, conversationHistory, contextPrompt);
       }
     } else {
@@ -103,16 +104,16 @@ export async function POST(request: NextRequest) {
           });
 
         if (dbError) {
-          console.error('Error guardando historial de chat:', dbError);
+          logger.error('Error guardando historial de chat:', dbError);
         }
       } catch (dbError) {
-        console.error('Error guardando historial:', dbError);
+        logger.error('Error guardando historial:', dbError);
       }
     }
 
     return NextResponse.json({ response });
   } catch (error) {
-    console.error('Error en API de chat:', error);
+    logger.error('Error en API de chat:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

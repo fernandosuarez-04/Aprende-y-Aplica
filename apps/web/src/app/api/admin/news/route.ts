@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { CreateNewsSchema } from '@/lib/schemas/content.schema'
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     
     const supabase = await createClient()
 
-    console.log('🔄 Obteniendo todas las noticias para admin...')
+    logger.log('🔄 Obteniendo todas las noticias para admin...')
 
     const { data: news, error } = await supabase
       .from('news')
@@ -38,17 +39,17 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('❌ Error fetching news:', error)
+      logger.error('❌ Error fetching news:', error)
       return NextResponse.json(
         { error: 'Failed to fetch news' },
         { status: 500 }
       )
     }
 
-    console.log('✅ Noticias obtenidas exitosamente:', news?.length || 0)
+    logger.log('✅ Noticias obtenidas exitosamente:', news?.length || 0)
     return NextResponse.json({ news: news || [] })
   } catch (error) {
-    console.error('💥 Unexpected error:', error)
+    logger.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
     })
     
     const body = bodyRaw
-    console.log('🔄 Creando nueva noticia con datos:', JSON.stringify(body, null, 2))
+    logger.log('🔄 Creando nueva noticia con datos:', JSON.stringify(body, null, 2))
 
     // Parsear campos JSON
     const parseJsonField = (field: any) => {
@@ -116,14 +117,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('❌ Error creating news:', error)
+      logger.error('❌ Error creating news:', error)
       return NextResponse.json(
         { error: 'Failed to create news' },
         { status: 500 }
       )
     }
 
-    console.log('✅ Noticia creada exitosamente:', newNews)
+    logger.log('✅ Noticia creada exitosamente:', newNews)
     return NextResponse.json({ news: newNews }, { status: 201 })
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    console.error('💥 Unexpected error:', error)
+    logger.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

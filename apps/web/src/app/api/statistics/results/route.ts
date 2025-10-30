@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
       .eq('user_perfil_id', userProfile.id);
 
     if (responsesError) {
-      console.error('Error al obtener respuestas:', responsesError);
+      logger.error('Error al obtener respuestas:', responsesError);
       return NextResponse.json(
         { error: 'Error al obtener respuestas del usuario' },
         { status: 500 }
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
       .order('indice_aipi', { ascending: false });
 
     if (adoptionError) {
-      console.warn('Error al obtener datos de adopción:', adoptionError);
+      logger.warn('Error al obtener datos de adopción:', adoptionError);
     }
 
     // Procesar datos para el radar
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error en API de estadísticas:', error);
+    logger.error('Error en API de estadísticas:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

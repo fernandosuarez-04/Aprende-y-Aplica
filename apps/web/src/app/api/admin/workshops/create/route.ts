@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { AdminWorkshopsService } from '@/features/admin/services/adminWorkshops.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { CreateWorkshopSchema } from '@/lib/schemas/workshop.schema'
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    console.error('Error in POST /api/admin/workshops/create:', error)
+    logger.error('Error in POST /api/admin/workshops/create:', error)
     return NextResponse.json(
       { error: 'Error al crear taller' },
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -15,13 +16,13 @@ export async function GET() {
       .order('min_empleados', { ascending: true })
 
     if (error) {
-      console.error('Error fetching company sizes:', error)
+      logger.error('Error fetching company sizes:', error)
       return NextResponse.json({ error: 'Failed to fetch company sizes' }, { status: 500 })
     }
 
     return NextResponse.json(companySizes || [])
   } catch (error) {
-    console.error('Error in GET /api/admin/user-stats/lookup/company-sizes:', error)
+    logger.error('Error in GET /api/admin/user-stats/lookup/company-sizes:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

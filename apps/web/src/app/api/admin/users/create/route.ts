@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { AdminUsersService } from '@/features/admin/services/adminUsers.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { CreateUserSchema } from '@/lib/schemas/user.schema'
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    console.error('Error in POST /api/admin/users/create:', error)
+    logger.error('Error in POST /api/admin/users/create:', error)
     return NextResponse.json(
       { error: 'Error al crear usuario' },
       { status: 500 }

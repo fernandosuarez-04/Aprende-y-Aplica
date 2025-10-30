@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { CreateReelData } from '@/features/admin/services/adminReels.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
@@ -10,9 +11,9 @@ export async function GET() {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    console.log('🔄 Iniciando GET /api/admin/reels')
+    logger.log('🔄 Iniciando GET /api/admin/reels')
     const supabase = await createClient()
-    console.log('✅ Supabase client creado')
+    logger.log('✅ Supabase client creado')
     
     const { data: reels, error } = await supabase
       .from('reels')
@@ -38,17 +39,17 @@ export async function GET() {
       `)
       .order('created_at', { ascending: false })
 
-    console.log('📊 Resultado de la consulta:', { reels: reels?.length, error })
+    logger.log('📊 Resultado de la consulta:', { reels: reels?.length, error })
 
     if (error) {
-      console.error('❌ Error fetching reels:', error)
+      logger.error('❌ Error fetching reels:', error)
       return NextResponse.json({ error: 'Failed to fetch reels', details: error.message }, { status: 500 })
     }
 
-    console.log('✅ Reels obtenidos exitosamente:', reels?.length)
+    logger.log('✅ Reels obtenidos exitosamente:', reels?.length)
     return NextResponse.json(reels || [])
   } catch (error) {
-    console.error('❌ Error in GET /api/admin/reels:', error)
+    logger.error('❌ Error in GET /api/admin/reels:', error)
     return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
 }
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       created_by: bodyRaw.created_by || auth.userId
     })
     
-    console.log('🔄 Creando nuevo reel con datos validados:', JSON.stringify(body, null, 2))
+    logger.log('🔄 Creando nuevo reel con datos validados:', JSON.stringify(body, null, 2))
 
     const { data: newReel, error } = await supabase
       .from('reels')
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error creating reel:', error)
+      logger.error('Error creating reel:', error)
       return NextResponse.json({ error: 'Failed to create reel' }, { status: 500 })
     }
 
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    console.error('Error in POST /api/admin/reels:', error)
+    logger.error('Error in POST /api/admin/reels:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

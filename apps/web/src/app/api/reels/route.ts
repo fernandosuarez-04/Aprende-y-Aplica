@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '../lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     const { data: reels, error } = await query
 
-    console.log('📊 Reels query result:', { 
+    logger.log('📊 Reels query result:', { 
       count: reels?.length, 
       error: error?.message,
       sample: reels?.[0] ? {
@@ -52,14 +53,14 @@ export async function GET(request: NextRequest) {
     })
 
     if (error) {
-      console.error('Error fetching reels:', error)
+      logger.error('Error fetching reels:', error)
       return NextResponse.json({ error: 'Failed to fetch reels' }, { status: 500 })
     }
 
-    console.log('✅ Returning reels:', reels?.length)
+    logger.log('✅ Returning reels:', reels?.length)
     return NextResponse.json(reels || [])
   } catch (error) {
-    console.error('Error in GET /api/reels:', error)
+    logger.error('Error in GET /api/reels:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

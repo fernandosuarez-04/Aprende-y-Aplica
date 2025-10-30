@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server'
 import { sanitizeSlug, generateUniqueSlugAsync } from '../../../../lib/slug'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching admin apps:', error)
+      logger.error('Error fetching admin apps:', error)
       return NextResponse.json(
         { error: 'Failed to fetch apps' },
         { status: 500 }
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ apps: apps || [] })
   } catch (error) {
-    console.error('Unexpected error:', error)
+    logger.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     const bodyRaw = await request.json()
     const body = CreateAppSchema.parse(bodyRaw)
     
-    console.log('🔄 Creando nueva app con datos validados:', body)
+    logger.log('🔄 Creando nueva app con datos validados:', body)
     
     // ✅ SEGURIDAD: Sanitizar y generar slug único
     let slug: string;
@@ -152,14 +153,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('❌ Error creating app:', error)
+      logger.error('❌ Error creating app:', error)
       return NextResponse.json(
         { error: 'Failed to create app' },
         { status: 500 }
       )
     }
 
-    console.log('✅ App creada exitosamente:', newApp)
+    logger.log('✅ App creada exitosamente:', newApp)
     return NextResponse.json({ app: newApp }, { status: 201 })
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    console.error('💥 Unexpected error:', error)
+    logger.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

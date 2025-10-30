@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { AdminCoursesService } from '@/features/admin/services/adminCourses.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -14,7 +15,7 @@ export async function GET() {
       courses
     })
   } catch (error) {
-    console.error('Error in GET /api/admin/courses:', error)
+    logger.error('Error in GET /api/admin/courses:', error)
     return NextResponse.json(
       { 
         success: false,

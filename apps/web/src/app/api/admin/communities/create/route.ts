@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
@@ -22,14 +23,14 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
 
-    console.log('🔧 Llamando a AdminCommunitiesService.createCommunity...')
+    logger.log('🔧 Llamando a AdminCommunitiesService.createCommunity...')
     const newCommunity = await AdminCommunitiesService.createCommunity(
       communityData,
       adminUserId,
       { ip, userAgent }
     )
 
-    console.log('✅ Comunidad creada exitosamente:', newCommunity)
+    logger.log('✅ Comunidad creada exitosamente:', newCommunity)
     return NextResponse.json({
       success: true,
       community: newCommunity

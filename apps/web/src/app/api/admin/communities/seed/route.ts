@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -50,7 +51,7 @@ export async function POST() {
       .select()
 
     if (communitiesError) {
-      console.error('Error inserting communities:', communitiesError)
+      logger.error('Error inserting communities:', communitiesError)
       return NextResponse.json({ error: 'Error inserting communities' }, { status: 500 })
     }
 
@@ -87,7 +88,7 @@ export async function POST() {
       .insert(samplePosts)
 
     if (postsError) {
-      console.warn('Error inserting sample posts:', postsError)
+      logger.warn('Error inserting sample posts:', postsError)
     }
 
     return NextResponse.json({
@@ -96,7 +97,7 @@ export async function POST() {
       communities: communities.length
     })
   } catch (error) {
-    console.error('Error in seed endpoint:', error)
+    logger.error('Error in seed endpoint:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

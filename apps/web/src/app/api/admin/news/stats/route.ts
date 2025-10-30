@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../../lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
     
     const supabase = await createClient()
 
-    console.log('🔄 Obteniendo estadísticas de noticias...')
+    logger.log('🔄 Obteniendo estadísticas de noticias...')
 
     // Obtener todas las noticias con sus métricas
     const { data: allNews, error: newsError } = await supabase
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
       .select('id, status, metrics')
 
     if (newsError) {
-      console.error('❌ Error fetching news for stats:', newsError)
+      logger.error('❌ Error fetching news for stats:', newsError)
       return NextResponse.json(
         { error: 'Failed to fetch news stats' },
         { status: 500 }
@@ -52,10 +53,10 @@ export async function GET(request: NextRequest) {
       averageViews
     }
 
-    console.log('✅ Estadísticas de noticias calculadas:', stats)
+    logger.log('✅ Estadísticas de noticias calculadas:', stats)
     return NextResponse.json({ stats })
   } catch (error) {
-    console.error('💥 Unexpected error:', error)
+    logger.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
