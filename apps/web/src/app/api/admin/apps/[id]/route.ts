@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { UpdateAppSchema } from '@/lib/schemas/app.schema'
+import { z } from 'zod'
 
 export async function GET(
   request: NextRequest,
@@ -87,7 +89,10 @@ export async function PUT(
     
     const { id } = await params
     const supabase = await createClient()
-    const body = await request.json()
+    
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const bodyRaw = await request.json()
+    const body = UpdateAppSchema.parse(bodyRaw)
     
     const updateData: any = {
       updated_at: new Date().toISOString()
@@ -143,6 +148,18 @@ export async function PUT(
     console.log('✅ App actualizada exitosamente:', updatedApp)
     return NextResponse.json({ app: updatedApp })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

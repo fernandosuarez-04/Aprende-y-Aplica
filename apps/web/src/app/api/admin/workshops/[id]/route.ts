@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminWorkshopsService } from '@/features/admin/services/adminWorkshops.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { UpdateWorkshopSchema } from '@/lib/schemas/workshop.schema'
+import { z } from 'zod'
 
 export async function PUT(
   request: NextRequest,
@@ -12,7 +14,10 @@ export async function PUT(
     if (auth instanceof NextResponse) return auth
     
     const { id: workshopId } = await params
-    const workshopData = await request.json()
+    
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const workshopData = UpdateWorkshopSchema.parse(body)
     
     // ✅ SEGURIDAD: Usar ID real del administrador autenticado
     const adminUserId = auth.userId
@@ -33,6 +38,18 @@ export async function PUT(
       workshop: updatedWorkshop
     })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('Error in PUT /api/admin/workshops/[id]:', error)
     return NextResponse.json(
       { error: 'Error al actualizar taller' },

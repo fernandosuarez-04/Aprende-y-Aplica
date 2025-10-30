@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { sanitizeSlug, generateUniqueSlugAsync } from '../../../../lib/slug'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { CreateAppSchema } from '@/lib/schemas/app.schema'
+import { z } from 'zod'
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,9 +83,12 @@ export async function POST(request: NextRequest) {
     if (auth instanceof NextResponse) return auth
     
     const supabase = await createClient()
-    const body = await request.json()
     
-    console.log('🔄 Creando nueva app con datos:', body)
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const bodyRaw = await request.json()
+    const body = CreateAppSchema.parse(bodyRaw)
+    
+    console.log('🔄 Creando nueva app con datos validados:', body)
     
     // ✅ SEGURIDAD: Sanitizar y generar slug único
     let slug: string;
@@ -157,6 +162,18 @@ export async function POST(request: NextRequest) {
     console.log('✅ App creada exitosamente:', newApp)
     return NextResponse.json({ app: newApp }, { status: 201 })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

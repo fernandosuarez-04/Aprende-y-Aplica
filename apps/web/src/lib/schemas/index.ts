@@ -14,3 +14,6 @@ export * from './workshop.schema'
 
 // Content schemas (news, prompts, reels)
 export * from './content.schema'
+
+// App schemas (AI Apps)
+export * from './app.schema'

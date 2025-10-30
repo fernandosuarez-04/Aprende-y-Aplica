@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminUsersService } from '@/features/admin/services/adminUsers.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { UpdateUserSchema } from '@/lib/schemas/user.schema'
+import { z } from 'zod'
 
 export async function PUT(
   request: NextRequest,
@@ -12,7 +14,10 @@ export async function PUT(
     if (auth instanceof NextResponse) return auth
     
     const { id: userId } = await params
-    const userData = await request.json()
+    
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const userData = UpdateUserSchema.parse(body)
     
     // ✅ SEGURIDAD: Usar ID real del administrador autenticado
     const adminUserId = auth.userId
@@ -33,6 +38,18 @@ export async function PUT(
       user: updatedUser
     })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('Error in PUT /api/admin/users/[id]:', error)
     return NextResponse.json(
       { error: 'Error al actualizar usuario' },
