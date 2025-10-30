@@ -54,7 +54,13 @@ export async function GET(
 
     // Obtener lecciones para cada módulo
     const modulesWithLessons = await Promise.all(
-      (modules || []).map(async (module) => {
+      (modules || []).map(async (module: {
+        module_id: string;
+        module_title: string;
+        module_order_index: number;
+        module_duration_minutes?: number;
+        is_published: boolean;
+      }) => {
         const { data: lessons, error: lessonsError } = await supabase
           .from('course_lessons')
           .select(`
@@ -75,41 +81,85 @@ export async function GET(
 
         // Obtener progreso del usuario si está autenticado
         const currentUser = await SessionService.getCurrentUser();
-        let lessonsWithProgress = lessons || [];
+        let lessonsWithProgress: Array<{
+          lesson_id: string;
+          lesson_title: string;
+          lesson_order_index: number;
+          duration_seconds: number;
+          is_completed: boolean;
+          progress_percentage: number;
+        }> = [];
 
-        if (currentUser && lessonsWithProgress.length > 0) {
-          // Obtener enrollment del usuario para este curso
-          const { data: enrollment } = await supabase
-            .from('user_course_enrollments')
-            .select('enrollment_id')
-            .eq('user_id', currentUser.id)
-            .eq('course_id', courseId)
-            .single();
+        if (lessons && lessons.length > 0) {
+          if (currentUser) {
+            // Obtener enrollment del usuario para este curso
+            const { data: enrollment } = await supabase
+              .from('user_course_enrollments')
+              .select('enrollment_id')
+              .eq('user_id', currentUser.id)
+              .eq('course_id', courseId)
+              .single();
 
-          if (enrollment) {
-            // Obtener progreso de cada lección
-            const { data: progressData } = await supabase
-              .from('user_lesson_progress')
-              .select('lesson_id, is_completed, lesson_status, video_progress_percentage')
-              .eq('enrollment_id', enrollment.enrollment_id)
-              .in('lesson_id', lessonsWithProgress.map(l => l.lesson_id));
+            if (enrollment) {
+              // Obtener progreso de cada lección
+              const { data: progressData } = await supabase
+                .from('user_lesson_progress')
+                .select('lesson_id, is_completed, lesson_status, video_progress_percentage')
+                .eq('enrollment_id', enrollment.enrollment_id)
+                .in('lesson_id', lessons.map((l: { lesson_id: string }) => l.lesson_id));
 
-            // Mapear progreso a las lecciones
-            const progressMap = new Map(
-              (progressData || []).map(p => [p.lesson_id, p])
-            );
+              // Mapear progreso a las lecciones
+              const progressMap = new Map(
+                (progressData || []).map((p: { lesson_id: string; is_completed?: boolean; video_progress_percentage?: number }) => [p.lesson_id, p])
+              );
 
-            lessonsWithProgress = lessonsWithProgress.map(lesson => {
-              const progress = progressMap.get(lesson.lesson_id);
-              return {
+              lessonsWithProgress = lessons.map((lesson: {
+                lesson_id: string;
+                lesson_title: string;
+                lesson_order_index: number;
+                duration_seconds: number;
+              }) => {
+                const progress = progressMap.get(lesson.lesson_id) as { is_completed?: boolean; video_progress_percentage?: number } | undefined;
+                return {
+                  lesson_id: lesson.lesson_id,
+                  lesson_title: lesson.lesson_title,
+                  lesson_order_index: lesson.lesson_order_index,
+                  duration_seconds: lesson.duration_seconds,
+                  is_completed: progress?.is_completed || false,
+                  progress_percentage: progress?.video_progress_percentage || 0,
+                };
+              });
+            } else {
+              // Usuario autenticado pero sin enrollment
+              lessonsWithProgress = lessons.map((lesson: {
+                lesson_id: string;
+                lesson_title: string;
+                lesson_order_index: number;
+                duration_seconds: number;
+              }) => ({
                 lesson_id: lesson.lesson_id,
                 lesson_title: lesson.lesson_title,
                 lesson_order_index: lesson.lesson_order_index,
                 duration_seconds: lesson.duration_seconds,
-                is_completed: progress?.is_completed || false,
-                progress_percentage: progress?.video_progress_percentage || 0,
-              };
-            });
+                is_completed: false,
+                progress_percentage: 0,
+              }));
+            }
+          } else {
+            // Si no hay usuario autenticado, establecer valores por defecto
+            lessonsWithProgress = lessons.map((lesson: {
+              lesson_id: string;
+              lesson_title: string;
+              lesson_order_index: number;
+              duration_seconds: number;
+            }) => ({
+              lesson_id: lesson.lesson_id,
+              lesson_title: lesson.lesson_title,
+              lesson_order_index: lesson.lesson_order_index,
+              duration_seconds: lesson.duration_seconds,
+              is_completed: false,
+              progress_percentage: 0,
+            }));
           }
         }
 
@@ -134,4 +184,3 @@ export async function GET(
     );
   }
 }
-

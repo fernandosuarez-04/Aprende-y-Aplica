@@ -37,7 +37,13 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
-app.use(morgan(config.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Configurar morgan para solo registrar rutas de API
+app.use(morgan(config.NODE_ENV === 'production' ? 'combined' : 'dev', {
+  skip: (req) => {
+    // Solo registrar rutas que comienzan con /api
+    return !req.path.startsWith('/api');
+  }
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
@@ -74,15 +80,22 @@ app.use(`/api/${API_VERSION}/chat-lia`, (req, res) => {
 // Error handling (debe ir al final)
 app.use(errorHandler);
 
-// 404 Handler
-app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      message: 'Ruta no encontrada',
-      code: 'NOT_FOUND',
-    },
-  });
+// 404 Handler - Manejar rutas no encontradas de forma silenciosa
+app.use((req, res) => {
+  // Solo responder con 404 JSON para rutas que comienzan con /api
+  // Ignorar silenciosamente otras rutas que pueden ser de Next.js
+  if (req.path.startsWith('/api')) {
+    res.status(404).json({
+      success: false,
+      error: {
+        message: 'Ruta no encontrada',
+        code: 'NOT_FOUND',
+      },
+    });
+  } else {
+    // Para rutas que no son de API, no hacer nada (dejar que Next.js las maneje)
+    res.status(404).end();
+  }
 });
 
 // Iniciar servidor

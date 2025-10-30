@@ -45,6 +45,17 @@ const nextConfig: NextConfig = {
       '@/utils': path.resolve(__dirname, 'src/shared/utils'),
       '@/hooks': path.resolve(__dirname, 'src/shared/hooks'),
     };
+
+    // Configuración para librerías que solo funcionan en el cliente
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        os: false,
+      };
+    }
+
     return config;
   },
 };

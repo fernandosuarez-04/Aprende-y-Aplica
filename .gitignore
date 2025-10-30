@@ -100,3 +100,6 @@ Thumbs.db
 logs
 *.log
 
+# Database optimization (local development only)
+database-optimization/
+
