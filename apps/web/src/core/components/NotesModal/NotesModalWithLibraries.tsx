@@ -69,12 +69,20 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
       setIsSaving(false);
       
       // Inicializar historial
-      historyRef.current = [content];
+      const initialContent = initialNote?.content || '';
+      historyRef.current = [initialContent];
       historyIndexRef.current = 0;
       setCanUndo(false);
       setCanRedo(false);
     }
-  }, [isOpen, initialNote, content]);
+  }, [isOpen, initialNote]);
+
+  // Actualizar el editor cuando cambie el contenido
+  useEffect(() => {
+    if (editorRef.current && content !== editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = content;
+    }
+  }, [content]);
 
   // Limpiar al cerrar
   useEffect(() => {
@@ -394,12 +402,12 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-4xl h-[80vh] flex flex-col"
+            className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-3xl h-[70vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
+            <div className="flex items-center justify-between p-4 border-b border-slate-700/50 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                   <Type className="w-4 h-4 text-white" />
@@ -420,7 +428,7 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Contenido */}
-            <div className="flex-1 flex flex-col p-6 gap-4 overflow-hidden">
+            <div className="flex-1 flex flex-col p-4 gap-3 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
               {/* Título */}
               <div>
                 <input
@@ -433,7 +441,7 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
               </div>
 
               {/* Barra de herramientas */}
-              <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
+              <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Deshacer/Rehacer */}
                   <div className="flex gap-1">
@@ -552,14 +560,14 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
               </div>
 
               {/* Editor de contenido */}
-              <div className="flex-1 bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
+              <div className="flex-1 bg-slate-700/30 border border-slate-600/50 rounded-xl p-3">
                 <div
                   ref={editorRef}
                   contentEditable
                   onInput={updateContent}
                   className="notes-editor w-full h-full text-white placeholder-slate-400 focus:outline-none resize-none overflow-y-auto"
                   style={{ 
-                    minHeight: '200px',
+                    minHeight: '150px',
                     lineHeight: '1.6'
                   }}
                   data-placeholder="Comienza a escribir tu nota aquí..."
@@ -605,7 +613,7 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-6 border-t border-slate-700/50">
+            <div className="flex items-center justify-between p-4 border-t border-slate-700/50 flex-shrink-0">
               <div className="text-sm text-slate-400">
                 <p>Ctrl+S para guardar • Ctrl+Z para deshacer • Ctrl+Y para rehacer</p>
               </div>

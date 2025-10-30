@@ -318,7 +318,7 @@ export default function CourseLearnPage() {
         
         // Actualizar estadísticas y recargar notas
         updateNotesStats();
-        loadLessonNotes(currentLesson.lesson_id, typeof params.slug === 'string' ? params.slug : params.slug[0]);
+        loadLessonNotes(currentLesson.lesson_id, slug);
       }
       
       setIsNotesModalOpen(false);
@@ -704,10 +704,10 @@ export default function CourseLearnPage() {
                       {!isNotesCollapsed && (
                         <button
                           onClick={openNewNoteModal}
-                          className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
                           title="Nueva Nota"
                         >
-                          <span className="text-sm font-bold">+</span>
+                          <span className="text-sm font-bold text-white/70">+</span>
                         </button>
                       )}
                       <button
