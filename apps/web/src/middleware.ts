@@ -153,7 +153,8 @@ export async function middleware(request: NextRequest) {
       // ✅ Normalizar rol antes de comparar (toLowerCase y trim)
       const userRole = userData?.cargo_rol?.toLowerCase().trim()
 
-      if (!userData || userRole !== 'instructor') {
+      // Permitir acceso a instructores y administradores
+      if (!userData || (userRole !== 'instructor' && userRole !== 'administrador')) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     } catch (error) {

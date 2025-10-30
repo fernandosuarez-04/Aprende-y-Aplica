@@ -7,16 +7,14 @@ import {
   Cog6ToothIcon, 
   ArrowRightOnRectangleIcon,
   ChevronDownIcon,
-  UserCircleIcon,
   HomeIcon,
-  ShieldCheckIcon,
   AcademicCapIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '../../auth/hooks/useAuth'
 
-interface AdminUserDropdownProps {
+interface InstructorUserDropdownProps {
   user: {
     id: string
     first_name: string
@@ -27,14 +25,10 @@ interface AdminUserDropdownProps {
   }
 }
 
-export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
+export function InstructorUserDropdown({ user }: InstructorUserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
   const { logout } = useAuth()
-
-  console.log('🔍 AdminUserDropdown: Usuario recibido:', user)
-  console.log('🎭 Rol del usuario:', user.cargo_rol)
-  console.log('✅ Es administrador:', user.cargo_rol?.toLowerCase() === 'administrador')
 
   const handleLogout = async () => {
     try {
@@ -51,7 +45,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
   }
 
   const handleSettings = () => {
-    router.push('/admin/settings')
+    router.push('/instructor/settings')
     setIsOpen(false)
   }
 
@@ -72,7 +66,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     <Menu as="div" className="relative">
       <Menu.Button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-700/50 transition-colors duration-200"
+        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-purple-700/50 transition-all duration-200 hover:scale-105"
       >
         {/* Avatar */}
         <div className="relative">
@@ -80,10 +74,10 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             <img
               src={user.profile_picture_url}
               alt={getDisplayName()}
-              className="w-8 h-8 rounded-full object-cover border-2 border-gray-600"
+              className="w-8 h-8 rounded-full object-cover border-2 border-yellow-400/50 shadow-lg"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white text-sm font-bold shadow-lg ring-2 ring-purple-500/50">
               {getInitials()}
             </div>
           )}
@@ -94,14 +88,14 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
           <p className="text-sm font-medium text-white">
             {getDisplayName()}
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-purple-200">
             {user.cargo_rol}
           </p>
         </div>
 
         {/* Chevron */}
         <ChevronDownIcon 
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+          className={`w-4 h-4 text-purple-200 transition-transform duration-200 ${
             isOpen ? 'rotate-180' : ''
           }`} 
         />
@@ -116,18 +110,18 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+        <Menu.Items className="absolute right-0 mt-2 w-72 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-lg shadow-xl border border-purple-700/50 py-2 z-50 backdrop-blur-sm">
           {/* User Info Header */}
-          <div className="px-4 py-3 border-b border-gray-700">
+          <div className="px-4 py-3 border-b border-purple-700/50">
             <div className="flex items-center space-x-3">
               {user.profile_picture_url ? (
                 <img
                   src={user.profile_picture_url}
                   alt={getDisplayName()}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-gray-600"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400/50 shadow-lg"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-semibold">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white text-lg font-bold shadow-lg ring-2 ring-purple-500/50">
                   {getInitials()}
                 </div>
               )}
@@ -135,10 +129,11 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                 <p className="text-sm font-medium text-white truncate">
                   {getDisplayName()}
                 </p>
-                <p className="text-xs text-gray-400 truncate" title={user.email}>
+                <p className="text-xs text-purple-200 truncate" title={user.email}>
                   {user.email}
                 </p>
-                <p className="text-xs text-blue-400 font-medium">
+                <p className="text-xs text-yellow-400 font-bold flex items-center">
+                  <AcademicCapIcon className="h-3 w-3 mr-1" />
                   {user.cargo_rol}
                 </p>
               </div>
@@ -152,8 +147,8 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                 <button
                   onClick={handleDashboard}
                   className={`${
-                    active ? 'bg-gray-700' : ''
-                  } flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors duration-200`}
+                    active ? 'bg-purple-700/50' : ''
+                  } flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
                 >
                   <HomeIcon className="w-4 h-4 mr-3" />
                   Ir al Dashboard
@@ -161,36 +156,20 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
               )}
             </Menu.Item>
 
-            {/* Botón de acceso de administración - Solo visible para administradores */}
-            {user.cargo_rol?.toLowerCase() === 'administrador' && (
-              <>
-                <Menu.Item>
-                  {({ active }) => (
-                    <Link href="/admin/dashboard" onClick={() => setIsOpen(false)}>
-                      <div className={`${
-                        active ? 'bg-gray-700' : ''
-                      } flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-600/10 transition-colors duration-200`}>
-                        <ShieldCheckIcon className="w-4 h-4 mr-3" />
-                        Panel de Administración
-                      </div>
-                    </Link>
-                  )}
-                </Menu.Item>
-                
-                {/* Botón de acceso al panel de instructor - Solo visible para administradores */}
-                <Menu.Item>
-                  {({ active }) => (
-                    <Link href="/instructor/dashboard" onClick={() => setIsOpen(false)}>
-                      <div className={`${
-                        active ? 'bg-gray-700' : ''
-                      } flex items-center w-full px-4 py-2 text-sm text-yellow-400 hover:text-yellow-300 hover:bg-yellow-600/10 transition-colors duration-200`}>
-                        <AcademicCapIcon className="w-4 h-4 mr-3" />
-                        Panel de Instructor
-                      </div>
-                    </Link>
-                  )}
-                </Menu.Item>
-              </>
+            {/* Botón de acceso de panel de instructor */}
+            {user.cargo_rol?.toLowerCase() === 'instructor' && (
+              <Menu.Item>
+                {({ active }) => (
+                  <Link href="/instructor/dashboard" onClick={() => setIsOpen(false)}>
+                    <div className={`${
+                      active ? 'bg-purple-700/50' : ''
+                    } flex items-center w-full px-4 py-2 text-sm text-yellow-400 hover:text-yellow-300 hover:bg-yellow-600/10 transition-all duration-200 hover:scale-105`}>
+                      <AcademicCapIcon className="w-4 h-4 mr-3" />
+                      Panel de Instructor
+                    </div>
+                  </Link>
+                )}
+              </Menu.Item>
             )}
 
             <Menu.Item>
@@ -198,8 +177,8 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                 <button
                   onClick={handleSettings}
                   className={`${
-                    active ? 'bg-gray-700' : ''
-                  } flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors duration-200`}
+                    active ? 'bg-purple-700/50' : ''
+                  } flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
                 >
                   <Cog6ToothIcon className="w-4 h-4 mr-3" />
                   Configuración
@@ -207,7 +186,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
               )}
             </Menu.Item>
 
-            <div className="border-t border-gray-700 my-2"></div>
+            <div className="border-t border-purple-700/50 my-2"></div>
 
             <Menu.Item>
               {({ active }) => (
@@ -215,7 +194,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                   onClick={handleLogout}
                   className={`${
                     active ? 'bg-red-600/20' : ''
-                  } flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-colors duration-200`}
+                  } flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 hover:scale-105`}
                 >
                   <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3" />
                   Cerrar Sesión
@@ -228,3 +207,4 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     </Menu>
   )
 }
+
