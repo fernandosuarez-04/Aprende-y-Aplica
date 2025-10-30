@@ -6,8 +6,7 @@ import { AdminLoadingSpinner } from '@/features/admin/components/AdminLoadingSpi
 const AdminPromptsPage = dynamic(
   () => import('@/features/admin/components/AdminPromptsPage').then(mod => ({ default: mod.AdminPromptsPage })),
   {
-    loading: () => <AdminLoadingSpinner />,
-    ssr: false
+    loading: () => <AdminLoadingSpinner />
   }
 )
 

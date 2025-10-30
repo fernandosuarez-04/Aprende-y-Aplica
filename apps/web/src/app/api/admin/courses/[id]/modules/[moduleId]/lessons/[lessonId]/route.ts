@@ -46,10 +46,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }>
+  { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }> }
 ) {
   try {
-    const lessonId = params.lessonId
+    const resolvedParams = await params
+    const lessonId = resolvedParams.lessonId
     const body = await request.json() as UpdateLessonData
 
     if (!lessonId) {
@@ -79,10 +80,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }>
+  { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }> }
 ) {
   try {
-    const lessonId = params.lessonId
+    const resolvedParams = await params
+    const lessonId = resolvedParams.lessonId
 
     if (!lessonId) {
       return NextResponse.json(

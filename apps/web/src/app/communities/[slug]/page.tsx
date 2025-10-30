@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft,
@@ -44,11 +45,23 @@ import { useRouter, useParams } from 'next/navigation';
 // Importaciones usando rutas relativas
 import { ReactionButton } from '../../../features/communities/components/ReactionButton';
 import { ReactionBanner } from '../../../features/communities/components/ReactionBanner';
-import { ReactionDetailsModal } from '../../../features/communities/components/ReactionDetailsModal';
 import { PostInteractions } from '../../../features/communities/components/PostInteractions';
 import { useReactions, useAttachments } from '../../../features/communities/hooks';
-import { CommentsSection } from '../../../features/communities/components/CommentsSection';
-import { InlineAttachmentButtons, AttachmentPreview, PostAttachment, YouTubeLinkModal, PollModal } from '../../../features/communities/components';
+
+// Lazy loading de componentes pesados de communities
+const ReactionDetailsModal = dynamic(() => import('../../../features/communities/components/ReactionDetailsModal').then(mod => ({ default: mod.ReactionDetailsModal })), {
+  ssr: false
+});
+const CommentsSection = dynamic(() => import('../../../features/communities/components/CommentsSection').then(mod => ({ default: mod.CommentsSection })), {
+  ssr: false
+});
+const YouTubeLinkModal = dynamic(() => import('../../../features/communities/components/AttachmentModals/YouTubeLinkModal').then(mod => ({ default: mod.YouTubeLinkModal })), {
+  ssr: false
+});
+const PollModal = dynamic(() => import('../../../features/communities/components/AttachmentModals/PollModal').then(mod => ({ default: mod.PollModal })), {
+  ssr: false
+});
+import { InlineAttachmentButtons, AttachmentPreview, PostAttachment } from '../../../features/communities/components';
 import { formatRelativeTime } from '../../../core/utils/date-utils';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';

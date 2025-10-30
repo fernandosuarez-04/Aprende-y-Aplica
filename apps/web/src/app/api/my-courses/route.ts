@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '../lib/utils/logger';
+import { logger } from '@/lib/utils/logger';
 import { SessionService } from '@/features/auth/services/session.service';
 import { PurchasedCoursesService } from '@/features/courses/services/purchased-courses.service';
 

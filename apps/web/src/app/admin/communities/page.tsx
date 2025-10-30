@@ -7,8 +7,7 @@ import { AdminLoadingSpinner } from '@/features/admin/components/AdminLoadingSpi
 const AdminCommunitiesPage = dynamic(
   () => import('@/features/admin/components').then(mod => ({ default: mod.AdminCommunitiesPage })),
   {
-    loading: () => <AdminLoadingSpinner />,
-    ssr: false // Las páginas de admin no necesitan SSR
+    loading: () => <AdminLoadingSpinner />
   }
 )
 

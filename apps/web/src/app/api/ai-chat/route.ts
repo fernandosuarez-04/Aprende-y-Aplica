@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '../lib/utils/logger';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server';
 
 // Contextos específicos para diferentes secciones

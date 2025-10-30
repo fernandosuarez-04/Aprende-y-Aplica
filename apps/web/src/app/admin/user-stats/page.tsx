@@ -6,8 +6,7 @@ import { AdminLoadingSpinner } from '@/features/admin/components/AdminLoadingSpi
 const AdminUserStatsPage = dynamic(
   () => import('@/features/admin/components/AdminUserStatsPage').then(mod => ({ default: mod.AdminUserStatsPage })),
   {
-    loading: () => <AdminLoadingSpinner />,
-    ssr: false
+    loading: () => <AdminLoadingSpinner />
   }
 )
 
