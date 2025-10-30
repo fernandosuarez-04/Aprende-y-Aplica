@@ -28,14 +28,19 @@ import {
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
+import { VideoPlayer } from '../../../../core/components/VideoPlayer';
 
 interface Lesson {
   lesson_id: string;
   lesson_title: string;
+  lesson_description?: string;
   lesson_order_index: number;
   duration_seconds: number;
   is_completed: boolean;
   progress_percentage: number;
+  video_provider_id?: string;
+  video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
+  transcript_content?: string;
 }
 
 interface Module {
@@ -1034,19 +1039,48 @@ export default function CourseLearnPage() {
 
 // Componentes de contenido
 function VideoContent({ lesson }: { lesson: Lesson }) {
+  // Verificar si la lección tiene video
+  const hasVideo = lesson.video_provider && lesson.video_provider_id;
+  
+  // Debug logging
+  console.log('VideoContent - Lesson data:', {
+    lesson_id: lesson.lesson_id,
+    lesson_title: lesson.lesson_title,
+    video_provider: lesson.video_provider,
+    video_provider_id: lesson.video_provider_id,
+    hasVideo,
+    fullLesson: lesson
+  });
+  
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
-      
-      <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-carbon-600 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
-        <div className="text-center relative z-10">
-          <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
-            <Play className="w-10 h-10 text-white ml-1" />
-          </div>
-          <p className="text-white/70">Video de la lección</p>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
+        {lesson.lesson_description && (
+          <p className="text-slate-300 mt-2">{lesson.lesson_description}</p>
+        )}
       </div>
+      
+      {hasVideo ? (
+        <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600">
+          <VideoPlayer
+            videoProvider={lesson.video_provider!}
+            videoProviderId={lesson.video_provider_id!}
+            title={lesson.lesson_title}
+            className="w-full h-full"
+          />
+        </div>
+      ) : (
+        <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-carbon-600 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
+          <div className="text-center relative z-10">
+            <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
+              <Play className="w-10 h-10 text-white ml-1" />
+            </div>
+            <p className="text-white/70">Video no disponible</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
