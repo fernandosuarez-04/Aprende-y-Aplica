@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { 
   PlusIcon, 
   MagnifyingGlassIcon, 
@@ -20,10 +21,19 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAdminApps } from '../hooks/useAdminApps'
 import { AdminApp } from '../services/adminApps.service'
-import { AddAppModal } from './AddAppModal'
-import { EditAppModal } from './EditAppModal'
-import { DeleteAppModal } from './DeleteAppModal'
-import { ViewAppModal } from './ViewAppModal'
+
+const AddAppModal = dynamic(() => import('./AddAppModal').then(mod => ({ default: mod.AddAppModal })), {
+  ssr: false
+})
+const EditAppModal = dynamic(() => import('./EditAppModal').then(mod => ({ default: mod.EditAppModal })), {
+  ssr: false
+})
+const DeleteAppModal = dynamic(() => import('./DeleteAppModal').then(mod => ({ default: mod.DeleteAppModal })), {
+  ssr: false
+})
+const ViewAppModal = dynamic(() => import('./ViewAppModal').then(mod => ({ default: mod.ViewAppModal })), {
+  ssr: false
+})
 
 export function AdminAppsPage() {
   const { 

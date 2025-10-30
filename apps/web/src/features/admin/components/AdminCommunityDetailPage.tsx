@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
   ArrowLeftIcon,
   UserGroupIcon,
@@ -23,9 +24,16 @@ import {
   LockClosedIcon
 } from '@heroicons/react/24/outline'
 import { useCommunityDetail } from '../hooks/useCommunityDetail'
-import { ConfirmationModal } from './ConfirmationModal'
-import { PostDetailModal } from './PostDetailModal'
-import { InviteUserModal } from './InviteUserModal'
+
+const ConfirmationModal = dynamic(() => import('./ConfirmationModal').then(mod => ({ default: mod.ConfirmationModal })), {
+  ssr: false
+})
+const PostDetailModal = dynamic(() => import('./PostDetailModal').then(mod => ({ default: mod.PostDetailModal })), {
+  ssr: false
+})
+const InviteUserModal = dynamic(() => import('./InviteUserModal').then(mod => ({ default: mod.InviteUserModal })), {
+  ssr: false
+})
 
 interface AdminCommunityDetailPageProps {
   slug: string

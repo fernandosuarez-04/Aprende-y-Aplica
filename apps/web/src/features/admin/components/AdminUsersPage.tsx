@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { 
   UsersIcon, 
   PlusIcon, 
@@ -14,9 +15,16 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAdminUsers } from '../hooks/useAdminUsers'
 import { AdminUser } from '../services/adminUsers.service'
-import { EditUserModal } from './EditUserModal'
-import { DeleteUserModal } from './DeleteUserModal'
-import { AddUserModal } from './AddUserModal'
+
+const EditUserModal = dynamic(() => import('./EditUserModal').then(mod => ({ default: mod.EditUserModal })), {
+  ssr: false
+})
+const DeleteUserModal = dynamic(() => import('./DeleteUserModal').then(mod => ({ default: mod.DeleteUserModal })), {
+  ssr: false
+})
+const AddUserModal = dynamic(() => import('./AddUserModal').then(mod => ({ default: mod.AddUserModal })), {
+  ssr: false
+})
 
 export function AdminUsersPage() {
   const { users, stats, isLoading, error, refetch } = useAdminUsers()

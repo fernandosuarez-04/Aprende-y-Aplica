@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { 
   Plus, 
   Search, 
@@ -19,10 +20,19 @@ import {
   Upload
 } from 'lucide-react'
 import { useUserStats } from '@/features/admin/hooks/useUserStats'
-import { AddQuestionModal } from './AddQuestionModal'
-import { EditQuestionModal } from './EditQuestionModal'
-import { ViewQuestionModal } from './ViewQuestionModal'
-import { DeleteQuestionModal } from './DeleteQuestionModal'
+
+const AddQuestionModal = dynamic(() => import('./AddQuestionModal').then(mod => ({ default: mod.AddQuestionModal })), {
+  ssr: false
+})
+const EditQuestionModal = dynamic(() => import('./EditQuestionModal').then(mod => ({ default: mod.EditQuestionModal })), {
+  ssr: false
+})
+const ViewQuestionModal = dynamic(() => import('./ViewQuestionModal').then(mod => ({ default: mod.ViewQuestionModal })), {
+  ssr: false
+})
+const DeleteQuestionModal = dynamic(() => import('./DeleteQuestionModal').then(mod => ({ default: mod.DeleteQuestionModal })), {
+  ssr: false
+})
 
 export function QuestionsManagement() {
   const {

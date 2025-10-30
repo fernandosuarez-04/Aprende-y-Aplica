@@ -1,12 +1,27 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useAdminReels } from '../hooks/useAdminReels'
 import { AdminReel } from '../services/adminReels.service'
-import { AddReelModal } from './AddReelModal'
-import { EditReelModal } from './EditReelModal'
-import { DeleteReelModal } from './DeleteReelModal'
-import { ViewReelModal } from './ViewReelModal'
+
+// Lazy loading de modales de Reels
+const AddReelModal = dynamic(() => import('./AddReelModal').then(mod => ({ default: mod.AddReelModal })), {
+  ssr: false
+})
+
+const EditReelModal = dynamic(() => import('./EditReelModal').then(mod => ({ default: mod.EditReelModal })), {
+  ssr: false
+})
+
+const DeleteReelModal = dynamic(() => import('./DeleteReelModal').then(mod => ({ default: mod.DeleteReelModal })), {
+  ssr: false
+})
+
+const ViewReelModal = dynamic(() => import('./ViewReelModal').then(mod => ({ default: mod.ViewReelModal })), {
+  ssr: false
+})
+
 import { 
   Plus, 
   Search, 

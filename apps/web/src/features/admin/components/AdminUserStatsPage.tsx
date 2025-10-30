@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import { useUserStats } from '../hooks/useUserStats'
 import { 
   Users, 
@@ -25,9 +26,16 @@ import {
 import { QuestionsManagement } from './QuestionsManagement'
 import { AnswersManagement } from './AnswersManagement'
 import { GenAIAdoptionManagement } from './GenAIAdoptionManagement'
-import { ViewProfileModal } from './ViewProfileModal'
-import { EditProfileModal } from './EditProfileModal'
-import { DeleteProfileModal } from './DeleteProfileModal'
+
+const ViewProfileModal = dynamic(() => import('./ViewProfileModal').then(mod => ({ default: mod.ViewProfileModal })), {
+  ssr: false
+})
+const EditProfileModal = dynamic(() => import('./EditProfileModal').then(mod => ({ default: mod.EditProfileModal })), {
+  ssr: false
+})
+const DeleteProfileModal = dynamic(() => import('./DeleteProfileModal').then(mod => ({ default: mod.DeleteProfileModal })), {
+  ssr: false
+})
 // Colores para las gráficas - Más vibrantes
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16']
 

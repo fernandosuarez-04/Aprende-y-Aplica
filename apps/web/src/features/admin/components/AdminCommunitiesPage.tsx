@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { 
   UserGroupIcon, 
   PlusIcon, 
@@ -19,10 +20,20 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAdminCommunities } from '../hooks/useAdminCommunities'
 import { AdminCommunity } from '../services/adminCommunities.service'
-import { EditCommunityModal } from './EditCommunityModal'
-import { DeleteCommunityModal } from './DeleteCommunityModal'
-import { AddCommunityModal } from './AddCommunityModal'
 import { useRouter } from 'next/navigation'
+
+// Lazy loading de modales de Communities
+const EditCommunityModal = dynamic(() => import('./EditCommunityModal').then(mod => ({ default: mod.EditCommunityModal })), {
+  ssr: false
+})
+
+const DeleteCommunityModal = dynamic(() => import('./DeleteCommunityModal').then(mod => ({ default: mod.DeleteCommunityModal })), {
+  ssr: false
+})
+
+const AddCommunityModal = dynamic(() => import('./AddCommunityModal').then(mod => ({ default: mod.AddCommunityModal })), {
+  ssr: false
+})
 
 export function AdminCommunitiesPage() {
   const router = useRouter()

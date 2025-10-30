@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { 
   PlusIcon, 
   MagnifyingGlassIcon, 
@@ -15,10 +16,23 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAdminPrompts } from '../hooks/useAdminPrompts'
 import { AdminPrompt } from '../services/adminPrompts.service'
-import { AddPromptModal } from './AddPromptModal'
-import { EditPromptModal } from './EditPromptModal'
-import { DeletePromptModal } from './DeletePromptModal'
-import { ViewPromptModal } from './ViewPromptModal'
+
+// Lazy loading de modales de Prompts
+const AddPromptModal = dynamic(() => import('./AddPromptModal').then(mod => ({ default: mod.AddPromptModal })), {
+  ssr: false
+})
+
+const EditPromptModal = dynamic(() => import('./EditPromptModal').then(mod => ({ default: mod.EditPromptModal })), {
+  ssr: false
+})
+
+const DeletePromptModal = dynamic(() => import('./DeletePromptModal').then(mod => ({ default: mod.DeletePromptModal })), {
+  ssr: false
+})
+
+const ViewPromptModal = dynamic(() => import('./ViewPromptModal').then(mod => ({ default: mod.ViewPromptModal })), {
+  ssr: false
+})
 
 export function AdminPromptsPage() {
   const { 

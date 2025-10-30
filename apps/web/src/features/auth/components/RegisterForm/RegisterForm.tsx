@@ -5,14 +5,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { Button } from '@aprende-y-aplica/ui';
 import { RegisterFormData } from '../../types/auth.types';
 import { registerSchema } from './RegisterForm.schema';
 import { PasswordInput } from '../PasswordInput';
 import { CountrySelector } from '../CountrySelector';
-import { LegalDocumentsModal } from '../LegalDocumentsModal';
 import { registerAction } from '../../actions/register';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
+
+const LegalDocumentsModal = dynamic(() => import('../LegalDocumentsModal').then(mod => ({ default: mod.LegalDocumentsModal })), {
+  ssr: false
+});
 
 export function RegisterForm() {
   const [showLegalModal, setShowLegalModal] = useState(false);
