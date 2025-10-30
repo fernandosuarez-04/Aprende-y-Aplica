@@ -42,3 +42,20 @@ export async function PUT(
   }
 }
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const workshop = await InstructorWorkshopsService.getWorkshopById(id)
+    if (!workshop) {
+      return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    }
+    return NextResponse.json({ success: true, workshop })
+  } catch (error) {
+    console.error('Error in GET /api/instructor/workshops/[id]:', error)
+    return NextResponse.json({ error: 'Error al obtener el taller' }, { status: 500 })
+  }
+}
+

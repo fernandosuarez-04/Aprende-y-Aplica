@@ -136,14 +136,13 @@ export function EditWorkshopModal({ isOpen, workshop, onClose, onSave }: EditWor
   if (!isOpen || !workshop) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-          onClick={onClose}
-        />
-        
-        <div className="relative w-full max-w-3xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Drawer panel */}
+      <div className="absolute inset-y-0 right-0 w-full max-w-4xl transform transition-transform duration-300 ease-out translate-x-0">
+        <div className="flex h-full flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-2xl border-l border-gray-700">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6">
             <div className="flex items-center justify-between">
@@ -163,7 +162,7 @@ export function EditWorkshopModal({ isOpen, workshop, onClose, onSave }: EditWor
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
             {error && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <p className="text-sm text-red-400">{error}</p>

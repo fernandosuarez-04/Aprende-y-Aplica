@@ -223,4 +223,51 @@ export class InstructorWorkshopsService {
       throw error
     }
   }
+
+  /**
+   * Obtiene un taller por id (sin restricciones de instructor, para vista previa)
+   */
+  static async getWorkshopById(workshopId: string): Promise<InstructorWorkshop | null> {
+    const supabase = await createClient()
+
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select(`
+          id,
+          title,
+          description,
+          category,
+          level,
+          duration_total_minutes,
+          instructor_id,
+          is_active,
+          thumbnail_url,
+          slug,
+          price,
+          average_rating,
+          student_count,
+          review_count,
+          learning_objectives,
+          approval_status,
+          approved_by,
+          approved_at,
+          rejection_reason,
+          created_at,
+          updated_at
+        `)
+        .eq('id', workshopId)
+        .single()
+
+      if (error) {
+        if ((error as any)?.code === 'PGRST116') return null
+        throw error
+      }
+
+      return (data || null) as InstructorWorkshop | null
+    } catch (error) {
+      console.error('Error in InstructorWorkshopsService.getWorkshopById:', error)
+      throw error
+    }
+  }
 }
