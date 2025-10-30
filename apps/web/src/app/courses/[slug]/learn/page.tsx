@@ -27,6 +27,7 @@ import {
   User,
   Copy,
   Check
+  , Plus
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
@@ -844,13 +845,60 @@ export default function CourseLearnPage() {
         {!isLeftPanelOpen && (
           <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10">
             <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
-            <button
-              onClick={() => setIsLeftPanelOpen(true)}
-              className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
-              title="Mostrar material del curso"
-            >
-              <ChevronRight className="w-5 h-5 text-white" />
-            </button>
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(false);
+                  setIsNotesCollapsed(false);
+                }}
+                className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
+                title="Mostrar material del curso"
+              >
+                <ChevronRight className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Botones visibles solo cuando el panel está colapsado */}
+            <div className="flex-1 flex flex-col items-center gap-2 p-2">
+              {/* Abrir lecciones y cerrar notas */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(false);
+                  setIsNotesCollapsed(true);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
+                title="Ver lecciones"
+              >
+                <Layers className="w-4 h-4 text-white/80" />
+              </button>
+
+              {/* Abrir notas y cerrar lecciones */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(true);
+                  setIsNotesCollapsed(false);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
+                title="Ver notas"
+              >
+                <FileText className="w-4 h-4 text-white/80" />
+              </button>
+
+              {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(true);
+                  setIsNotesCollapsed(false);
+                  openNewNoteModal();
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg shadow-blue-500/25"
+                title="Nueva nota"
+              >
+                <Plus className="w-4 h-4 text-white" />
+              </button>
             </div>
           </div>
         )}
@@ -1056,13 +1104,6 @@ function VideoContent({ lesson }: { lesson: Lesson }) {
   
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
-        {lesson.lesson_description && (
-          <p className="text-slate-300 mt-2">{lesson.lesson_description}</p>
-        )}
-      </div>
-      
       {hasVideo ? (
         <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600">
           <VideoPlayer
@@ -1083,6 +1124,13 @@ function VideoContent({ lesson }: { lesson: Lesson }) {
           </div>
         </div>
       )}
+
+      <div>
+        <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
+        {lesson.lesson_description && (
+          <p className="text-slate-300 mt-2">{lesson.lesson_description}</p>
+        )}
+      </div>
     </div>
   );
 }
