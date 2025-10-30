@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminUsersService } from '@/features/admin/services/adminUsers.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { CreateUserSchema } from '@/lib/schemas/user.schema'
+import { z } from 'zod'
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +10,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
-    const userData = await request.json()
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const userData = CreateUserSchema.parse(body)
     
     // ✅ SEGURIDAD: Usar ID real del administrador autenticado
     const adminUserId = auth.userId
@@ -28,6 +32,18 @@ export async function POST(request: NextRequest) {
       user: newUser
     })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('Error in POST /api/admin/users/create:', error)
     return NextResponse.json(
       { error: 'Error al crear usuario' },

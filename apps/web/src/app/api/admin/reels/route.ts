@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CreateReelData } from '@/features/admin/services/adminReels.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { CreateReelSchema } from '@/lib/schemas/content.schema'
+import { z } from 'zod'
 
 export async function GET() {
   try {
@@ -57,7 +59,13 @@ export async function POST(request: NextRequest) {
     if (auth instanceof NextResponse) return auth
     
     const supabase = await createClient()
-    const body: CreateReelData = await request.json()
+    
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const bodyRaw = await request.json()
+    const body = CreateReelSchema.parse({
+      ...bodyRaw,
+      author_id: bodyRaw.created_by || auth.userId
+    })
     
     console.log('🔄 Creando nuevo reel con datos:', JSON.stringify(body, null, 2))
 
@@ -86,6 +94,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newReel, { status: 201 })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('Error in POST /api/admin/reels:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

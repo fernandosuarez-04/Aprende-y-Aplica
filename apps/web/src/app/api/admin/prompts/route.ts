@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { CreatePromptSchema } from '@/lib/schemas/content.schema'
+import { z } from 'zod'
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +46,9 @@ export async function POST(request: NextRequest) {
     
     console.log('🔄 Creando nuevo prompt...')
 
-    const promptData = await request.json()
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const promptData = CreatePromptSchema.parse(body)
     console.log('📋 Datos recibidos:', promptData)
 
     // ✅ SEGURIDAD: Usar ID real del administrador autenticado
@@ -58,6 +62,18 @@ export async function POST(request: NextRequest) {
       prompt: newPrompt
     })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     logError('POST /api/admin/prompts', error)
     return NextResponse.json(
       formatApiError(error, 'Error al crear prompt'),

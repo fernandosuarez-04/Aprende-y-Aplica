@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { InviteUserSchema } from '@/lib/schemas/community.schema'
+import { z } from 'zod'
 
 export async function POST(
   request: NextRequest,
@@ -11,14 +13,11 @@ export async function POST(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId } = await params
-    const { userId, role = 'member' } = await request.json()
     
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'ID de usuario requerido' },
-        { status: 400 }
-      )
-    }
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const validated = InviteUserSchema.parse(body)
+    const { user_id: userId, role } = validated
 
     const supabase = await createClient()
 
@@ -137,6 +136,18 @@ export async function POST(
     })
 
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('Error in POST /api/admin/communities/[id]/invite-user:', error)
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },

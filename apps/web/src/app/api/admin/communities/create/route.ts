@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { CreateCommunitySchema } from '@/lib/schemas/community.schema'
+import { z } from 'zod'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,7 +11,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth // Retornar error si no es admin
 
-    const communityData = await request.json()
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const communityData = CreateCommunitySchema.parse(body)
 
     // ✅ SEGURIDAD: Usar ID real del administrador autenticado
     const adminUserId = auth.userId
@@ -31,6 +35,18 @@ export async function POST(request: NextRequest) {
       community: newCommunity
     })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     logError('POST /api/admin/communities/create', error)
     return NextResponse.json(
       formatApiError(error, 'Error al crear comunidad'),

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { CreateNewsSchema } from '@/lib/schemas/content.schema'
+import { z } from 'zod'
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,8 +63,22 @@ export async function POST(request: NextRequest) {
     if (auth instanceof NextResponse) return auth
     
     const supabase = await createClient()
-    const body = await request.json()
-
+    const bodyRaw = await request.json()
+    
+    // ✅ SEGURIDAD: Validar campos básicos con Zod (validación parcial por complejidad del schema de news)
+    const basicValidation = CreateNewsSchema.pick({
+      title: true,
+      content: true,
+      author_id: true,
+      category: true
+    }).parse({
+      title: bodyRaw.title,
+      content: bodyRaw.intro || bodyRaw.subtitle || '',
+      author_id: bodyRaw.created_by || auth.userId,
+      category: bodyRaw.category || 'general'
+    })
+    
+    const body = bodyRaw
     console.log('🔄 Creando nueva noticia con datos:', JSON.stringify(body, null, 2))
 
     // Parsear campos JSON
@@ -110,6 +126,18 @@ export async function POST(request: NextRequest) {
     console.log('✅ Noticia creada exitosamente:', newNews)
     return NextResponse.json({ news: newNews }, { status: 201 })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

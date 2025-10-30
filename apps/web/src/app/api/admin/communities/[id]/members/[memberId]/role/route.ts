@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { AuditLogService } from '@/features/admin/services/auditLog.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { UpdateMemberRoleSchema } from '@/lib/schemas/community.schema'
+import { z } from 'zod'
 
 export async function PATCH(
   request: NextRequest,
@@ -13,7 +15,11 @@ export async function PATCH(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId, memberId } = await params
-    const { role } = await request.json()
+    
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const validated = UpdateMemberRoleSchema.parse(body)
+    const { role } = validated
     const supabase = await createClient()
 
     // Obtener datos actuales del miembro para el log de auditoría
@@ -74,6 +80,18 @@ export async function PATCH(
       member: updatedMember 
     })
   } catch (error: unknown) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('Error in member role update API:', error)
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
