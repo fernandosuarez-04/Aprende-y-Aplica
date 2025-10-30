@@ -1033,15 +1033,20 @@ export async function PATCH(request: NextRequest) {
 - ✅ `apps/web/src/app/api/admin/apps/route.ts` (POST)
 
 **PUT/PATCH (Actualización)**:
-- ✅ `apps/web/src/app/api/admin/communities/[id]/members/[memberId]/role/route.ts` (CRÍTICO - cambio de rol)
+- ✅ `apps/web/src/app/api/admin/communities/[id]/members/[memberId]/role/route.ts` (PATCH - CRÍTICO cambio de rol)
 - ✅ `apps/web/src/app/api/admin/communities/[id]/invite-user/route.ts` (POST)
 - ✅ `apps/web/src/app/api/admin/users/[id]/route.ts` (PUT - CRÍTICO)
 - ✅ `apps/web/src/app/api/admin/communities/[id]/route.ts` (PUT)
 - ✅ `apps/web/src/app/api/admin/workshops/[id]/route.ts` (PUT)
 - ✅ `apps/web/src/app/api/admin/apps/[id]/route.ts` (PUT)
+- ✅ `apps/web/src/app/api/admin/news/[id]/route.ts` (PUT)
+- ✅ `apps/web/src/app/api/admin/prompts/[id]/route.ts` (PUT)
+- ✅ `apps/web/src/app/api/admin/reels/[id]/route.ts` (PUT)
 
 **Resultado**:
-- ✅ **14 endpoints críticos** validados con Zod (9 iniciales + 5 adicionales)
+- ✅ **17 endpoints críticos** validados con Zod
+  - 7 POST (creación)
+  - 10 PUT/PATCH (actualización)
 - ✅ **Prevención de XSS** - Scripts maliciosos bloqueados
 - ✅ **Prevención de inyección** - Campos extra rechazados
 - ✅ **Validación de tipos** - UUIDs, emails, URLs verificados

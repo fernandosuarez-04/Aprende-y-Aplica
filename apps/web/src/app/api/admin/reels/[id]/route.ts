@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UpdateReelData } from '@/features/admin/services/adminReels.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { UpdateReelSchema } from '@/lib/schemas/content.schema'
+import { z } from 'zod'
 
 export async function GET(
   request: NextRequest,
@@ -62,15 +64,11 @@ export async function PUT(
     const supabase = await createClient()
     const { id } = await params
     
-    // Verificar autenticación (temporalmente comentado)
-    // const { data: { user }, error: authError } = await supabase.auth.getUser()
-    // if (authError || !user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
-
-    const body: UpdateReelData = await request.json()
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const bodyRaw = await request.json()
+    const body = UpdateReelSchema.parse(bodyRaw)
     
-    console.log('🔄 Body recibido:', JSON.stringify(body, null, 2))
+    console.log('🔄 Body validado:', JSON.stringify(body, null, 2))
 
     const updateData: any = {}
     
@@ -101,6 +99,18 @@ export async function PUT(
 
     return NextResponse.json(updatedReel)
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     console.error('Error in PUT /api/admin/reels/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

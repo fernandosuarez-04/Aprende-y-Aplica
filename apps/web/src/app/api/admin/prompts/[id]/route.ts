@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminPromptsService } from '@/features/admin/services/adminPrompts.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { UpdatePromptSchema } from '@/lib/schemas/content.schema'
+import { z } from 'zod'
 
 export async function PUT(
   request: NextRequest,
@@ -12,10 +14,13 @@ export async function PUT(
     if (auth instanceof NextResponse) return auth
     
     const { id: promptId } = await params
-    const promptData = await request.json()
+    
+    // ✅ SEGURIDAD: Validar datos de entrada con Zod
+    const body = await request.json()
+    const promptData = UpdatePromptSchema.parse(body)
     
     console.log('🔄 Actualizando prompt:', promptId)
-    console.log('📋 Datos recibidos:', promptData)
+    console.log('📋 Datos validados:', promptData)
     
     const updatedPrompt = await AdminPromptsService.updatePrompt(promptId, promptData)
 
@@ -25,6 +30,18 @@ export async function PUT(
       prompt: updatedPrompt
     })
   } catch (error) {
+    // ✅ SEGURIDAD: Manejo específico de errores de validación
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Datos inválidos',
+        errors: error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message
+        }))
+      }, { status: 400 })
+    }
+    
     logError('PUT /api/admin/prompts/[id]', error)
     return NextResponse.json(
       formatApiError(error, 'Error al actualizar prompt'),
