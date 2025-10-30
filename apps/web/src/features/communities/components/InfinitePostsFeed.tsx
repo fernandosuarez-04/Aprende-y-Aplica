@@ -1,35 +1,37 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { useInfiniteScroll } from '@/core/hooks/useIntersectionObserver'
+import { useInfiniteScroll } from '../../../core/hooks/useIntersectionObserver'
 import { OptimizedPostCard } from './OptimizedPostCard'
 import { PostsSkeleton } from './CommunitySkeletons'
 
-interface Post {
-  id: string
-  content: string
-  created_at: string
-  user?: {
-    first_name?: string
-    last_name?: string
-    username?: string
-    profile_picture_url?: string
-  }
-  image_url?: string
-  reactions_count?: number
-  comments_count?: number
-}
+// Tipo genérico para permitir cualquier tipo de post
+type GenericPost = Record<string, any> & { id: string }
 
-interface InfinitePostsFeedProps {
+interface InfinitePostsFeedProps<T = GenericPost> {
   communitySlug: string
-  initialPosts?: Post[]
+  initialPosts?: T[]
+  renderPost?: (post: T, index: number) => React.ReactNode
+  onPostsUpdate?: (posts: T[]) => void
 }
 
-export function InfinitePostsFeed({ communitySlug, initialPosts = [] }: InfinitePostsFeedProps) {
-  const [posts, setPosts] = useState<Post[]>(initialPosts)
+export function InfinitePostsFeed<T extends GenericPost = GenericPost>({ 
+  communitySlug, 
+  initialPosts = [],
+  renderPost,
+  onPostsUpdate
+}: InfinitePostsFeedProps<T>) {
+  const [posts, setPosts] = useState<T[]>(initialPosts)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+
+  // Notificar cambios en posts al componente padre
+  useEffect(() => {
+    if (onPostsUpdate) {
+      onPostsUpdate(posts)
+    }
+  }, [posts, onPostsUpdate])
 
   const loadMorePosts = useCallback(async () => {
     if (loading) return
@@ -64,14 +66,20 @@ export function InfinitePostsFeed({ communitySlug, initialPosts = [] }: Infinite
   return (
     <div className="space-y-6">
       {/* Posts list */}
-      {posts.map((post) => (
-        <OptimizedPostCard
-          key={post.id}
-          post={post}
-          onReact={() => console.log('React to', post.id)}
-          onComment={() => console.log('Comment on', post.id)}
-          onShare={() => console.log('Share', post.id)}
-        />
+      {posts.map((post, index) => (
+        renderPost ? (
+          <React.Fragment key={post.id}>
+            {renderPost(post, index)}
+          </React.Fragment>
+        ) : (
+          <OptimizedPostCard
+            key={post.id}
+            post={post}
+            onReact={() => console.log('React to', post.id)}
+            onComment={() => console.log('Comment on', post.id)}
+            onShare={() => console.log('Share', post.id)}
+          />
+        )
       ))}
 
       {/* Loading indicator */}

@@ -61,11 +61,23 @@ const YouTubeLinkModal = dynamic(() => import('../../../features/communities/com
 const PollModal = dynamic(() => import('../../../features/communities/components/AttachmentModals/PollModal').then(mod => ({ default: mod.PollModal })), {
   ssr: false
 });
+const InfinitePostsFeed = dynamic(() => import('../../../features/communities/components/InfinitePostsFeed').then(mod => ({ default: mod.InfinitePostsFeed })), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="community-post animate-pulse">
+          <div className="h-48 bg-slate-800/50 rounded-lg" />
+        </div>
+      ))}
+    </div>
+  )
+});
 import { InlineAttachmentButtons, AttachmentPreview, PostAttachment } from '../../../features/communities/components';
 import { formatRelativeTime } from '../../../core/utils/date-utils';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
-// import { useAuth } from '@/features/auth/hooks/useAuth';
+// import { useAuth } from '../../../features/auth/hooks/useAuth';
 
 // Componentes completos para la comunidad
 // ReactionButton component is now imported from features/communities/components
@@ -2040,15 +2052,17 @@ export default function CommunityDetailPage() {
                 </motion.div>
               )}
 
-              {/* Posts Feed */}
-              <motion.div
-                variants={containerVariants}
-                className="space-y-6"
-              >
-                {posts.map((post, index) => (
+              {/* Posts Feed with Infinite Scroll */}
+              <InfinitePostsFeed
+                communitySlug={slug}
+                initialPosts={posts}
+                onPostsUpdate={(updatedPosts) => setPosts(updatedPosts as any)}
+                renderPost={(post, index) => (
                   <motion.div
                     key={post.id}
                     variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
                     whileHover="hover"
                     className="community-post"
                   >
@@ -2225,25 +2239,8 @@ export default function CommunityDetailPage() {
                       />
                     </div>
                   </motion.div>
-                ))}
-
-                {posts.length === 0 && (
-                  <motion.div
-                    variants={cardVariants}
-                    className="text-center py-16"
-                  >
-                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-800/50 flex items-center justify-center">
-                      <MessageSquare className="w-12 h-12 text-slate-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
-                      No hay posts aún
-                    </h3>
-                    <p className="text-slate-400">
-                      Sé el primero en compartir algo en esta comunidad
-                    </p>
-                  </motion.div>
                 )}
-              </motion.div>
+              />
             </>
           ) : (
             /* Preview Mode for Non-Members */
@@ -2277,7 +2274,7 @@ export default function CommunityDetailPage() {
           onClose={() => closeReactionDetails(post.id)}
           postId={post.id}
           communitySlug={slug}
-          selectedReactionType={selectedReactionType}
+          selectedReactionType={selectedReactionType || undefined}
         />
       ))}
 

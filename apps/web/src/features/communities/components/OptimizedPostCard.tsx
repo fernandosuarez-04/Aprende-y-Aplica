@@ -1,24 +1,11 @@
 'use client'
 
 import React, { memo } from 'react'
-import { useLazyImage } from '@/core/hooks/useIntersectionObserver'
+import { useLazyImage } from '../../../core/hooks/useIntersectionObserver'
 import { User, Heart, MessageSquare, Share2, MoreHorizontal } from 'lucide-react'
 
 interface OptimizedPostCardProps {
-  post: {
-    id: string
-    content: string
-    created_at: string
-    user?: {
-      first_name?: string
-      last_name?: string
-      username?: string
-      profile_picture_url?: string
-    }
-    image_url?: string
-    reactions_count?: number
-    comments_count?: number
-  }
+  post: any // Tipo flexible para aceptar diferentes estructuras de post
   onReact?: () => void
   onComment?: () => void
   onShare?: () => void
