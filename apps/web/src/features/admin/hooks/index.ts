@@ -1,7 +1,7 @@
 export { useAdminStats } from './useAdminStats'
 export { useAdminUsers } from './useAdminUsers'
 export { useAdminWorkshops } from './useAdminWorkshops'
-export { useAdminCommunities } from './useAdminCommunities'
+export { useAdminCommunities, useCommunitiesPaginated } from './useAdminCommunities'
 export { useAdminApps } from './useAdminApps'
 export { useAdminNews } from './useAdminNews'
 export { useAdminPrompts } from './useAdminPrompts'
