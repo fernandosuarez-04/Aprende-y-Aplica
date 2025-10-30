@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { cacheHeaders } from '../../../lib/utils/cache-headers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         communities: publicCommunities,
         total: publicCommunities.length
+      }, {
+        headers: cacheHeaders.static // Cache 1 hora - comunidades cambian raramente
       });
     }
 
@@ -91,6 +94,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       communities: enrichedCommunities,
       total: enrichedCommunities.length
+    }, {
+      headers: cacheHeaders.static // Cache 1 hora - comunidades cambian raramente
     });
 
   } catch (error) {

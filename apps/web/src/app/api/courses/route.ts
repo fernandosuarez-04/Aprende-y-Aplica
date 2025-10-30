@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { CourseService } from '../../../features/courses/services/course.service'
 import { formatApiError, logError } from '@/core/utils/api-errors'
+import { cacheHeaders } from '../../../lib/utils/cache-headers'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +17,9 @@ export async function GET(request: NextRequest) {
       courses = await CourseService.getActiveCourses(userId || undefined)
     }
 
-    return NextResponse.json(courses)
+    return NextResponse.json(courses, {
+      headers: cacheHeaders.static // Cache 1 hora - cursos cambian raramente
+    })
   } catch (error) {
     logError('GET /api/courses', error)
     return NextResponse.json(

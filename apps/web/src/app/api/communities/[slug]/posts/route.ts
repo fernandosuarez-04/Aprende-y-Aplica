@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { cacheHeaders } from '../../../../../lib/utils/cache-headers';
 
 export async function GET(
   request: NextRequest,
@@ -157,6 +158,8 @@ export async function GET(
     return NextResponse.json({
       posts: enrichedPosts,
       total: enrichedPosts.length
+    }, {
+      headers: cacheHeaders.semiStatic // Cache 5 min - posts cambian moderadamente
     });
 
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminCommunitiesService } from '@/features/admin/services/adminCommunities.service'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { cacheHeaders } from '@/lib/utils/cache-headers'
 
 /**
  * ✅ ISSUE #19: GET con soporte para paginación cursor-based
@@ -46,11 +47,17 @@ export async function GET(request: NextRequest) {
         isActive
       })
 
-      return NextResponse.json(result, { status: 200 })
+      return NextResponse.json(result, { 
+        status: 200,
+        headers: cacheHeaders.semiStatic // Cache 5 min - admin puede modificar datos
+      })
     } else {
       // Modo sin paginación (legacy - mantener compatibilidad con código existente)
       const communities = await AdminCommunitiesService.getAllCommunities()
-      return NextResponse.json({ communities }, { status: 200 })
+      return NextResponse.json({ communities }, { 
+        status: 200,
+        headers: cacheHeaders.semiStatic // Cache 5 min - admin puede modificar datos
+      })
     }
   } catch (error) {
     console.error('Error fetching admin communities:', error)
