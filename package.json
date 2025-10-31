@@ -14,7 +14,8 @@
     "build": "npm run build --workspaces",
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
-    "prepare": "npm run build --workspace=@aprende-y-aplica/ui && npm run build --workspace=@aprende-y-aplica/shared",
+    "build:packages": "npm run build --workspace=@aprende-y-aplica/ui && npm run build --workspace=@aprende-y-aplica/shared",
+    "postinstall": "npm run build:packages",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces && tsc --noEmit"
   },
