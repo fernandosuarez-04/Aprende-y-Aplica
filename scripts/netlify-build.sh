@@ -10,7 +10,7 @@ echo "📦 Instalando dependencias (incluyendo devDependencies)..."
 npm install --legacy-peer-deps
 
 echo "🔨 Construyendo paquetes compartidos..."
-npm run prepare
+npm run build:packages
 
 # Configurar NODE_ENV para producción antes del build final
 export NODE_ENV=production

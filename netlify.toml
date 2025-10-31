@@ -2,10 +2,9 @@
   # Directorio base del monorepo
   base = "."
   
-  # Comando simplificado y robusto para monorepo
-  # --production=false fuerza la instalación de devDependencies (TypeScript necesario para build)
-  # postinstall construye automáticamente los paquetes después de instalar dependencias
-  command = "npm install --legacy-peer-deps --production=false && npm run build:web"
+  # Comando usando script bash que maneja NODE_ENV correctamente
+  # El script asegura que devDependencies (TypeScript) se instalen correctamente
+  command = "bash scripts/netlify-build.sh"
   
   # Directorio de publicación (Next.js con Netlify plugin maneja esto automáticamente)
   publish = "apps/web/.next"
@@ -67,11 +66,11 @@
 # Configuración específica para diferentes contextos (opcional)
 # Si no se especifica, se usa el comando de [build]
 [context.production]
-  command = "npm install --legacy-peer-deps --production=false && npm run build:web"
+  command = "bash scripts/netlify-build.sh"
   
 [context.branch-deploys]
-  command = "npm install --legacy-peer-deps --production=false && npm run build:web"
+  command = "bash scripts/netlify-build.sh"
   
 [context.deploy-preview]
-  command = "npm install --legacy-peer-deps --production=false && npm run build:web"
+  command = "bash scripts/netlify-build.sh"
 
