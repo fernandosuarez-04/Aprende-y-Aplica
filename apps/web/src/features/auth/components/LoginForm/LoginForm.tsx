@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useTransition } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
 import { LoginFormData } from '../../types/auth.types';
 import { loginSchema } from './LoginForm.schema';
@@ -14,8 +15,9 @@ import { loginAction } from '../../actions/login';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 
 export function LoginForm() {
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = React.useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   
   const {
     register,
@@ -34,34 +36,54 @@ export function LoginForm() {
 
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
+    setIsPending(true);
     
-    startTransition(async () => {
+    try {
+      console.log('🔄 Iniciando proceso de login...');
+      
       const formData = new FormData();
       formData.append('emailOrUsername', data.emailOrUsername);
       formData.append('password', data.password);
       formData.append('rememberMe', data.rememberMe.toString());
 
-      try {
-        const result = await loginAction(formData);
-        
-        if (result?.error) {
-          setError(result.error);
-        }
-        // Si no hay error, la acción redirect ya maneja la navegación
-      } catch (error) {
-        // Verificar si es una redirección de Next.js (no es un error real)
-        if (error && typeof error === 'object' && 'digest' in error) {
-          const digest = (error as any).digest;
+      console.log('📤 Enviando datos al servidor...');
+      const result = await loginAction(formData);
+      
+      console.log('📥 Respuesta recibida:', result);
+      
+      if (result?.error) {
+        console.error('❌ Error en login:', result.error);
+        setError(result.error);
+        setIsPending(false);
+      }
+      // Si no hay error, la acción redirect ya maneja la navegación
+      // No necesitamos hacer nada más aquí
+    } catch (error: any) {
+      console.error('💥 Error capturado en onSubmit:', error);
+      
+      // Verificar si es una redirección de Next.js (no es un error real)
+      if (error && typeof error === 'object') {
+        // Next.js redirect lanza un error especial que debemos re-lanzar
+        if ('digest' in error) {
+          const digest = error.digest;
           if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
-            // Es una redirección exitosa, no mostrar error
-            return;
+            // Es una redirección exitosa, re-lanzar para que Next.js la maneje
+            console.log('✅ Redirección detectada, login exitoso');
+            throw error;
           }
         }
         
-        console.error('Login error:', error);
-        setError('Error inesperado al iniciar sesión');
+        // También puede ser un error de redirección de otra forma
+        if (error.message && error.message.includes('NEXT_REDIRECT')) {
+          console.log('✅ Redirección detectada (alternativa), login exitoso');
+          throw error;
+        }
       }
-    });
+      
+      console.error('❌ Error inesperado:', error);
+      setError('Error inesperado al iniciar sesión');
+      setIsPending(false);
+    }
   };
 
   return (
