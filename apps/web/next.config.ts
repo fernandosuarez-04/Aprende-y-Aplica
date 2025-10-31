@@ -160,7 +160,8 @@ try {
         networkTimeoutSeconds: 10
       }
     }
-  ]);
+  ]
+  });
 } catch (e) {
   // next-pwa no disponible, usar función identidad
   console.warn('next-pwa no disponible, continuando sin PWA');
