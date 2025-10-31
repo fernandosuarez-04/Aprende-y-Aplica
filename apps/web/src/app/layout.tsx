@@ -5,6 +5,7 @@ import { ThemeProvider } from '../core/components/ThemeProvider';
 import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
+import { PWAPrompt } from '../core/components/PWAPrompt';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -25,6 +26,13 @@ export const metadata: Metadata = {
   robots: 'index, follow',
   icons: {
     icon: '/icono.ico',
+    apple: '/icon-192x192.png',
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Aprende y Aplica',
   },
   openGraph: {
     title: 'Aprende y Aplica',
@@ -53,11 +61,24 @@ export default function RootLayout({
         <link rel="preconnect" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
+        
+        {/* 📱 PWA Meta Tags */}
+        <meta name="application-name" content="Aprende y Aplica" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Aprende y Aplica" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#3b82f6" />
+        
+        {/* 🎨 Splash Screens iOS */}
+        <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
       <body className={`${inter.className} antialiased`} style={{ backgroundColor: 'var(--color-bg-dark)', color: 'var(--color-contrast)' }}>
         <SWRProvider>
           <ThemeProvider>
             <PrefetchManager />
+            <PWAPrompt />
             <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
               <ConditionalNavbar>
                 {children}

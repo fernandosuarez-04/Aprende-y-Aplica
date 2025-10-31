@@ -44,6 +44,7 @@
   "author": "Equipo Aprende y Aplica",
   "license": "MIT",
   "dependencies": {
+    "next-pwa": "^5.6.0",
     "swr": "^2.3.6"
   }
 }
