@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, 
@@ -21,8 +21,10 @@ import { useCourses } from '../../features/courses/hooks/useCourses';
 import { useFavorites } from '../../features/courses/hooks/useFavorites';
 import { useCategories } from '../../features/courses/hooks/useCategories';
 import { UserDropdown } from '../../core/components/UserDropdown';
-import { AIChatAgent } from '../../core/components/AIChatAgent';
 import { useRouter } from 'next/navigation';
+
+// 🚀 Lazy Loading - AIChatAgent pesado
+const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
 
 // Los talleres ahora se obtienen únicamente de la API
 
@@ -371,13 +373,15 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* AI Chat Agent */}
-      <AIChatAgent
-        assistantName="Lia"
-        initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre talleres, cursos y contenido educativo. ¿En qué puedo asistirte hoy?"
-        promptPlaceholder="Pregunta sobre talleres, cursos..."
-        context="workshops"
-      />
+      {/* AI Chat Agent - Lazy loaded */}
+      <Suspense fallback={null}>
+        <AIChatAgent
+          assistantName="Lia"
+          initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre talleres, cursos y contenido educativo. ¿En qué puedo asistirte hoy?"
+          promptPlaceholder="Pregunta sobre talleres, cursos..."
+          context="workshops"
+        />
+      </Suspense>
     </div>
   );
 }
