@@ -14,9 +14,9 @@
   },
   "private": true,
   "scripts": {
-    "build": "node ./node_modules/.bin/tsc",
-    "dev": "node ./node_modules/.bin/tsc --watch",
-    "type-check": "node ./node_modules/.bin/tsc --noEmit",
+    "build": "npx tsc",
+    "dev": "npx tsc --watch",
+    "type-check": "npx tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
