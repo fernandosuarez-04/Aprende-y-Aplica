@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import { createClient } from '../../../lib/supabase/server';
 import { logger } from '../../../lib/logger';
+import { cacheGet, cacheSet } from '../../../lib/cache/ttlCache'
 import crypto from 'crypto';
 
 export class SessionService {
@@ -29,9 +30,7 @@ export class SessionService {
                headersList.get('x-real-ip') || 
                '127.0.0.1';
     
-    const { error: dbError } = await supabase
-      .from('user_session')
-      .insert({
+    const newSession: any = {
         user_id: userId,
         jwt_id: sessionToken, // Usamos el token como jwt_id
         issued_at: new Date().toISOString(),
@@ -39,7 +38,10 @@ export class SessionService {
         ip: ip,
         user_agent: userAgent,
         revoked: false,
-      });
+      };
+    const { error: dbError } = await supabase
+      .from('user_session')
+      .insert(newSession);
     
     if (dbError) {
       logger.error('Error guardando sesión en DB', dbError);
@@ -71,6 +73,12 @@ export class SessionService {
         return null;
       }
 
+      // Cache de 30s por token para evitar golpear DB en cada request
+      const cached = cacheGet<any>(`user-by-session:${sessionToken}`)
+      if (cached) {
+        return cached
+      }
+
       const supabase = await createClient();
       
       // Buscar sesión válida
@@ -92,11 +100,11 @@ export class SessionService {
       }
 
       // Obtener datos del usuario
-      console.log('👤 Buscando usuario con ID:', session.user_id)
+      console.log('👤 Buscando usuario con ID:', (session as any).user_id)
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url')
-        .eq('id', session.user_id)
+        .eq('id', (session as any).user_id)
         .single();
 
       console.log('👤 Usuario encontrado:', user ? 'Sí' : 'No')
@@ -108,6 +116,7 @@ export class SessionService {
       }
 
       console.log('✅ Usuario obtenido exitosamente:', user)
+      cacheSet(`user-by-session:${sessionToken}`, user, 30_000)
       return user;
     } catch (error) {
       console.error('💥 Error getting current user:', error);
@@ -124,8 +133,8 @@ export class SessionService {
         const supabase = await createClient();
         
         // Marcar sesión como revocada en lugar de eliminarla
-        await supabase
-          .from('user_session')
+        await (supabase
+          .from('user_session') as any)
           .update({ revoked: true })
           .eq('jwt_id', sessionToken);
       }

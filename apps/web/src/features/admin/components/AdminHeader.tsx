@@ -27,12 +27,7 @@ export function AdminHeader({ onMenuClick, title, isCollapsed, onToggleCollapse 
             >
               <Bars3Icon className="h-6 w-6" />
             </button>
-            <div className="ml-4 lg:ml-0 flex items-center space-x-3">
-              <img 
-                src="/icono.png" 
-                alt="Aprende y Aplica" 
-                className="h-8 w-8 rounded-lg"
-              />
+            <div className="ml-4 lg:ml-0 flex items-center">
               <h1 className="text-xl font-semibold text-white">
                 {title}
               </h1>

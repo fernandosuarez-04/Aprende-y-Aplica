@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   BookOpenIcon, 
   MagnifyingGlassIcon,
@@ -20,6 +21,7 @@ import { AddWorkshopModal } from './AddWorkshopModal'
 import { EditWorkshopModal } from './EditWorkshopModal'
 
 export function InstructorWorkshopsPage() {
+  const router = useRouter()
   const { workshops, isLoading, error, refetch } = useInstructorWorkshops()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
@@ -29,7 +31,7 @@ export function InstructorWorkshopsPage() {
   const [editingWorkshop, setEditingWorkshop] = useState<InstructorWorkshop | null>(null)
 
   const handleEdit = (workshop: InstructorWorkshop) => {
-    setEditingWorkshop(workshop)
+    router.push(`/instructor/workshops/${workshop.id}`)
   }
 
   const handleCloseModals = () => {
@@ -158,7 +160,7 @@ export function InstructorWorkshopsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 w-full min-h-screen bg-gradient-to-br from-gray-950 via-indigo-950/30 to-purple-950/30">
+    <div className="p-6 md:p-8 w-full min-h-screen bg-gradient-to-br from-gray-950 via-indigo-950/30 to-purple-950/30 relative z-10">
       <div className="w-full max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -419,14 +421,7 @@ export function InstructorWorkshopsPage() {
           onSave={handleSave}
         />
       )}
-      {editingWorkshop && (
-        <EditWorkshopModal
-          isOpen={!!editingWorkshop}
-          workshop={editingWorkshop}
-          onClose={handleCloseModals}
-          onSave={handleSave}
-        />
-      )}
+      {/* La edición avanzada ahora se hace en la ruta /instructor/workshops/[id] */}
     </div>
   )
 }

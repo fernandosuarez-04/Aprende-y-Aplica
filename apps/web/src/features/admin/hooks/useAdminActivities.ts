@@ -59,7 +59,7 @@ export function useAdminActivities(): UseAdminActivitiesReturn {
 
   const updateActivity = async (activityId: string, activityData: any): Promise<AdminActivity> => {
     try {
-      const response = await fetch(`/api/admin/courses/0/modules/0/lessons/0/activities/${activityId}`, {
+      const response = await fetch(`/api/admin/activities/${activityId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(activityData)
@@ -80,7 +80,7 @@ export function useAdminActivities(): UseAdminActivitiesReturn {
 
   const deleteActivity = async (activityId: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/admin/courses/0/modules/0/lessons/0/activities/${activityId}`, {
+      const response = await fetch(`/api/admin/activities/${activityId}`, {
         method: 'DELETE'
       })
 

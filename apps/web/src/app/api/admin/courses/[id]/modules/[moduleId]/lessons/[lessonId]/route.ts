@@ -49,8 +49,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await params
-    const lessonId = resolvedParams.lessonId
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
+    const { lessonId } = await params
     const body = await request.json() as UpdateLessonData
 
     if (!lessonId) {
@@ -83,8 +85,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await params
-    const lessonId = resolvedParams.lessonId
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
+    const { lessonId } = await params
 
     if (!lessonId) {
       return NextResponse.json(

@@ -10,7 +10,7 @@ interface ConditionalNavbarProps {
 
 export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/auth';
+  const isAuthPage = pathname.startsWith('/auth');
   const isAdminPage = pathname.startsWith('/admin');
   const isInstructorPage = pathname.startsWith('/instructor');
   const isDashboardPage = pathname.startsWith('/dashboard');
@@ -30,7 +30,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   // For the home page (/), always show the regular navbar
   // NO mostrar navbar en páginas de /learn
   const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage);
-  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isInstructorPage && !isCreditsPage && !isReelsPage && !isLearnPage;
+  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isInstructorPage && !isCreditsPage && !isReelsPage && !isLearnPage && !isAuthPage;
   
   return (
     <>
@@ -40,7 +40,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
       {/* Mostrar Navbar regular para páginas que no son del dashboard */}
       {shouldShowRegularNavbar && <Navbar />}
       
-      <main className={shouldShowDashboardNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage ? '' : 'pt-16 lg:pt-20'}>
+      <main className={shouldShowDashboardNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage || isAuthPage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>

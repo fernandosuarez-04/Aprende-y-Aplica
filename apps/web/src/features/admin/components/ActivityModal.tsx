@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, CheckCircle } from 'lucide-react'
+import { X, CheckCircle, Plus, Trash2 } from 'lucide-react'
 import { AdminActivity } from '../services/adminActivities.service'
 
 interface ActivityModalProps {
@@ -21,6 +21,7 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
     is_required: false
   })
   const [loading, setLoading] = useState(false)
+  const [aiPromptsList, setAiPromptsList] = useState<string[]>([''])
 
   useEffect(() => {
     if (activity) {
@@ -32,6 +33,21 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
         ai_prompts: activity.ai_prompts || '',
         is_required: activity.is_required
       })
+      // Intentar inicializar lista de prompts desde JSON o texto separado por nuevas líneas
+      if (activity.ai_prompts) {
+        try {
+          const parsed = JSON.parse(activity.ai_prompts)
+          if (Array.isArray(parsed) && parsed.every(p => typeof p === 'string')) {
+            setAiPromptsList(parsed.length > 0 ? parsed : [''])
+          } else {
+            setAiPromptsList(activity.ai_prompts.split('\n').filter(Boolean))
+          }
+        } catch {
+          setAiPromptsList(activity.ai_prompts.split('\n').filter(Boolean))
+        }
+      } else {
+        setAiPromptsList([''])
+      }
     }
   }, [activity])
 
@@ -40,7 +56,12 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
     setLoading(true)
 
     try {
-      await onSave(formData)
+      const payload = { ...formData }
+      if (formData.activity_type === 'ai_chat') {
+        const normalized = aiPromptsList.map(p => p.trim()).filter(p => p.length > 0)
+        payload.ai_prompts = JSON.stringify(normalized)
+      }
+      await onSave(payload)
       onClose()
     } catch (error) {
       console.error('Error saving activity:', error)
@@ -127,19 +148,46 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
             />
           </div>
 
-          {/* AI Prompts (opcional) */}
+          {/* AI Prompts múltiples (solo ai_chat) */}
           {formData.activity_type === 'ai_chat' && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Prompts de IA (Opcional)
-              </label>
-              <textarea
-                rows={3}
-                value={formData.ai_prompts}
-                onChange={(e) => setFormData(prev => ({ ...prev, ai_prompts: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Prompts personalizados para la IA..."
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Prompts de IA
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setAiPromptsList(prev => [...prev, ''])}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                >
+                  <Plus className="w-4 h-4" /> Agregar prompt
+                </button>
+              </div>
+              <div className="space-y-2">
+                {aiPromptsList.map((prompt, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <textarea
+                      rows={2}
+                      value={prompt}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setAiPromptsList(prev => prev.map((p, i) => (i === idx ? value : p)))
+                      }}
+                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={`Prompt #${idx + 1}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAiPromptsList(prev => prev.filter((_, i) => i !== idx))}
+                      className="mt-1 px-3 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Se guardarán como lista JSON. El sistema usará uno o varios según la lógica de la actividad.</p>
             </div>
           )}
 
