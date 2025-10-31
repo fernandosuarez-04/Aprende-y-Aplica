@@ -2,22 +2,21 @@
   # Directorio base del monorepo
   base = "."
   
-  # Comando para construir los paquetes primero y luego la app web
-  # npm run prepare construye los paquetes compartidos
-  # Luego construimos Next.js que genera .next automáticamente
-  command = "npm ci && npm run prepare && cd apps/web && npm run build"
+  # Comando optimizado para monorepo
+  # Usamos npm install en lugar de npm ci para mejor compatibilidad con workspaces
+  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
   
   # Directorio de publicación (Next.js con Netlify plugin maneja esto automáticamente)
-  # El plugin de Next.js genera el output correcto
   publish = "apps/web/.next"
 
 [build.environment]
-  # Versión de Node.js
+  # Versión de Node.js (usar .nvmrc es mejor)
   NODE_VERSION = "18"
-  # Versión de npm (Netlify usa la que viene con Node)
+  # Versión de npm
+  NPM_VERSION = "9"
   
-  # Asegurar que los paquetes compartidos se construyan
-  SKIP_ENV_VALIDATION = "true"
+  # Timeout aumentado para builds largos
+  NETLIFY_NEXT_PLUGIN_SKIP = "false"
 
 # Configuración para Next.js con serverless functions
 # Este plugin maneja automáticamente el build y deployment de Next.js
@@ -64,11 +63,11 @@
 
 # Configuración específica para el monorepo
 [context.production]
-  command = "npm ci && npm run prepare && cd apps/web && npm run build"
+  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
   
 [context.branch-deploys]
-  command = "npm ci && npm run prepare && cd apps/web && npm run build"
+  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
   
 [context.deploy-preview]
-  command = "npm ci && npm run prepare && cd apps/web && npm run build"
+  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
 
