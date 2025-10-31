@@ -27,7 +27,7 @@ import { FeaturedReelsSection } from '../../features/reels/components/FeaturedRe
 import { useRouter } from 'next/navigation'
 
 // 🚀 Lazy Loading - AIChatAgent pesado
-const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent').then(m => ({ default: m.AIChatAgent })))
+const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })))
 
 export default function NewsPage() {
   const router = useRouter()

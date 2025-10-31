@@ -37,7 +37,7 @@ import { usePrefetchOnHover } from '../../core/hooks/usePrefetch';
 import { useCommunities } from '../../core/hooks/useCommunities';
 
 // 🚀 Lazy Loading - Cargar componentes pesados solo cuando se necesitan
-const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
+const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
 
 interface Community {
   id: string;
