@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import NextImage from 'next/image';
 import { motion } from 'framer-motion';
 import { 
   Image, 
@@ -72,17 +73,17 @@ export function PostAttachment({
         }
         
         return (
-          <div className="relative group">
-            <img
+          <div className="relative group w-full max-h-96">
+            <NextImage
               src={attachmentUrl}
               alt={attachmentData?.name || 'Imagen adjunta'}
+              width={800}
+              height={600}
               className="w-full max-h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => setShowImageModal(true)}
-              onLoad={() => {
-                if (isBase64) {
-                  console.log('🎨 [IMAGE] Base64 cargado exitosamente');
-                }
-              }}
+              priority={false}
+              quality={85}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
               onError={(e) => {
                 console.error('🎨 [IMAGE] Error loading image:', isBase64 ? 'Base64 image failed to load' : attachmentUrl);
                 // En lugar de ocultar, mostrar un placeholder

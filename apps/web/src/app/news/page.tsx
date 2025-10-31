@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Newspaper, 
@@ -235,12 +236,16 @@ export default function NewsPage() {
                 >
                   <div className="bg-carbon-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-carbon-700/50 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20">
                     {/* Hero Image */}
-                    <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                    <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center overflow-hidden">
                       {item.hero_image_url ? (
-                        <img 
+                        <Image 
                           src={item.hero_image_url} 
                           alt={item.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover"
+                          priority={false}
+                          quality={85}
                         />
                       ) : (
                         <Newspaper className="w-16 h-16 text-primary/70" />
@@ -381,12 +386,16 @@ export default function NewsPage() {
                       viewMode === 'list' ? 'flex' : ''
                     }`}>
                       {/* Hero Image */}
-                      <div className={`${viewMode === 'list' ? 'w-48 h-32' : 'h-48'} bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0`}>
+                      <div className={`${viewMode === 'list' ? 'w-48 h-32' : 'h-48'} bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
                         {item.hero_image_url ? (
-                          <img 
+                          <Image 
                             src={item.hero_image_url} 
                             alt={item.title}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover"
+                            priority={false}
+                            quality={85}
                           />
                         ) : (
                           <Newspaper className="w-8 h-8 text-primary/70" />

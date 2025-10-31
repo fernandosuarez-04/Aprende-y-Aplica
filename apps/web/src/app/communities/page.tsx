@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -482,17 +483,14 @@ export default function CommunitiesPage() {
                         {/* Community Image */}
                         {community.image_url ? (
                           <div className="absolute inset-0">
-                            <img
+                            <Image
                               src={community.image_url}
                               alt={community.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Si la imagen falla al cargar, mostrar el gradiente
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const gradient = target.nextElementSibling as HTMLElement;
-                                if (gradient) gradient.style.display = 'block';
-                              }}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              className="object-cover"
+                              priority={false}
+                              quality={85}
                             />
                             {/* Overlay para mejorar legibilidad del texto */}
                             <div className="absolute inset-0 bg-black/40" />

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { memo } from 'react'
+import Image from 'next/image'
 import { useLazyImage } from '../../../core/hooks/useIntersectionObserver'
 import { User, Heart, MessageSquare, Share2, MoreHorizontal } from 'lucide-react'
 
@@ -45,12 +46,16 @@ export const OptimizedPostCard = memo(function OptimizedPostCard({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           {post.user?.profile_picture_url ? (
-            <img
-              src={post.user.profile_picture_url}
-              alt={getUserName()}
-              className="w-10 h-10 rounded-full object-cover"
-              loading="lazy"
-            />
+            <div className="relative w-10 h-10 rounded-full overflow-hidden">
+              <Image
+                src={post.user.profile_picture_url}
+                alt={getUserName()}
+                fill
+                sizes="40px"
+                className="object-cover"
+                priority={false}
+              />
+            </div>
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <User className="w-5 h-5 text-white" />
@@ -71,21 +76,17 @@ export const OptimizedPostCard = memo(function OptimizedPostCard({
 
       {/* Image with lazy loading */}
       {post.image_url && (
-        <div ref={imageRef} className="mb-4 rounded-lg overflow-hidden bg-slate-700">
-          {imageSrc ? (
-            <img
-              src={imageSrc}
-              alt="Post image"
-              className={`w-full h-auto transition-opacity duration-300 ${
-                imageLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-64 flex items-center justify-center">
-              <div className="animate-pulse text-slate-400">Cargando imagen...</div>
-            </div>
-          )}
+        <div className="mb-4 rounded-lg overflow-hidden bg-slate-700 relative w-full" style={{ minHeight: '256px' }}>
+          <Image
+            src={post.image_url}
+            alt="Post image"
+            width={600}
+            height={400}
+            className="w-full h-auto"
+            loading="lazy"
+            quality={85}
+            sizes="(max-width: 768px) 100vw, 600px"
+          />
         </div>
       )}
 
