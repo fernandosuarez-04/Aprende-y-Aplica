@@ -2,20 +2,18 @@
   # Directorio base del monorepo
   base = "."
   
-  # Comando optimizado para monorepo
-  # Usamos npm install en lugar de npm ci para mejor compatibilidad con workspaces
-  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
+  # Comando simplificado y robusto para monorepo
+  # Dividido en pasos claros para mejor debugging
+  command = "npm install --legacy-peer-deps && npm run prepare && npm run build:web"
   
   # Directorio de publicación (Next.js con Netlify plugin maneja esto automáticamente)
   publish = "apps/web/.next"
 
 [build.environment]
-  # Versión de Node.js (usar .nvmrc es mejor)
+  # Versión de Node.js (lee automáticamente desde .nvmrc)
   NODE_VERSION = "18"
-  # Versión de npm
-  NPM_VERSION = "9"
   
-  # Timeout aumentado para builds largos
+  # Habilitar plugin de Next.js
   NETLIFY_NEXT_PLUGIN_SKIP = "false"
 
 # Configuración para Next.js con serverless functions
@@ -58,27 +56,21 @@
 
 # Configuración de funciones para Next.js
 # El plugin de Next.js convierte automáticamente las API routes en Netlify Functions
-# No necesitas un Functions directory separado, pero puedes especificarlo aquí si lo necesitas
+# No necesitas un Functions directory separado para Next.js API routes
 [functions]
-  # El plugin de Next.js maneja esto automáticamente desde apps/web/src/app/api/
-  # Si necesitas funciones adicionales fuera de Next.js, úsalas en este directorio
+  # Directorio para funciones tradicionales de Netlify (opcional)
   directory = "netlify/functions"
   node_bundler = "esbuild"
   external_node_modules = ["sharp", "canvas"]
-  
-  # Configuración para funciones de Next.js
-  included_files = [
-    "apps/web/src/**",
-    "packages/**"
-  ]
 
-# Configuración específica para el monorepo
+# Configuración específica para diferentes contextos (opcional)
+# Si no se especifica, se usa el comando de [build]
 [context.production]
-  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
+  command = "npm install --legacy-peer-deps && npm run prepare && npm run build:web"
   
 [context.branch-deploys]
-  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
+  command = "npm install --legacy-peer-deps && npm run prepare && npm run build:web"
   
 [context.deploy-preview]
-  command = "npm install && npm run prepare && npm run build --workspace=apps/web"
+  command = "npm install --legacy-peer-deps && npm run prepare && npm run build:web"
 
