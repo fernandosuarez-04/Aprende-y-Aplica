@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import { ArrowLeft, Plus, ChevronDown, ChevronRight, GripVertical, Book, FileText, ClipboardList, Flag, Clock, BarChart3, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from './AdvancedCharts'
 import { useAdminModules } from '../hooks/useAdminModules'
@@ -11,19 +10,10 @@ import { useAdminMaterials } from '../hooks/useAdminMaterials'
 import { useAdminActivities } from '../hooks/useAdminActivities'
 import { AdminModule } from '../services/adminModules.service'
 import { AdminLesson } from '../services/adminLessons.service'
-
-const ModuleModal = dynamic(() => import('./ModuleModal').then(mod => ({ default: mod.ModuleModal })), {
-  ssr: false
-})
-const LessonModal = dynamic(() => import('./LessonModal').then(mod => ({ default: mod.LessonModal })), {
-  ssr: false
-})
-const MaterialModal = dynamic(() => import('./MaterialModal').then(mod => ({ default: mod.MaterialModal })), {
-  ssr: false
-})
-const ActivityModal = dynamic(() => import('./ActivityModal').then(mod => ({ default: mod.ActivityModal })), {
-  ssr: false
-})
+import { ModuleModal } from './ModuleModal'
+import { LessonModal } from './LessonModal'
+import { MaterialModal } from './MaterialModal'
+import { ActivityModal } from './ActivityModal'
 
 interface CourseManagementPageProps {
   courseId: string
