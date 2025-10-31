@@ -4,6 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '../core/components/ThemeProvider';
 import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
+import { SWRProvider } from '../core/providers/SWRProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,14 +47,16 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${montserrat.variable}`}>
       <body className={`${inter.className} antialiased`} style={{ backgroundColor: 'var(--color-bg-dark)', color: 'var(--color-contrast)' }}>
-        <ThemeProvider>
-          <PrefetchManager />
-          <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
-            <ConditionalNavbar>
-              {children}
-            </ConditionalNavbar>
-          </div>
-        </ThemeProvider>
+        <SWRProvider>
+          <ThemeProvider>
+            <PrefetchManager />
+            <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
+              <ConditionalNavbar>
+                {children}
+              </ConditionalNavbar>
+            </div>
+          </ThemeProvider>
+        </SWRProvider>
       </body>
     </html>
   );

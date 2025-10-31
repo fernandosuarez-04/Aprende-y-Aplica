@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -35,6 +35,7 @@ import { Button } from '@aprende-y-aplica/ui';
 import { AIChatAgent } from '../../core/components/AIChatAgent';
 import { useRouter } from 'next/navigation';
 import { usePrefetchOnHover } from '../../core/hooks/usePrefetch';
+import { useCommunities } from '../../core/hooks/useCommunities';
 
 interface Community {
   id: string;
@@ -121,10 +122,13 @@ const cardVariants = {
 export default function CommunitiesPage() {
   const router = useRouter();
   const prefetchOnHover = usePrefetchOnHover();
-  const [communities, setCommunities] = useState<Community[]>([]);
+  
+  // 🚀 SWR Hook - Cache inteligente con revalidación automática
+  const { communities: communitiesData, isLoading, isError, mutate } = useCommunities();
+  const communities = communitiesData?.communities || [];
+  
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
 
@@ -164,83 +168,92 @@ export default function CommunitiesPage() {
     });
   }, [communities, selectedCategory, searchQuery]);
 
-  useEffect(() => {
-    fetchCommunities();
-  }, []);
-
-  // useCallback para evitar recrear funciones en cada render
-  const fetchCommunities = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-      console.log('🔍 Fetching communities from API...');
-      
-      const response = await fetch('/api/communities');
-      console.log('📡 API Response status:', response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Communities data received:', data);
-        setCommunities(data.communities || []);
-      } else {
-        const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
-        setCommunities([]);
-      }
-    } catch (error) {
-      console.error('❌ Network error fetching communities:', error);
-      setCommunities([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []); // Sin dependencias - función estable
-
+  // 🚀 Mutación optimista con SWR - Actualiza UI inmediatamente
   const handleJoinCommunity = React.useCallback(async (communityId: string, accessType: string) => {
     try {
       setJoiningCommunity(communityId);
       
       if (accessType === 'free') {
-        // Unirse directamente a comunidad gratuita
-        const response = await fetch('/api/communities/join', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ communityId }),
-        });
+        // Mutación optimista: actualizar cache antes del request
+        await mutate(
+          async (currentData: any) => {
+            // Request al API
+            const response = await fetch('/api/communities/join', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ communityId }),
+            });
 
-        if (response.ok) {
-          // Actualizar estado local
-          setCommunities(prev => prev.map(community => 
-            community.id === communityId 
-              ? { ...community, is_member: true, member_count: community.member_count + 1 }
-              : community
-          ));
-        }
+            if (!response.ok) throw new Error('Failed to join');
+
+            // Retornar datos actualizados
+            return {
+              ...currentData,
+              communities: currentData.communities.map((c: Community) => 
+                c.id === communityId 
+                  ? { ...c, is_member: true, member_count: c.member_count + 1 }
+                  : c
+              )
+            };
+          },
+          {
+            optimisticData: (currentData: any) => ({
+              ...currentData,
+              communities: currentData.communities.map((c: Community) => 
+                c.id === communityId 
+                  ? { ...c, is_member: true, member_count: c.member_count + 1 }
+                  : c
+              )
+            }),
+            revalidate: false, // No revalidar hasta que termine la mutación
+            rollbackOnError: true, // Revertir si falla
+          }
+        );
       } else {
         // Solicitar acceso a comunidad por invitación
-        const response = await fetch('/api/communities/request-access', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ communityId }),
-        });
+        await mutate(
+          async (currentData: any) => {
+            const response = await fetch('/api/communities/request-access', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ communityId }),
+            });
 
-        if (response.ok) {
-          // Actualizar estado local
-          setCommunities(prev => prev.map(community => 
-            community.id === communityId 
-              ? { ...community, has_pending_request: true }
-              : community
-          ));
-        }
+            if (!response.ok) throw new Error('Failed to request access');
+
+            return {
+              ...currentData,
+              communities: currentData.communities.map((c: Community) => 
+                c.id === communityId 
+                  ? { ...c, has_pending_request: true }
+                  : c
+              )
+            };
+          },
+          {
+            optimisticData: (currentData: any) => ({
+              ...currentData,
+              communities: currentData.communities.map((c: Community) => 
+                c.id === communityId 
+                  ? { ...c, has_pending_request: true }
+                  : c
+              )
+            }),
+            revalidate: false,
+            rollbackOnError: true,
+          }
+        );
       }
     } catch (error) {
       console.error('Error joining community:', error);
     } finally {
       setJoiningCommunity(null);
     }
-  }, []); // Sin dependencias - usa setCommunities de closure
+  }, [mutate]); // Depende de mutate de SWR
 
   const getAccessTypeInfo = React.useCallback((accessType: string) => {
     switch (accessType) {
