@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import NextImage from 'next/image';
 import { motion } from 'framer-motion';
 import { 
@@ -25,7 +25,8 @@ interface PostAttachmentProps {
   communitySlug?: string;
 }
 
-export function PostAttachment({ 
+// Memoizado para evitar re-renders cuando las props no cambian
+export const PostAttachment = memo(function PostAttachment({ 
   attachmentType, 
   attachmentUrl, 
   attachmentData, 
@@ -379,7 +380,7 @@ export function PostAttachment({
       )}
     </>
   );
-}
+});
 
 // Componente de encuesta interactiva
 function InteractivePoll({ 
