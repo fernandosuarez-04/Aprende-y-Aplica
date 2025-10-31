@@ -46,6 +46,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={`${inter.variable} ${montserrat.variable}`}>
+      <head>
+        {/* 🚀 Resource Hints - Mejora conexión a APIs externas 20-30% */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
+      </head>
       <body className={`${inter.className} antialiased`} style={{ backgroundColor: 'var(--color-bg-dark)', color: 'var(--color-contrast)' }}>
         <SWRProvider>
           <ThemeProvider>

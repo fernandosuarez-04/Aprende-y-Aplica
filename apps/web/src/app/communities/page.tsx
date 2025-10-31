@@ -490,8 +490,8 @@ export default function CommunitiesPage() {
                               fill
                               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                               className="object-cover"
-                              priority={false}
-                              quality={85}
+                              loading="lazy"
+                              quality={75}
                             />
                             {/* Overlay para mejorar legibilidad del texto */}
                             <div className="absolute inset-0 bg-black/40" />

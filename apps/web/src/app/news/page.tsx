@@ -246,8 +246,8 @@ export default function NewsPage() {
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover"
-                          priority={false}
-                          quality={85}
+                          loading="lazy"
+                          quality={75}
                         />
                       ) : (
                         <Newspaper className="w-16 h-16 text-primary/70" />
@@ -396,8 +396,8 @@ export default function NewsPage() {
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             className="object-cover"
-                            priority={false}
-                            quality={85}
+                            loading="lazy"
+                            quality={75}
                           />
                         ) : (
                           <Newspaper className="w-8 h-8 text-primary/70" />
