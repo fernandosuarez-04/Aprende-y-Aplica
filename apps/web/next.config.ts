@@ -1,13 +1,23 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-// Bundle Analyzer
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
+// Bundle Analyzer (opcional)
+let withBundleAnalyzer: (config: NextConfig) => NextConfig = (config) => config;
+try {
+  const bundleAnalyzer = require('@next/bundle-analyzer');
+  withBundleAnalyzer = bundleAnalyzer({
+    enabled: process.env.ANALYZE === 'true',
+  });
+} catch (e) {
+  // Bundle analyzer no disponible, usar función identidad
+  console.warn('@next/bundle-analyzer no disponible, continuando sin análisis de bundle');
+}
 
-// 🚀 PWA Configuration
-const withPWA = require('next-pwa')({
+// 🚀 PWA Configuration (opcional)
+let withPWA: (config: NextConfig) => NextConfig = (config) => config;
+try {
+  const nextPWA = require('next-pwa');
+  withPWA = nextPWA({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
   register: true,
@@ -150,8 +160,11 @@ const withPWA = require('next-pwa')({
         networkTimeoutSeconds: 10
       }
     }
-  ]
-});
+  ]);
+} catch (e) {
+  // next-pwa no disponible, usar función identidad
+  console.warn('next-pwa no disponible, continuando sin PWA');
+}
 
 const nextConfig: NextConfig = {
   // Deshabilitar checks durante builds de producción
