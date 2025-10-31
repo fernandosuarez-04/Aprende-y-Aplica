@@ -24,7 +24,7 @@ import { UserDropdown } from '../../core/components/UserDropdown';
 import { useRouter } from 'next/navigation';
 
 // 🚀 Lazy Loading - AIChatAgent pesado
-const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
+const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
 
 // Los talleres ahora se obtienen únicamente de la API
 
