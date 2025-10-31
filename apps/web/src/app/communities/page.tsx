@@ -122,35 +122,54 @@ export default function CommunitiesPage() {
   const router = useRouter();
   const prefetchOnHover = usePrefetchOnHover();
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [filteredCommunities, setFilteredCommunities] = useState<Community[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
 
-  // Estadísticas
-  const totalMembers = communities.reduce((sum, community) => sum + community.member_count, 0);
+  // Estadísticas memoizadas - solo recalcular cuando cambian las comunidades
+  const totalMembers = React.useMemo(() => 
+    communities.reduce((sum, community) => sum + community.member_count, 0),
+    [communities]
+  );
   const totalCommunities = communities.length;
+
+  // Filtrado y ordenamiento memoizado - evita recalcular en cada render
+  const filteredCommunities = React.useMemo(() => {
+    console.log('🔍 Filtering communities...');
+    let filtered = communities;
+
+    // Filtrar por categoría
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(community => 
+        community.category === selectedCategory
+      );
+    }
+
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(community =>
+        community.name.toLowerCase().includes(query) ||
+        community.description.toLowerCase().includes(query)
+      );
+    }
+
+    // Ordenar: primero las que ya es miembro, luego por fecha
+    return [...filtered].sort((a, b) => {
+      if (a.is_member && !b.is_member) return -1;
+      if (!a.is_member && b.is_member) return 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [communities, selectedCategory, searchQuery]);
 
   useEffect(() => {
     fetchCommunities();
   }, []);
 
-  useEffect(() => {
-    filterCommunities();
-  }, [communities, selectedCategory, searchQuery]);
-
-  // Log para depuración del renderizado
-  useEffect(() => {
-    console.log('🎨 Rendering communities:', filteredCommunities.length, filteredCommunities);
-    // Debug: verificar que se estén obteniendo las imágenes
-    filteredCommunities.forEach(community => {
-      console.log(`Comunidad: ${community.name}, Image URL: ${community.image_url}`);
-    });
-  }, [filteredCommunities]);
-
-  const fetchCommunities = async () => {
+  // useCallback para evitar recrear funciones en cada render
+  const fetchCommunities = React.useCallback(async () => {
     try {
       setIsLoading(true);
       console.log('🔍 Fetching communities from API...');
@@ -165,7 +184,6 @@ export default function CommunitiesPage() {
       } else {
         const errorData = await response.json();
         console.error('❌ API Error:', errorData);
-        // Mostrar mensaje de error al usuario
         setCommunities([]);
       }
     } catch (error) {
@@ -174,41 +192,9 @@ export default function CommunitiesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // Sin dependencias - función estable
 
-  const filterCommunities = () => {
-    console.log('🔍 Filtering communities...');
-    console.log('📊 Total communities:', communities.length);
-    console.log('🏷️ Selected category:', selectedCategory);
-    console.log('🔎 Search query:', searchQuery);
-    
-    let filtered = communities;
-
-    // Filtrar por categoría
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(community => 
-        community.category === selectedCategory
-      );
-      console.log('📂 After category filter:', filtered.length);
-    }
-
-    // Filtrar por búsqueda
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(community =>
-        community.name.toLowerCase().includes(query) ||
-        community.description.toLowerCase().includes(query)
-      );
-      console.log('🔎 After search filter:', filtered.length);
-    }
-
-    console.log('✅ Final filtered communities:', filtered.length);
-    console.log('📋 Filtered communities data:', filtered);
-    
-    setFilteredCommunities(filtered);
-  };
-
-  const handleJoinCommunity = async (communityId: string, accessType: string) => {
+  const handleJoinCommunity = React.useCallback(async (communityId: string, accessType: string) => {
     try {
       setJoiningCommunity(communityId);
       
@@ -254,9 +240,9 @@ export default function CommunitiesPage() {
     } finally {
       setJoiningCommunity(null);
     }
-  };
+  }, []); // Sin dependencias - usa setCommunities de closure
 
-  const getAccessTypeInfo = (accessType: string) => {
+  const getAccessTypeInfo = React.useCallback((accessType: string) => {
     switch (accessType) {
       case 'free':
         return { label: 'Miembro', color: 'text-green-400', icon: CheckCircle };
@@ -267,9 +253,9 @@ export default function CommunitiesPage() {
       default:
         return { label: 'Miembro', color: 'text-green-400', icon: CheckCircle };
     }
-  };
+  }, []); // Función pura sin dependencias
 
-  const getCommunityCardStyle = (community: Community) => {
+  const getCommunityCardStyle = React.useCallback((community: Community) => {
     // Estilos específicos para comunidades conocidas con mejor diseño
     if (community.slug === 'profesionales') {
       return {
@@ -343,7 +329,7 @@ export default function CommunitiesPage() {
       border: 'border-slate-600/30',
       shadow: 'shadow-slate-500/10'
     };
-  };
+  }, []); // Función pura, solo lee propiedades del objeto
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
