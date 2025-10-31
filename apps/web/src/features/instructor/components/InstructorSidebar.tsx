@@ -14,6 +14,9 @@ import {
   ChevronLeftIcon,
   Bars3Icon,
   MapPinIcon,
+  NewspaperIcon,
+  PlayIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline'
 import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
 
@@ -31,9 +34,10 @@ interface InstructorSidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/instructor/dashboard', icon: HomeIcon },
   { name: 'Talleres', href: '/instructor/workshops', icon: BookOpenIcon },
-  { name: 'Mensajes', href: '/instructor/messages', icon: ChatBubbleLeftRightIcon },
+  { name: 'Noticias', href: '/instructor/news', icon: NewspaperIcon },
+  { name: 'Reels', href: '/instructor/reels', icon: PlayIcon },
+  { name: 'Comunidades', href: '/instructor/communities', icon: UserGroupIcon },
   { name: 'Estadísticas', href: '/instructor/stats', icon: ChartBarIcon },
-  { name: 'Configuración', href: '/instructor/settings', icon: Cog6ToothIcon },
 ]
 
 export function InstructorSidebar({

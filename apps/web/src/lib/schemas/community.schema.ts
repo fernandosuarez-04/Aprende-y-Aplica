@@ -16,10 +16,29 @@ export const CreateCommunitySchema = z.object({
     .optional(),
   
   is_public: z.boolean()
-    .default(true),
+    .default(true)
+    .optional(),
+  
+  // Campos de visibilidad y acceso para comunidades
+  visibility: z.enum(['public', 'private', 'unlisted'], {
+    errorMap: () => ({ message: 'Visibilidad inválida. Debe ser: public, private o unlisted' })
+  })
+    .default('public')
+    .optional(),
+  
+  access_type: z.enum(['open', 'closed', 'invite_only', 'request'], {
+    errorMap: () => ({ message: 'Tipo de acceso inválido. Debe ser: open, closed, invite_only o request' })
+  })
+    .default('open')
+    .optional(),
   
   course_id: z.string()
     .uuid('ID de curso inválido')
+    .optional()
+    .nullable(),
+  
+  image_url: z.string()
+    .url('La URL de la imagen debe ser válida')
     .optional()
     .nullable(),
   

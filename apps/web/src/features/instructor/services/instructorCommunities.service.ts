@@ -1,0 +1,56 @@
+import { AdminCommunity, CommunityStats } from '../../admin/services/adminCommunities.service'
+
+export interface InstructorCommunity extends AdminCommunity {}
+
+export interface InstructorCommunityStats extends CommunityStats {}
+
+export class InstructorCommunitiesService {
+  static async getCommunities(): Promise<InstructorCommunity[]> {
+    try {
+      console.log('🔄 InstructorCommunitiesService.getCommunities: Iniciando...')
+      
+      const response = await fetch('/api/instructor/communities', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch communities')
+      }
+
+      const data = await response.json()
+      console.log('✅ Comunidades del instructor obtenidas exitosamente:', data.communities?.length || 0)
+      return data.communities || []
+    } catch (error) {
+      console.error('💥 Error in InstructorCommunitiesService.getCommunities:', error)
+      throw error
+    }
+  }
+
+  static async getCommunityStats(): Promise<InstructorCommunityStats> {
+    try {
+      console.log('🔄 InstructorCommunitiesService.getCommunityStats: Iniciando...')
+      
+      const response = await fetch('/api/instructor/communities/stats', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch community stats')
+      }
+
+      const data = await response.json()
+      console.log('✅ Estadísticas de comunidades del instructor obtenidas:', data.stats)
+      return data.stats
+    } catch (error) {
+      console.error('💥 Error in InstructorCommunitiesService.getCommunityStats:', error)
+      throw error
+    }
+  }
+}
+
