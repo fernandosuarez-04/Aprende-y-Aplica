@@ -17,6 +17,7 @@ import { UserDropdown } from '../UserDropdown'
 import { HiddenAdminButton } from '../HiddenAdminButton'
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg'
 import { useRouter } from 'next/navigation'
+import { usePrefetchOnHover } from '../../hooks/usePrefetch'
 
 interface DashboardNavbarProps {
   activeItem?: string
@@ -33,6 +34,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
   const router = useRouter()
   const [isDirectoryDropdownOpen, setIsDirectoryDropdownOpen] = useState(false)
   const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg()
+  const prefetchOnHover = usePrefetchOnHover()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -189,6 +191,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 router.push('/prompt-directory')
                                 setIsDirectoryDropdownOpen(false)
                               }}
+                              {...prefetchOnHover('/prompt-directory')}
                               className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors group w-full text-left"
                               whileHover={{ x: 4 }}
                             >
@@ -210,6 +213,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 router.push('/apps-directory')
                                 setIsDirectoryDropdownOpen(false)
                               }}
+                              {...prefetchOnHover('/apps-directory')}
                               className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors group w-full text-left"
                               whileHover={{ x: 4 }}
                             >
@@ -234,10 +238,18 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
               }
               
               // Regular navigation items
+              const routeMap: Record<string, string> = {
+                'workshops': '/dashboard',
+                'community': '/communities',
+                'news': '/news'
+              }
+              const href = routeMap[item.id]
+              
               return (
                 <motion.button
                   key={item.id}
                   onClick={() => handleNavigation(item.id)}
+                  {...(href && prefetchOnHover(href))}
                   className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                     isActive
                       ? 'text-white'

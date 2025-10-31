@@ -3,6 +3,7 @@ import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../core/components/ThemeProvider';
 import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
+import { PrefetchManager } from '../core/components/PrefetchManager';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,6 +47,7 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${montserrat.variable}`}>
       <body className={`${inter.className} antialiased`} style={{ backgroundColor: 'var(--color-bg-dark)', color: 'var(--color-contrast)' }}>
         <ThemeProvider>
+          <PrefetchManager />
           <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
             <ConditionalNavbar>
               {children}

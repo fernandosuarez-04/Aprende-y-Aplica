@@ -33,6 +33,7 @@ import {
 import { Button } from '@aprende-y-aplica/ui';
 import { AIChatAgent } from '../../core/components/AIChatAgent';
 import { useRouter } from 'next/navigation';
+import { usePrefetchOnHover } from '../../core/hooks/usePrefetch';
 
 interface Community {
   id: string;
@@ -118,6 +119,7 @@ const cardVariants = {
 
 export default function CommunitiesPage() {
   const router = useRouter();
+  const prefetchOnHover = usePrefetchOnHover();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [filteredCommunities, setFilteredCommunities] = useState<Community[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -473,6 +475,7 @@ export default function CommunitiesPage() {
                     whileHover={{ y: -5, scale: 1.02 }}
                     className={`relative group ${cardStyle.background} ${cardStyle.border} border rounded-3xl overflow-hidden backdrop-blur-sm ${cardStyle.shadow} shadow-2xl cursor-pointer`}
                     onClick={() => router.push(`/communities/${community.slug}`)}
+                    {...prefetchOnHover(`/communities/${community.slug}`)}
                   >
                       {/* Community Header with Image or Gradient */}
                       <div className={`${cardStyle.headerBg} p-6 pb-4 relative overflow-hidden`}>
