@@ -56,10 +56,21 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Configuración de funciones (si usas Netlify Functions)
+# Configuración de funciones para Next.js
+# El plugin de Next.js convierte automáticamente las API routes en Netlify Functions
+# No necesitas un Functions directory separado, pero puedes especificarlo aquí si lo necesitas
 [functions]
+  # El plugin de Next.js maneja esto automáticamente desde apps/web/src/app/api/
+  # Si necesitas funciones adicionales fuera de Next.js, úsalas en este directorio
+  directory = "netlify/functions"
   node_bundler = "esbuild"
   external_node_modules = ["sharp", "canvas"]
+  
+  # Configuración para funciones de Next.js
+  included_files = [
+    "apps/web/src/**",
+    "packages/**"
+  ]
 
 # Configuración específica para el monorepo
 [context.production]
