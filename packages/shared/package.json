@@ -14,9 +14,9 @@
   },
   "private": true,
   "scripts": {
-    "build": "node ../../node_modules/.bin/tsc || tsc",
-    "dev": "node ../../node_modules/.bin/tsc --watch || tsc --watch",
-    "type-check": "node ../../node_modules/.bin/tsc --noEmit || tsc --noEmit",
+    "build": "node ./node_modules/.bin/tsc",
+    "dev": "node ./node_modules/.bin/tsc --watch",
+    "type-check": "node ./node_modules/.bin/tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
