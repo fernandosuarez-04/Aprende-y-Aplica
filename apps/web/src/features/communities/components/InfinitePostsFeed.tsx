@@ -21,8 +21,18 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
   renderPost,
   onPostsUpdate
 }: InfinitePostsFeedProps<T>) {
-  const [posts, setPosts] = useState<T[]>(initialPosts)
-  const [page, setPage] = useState(1)
+  // Eliminar duplicados de posts iniciales
+  const uniqueInitialPosts = React.useMemo(() => {
+    const seen = new Set<string>()
+    return initialPosts.filter(post => {
+      if (seen.has(post.id)) return false
+      seen.add(post.id)
+      return true
+    })
+  }, [initialPosts])
+
+  const [posts, setPosts] = useState<T[]>(uniqueInitialPosts)
+  const [page, setPage] = useState(2) // Empezar en página 2 ya que initialPosts es la página 1
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
 
@@ -50,7 +60,22 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
         if (newPosts.length === 0) {
           setHasMore(false)
         } else {
-          setPosts(prev => [...prev, ...newPosts])
+          // Eliminar duplicados comparando por ID
+          setPosts(prev => {
+            const existingIds = new Set(prev.map(p => p.id))
+            const uniqueNewPosts = newPosts.filter((post: T) => !existingIds.has(post.id))
+            
+            console.log(`📥 Infinite Scroll: Loaded ${newPosts.length} posts, ${uniqueNewPosts.length} unique, ${newPosts.length - uniqueNewPosts.length} duplicates filtered`)
+            
+            // Si no hay posts nuevos únicos, no hay más por cargar
+            if (uniqueNewPosts.length === 0) {
+              console.log('✅ Infinite Scroll: No more unique posts, stopping pagination')
+              setHasMore(false)
+              return prev
+            }
+            
+            return [...prev, ...uniqueNewPosts]
+          })
           setPage(prev => prev + 1)
         }
       }
