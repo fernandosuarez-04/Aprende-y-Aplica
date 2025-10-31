@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, GripVertical, Book, FileText, ClipboardList, Flag, Clock } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, GripVertical, Book, FileText, ClipboardList, Flag, Clock, BarChart3, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
+import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from './AdvancedCharts'
 import { useAdminModules } from '../hooks/useAdminModules'
 import { useAdminLessons } from '../hooks/useAdminLessons'
 import { useAdminMaterials } from '../hooks/useAdminMaterials'
@@ -20,7 +21,7 @@ interface CourseManagementPageProps {
 
 export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'preview'>('modules')
+  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'preview' | 'stats'>('modules')
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
   
@@ -33,6 +34,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null)
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null)
   const [instructors, setInstructors] = useState<Array<{ id: string, name: string }>>([])
+  const [userStats, setUserStats] = useState<any>(null)
+  const [enrolledUsers, setEnrolledUsers] = useState<any[]>([])
+  const [statsLoading, setStatsLoading] = useState<boolean>(false)
+  const [chartData, setChartData] = useState<any>(null)
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useAdminModules()
   const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useAdminLessons()
@@ -51,6 +56,27 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       })
       .catch(err => console.error('Error fetching instructors:', err))
   }, [courseId])
+
+  useEffect(() => {
+    if (activeTab === 'stats') {
+      ;(async () => {
+        try {
+          setStatsLoading(true)
+          const res = await fetch(`/api/instructor/workshops/${courseId}/stats`)
+          const data = await res.json()
+          if (res.ok && data?.stats) {
+            setUserStats(data.stats)
+            setEnrolledUsers(data.enrolled_users || [])
+            setChartData(data.charts || null)
+          }
+        } catch (e) {
+          console.error('Error cargando estadísticas:', e)
+        } finally {
+          setStatsLoading(false)
+        }
+      })()
+    }
+  }, [activeTab, courseId])
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => {
@@ -148,7 +174,8 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
             {[
               { key: 'modules', label: '📚 Módulos', icon: 'modules' },
               { key: 'config', label: '⚙️ Configuración', icon: 'config' },
-              { key: 'preview', label: '👁️ Vista Previa', icon: 'preview' }
+              { key: 'preview', label: '👁️ Vista Previa', icon: 'preview' },
+              { key: 'stats', label: '📈 Estadísticas', icon: 'stats' }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -436,6 +463,334 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   )}
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div className="space-y-6">
+            {statsLoading ? (
+              <div className="text-center py-20 text-gray-500 dark:text-gray-400">Cargando estadísticas...</div>
+            ) : (
+              <>
+                {/* Estadísticas del Curso */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                    <LayoutDashboard className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                    Estadísticas del Curso
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Módulos</div>
+                      <div className="text-3xl font-bold">{modules.length}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{modules.filter((m: any) => m.is_published).length} publicados</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Lecciones</div>
+                      <div className="text-3xl font-bold">{userStats?.total_lessons ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Duración total</div>
+                      <div className="text-3xl font-bold">{modules.reduce((acc: number, m: any) => acc + (m.module_duration_minutes || 0), 0)} min</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Materiales</div>
+                      <div className="text-3xl font-bold">{userStats?.total_materials ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Actividades</div>
+                      <div className="text-3xl font-bold">{userStats?.total_activities ?? '—'}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{userStats?.completed_activities ?? 0} completadas</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Notas creadas</div>
+                      <div className="text-3xl font-bold">{userStats?.total_notes ?? '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estadísticas de Usuarios */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                    <Users2 className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                    Estadísticas de Usuarios
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Usuarios inscritos</div>
+                      <div className="text-3xl font-bold">{userStats?.total_enrolled ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">En progreso</div>
+                      <div className="text-3xl font-bold">{userStats?.in_progress ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Completados</div>
+                      <div className="text-3xl font-bold">{userStats?.completed ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">No iniciados</div>
+                      <div className="text-3xl font-bold">{userStats?.not_started ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Progreso promedio</div>
+                      <div className="text-3xl font-bold">{userStats ? `${Math.round(userStats.average_progress)}%` : '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Activos últimos 7 días</div>
+                      <div className="text-3xl font-bold">{userStats?.active_7d ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Activos últimos 30 días</div>
+                      <div className="text-3xl font-bold">{userStats?.active_30d ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Certificados emitidos</div>
+                      <div className="text-3xl font-bold">{userStats?.total_certificates ?? '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estadísticas Financieras */}
+                {(userStats?.total_purchases > 0 || userStats?.total_revenue_cents > 0) && (
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                      Estadísticas Financieras
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Compras totales</div>
+                        <div className="text-3xl font-bold">{userStats?.total_purchases ?? '—'}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{userStats?.active_purchases ?? 0} activas</div>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Ingresos totales</div>
+                        <div className="text-3xl font-bold text-green-600 dark:text-green-400">{userStats?.total_revenue_display ?? '$0.00'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Estadísticas de Reseñas */}
+                {userStats?.total_reviews > 0 && (
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                      <Star className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                      Reseñas
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Total de reseñas</div>
+                        <div className="text-3xl font-bold">{userStats?.total_reviews ?? '—'}</div>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Calificación promedio</div>
+                        <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{userStats?.average_rating ? `${userStats.average_rating.toFixed(1)} ⭐` : '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Análisis Estadístico Profundo */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                    <Sigma className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                    Análisis Estadístico Profundo
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Mediana de Progreso</div>
+                      <div className="text-2xl font-bold">{userStats?.median_progress ? `${Math.round(userStats.median_progress)}%` : '—'}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Valor central</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Desviación Estándar</div>
+                      <div className="text-2xl font-bold">{userStats?.std_deviation ?? '—'}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Dispersión de datos</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Rango Intercuartílico</div>
+                      <div className="text-2xl font-bold">{userStats?.iqr_progress ? `${Math.round(userStats.iqr_progress)}%` : '—'}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Q3 - Q1</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Rango Total</div>
+                      <div className="text-2xl font-bold">
+                        {userStats?.min_progress !== undefined && userStats?.max_progress !== undefined
+                          ? `${Math.round(userStats.min_progress)}% - ${Math.round(userStats.max_progress)}%`
+                          : '—'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Primer Cuartil (Q1)</div>
+                      <div className="text-2xl font-bold">{userStats?.q1_progress ? `${Math.round(userStats.q1_progress)}%` : '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Tercer Cuartil (Q3)</div>
+                      <div className="text-2xl font-bold">{userStats?.q3_progress ? `${Math.round(userStats.q3_progress)}%` : '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Varianza</div>
+                      <div className="text-2xl font-bold">{userStats?.variance ?? '—'}</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Tiempo Promedio de Finalización</div>
+                      <div className="text-2xl font-bold">{userStats?.avg_completion_days ? `${Math.round(userStats.avg_completion_days)} días` : '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Métricas de RRHH */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                    Métricas de RRHH
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Tasa de Retención</div>
+                      <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                        {userStats?.retention_rate ? `${userStats.retention_rate.toFixed(1)}%` : '—'}
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Usuarios activos últimos 30 días</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Tasa de Finalización</div>
+                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                        {userStats?.completion_rate ? `${userStats.completion_rate.toFixed(1)}%` : '—'}
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Completados / Inscritos</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Tasa de Abandono</div>
+                      <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                        {userStats?.retention_rate !== undefined 
+                          ? `${(100 - userStats.retention_rate).toFixed(1)}%`
+                          : '—'}
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Usuarios inactivos</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gráficas Avanzadas */}
+                {chartData && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                      <LineChartIcon className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                      Visualizaciones Avanzadas
+                    </h2>
+                    
+                    {chartData.enrollment_trend && chartData.enrollment_trend.length > 0 && (
+                      <EnrollmentTrendChart data={chartData.enrollment_trend} darkMode={false} />
+                    )}
+
+                    {chartData.progress_distribution && chartData.progress_distribution.length > 0 && (
+                      <ProgressDistributionChart data={chartData.progress_distribution} darkMode={false} />
+                    )}
+
+                    {chartData.engagement_data && chartData.engagement_data.length > 0 && (
+                      <EngagementScatterChart data={chartData.engagement_data} darkMode={false} />
+                    )}
+
+                    {chartData.enrollment_rates && chartData.enrollment_rates.length > 0 && (
+                      <CompletionRateChart data={chartData.enrollment_rates} darkMode={false} />
+                    )}
+
+                    {/* Gráficas de pastel: Roles y Áreas */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {chartData.user_roles_pie && chartData.user_roles_pie.length > 0 && (
+                        <DonutPieChart data={chartData.user_roles_pie} title="Distribución por Rol" darkMode={false} />
+                      )}
+                      {chartData.user_areas_pie && chartData.user_areas_pie.length > 0 && (
+                        <DonutPieChart data={chartData.user_areas_pie} title="Distribución por Área" darkMode={false} />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Lista de Usuarios Inscritos */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                    <ListChecks className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                    Lista de Usuarios Inscritos
+                  </h2>
+                  {enrolledUsers.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400">
+                      No hay usuarios inscritos aún
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Usuario</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Progreso</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Inscrito</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Última actividad</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {enrolledUsers.map((user: any) => (
+                              <tr key={user.enrollment_id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center space-x-3">
+                                    {user.profile_picture ? (
+                                      <img src={user.profile_picture} alt={user.display_name} className="w-10 h-10 rounded-full" />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold">
+                                        {user.display_name.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className="text-gray-900 dark:text-white font-medium">{user.display_name}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{user.email || user.username}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    user.enrollment_status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800' :
+                                    user.enrollment_status === 'active' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800' :
+                                    'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+                                  }`}>
+                                    {user.enrollment_status === 'completed' ? 'Completado' :
+                                     user.enrollment_status === 'active' ? 'Activo' :
+                                     user.enrollment_status === 'paused' ? 'Pausado' :
+                                     user.enrollment_status === 'cancelled' ? 'Cancelado' : 'Desconocido'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                      <div 
+                                        className="h-full bg-gradient-to-r from-blue-600 to-blue-700 transition-all"
+                                        style={{ width: `${user.progress_percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium w-12 text-right">
+                                      {Math.round(user.progress_percentage)}%
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                  {user.enrolled_at ? new Date(user.enrolled_at).toLocaleDateString() : '—'}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                  {user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleString() : 'Nunca'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}

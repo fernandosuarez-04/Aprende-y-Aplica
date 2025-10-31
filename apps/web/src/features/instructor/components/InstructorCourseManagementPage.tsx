@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3 } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
+import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from '@/features/admin/components/AdvancedCharts'
 import { useAdminModules } from '@/features/admin/hooks/useAdminModules'
 import { useAdminLessons } from '@/features/admin/hooks/useAdminLessons'
 import { useAdminMaterials } from '@/features/admin/hooks/useAdminMaterials'
@@ -21,7 +22,7 @@ interface InstructorCourseManagementPageProps {
 
 export function InstructorCourseManagementPage({ courseId }: InstructorCourseManagementPageProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'preview'>('modules')
+  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'preview' | 'stats'>('modules')
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
 
@@ -43,6 +44,10 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
 
   const [workshopPreview, setWorkshopPreview] = useState<any>(null)
   const [previewLoading, setPreviewLoading] = useState<boolean>(false)
+  const [userStats, setUserStats] = useState<any>(null)
+  const [enrolledUsers, setEnrolledUsers] = useState<any[]>([])
+  const [statsLoading, setStatsLoading] = useState<boolean>(false)
+  const [chartData, setChartData] = useState<any>(null)
   const [savingConfig, setSavingConfig] = useState<boolean>(false)
   const [configData, setConfigData] = useState({
     title: '',
@@ -85,6 +90,28 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       })
     }
   }, [workshopPreview])
+
+  // Cargar estadísticas de usuarios cuando se abre la pestaña
+  useEffect(() => {
+    if (activeTab === 'stats') {
+      ;(async () => {
+        try {
+          setStatsLoading(true)
+          const res = await fetch(`/api/instructor/workshops/${courseId}/stats`)
+          const data = await res.json()
+          if (res.ok && data?.stats) {
+            setUserStats(data.stats)
+            setEnrolledUsers(data.enrolled_users || [])
+            setChartData(data.charts || null)
+          }
+        } catch (e) {
+          console.error('Error cargando estadísticas:', e)
+        } finally {
+          setStatsLoading(false)
+        }
+      })()
+    }
+  }, [activeTab, courseId])
 
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -167,6 +194,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               { key: 'modules', label: 'Módulos', icon: Book },
               { key: 'config', label: 'Configuración', icon: Settings },
               { key: 'preview', label: 'Vista Previa', icon: Eye },
+              { key: 'stats', label: 'Estadísticas', icon: BarChart3 },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -486,6 +514,335 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               </div>
             ) : (
               <div className="text-center py-20 text-purple-200">No se encontró el curso.</div>
+            )}
+          </div>
+        )}
+
+        {/* Estadísticas */}
+        {activeTab === 'stats' && (
+          <div className="mt-6 space-y-6">
+            {statsLoading ? (
+              <div className="text-center py-20 text-purple-200">Cargando estadísticas...</div>
+            ) : (
+              <>
+                {/* Estadísticas del Curso */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                    <LayoutDashboard className="w-5 h-5 text-purple-300" />
+                    Estadísticas del Curso
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Módulos</div>
+                      <div className="text-3xl font-bold text-white">{modules.length}</div>
+                      <div className="text-xs text-purple-400/60 mt-1">{modules.filter(m => m.is_published).length} publicados</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Lecciones</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.total_lessons ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Duración total</div>
+                      <div className="text-3xl font-bold text-white">{modules.reduce((acc, m: any) => acc + (m.module_duration_minutes || 0), 0)} min</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Materiales</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.total_materials ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Actividades</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.total_activities ?? '—'}</div>
+                      <div className="text-xs text-purple-400/60 mt-1">{userStats?.completed_activities ?? 0} completadas</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Notas creadas</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.total_notes ?? '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estadísticas de Usuarios */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                    <Users2 className="w-5 h-5 text-purple-300" />
+                    Estadísticas de Usuarios
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Usuarios inscritos</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.total_enrolled ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">En progreso</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.in_progress ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Completados</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.completed ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">No iniciados</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.not_started ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Progreso promedio</div>
+                      <div className="text-3xl font-bold text-white">{userStats ? `${Math.round(userStats.average_progress)}%` : '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Activos últimos 7 días</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.active_7d ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Activos últimos 30 días</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.active_30d ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Certificados emitidos</div>
+                      <div className="text-3xl font-bold text-white">{userStats?.total_certificates ?? '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estadísticas Financieras */}
+                {(userStats?.total_purchases > 0 || userStats?.total_revenue_cents > 0) && (
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-purple-300" />
+                      Estadísticas Financieras
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                        <div className="text-sm text-purple-300/80 mb-2">Compras totales</div>
+                        <div className="text-3xl font-bold text-white">{userStats?.total_purchases ?? '—'}</div>
+                        <div className="text-xs text-purple-400/60 mt-1">{userStats?.active_purchases ?? 0} activas</div>
+                      </div>
+                      <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                        <div className="text-sm text-purple-300/80 mb-2">Ingresos totales</div>
+                        <div className="text-3xl font-bold text-green-400">{userStats?.total_revenue_display ?? '$0.00'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Estadísticas de Reseñas */}
+                {userStats?.total_reviews > 0 && (
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                      <Star className="w-5 h-5 text-purple-300" />
+                      Reseñas
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                        <div className="text-sm text-purple-300/80 mb-2">Total de reseñas</div>
+                        <div className="text-3xl font-bold text-white">{userStats?.total_reviews ?? '—'}</div>
+                      </div>
+                      <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                        <div className="text-sm text-purple-300/80 mb-2">Calificación promedio</div>
+                        <div className="text-3xl font-bold text-yellow-400">{userStats?.average_rating ? `${userStats.average_rating.toFixed(1)} ⭐` : '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Análisis Estadístico Profundo */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                    <Sigma className="w-5 h-5 text-purple-300" />
+                    Análisis Estadístico Profundo
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Mediana de Progreso</div>
+                      <div className="text-2xl font-bold text-white">{userStats?.median_progress ? `${Math.round(userStats.median_progress)}%` : '—'}</div>
+                      <div className="text-xs text-purple-400/60 mt-1">Valor central</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Desviación Estándar</div>
+                      <div className="text-2xl font-bold text-white">{userStats?.std_deviation ?? '—'}</div>
+                      <div className="text-xs text-purple-400/60 mt-1">Dispersión de datos</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Rango Intercuartílico</div>
+                      <div className="text-2xl font-bold text-white">{userStats?.iqr_progress ? `${Math.round(userStats.iqr_progress)}%` : '—'}</div>
+                      <div className="text-xs text-purple-400/60 mt-1">Q3 - Q1</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Rango Total</div>
+                      <div className="text-2xl font-bold text-white">
+                        {userStats?.min_progress !== undefined && userStats?.max_progress !== undefined
+                          ? `${Math.round(userStats.min_progress)}% - ${Math.round(userStats.max_progress)}%`
+                          : '—'}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Primer Cuartil (Q1)</div>
+                      <div className="text-2xl font-bold text-white">{userStats?.q1_progress ? `${Math.round(userStats.q1_progress)}%` : '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Tercer Cuartil (Q3)</div>
+                      <div className="text-2xl font-bold text-white">{userStats?.q3_progress ? `${Math.round(userStats.q3_progress)}%` : '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Varianza</div>
+                      <div className="text-2xl font-bold text-white">{userStats?.variance ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Tiempo Promedio de Finalización</div>
+                      <div className="text-2xl font-bold text-white">{userStats?.avg_completion_days ? `${Math.round(userStats.avg_completion_days)} días` : '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Métricas de RRHH */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-purple-300" />
+                    Métricas de RRHH
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Tasa de Retención</div>
+                      <div className="text-3xl font-bold text-green-400">{userStats?.retention_rate ? `${userStats.retention_rate.toFixed(1)}%` : '—'}</div>
+                      <div className="text-xs text-purple-400/60 mt-1">Usuarios activos últimos 30 días</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Tasa de Finalización</div>
+                      <div className="text-3xl font-bold text-blue-400">{userStats?.completion_rate ? `${userStats.completion_rate.toFixed(1)}%` : '—'}</div>
+                      <div className="text-xs text-purple-400/60 mt-1">Completados / Inscritos</div>
+                    </div>
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                      <div className="text-sm text-purple-300/80 mb-2">Tasa de Abandono</div>
+                      <div className="text-3xl font-bold text-red-400">
+                        {userStats?.retention_rate !== undefined 
+                          ? `${(100 - userStats.retention_rate).toFixed(1)}%`
+                          : '—'}
+                      </div>
+                      <div className="text-xs text-purple-400/60 mt-1">Usuarios inactivos</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gráficas Avanzadas */}
+                {chartData && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                      <LineChartIcon className="w-5 h-5 text-purple-300" />
+                      Visualizaciones Avanzadas
+                    </h2>
+                    
+                    {/* Gráfica de Tendencia de Inscripciones */}
+                    {chartData.enrollment_trend && chartData.enrollment_trend.length > 0 && (
+                      <EnrollmentTrendChart data={chartData.enrollment_trend} />
+                    )}
+
+                    {/* Gráfica de Distribución de Progreso */}
+                    {chartData.progress_distribution && chartData.progress_distribution.length > 0 && (
+                      <ProgressDistributionChart data={chartData.progress_distribution} />
+                    )}
+
+                    {/* Gráfica de Dispersión: Engagement */}
+                    {chartData.engagement_data && chartData.engagement_data.length > 0 && (
+                      <EngagementScatterChart data={chartData.engagement_data} />
+                    )}
+
+                    {/* Gráfica de Tasas de RRHH */}
+                    {chartData.enrollment_rates && chartData.enrollment_rates.length > 0 && (
+                      <CompletionRateChart data={chartData.enrollment_rates} />
+                    )}
+
+                    {/* Gráficas de pastel: Roles y Áreas */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {chartData.user_roles_pie && chartData.user_roles_pie.length > 0 && (
+                        <DonutPieChart data={chartData.user_roles_pie} title="Distribución por Rol" />
+                      )}
+                      {chartData.user_areas_pie && chartData.user_areas_pie.length > 0 && (
+                        <DonutPieChart data={chartData.user_areas_pie} title="Distribución por Área" />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Lista de Usuarios Inscritos */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                    <ListChecks className="w-5 h-5 text-purple-300" />
+                    Lista de Usuarios Inscritos
+                  </h2>
+                  {enrolledUsers.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-purple-800/40 rounded-xl text-purple-200">
+                      No hay usuarios inscritos aún
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-purple-900/30">
+                            <tr>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-purple-200 uppercase">Usuario</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-purple-200 uppercase">Estado</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-purple-200 uppercase">Progreso</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-purple-200 uppercase">Inscrito</th>
+                              <th className="px-6 py-4 text-left text-xs font-semibold text-purple-200 uppercase">Última actividad</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-purple-800/30">
+                            {enrolledUsers.map((user: any) => (
+                              <tr key={user.enrollment_id} className="hover:bg-purple-900/10 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center space-x-3">
+                                    {user.profile_picture ? (
+                                      <img src={user.profile_picture} alt={user.display_name} className="w-10 h-10 rounded-full" />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-purple-700/40 flex items-center justify-center text-purple-200 font-semibold">
+                                        {user.display_name.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className="text-white font-medium">{user.display_name}</div>
+                                      <div className="text-xs text-purple-300/70">{user.email || user.username}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    user.enrollment_status === 'completed' ? 'bg-green-900/30 text-green-300 border border-green-700/40' :
+                                    user.enrollment_status === 'active' ? 'bg-blue-900/30 text-blue-300 border border-blue-700/40' :
+                                    'bg-gray-800/50 text-gray-300 border border-gray-700/40'
+                                  }`}>
+                                    {user.enrollment_status === 'completed' ? 'Completado' :
+                                     user.enrollment_status === 'active' ? 'Activo' :
+                                     user.enrollment_status === 'paused' ? 'Pausado' :
+                                     user.enrollment_status === 'cancelled' ? 'Cancelado' : 'Desconocido'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="flex-1 bg-purple-900/30 rounded-full h-2 overflow-hidden">
+                                      <div 
+                                        className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all"
+                                        style={{ width: `${user.progress_percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-sm text-purple-200 font-medium w-12 text-right">
+                                      {Math.round(user.progress_percentage)}%
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-purple-200">
+                                  {user.enrolled_at ? new Date(user.enrolled_at).toLocaleDateString() : '—'}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-purple-200">
+                                  {user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleString() : 'Nunca'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
