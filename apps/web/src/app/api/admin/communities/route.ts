@@ -48,17 +48,24 @@ export async function GET(request: NextRequest) {
         isActive
       })
 
-      return NextResponse.json(result, { 
-        status: 200,
-        headers: cacheHeaders.semiStatic // Cache 5 min - admin puede modificar datos
-      })
+      // Importar utilidades de cache
+      const { withCache, privateCache } = await import('@/core/utils/cache-headers')
+
+      return withCache(
+        NextResponse.json(result, { status: 200 }),
+        privateCache // No cache - datos de admin (privados)
+      )
     } else {
       // Modo sin paginación (legacy - mantener compatibilidad con código existente)
       const communities = await AdminCommunitiesService.getAllCommunities()
-      return NextResponse.json({ communities }, { 
-        status: 200,
-        headers: cacheHeaders.semiStatic // Cache 5 min - admin puede modificar datos
-      })
+      
+      // Importar utilidades de cache
+      const { withCache, privateCache } = await import('@/core/utils/cache-headers')
+      
+      return withCache(
+        NextResponse.json({ communities }, { status: 200 }),
+        privateCache // No cache - datos de admin (privados)
+      )
     }
   } catch (error) {
     logger.error('Error fetching admin communities:', error)

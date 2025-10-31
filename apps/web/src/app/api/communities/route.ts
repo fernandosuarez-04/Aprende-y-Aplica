@@ -44,12 +44,16 @@ export async function GET(request: NextRequest) {
 
       logger.log('🌐 Returning public communities:', publicCommunities.length);
       
-      return NextResponse.json({
-        communities: publicCommunities,
-        total: publicCommunities.length
-      }, {
-        headers: cacheHeaders.static // Cache 1 hora - comunidades cambian raramente
-      });
+      // Importar utilidades de cache
+      const { withCache, semiStaticCache } = await import('../../../core/utils/cache-headers');
+      
+      return withCache(
+        NextResponse.json({
+          communities: publicCommunities,
+          total: publicCommunities.length
+        }),
+        semiStaticCache // Cache 5 min - comunidades públicas
+      );
     }
 
     // Obtener membresías del usuario
@@ -92,12 +96,16 @@ export async function GET(request: NextRequest) {
 
     logger.log('✅ Returning enriched communities:', enrichedCommunities.length);
 
-    return NextResponse.json({
-      communities: enrichedCommunities,
-      total: enrichedCommunities.length
-    }, {
-      headers: cacheHeaders.static // Cache 1 hora - comunidades cambian raramente
-    });
+    // Importar utilidades de cache
+    const { withCache, privateCache } = await import('../../../core/utils/cache-headers');
+
+    return withCache(
+      NextResponse.json({
+        communities: enrichedCommunities,
+        total: enrichedCommunities.length
+      }),
+      privateCache // No cache - datos específicos del usuario autenticado
+    );
 
   } catch (error) {
     logger.error('❌ Error in communities API:', error);

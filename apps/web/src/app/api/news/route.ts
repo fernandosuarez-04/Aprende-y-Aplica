@@ -47,7 +47,13 @@ export async function GET(request: NextRequest) {
       comment_count: news.metrics?.comments || 0
     }))
 
-    return NextResponse.json(newsWithMetrics)
+    // Importar utilidades de cache
+    const { withCache, semiStaticCache } = await import('@/core/utils/cache-headers')
+    
+    return withCache(
+      NextResponse.json(newsWithMetrics),
+      semiStaticCache // Cache 5 min - noticias cambian ocasionalmente
+    )
   } catch (error) {
     logError('GET /api/news', error)
     return NextResponse.json(

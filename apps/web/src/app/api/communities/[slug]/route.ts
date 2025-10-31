@@ -49,11 +49,15 @@ export async function GET(
 
       logger.log('🌐 Returning public community info');
       
-      return NextResponse.json({
-        community: publicCommunity
-      }, {
-        headers: cacheHeaders.static // Cache 1 hora - info de comunidad cambia raramente
-      });
+      // Importar utilidades de cache
+      const { withCache, semiStaticCache } = await import('../../../../core/utils/cache-headers');
+      
+      return withCache(
+        NextResponse.json({
+          community: publicCommunity
+        }),
+        semiStaticCache // Cache 5 min - info pública de comunidad
+      );
     }
 
     // Verificar si el usuario tiene CUALQUIER membresía activa en otras comunidades
@@ -131,11 +135,15 @@ export async function GET(
 
     logger.log('✅ Returning enriched community:', enrichedCommunity.name);
 
-    return NextResponse.json({
-      community: enrichedCommunity
-    }, {
-      headers: cacheHeaders.static // Cache 1 hora - info de comunidad cambia raramente
-    });
+    // Importar utilidades de cache
+    const { withCache, privateCache } = await import('../../../../core/utils/cache-headers');
+
+    return withCache(
+      NextResponse.json({
+        community: enrichedCommunity
+      }),
+      privateCache // No cache - datos específicos del usuario autenticado
+    );
 
   } catch (error) {
     logger.error('❌ Error in community detail API:', error);

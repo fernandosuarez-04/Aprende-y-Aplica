@@ -156,12 +156,16 @@ export async function GET(
       };
     }) || [];
 
-    return NextResponse.json({
-      posts: enrichedPosts,
-      total: enrichedPosts.length
-    }, {
-      headers: cacheHeaders.semiStatic // Cache 5 min - posts cambian moderadamente
-    });
+    // Importar utilidades de cache
+    const { withCache, dynamicCache } = await import('../../../../../core/utils/cache-headers');
+    
+    return withCache(
+      NextResponse.json({
+        posts: enrichedPosts,
+        total: enrichedPosts.length
+      }),
+      dynamicCache // Cache 30 seg - posts cambian frecuentemente
+    );
 
   } catch (error) {
     logger.error('❌ Error in posts API:', error);
