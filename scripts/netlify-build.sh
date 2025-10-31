@@ -3,17 +3,19 @@ set -e
 
 echo "🚀 Iniciando build en Netlify..."
 
-# Instalar dependencias
-echo "📦 Instalando dependencias..."
-npm install
+# Configurar NODE_ENV para instalar devDependencies (TypeScript)
+export NODE_ENV=development
 
-# Construir paquetes compartidos
+echo "📦 Instalando dependencias (incluyendo devDependencies)..."
+npm install --legacy-peer-deps
+
 echo "🔨 Construyendo paquetes compartidos..."
 npm run prepare
 
-# Construir aplicación web
+# Configurar NODE_ENV para producción antes del build final
+export NODE_ENV=production
+
 echo "🌐 Construyendo aplicación Next.js..."
-npm run build --workspace=apps/web
+npm run build:web
 
 echo "✅ Build completado exitosamente!"
-

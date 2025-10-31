@@ -3,8 +3,8 @@
   base = "."
   
   # Comando simplificado y robusto para monorepo
-  # NODE_ENV debe estar vacío o 'development' para instalar devDependencies (TypeScript)
-  command = "NODE_ENV=development npm install --legacy-peer-deps && npm run prepare && NODE_ENV=production npm run build:web"
+  # --production=false fuerza la instalación de devDependencies (TypeScript necesario para build)
+  command = "npm install --legacy-peer-deps --production=false && npm run prepare && npm run build:web"
   
   # Directorio de publicación (Next.js con Netlify plugin maneja esto automáticamente)
   publish = "apps/web/.next"
@@ -66,11 +66,11 @@
 # Configuración específica para diferentes contextos (opcional)
 # Si no se especifica, se usa el comando de [build]
 [context.production]
-  command = "NODE_ENV=development npm install --legacy-peer-deps && npm run prepare && NODE_ENV=production npm run build:web"
+  command = "npm install --legacy-peer-deps --production=false && npm run prepare && npm run build:web"
   
 [context.branch-deploys]
-  command = "NODE_ENV=development npm install --legacy-peer-deps && npm run prepare && NODE_ENV=production npm run build:web"
+  command = "npm install --legacy-peer-deps --production=false && npm run prepare && npm run build:web"
   
 [context.deploy-preview]
-  command = "NODE_ENV=development npm install --legacy-peer-deps && npm run prepare && NODE_ENV=production npm run build:web"
+  command = "npm install --legacy-peer-deps --production=false && npm run prepare && npm run build:web"
 
