@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Building2, GraduationCap } from 'lucide-react';
-import { fadeIn } from '../../../../../shared/utils/animations';
+import { fadeIn } from '../../../../shared/utils/animations';
 
 interface SectionTabsProps {
   activeTab: 'companies' | 'instructors';

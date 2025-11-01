@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Card, CardContent, Badge, Button } from '@aprende-y-aplica/ui';
 import { HeroContent } from '@aprende-y-aplica/shared';
-import { fadeIn, slideUp, slideInFromLeft, slideInFromRight, staggerContainer, staggerItem } from '../../../../../shared/utils/animations';
+import { fadeIn, slideUp, slideInFromLeft, slideInFromRight, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
 import { ArrowRight, Check, TrendingUp, Users, Shield } from 'lucide-react';
 import { AnimatedBackground } from '../../../../core/components/AnimatedBackground';
 import { useParallax } from '../../../../shared/hooks/useParallax';

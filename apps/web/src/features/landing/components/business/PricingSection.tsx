@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button, Card, CardContent, Badge } from '@aprende-y-aplica/ui';
 import { PricingTier } from '@aprende-y-aplica/shared';
-import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../../shared/utils/animations';
+import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
 import { Check, ArrowRight } from 'lucide-react';
 
 interface PricingSectionProps {
