@@ -1,7 +1,44 @@
 'use client';
 
 import React, { useState } from 'react';
-import { VideoPlayer, YouTubePlayer, VimeoPlayer, DirectVideoPlayer } from '../../core/components/VideoPlayer';
+import dynamic from 'next/dynamic';
+
+// Cargar VideoPlayer dinámicamente sin SSR para evitar errores de window
+const VideoPlayer = dynamic(() => import('../../core/components/VideoPlayer').then(mod => ({ default: mod.VideoPlayer })), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full bg-gray-800 rounded-lg">
+      <div className="text-white">Cargando reproductor...</div>
+    </div>
+  )
+});
+
+const YouTubePlayer = dynamic(() => import('../../core/components/VideoPlayer').then(mod => ({ default: mod.YouTubePlayer })), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full bg-gray-800 rounded-lg">
+      <div className="text-white">Cargando reproductor...</div>
+    </div>
+  )
+});
+
+const VimeoPlayer = dynamic(() => import('../../core/components/VideoPlayer').then(mod => ({ default: mod.VimeoPlayer })), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full bg-gray-800 rounded-lg">
+      <div className="text-white">Cargando reproductor...</div>
+    </div>
+  )
+});
+
+const DirectVideoPlayer = dynamic(() => import('../../core/components/VideoPlayer').then(mod => ({ default: mod.DirectVideoPlayer })), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full bg-gray-800 rounded-lg">
+      <div className="text-white">Cargando reproductor...</div>
+    </div>
+  )
+});
 
 export default function TestVideoPage() {
   const [selectedProvider, setSelectedProvider] = useState<'youtube' | 'vimeo' | 'direct' | 'custom'>('youtube');

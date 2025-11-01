@@ -56,7 +56,9 @@ export function VideoPlayer({
     let url = '';
     switch (videoProvider) {
       case 'youtube':
-        url = `https://www.youtube.com/embed/${videoProviderId}?enablejsapi=1&origin=${window.location.origin}`;
+        // Verificar si window está disponible (solo en el navegador)
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        url = `https://www.youtube.com/embed/${videoProviderId}?enablejsapi=1${origin ? `&origin=${origin}` : ''}`;
         break;
       case 'vimeo':
         url = `https://player.vimeo.com/video/${videoProviderId}`;
