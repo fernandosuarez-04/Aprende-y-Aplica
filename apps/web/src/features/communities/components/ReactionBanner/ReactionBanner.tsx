@@ -41,7 +41,7 @@ export function ReactionBanner({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className={`flex items-center space-x-1 text-sm text-slate-400 ${className}`}
+        className={`flex items-center space-x-1 text-sm text-gray-600 dark:text-slate-400 ${className}`}
       >
         <span className="font-medium">
           {totalReactions} {totalReactions === 1 ? 'reacción' : 'reacciones'}
@@ -72,13 +72,13 @@ export function ReactionBanner({
                 damping: 30 
               }}
               onClick={() => onReactionClick?.(reaction.reaction_type)}
-              className="flex items-center space-x-1 hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-colors group"
+              className="flex items-center space-x-1 hover:bg-gray-100 dark:hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-colors group"
               title={`Ver quién reaccionó con ${reaction.emoji}`}
             >
               <span className="text-lg group-hover:scale-110 transition-transform duration-200" role="img" aria-label={reaction.reaction_type}>
                 {reaction.emoji}
               </span>
-              <span className="text-xs text-slate-400 group-hover:text-slate-300">
+              <span className="text-xs text-gray-600 dark:text-slate-400 group-hover:text-gray-900 dark:group-hover:text-slate-300">
                 {reaction.count}
               </span>
             </motion.button>

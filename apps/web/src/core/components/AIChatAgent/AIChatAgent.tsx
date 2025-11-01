@@ -237,12 +237,16 @@ export function AIChatAgent({
         }}
         exit={{ scale: 0.8, opacity: 0, y: 20 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] z-50"
+        className="fixed bottom-6 right-6 top-auto w-96 max-w-[calc(100vw-3rem)] z-50"
+        style={{ 
+          height: isMinimized ? '80px' : '600px',
+          maxHeight: 'calc(100vh - 3rem)'
+        }}
       >
-        <div className="rounded-3xl shadow-2xl overflow-hidden border border-carbon-700 flex flex-col h-full" style={{ backgroundColor: '#0f0f0f' }}>
+        <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
           {/* Header con gradiente */}
           <motion.div 
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden"
+            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden flex-shrink-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -329,11 +333,14 @@ export function AIChatAgent({
           {/* Mensajes */}
           {!isMinimized && (
             <motion.div 
-              className="flex-1 overflow-y-auto p-4 space-y-4"
-              style={{ backgroundColor: '#0a0a0a' }}
+              className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
+              style={{ 
+                maxHeight: 'calc(600px - 200px)', // Altura total menos header e input
+                scrollBehavior: 'smooth'
+              }}
             >
               {messages.map((message, index) => (
                 <motion.div
@@ -372,7 +379,7 @@ export function AIChatAgent({
                   <div className={`flex-1 rounded-2xl px-4 py-3 shadow-lg ${
                     message.role === 'user'
                       ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                      : 'bg-carbon-800 text-white border border-carbon-600'
+                      : 'bg-white dark:bg-carbon-800 text-gray-900 dark:text-white border border-gray-200 dark:border-carbon-600'
                   }`}>
                     <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">{message.content}</p>
                   </div>
@@ -393,20 +400,20 @@ export function AIChatAgent({
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="bg-carbon-800 border border-carbon-600 rounded-2xl px-4 py-3">
+                  <div className="bg-white dark:bg-carbon-800 border border-gray-200 dark:border-carbon-600 rounded-2xl px-4 py-3">
                     <div className="flex gap-1">
                       <motion.div
-                        className="w-2 h-2 bg-gray-400 rounded-full"
+                        className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
                         animate={{ y: [0, -8, 0] }}
                         transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
                       />
                       <motion.div
-                        className="w-2 h-2 bg-gray-400 rounded-full"
+                        className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
                         animate={{ y: [0, -8, 0] }}
                         transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
                       />
                       <motion.div
-                        className="w-2 h-2 bg-gray-400 rounded-full"
+                        className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
                         animate={{ y: [0, -8, 0] }}
                         transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
                       />
@@ -422,8 +429,7 @@ export function AIChatAgent({
           {/* Input */}
           {!isMinimized && (
             <motion.div 
-              className="p-4 border-t border-carbon-700"
-              style={{ backgroundColor: '#0f0f0f' }}
+              className="p-4 border-t border-gray-200 dark:border-carbon-700 bg-white dark:bg-[#0f0f0f] flex-shrink-0"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -437,7 +443,7 @@ export function AIChatAgent({
                   onKeyPress={handleKeyPress}
                   placeholder={promptPlaceholder}
                   disabled={isTyping}
-                  className="flex-1 px-4 py-3 bg-carbon-800 border border-carbon-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 font-medium shadow-inner"
+                  className="flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border border-gray-300 dark:border-carbon-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner"
                 />
                 
                 {/* Botón de micrófono */}
@@ -448,7 +454,7 @@ export function AIChatAgent({
                   className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
                     isRecording
                       ? 'bg-red-500 text-white'
-                      : 'bg-carbon-800 text-gray-300 hover:bg-carbon-700'
+                      : 'bg-gray-200 dark:bg-carbon-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-carbon-700'
                   }`}
                 >
                   {isRecording ? (
@@ -475,7 +481,7 @@ export function AIChatAgent({
               </div>
               
               {/* Instrucciones */}
-              <div className="mt-2 flex items-center gap-2 text-xs text-gray-300 font-medium">
+              <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 font-medium">
                 <span>Presiona Enter para enviar</span>
                 <span>•</span>
                 <span>Micrófono para dictar</span>

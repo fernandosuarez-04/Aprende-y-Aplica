@@ -152,7 +152,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
             transition={{ duration: 0.3 }}
             className="space-y-4"
           >
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
+            <div className="bg-gray-50 dark:bg-slate-800/30 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50">
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
                   U
@@ -162,7 +162,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Escribe un comentario..."
-                    className="w-full bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
+                    className="w-full bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
                     rows={2}
                   />
                   <div className="flex justify-end mt-2">
@@ -189,7 +189,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                   key={comment.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50"
+                  className="bg-gray-50 dark:bg-slate-800/30 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50"
                 >
                   <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
@@ -197,17 +197,17 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-white">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                           {comment.user?.first_name && comment.user?.last_name 
                             ? `${comment.user.first_name} ${comment.user.last_name}`
                             : comment.user?.username || 'Usuario'
                           }
                         </span>
-                        <span className="text-slate-400 text-sm">
+                        <span className="text-gray-600 dark:text-slate-400 text-sm">
                           {new Date(comment.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-slate-200">{comment.content}</p>
+                      <p className="text-gray-800 dark:text-slate-200">{comment.content}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -271,7 +271,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       <div className="relative" ref={buttonRef}>
         <motion.button
           onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30"
+          className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
@@ -287,29 +287,29 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
+              className="absolute bottom-full left-0 mb-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
             >
               <div className="space-y-2">
                 <button
                   onClick={() => copyToClipboard(postUrl)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Copy className="w-4 h-4 text-blue-400" />
-                  <span className="text-slate-200 text-sm">Copiar enlace</span>
+                  <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-gray-900 dark:text-slate-200 text-sm">Copiar enlace</span>
                 </button>
                 <button
                   onClick={shareToTwitter}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Twitter className="w-4 h-4 text-blue-400" />
-                  <span className="text-slate-200 text-sm">Compartir en Twitter</span>
+                  <Twitter className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Twitter</span>
                 </button>
                 <button
                   onClick={shareToFacebook}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Facebook className="w-4 h-4 text-blue-600" />
-                  <span className="text-slate-200 text-sm">Compartir en Facebook</span>
+                  <Facebook className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Facebook</span>
                 </button>
               </div>
 
@@ -319,9 +319,9 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="mt-2 pt-2 border-t border-slate-600"
+                    className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-600"
                   >
-                    <div className="flex items-center gap-2 text-green-400 text-sm">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
                       <Copy className="w-3 h-3" />
                       ¡Enlace copiado!
                     </div>
@@ -339,7 +339,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
     <div className="relative" ref={buttonRef}>
       <motion.button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors"
+        className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -355,29 +355,29 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
+            className="absolute bottom-full left-0 mb-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
           >
             <div className="space-y-2">
               <button
                 onClick={() => copyToClipboard(postUrl)}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Copy className="w-4 h-4 text-blue-400" />
-                <span className="text-slate-200 text-sm">Copiar enlace</span>
+                <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-gray-900 dark:text-slate-200 text-sm">Copiar enlace</span>
               </button>
               <button
                 onClick={shareToTwitter}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Twitter className="w-4 h-4 text-blue-400" />
-                <span className="text-slate-200 text-sm">Compartir en Twitter</span>
+                <Twitter className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Twitter</span>
               </button>
               <button
                 onClick={shareToFacebook}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Facebook className="w-4 h-4 text-blue-600" />
-                <span className="text-slate-200 text-sm">Compartir en Facebook</span>
+                <Facebook className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Facebook</span>
               </button>
             </div>
 
@@ -387,9 +387,9 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="mt-2 pt-2 border-t border-slate-600"
+                  className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-600"
                 >
-                  <div className="flex items-center gap-2 text-green-400 text-sm">
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
                     <Copy className="w-3 h-3" />
                     ¡Enlace copiado!
                   </div>
@@ -498,34 +498,34 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 via-slate-900/60 to-slate-800/80 border border-slate-700/40 backdrop-blur-xl shadow-2xl mb-6"
-    >
-      {/* Efecto de brillo sutil */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
-      
-      {/* Header con gradiente */}
-      <div className="relative bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-indigo-500/10 border-b border-slate-700/30">
-        <div className="flex items-center gap-4 p-6">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-800/80 border border-gray-200 dark:border-slate-700/40 backdrop-blur-xl shadow-2xl mb-6"
+      >
+        {/* Efecto de brillo sutil */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+        
+        {/* Header con gradiente */}
+        <div className="relative bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-indigo-500/10 border-b border-gray-200 dark:border-slate-700/30">
+          <div className="flex items-center gap-4 p-6">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></div>
             </div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
-          </div>
-          <div className="flex-1">
-            <h4 className="text-white font-bold text-xl mb-1">
-              {normalizedData.question}
-            </h4>
-            <p className="text-slate-400 text-sm">Selecciona tu respuesta</p>
+            <div className="flex-1">
+              <h4 className="text-gray-900 dark:text-white font-bold text-xl mb-1">
+                {normalizedData.question}
+              </h4>
+              <p className="text-gray-600 dark:text-slate-400 text-sm">Selecciona tu respuesta</p>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Opciones de la encuesta */}
       <div className="p-6 space-y-4">
@@ -546,8 +546,8 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                 isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               } ${
                 isSelected 
-                  ? 'border-blue-400 bg-gradient-to-r from-blue-500/20 via-blue-500/10 to-indigo-500/20 shadow-lg shadow-blue-500/30 scale-[1.02]' 
-                  : 'border-slate-600/50 bg-slate-800/40 hover:border-blue-400/60 hover:bg-slate-700/50 hover:scale-[1.01] hover:shadow-lg hover:shadow-blue-500/20'
+                  ? 'border-blue-500 dark:border-blue-400 bg-gradient-to-r from-blue-500/20 dark:from-blue-500/20 via-blue-500/10 dark:via-blue-500/10 to-indigo-500/20 dark:to-indigo-500/20 shadow-lg shadow-blue-500/30 scale-[1.02]' 
+                  : 'border-gray-300 dark:border-slate-600/50 bg-gray-50 dark:bg-slate-800/40 hover:border-blue-500/60 dark:hover:border-blue-400/60 hover:bg-gray-100 dark:hover:bg-slate-700/50 hover:scale-[1.01] hover:shadow-lg hover:shadow-blue-500/20'
               }`}
               onClick={() => !isLoading && handleVote(optionKey)}
             >
@@ -568,16 +568,16 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                         </svg>
                       </motion.div>
                     )}
-                    <span className="text-white font-semibold text-lg">
+                    <span className="text-gray-900 dark:text-white font-semibold text-lg">
                       {optionKey}
                     </span>
                   </div>
                   
                   <div className="text-right">
-                    <div className="text-blue-400 font-bold text-lg">
+                    <div className="text-blue-600 dark:text-blue-400 font-bold text-lg">
                       {percentage}%
                     </div>
-                    <div className="text-slate-400 text-sm">
+                    <div className="text-gray-600 dark:text-slate-400 text-sm">
                       {voteCount} votos
                     </div>
                   </div>
@@ -586,7 +586,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                 {/* Barra de progreso mejorada */}
                 {hasVoted && (
                   <div className="relative">
-                    <div className="w-full h-3 bg-slate-700/50 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-indigo-500 rounded-full relative"
                         initial={{ width: 0 }}
@@ -606,27 +606,27 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
       </div>
 
       {/* Footer mejorado */}
-      <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 border-t border-slate-700/30 p-6">
+      <div className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-slate-800/50 dark:to-slate-900/50 border-t border-gray-200 dark:border-slate-700/30 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-            <span className="text-slate-300 font-medium">
+            <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
+            <span className="text-gray-700 dark:text-slate-300 font-medium">
               {totalVotes} votos totales
             </span>
           </div>
           
           {isLoading ? (
-            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 rounded-lg px-3 py-2 border border-slate-600/30">
-              <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-700/30 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-600/30">
+              <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
               <span>Procesando voto...</span>
             </div>
           ) : hasVoted ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 rounded-lg px-3 py-2 border border-slate-600/30"
+              className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-700/30 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-600/30"
             >
-              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Haz click en tu voto para quitarlo o en otra opción para cambiar</span>
@@ -884,21 +884,21 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
                 onError={() => setImageError(true)}
               />
             ) : (
-              <div className="flex items-center justify-center h-64 bg-slate-800 text-slate-400">
+              <div className="flex items-center justify-center h-64 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">
                 <div className="text-center">
                   <ImageIcon className="w-16 h-16 mx-auto mb-3" />
-                  <p className="text-lg">Error al cargar la imagen</p>
+                  <p className="text-lg text-gray-900 dark:text-white">Error al cargar la imagen</p>
                 </div>
               </div>
             )}
             
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
-                  <ImageIcon className="w-6 h-6 text-white" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
+                    <ImageIcon className="w-6 h-6 text-white" />
+                  </div>
                 </div>
               </div>
-            </div>
           </div>
         </motion.div>
 
@@ -972,7 +972,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-indigo-500/10 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
+        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-indigo-500/10 dark:from-blue-500/10 dark:via-purple-500/5 dark:to-indigo-500/10 border border-blue-400/20 dark:border-blue-400/20 hover:border-blue-400/40 dark:hover:border-blue-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
       >
         {/* Efecto de brillo sutil */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
@@ -990,17 +990,17 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
             {/* Contenido principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <Globe className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <h4 className="text-white font-semibold text-lg truncate">
+                <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <h4 className="text-gray-900 dark:text-white font-semibold text-lg truncate">
                   {pageName}
                 </h4>
               </div>
               
-              <p className="text-blue-200/80 text-sm mb-3 font-medium">
+              <p className="text-blue-600 dark:text-blue-200/80 text-sm mb-3 font-medium">
                 {fileName || 'Enlace web'}
               </p>
               
-              <div className="flex items-center gap-2 text-xs text-blue-400/70 bg-blue-500/10 rounded-lg px-3 py-2 border border-blue-400/20">
+              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400/70 bg-blue-500/10 dark:bg-blue-500/10 rounded-lg px-3 py-2 border border-blue-400/20 dark:border-blue-400/20">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="truncate">{attachmentUrl}</span>
               </div>
@@ -1080,7 +1080,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-500/10 via-gray-500/5 to-slate-500/10 border border-slate-400/20 hover:border-slate-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
+        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-100 dark:from-slate-500/10 via-gray-50 dark:via-gray-500/5 to-gray-100 dark:to-slate-500/10 border border-gray-300 dark:border-slate-400/20 hover:border-gray-400 dark:hover:border-slate-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
       >
         {/* Efecto de brillo sutil */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
@@ -1098,23 +1098,23 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
             {/* Contenido principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <File className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                <h4 className="text-white font-semibold text-lg truncate">
+                <File className="w-5 h-5 text-gray-600 dark:text-slate-400 flex-shrink-0" />
+                <h4 className="text-gray-900 dark:text-white font-semibold text-lg truncate">
                   {documentName}
                 </h4>
               </div>
               
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-slate-300/80 text-sm font-medium">
+                <span className="text-gray-700 dark:text-slate-300/80 text-sm font-medium">
                   {attachmentType || 'Archivo adjunto'}
                 </span>
-                <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
-                <span className="text-slate-400/70 text-xs">
+                <div className="w-1 h-1 bg-gray-400 dark:bg-slate-400 rounded-full"></div>
+                <span className="text-gray-600 dark:text-slate-400/70 text-xs">
                   Documento
                 </span>
               </div>
               
-              <div className="flex items-center gap-2 text-xs text-slate-400/70 bg-slate-500/10 rounded-lg px-3 py-2 border border-slate-400/20">
+              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400/70 bg-gray-200 dark:bg-slate-500/10 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-400/20">
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                 <span>Archivo adjunto disponible</span>
               </div>
@@ -1686,32 +1686,32 @@ export default function CommunityDetailPage() {
   const getCommunityStyle = (community: Community) => {
     if (community.slug === 'profesionales') {
       return {
-        background: 'bg-gradient-to-br from-blue-900/40 to-slate-800/60',
+        background: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-slate-800/60',
         headerBg: 'bg-gradient-to-r from-blue-600 to-blue-700',
-        accent: 'text-blue-400',
-        border: 'border-blue-500/30'
+        accent: 'text-blue-600 dark:text-blue-400',
+        border: 'border-blue-500/30 dark:border-blue-500/30'
       };
     } else if (community.slug === 'ecos-liderazgo') {
       return {
-        background: 'bg-gradient-to-br from-purple-900/40 to-slate-800/60',
+        background: 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-slate-800/60',
         headerBg: 'bg-gradient-to-r from-purple-600 to-purple-700',
-        accent: 'text-orange-400',
-        border: 'border-orange-500/30'
+        accent: 'text-orange-600 dark:text-orange-400',
+        border: 'border-orange-500/30 dark:border-orange-500/30'
       };
     } else if (community.slug === 'openminder') {
       return {
-        background: 'bg-gradient-to-br from-slate-900/50 to-black/60',
+        background: 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900/50 dark:to-black/60',
         headerBg: 'bg-gradient-to-r from-slate-800 to-slate-900',
-        accent: 'text-yellow-400',
-        border: 'border-yellow-500/30'
+        accent: 'text-yellow-600 dark:text-yellow-400',
+        border: 'border-yellow-500/30 dark:border-yellow-500/30'
       };
     }
     
     return {
-      background: 'bg-gradient-to-br from-slate-800/50 to-slate-900/60',
+      background: 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-800/50 dark:to-slate-900/60',
       headerBg: 'bg-gradient-to-r from-slate-700 to-slate-800',
-      accent: 'text-slate-400',
-      border: 'border-slate-600/30'
+      accent: 'text-gray-600 dark:text-slate-400',
+      border: 'border-gray-300 dark:border-slate-600/30'
     };
   };
 
@@ -1792,7 +1792,7 @@ export default function CommunityDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
         <div className="flex items-center justify-center min-h-screen">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -1802,10 +1802,10 @@ export default function CommunityDetailPage() {
 
   if (!community) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Comunidad no encontrada</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Comunidad no encontrada</h1>
             <Button onClick={() => router.push('/communities')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver a Comunidades
@@ -1821,10 +1821,10 @@ export default function CommunityDetailPage() {
   const needsAuth = !community.is_member && community.access_type === 'invitation_only';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       {/* Navigation Bar */}
       <motion.nav
-        className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50"
+        className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
@@ -1834,7 +1834,7 @@ export default function CommunityDetailPage() {
             <div className="flex items-center gap-4">
               <Button
                 onClick={() => router.push('/communities')}
-                className="bg-slate-700/50 hover:bg-slate-600/50 text-white border border-slate-600/50"
+                className="bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white border border-gray-300 dark:border-slate-600/50"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Volver
@@ -1856,7 +1856,7 @@ export default function CommunityDetailPage() {
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
                       activeTab === tab
                         ? 'bg-blue-500 text-white'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                        : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
                     }`}
                   >
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -1867,11 +1867,11 @@ export default function CommunityDetailPage() {
 
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Buscar en esta comunidad..."
-                  className="pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                  className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                 />
               </div>
             </div>
@@ -1907,9 +1907,9 @@ export default function CommunityDetailPage() {
         ) : (
           <>
             {/* Background Effects - solo si no hay imagen */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10" />
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/10 dark:to-purple-500/10" />
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/5 rounded-full blur-3xl" />
           </>
         )}
         
@@ -1927,19 +1927,19 @@ export default function CommunityDetailPage() {
               )}
 
               <div className="flex-1">
-                <h1 className="text-4xl font-bold text-white mb-2">
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
                   {community.name}
                 </h1>
-                <p className="text-xl text-white/90 mb-4 max-w-2xl">
+                <p className="text-xl text-gray-800 dark:text-white/90 mb-4 max-w-2xl">
                   {community.description}
                 </p>
                 
                 <div className="flex items-center gap-6 text-sm">
-                  <div className="flex items-center gap-2 text-white/80">
+                  <div className="flex items-center gap-2 text-gray-700 dark:text-white/80">
                     <Users className="w-4 h-4" />
                     {community.member_count} Miembros
                   </div>
-                  <div className={`flex items-center gap-2 ${communityStyle.accent}`}>
+                  <div className={`flex items-center gap-2 ${communityStyle.accent} dark:${communityStyle.accent}`}>
                     {community.access_type === 'free' ? (
                       <CheckCircle className="w-4 h-4" />
                     ) : (
@@ -1955,16 +1955,16 @@ export default function CommunityDetailPage() {
               {getAccessButton()}
               
               <div className="text-right">
-                <div className="text-2xl font-bold text-blue-400">24</div>
-                <div className="text-slate-400 text-sm">POSTS</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">POSTS</div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-purple-400">7</div>
-                <div className="text-slate-400 text-sm">COMENTARIOS</div>
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">7</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">COMENTARIOS</div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-green-400">11</div>
-                <div className="text-slate-400 text-sm">REACCIONES</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">11</div>
+                <div className="text-gray-600 dark:text-slate-400 text-sm">REACCIONES</div>
               </div>
             </div>
           </motion.div>
@@ -1985,7 +1985,7 @@ export default function CommunityDetailPage() {
               {community.is_member && (
                 <motion.div
                   variants={cardVariants}
-                  className="bg-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-6 mb-6"
+                  className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-600/50 rounded-2xl p-6 mb-6 shadow-lg dark:shadow-xl"
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
@@ -2012,7 +2012,7 @@ export default function CommunityDetailPage() {
                         placeholder="Escribe algo para la comunidad..."
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
-                        className="w-full bg-transparent text-white placeholder-slate-400 resize-none focus:outline-none"
+                        className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 resize-none focus:outline-none"
                         rows={3}
                       />
                       {/* Preview del adjunto */}
@@ -2089,25 +2089,25 @@ export default function CommunityDetailPage() {
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-white">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
                             {post.user?.first_name && post.user?.last_name 
                               ? `${post.user.first_name} ${post.user.last_name}`
                               : post.user?.username || post.user?.email || 'Usuario'
                             }
                           </h3>
-                          <p className="text-sm text-slate-400">
+                          <p className="text-sm text-gray-600 dark:text-slate-400">
                             {formatRelativeTime(post.created_at)} • general
                           </p>
                         </div>
                       </div>
-                      <button className="text-slate-400 hover:text-white">
+                      <button className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white">
                         <MoreHorizontal className="w-5 h-5" />
                       </button>
                     </div>
 
                     {/* Post Content */}
                     <div className="community-post-content">
-                      <p>{post.content}</p>
+                      <p className="text-gray-900 dark:text-white">{post.content}</p>
                     </div>
 
                     {/* Post Attachments */}
@@ -2122,7 +2122,7 @@ export default function CommunityDetailPage() {
                     )}
 
                     {/* Facebook-style Post Stats Bar - Reacciones y comentarios */}
-                    <div className="flex items-center justify-between py-2 px-4 text-sm text-slate-400 border-b border-slate-700/30">
+                    <div className="flex items-center justify-between py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30">
                       {/* Reacciones */}
                       {(() => {
                         const totalReactions = postReactions[post.id]?.count || post.reaction_count || 0;
@@ -2170,7 +2170,7 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="text-slate-400 hover:text-blue-400 transition-colors"
+                        className="text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         {post.comment_count} comentarios
                       </button>
@@ -2202,7 +2202,7 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30"
+                        className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
                       >
                         <MessageSquare className="w-5 h-5" />
                         <span>Comentar</span>
@@ -2248,13 +2248,13 @@ export default function CommunityDetailPage() {
               variants={cardVariants}
               className="text-center py-16"
             >
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-800/50 flex items-center justify-center">
-                <EyeOff className="w-12 h-12 text-slate-400" />
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-slate-800/50 flex items-center justify-center">
+                <EyeOff className="w-12 h-12 text-gray-600 dark:text-slate-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Contenido restringido
               </h3>
-              <p className="text-slate-400 mb-6">
+              <p className="text-gray-600 dark:text-slate-400 mb-6">
                 {community.access_type === 'free' 
                   ? 'Únete a esta comunidad para ver todo el contenido'
                   : 'Esta comunidad es solo por invitación'

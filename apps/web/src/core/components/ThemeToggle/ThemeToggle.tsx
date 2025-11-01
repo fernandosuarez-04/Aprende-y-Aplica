@@ -123,7 +123,7 @@ export function ThemeToggle() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className={`w-40 rounded-lg backdrop-blur-md border overflow-hidden shadow-lg ${
+            className={`w-40 rounded-lg border overflow-hidden ${
               isMobile ? 'fixed theme-toggle-dropdown-mobile' : 'absolute top-full mt-2 right-0 theme-toggle-dropdown'
             }`}
             style={isMobile ? {

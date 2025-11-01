@@ -100,17 +100,17 @@ export default function DashboardPage() {
   // Mostrar loading mientras se obtienen los datos del usuario
   if (loading) {
     return (
-      <div className="min-h-screen bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/70">Cargando dashboard...</p>
+          <p className="text-gray-700 dark:text-white">Cargando dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-carbon">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Category Filters */}
@@ -121,9 +121,9 @@ export default function DashboardPage() {
               {[...Array(5)].map((_, index) => (
                 <div
                   key={index}
-                  className="px-4 py-2 rounded-full bg-carbon-700 animate-pulse"
+                  className="px-4 py-2 rounded-full bg-gray-200 dark:bg-carbon-700 animate-pulse"
                 >
-                  <div className="w-16 h-4 bg-carbon-600 rounded"></div>
+                  <div className="w-16 h-4 bg-gray-300 dark:bg-carbon-600 rounded"></div>
                 </div>
               ))}
             </div>
@@ -137,8 +137,8 @@ export default function DashboardPage() {
                   <span className="text-yellow-400 text-sm">!</span>
                 </div>
                 <div>
-                  <h3 className="text-yellow-400 font-medium">Error al cargar categorías</h3>
-                  <p className="text-yellow-300/70 text-sm">Usando categorías por defecto</p>
+                  <h3 className="text-yellow-600 dark:text-yellow-400 font-medium">Error al cargar categorías</h3>
+                  <p className="text-yellow-700 dark:text-yellow-300/70 text-sm">Usando categorías por defecto</p>
                 </div>
               </div>
             </div>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     activeFilter === category.id
                       ? 'bg-primary text-white'
-                      : 'bg-carbon-700 text-text-secondary hover:bg-carbon-600 hover:text-text-primary'
+                      : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-200 dark:border-slate-600'
                   }`}
                 >
                   {category.name}
@@ -173,7 +173,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                  <p className="text-text-secondary">Cargando cursos...</p>
+                  <p className="text-gray-600 dark:text-text-secondary">Cargando cursos...</p>
                 </div>
               </div>
             )}
@@ -186,8 +186,8 @@ export default function DashboardPage() {
                     <span className="text-red-400 text-sm">!</span>
                   </div>
                   <div>
-                    <h3 className="text-red-400 font-medium">Error al cargar cursos</h3>
-                    <p className="text-red-300/70 text-sm">{coursesError}</p>
+                    <h3 className="text-red-600 dark:text-red-400 font-medium">Error al cargar cursos</h3>
+                    <p className="text-red-700 dark:text-red-300/70 text-sm">{coursesError}</p>
                   </div>
                 </div>
               </div>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
                 {workshops.map((workshop) => (
                 <motion.div
                   key={workshop.id}
-                  className="bg-carbon-800 rounded-lg overflow-hidden border border-carbon-700 hover:border-primary/50 transition-colors"
+                  className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 transition-colors shadow-lg dark:shadow-none"
                   whileHover={{ y: -2 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -230,35 +230,35 @@ export default function DashboardPage() {
                         <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
                           <Brain className="w-8 h-8 text-primary" />
                         </div>
-                        <p className="text-sm text-text-secondary">APRENDE Y APLICA IA®</p>
+                        <p className="text-sm text-gray-600 dark:text-text-secondary">APRENDE Y APLICA IA®</p>
                       </div>
                     </div>
                     
                     <button
                       onClick={() => handleToggleFavorite(workshop.id)}
-                      className="absolute top-3 right-3 p-2 bg-carbon-800/80 rounded-full hover:bg-carbon-700 transition-colors z-10"
+                      className="absolute top-3 right-3 p-2 bg-white/80 dark:bg-carbon-800/80 rounded-full hover:bg-gray-100 dark:hover:bg-carbon-700 transition-colors z-10"
                     >
                       <Heart 
                         className={`w-4 h-4 ${
-                          workshop.isFavorite ? 'text-red-500 fill-current' : 'text-text-secondary'
+                          workshop.isFavorite ? 'text-red-500 fill-current' : 'text-gray-600 dark:text-text-secondary'
                         }`} 
                       />
                     </button>
                   </div>
 
                   {/* Workshop Info */}
-                  <div className="p-6">
-                    <h3 className="text-lg font-semibold text-text-primary mb-2">
+                  <div className="p-6 bg-white dark:bg-slate-800">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       {workshop.title}
                     </h3>
-                    <p className="text-text-secondary text-sm mb-3">
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
                       {workshop.instructor}
                     </p>
                     
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-1">
                         <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm text-text-secondary">{workshop.rating}</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-300">{workshop.rating}</span>
                       </div>
                       <span className="text-lg font-bold text-primary">{workshop.price}</span>
                     </div>
@@ -288,13 +288,13 @@ export default function DashboardPage() {
             {/* Empty State */}
             {!coursesLoading && !coursesError && workshops.length === 0 && (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="w-8 h-8 text-text-secondary" />
+                <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8 text-gray-600 dark:text-text-secondary" />
                 </div>
-                <h3 className="text-lg font-medium text-text-primary mb-2">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-text-primary mb-2">
                   No hay cursos disponibles
                 </h3>
-                <p className="text-text-secondary">
+                <p className="text-gray-600 dark:text-text-secondary">
                   {activeFilter === 'favorites' 
                     ? 'No tienes cursos favoritos aún'
                     : activeFilter === 'all'
@@ -309,8 +309,8 @@ export default function DashboardPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Featured Workshops */}
-            <div className="bg-carbon-800 rounded-lg p-6 border border-carbon-700">
-              <h3 className="text-lg font-semibold text-text-primary mb-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Talleres Destacados
               </h3>
               <Button variant="primary" className="w-full">
@@ -319,25 +319,25 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-carbon-800 rounded-lg p-6 border border-carbon-700">
-              <h3 className="text-lg font-semibold text-text-primary mb-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Tu Progreso
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-text-secondary">Talleres Completados</span>
+                  <span className="text-gray-600 dark:text-gray-300">Talleres Completados</span>
                   <span className="text-primary font-semibold">
                     {courses.filter(course => course.status === 'Completado').length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-text-secondary">En Progreso</span>
+                  <span className="text-gray-600 dark:text-gray-300">En Progreso</span>
                   <span className="text-primary font-semibold">
                     {courses.filter(course => course.status === 'En Progreso').length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-text-secondary">Favoritos</span>
+                  <span className="text-gray-600 dark:text-gray-300">Favoritos</span>
                   <span className="text-primary font-semibold">
                     {favorites.length}
                   </span>
@@ -346,8 +346,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-carbon-800 rounded-lg p-6 border border-carbon-700">
-              <h3 className="text-lg font-semibold text-text-primary mb-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Actividad Reciente
               </h3>
               <div className="space-y-3">
@@ -356,15 +356,15 @@ export default function DashboardPage() {
                     .filter(course => course.status === 'Completado')
                     .slice(0, 2)
                     .map((course) => (
-                      <div key={course.id} className="text-sm text-text-secondary">
+                      <div key={course.id} className="text-sm text-gray-600 dark:text-gray-300">
                         <p>Completaste "{course.title}"</p>
-                        <p className="text-xs text-text-tertiary">Recientemente</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Recientemente</p>
                       </div>
                     ))
                 ) : (
-                  <div className="text-sm text-text-secondary">
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
                     <p>No hay actividad reciente</p>
-                    <p className="text-xs text-text-tertiary">Comienza un curso para ver tu progreso</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Comienza un curso para ver tu progreso</p>
                   </div>
                 )}
               </div>

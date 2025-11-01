@@ -89,7 +89,8 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
             cy={centerY}
             r={radius * (value / maxValue)}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.1)"
+            stroke="rgba(0, 0, 0, 0.1)"
+            className="dark:stroke-white/10"
             strokeWidth="1"
           />
         ))}
@@ -106,7 +107,8 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
               y1={centerY}
               x2={x}
               y2={y}
-              stroke="rgba(255, 255, 255, 0.1)"
+              stroke="rgba(0, 0, 0, 0.1)"
+              className="dark:stroke-white/10"
               strokeWidth="1"
             />
           );
@@ -151,7 +153,7 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
               y={labelY}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="fill-white text-sm font-medium"
+              className="fill-gray-900 dark:fill-white text-sm font-medium"
               style={{ fontSize: '14px' }} // ✅ Tamaño fijo para consistencia
             >
               {point.dimension}
@@ -167,7 +169,7 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
             y={point.y - 18}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="fill-white text-xs font-bold"
+            className="fill-gray-900 dark:fill-white text-xs font-bold"
             style={{ fontSize: '12px' }} // ✅ Tamaño fijo para consistencia
           >
             {point.value}
@@ -207,16 +209,16 @@ const StatCard = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
-      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+      className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-6 hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-300 shadow-lg dark:shadow-xl"
     >
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 bg-gradient-to-r ${colorClasses[color as keyof typeof colorClasses]} rounded-xl flex items-center justify-center`}>
           <Icon className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
           <p className="text-2xl font-bold text-primary mb-2">{value}</p>
-          <p className="text-white/60 text-sm">{description}</p>
+          <p className="text-gray-700 dark:text-white/60 text-sm">{description}</p>
         </div>
       </div>
     </motion.div>
@@ -245,47 +247,47 @@ const CountryBarChart = ({ data, userCountry }: { data: any[], userCountry?: str
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05, duration: 0.5 }}
-            className={`group flex items-center gap-4 p-2 rounded-lg hover:bg-white/5 transition-all duration-300 cursor-pointer ${
-              isUserCountry ? 'bg-yellow-500/20 border border-yellow-500/30' : ''
+            className={`group flex items-center gap-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 cursor-pointer ${
+              isUserCountry ? 'bg-yellow-500/20 dark:bg-yellow-500/20 border border-yellow-500/30 dark:border-yellow-500/30' : ''
             }`}
           >
             <div className="w-24 text-right">
-              <span className={`text-sm font-medium truncate block group-hover:text-white transition-colors ${
-                isUserCountry ? 'text-yellow-300 font-bold' : 'text-white/80'
+              <span className={`text-sm font-medium truncate block group-hover:text-gray-900 dark:group-hover:text-white transition-colors ${
+                isUserCountry ? 'text-yellow-600 dark:text-yellow-300 font-bold' : 'text-gray-900 dark:text-white/80'
               }`}>
                 {country.pais || 'N/A'}
                 {isUserCountry && <span className="ml-1 text-yellow-400">⭐</span>}
               </span>
             </div>
-            <div className="flex-1 bg-white/10 rounded-full h-6 overflow-hidden relative">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${((country.indice_aipi || 0) / maxValue) * 100}%` }}
-                transition={{ delay: index * 0.05 + 0.5, duration: 1 }}
-                className={`h-full rounded-full relative overflow-hidden group-hover:brightness-125 transition-all duration-300 ${
-                  isUserCountry 
-                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' 
-                    : 'bg-gradient-to-r from-primary to-purple-500'
-                }`}
-              >
-                {/* Efecto de brillo en hover */}
+              <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-6 overflow-hidden relative">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  initial={{ x: '-100%' }}
-                  whileHover={{ x: '100%' }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-              </motion.div>
-              {/* Tooltip en hover */}
-              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
-                {country.pais}: {(country.indice_aipi || 0).toFixed(3)}
-                {isUserCountry && ' (Tu país)'}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((country.indice_aipi || 0) / maxValue) * 100}%` }}
+                  transition={{ delay: index * 0.05 + 0.5, duration: 1 }}
+                  className={`h-full rounded-full relative overflow-hidden group-hover:brightness-125 transition-all duration-300 ${
+                    isUserCountry 
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' 
+                      : 'bg-gradient-to-r from-primary to-purple-500'
+                  }`}
+                >
+                  {/* Efecto de brillo en hover */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '100%' }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                  />
+                </motion.div>
+                {/* Tooltip en hover */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+                  {country.pais}: {(country.indice_aipi || 0).toFixed(3)}
+                  {isUserCountry && ' (Tu país)'}
+                </div>
               </div>
-            </div>
-            <div className="w-16 text-left">
-              <span className={`text-sm font-bold group-hover:text-white transition-colors ${
-                isUserCountry ? 'text-yellow-300' : 'text-white/80'
-              }`}>
+              <div className="w-16 text-left">
+                <span className={`text-sm font-bold group-hover:text-gray-900 dark:group-hover:text-white transition-colors ${
+                  isUserCountry ? 'text-yellow-600 dark:text-yellow-300' : 'text-gray-900 dark:text-white/80'
+                }`}>
                 {(country.indice_aipi || 0).toFixed(2)}
               </span>
             </div>
@@ -622,14 +624,14 @@ export default function StatisticsResultsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Analizando tus resultados...</p>
+          <p className="text-gray-700 dark:text-white text-lg">Analizando tus resultados...</p>
         </motion.div>
       </div>
     );
@@ -637,15 +639,15 @@ export default function StatisticsResultsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-md mx-auto p-6"
         >
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Error</h2>
-          <p className="text-white/70 mb-6">{error}</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error</h2>
+          <p className="text-gray-700 dark:text-white/70 mb-6">{error}</p>
           <button
             onClick={() => router.push('/statistics')}
             className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
@@ -658,25 +660,25 @@ export default function StatisticsResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/5 backdrop-blur-sm border-b border-white/10 pt-24"
+        className="bg-white/80 dark:bg-white/5 backdrop-blur-sm border-b border-gray-200 dark:border-white/10 pt-24"
       >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="w-20"></div> {/* Spacer izquierdo */}
             
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-white mb-2">Mis Estadísticas</h1>
-              <p className="text-white/60 text-sm">Análisis personalizado de tus resultados</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Mis Estadísticas</h1>
+              <p className="text-gray-600 dark:text-white/60 text-sm">Análisis personalizado de tus resultados</p>
             </div>
             
             <button
               onClick={() => router.push('/questionnaire/direct')}
-              className="flex items-center px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 hover:border-primary/50 text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
+              className="flex items-center px-4 py-2 bg-primary/20 dark:bg-primary/20 hover:bg-primary/30 dark:hover:bg-primary/30 border border-primary/30 dark:border-primary/30 hover:border-primary/50 dark:hover:border-primary/50 text-primary dark:text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
             >
               <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
               <span className="text-sm font-medium">Nueva Encuesta</span>
@@ -690,16 +692,16 @@ export default function StatisticsResultsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-8"
+          className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 mb-8 shadow-lg dark:shadow-xl"
         >
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Brain className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Radar de Competencias en IA</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Radar de Competencias en IA</h2>
             </div>
-            <p className="text-white/60 max-w-2xl mx-auto">
+            <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto">
               Visualización de tus fortalezas por área funcional basada en tu cuestionario. 
               Cada dimensión se evalúa en una escala de 0 a 100 puntos.
             </p>
@@ -714,7 +716,7 @@ export default function StatisticsResultsPage() {
             </div>
             
             <div className="flex-1 space-y-4">
-              <h3 className="text-lg font-bold text-white mb-4">¿Qué significa cada dimensión?</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">¿Qué significa cada dimensión?</h3>
               
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
@@ -722,8 +724,8 @@ export default function StatisticsResultsPage() {
                     <Brain className="w-4 h-4 text-blue-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Conocimiento</h4>
-                    <p className="text-white/60 text-sm">Tu comprensión teórica sobre IA, conceptos fundamentales y terminología.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Conocimiento</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu comprensión teórica sobre IA, conceptos fundamentales y terminología.</p>
                   </div>
                 </div>
                 
@@ -732,8 +734,8 @@ export default function StatisticsResultsPage() {
                     <Target className="w-4 h-4 text-green-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Aplicación</h4>
-                    <p className="text-white/60 text-sm">Tu capacidad para implementar IA en casos de uso reales.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Aplicación</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu capacidad para implementar IA en casos de uso reales.</p>
                   </div>
                 </div>
                 
@@ -742,8 +744,8 @@ export default function StatisticsResultsPage() {
                     <TrendingUp className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Productividad</h4>
-                    <p className="text-white/60 text-sm">Cómo utilizas la IA para optimizar tu trabajo diario.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Productividad</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Cómo utilizas la IA para optimizar tu trabajo diario.</p>
                   </div>
                 </div>
                 
@@ -752,8 +754,8 @@ export default function StatisticsResultsPage() {
                     <Lightbulb className="w-4 h-4 text-orange-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Estrategia</h4>
-                    <p className="text-white/60 text-sm">Tu visión sobre el impacto estratégico de la IA en tu organización.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Estrategia</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu visión sobre el impacto estratégico de la IA en tu organización.</p>
                   </div>
                 </div>
                 
@@ -762,8 +764,8 @@ export default function StatisticsResultsPage() {
                     <DollarSign className="w-4 h-4 text-red-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Inversión</h4>
-                    <p className="text-white/60 text-sm">Tu disposición para invertir en herramientas y formación en IA.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Inversión</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu disposición para invertir en herramientas y formación en IA.</p>
                   </div>
                 </div>
               </div>
@@ -800,13 +802,13 @@ export default function StatisticsResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-8"
+            className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 mb-8 shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Award className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Recomendaciones Personalizadas</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recomendaciones Personalizadas</h2>
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -816,7 +818,7 @@ export default function StatisticsResultsPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.8 + index * 0.1 }}
-                  className="bg-white/5 border border-white/10 rounded-xl p-4"
+                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4"
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 ${
@@ -827,8 +829,8 @@ export default function StatisticsResultsPage() {
                       }`} />
                     </div>
                     <div>
-                      <h3 className="text-white font-medium mb-2">{rec.title}</h3>
-                      <p className="text-white/60 text-sm">{rec.description}</p>
+                      <h3 className="text-gray-900 dark:text-white font-medium mb-2">{rec.title}</h3>
+                      <p className="text-gray-700 dark:text-white/60 text-sm">{rec.description}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -843,16 +845,16 @@ export default function StatisticsResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8"
+            className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Globe className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Adopción de GenAI en Países Hispanoparlantes</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Adopción de GenAI en Países Hispanoparlantes</h2>
             </div>
             
-            <p className="text-white/60 mb-6">
+            <p className="text-gray-700 dark:text-white/60 mb-6">
               Índice de Adopción e Implementación de IA (AIPI) por país. 
               Compara tu nivel de adopción con el promedio de tu región.
             </p>
@@ -863,21 +865,21 @@ export default function StatisticsResultsPage() {
               </div>
               
               <div className="space-y-4">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                       <BarChart3 className="w-4 h-4 text-blue-400" />
                     </div>
-                    <h3 className="text-white font-medium">Estadísticas Generales</h3>
+                    <h3 className="text-gray-900 dark:text-white font-medium">Estadísticas Generales</h3>
                   </div>
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Países analizados:</span>
-                      <span className="text-white font-bold text-lg">{countryData.length}</span>
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Países analizados:</span>
+                      <span className="text-gray-900 dark:text-white font-bold text-lg">{countryData.length}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Promedio AIPI:</span>
-                      <span className="text-white font-bold text-lg">
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Promedio AIPI:</span>
+                      <span className="text-gray-900 dark:text-white font-bold text-lg">
                         {countryData.length > 0 
                           ? (() => {
                               // Filtrar solo países con valores válidos (no null)
@@ -891,10 +893,10 @@ export default function StatisticsResultsPage() {
                         }
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Máximo:</span>
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Máximo:</span>
                       <div className="text-right">
-                        <div className="text-white font-bold text-lg">
+                        <div className="text-gray-900 dark:text-white font-bold text-lg">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -905,7 +907,7 @@ export default function StatisticsResultsPage() {
                             : '0.000'
                           }
                         </div>
-                        <div className="text-white/60 text-xs">
+                        <div className="text-gray-600 dark:text-white/60 text-xs">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -919,10 +921,10 @@ export default function StatisticsResultsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Mínimo:</span>
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Mínimo:</span>
                       <div className="text-right">
-                        <div className="text-white font-bold text-lg">
+                        <div className="text-gray-900 dark:text-white font-bold text-lg">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -939,7 +941,7 @@ export default function StatisticsResultsPage() {
                             : '0.000'
                           }
                         </div>
-                        <div className="text-white/60 text-xs">
+                        <div className="text-gray-600 dark:text-white/60 text-xs">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -958,9 +960,9 @@ export default function StatisticsResultsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Rango:</span>
-                      <span className="text-white font-bold text-lg">
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Rango:</span>
+                      <span className="text-gray-900 dark:text-white font-bold text-lg">
                         {countryData.length > 0 
                           ? (() => {
                               // Filtrar solo países con valores válidos (no null)
@@ -985,13 +987,13 @@ export default function StatisticsResultsPage() {
                       });
                       return userCountryData;
                     })() && (
-                      <div className="flex justify-between items-center p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                        <span className="text-yellow-300 font-medium">Tu país ({userProfile.pais}):</span>
+                      <div className="flex justify-between items-center p-3 bg-yellow-500/10 dark:bg-yellow-500/10 border border-yellow-500/20 dark:border-yellow-500/20 rounded-lg">
+                        <span className="text-yellow-700 dark:text-yellow-300 font-medium">Tu país ({userProfile.pais}):</span>
                         <div className="text-right">
-                          <div className="text-yellow-300 font-bold text-lg">
+                          <div className="text-yellow-700 dark:text-yellow-300 font-bold text-lg">
                             {countryData.find(c => c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim())?.indice_aipi?.toFixed(3) || '0.000'}
                           </div>
-                          <div className="text-yellow-400/70 text-xs">
+                          <div className="text-yellow-600 dark:text-yellow-400/70 text-xs">
                             Posición #{countryData.findIndex(c => c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim()) + 1} de {countryData.length}
                           </div>
                         </div>
@@ -1000,25 +1002,25 @@ export default function StatisticsResultsPage() {
                   </div>
                 </div>
                 
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
                       <Info className="w-4 h-4 text-green-400" />
                     </div>
-                    <h3 className="text-white font-medium">Fuente y Metodología</h3>
+                    <h3 className="text-gray-900 dark:text-white font-medium">Fuente y Metodología</h3>
                   </div>
                   <div className="space-y-3 text-sm">
-                    <div className="p-3 bg-white/5 rounded-lg">
-                      <h4 className="text-white font-medium mb-2">Metodología AIPI</h4>
-                      <p className="text-white/70 leading-relaxed">
+                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Metodología AIPI</h4>
+                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                         El Índice de Adopción e Implementación de IA (AIPI) evalúa el nivel de adopción de 
                         inteligencia artificial en países hispanoparlantes basándose en métricas de 
                         implementación empresarial, uso personal, inversión en tecnología y políticas públicas.
                       </p>
                     </div>
-                    <div className="p-3 bg-white/5 rounded-lg">
-                      <h4 className="text-white font-medium mb-2">Fuentes de Datos</h4>
-                      <p className="text-white/70 leading-relaxed">
+                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Fuentes de Datos</h4>
+                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                         • Estudios de adopción empresarial (2023-2024)<br/>
                         • Encuestas de uso personal de IA<br/>
                         • Inversión en tecnología por país<br/>
@@ -1026,9 +1028,9 @@ export default function StatisticsResultsPage() {
                         • Índices de innovación tecnológica
                       </p>
                     </div>
-                    <div className="p-3 bg-white/5 rounded-lg">
-                      <h4 className="text-white font-medium mb-2">Actualización</h4>
-                      <p className="text-white/70 leading-relaxed">
+                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Actualización</h4>
+                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                         Datos actualizados trimestralmente. Última actualización: Enero 2025
                       </p>
                     </div>

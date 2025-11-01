@@ -130,21 +130,21 @@ export default function MyCoursesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full mx-auto mb-4"
           />
-          <p className="text-white/70 text-lg">Cargando tus cursos...</p>
+          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando tus cursos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -156,9 +156,9 @@ export default function MyCoursesPage() {
             <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-white">Mi Aprendizaje</h1>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Mi Aprendizaje</h1>
           </div>
-          <p className="text-slate-400 text-lg">Continúa donde lo dejaste</p>
+          <p className="text-gray-600 dark:text-slate-400 text-lg">Continúa donde lo dejaste</p>
         </motion.div>
 
         {/* Stats Cards */}
@@ -167,60 +167,60 @@ export default function MyCoursesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/50 transition-colors"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/20">
                 <Target className="w-5 h-5 text-blue-400" />
               </div>
-              <span className="text-slate-400 text-sm">Total de Cursos</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">Total de Cursos</span>
             </div>
-            <p className="text-3xl font-bold text-white">{stats.total_courses}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total_courses}</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-green-500/50 transition-colors"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-green-500/50 dark:hover:border-green-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-green-500/20">
                 <CheckCircle2 className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-slate-400 text-sm">Completados</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">Completados</span>
             </div>
-            <p className="text-3xl font-bold text-white">{stats.completed_courses}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.completed_courses}</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-purple-500/50 transition-colors"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-purple-500/20">
                 <TrendingUp className="w-5 h-5 text-purple-400" />
               </div>
-              <span className="text-slate-400 text-sm">En Progreso</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">En Progreso</span>
             </div>
-            <p className="text-3xl font-bold text-white">{stats.in_progress_courses}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.in_progress_courses}</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-cyan-500/50 transition-colors"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-cyan-500/20">
                 <Clock className="w-5 h-5 text-cyan-400" />
               </div>
-              <span className="text-slate-400 text-sm">Tiempo Total</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">Tiempo Total</span>
             </div>
-            <p className="text-3xl font-bold text-white">{formatDuration(stats.total_time_minutes)}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatDuration(stats.total_time_minutes)}</p>
           </motion.div>
         </div>
 
@@ -232,20 +232,20 @@ export default function MyCoursesPage() {
           className="flex flex-col sm:flex-row gap-4 mb-8"
         >
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-slate-400" />
             <input
               type="text"
               placeholder="Buscar en mis cursos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 transition-colors"
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
             />
           </div>
           
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+            className="px-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <option value="all">Todos</option>
             <option value="in_progress">En Progreso</option>
@@ -264,10 +264,10 @@ export default function MyCoursesPage() {
               className="text-center py-20"
             >
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-12 h-12 text-slate-400" />
+                <BookOpen className="w-12 h-12 text-gray-400 dark:text-slate-400" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">No tienes cursos aún</h3>
-              <p className="text-slate-400 mb-6">Adquiere cursos para comenzar tu aprendizaje</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No tienes cursos aún</h3>
+              <p className="text-gray-600 dark:text-slate-400 mb-6">Adquiere cursos para comenzar tu aprendizaje</p>
               <Button
                 onClick={() => router.push('/dashboard')}
                 variant="gradient"
@@ -284,7 +284,7 @@ export default function MyCoursesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   whileHover={{ y: -4 }}
-                  className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 group"
+                  className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 group shadow-lg dark:shadow-xl"
                 >
                   {/* Course Thumbnail */}
                   <div className="relative h-48 bg-gradient-to-br from-blue-600/20 to-purple-600/20 overflow-hidden">
@@ -298,15 +298,15 @@ export default function MyCoursesPage() {
                       <div className="w-full h-full flex items-center justify-center">
                         <div className="text-center">
                           <BookOpen className="w-16 h-16 text-blue-400/50 mx-auto mb-2" />
-                          <p className="text-slate-500">Imagen del curso</p>
+                          <p className="text-gray-600 dark:text-slate-500">Imagen del curso</p>
                         </div>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-slate-900 via-transparent to-transparent" />
                     
                     {/* Progress Overlay */}
                     {course.progress_percentage > 0 && (
-                      <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-sm font-medium">
+                      <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 dark:bg-black/50 backdrop-blur-sm text-white text-sm font-medium">
                         {course.progress_percentage}% completado
                       </div>
                     )}
@@ -327,12 +327,12 @@ export default function MyCoursesPage() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {course.course_title}
                     </h3>
 
                     {/* Instructor */}
-                    <p className="text-slate-400 text-sm mb-4">
+                    <p className="text-gray-600 dark:text-slate-400 text-sm mb-4">
                       Por {course.instructor_name}
                     </p>
 
@@ -340,10 +340,10 @@ export default function MyCoursesPage() {
                     {course.progress_percentage > 0 && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-slate-400">Progreso</span>
-                          <span className="text-sm font-medium text-white">{course.progress_percentage}%</span>
+                          <span className="text-sm text-gray-600 dark:text-slate-400">Progreso</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{course.progress_percentage}%</span>
                         </div>
-                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${course.progress_percentage}%` }}
@@ -355,7 +355,7 @@ export default function MyCoursesPage() {
                     )}
 
                     {/* Duration */}
-                    <div className="flex items-center gap-2 text-slate-400 text-sm mb-4">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400 text-sm mb-4">
                       <Clock className="w-4 h-4" />
                       <span>{formatDuration(course.course_duration_minutes)}</span>
                     </div>

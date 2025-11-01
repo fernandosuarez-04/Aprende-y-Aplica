@@ -234,10 +234,10 @@ Fecha: ${new Date().toLocaleString()}
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-slate-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       {/* Header */}
       <motion.header
-        className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50"
+        className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-slate-700/50"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -246,10 +246,10 @@ Fecha: ${new Date().toLocaleString()}
           <div className="flex items-center justify-between">
             <Link 
               href="/prompt-directory"
-              className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors group"
+              className="flex items-center gap-3 text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors group"
             >
-              <div className="p-2 rounded-lg bg-slate-800 group-hover:bg-slate-700 transition-colors">
-                <ChevronLeft className="w-5 h-5" />
+              <div className="p-2 rounded-lg bg-gray-100 dark:bg-slate-800 group-hover:bg-gray-200 dark:group-hover:bg-slate-700 transition-colors">
+                <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-slate-300" />
               </div>
               <span className="font-medium">Volver al Directorio</span>
             </Link>
@@ -259,8 +259,8 @@ Fecha: ${new Date().toLocaleString()}
                 <Wand2 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Constructor de Prompts IA</h1>
-                <p className="text-sm text-slate-400">Crea prompts profesionales con Lia</p>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Constructor de Prompts IA</h1>
+                <p className="text-sm text-gray-600 dark:text-slate-400">Crea prompts profesionales con Lia</p>
               </div>
             </div>
             
@@ -273,13 +273,13 @@ Fecha: ${new Date().toLocaleString()}
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-8 min-h-[calc(100vh-140px)] sm:min-h-[calc(100vh-180px)]">
           {/* Chat Section */}
           <motion.div
-            className="lg:col-span-2 flex flex-col bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden order-1 lg:order-1 h-[60vh] sm:h-auto"
+            className="lg:col-span-2 flex flex-col bg-white dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-slate-700/50 overflow-hidden order-1 lg:order-1 h-[60vh] sm:h-auto shadow-lg dark:shadow-xl"
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             {/* Chat Header */}
-            <div className="p-4 sm:p-6 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/80 to-slate-700/80 flex-shrink-0">
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-gradient-to-r dark:from-slate-800/80 dark:to-slate-700/80 flex-shrink-0">
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="relative">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-lg">
@@ -291,16 +291,16 @@ Fecha: ${new Date().toLocaleString()}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-slate-800 flex items-center justify-center">
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center">
                     <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg sm:text-xl font-bold text-white truncate">Lia</h2>
-                  <p className="text-slate-400 text-xs sm:text-sm truncate">Especialista en creación de prompts</p>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">Lia</h2>
+                  <p className="text-gray-600 dark:text-slate-400 text-xs sm:text-sm truncate">Especialista en creación de prompts</p>
                 </div>
-                <div className="hidden sm:flex items-center gap-2 text-green-400 text-sm">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="hidden sm:flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
+                  <div className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-pulse"></div>
                   En línea
                 </div>
               </div>
@@ -328,18 +328,18 @@ Fecha: ${new Date().toLocaleString()}
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <span className="text-xs sm:text-sm text-slate-400">Lia</span>
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">Lia</span>
                       </div>
                     )}
                     <div
                       className={`p-3 sm:p-4 rounded-2xl shadow-lg ${
                         msg.sender === 'user'
                           ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                          : 'bg-slate-700/80 text-slate-100 border border-slate-600/50'
+                          : 'bg-gray-100 dark:bg-slate-700/80 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-600/50'
                       }`}
                     >
                       <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                      <span className="text-xs opacity-70 block mt-2 text-right">
+                      <span className={`text-xs opacity-70 block mt-2 text-right ${msg.sender === 'ai' ? 'text-gray-600 dark:text-slate-400' : 'text-white/70'}`}>
                         {msg.timestamp}
                       </span>
                     </div>
@@ -364,10 +364,10 @@ Fecha: ${new Date().toLocaleString()}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <span className="text-xs sm:text-sm text-slate-400">Lia</span>
+                      <span className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">Lia</span>
                     </div>
-                    <div className="p-3 sm:p-4 rounded-2xl bg-slate-700/80 text-slate-100 border border-slate-600/50 flex items-center gap-3">
-                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin text-purple-400" />
+                    <div className="p-3 sm:p-4 rounded-2xl bg-gray-100 dark:bg-slate-700/80 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-600/50 flex items-center gap-3">
+                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin text-purple-600 dark:text-purple-400" />
                       <span className="text-xs sm:text-sm">Pensando...</span>
                     </div>
                   </div>
@@ -377,12 +377,12 @@ Fecha: ${new Date().toLocaleString()}
             </div>
 
             {/* Input */}
-            <div className="p-4 sm:p-6 border-t border-slate-700/50 bg-slate-800/30 flex-shrink-0">
+            <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-800/30 flex-shrink-0">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    className="w-full p-4 sm:p-4 pr-12 sm:pr-12 rounded-xl bg-slate-700/80 border border-slate-600/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base sm:text-base h-12 sm:h-auto"
+                    className="w-full p-4 sm:p-4 pr-12 sm:pr-12 rounded-xl bg-white dark:bg-slate-700/80 border border-gray-300 dark:border-slate-600/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base sm:text-base h-12 sm:h-auto"
                     placeholder="Describe qué tipo de prompt quieres crear..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -390,7 +390,7 @@ Fecha: ${new Date().toLocaleString()}
                     disabled={isLoading}
                   />
                   <div className="absolute right-3 sm:right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="w-2 h-2 sm:w-2 sm:h-2 bg-slate-500 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 sm:w-2 sm:h-2 bg-gray-400 dark:bg-slate-500 rounded-full animate-pulse"></div>
                   </div>
                 </div>
                 <Button
@@ -416,12 +416,12 @@ Fecha: ${new Date().toLocaleString()}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             {/* Generated Prompt */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4 sm:p-6 lg:flex-1 lg:flex lg:flex-col lg:min-h-0">
+            <div className="bg-white dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-slate-700/50 p-4 sm:p-6 lg:flex-1 lg:flex lg:flex-col lg:min-h-0 shadow-lg dark:shadow-xl">
               <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                 <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500">
                   <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-white">Prompt Generado</h3>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Prompt Generado</h3>
               </div>
               
               {generatedPrompt ? (
@@ -430,31 +430,31 @@ Fecha: ${new Date().toLocaleString()}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-3 sm:space-y-4 lg:flex-1 lg:overflow-y-auto lg:custom-scrollbar"
                 >
-                  <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-slate-600/30">
-                    <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
-                      <Target className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+                  <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-slate-600/30">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                      <Target className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
                       <span className="text-sm sm:text-base">Título</span>
                     </h4>
-                    <p className="text-slate-300 text-xs sm:text-sm">{generatedPrompt.title}</p>
+                    <p className="text-gray-700 dark:text-slate-300 text-xs sm:text-sm">{generatedPrompt.title}</p>
                   </div>
                   
-                  <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-slate-600/30">
-                    <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
-                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
+                  <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-slate-600/30">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
                       <span className="text-sm sm:text-base">Contenido</span>
                     </h4>
-                    <div className="text-slate-300 text-xs sm:text-sm max-h-20 sm:max-h-32 overflow-y-auto custom-scrollbar prose prose-invert prose-sm max-w-none">
+                    <div className="text-gray-700 dark:text-slate-300 text-xs sm:text-sm max-h-20 sm:max-h-32 overflow-y-auto custom-scrollbar prose prose-invert dark:prose-invert prose-sm max-w-none">
                       <ReactMarkdown 
                         components={{
-                          h1: ({children}) => <h1 className="text-white text-lg font-bold mb-2">{children}</h1>,
-                          h2: ({children}) => <h2 className="text-white text-base font-semibold mb-2 mt-3">{children}</h2>,
-                          h3: ({children}) => <h3 className="text-white text-sm font-semibold mb-1 mt-2">{children}</h3>,
-                          p: ({children}) => <p className="text-slate-300 mb-2">{children}</p>,
-                          strong: ({children}) => <strong className="text-white font-semibold">{children}</strong>,
-                          em: ({children}) => <em className="text-purple-300 italic">{children}</em>,
-                          code: ({children}) => <code className="bg-slate-800 text-green-300 px-1 py-0.5 rounded text-xs">{children}</code>,
+                          h1: ({children}) => <h1 className="text-gray-900 dark:text-white text-lg font-bold mb-2">{children}</h1>,
+                          h2: ({children}) => <h2 className="text-gray-900 dark:text-white text-base font-semibold mb-2 mt-3">{children}</h2>,
+                          h3: ({children}) => <h3 className="text-gray-900 dark:text-white text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                          p: ({children}) => <p className="text-gray-700 dark:text-slate-300 mb-2">{children}</p>,
+                          strong: ({children}) => <strong className="text-gray-900 dark:text-white font-semibold">{children}</strong>,
+                          em: ({children}) => <em className="text-purple-700 dark:text-purple-300 italic">{children}</em>,
+                          code: ({children}) => <code className="bg-gray-100 dark:bg-slate-800 text-green-700 dark:text-green-300 px-1 py-0.5 rounded text-xs">{children}</code>,
                           ul: ({children}) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                          li: ({children}) => <li className="text-slate-300">{children}</li>,
+                          li: ({children}) => <li className="text-gray-700 dark:text-slate-300">{children}</li>,
                         }}
                       >
                         {generatedPrompt.content}
@@ -464,7 +464,7 @@ Fecha: ${new Date().toLocaleString()}
                   
                   <div className="flex flex-wrap gap-2">
                     {generatedPrompt.tags.slice(0, 3).map((tag, index) => (
-                      <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs">
+                      <span key={index} className="px-3 py-1 bg-purple-500/20 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-full text-xs">
                         {tag}
                       </span>
                     ))}
@@ -493,10 +493,10 @@ Fecha: ${new Date().toLocaleString()}
                 </motion.div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">
-                    <Target className="w-8 h-8 text-slate-400" />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center">
+                    <Target className="w-8 h-8 text-gray-600 dark:text-slate-400" />
                   </div>
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-gray-600 dark:text-slate-400 text-sm">
                     Comienza una conversación para generar tu prompt personalizado
                   </p>
                 </div>
@@ -504,29 +504,29 @@ Fecha: ${new Date().toLocaleString()}
             </div>
 
             {/* Tips */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4 sm:p-6 flex-shrink-0">
+            <div className="bg-white dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-slate-700/50 p-4 sm:p-6 flex-shrink-0 shadow-lg dark:shadow-xl">
               <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                 <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500">
                   <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-white">Consejos para mejores resultados</h3>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Consejos para mejores resultados</h3>
               </div>
               
               <div className="space-y-3 sm:space-y-4">
                 {tips.map((tip, index) => (
                   <motion.div
                     key={index}
-                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl bg-slate-700/30 border border-slate-600/30 hover:bg-slate-700/50 transition-colors"
+                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl bg-gray-50 dark:bg-slate-700/30 border border-gray-200 dark:border-slate-600/30 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-slate-600/50 flex-shrink-0">
-                      <tip.icon className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-slate-600/50 flex-shrink-0">
+                      <tip.icon className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-white text-xs sm:text-sm">{tip.title}</h4>
-                      <p className="text-slate-400 text-xs mt-1 leading-relaxed">{tip.description}</p>
+                      <h4 className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">{tip.title}</h4>
+                      <p className="text-gray-600 dark:text-slate-400 text-xs mt-1 leading-relaxed">{tip.description}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -549,37 +549,37 @@ Fecha: ${new Date().toLocaleString()}
               initial={{ y: -50, opacity: 0, scale: 0.95 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: -50, opacity: 0, scale: 0.95 }}
-              className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md"
+              className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md"
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-teal-500">
                   <Save className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Guardar Prompt</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Guardar Prompt</h3>
               </div>
               
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="promptTitle" className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor="promptTitle" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     Título
                   </label>
                   <input
                     type="text"
                     id="promptTitle"
-                    className="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full p-3 rounded-xl bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     value={savePromptTitle}
                     onChange={(e) => setSavePromptTitle(e.target.value)}
                     placeholder="Título de tu prompt"
                   />
                 </div>
                 <div>
-                  <label htmlFor="promptDescription" className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor="promptDescription" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     Descripción
                   </label>
                   <textarea
                     id="promptDescription"
                     rows={3}
-                    className="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                    className="w-full p-3 rounded-xl bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
                     value={savePromptDescription}
                     onChange={(e) => setSavePromptDescription(e.target.value)}
                     placeholder="Una breve descripción de tu prompt"
@@ -589,7 +589,7 @@ Fecha: ${new Date().toLocaleString()}
                   <Button 
                     variant="ghost" 
                     onClick={() => setIsSaveModalOpen(false)} 
-                    className="text-slate-400 hover:text-white px-6 py-2"
+                    className="text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white px-6 py-2"
                   >
                     Cancelar
                   </Button>

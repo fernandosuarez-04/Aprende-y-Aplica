@@ -242,21 +242,21 @@ export default function StatisticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
           <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/70 text-lg">Cargando...</p>
+          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando...</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-carbon">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       <div className="px-6 py-8">
         <div className="max-w-7xl mx-auto">
           {!showProfileConfirmation ? (
@@ -268,10 +268,10 @@ export default function StatisticsPage() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-center mb-12"
               >
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
                   Personaliza tu experiencia de aprendizaje
                 </h1>
-                <p className="text-lg text-white/70 max-w-2xl mx-auto">
+                <p className="text-lg text-gray-700 dark:text-white/70 max-w-2xl mx-auto">
                   Compártenos algunos datos sobre tu perfil profesional para personalizar tu experiencia de aprendizaje.
                 </p>
               </motion.div>
@@ -281,7 +281,7 @@ export default function StatisticsPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-carbon-800/50 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-white/10 shadow-2xl max-w-4xl mx-auto"
+            className="bg-white dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-gray-200 dark:border-white/10 shadow-2xl max-w-4xl mx-auto"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left Column */}
@@ -292,14 +292,14 @@ export default function StatisticsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.6 }}
                 >
-                  <label className="block text-sm font-medium text-white/90 mb-2">
-                    Cargo / Título <span className="text-red-400">*</span>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    Cargo / Título <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.cargo_titulo}
                     onChange={(e) => handleInputChange('cargo_titulo', e.target.value)}
-                    className="w-full px-4 py-3 bg-carbon-700/50 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
                     placeholder="Ej: Gerente de Marketing, CEO, Desarrollador..."
                   />
                 </motion.div>
@@ -310,17 +310,17 @@ export default function StatisticsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.7 }}
                 >
-                  <label className="block text-sm font-medium text-white/90 mb-2">
-                    Nivel Organizacional <span className="text-red-400">*</span>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    Nivel Organizacional <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <select
                     value={formData.nivel_id}
                     onChange={(e) => handleInputChange('nivel_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-carbon-700/50 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-carbon-800 text-white">Selecciona tu nivel</option>
+                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu nivel</option>
                     {referenceData?.niveles.map(nivel => (
-                      <option key={nivel.id} value={nivel.id} className="bg-carbon-800 text-white">
+                      <option key={nivel.id} value={nivel.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
                         {nivel.nombre}
                       </option>
                     ))}
@@ -333,17 +333,17 @@ export default function StatisticsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.8 }}
                 >
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Sector (Opcional)
                   </label>
                   <select
                     value={formData.sector_id}
                     onChange={(e) => handleInputChange('sector_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-carbon-700/50 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-carbon-800 text-white">Selecciona tu sector</option>
+                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu sector</option>
                     {referenceData?.sectores.map(sector => (
-                      <option key={sector.id} value={sector.id} className="bg-carbon-800 text-white">
+                      <option key={sector.id} value={sector.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
                         {sector.nombre}
                       </option>
                     ))}
@@ -359,17 +359,17 @@ export default function StatisticsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.6 }}
                 >
-                  <label className="block text-sm font-medium text-white/90 mb-2">
-                    Área Funcional <span className="text-red-400">*</span>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    Área Funcional <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <select
                     value={formData.area_id}
                     onChange={(e) => handleInputChange('area_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-carbon-700/50 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-carbon-800 text-white">Selecciona tu área</option>
+                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu área</option>
                     {referenceData?.areas.map(area => (
-                      <option key={area.id} value={area.id} className="bg-carbon-800 text-white">
+                      <option key={area.id} value={area.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
                         {area.nombre}
                       </option>
                     ))}
@@ -382,17 +382,17 @@ export default function StatisticsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.7 }}
                 >
-                  <label className="block text-sm font-medium text-white/90 mb-2">
-                    Tipo de Relación <span className="text-red-400">*</span>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    Tipo de Relación <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <select
                     value={formData.relacion_id}
                     onChange={(e) => handleInputChange('relacion_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-carbon-700/50 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-carbon-800 text-white">Selecciona tu relación</option>
+                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu relación</option>
                     {referenceData?.relaciones.map(relacion => (
-                      <option key={relacion.id} value={relacion.id} className="bg-carbon-800 text-white">
+                      <option key={relacion.id} value={relacion.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
                         {relacion.nombre}
                       </option>
                     ))}
@@ -405,17 +405,17 @@ export default function StatisticsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.8 }}
                 >
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Tamaño de Empresa (Opcional)
                   </label>
                   <select
                     value={formData.tamano_id}
                     onChange={(e) => handleInputChange('tamano_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-carbon-700/50 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-carbon-800 text-white">Selecciona el tamaño</option>
+                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona el tamaño</option>
                     {referenceData?.tamanos_empresa.map(tamano => (
-                      <option key={tamano.id} value={tamano.id} className="bg-carbon-800 text-white">
+                      <option key={tamano.id} value={tamano.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
                         {tamano.nombre}
                       </option>
                     ))}
@@ -428,14 +428,14 @@ export default function StatisticsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.9 }}
                 >
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     País (Opcional)
                   </label>
                   <input
                     type="text"
                     value={formData.pais}
                     onChange={(e) => handleInputChange('pais', e.target.value)}
-                    className="w-full px-4 py-3 bg-carbon-700/50 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
                     placeholder="Ej: México, España, Colombia..."
                   />
                 </motion.div>
@@ -581,10 +581,10 @@ function ProfileConfirmationSection({
         transition={{ duration: 0.6, delay: 0.2 }}
         className="text-center mb-12"
       >
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
           Perfil Recomendado
         </h1>
-        <p className="text-lg text-white/70 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-700 dark:text-white/70 max-w-2xl mx-auto">
           Basado en la información proporcionada, este es el cuestionario que mejor se adapta a tu perfil:
         </p>
       </motion.div>
@@ -594,7 +594,7 @@ function ProfileConfirmationSection({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
-        className="bg-carbon-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary/30 shadow-2xl mb-8"
+        className="bg-white dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary/30 dark:border-primary/30 shadow-2xl mb-8"
       >
         <div className="flex items-start space-x-4">
           <motion.div
@@ -611,7 +611,7 @@ function ProfileConfirmationSection({
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.7 }}
-              className="text-2xl font-bold text-white mb-2"
+              className="text-2xl font-bold text-gray-900 dark:text-white mb-2"
             >
               {selectedProfile?.cargo}
             </motion.h2>
@@ -620,7 +620,7 @@ function ProfileConfirmationSection({
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.8 }}
-              className="text-white/70 mb-6"
+              className="text-gray-700 dark:text-white/70 mb-6"
             >
               {selectedProfile?.description}
             </motion.p>
@@ -633,33 +633,33 @@ function ProfileConfirmationSection({
             >
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-white/60 font-medium">Cargo:</span>
-                  <span className="text-white font-semibold">{selectedProfile?.cargo}</span>
+                  <span className="text-gray-600 dark:text-white/60 font-medium">Cargo:</span>
+                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.cargo}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-white/60 font-medium">Área:</span>
-                  <span className="text-white font-semibold">{selectedProfile?.area}</span>
+                  <span className="text-gray-600 dark:text-white/60 font-medium">Área:</span>
+                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.area}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-white/60 font-medium">Nivel:</span>
-                  <span className="text-white font-semibold">{selectedProfile?.nivel}</span>
+                  <span className="text-gray-600 dark:text-white/60 font-medium">Nivel:</span>
+                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.nivel}</span>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-white/60 font-medium">Relación:</span>
-                  <span className="text-white font-semibold">{selectedProfile?.relacion}</span>
+                  <span className="text-gray-600 dark:text-white/60 font-medium">Relación:</span>
+                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.relacion}</span>
                 </div>
                 {selectedProfile?.sector && (
                   <div className="flex justify-between">
-                    <span className="text-white/60 font-medium">Sector:</span>
-                    <span className="text-white font-semibold">{selectedProfile.sector}</span>
+                    <span className="text-gray-600 dark:text-white/60 font-medium">Sector:</span>
+                    <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile.sector}</span>
                   </div>
                 )}
                 {selectedProfile?.tamano && (
                   <div className="flex justify-between">
-                    <span className="text-white/60 font-medium">Empresa:</span>
-                    <span className="text-white font-semibold">{selectedProfile.tamano}</span>
+                    <span className="text-gray-600 dark:text-white/60 font-medium">Empresa:</span>
+                    <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile.tamano}</span>
                   </div>
                 )}
               </div>
@@ -698,7 +698,7 @@ function ProfileConfirmationSection({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl font-semibold text-white mb-4 text-center"
+            className="text-xl font-semibold text-gray-900 dark:text-white mb-4 text-center"
           >
             Selecciona tu perfil manualmente:
           </motion.h3>
@@ -720,8 +720,8 @@ function ProfileConfirmationSection({
                 onClick={() => handleManualProfileSelect(profileName)}
                 className={`p-3 border rounded-lg text-sm transition-all duration-200 ${
                   selectedProfile?.cargo === profileName
-                    ? 'bg-primary/30 border-primary text-white'
-                    : 'bg-carbon-700/50 border-white/20 text-white hover:bg-primary/20 hover:border-primary/50'
+                    ? 'bg-primary/30 dark:bg-primary/30 border-primary dark:border-primary text-gray-900 dark:text-white'
+                    : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-300 dark:border-white/20 text-gray-700 dark:text-white hover:bg-primary/20 dark:hover:bg-primary/20 hover:border-primary/50 dark:hover:border-primary/50'
                 }`}
               >
                 {profileName}
@@ -752,7 +752,7 @@ function ProfileConfirmationSection({
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={onModifyInformation}
-          className="bg-carbon-700/50 border border-white/20 text-white font-semibold py-4 px-8 rounded-lg hover:bg-carbon-600/50 hover:border-white/30 transition-all duration-200"
+          className="bg-gray-200 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white font-semibold py-4 px-8 rounded-lg hover:bg-gray-300 dark:hover:bg-carbon-600/50 hover:border-gray-400 dark:hover:border-white/30 transition-all duration-200"
         >
           Modificar Información
         </motion.button>

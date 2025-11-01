@@ -78,7 +78,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
 
   return (
     <motion.header 
-      className="sticky top-0 z-50 bg-carbon-900/95 backdrop-blur-sm border-b border-carbon-700/50"
+      className="sticky top-0 z-50 bg-carbon/95 dark:bg-carbon-900/95 backdrop-blur-sm border-b border-carbon-700/50 dark:border-carbon-700/50"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
@@ -141,8 +141,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                       onClick={() => handleNavigation(item.id)}
                       className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                         isActive || isDirectoryDropdownOpen
-                          ? 'text-white'
-                          : 'text-text-secondary hover:text-text-primary'
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary'
                       }`}
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -168,11 +168,11 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                         />
                       )}
                       
-                      <Icon className={`relative z-10 w-4 h-4 ${isActive || isDirectoryDropdownOpen ? 'text-white' : ''}`} />
-                      <span className="relative z-10">{item.name}</span>
+                      <Icon className={`relative z-10 w-4 h-4 ${isActive || isDirectoryDropdownOpen ? 'text-gray-900 dark:text-white' : 'text-text-secondary dark:text-text-secondary'}`} />
+                      <span className={`relative z-10 ${isActive || isDirectoryDropdownOpen ? 'text-gray-900 dark:text-white' : 'text-text-secondary dark:text-text-secondary'}`}>{item.name}</span>
                       <ChevronDown className={`relative z-10 w-4 h-4 transition-transform duration-200 ${
                         isDirectoryDropdownOpen ? 'rotate-180' : ''
-                      }`} />
+                      } ${isActive || isDirectoryDropdownOpen ? 'text-gray-900 dark:text-white' : 'text-text-secondary dark:text-text-secondary'}`} />
                     </motion.button>
                     
                     {/* Dropdown Menu */}
@@ -183,7 +183,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-                          className="absolute top-full left-0 mt-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-[60]"
+                          className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-[100]"
                         >
                           <div className="p-2">
                             <motion.button
@@ -192,17 +192,17 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 setIsDirectoryDropdownOpen(false)
                               }}
                               {...prefetchOnHover('/prompt-directory')}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors group w-full text-left"
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group w-full text-left"
                               whileHover={{ x: 4 }}
                             >
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                                 <Sparkles className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <div className="font-medium text-white group-hover:text-purple-300 transition-colors">
+                                <div className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                                   Prompt Directory
                                 </div>
-                                <div className="text-xs text-text-secondary">
+                                <div className="text-xs text-gray-600 dark:text-text-secondary">
                                   Colección de prompts de IA
                                 </div>
                               </div>
@@ -214,17 +214,17 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 setIsDirectoryDropdownOpen(false)
                               }}
                               {...prefetchOnHover('/apps-directory')}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors group w-full text-left"
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group w-full text-left"
                               whileHover={{ x: 4 }}
                             >
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                                 <Grid3X3 className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <div className="font-medium text-white group-hover:text-blue-300 transition-colors">
+                                <div className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
                                   Apps Directory
                                 </div>
-                                <div className="text-xs text-text-secondary">
+                                <div className="text-xs text-gray-600 dark:text-text-secondary">
                                   Herramientas de IA disponibles
                                 </div>
                               </div>
@@ -252,8 +252,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                   {...(href && prefetchOnHover(href))}
                   className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                     isActive
-                      ? 'text-white'
-                      : 'text-text-secondary hover:text-text-primary'
+                      ? 'text-gray-900 dark:text-white'
+                      : 'text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary'
                   }`}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -279,8 +279,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                     />
                   )}
                   
-                  <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-white' : ''}`} />
-                  <span className="relative z-10">{item.name}</span>
+                  <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-gray-900 dark:text-white' : 'text-text-secondary dark:text-text-secondary'}`} />
+                  <span className={`relative z-10 ${isActive ? 'text-gray-900 dark:text-white' : 'text-text-secondary dark:text-text-secondary'}`}>{item.name}</span>
                   
                   {/* Indicador de notificación */}
                   {item.id === 'community' && (
@@ -304,11 +304,11 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
           >
             {/* Notificaciones */}
             <motion.button 
-              className="relative p-3 text-text-secondary hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50"
+              className="relative p-3 text-text-secondary dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50 dark:hover:bg-carbon-700/50"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-5 h-5 text-text-secondary dark:text-text-secondary" />
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold">
                 3
               </span>
@@ -328,11 +328,11 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
 
             {/* Configuración */}
             <motion.button 
-              className="p-3 text-text-secondary hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50"
+              className="p-3 text-text-secondary dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50 dark:hover:bg-carbon-700/50"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 text-text-secondary dark:text-text-secondary" />
             </motion.button>
 
             {/* User Dropdown */}
@@ -343,7 +343,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
 
       {/* Mobile Navigation */}
       <motion.div 
-        className="lg:hidden border-t border-carbon-700/50"
+        className="lg:hidden border-t border-carbon-700/50 dark:border-carbon-700/50"
         initial={{ opacity: 0, height: 0 }}
         animate={{ opacity: 1, height: "auto" }}
         transition={{ duration: 0.3 }}
@@ -362,8 +362,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                       onClick={() => handleNavigation(item.id)}
                       className={`flex items-center justify-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 w-full ${
                         isActive || isDirectoryDropdownOpen
-                          ? 'text-white bg-gradient-to-r from-primary to-primary/80'
-                          : 'text-text-secondary hover:text-text-primary hover:bg-carbon-700/50'
+                          ? 'text-gray-900 dark:text-white bg-gradient-to-r from-primary to-primary/80 dark:from-primary dark:to-primary/80'
+                          : 'text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary hover:bg-carbon-700/50 dark:hover:bg-carbon-700/50'
                       }`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -393,7 +393,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               router.push('/prompt-directory')
                               setIsDirectoryDropdownOpen(false)
                             }}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors w-full text-left"
+                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-full text-left"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 }}
@@ -402,8 +402,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               <Sparkles className="w-3 h-3 text-white" />
                             </div>
                             <div>
-                              <div className="font-medium text-white text-sm">Prompt Directory</div>
-                              <div className="text-xs text-text-secondary">Prompts de IA</div>
+                              <div className="font-medium text-gray-900 dark:text-white text-sm">Prompt Directory</div>
+                              <div className="text-xs text-gray-600 dark:text-text-secondary">Prompts de IA</div>
                             </div>
                           </motion.button>
                           
@@ -412,7 +412,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               router.push('/apps-directory')
                               setIsDirectoryDropdownOpen(false)
                             }}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors w-full text-left"
+                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-full text-left"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2 }}
@@ -421,8 +421,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               <Grid3X3 className="w-3 h-3 text-white" />
                             </div>
                             <div>
-                              <div className="font-medium text-white text-sm">Apps Directory</div>
-                              <div className="text-xs text-text-secondary">Herramientas de IA</div>
+                              <div className="font-medium text-gray-900 dark:text-white text-sm">Apps Directory</div>
+                              <div className="text-xs text-gray-600 dark:text-text-secondary">Herramientas de IA</div>
                             </div>
                           </motion.button>
                         </motion.div>
@@ -439,8 +439,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                   onClick={() => handleNavigation(item.id)}
                   className={`flex items-center justify-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
                     isActive
-                      ? 'text-white bg-gradient-to-r from-primary to-primary/80'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-carbon-700/50'
+                      ? 'text-gray-900 dark:text-white bg-gradient-to-r from-primary to-primary/80 dark:from-primary dark:to-primary/80'
+                      : 'text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary hover:bg-carbon-700/50 dark:hover:bg-carbon-700/50'
                   }`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}

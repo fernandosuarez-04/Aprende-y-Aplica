@@ -141,10 +141,10 @@ export default function CourseDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/70 text-lg">Cargando curso...</p>
+          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -152,10 +152,10 @@ export default function CourseDetailPage() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-4">Error</h1>
-          <p className="text-white/70 mb-8">{error || 'No se pudo cargar el curso'}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Error</h1>
+          <p className="text-gray-700 dark:text-white/70 mb-8">{error || 'No se pudo cargar el curso'}</p>
           <button 
             onClick={() => router.back()} 
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -168,19 +168,19 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/30 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900">
       {/* Header con navegación mejorado */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-50 bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 -mt-0"
+        className="sticky top-0 z-40 bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 -mt-0"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.back()}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg"
+                className="flex items-center gap-2 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white transition-colors p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg"
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span>Volver</span>
@@ -204,8 +204,8 @@ export default function CourseDetailPage() {
                   />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-white">{course.title}</h1>
-                  <p className="text-xs text-slate-400">Taller de Aprende y Aplica</p>
+                  <h1 className="text-lg font-bold text-gray-900 dark:text-white">{course.title}</h1>
+                  <p className="text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
                 </div>
               </div>
             </div>
@@ -215,14 +215,14 @@ export default function CourseDetailPage() {
                 onClick={handleToggleFavorite}
                 className={`p-2 rounded-lg transition-colors ${
                   isFavorite 
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                    : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-slate-300'
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30' 
+                    : 'bg-gray-100 dark:bg-slate-700/50 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600/50 hover:text-gray-900 dark:hover:text-slate-300'
                 }`}
               >
                 <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
               </button>
               
-              <button className="p-2 rounded-lg bg-slate-700/50 text-slate-400 hover:bg-slate-600/50 hover:text-slate-300 transition-colors">
+              <button className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600/50 hover:text-gray-900 dark:hover:text-slate-300 transition-colors">
                 <Share2 className="w-5 h-5" />
               </button>
             </div>
@@ -239,7 +239,7 @@ export default function CourseDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50"
+              className="relative overflow-hidden rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 border border-gray-200 dark:border-slate-700/50 shadow-lg dark:shadow-xl"
             >
               <div className="aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center">
                 {course.thumbnail ? (
@@ -250,14 +250,14 @@ export default function CourseDetailPage() {
                   />
                 ) : (
                   <div className="text-center">
-                    <Play className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                    <p className="text-white/50">Imagen del curso</p>
+                    <Play className="w-16 h-16 text-gray-400 dark:text-white/50 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-white/50">Imagen del curso</p>
                   </div>
                 )}
               </div>
               
               {/* Overlay con información */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 right-6">
                 <div className="flex items-center gap-3 mb-3">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getDifficultyColor(course.difficulty)}`}>
@@ -288,13 +288,13 @@ export default function CourseDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6"
+              className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl"
             >
-              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <BookOpen className="w-6 h-6 text-blue-400" />
                 Descripción del Curso
               </h2>
-              <p className="text-slate-300 leading-relaxed text-lg">
+              <p className="text-gray-700 dark:text-slate-300 leading-relaxed text-lg">
                 {course.description}
               </p>
             </motion.div>
@@ -305,9 +305,9 @@ export default function CourseDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6"
+                className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl"
               >
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                   <Award className="w-6 h-6 text-green-400" />
                   Lo que aprenderás
                 </h2>
@@ -321,7 +321,7 @@ export default function CourseDetailPage() {
                       className="flex items-center gap-3"
                     >
                       <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-                      <span className="text-slate-300">{item}</span>
+                      <span className="text-gray-700 dark:text-slate-300">{item}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -333,9 +333,9 @@ export default function CourseDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6"
+              className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl"
             >
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <User className="w-6 h-6 text-purple-400" />
                 Instructor
               </h2>
@@ -344,9 +344,9 @@ export default function CourseDetailPage() {
                   <User className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-white">{course.instructor_name}</h3>
-                  <p className="text-slate-400">{course.instructor_email}</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{course.instructor_name}</h3>
+                  <p className="text-gray-600 dark:text-slate-400">{course.instructor_email}</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-slate-500">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
                       <span>{course.student_count ? `${course.student_count.toLocaleString()}+ estudiantes` : '0 estudiantes'}</span>
@@ -370,10 +370,10 @@ export default function CourseDetailPage() {
               className="sticky top-24"
             >
               {/* Card de compra */}
-              <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 mb-6">
+              <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 mb-6 shadow-lg dark:shadow-xl">
                 <div className="text-center mb-6">
-                  <div className="text-4xl font-bold text-white mb-2">{course.price}</div>
-                  <div className="text-slate-400">Precio único</div>
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{course.price}</div>
+                  <div className="text-gray-600 dark:text-slate-400">Precio único</div>
                 </div>
                 
                 {isPurchased ? (
@@ -406,37 +406,37 @@ export default function CourseDetailPage() {
                   </button>
                 )}
                 
-                <div className="mt-4 text-center text-sm text-slate-400">
+                <div className="mt-4 text-center text-sm text-gray-600 dark:text-slate-400">
                   Garantía de 30 días
                 </div>
               </div>
 
               {/* Información del curso */}
-              <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Información del Curso</h3>
+              <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información del Curso</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Duración</span>
-                    <span className="text-white font-medium">{formatDuration(course.estimatedDuration)}</span>
+                    <span className="text-gray-600 dark:text-slate-400">Duración</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{formatDuration(course.estimatedDuration)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Nivel</span>
-                    <span className="text-white font-medium">{getDifficultyText(course.difficulty)}</span>
+                    <span className="text-gray-600 dark:text-slate-400">Nivel</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{getDifficultyText(course.difficulty)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Categoría</span>
-                    <span className="text-white font-medium">{course.category}</span>
+                    <span className="text-gray-600 dark:text-slate-400">Categoría</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{course.category}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Calificación</span>
+                    <span className="text-gray-600 dark:text-slate-400">Calificación</span>
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-current text-yellow-400" />
-                      <span className="text-white font-medium">{course.rating || 'N/A'}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{course.rating || 'N/A'}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Estudiantes</span>
-                    <span className="text-white font-medium">{course.student_count ? `${course.student_count.toLocaleString()}+` : '0'}</span>
+                    <span className="text-gray-600 dark:text-slate-400">Estudiantes</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{course.student_count ? `${course.student_count.toLocaleString()}+` : '0'}</span>
                   </div>
                 </div>
               </div>

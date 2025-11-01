@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ContentService } from '../core/services/contentService';
-import { LandingPageContent } from '@shared/types/content';
+import { LandingPageContent } from '@aprende-y-aplica/shared';
 import { HeroSection } from '../features/landing/components/HeroSection';
 import { FeaturesSection } from '../features/landing/components/FeaturesSection';
 import { StatisticsSection } from '../features/landing/components/StatisticsSection';

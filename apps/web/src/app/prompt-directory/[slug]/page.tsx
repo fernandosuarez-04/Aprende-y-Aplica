@@ -96,7 +96,7 @@ export default function PromptDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -104,9 +104,9 @@ export default function PromptDetailPage() {
 
   if (error || !prompt) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Prompt no encontrado</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Prompt no encontrado</h1>
           <Link href="/prompt-directory">
             <Button variant="primary">Volver al Directorio</Button>
           </Link>
@@ -116,7 +116,7 @@ export default function PromptDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
       {/* Header */}
       <motion.div
         className="relative pt-24 pb-8 overflow-hidden"
@@ -125,7 +125,7 @@ export default function PromptDetailPage() {
         transition={{ duration: 0.8 }}
       >
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-100 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl" />
         
         <div className="container mx-auto px-4 relative z-10">
@@ -173,12 +173,12 @@ export default function PromptDetailPage() {
             </div>
 
             {/* Title */}
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
               {prompt.title}
             </h1>
 
             {/* Description */}
-            <p className="text-xl text-gray-300 mb-8">
+            <p className="text-xl text-gray-700 dark:text-gray-300 mb-8">
               {prompt.description}
             </p>
 
@@ -189,18 +189,18 @@ export default function PromptDetailPage() {
               </div>
               
               {prompt.estimated_time_minutes && (
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <Clock className="w-4 h-4" />
                   <span>{prompt.estimated_time_minutes} minutos</span>
                 </div>
               )}
               
-              <div className="flex items-center gap-2 text-gray-400">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <Eye className="w-4 h-4" />
                 <span>{prompt.view_count.toLocaleString()} visualizaciones</span>
               </div>
               
-              <div className="flex items-center gap-2 text-gray-400">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <Star className="w-4 h-4" />
                 <span>{prompt.rating.toFixed(1)} ({prompt.rating_count} reseñas)</span>
               </div>
@@ -241,10 +241,10 @@ export default function PromptDetailPage() {
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
               {/* Prompt Content */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">Contenido del Prompt</h2>
-                <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
-                  <pre className="text-gray-300 whitespace-pre-wrap font-mono text-sm leading-relaxed">
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Contenido del Prompt</h2>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                  <pre className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono text-sm leading-relaxed">
                     {prompt.content}
                   </pre>
                 </div>
@@ -252,13 +252,13 @@ export default function PromptDetailPage() {
 
               {/* Use Cases */}
               {prompt.use_cases && prompt.use_cases.length > 0 && (
-                <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                  <h2 className="text-2xl font-bold text-white mb-4">Casos de Uso</h2>
+                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Casos de Uso</h2>
                   <ul className="space-y-3">
                     {prompt.use_cases.map((useCase, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <div className="w-2 h-2 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
-                        <span className="text-gray-300">{useCase}</span>
+                        <span className="text-gray-700 dark:text-gray-300">{useCase}</span>
                       </li>
                     ))}
                   </ul>
@@ -267,13 +267,13 @@ export default function PromptDetailPage() {
 
               {/* Tips */}
               {prompt.tips && prompt.tips.length > 0 && (
-                <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                  <h2 className="text-2xl font-bold text-white mb-4">Consejos de Uso</h2>
+                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Consejos de Uso</h2>
                   <ul className="space-y-3">
                     {prompt.tips.map((tip, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
-                        <span className="text-gray-300">{tip}</span>
+                        <span className="text-gray-700 dark:text-gray-300">{tip}</span>
                       </li>
                     ))}
                   </ul>
@@ -284,13 +284,13 @@ export default function PromptDetailPage() {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Tags */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Tags</h3>
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tags</h3>
                 <div className="flex flex-wrap gap-2">
                   {prompt.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 rounded-lg bg-gray-800 text-gray-300 text-sm"
+                      className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm"
                     >
                       {tag}
                     </span>
@@ -299,34 +299,34 @@ export default function PromptDetailPage() {
               </div>
 
               {/* Stats */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Estadísticas</h3>
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estadísticas</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Visualizaciones</span>
-                    <span className="text-white font-medium">{prompt.view_count.toLocaleString()}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Visualizaciones</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{prompt.view_count.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Descargas</span>
-                    <span className="text-white font-medium">{prompt.download_count}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Descargas</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{prompt.download_count}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Calificación</span>
+                    <span className="text-gray-600 dark:text-gray-400">Calificación</span>
                     <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      <span className="text-white font-medium">{prompt.rating.toFixed(1)}</span>
+                      <Star className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+                      <span className="text-gray-900 dark:text-white font-medium">{prompt.rating.toFixed(1)}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Reseñas</span>
-                    <span className="text-white font-medium">{prompt.rating_count}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Reseñas</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{prompt.rating_count}</span>
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Acciones</h3>
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Acciones</h3>
                 <div className="space-y-3">
                   <Button
                     onClick={handleCopyPrompt}

@@ -36,18 +36,19 @@ export function LegalDocumentsModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ pointerEvents: 'none' }}
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="auth-modal w-full max-w-4xl max-h-[90vh] flex flex-col"
+          className="auth-modal w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+          style={{ pointerEvents: 'auto' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-glass-light bg-primary">
+          <div className="flex items-center justify-between p-6 border-b legal-modal-header">
             <div className="flex items-center gap-3">
               <FileText className="w-6 h-6 text-white" />
               <h2 className="text-xl font-bold text-white">Documentos Legales</h2>
@@ -61,7 +62,7 @@ export function LegalDocumentsModal({
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 p-4 border-b border-glass-light bg-color-bg-light">
+          <div className="flex gap-2 p-4 border-b legal-modal-tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -82,7 +83,7 @@ export function LegalDocumentsModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 legal-modal-content">
             {currentDocument.sections.map((section) => (
               <div key={section.number} className="space-y-3">
                 <h3 className="text-lg font-bold text-primary">
@@ -104,7 +105,7 @@ export function LegalDocumentsModal({
           </div>
 
           {/* Footer */}
-          <div className="flex gap-3 p-6 border-t border-glass-light">
+          <div className="flex gap-3 p-6 border-t legal-modal-footer">
             {onAccept && (
               <Button
                 variant="primary"

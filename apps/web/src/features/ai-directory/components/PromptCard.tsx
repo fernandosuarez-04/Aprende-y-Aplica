@@ -77,7 +77,7 @@ export function PromptCard({ prompt }: PromptCardProps) {
 
   return (
     <motion.div
-      className="group relative bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6 hover:border-purple-500/50 transition-all duration-300 overflow-hidden"
+      className="group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl"
       whileHover={{ y: -4 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
@@ -110,12 +110,12 @@ export function PromptCard({ prompt }: PromptCardProps) {
       </div>
 
       {/* Title */}
-      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors">
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
         {prompt.title}
       </h3>
 
       {/* Description */}
-      <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
         {prompt.description}
       </p>
 
@@ -124,13 +124,13 @@ export function PromptCard({ prompt }: PromptCardProps) {
         {prompt.tags.slice(0, 3).map((tag, index) => (
           <span
             key={index}
-            className="px-2 py-1 rounded-md bg-gray-800 text-gray-300 text-xs"
+            className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs"
           >
             {tag}
           </span>
         ))}
         {prompt.tags.length > 3 && (
-          <span className="px-2 py-1 rounded-md bg-gray-800 text-gray-300 text-xs">
+          <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs">
             +{prompt.tags.length - 3}
           </span>
         )}
@@ -143,7 +143,7 @@ export function PromptCard({ prompt }: PromptCardProps) {
         </div>
         
         {prompt.estimated_time_minutes && (
-          <div className="flex items-center gap-1 text-gray-400 text-xs">
+          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 text-xs">
             <Clock className="w-3 h-3" />
             <span>{prompt.estimated_time_minutes} min</span>
           </div>
@@ -151,7 +151,7 @@ export function PromptCard({ prompt }: PromptCardProps) {
       </div>
 
       {/* Stats */}
-      <div className="flex items-center gap-4 mb-6 text-gray-400 text-xs">
+      <div className="flex items-center gap-4 mb-6 text-gray-600 dark:text-gray-400 text-xs">
         <div className="flex items-center gap-1">
           <Eye className="w-3 h-3" />
           <span>{prompt.view_count.toLocaleString()}</span>
@@ -181,7 +181,7 @@ export function PromptCard({ prompt }: PromptCardProps) {
         
         <motion.button
           onClick={handleCopyPrompt}
-          className="p-2 rounded-lg border border-gray-600 hover:border-purple-500 text-gray-400 hover:text-purple-400 transition-colors"
+          className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
           whileTap={{ scale: 0.95 }}
         >
           {copied ? (

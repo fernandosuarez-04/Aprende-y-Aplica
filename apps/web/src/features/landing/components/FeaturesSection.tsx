@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Icon, IconName } from '@aprende-y-aplica/ui';
-import { FeatureCard } from '@shared/types/content';
+import { FeatureCard } from '@aprende-y-aplica/shared';
 import { fadeIn, staggerContainer, staggerItem, scaleOnHover } from '../../../shared/utils/animations';
 import { useParallax } from '../../../shared/hooks/useParallax';
 
