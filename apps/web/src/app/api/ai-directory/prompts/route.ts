@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 
+// ✅ Función de sanitización para prevenir inyección PostgREST
+function sanitizeSearchInput(input: string): string {
+  // Remover caracteres especiales de PostgREST y limitar longitud
+  return input
+    .replace(/[%_{}()]/g, '\\$&') // Escapar caracteres especiales
+    .trim()
+    .substring(0, 100); // Limitar longitud a 100 caracteres
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -38,8 +47,19 @@ export async function GET(request: NextRequest) {
       query = query.eq('category_id', category);
     }
 
+    // ✅ Sanitizar búsqueda antes de usar
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,tags.cs.{${search}}`);
+      const sanitizedSearch = sanitizeSearchInput(search);
+      
+      // Validar que la búsqueda no esté vacía después de sanitizar
+      if (!sanitizedSearch) {
+        return NextResponse.json(
+          { error: 'Búsqueda inválida' },
+          { status: 400 }
+        );
+      }
+      
+      query = query.or(`title.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
     }
 
     if (difficulty) {
@@ -76,8 +96,12 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('category_id', category);
     }
 
+    // ✅ Aplicar la misma sanitización al countQuery
     if (search) {
-      countQuery = countQuery.or(`title.ilike.%${search}%,description.ilike.%${search}%,tags.cs.{${search}}`);
+      const sanitizedSearch = sanitizeSearchInput(search);
+      if (sanitizedSearch) {
+        countQuery = countQuery.or(`title.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
+      }
     }
 
     if (difficulty) {

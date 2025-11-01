@@ -4,6 +4,7 @@ import { logger } from '../../../lib/logger';
 import { cacheGet, cacheSet } from '../../../lib/cache/ttlCache'
 import crypto from 'crypto';
 import { RefreshTokenService } from '../../../lib/auth/refreshToken.service';
+import { getCustomCookieOptions } from '../../../lib/auth/cookie-config';
 
 export class SessionService {
   private static readonly SESSION_COOKIE_NAME = 'aprende-y-aplica-session';
@@ -66,13 +67,9 @@ export class SessionService {
       await supabase.from('user_session').insert(legacySession);
       
       const cookieStore = await cookies();
-      cookieStore.set(this.SESSION_COOKIE_NAME, sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60,
-        path: '/',
-      });
+      // ✅ Usar configuración segura de cookies
+      const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
+      cookieStore.set(this.SESSION_COOKIE_NAME, sessionToken, getCustomCookieOptions(maxAge));
       
       logger.debug('✅ Sesión legacy mantenida para compatibilidad');
       

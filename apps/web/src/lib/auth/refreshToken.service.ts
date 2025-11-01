@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import * as crypto from 'crypto'
 import * as bcrypt from 'bcryptjs'
+import { SECURE_COOKIE_OPTIONS } from './cookie-config'
 
 /**
  * ✅ ISSUE #17: Servicio de Refresh Tokens
@@ -140,23 +141,17 @@ export class RefreshTokenService {
       throw new Error(`Error creando refresh token: ${error.message}`)
     }
 
-    // Establecer cookies
+    // ✅ Establecer cookies con configuración segura
     const cookieStore = await cookies()
 
     cookieStore.set('access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...SECURE_COOKIE_OPTIONS,
       expires: accessExpiresAt,
-      path: '/'
     })
 
     cookieStore.set('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...SECURE_COOKIE_OPTIONS,
       expires: refreshExpiresAt,
-      path: '/'
     })
 
     console.log(`✅ Sesión creada para usuario ${userId}:`, {
@@ -229,16 +224,13 @@ export class RefreshTokenService {
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', tokenData.id)
 
-    // Generar nuevo access token
+    // ✅ Generar nuevo access token con configuración segura
     const newAccessToken = this.generateRefreshToken()
     const accessExpiresAt = new Date(Date.now() + this.ACCESS_TOKEN_EXPIRY_MS)
 
     cookieStore.set('access_token', newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...SECURE_COOKIE_OPTIONS,
       expires: accessExpiresAt,
-      path: '/'
     })
 
     console.log(`🔄 Sesión refrescada para usuario ${tokenData.user_id}`)
