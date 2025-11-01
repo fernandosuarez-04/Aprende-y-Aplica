@@ -10,15 +10,16 @@
 
 Se realizó un análisis exhaustivo de seguridad del codebase identificando **15 vulnerabilidades** de severidad variable, desde **críticas** hasta **bajas**. El proyecto presenta una arquitectura moderna con TypeScript y Next.js, pero requiere mejoras **URGENTES** en la gestión de credenciales.
 
-**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **4 correcciones de seguridad** de prioridad alta:
+**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **5 correcciones de seguridad** de prioridad alta:
 - ✅ Logging condicional (previene exposición de información sensible)
 - ✅ Límites a mensajes de chat (previene DoS y costos excesivos)
 - ✅ Sanitización de búsquedas (previene inyección PostgREST)
 - ✅ Cookies seguras (protección contra XSS y CSRF)
+- ✅ Validación robusta de uploads (previene path traversal y malware) 🔴 **CRÍTICA**
 
 ### Puntuación General de Seguridad
 
-**7.2/10** ✅ - Mejorando (⬆️ desde 6.5/10)
+**7.8/10** ✅ - Notable mejora (⬆️ desde 6.5/10)
 
 ### Puntuación por Categoría
 
@@ -414,12 +415,13 @@ cookieStore.set('access_token', token, {
 
 ## 🟡 PRIORIDAD 2: CORRECCIONES MEDIAS (1-4 horas)
 
-### ✅ 5. Implementar Validación Robusta de Uploads
+### ✅ 5. Implementar Validación Robusta de Uploads ✔️ COMPLETADO
 
 **Severidad**: 🔴 ALTA
 **Dificultad de Corrección**: ⭐⭐⭐ MEDIA
 **Tiempo Estimado**: 2-3 horas
 **Prioridad**: P1
+**Estado**: ✅ **IMPLEMENTADO** - 1 de noviembre de 2025
 
 #### Descripción del Problema
 
@@ -741,6 +743,48 @@ curl -X POST http://localhost:3000/api/upload \
   -F "folder=../../etc"
 # Debe sanitizar y no acceder fuera de bucket
 ```
+
+**Implementación Realizada**:
+
+**Archivo creado: `apps/web/src/lib/upload/validation.ts`**
+```typescript
+// Configuración de validación
+export const UPLOAD_CONFIG = {
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  allowedMimeTypes: {
+    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    documents: ['application/pdf', 'text/plain'],
+    all: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain']
+  },
+  allowedExtensions: {
+    images: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    documents: ['pdf', 'txt'],
+    all: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt']
+  },
+  bucketWhitelist: ['avatars', 'content-images', 'documents', 'community-images']
+};
+
+// Funciones implementadas:
+- validateFile() - Valida tamaño, MIME type, extensión y coincidencia
+- sanitizePath() - Remueve ../, \, caracteres peligrosos
+- validateBucket() - Verifica whitelist de buckets
+- generateSafeFileName() - Genera nombres únicos y seguros
+```
+
+**Archivo modificado: `apps/web/src/app/api/upload/route.ts`**
+- ✅ Validación de bucket contra whitelist
+- ✅ Validación completa de archivo (tamaño, tipo, extensión)
+- ✅ Sanitización de paths para prevenir path traversal
+- ✅ Verificación de coincidencia MIME type ↔️ extensión
+- ✅ Logging de seguridad para auditorías
+- ✅ Generación de nombres de archivo seguros
+
+**Protecciones implementadas:**
+1. **Path Traversal**: Sanitización de `folder` con `sanitizePath()`
+2. **Malware**: Whitelist estricta de extensiones y MIME types
+3. **DoS**: Límite de 10MB por archivo
+4. **Extension Spoofing**: Verificación MIME ↔️ extensión
+5. **Bucket Injection**: Whitelist de buckets permitidos
 
 ---
 
@@ -2059,9 +2103,24 @@ psql $DATABASE_URL -c "\d+ storage.objects"
 - **Impacto**: Protección contra XSS, CSRF y session hijacking
 - **Severidad Corregida**: 🟡 MEDIA
 
+#### ✅ Corrección 5: Validación Robusta de Uploads
+- **Estado**: Completado
+- **Archivos**: 
+  - `apps/web/src/lib/upload/validation.ts` (nuevo)
+  - `apps/web/src/app/api/upload/route.ts`
+- **Cambios**:
+  - Creada librería de validación con whitelist de tipos y buckets
+  - Validación de tamaño (10MB máx), MIME type, extensión
+  - Sanitización de paths para prevenir path traversal
+  - Verificación MIME ↔️ extensión (anti-spoofing)
+  - Logging de seguridad para auditorías
+- **Impacto**: Previene path traversal, subida de malware, DoS, extension spoofing
+- **Severidad Corregida**: 🔴 ALTA
+
 **Próximas Correcciones Planeadas**:
-- Corrección 5: Implementar validación robusta de uploads (2-3 horas)
-- Corrección 6: Configurar rate limiting avanzado (3-4 horas)
+- Corrección 6: Implementar rate limiting para OpenAI (1 hora)
+- Corrección 7: Sanitización de inputs HTML (2 horas)
+- Gestión segura de credenciales (⚠️ CRÍTICA - requiere rotación)
 **Email de Seguridad**: [Definir email]
 **Canal de Slack**: #security (si aplica)
 
