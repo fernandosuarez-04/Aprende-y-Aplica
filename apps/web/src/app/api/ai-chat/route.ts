@@ -47,11 +47,28 @@ export async function POST(request: NextRequest) {
 
     const { message, context = 'general', conversationHistory = [], userName } = await request.json();
 
+    // ✅ Validaciones básicas
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
         { error: 'El mensaje es requerido' },
         { status: 400 }
       );
+    }
+
+    // ✅ Límite de longitud del mensaje (2000 caracteres)
+    const MAX_MESSAGE_LENGTH = 2000;
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `El mensaje es muy largo. Máximo ${MAX_MESSAGE_LENGTH} caracteres.` },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Límite de historial de conversación (últimos 20 mensajes)
+    const MAX_HISTORY_LENGTH = 20;
+    let limitedHistory = conversationHistory;
+    if (Array.isArray(conversationHistory) && conversationHistory.length > MAX_HISTORY_LENGTH) {
+      limitedHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH);
     }
 
     // Obtener información del usuario desde la base de datos
@@ -79,14 +96,14 @@ export async function POST(request: NextRequest) {
 
     if (openaiApiKey) {
       try {
-        response = await callOpenAI(message, contextPrompt, conversationHistory);
+        response = await callOpenAI(message, contextPrompt, limitedHistory);
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
-        response = generateAIResponse(message, context, conversationHistory, contextPrompt);
+        response = generateAIResponse(message, context, limitedHistory, contextPrompt);
       }
     } else {
       // Usar respuestas predeterminadas si no hay API key
-      response = generateAIResponse(message, context, conversationHistory, contextPrompt);
+      response = generateAIResponse(message, context, limitedHistory, contextPrompt);
     }
 
     // Guardar la conversación en la base de datos (opcional)
