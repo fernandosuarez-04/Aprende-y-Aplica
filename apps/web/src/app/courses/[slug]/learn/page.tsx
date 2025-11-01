@@ -45,6 +45,7 @@ interface Lesson {
   video_provider_id?: string;
   video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
   transcript_content?: string;
+  summary_content?: string;
 }
 
 interface Module {
@@ -1876,13 +1877,70 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
 }
 
 function SummaryContent({ lesson }: { lesson: Lesson }) {
+  // Verificar si existe contenido de resumen
+  const hasSummary = lesson?.summary_content && lesson.summary_content.trim().length > 0;
+  
+  // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
+  const estimatedReadingTime = lesson?.summary_content 
+    ? Math.ceil(lesson.summary_content.split(/\s+/).length / 200)
+    : 0;
+
+  if (!hasSummary) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+        
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Resumen no disponible</h3>
+          <p className="text-slate-400 mb-4">
+            Esta lección aún no tiene resumen disponible. El resumen se agregará próximamente.
+          </p>
+          <div className="text-sm text-slate-500">
+            <p>• El resumen se genera o agrega manualmente</p>
+            <p>• Contacta al instructor si necesitas ayuda</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-white mb-4">Resumen del Video - {lesson.lesson_title}</h2>
-      <div className="bg-carbon-600 rounded-lg p-6">
-        <p className="text-white/70 text-center py-8">
-          Esta lección aún no tiene resumen disponible
-        </p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
+        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+      </div>
+      
+      <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+        {/* Header del resumen */}
+        <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <FileText className="w-5 h-5 text-blue-400" />
+              <h3 className="text-white font-semibold">Resumen Completo</h3>
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <span>{lesson.summary_content?.split(/\s+/).length || 0} palabras</span>
+              <span>•</span>
+              <span>{estimatedReadingTime} min lectura</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Contenido del resumen */}
+        <div className="p-6">
+          <div className="prose prose-invert max-w-none">
+            <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+              {lesson.summary_content}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

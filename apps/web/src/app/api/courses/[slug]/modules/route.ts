@@ -72,6 +72,7 @@ export async function GET(
             video_provider_id,
             video_provider,
             transcript_content,
+            summary_content,
             is_published
           `)
           .eq('module_id', module.module_id)
@@ -126,6 +127,7 @@ export async function GET(
                 video_provider_id?: string;
                 video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
                 transcript_content?: string;
+                summary_content?: string;
               }) => {
                 const progress = progressMap.get(lesson.lesson_id) as { is_completed?: boolean; video_progress_percentage?: number } | undefined;
                 return {
@@ -137,6 +139,7 @@ export async function GET(
                   video_provider_id: lesson.video_provider_id,
                   video_provider: lesson.video_provider,
                   transcript_content: lesson.transcript_content,
+                  summary_content: lesson.summary_content,
                   is_completed: progress?.is_completed || false,
                   progress_percentage: progress?.video_progress_percentage || 0,
                 };
@@ -152,6 +155,7 @@ export async function GET(
                 video_provider_id?: string;
                 video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
                 transcript_content?: string;
+                summary_content?: string;
               }) => ({
                 lesson_id: lesson.lesson_id,
                 lesson_title: lesson.lesson_title,
@@ -161,6 +165,7 @@ export async function GET(
                 video_provider_id: lesson.video_provider_id,
                 video_provider: lesson.video_provider,
                 transcript_content: lesson.transcript_content,
+                summary_content: lesson.summary_content,
                 is_completed: false,
                 progress_percentage: 0,
               }));
@@ -174,8 +179,9 @@ export async function GET(
               lesson_order_index: number;
               duration_seconds: number;
               video_provider_id?: string;
-              video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
-              transcript_content?: string;
+                video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
+                transcript_content?: string;
+                summary_content?: string;
             }) => ({
               lesson_id: lesson.lesson_id,
               lesson_title: lesson.lesson_title,
@@ -185,6 +191,7 @@ export async function GET(
               video_provider_id: lesson.video_provider_id,
               video_provider: lesson.video_provider,
               transcript_content: lesson.transcript_content,
+              summary_content: lesson.summary_content,
               is_completed: false,
               progress_percentage: 0,
             }));
