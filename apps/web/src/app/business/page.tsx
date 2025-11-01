@@ -70,7 +70,7 @@ export default function BusinessHomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-carbon pt-0">
+    <main className="min-h-screen bg-carbon">
       {/* Hero Section */}
       <HeroBusinessSection content={content.hero} />
       

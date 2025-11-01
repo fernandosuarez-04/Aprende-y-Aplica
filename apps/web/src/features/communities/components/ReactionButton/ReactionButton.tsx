@@ -140,15 +140,15 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
             }
           }}
           className={`
-            flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30
+            flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30
             ${currentReactionData 
-              ? currentReactionData.type === 'like' ? 'text-blue-400' :
-                currentReactionData.type === 'love' ? 'text-red-400' :
-                currentReactionData.type === 'laugh' ? 'text-yellow-400' :
-                currentReactionData.type === 'wow' ? 'text-purple-400' :
-                currentReactionData.type === 'sad' ? 'text-gray-400' :
-                currentReactionData.type === 'angry' ? 'text-red-500' : 'text-blue-400'
-              : 'text-slate-400 hover:text-blue-400'
+              ? currentReactionData.type === 'like' ? 'text-blue-600 dark:text-blue-400' :
+                currentReactionData.type === 'love' ? 'text-red-600 dark:text-red-400' :
+                currentReactionData.type === 'laugh' ? 'text-yellow-600 dark:text-yellow-400' :
+                currentReactionData.type === 'wow' ? 'text-purple-600 dark:text-purple-400' :
+                currentReactionData.type === 'sad' ? 'text-gray-600 dark:text-gray-400' :
+                currentReactionData.type === 'angry' ? 'text-red-700 dark:text-red-500' : 'text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400'
             }
           `}
           whileHover={{ scale: 1.02 }}
@@ -181,7 +181,7 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="absolute bottom-full left-0 mb-3 bg-slate-800/95 backdrop-blur-xl border border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
+              className="absolute bottom-full left-0 mb-3 bg-white dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
             >
               <div className="flex items-center gap-2">
                 {reactions.map((reaction, index) => {
@@ -198,8 +198,8 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
                       className={`
                         relative group p-3 rounded-full transition-all duration-300
                         ${isCurrentReaction 
-                          ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30' 
-                          : 'hover:bg-slate-700/50 border border-transparent hover:border-slate-600/30'
+                          ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30 dark:border-blue-400/30' 
+                          : 'hover:bg-gray-100 dark:hover:bg-slate-700/50 border border-transparent hover:border-gray-300 dark:hover:border-slate-600/30'
                         }
                       `}
                       whileHover={{ scale: 1.2, y: -2 }}
@@ -222,7 +222,7 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-slate-800"
+                          className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-white dark:border-slate-800"
                         />
                       )}
                     </motion.button>
@@ -243,11 +243,11 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         onClick={() => setShowMenu(!showMenu)}
-        className={`
+          className={`
           group flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-300 border
           ${currentReactionData 
-            ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-400/30 text-blue-300' 
-            : 'bg-gradient-to-r from-slate-700/50 to-slate-600/50 border-slate-600/30 text-slate-300 hover:text-white hover:from-slate-600/50 hover:to-slate-500/50 hover:border-slate-500/50'
+            ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-400/30 dark:border-blue-400/30 text-blue-700 dark:text-blue-300' 
+            : 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-slate-700/50 dark:to-slate-600/50 border-gray-300 dark:border-slate-600/30 text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:from-gray-200 dark:hover:from-slate-600/50 hover:to-gray-300 dark:hover:to-slate-500/50 hover:border-gray-400 dark:hover:border-slate-500/50'
           }
         `}
         whileHover={{ scale: 1.05 }}
@@ -302,7 +302,7 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="absolute bottom-full left-0 mb-3 bg-slate-800/95 backdrop-blur-xl border border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
+              className="absolute bottom-full left-0 mb-3 bg-white dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
             >
               <div className="grid grid-cols-4 gap-2">
                 {reactions.map((reaction, index) => (
@@ -326,7 +326,7 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
                     <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-200">
                       {reaction.emoji}
                     </div>
-                    <div className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">
+                    <div className="text-xs text-gray-600 dark:text-slate-400 group-hover:text-gray-900 dark:group-hover:text-slate-300 transition-colors">
                       {reaction.label}
                     </div>
                   </motion.button>
@@ -344,7 +344,7 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-2 shadow-2xl backdrop-blur-sm z-50"
+            className="absolute bottom-full left-0 mb-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl p-2 shadow-2xl backdrop-blur-sm z-50"
           >
             <div className="flex items-center gap-1">
               {reactions.slice(0, 3).map((reaction, index) => (

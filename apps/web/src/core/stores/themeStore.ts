@@ -10,41 +10,48 @@ interface ThemeState {
   resolvedTheme: 'light' | 'dark';
   setTheme: (theme: Theme) => void;
   initializeTheme: () => void;
+  getSystemTheme: () => 'light' | 'dark';
   cleanup?: () => void;
 }
+
+// Función helper para obtener el tema del sistema
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'dark';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+// Función helper para aplicar el tema al documento
+const applyTheme = (resolvedTheme: 'light' | 'dark') => {
+  if (typeof window === 'undefined') return;
+  
+  const root = document.documentElement;
+  root.classList.remove('light', 'dark');
+  root.classList.add(resolvedTheme);
+  root.style.colorScheme = resolvedTheme;
+};
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       theme: 'system',
-      resolvedTheme: 'dark',
+      resolvedTheme: getSystemTheme(),
+
+      getSystemTheme,
 
       setTheme: (theme: Theme) => {
         set({ theme });
         
         // Resolver el tema basado en la selección
-        let resolved: 'light' | 'dark' = 'dark';
+        let resolved: 'light' | 'dark';
         
         if (theme === 'system') {
-          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          resolved = getSystemTheme();
         } else {
           resolved = theme;
         }
         
         set({ resolvedTheme: resolved });
-        
-        // Aplicar el tema al documento - solo si estamos en el cliente
-        if (typeof window !== 'undefined') {
-          if (resolved === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.documentElement.classList.remove('light');
-            document.documentElement.style.colorScheme = 'dark';
-          } else {
-            document.documentElement.classList.add('light');
-            document.documentElement.classList.remove('dark');
-            document.documentElement.style.colorScheme = 'light';
-          }
-        }
+        applyTheme(resolved);
       },
 
       initializeTheme: () => {
@@ -58,22 +65,40 @@ export const useThemeStore = create<ThemeState>()(
           cleanup();
         }
         
-        get().setTheme(theme);
+        // Obtener tema guardado o usar 'system' por defecto
+        const savedTheme = theme || 'system';
+        
+        // Inicializar el tema
+        get().setTheme(savedTheme);
         
         // Escuchar cambios en las preferencias del sistema
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleChange = () => {
-          if (get().theme === 'system') {
-            get().setTheme('system');
+          const currentTheme = get().theme;
+          // Solo actualizar si el tema actual es 'system'
+          if (currentTheme === 'system') {
+            const newResolvedTheme = getSystemTheme();
+            set({ resolvedTheme: newResolvedTheme });
+            applyTheme(newResolvedTheme);
           }
         };
         
-        mediaQuery.addEventListener('change', handleChange);
+        // Añadir listener para cambios en tiempo real
+        if (mediaQuery.addEventListener) {
+          mediaQuery.addEventListener('change', handleChange);
+        } else {
+          // Fallback para navegadores antiguos
+          mediaQuery.addListener(handleChange);
+        }
         
         // Guardar función de limpieza
         set({
           cleanup: () => {
-            mediaQuery.removeEventListener('change', handleChange);
+            if (mediaQuery.removeEventListener) {
+              mediaQuery.removeEventListener('change', handleChange);
+            } else {
+              mediaQuery.removeListener(handleChange);
+            }
           }
         });
       },
@@ -83,6 +108,19 @@ export const useThemeStore = create<ThemeState>()(
       partialize: (state) => ({
         theme: state.theme,
       }),
+      // Hydrate inicial con detección del sistema
+      onRehydrateStorage: () => {
+        return (state) => {
+          if (state && typeof window !== 'undefined') {
+            // Si el tema es 'system', detectar el tema actual del sistema
+            if (state.theme === 'system') {
+              const systemTheme = getSystemTheme();
+              state.resolvedTheme = systemTheme;
+              applyTheme(systemTheme);
+            }
+          }
+        };
+      },
     }
   )
 );

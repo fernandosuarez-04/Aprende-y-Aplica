@@ -333,6 +333,14 @@ export default function ReelsPage() {
 
   useEffect(() => {
     if (reels && Array.isArray(reels) && reels.length > 0) {
+      // Limpiar referencias de videos que ya no están visibles para liberar memoria
+      videoRefs.current.forEach((video, index) => {
+        if (video && Math.abs(index - currentReelIndex) > 1) {
+          video.pause();
+          video.src = '';
+          videoRefs.current[index] = null;
+        }
+      });
       playVideo(currentReelIndex);
     }
   }, [currentReelIndex, reels]);
@@ -501,7 +509,11 @@ export default function ReelsPage() {
 
       {/* Video principal - Layout diferente para móvil y desktop */}
       <div className={`${isMobile ? 'absolute inset-0' : 'flex-1 flex items-center justify-center relative'}`}>
-        {reels && Array.isArray(reels) && reels.map((reel, index) => (
+        {/* Optimización: Solo renderizar videos visibles (actual, anterior y siguiente) */}
+        {reels && Array.isArray(reels) && reels
+          .map((reel, index) => ({ reel, index }))
+          .filter(({ index }) => Math.abs(index - currentReelIndex) <= 1) // Solo renderizar 3 videos (anterior, actual, siguiente)
+          .map(({ reel, index }) => (
           <motion.div
             key={reel.id}
             className="absolute inset-0 flex items-center justify-center"

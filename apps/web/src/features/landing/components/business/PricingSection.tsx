@@ -80,11 +80,18 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
               />
               {isAnnual && (
                 <motion.div
-                  className="absolute -right-8 text-xs font-semibold text-success"
+                  className="absolute -right-12 flex items-center gap-2"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                 >
-                  20% OFF
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-success flex items-center justify-center shadow-lg">
+                    <span className="text-xs font-bold text-white px-1">
+                      20%
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-success whitespace-nowrap">
+                    OFF
+                  </span>
                 </motion.div>
               )}
             </motion.button>
@@ -111,15 +118,15 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
               className={`relative ${tier.isPopular ? 'lg:-mt-8 lg:mb-8' : ''}`}
             >
               {tier.isPopular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
-                  <Badge variant="gradient" className="text-sm px-4 py-1">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30">
+                  <Badge variant="gradient" className="text-sm px-4 py-1 shadow-lg">
                     Más Popular
                   </Badge>
                 </div>
               )}
               <Card 
                 variant={tier.isPopular ? 'default' : 'glassmorphism'}
-                className={`h-full relative overflow-hidden transition-all duration-300 ${
+                className={`h-full relative overflow-visible transition-all duration-300 ${
                   tier.isPopular 
                     ? 'border-primary border-2 shadow-2xl shadow-primary/20' 
                     : 'hover:border-primary/50 hover:shadow-xl'
@@ -129,7 +136,7 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
                   <>
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-blue-600 to-success" />
                     <motion.div
-                      className="absolute -top-2 right-4 bg-gradient-to-r from-primary to-blue-600 text-white text-xs px-3 py-1 rounded-full font-bold"
+                      className="absolute -top-2 left-4 bg-gradient-to-r from-primary to-blue-600 text-white text-xs px-3 py-1 rounded-full font-bold z-10"
                       animate={{
                         scale: [1, 1.05, 1],
                       }}
@@ -147,17 +154,21 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
                   <div className="text-center mb-8">
                     <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
                     <p className="text-sm opacity-70 mb-6 min-h-[40px]">{tier.description}</p>
-                    <div className="mb-6">
+                    <div className="mb-6 px-2">
                       <motion.span 
                         key={isAnnual ? 'annual' : 'monthly'}
-                        className="text-5xl font-bold block"
+                        className={`font-bold block break-words whitespace-normal ${
+                          tier.price === 'Personalizado' || tier.annualPrice === 'Personalizado'
+                            ? 'text-3xl lg:text-4xl'
+                            : 'text-5xl'
+                        }`}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                       >
                         {isAnnual && tier.annualPrice ? tier.annualPrice : tier.price}
                       </motion.span>
-                      {tier.period && (
+                      {tier.period && (tier.price !== 'Personalizado' && tier.annualPrice !== 'Personalizado') && (
                         <span className="text-lg opacity-70">{isAnnual ? '/año' : '/mes'}</span>
                       )}
                       {tier.price !== 'Personalizado' && (

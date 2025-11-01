@@ -136,7 +136,7 @@ export const PostAttachment = memo(function PostAttachment({
           const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
           
           return (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
+            <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg overflow-hidden">
               {embedUrl ? (
                 <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                   <iframe
@@ -156,10 +156,10 @@ export const PostAttachment = memo(function PostAttachment({
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="w-full h-48 bg-slate-700 flex items-center justify-center">
+                  <div className="w-full h-48 bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
                     <div className="text-center">
-                      <Youtube className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-400 text-sm mb-3">No se pudo extraer videoId</p>
+                      <Youtube className="w-12 h-12 text-gray-600 dark:text-slate-400 mx-auto mb-2" />
+                      <p className="text-gray-700 dark:text-slate-400 text-sm mb-3">No se pudo extraer videoId</p>
                       <button
                         onClick={() => window.open(attachmentUrl, '_blank')}
                         className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2 mx-auto"
@@ -172,10 +172,10 @@ export const PostAttachment = memo(function PostAttachment({
                 </div>
               )}
               <div className="p-4">
-                <h4 className="font-medium text-white mb-1">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-1">
                   Video de YouTube
                 </h4>
-                <p className="text-sm text-slate-400 flex items-center gap-1">
+                <p className="text-sm text-gray-600 dark:text-slate-400 flex items-center gap-1">
                   <Youtube className="w-4 h-4" />
                   YouTube
                 </p>
@@ -221,7 +221,7 @@ export const PostAttachment = memo(function PostAttachment({
         const isDocExternalUrl = attachmentUrl.startsWith('http');
         
         return (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 hover:bg-slate-700/50 transition-colors cursor-pointer"
+          <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg p-4 hover:bg-gray-200 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                onClick={() => {
                  if (isDocExternalUrl) {
                    window.open(attachmentUrl, '_blank');
@@ -238,14 +238,14 @@ export const PostAttachment = memo(function PostAttachment({
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-white truncate">
+                <h4 className="font-medium text-gray-900 dark:text-white truncate">
                   {attachmentData?.name || 'Documento'}
                 </h4>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-gray-600 dark:text-slate-400">
                   {attachmentData?.size ? formatFileSize(attachmentData.size) : 'Documento adjunto'}
                 </p>
               </div>
-              <ExternalLink className="w-5 h-5 text-slate-400" />
+              <ExternalLink className="w-5 h-5 text-gray-600 dark:text-slate-400" />
             </div>
           </div>
         );
@@ -276,7 +276,7 @@ export const PostAttachment = memo(function PostAttachment({
         });
         
         return (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
+          <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg overflow-hidden">
             {embedUrl ? (
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <iframe
@@ -326,21 +326,21 @@ export const PostAttachment = memo(function PostAttachment({
       case 'link':
         if (!attachmentUrl) return null;
         return (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 hover:bg-slate-700/50 transition-colors cursor-pointer"
+          <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg p-4 hover:bg-gray-200 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                onClick={() => window.open(attachmentUrl, '_blank')}>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                 <Link className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-white mb-1">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-1">
                   {attachmentData?.title || 'Enlace web'}
                 </h4>
-                <p className="text-sm text-slate-400 truncate">
+                <p className="text-sm text-gray-600 dark:text-slate-400 truncate">
                   {attachmentUrl}
                 </p>
               </div>
-              <ExternalLink className="w-5 h-5 text-slate-400" />
+              <ExternalLink className="w-5 h-5 text-gray-600 dark:text-slate-400" />
             </div>
           </div>
         );
@@ -493,22 +493,22 @@ function InteractivePoll({
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-600/50 rounded-xl p-5 shadow-lg backdrop-blur-sm">
+    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800/60 dark:to-slate-900/60 border border-gray-200 dark:border-slate-600/50 rounded-xl p-5 shadow-lg backdrop-blur-sm">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center shadow-lg">
           <BarChart3 className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
-          <h4 className="font-semibold text-white text-lg">Encuesta</h4>
-          <p className="text-xs text-slate-400">Participa en la votación</p>
+          <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Encuesta</h4>
+          <p className="text-xs text-gray-600 dark:text-slate-400">Participa en la votación</p>
         </div>
-        <div className="bg-slate-700/50 rounded-lg px-3 py-1">
-          <span className="text-sm font-medium text-slate-300">
+        <div className="bg-gray-100 dark:bg-slate-700/50 rounded-lg px-3 py-1">
+          <span className="text-sm font-medium text-gray-700 dark:text-slate-300">
             {getTotalVotes()} {getTotalVotes() === 1 ? 'voto' : 'votos'}
           </span>
         </div>
       </div>
-      <h5 className="text-white text-lg font-medium mb-4 leading-relaxed">{pollData?.question}</h5>
+      <h5 className="text-gray-900 dark:text-white text-lg font-medium mb-4 leading-relaxed">{pollData?.question}</h5>
       <div className="space-y-3">
         {pollData?.options?.map((option: string, index: number) => {
           const percentage = calculatePercentage(option);
@@ -526,8 +526,8 @@ function InteractivePoll({
               <div 
                 className={`relative flex items-center gap-4 p-4 rounded-xl transition-all duration-300 cursor-pointer group overflow-hidden ${
                   isSelected 
-                    ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-2 border-orange-400/50 shadow-lg shadow-orange-500/20' 
-                    : 'bg-slate-700/30 border border-slate-600/30 hover:bg-slate-600/40 hover:border-slate-500/50'
+                    ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-2 border-orange-400/50 dark:border-orange-400/50 shadow-lg shadow-orange-500/20' 
+                    : 'bg-gray-50 dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/30 hover:bg-gray-100 dark:hover:bg-slate-600/40 hover:border-gray-400 dark:hover:border-slate-500/50'
                 }`}
                 onClick={() => setSelectedOption(option)}
               >
@@ -544,8 +544,8 @@ function InteractivePoll({
                   />
                   <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                     isSelected 
-                      ? 'border-orange-400 bg-orange-400' 
-                      : 'border-slate-400 group-hover:border-slate-300'
+                      ? 'border-orange-400 bg-orange-400 dark:border-orange-400 dark:bg-orange-400' 
+                      : 'border-gray-400 dark:border-slate-400 group-hover:border-gray-500 dark:group-hover:border-slate-300'
                   }`}>
                     {isSelected && (
                       <motion.div 
@@ -563,7 +563,7 @@ function InteractivePoll({
                   <label 
                     htmlFor={`${pollId}-option-${index}`}
                     className={`block text-sm font-medium cursor-pointer transition-colors ${
-                      isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'
+                      isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-white'
                     }`}
                   >
                     {option}
@@ -573,16 +573,16 @@ function InteractivePoll({
                   {getTotalVotes() > 0 && (
                     <div className="mt-2">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-gray-600 dark:text-slate-400">
                           {percentage}% • {Array.isArray(pollData.votes?.[option]) ? pollData.votes[option].length : 0} votos
                         </span>
                       </div>
-                      <div className="h-2 bg-slate-600/50 rounded-full overflow-hidden">
+                      <div className="h-2 bg-gray-200 dark:bg-slate-600/50 rounded-full overflow-hidden">
                         <motion.div 
                           className={`h-full rounded-full ${
                             isSelected 
                               ? 'bg-gradient-to-r from-orange-400 to-amber-400' 
-                              : 'bg-gradient-to-r from-slate-400 to-slate-500'
+                              : 'bg-gradient-to-r from-gray-400 to-gray-500 dark:from-slate-400 dark:to-slate-500'
                           }`}
                           initial={{ width: 0 }}
                           animate={{ width: `${percentage}%` }}
@@ -596,8 +596,8 @@ function InteractivePoll({
                 {/* Indicador de porcentaje */}
                 <div className={`text-sm font-bold px-2 py-1 rounded-lg transition-colors ${
                   isSelected 
-                    ? 'bg-orange-400/20 text-orange-300' 
-                    : 'bg-slate-600/50 text-slate-400'
+                    ? 'bg-orange-400/20 text-orange-700 dark:text-orange-300' 
+                    : 'bg-gray-200 dark:bg-slate-600/50 text-gray-600 dark:text-slate-400'
                 }`}>
                   {percentage}%
                 </div>
@@ -608,7 +608,7 @@ function InteractivePoll({
       </div>
       <div className="mt-6 flex justify-between items-center">
         {/* Información adicional */}
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-gray-600 dark:text-slate-500">
           {getTotalVotes() > 0 ? `${getTotalVotes()} personas han votado` : 'Sé el primero en votar'}
         </div>
         

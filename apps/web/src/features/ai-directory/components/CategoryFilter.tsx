@@ -24,7 +24,7 @@ interface CategoryFilterProps {
 export function CategoryFilter({ categories, selectedCategory, onCategoryChange }: CategoryFilterProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-white">Categorías</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Categorías</h3>
       
       <div className="flex flex-wrap gap-3">
         {/* All Categories Button */}
@@ -32,8 +32,8 @@ export function CategoryFilter({ categories, selectedCategory, onCategoryChange 
           onClick={() => onCategoryChange(null)}
           className={`px-4 py-2 rounded-lg border transition-all ${
             selectedCategory === null
-              ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-              : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+              ? 'bg-blue-500/20 dark:bg-blue-500/20 border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300'
+              : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
           }`}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -49,7 +49,7 @@ export function CategoryFilter({ categories, selectedCategory, onCategoryChange 
             className={`px-4 py-2 rounded-lg border transition-all ${
               selectedCategory === category.category_id
                 ? 'border-opacity-50'
-                : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
             }`}
             style={{
               backgroundColor: selectedCategory === category.category_id 

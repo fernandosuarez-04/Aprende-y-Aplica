@@ -152,7 +152,7 @@ export function InlineAttachmentButtons({ onAttachmentSelect, className = '' }: 
       </div>
 
       {/* Separador visual */}
-      <div className="w-px h-6 bg-slate-600/50 mx-1" />
+      <div className="w-px h-6 bg-gray-300 dark:bg-slate-600/50 mx-1" />
 
       {/* Grupo 2: Enlaces y Encuestas */}
       <div className="flex items-center gap-1">

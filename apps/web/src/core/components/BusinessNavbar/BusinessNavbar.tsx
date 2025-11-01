@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { BusinessLogo } from '../BusinessLogo';
+import { ThemeToggle } from '../ThemeToggle';
 import { Menu, X, ChevronDown, Globe } from 'lucide-react';
 
 export function BusinessNavbar() {
@@ -41,19 +42,21 @@ export function BusinessNavbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 lg:px-6 xl:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Business Logo */}
-          <BusinessLogo />
+          {/* Business Logo - Left */}
+          <div className="flex-shrink-0">
+            <BusinessLogo />
+          </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-8">
-            <div className="flex items-center gap-6">
+          {/* Desktop Navigation - Center */}
+          <div className="hidden lg:flex items-center justify-center flex-1 px-8">
+            <nav className="flex items-center gap-4 xl:gap-6">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-sm font-medium transition-colors relative ${
+                  className={`text-sm font-medium transition-colors relative whitespace-nowrap ${
                     pathname === link.href
                       ? 'text-primary'
                       : 'text-text-secondary hover:text-primary'
@@ -69,15 +72,23 @@ export function BusinessNavbar() {
                   )}
                 </Link>
               ))}
-            </div>
-            
+            </nav>
+          </div>
+
+          {/* Right Actions */}
+          <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+            <ThemeToggle />
             <Link href="/auth">
-              <Button variant="outline" className="hover:bg-primary/10">Iniciar Sesión</Button>
+              <Button variant="outline" size="sm" className="hover:bg-primary/10">
+                Iniciar Sesión
+              </Button>
             </Link>
             <Link href="/auth?tab=register">
-              <Button variant="gradient" className="shadow-lg">Comenzar</Button>
+              <Button variant="gradient" size="sm" className="shadow-lg whitespace-nowrap">
+                Comenzar
+              </Button>
             </Link>
-            <button className="p-2 hover:bg-carbon/50 rounded-lg transition-colors">
+            <button className="p-2 hover:bg-glass rounded-lg transition-colors">
               <Globe className="w-5 h-5 text-text-secondary hover:text-primary" />
             </button>
           </div>
@@ -115,6 +126,9 @@ export function BusinessNavbar() {
                   </Link>
                 ))}
                 <div className="flex flex-col gap-2 pt-4 border-t">
+                  <div className="mb-2">
+                    <ThemeToggle />
+                  </div>
                   <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full">Iniciar Sesión</Button>
                   </Link>

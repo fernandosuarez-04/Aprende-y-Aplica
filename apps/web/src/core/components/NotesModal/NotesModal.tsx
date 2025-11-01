@@ -427,60 +427,60 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-4xl h-[80vh] flex flex-col"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700/50 w-full max-w-4xl h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700/50">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                   <Type className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                     {isEditing ? 'Editar Nota' : 'Nueva Nota'}
                   </h2>
-                  <p className="text-sm text-slate-400">Studio &gt; Notas</p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">Studio &gt; Notas</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-5 h-5 text-gray-900 dark:text-white" />
               </button>
             </div>
 
             {/* Barra de herramientas */}
-            <div className="p-4 border-b border-slate-700/50 bg-slate-800/50">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-800/50">
               <div className="flex flex-wrap gap-2">
                 {/* Primera fila */}
                 <div className="flex gap-1">
                   <button
                     onClick={undo}
                     disabled={!canUndo}
-                    className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Deshacer (Ctrl+Z)"
                   >
-                    <Undo className="w-4 h-4 text-white" />
+                    <Undo className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={redo}
                     disabled={!canRedo}
-                    className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Rehacer (Ctrl+Y)"
                   >
-                    <Redo className="w-4 h-4 text-white" />
+                    <Redo className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                 </div>
 
-                <div className="w-px h-8 bg-slate-600/50 mx-2"></div>
+                <div className="w-px h-8 bg-gray-300 dark:bg-slate-600/50 mx-2"></div>
 
                 <div className="flex gap-1">
                   <select 
                     onChange={(e) => applyHeading(e.target.value)}
-                    className="px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="px-3 py-2 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   >
                     <option value="Normal">Normal</option>
                     <option value="H1">H1</option>
@@ -493,32 +493,32 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Negrita (Ctrl+B)"
                   >
-                    <Bold className="w-4 h-4 text-white" />
+                    <Bold className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={() => execCommand('italic')}
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Cursiva (Ctrl+I)"
                   >
-                    <Italic className="w-4 h-4 text-white" />
+                    <Italic className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={() => execCommand('underline')}
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Subrayado (Ctrl+U)"
                   >
-                    <Underline className="w-4 h-4 text-white" />
+                    <Underline className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={() => execCommand('createLink')}
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Enlace"
                   >
-                    <Link className="w-4 h-4 text-white" />
+                    <Link className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                 </div>
 
-                <div className="w-px h-8 bg-slate-600/50 mx-2"></div>
+                <div className="w-px h-8 bg-gray-300 dark:bg-slate-600/50 mx-2"></div>
 
                 <div className="flex gap-1">
                   <button
@@ -526,41 +526,41 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Lista sin ordenar"
                   >
-                    <List className="w-4 h-4 text-white" />
+                    <List className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={() => applyList('ol')}
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Lista ordenada"
                   >
-                    <ListOrdered className="w-4 h-4 text-white" />
+                    <ListOrdered className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={() => execCommand('justifyLeft')}
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Alinear izquierda"
                   >
-                    <AlignLeft className="w-4 h-4 text-white" />
+                    <AlignLeft className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={() => execCommand('justifyCenter')}
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Alinear centro"
                   >
-                    <AlignCenter className="w-4 h-4 text-white" />
+                    <AlignCenter className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     onClick={() => execCommand('justifyRight')}
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Alinear derecha"
                   >
-                    <AlignRight className="w-4 h-4 text-white" />
+                    <AlignRight className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                   <button
                     className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                     title="Adjuntar archivo"
                   >
-                    <Paperclip className="w-4 h-4 text-white" />
+                    <Paperclip className="w-4 h-4 text-gray-900 dark:text-white" />
                   </button>
                 </div>
               </div>
@@ -575,17 +575,17 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                   placeholder="Título de la nota..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white text-lg font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                  className="w-full bg-gray-50 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-lg font-semibold placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                 />
               </div>
 
               {/* Editor de contenido */}
-              <div className="flex-1 bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
+              <div className="flex-1 bg-gray-50 dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/50 rounded-xl p-4">
                 <div
                   ref={editorRef}
                   contentEditable
                   onInput={updateContent}
-                  className="notes-editor w-full h-full text-white placeholder-slate-400 focus:outline-none resize-none overflow-y-auto"
+                  className="notes-editor w-full h-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none resize-none overflow-y-auto"
                   style={{ 
                     minHeight: '200px',
                     lineHeight: '1.6'
@@ -596,7 +596,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
               {/* Etiquetas */}
               <div className="mt-4">
-                <label className="block text-sm text-slate-300 mb-2">Etiquetas</label>
+                <label className="block text-sm text-gray-700 dark:text-slate-300 mb-2">Etiquetas</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
@@ -609,7 +609,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                         addTag();
                       }
                     }}
-                    className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                    className="flex-1 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                   />
                   <button
                     onClick={addTag}
@@ -623,12 +623,12 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     {tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-lg border border-blue-500/30"
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm rounded-lg border border-blue-500/30"
                       >
                         {tag}
                         <button
                           onClick={() => removeTag(tag)}
-                          className="hover:text-blue-300 transition-colors"
+                          className="hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                         >
                           ×
                         </button>
@@ -640,7 +640,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Footer con botones */}
-            <div className="flex items-center justify-between p-6 border-t border-slate-700/50 bg-slate-800/50">
+            <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-800/50">
               <button
                 onClick={handleSave}
                 disabled={isSaving || !title.trim() || !content.trim()}

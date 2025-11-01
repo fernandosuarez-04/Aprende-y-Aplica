@@ -53,8 +53,61 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${inter.variable} ${montserrat.variable}`}>
+    <html lang="es" className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
       <head>
+        {/* 🎨 Script para aplicar tema antes del render (evita flash) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var themeStorage = localStorage.getItem('theme-storage');
+                  var resolvedTheme = 'dark';
+                  
+                  if (themeStorage) {
+                    try {
+                      var parsed = JSON.parse(themeStorage);
+                      // Zustand persist guarda como { state: { theme: '...' }, version: 0 }
+                      var savedTheme = parsed.state?.theme || parsed.theme || 'system';
+                      
+                      if (savedTheme === 'system') {
+                        // Detectar preferencia del sistema
+                        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        resolvedTheme = prefersDark ? 'dark' : 'light';
+                      } else if (savedTheme === 'dark' || savedTheme === 'light') {
+                        resolvedTheme = savedTheme;
+                      } else {
+                        // Si el tema guardado no es válido, usar sistema
+                        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        resolvedTheme = prefersDark ? 'dark' : 'light';
+                      }
+                    } catch (e) {
+                      // Si hay error al parsear, usar preferencia del sistema
+                      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                      resolvedTheme = prefersDark ? 'dark' : 'light';
+                    }
+                  } else {
+                    // Si no hay tema guardado, usar preferencia del sistema por defecto
+                    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    resolvedTheme = prefersDark ? 'dark' : 'light';
+                  }
+                  
+                  // Aplicar el tema al documento
+                  var root = document.documentElement;
+                  root.classList.remove('light', 'dark');
+                  root.classList.add(resolvedTheme);
+                  root.style.colorScheme = resolvedTheme;
+                } catch (e) {
+                  // Fallback a dark si hay algún error
+                  var root = document.documentElement;
+                  root.classList.add('dark');
+                  root.style.colorScheme = 'dark';
+                }
+              })();
+            `,
+          }}
+        />
+        
         {/* 🚀 Resource Hints - Mejora conexión a APIs externas 20-30% */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -74,12 +127,12 @@ export default function RootLayout({
         {/* 🎨 Splash Screens iOS */}
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
-      <body className={`${inter.className} antialiased`} style={{ backgroundColor: 'var(--color-bg-dark)', color: 'var(--color-contrast)' }}>
+      <body className={`${inter.className} antialiased bg-carbon text-contrast transition-colors duration-300`}>
         <SWRProvider>
           <ThemeProvider>
             <PrefetchManager />
             <PWAPrompt />
-            <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-dark)' }}>
+            <div className="min-h-screen bg-carbon transition-colors duration-300">
               <ConditionalNavbar>
                 {children}
               </ConditionalNavbar>

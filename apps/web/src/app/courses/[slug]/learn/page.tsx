@@ -451,10 +451,10 @@ export default function CourseLearnPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-carbon flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/70 text-lg">Cargando curso...</p>
+          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -462,10 +462,10 @@ export default function CourseLearnPage() {
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-carbon flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-4">Curso no encontrado</h1>
-          <p className="text-white/70 mb-8">El curso que buscas no existe</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Curso no encontrado</h1>
+          <p className="text-gray-700 dark:text-white/70 mb-8">El curso que buscas no existe</p>
           <button 
             onClick={() => router.push('/my-courses')} 
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -478,12 +478,12 @@ export default function CourseLearnPage() {
   }
 
   return (
-    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900/30 to-slate-900 overflow-hidden">
+    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
       {/* Header superior con nueva estructura */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-slate-800/90 via-purple-900/20 to-slate-800/90 backdrop-blur-md border-b border-slate-700/50 px-4 py-2 shrink-0 relative z-50"
+        className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-2 shrink-0 relative z-40"
       >
         <div className="flex items-center justify-between w-full">
           {/* Sección izquierda: Botón regresar | Logo | Nombre del taller */}
@@ -491,9 +491,9 @@ export default function CourseLearnPage() {
         {/* Botón de regreso */}
         <button
           onClick={() => router.back()}
-              className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
         >
-              <ArrowLeft className="w-4 h-4 text-white" />
+              <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
         </button>
 
             {/* Logo de la empresa */}
@@ -514,12 +514,12 @@ export default function CourseLearnPage() {
           </div>
 
             {/* Separador visual */}
-            <div className="w-px h-5 bg-slate-600/50"></div>
+            <div className="w-px h-5 bg-gray-300 dark:bg-slate-600/50"></div>
 
             {/* Nombre del taller */}
           <div>
-              <h1 className="text-base font-bold text-white">{course.title || course.course_title}</h1>
-            <p className="text-xs text-slate-400">Taller de Aprende y Aplica</p>
+              <h1 className="text-base font-bold text-gray-900 dark:text-white">{course.title || course.course_title}</h1>
+            <p className="text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
           </div>
         </div>
 
@@ -527,7 +527,7 @@ export default function CourseLearnPage() {
           <div className="flex items-center gap-3">
             {/* Barra de progreso */}
           <div className="flex items-center gap-2">
-              <div className="w-40 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+              <div className="w-40 h-1.5 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${courseProgress}%` }}
@@ -535,7 +535,7 @@ export default function CourseLearnPage() {
                 className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
               />
             </div>
-              <span className="text-xs text-white/80 font-medium bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center">
+              <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center">
               {courseProgress}%
             </span>
           </div>
@@ -550,7 +550,7 @@ export default function CourseLearnPage() {
       </motion.div>
 
       {/* Contenido principal - 3 paneles */}
-      <div className="flex-1 flex overflow-hidden bg-slate-900/50 backdrop-blur-sm relative z-10">
+      <div className="flex-1 flex overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
         {/* Panel Izquierdo - Material del Curso */}
         <AnimatePresence>
           {isLeftPanelOpen && (
@@ -559,19 +559,19 @@ export default function CourseLearnPage() {
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col overflow-hidden shadow-xl my-2 ml-2"
+              className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col overflow-hidden shadow-xl my-2 ml-2 border border-gray-200 dark:border-slate-700/50"
             >
               {/* Header con línea separadora alineada con panel central */}
-              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                <h2 className="text-base font-semibold text-white flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-blue-400" />
                     Material del Curso
                   </h2>
                   <button
                     onClick={() => setIsLeftPanelOpen(false)}
-                    className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                   >
-                    <ChevronLeft className="w-4 h-4 text-white/70" />
+                    <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-white/70" />
                   </button>
                 </div>
 
@@ -581,19 +581,19 @@ export default function CourseLearnPage() {
                 <div className="mb-8">
                   {/* Header de Contenido con botón de colapsar */}
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       <Layers className="w-5 h-5 text-blue-400" />
                       Contenido
                     </h3>
                     <button
                       onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
-                      className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                       title={isMaterialCollapsed ? "Expandir Contenido" : "Colapsar Contenido"}
                     >
                       {isMaterialCollapsed ? (
-                        <ChevronDown className="w-4 h-4 text-white/70" />
+                        <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
                       ) : (
-                        <ChevronUp className="w-4 h-4 text-white/70" />
+                        <ChevronUp className="w-4 h-4 text-gray-700 dark:text-white/70" />
                       )}
                     </button>
                   </div>
@@ -614,7 +614,7 @@ export default function CourseLearnPage() {
                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                         <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
                       </div>
-                      <h3 className="font-semibold text-white text-lg">{module.module_title}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
                     </div>
 
                     {/* Estadísticas del módulo mejoradas */}
@@ -642,7 +642,7 @@ export default function CourseLearnPage() {
                             className={`w-full p-4 rounded-xl transition-all duration-200 ${
                               isActive
                                 ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-blue-400/50 shadow-lg shadow-blue-500/20'
-                                : 'bg-slate-700/50 border-2 border-transparent hover:bg-slate-700/70 hover:border-slate-600/50'
+                                : 'bg-gray-50 dark:bg-slate-700/50 border-2 border-transparent hover:bg-gray-100 dark:hover:bg-slate-700/70 hover:border-gray-300 dark:hover:border-slate-600/50'
                             }`}
                           >
                             <div className="flex items-center gap-3">
@@ -651,7 +651,7 @@ export default function CourseLearnPage() {
                                   ? 'bg-green-500/20 text-green-400' 
                                   : isActive 
                                     ? 'bg-blue-500/20 text-blue-400' 
-                                    : 'bg-slate-600/50 text-slate-400'
+                                    : 'bg-gray-200 dark:bg-slate-600/50 text-gray-600 dark:text-slate-400'
                               }`}>
                                 {isCompleted ? (
                                   <CheckCircle2 className="w-5 h-5" />
@@ -661,12 +661,12 @@ export default function CourseLearnPage() {
                               </div>
                               
                               <div className="flex-1 text-left">
-                                <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-white/80'}`}>
+                                <p className={`text-sm font-medium ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/80'}`}>
                                   {lesson.lesson_title}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <Clock className="w-3 h-3 text-slate-400" />
-                                  <span className="text-xs text-slate-400">{formatDuration(lesson.duration_seconds)}</span>
+                                  <Clock className="w-3 h-3 text-gray-500 dark:text-slate-400" />
+                                  <span className="text-xs text-gray-500 dark:text-slate-400">{formatDuration(lesson.duration_seconds)}</span>
                                 </div>
                               </div>
 
@@ -690,13 +690,13 @@ export default function CourseLearnPage() {
           </div>
 
                 {/* Línea separadora entre Material y Notas */}
-                <div className="border-b border-slate-700/50 mb-6"></div>
+                <div className="border-b border-gray-200 dark:border-slate-700/50 mb-6"></div>
 
                 {/* Sección de Notas */}
                 <div className="space-y-4">
                   {/* Header de Notas con botones de colapsar y nueva nota */}
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-white flex items-center gap-2 text-lg">
+                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
                       <FileText className="w-5 h-5 text-blue-400" />
                       Mis Notas
                     </h3>
@@ -704,21 +704,21 @@ export default function CourseLearnPage() {
                       {!isNotesCollapsed && (
                         <button
                           onClick={openNewNoteModal}
-                          className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                           title="Nueva Nota"
                         >
-                          <span className="text-sm font-bold text-white/70">+</span>
+                          <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
                         </button>
                       )}
                       <button
                         onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
-                        className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                         title={isNotesCollapsed ? "Expandir Notas" : "Colapsar Notas"}
                       >
                         {isNotesCollapsed ? (
-                          <ChevronDown className="w-4 h-4 text-white/70" />
+                          <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
                         ) : (
-                          <ChevronUp className="w-4 h-4 text-white/70" />
+                          <ChevronUp className="w-4 h-4 text-gray-700 dark:text-white/70" />
                         )}
                       </button>
                     </div>
@@ -737,23 +737,23 @@ export default function CourseLearnPage() {
 
             {/* Notas guardadas */}
             <div className="space-y-3 mb-6">
-              <h3 className="text-white font-semibold text-sm">Notas guardadas</h3>
+              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">Notas guardadas</h3>
               <div className="space-y-2">
                 {savedNotes.length === 0 ? (
-                  <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30 text-center">
-                    <p className="text-sm text-slate-400">No hay notas guardadas aún</p>
-                    <p className="text-xs text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
+                  <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 border border-gray-200 dark:border-slate-600/30 text-center">
+                    <p className="text-sm text-gray-600 dark:text-slate-400">No hay notas guardadas aún</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
                   </div>
                 ) : (
                   savedNotes.map((note) => (
                     <div 
                       key={note.id} 
-                            className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/30 hover:bg-slate-700/50 transition-colors group"
+                            className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-3 border border-gray-200 dark:border-slate-600/30 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors group"
                     >
                         <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-blue-400 font-medium">{note.title}</span>
+                        <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{note.title}</span>
                               <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400">{note.timestamp}</span>
+                        <span className="text-xs text-gray-600 dark:text-slate-400">{note.timestamp}</span>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={(e) => {
@@ -782,7 +782,7 @@ export default function CourseLearnPage() {
                                 </div>
                               </div>
                       </div>
-                      <p className="text-sm text-white/70 line-clamp-2 mb-2">
+                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2">
                         {note.content}
                       </p>
                       {note.tags && note.tags.length > 0 && (
@@ -790,7 +790,7 @@ export default function CourseLearnPage() {
                           {note.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30"
+                              className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs rounded border border-blue-500/30"
                             >
                               {tag}
                             </span>
@@ -805,22 +805,22 @@ export default function CourseLearnPage() {
 
             {/* Progreso de Notas */}
                   <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
-              <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm">
+              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
                       <TrendingUp className="w-4 h-4 text-green-400" />
                       Progreso de Notas
                     </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Notas creadas</span>
-                  <span className="text-green-400 font-medium">{notesStats.totalNotes}</span>
+                        <span className="text-gray-700 dark:text-white/70">Notas creadas</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">{notesStats.totalNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Lecciones con notas</span>
-                  <span className="text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
+                        <span className="text-gray-700 dark:text-white/70">Lecciones con notas</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Última actualización</span>
-                  <span className="text-slate-400">{notesStats.lastUpdate}</span>
+                        <span className="text-gray-700 dark:text-white/70">Última actualización</span>
+                  <span className="text-gray-600 dark:text-slate-400">{notesStats.lastUpdate}</span>
                     </div>
                     </div>
                   </div>
@@ -835,35 +835,35 @@ export default function CourseLearnPage() {
 
         {/* Barra vertical para abrir panel izquierdo */}
         {!isLeftPanelOpen && (
-          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10">
-            <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
+            <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => setIsLeftPanelOpen(true)}
-              className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
               title="Mostrar material del curso"
             >
-              <ChevronRight className="w-5 h-5 text-white" />
+              <ChevronRight className="w-5 h-5 text-gray-900 dark:text-white" />
             </button>
             </div>
           </div>
         )}
 
         {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-2 mx-2">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-2 mx-2 border border-gray-200 dark:border-slate-700/50">
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
                   <BookOpen className="w-10 h-10 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Este curso aún no tiene contenido</h3>
-                <p className="text-slate-400">Los módulos y lecciones se agregarán pronto</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
+                <p className="text-gray-600 dark:text-slate-400">Los módulos y lecciones se agregarán pronto</p>
               </div>
             </div>
           ) : currentLesson ? (
             <>
               {/* Tabs mejorados */}
-              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex gap-2 p-3 rounded-t-lg h-[56px] items-center">
+              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-2 p-3 rounded-t-lg h-[56px] items-center">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -875,7 +875,7 @@ export default function CourseLearnPage() {
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                          : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -908,7 +908,7 @@ export default function CourseLearnPage() {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <p className="text-slate-400">No hay lecciones disponibles</p>
+                <p className="text-gray-600 dark:text-slate-400">No hay lecciones disponibles</p>
               </div>
             </div>
           )}
@@ -922,24 +922,24 @@ export default function CourseLearnPage() {
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2"
+              className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2 border border-gray-200 dark:border-slate-700/50"
             >
               {/* Header LIA con línea separadora alineada con panel central */}
-              <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
                     <MessageSquare className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-white text-sm leading-tight">LIA</h3>
-                    <p className="text-xs text-slate-400 leading-tight">Tu tutora personalizada</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">LIA</h3>
+                    <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsRightPanelOpen(false)}
-                  className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
                 >
-                  <ChevronRight className="w-4 h-4 text-white/70" />
+                  <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
                 </button>
               </div>
 
@@ -956,7 +956,7 @@ export default function CourseLearnPage() {
                         className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                           message.type === 'user'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                            : 'bg-slate-700/50 text-white/90 border border-slate-600/50'
+                            : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
                         }`}
                       >
                         <p className="text-sm leading-relaxed">{message.content}</p>
@@ -972,7 +972,7 @@ export default function CourseLearnPage() {
                 </div>
 
                 {/* Área de entrada */}
-                <div className="border-t border-slate-700/50 p-4">
+                <div className="border-t border-gray-200 dark:border-slate-700/50 p-4">
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -985,7 +985,7 @@ export default function CourseLearnPage() {
                           sendLiaMessage();
                         }
                       }}
-                      className="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                      className="flex-1 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                     />
                     <button
                       onClick={sendLiaMessage}
@@ -1003,14 +1003,14 @@ export default function CourseLearnPage() {
 
         {/* Barra vertical para abrir panel derecho */}
         {!isRightPanelOpen && (
-          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10">
-            <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
+            <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => setIsRightPanelOpen(true)}
-              className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
               title="Mostrar LIA"
             >
-              <ChevronLeft className="w-5 h-5 text-white" />
+              <ChevronLeft className="w-5 h-5 text-gray-900 dark:text-white" />
             </button>
             </div>
           </div>
@@ -1036,15 +1036,15 @@ export default function CourseLearnPage() {
 function VideoContent({ lesson }: { lesson: Lesson }) {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{lesson.lesson_title}</h2>
       
-      <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-carbon-600 relative overflow-hidden group">
+      <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-gray-300 dark:border-carbon-600 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
         <div className="text-center relative z-10">
           <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
             <Play className="w-10 h-10 text-white ml-1" />
           </div>
-          <p className="text-white/70">Video de la lección</p>
+          <p className="text-gray-700 dark:text-white/70">Video de la lección</p>
         </div>
       </div>
     </div>
@@ -1054,9 +1054,9 @@ function VideoContent({ lesson }: { lesson: Lesson }) {
 function TranscriptContent({ lesson }: { lesson: Lesson }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-white mb-4">Transcripción del Video - {lesson.lesson_title}</h2>
-      <div className="bg-carbon-600 rounded-lg p-6">
-        <p className="text-white/70 text-center py-8">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Transcripción del Video - {lesson.lesson_title}</h2>
+      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
+        <p className="text-gray-700 dark:text-white/70 text-center py-8">
           Esta lección aún no tiene transcripción disponible
         </p>
       </div>
@@ -1067,9 +1067,9 @@ function TranscriptContent({ lesson }: { lesson: Lesson }) {
 function SummaryContent({ lesson }: { lesson: Lesson }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-white mb-4">Resumen del Video - {lesson.lesson_title}</h2>
-      <div className="bg-carbon-600 rounded-lg p-6">
-        <p className="text-white/70 text-center py-8">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Resumen del Video - {lesson.lesson_title}</h2>
+      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
+        <p className="text-gray-700 dark:text-white/70 text-center py-8">
           Esta lección aún no tiene resumen disponible
         </p>
       </div>
@@ -1080,22 +1080,22 @@ function SummaryContent({ lesson }: { lesson: Lesson }) {
 function ActivitiesContent({ lesson }: { lesson: Lesson }) {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Actividades del Video - {lesson.lesson_title}</h2>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Actividades del Video - {lesson.lesson_title}</h2>
       
-      <div className="bg-carbon-600 rounded-lg p-6">
+      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
         <div className="flex items-center gap-3 mb-3">
           <FileText className="w-5 h-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-white">Descripción de la Actividad</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Descripción de la Actividad</h3>
         </div>
-        <p className="text-white/70">Este video no tiene ninguna Actividad</p>
+        <p className="text-gray-700 dark:text-white/70">Este video no tiene ninguna Actividad</p>
       </div>
 
-      <div className="bg-carbon-600 rounded-lg p-6">
+      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
         <div className="flex items-center gap-3 mb-3">
           <HelpCircle className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-semibold text-white">Prompts y Ejercicios</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Prompts y Ejercicios</h3>
         </div>
-        <p className="text-white/70">Este video no tiene ninguna Actividad</p>
+        <p className="text-gray-700 dark:text-white/70">Este video no tiene ninguna Actividad</p>
       </div>
     </div>
   );
@@ -1105,7 +1105,7 @@ function CommunityContent() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Comunidad del Taller</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Comunidad del Taller</h2>
         <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2">
           <span className="text-lg">+</span>
           Hacer Pregunta
@@ -1113,7 +1113,7 @@ function CommunityContent() {
       </div>
       
       <div className="space-y-4">
-        <p className="text-white/70 text-center py-12">No hay preguntas aún en esta lección</p>
+        <p className="text-gray-700 dark:text-white/70 text-center py-12">No hay preguntas aún en esta lección</p>
       </div>
     </div>
   );

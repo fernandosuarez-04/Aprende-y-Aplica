@@ -35,12 +35,12 @@ export function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: At
   };
 
   const getFileTypeColor = (type: string) => {
-    if (type.startsWith('image/')) return 'text-green-400';
-    if (type.startsWith('video/')) return 'text-red-400';
-    if (type.startsWith('audio/')) return 'text-purple-400';
-    if (type.includes('pdf') || type.includes('document')) return 'text-blue-400';
-    if (type.includes('zip') || type.includes('rar')) return 'text-yellow-400';
-    return 'text-slate-400';
+    if (type.startsWith('image/')) return 'text-green-600 dark:text-green-400';
+    if (type.startsWith('video/')) return 'text-red-600 dark:text-red-400';
+    if (type.startsWith('audio/')) return 'text-purple-600 dark:text-purple-400';
+    if (type.includes('pdf') || type.includes('document')) return 'text-blue-600 dark:text-blue-400';
+    if (type.includes('zip') || type.includes('rar')) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-gray-600 dark:text-slate-400';
   };
 
   const handleDownload = () => {
@@ -69,7 +69,7 @@ export function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: At
           className="relative group cursor-pointer"
           onClick={() => setShowFullscreen(true)}
         >
-          <div className="relative overflow-hidden rounded-xl bg-slate-800">
+          <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-slate-800">
             {!imageError ? (
               <img
                 src={attachmentUrl}
@@ -78,10 +78,10 @@ export function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: At
                 onError={() => setImageError(true)}
               />
             ) : (
-              <div className="flex items-center justify-center h-48 bg-slate-800 text-slate-400">
+              <div className="flex items-center justify-center h-48 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">
                 <div className="text-center">
                   <Image className="w-12 h-12 mx-auto mb-2" />
-                  <p>Error al cargar la imagen</p>
+                  <p className="text-gray-900 dark:text-white">Error al cargar la imagen</p>
                 </div>
               </div>
             )}
@@ -140,7 +140,7 @@ export function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: At
         animate={{ opacity: 1, scale: 1 }}
         className="relative group"
       >
-        <div className="relative overflow-hidden rounded-xl bg-slate-800">
+        <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-slate-800">
           <video
             src={attachmentUrl}
             controls
@@ -175,18 +175,18 @@ export function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: At
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-slate-800/50 border border-slate-600/50 rounded-xl p-4 hover:bg-slate-700/50 transition-colors"
+      className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-600/50 rounded-xl p-4 hover:bg-gray-200 dark:hover:bg-slate-700/50 transition-colors"
     >
       <div className="flex items-center gap-4">
-        <div className={`p-3 rounded-lg bg-slate-700/50 ${fileTypeColor}`}>
+        <div className={`p-3 rounded-lg bg-gray-200 dark:bg-slate-700/50 ${fileTypeColor}`}>
           <FileIcon className="w-8 h-8" />
         </div>
         
         <div className="flex-1 min-w-0">
-          <h4 className="text-white font-medium truncate">
+          <h4 className="text-gray-900 dark:text-white font-medium truncate">
             {fileName || 'Archivo adjunto'}
           </h4>
-          <p className="text-slate-400 text-sm">
+          <p className="text-gray-600 dark:text-slate-400 text-sm">
             {attachmentType}
           </p>
         </div>
@@ -194,14 +194,14 @@ export function AttachmentViewer({ attachmentUrl, attachmentType, fileName }: At
         <div className="flex gap-2">
           <button
             onClick={handleOpenInNewTab}
-            className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-gray-200 dark:bg-slate-700/50 hover:bg-gray-300 dark:hover:bg-slate-600/50 text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors"
             title="Abrir en nueva pestaña"
           >
             <ExternalLink className="w-4 h-4" />
           </button>
           <button
             onClick={handleDownload}
-            className="p-2 rounded-lg bg-blue-600/50 hover:bg-blue-600 text-blue-300 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-blue-600/50 dark:bg-blue-600/50 hover:bg-blue-600 text-blue-300 dark:text-blue-300 hover:text-white transition-colors"
             title="Descargar"
           >
             <Download className="w-4 h-4" />

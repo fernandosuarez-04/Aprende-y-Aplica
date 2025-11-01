@@ -347,7 +347,7 @@ export default function CommunitiesPage() {
   }, []); // Función pura, solo lee propiedades del objeto
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       {/* Hero Section */}
       <motion.section
         className="relative py-16 px-6 overflow-hidden"
@@ -356,22 +356,22 @@ export default function CommunitiesPage() {
         animate="visible"
       >
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/10 dark:to-purple-500/10" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/5 rounded-full blur-3xl" />
         
         <div className="relative max-w-7xl mx-auto">
           <motion.div
             className="text-center mb-12"
             variants={itemVariants}
           >
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Comunidad de{' '}
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                 Aprende y Aplica
               </span>
             </h1>
-            <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-gray-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
               Conecta con otros estudiantes, comparte conocimientos y participa en discusiones 
               sobre inteligencia artificial y tecnología educativa
             </p>
@@ -383,12 +383,12 @@ export default function CommunitiesPage() {
             variants={itemVariants}
           >
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-400">{totalMembers}</div>
-              <div className="text-slate-400">MIEMBROS</div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalMembers}</div>
+              <div className="text-gray-600 dark:text-slate-400">MIEMBROS</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-400">{totalCommunities}</div>
-              <div className="text-slate-400">COMUNIDADES</div>
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{totalCommunities}</div>
+              <div className="text-gray-600 dark:text-slate-400">COMUNIDADES</div>
             </div>
           </motion.div>
 
@@ -398,13 +398,13 @@ export default function CommunitiesPage() {
             variants={itemVariants}
           >
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Buscar comunidades o contenido..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-slate-800/50 border border-slate-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all backdrop-blur-sm"
+                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-600/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all backdrop-blur-sm"
               />
             </div>
           </motion.div>
@@ -425,7 +425,7 @@ export default function CommunitiesPage() {
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
                     isActive
                       ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-slate-800/50 text-slate-300 border border-slate-600/50 hover:bg-slate-700/50 hover:border-slate-500/50'
+                      : 'bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-600/50 hover:bg-gray-100 dark:hover:bg-slate-700/50 hover:border-gray-300 dark:hover:border-slate-500/50'
                   }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -603,13 +603,13 @@ export default function CommunitiesPage() {
               className="text-center py-16"
               variants={itemVariants}
             >
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-800/50 flex items-center justify-center">
-                <Search className="w-12 h-12 text-slate-400" />
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-slate-800/50 flex items-center justify-center">
+                <Search className="w-12 h-12 text-gray-600 dark:text-slate-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 No se encontraron comunidades
               </h3>
-              <p className="text-slate-400">
+              <p className="text-gray-600 dark:text-slate-400">
                 Intenta ajustar tus filtros de búsqueda
               </p>
             </motion.div>
@@ -647,68 +647,68 @@ export default function CommunitiesPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-800 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Normas de la Comunidad</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Normas de la Comunidad</h2>
                 <button
                   onClick={() => setShowRulesModal(false)}
-                  className="text-slate-400 hover:text-white transition-colors"
+                  className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white transition-colors"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <p className="text-slate-300 mb-8">
+              <p className="text-gray-700 dark:text-slate-300 mb-8">
                 Ayúdanos a mantener un ambiente respetuoso y constructivo
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-slate-700/50 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                      <Heart className="w-5 h-5 text-red-400" />
+                    <div className="w-10 h-10 rounded-lg bg-red-500/20 dark:bg-red-500/20 flex items-center justify-center">
+                      <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">Sé Respetuoso</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sé Respetuoso</h3>
                   </div>
-                  <p className="text-slate-300 text-sm">
+                  <p className="text-gray-700 dark:text-slate-300 text-sm">
                     Trata a todos los miembros con respeto y cortesía. No toleramos el acoso o la discriminación.
                   </p>
                 </div>
 
-                <div className="bg-slate-700/50 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-blue-400" />
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 dark:bg-blue-500/20 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">Comparte Conocimiento</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Comparte Conocimiento</h3>
                   </div>
-                  <p className="text-slate-300 text-sm">
+                  <p className="text-gray-700 dark:text-slate-300 text-sm">
                     Contribuye con información útil y constructiva. Ayuda a otros a aprender y crecer.
                   </p>
                 </div>
 
-                <div className="bg-slate-700/50 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-green-400" />
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 dark:bg-green-500/20 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">Mantén la Privacidad</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Mantén la Privacidad</h3>
                   </div>
-                  <p className="text-slate-300 text-sm">
+                  <p className="text-gray-700 dark:text-slate-300 text-sm">
                     No compartas información personal de otros miembros sin su consentimiento.
                   </p>
                 </div>
 
-                <div className="bg-slate-700/50 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                      <Flag className="w-5 h-5 text-yellow-400" />
+                    <div className="w-10 h-10 rounded-lg bg-yellow-500/20 dark:bg-yellow-500/20 flex items-center justify-center">
+                      <Flag className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">Reporta Problemas</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reporta Problemas</h3>
                   </div>
-                  <p className="text-slate-300 text-sm">
+                  <p className="text-gray-700 dark:text-slate-300 text-sm">
                     Si ves contenido inapropiado, repórtalo inmediatamente a los moderadores.
                   </p>
                 </div>

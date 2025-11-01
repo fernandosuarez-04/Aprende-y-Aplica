@@ -19,7 +19,7 @@ export function HeroBusinessSection({ content }: HeroBusinessSectionProps) {
   const parallaxOffset = useParallax(0.5);
 
   return (
-    <section className="min-h-screen flex items-center relative overflow-hidden hero-section">
+    <section className="min-h-screen flex items-start relative overflow-hidden hero-section pt-32 lg:pt-36">
       {/* Animated Background */}
       <AnimatedBackground />
       
@@ -30,7 +30,7 @@ export function HeroBusinessSection({ content }: HeroBusinessSectionProps) {
       />
       
       <motion.div 
-        className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl"
+        className="absolute top-32 lg:top-36 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl"
         animate={{
           scale: [1, 1.1, 1],
           opacity: [0.3, 0.6, 0.3],
@@ -58,7 +58,7 @@ export function HeroBusinessSection({ content }: HeroBusinessSectionProps) {
         style={{ y: parallaxOffset * 0.4 }}
       />
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 py-12 lg:py-16">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Main Content */}
           <motion.div

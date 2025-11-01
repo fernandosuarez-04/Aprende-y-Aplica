@@ -109,11 +109,11 @@ export function BusinessLogo() {
   return (
     <Link 
       href="/business" 
-      className="flex items-center gap-3 cursor-pointer group"
+      className="flex items-center gap-2 cursor-pointer group"
       onMouseEnter={handleHover}
       onMouseLeave={handleHoverEnd}
     >
-      <div ref={logoRef} className="relative flex items-baseline gap-2">
+      <div ref={logoRef} className="relative flex items-center gap-2">
         {/* Logo Icon con GSAP */}
         <div 
           ref={iconRef}
@@ -131,14 +131,14 @@ export function BusinessLogo() {
         {/* Logo Text */}
         <span 
           ref={textRef}
-          className="font-bold text-xl"
+          className="font-bold text-lg lg:text-xl hidden sm:inline-block"
           style={{ color: '#8B5CF6' }}
         >
           Aprende y Aplica
         </span>
         
         {/* Business Badge con Lottie + GSAP */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           {/* Glow effect background */}
           <div
             ref={glowRef}
@@ -163,7 +163,7 @@ export function BusinessLogo() {
           {/* Badge principal con animación Lottie */}
           <div
             ref={badgeRef}
-            className="relative text-xs font-bold px-3 py-1 rounded-full italic bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg overflow-hidden"
+            className="relative text-xs font-bold px-2.5 py-0.5 lg:px-3 lg:py-1 rounded-full italic bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg overflow-hidden whitespace-nowrap"
           >
             <span className="relative z-10">Business</span>
             

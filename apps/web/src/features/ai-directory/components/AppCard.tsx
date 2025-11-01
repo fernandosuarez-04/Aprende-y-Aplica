@@ -78,7 +78,7 @@ export function AppCard({ app }: AppCardProps) {
 
   return (
     <motion.div
-      className="group relative bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 overflow-hidden"
+      className="group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl"
       whileHover={{ y: -4 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
@@ -112,7 +112,7 @@ export function AppCard({ app }: AppCardProps) {
 
       {/* Logo and Title */}
       <div className="flex items-start gap-4 mb-4">
-        <div className="w-16 h-16 rounded-xl bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
           {app.logo_url ? (
             <Image
               src={app.logo_url}
@@ -131,7 +131,7 @@ export function AppCard({ app }: AppCardProps) {
         </div>
         
         <div className="flex-1 min-w-0">
-          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
             {app.name}
           </h3>
           
@@ -143,7 +143,7 @@ export function AppCard({ app }: AppCardProps) {
       </div>
 
       {/* Description */}
-      <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
         {app.description}
       </p>
 
@@ -152,48 +152,48 @@ export function AppCard({ app }: AppCardProps) {
         {app.features.slice(0, 3).map((feature, index) => (
           <span
             key={index}
-            className="px-2 py-1 rounded-md bg-gray-800 text-gray-300 text-xs"
+            className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs"
           >
             {feature}
           </span>
         ))}
         {app.features.length > 3 && (
-          <span className="px-2 py-1 rounded-md bg-gray-800 text-gray-300 text-xs">
+          <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs">
             +{app.features.length - 3}
           </span>
         )}
       </div>
 
       {/* Platform Availability */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-gray-400">
+      <div className="flex items-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-400">
         {app.mobile_app && (
           <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
+            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
             <span>Móvil</span>
           </div>
         )}
         {app.desktop_app && (
           <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
+            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
             <span>Desktop</span>
           </div>
         )}
         {app.browser_extension && (
           <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
+            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
             <span>Extensión</span>
           </div>
         )}
         {app.api_available && (
           <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
+            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
             <span>API</span>
           </div>
         )}
       </div>
 
       {/* Stats */}
-      <div className="flex items-center gap-4 mb-6 text-gray-400 text-xs">
+      <div className="flex items-center gap-4 mb-6 text-gray-600 dark:text-gray-400 text-xs">
         <div className="flex items-center gap-1">
           <Eye className="w-3 h-3" />
           <span>{app.view_count.toLocaleString()}</span>
@@ -221,7 +221,7 @@ export function AppCard({ app }: AppCardProps) {
             href={app.website_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg border border-gray-600 hover:border-blue-500 text-gray-400 hover:text-blue-400 transition-colors"
+            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-500 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

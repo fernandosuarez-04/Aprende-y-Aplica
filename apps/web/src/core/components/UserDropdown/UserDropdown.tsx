@@ -9,6 +9,8 @@ import {
   BookOpen, 
   Edit3, 
   Moon, 
+  Sun,
+  Monitor,
   LogOut,
   ChevronDown,
   ShieldCheck,
@@ -16,7 +18,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
-import { useTheme } from '../../hooks/useTheme'
+import { useThemeStore, Theme } from '../../stores/themeStore'
 
 interface UserDropdownProps {
   className?: string
@@ -24,11 +26,18 @@ interface UserDropdownProps {
 
 export function UserDropdown({ className = '' }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const themeSubmenuRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
   const { userProfile, loading: profileLoading } = useUserProfile()
-  const { toggleTheme, isDark } = useTheme()
+  const { theme, setTheme, resolvedTheme, initializeTheme } = useThemeStore()
   const router = useRouter()
+
+  // Inicializar tema al montar
+  useEffect(() => {
+    initializeTheme()
+  }, [initializeTheme])
 
   console.log('🔍 UserDropdown renderizado, user:', user)
   console.log('🔍 UserProfile:', userProfile)
@@ -40,6 +49,10 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setIsThemeSubmenuOpen(false)
+      }
+      if (themeSubmenuRef.current && !themeSubmenuRef.current.contains(event.target as Node)) {
+        setIsThemeSubmenuOpen(false)
       }
     }
 
@@ -111,12 +124,12 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
     }] : []),
     {
       id: 'theme',
-      label: isDark ? 'Modo claro' : 'Modo oscuro',
-      icon: Moon,
+      label: theme === 'light' ? 'Modo claro' : theme === 'dark' ? 'Modo oscuro' : 'Modo sistema',
+      icon: theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor,
       onClick: () => {
-        toggleTheme()
-        setIsOpen(false)
-      }
+        setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
+      },
+      hasSubmenu: true
     },
     {
       id: 'logout',
@@ -132,12 +145,12 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       {/* Botón del usuario */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 px-4 py-2 rounded-xl hover:bg-carbon-700/50 transition-colors"
+        className="flex items-center space-x-3 px-4 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-carbon-700/50 transition-colors"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
         <motion.div 
-          className="relative w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg overflow-hidden"
+          className="relative w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center dark:shadow-none overflow-hidden"
           whileHover={{ scale: 1.1 }}
           transition={{ duration: 0.2 }}
         >
@@ -165,10 +178,10 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         </motion.div>
         
         <div className="hidden sm:block text-left">
-          <p className="text-sm font-medium text-text-primary">
+          <p className="text-sm font-medium text-text-primary dark:text-text-primary">
             {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
           </p>
-          <p className="text-xs text-text-tertiary">
+          <p className="text-xs text-text-tertiary dark:text-text-tertiary">
             {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
           </p>
         </div>
@@ -177,7 +190,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown className="w-4 h-4 text-text-secondary" />
+          <ChevronDown className="w-4 h-4 text-text-secondary dark:text-text-secondary" />
         </motion.div>
       </motion.button>
 
@@ -204,12 +217,12 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                 duration: 0.2,
                 ease: "easeOut"
               }}
-              className="absolute right-0 top-full mt-2 w-96 bg-gray-900 rounded-xl shadow-2xl border-2 border-gray-600 z-[9999] ring-1 ring-white/10"
+              className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-none border-2 border-gray-200 dark:border-gray-700 z-[9999]"
             >
             {/* Header del usuario */}
-            <div className="px-6 py-5 border-b border-gray-600 bg-gray-800/50">
+            <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
               <div className="flex items-center space-x-5">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center dark:shadow-none overflow-hidden">
                   {userProfile?.profile_picture_url ? (
                     <img 
                       src={userProfile.profile_picture_url} 
@@ -217,7 +230,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <User className="w-8 h-8 text-white" />
+                    <User className="w-8 h-8 text-primary dark:text-white" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -236,44 +249,104 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
               {menuItems.map((item, index) => {
                 const Icon = item.icon
                 return (
-                  <motion.button
-                    key={item.id}
-                    onClick={item.onClick}
-                    className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
-                      item.isDestructive 
-                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
-                        : item.isAdmin
-                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300'
-                        : 'text-text-secondary hover:bg-gray-800 hover:text-text-primary'
-                    }`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ 
-                      duration: 0.2,
-                      delay: index * 0.05
-                    }}
-                    whileHover={{ 
-                      x: 4,
-                      transition: { duration: 0.2 }
-                    }}
-                    whileTap={{ 
-                      scale: 0.98,
-                      transition: { duration: 0.1 }
-                    }}
-                  >
-                    <motion.div
-                      whileHover={{ 
-                        scale: 1.1,
-                        rotate: item.id === 'theme' ? 15 : 0
+                  <div key={item.id} className="relative">
+                    <motion.button
+                      onClick={item.onClick}
+                      className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
+                        item.isDestructive 
+                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300' 
+                          : item.isAdmin
+                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300'
+                          : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
+                      }`}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ 
+                        duration: 0.2,
+                        delay: index * 0.05
                       }}
-                      transition={{ duration: 0.2 }}
+                      whileHover={{ 
+                        x: 4,
+                        transition: { duration: 0.2 }
+                      }}
+                      whileTap={{ 
+                        scale: 0.98,
+                        transition: { duration: 0.1 }
+                      }}
                     >
-                      <Icon className={`w-6 h-6 ${
-                        item.isDestructive || item.isAdmin ? 'text-red-400' : 'text-primary'
+                      <motion.div
+                        whileHover={{ 
+                          scale: 1.1,
+                          rotate: item.id === 'theme' ? 15 : 0
+                        }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Icon className={`w-6 h-6 ${
+                        item.isDestructive || item.isAdmin ? 'text-red-600 dark:text-red-400' : 'text-primary dark:text-primary'
                       }`} />
-                    </motion.div>
-                    <span className="font-medium text-base">{item.label}</span>
-                  </motion.button>
+                      </motion.div>
+                      <span className="font-medium text-base flex-1">{item.label}</span>
+                      {item.id === 'theme' && (
+                        <ChevronDown className={`w-4 h-4 text-text-secondary dark:text-text-secondary transition-transform ${
+                          isThemeSubmenuOpen ? 'rotate-180' : ''
+                        }`} />
+                      )}
+                    </motion.button>
+
+                    {/* Submenu de tema */}
+                    {item.id === 'theme' && isThemeSubmenuOpen && (
+                      <div 
+                        ref={themeSubmenuRef}
+                        className="mt-1 ml-6 border-l-2 border-gray-300 dark:border-gray-700 pl-2"
+                      >
+                        {[
+                          { value: 'light' as Theme, label: 'Claro', icon: Sun },
+                          { value: 'dark' as Theme, label: 'Oscuro', icon: Moon },
+                          { value: 'system' as Theme, label: 'Sistema', icon: Monitor }
+                        ].map((themeOption) => {
+                          const ThemeIcon = themeOption.icon
+                          const isActive = theme === themeOption.value
+                          return (
+                            <motion.button
+                              key={themeOption.value}
+                              onClick={() => {
+                                setTheme(themeOption.value)
+                                setIsThemeSubmenuOpen(false)
+                              }}
+                              className={`w-full flex items-center space-x-3 px-4 py-3 text-left transition-colors rounded-lg ${
+                                isActive
+                                  ? 'bg-primary/20 dark:bg-primary/20 text-primary dark:text-primary'
+                                  : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
+                              }`}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.15 }}
+                              whileHover={{ x: 4 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <ThemeIcon className={`w-5 h-5 ${
+                                isActive ? 'text-primary dark:text-primary' : 'text-text-tertiary dark:text-text-tertiary'
+                              }`} />
+                              <span className={`text-sm font-medium ${
+                                isActive ? 'text-primary dark:text-primary' : 'text-text-secondary dark:text-text-secondary'
+                              }`}>
+                                {themeOption.label}
+                              </span>
+                              {isActive && (
+                                <motion.div
+                                  layoutId="activeThemeIndicator"
+                                  className="ml-auto w-2 h-2 rounded-full bg-primary"
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ duration: 0.2 }}
+                                />
+                              )}
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
