@@ -10,16 +10,17 @@
 
 Se realizó un análisis exhaustivo de seguridad del codebase identificando **15 vulnerabilidades** de severidad variable, desde **críticas** hasta **bajas**. El proyecto presenta una arquitectura moderna con TypeScript y Next.js, pero requiere mejoras **URGENTES** en la gestión de credenciales.
 
-**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **5 correcciones de seguridad** de prioridad alta:
+**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **6 correcciones de seguridad** de prioridad alta:
 - ✅ Logging condicional (previene exposición de información sensible)
 - ✅ Límites a mensajes de chat (previene DoS y costos excesivos)
 - ✅ Sanitización de búsquedas (previene inyección PostgREST)
 - ✅ Cookies seguras (protección contra XSS y CSRF)
 - ✅ Validación robusta de uploads (previene path traversal y malware) 🔴 **CRÍTICA**
+- ✅ Rate limiting OpenAI (previene costos excesivos y DoS)
 
 ### Puntuación General de Seguridad
 
-**7.8/10** ✅ - Notable mejora (⬆️ desde 6.5/10)
+**8.0/10** ✅ - Excelente progreso (⬆️ desde 6.5/10)
 
 ### Puntuación por Categoría
 
@@ -788,12 +789,13 @@ export const UPLOAD_CONFIG = {
 
 ---
 
-### ✅ 6. Implementar Rate Limiting para OpenAI
+### ✅ 6. Implementar Rate Limiting para OpenAI ✔️ COMPLETADO
 
 **Severidad**: 🟡 MEDIA
 **Dificultad de Corrección**: ⭐⭐ FÁCIL
 **Tiempo Estimado**: 1 hora
 **Prioridad**: P2
+**Estado**: ✅ **IMPLEMENTADO** - 1 de noviembre de 2025
 
 #### Descripción del Problema
 
@@ -958,6 +960,57 @@ for i in {1..15}; do
 done
 # Requests 11-15 deben retornar 429
 ```
+
+**Implementación Realizada**:
+
+**Archivo creado: `apps/web/src/lib/openai/usage-monitor.ts`**
+```typescript
+// Sistema de monitoreo de uso y costos
+- calculateCost() - Calcula costo por tokens y modelo
+- logOpenAIUsage() - Registra cada uso
+- getUserUsageToday() - Obtiene uso del día actual
+- checkUsageLimit() - Verifica límites diarios
+- getUsageStats() - Estadísticas para admin
+
+// Límites diarios configurados:
+- MAX_DAILY_TOKENS: 50,000 tokens (~$0.10 en GPT-4o-mini)
+- MAX_DAILY_REQUESTS: 100 requests
+- MAX_DAILY_COST: $0.50 USD
+
+// Precios por modelo incluidos:
+- gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo
+```
+
+**Archivo modificado: `apps/web/src/app/api/ai-chat/route.ts`**
+```typescript
+// ✅ Rate limiting: 10 requests por minuto
+const rateLimitResult = checkRateLimit(request, {
+  maxRequests: 10,
+  windowMs: 60 * 1000,
+  message: 'Demasiadas solicitudes al chatbot. Por favor, espera un momento.'
+}, 'openai');
+
+// ✅ Verificar límites diarios de uso
+const usageCheck = checkUsageLimit(userId);
+if (!usageCheck.allowed) {
+  return NextResponse.json({ error: usageCheck.reason }, { status: 429 });
+}
+
+// ✅ Logging automático de uso después de cada request
+logOpenAIUsage({
+  userId, timestamp, model,
+  promptTokens, completionTokens, totalTokens,
+  estimatedCost
+});
+```
+
+**Protecciones implementadas:**
+1. **Rate Limiting**: 10 requests/minuto por usuario
+2. **Límite de Tokens**: 50k tokens diarios por usuario
+3. **Límite de Requests**: 100 requests diarios por usuario
+4. **Límite de Costo**: $0.50 USD diarios por usuario
+5. **Monitoreo**: Tracking de uso, tokens y costos en tiempo real
+6. **Logs de Seguridad**: Registro de cada uso para auditorías
 
 ---
 
@@ -2117,10 +2170,24 @@ psql $DATABASE_URL -c "\d+ storage.objects"
 - **Impacto**: Previene path traversal, subida de malware, DoS, extension spoofing
 - **Severidad Corregida**: 🔴 ALTA
 
+#### ✅ Corrección 6: Rate Limiting para OpenAI
+- **Estado**: Completado
+- **Archivos**: 
+  - `apps/web/src/lib/openai/usage-monitor.ts` (nuevo)
+  - `apps/web/src/app/api/ai-chat/route.ts`
+- **Cambios**:
+  - Sistema de monitoreo de uso y costos por usuario
+  - Rate limiting: 10 requests/minuto
+  - Límites diarios: 50k tokens, 100 requests, $0.50
+  - Logging automático de uso con cálculo de costos
+  - Tracking por modelo (gpt-4o, gpt-4o-mini, etc.)
+- **Impacto**: Previene costos excesivos, DoS, y bloqueo por rate limit de OpenAI
+- **Severidad Corregida**: 🟡 MEDIA
+
 **Próximas Correcciones Planeadas**:
-- Corrección 6: Implementar rate limiting para OpenAI (1 hora)
 - Corrección 7: Sanitización de inputs HTML (2 horas)
-- Gestión segura de credenciales (⚠️ CRÍTICA - requiere rotación)
+- Corrección 8: Validación de variables de entorno (2 horas)
+- Gestión segura de credenciales (⚠️ CRÍTICA - requiere rotación y configuración externa)
 **Email de Seguridad**: [Definir email]
 **Canal de Slack**: #security (si aplica)
 
