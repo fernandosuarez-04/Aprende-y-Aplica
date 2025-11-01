@@ -23,6 +23,7 @@ export interface AdminLesson {
   video_provider: 'youtube' | 'vimeo' | 'direct' | 'custom'
   duration_seconds: number
   transcript_content: string | null
+  summary_content: string | null
   is_published: boolean
   module_id: string
   instructor_id: string

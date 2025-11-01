@@ -9,6 +9,7 @@ export interface AdminLesson {
   video_provider: 'youtube' | 'vimeo' | 'direct' | 'custom'
   duration_seconds: number
   transcript_content: string | null
+  summary_content: string | null
   is_published: boolean
   module_id: string
   instructor_id: string
@@ -24,6 +25,7 @@ export interface CreateLessonData {
   video_provider: 'youtube' | 'vimeo' | 'direct' | 'custom'
   duration_seconds: number
   transcript_content?: string
+  summary_content?: string
   is_published?: boolean
   instructor_id: string
 }
@@ -35,6 +37,7 @@ export interface UpdateLessonData {
   video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom'
   duration_seconds?: number
   transcript_content?: string
+  summary_content?: string
   is_published?: boolean
   instructor_id?: string
 }
@@ -55,6 +58,7 @@ export class AdminLessonsService {
           video_provider,
           duration_seconds,
           transcript_content,
+          summary_content,
           is_published,
           module_id,
           instructor_id,
@@ -162,6 +166,7 @@ export class AdminLessonsService {
           video_provider: lessonData.video_provider,
           duration_seconds: lessonData.duration_seconds,
           transcript_content: lessonData.transcript_content,
+          summary_content: lessonData.summary_content,
           is_published: lessonData.is_published ?? false,
           instructor_id: lessonData.instructor_id,
           created_at: new Date().toISOString(),

@@ -21,6 +21,7 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
     video_provider: 'youtube' as 'youtube' | 'vimeo' | 'direct' | 'custom',
     duration_seconds: 0,
     transcript_content: '',
+    summary_content: '',
     is_published: false,
     instructor_id: ''
   })
@@ -35,6 +36,7 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
         video_provider: lesson.video_provider,
         duration_seconds: lesson.duration_seconds,
         transcript_content: lesson.transcript_content || '',
+        summary_content: lesson.summary_content || '',
         is_published: lesson.is_published,
         instructor_id: lesson.instructor_id
       })
@@ -186,6 +188,23 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Transcripción del video..."
             />
+          </div>
+
+          {/* Summary */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Resumen (Opcional)
+            </label>
+            <textarea
+              rows={4}
+              value={formData.summary_content}
+              onChange={(e) => setFormData(prev => ({ ...prev, summary_content: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Resumen del contenido del video..."
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Resumen breve del contenido de la lección. Se mostrará en la pestaña "Resumen" del curso.
+            </p>
           </div>
 
           {/* Publicado */}

@@ -24,18 +24,28 @@ import {
   Save,
   FileDown,
   Send,
-  User
+  User,
+  Copy,
+  Check,
+  Plus,
+  RotateCcw
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
+import { VideoPlayer } from '../../../../core/components/VideoPlayer';
 
 interface Lesson {
   lesson_id: string;
   lesson_title: string;
+  lesson_description?: string;
   lesson_order_index: number;
   duration_seconds: number;
   is_completed: boolean;
   progress_percentage: number;
+  video_provider_id?: string;
+  video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
+  transcript_content?: string;
+  summary_content?: string;
 }
 
 interface Module {
@@ -64,7 +74,7 @@ export default function CourseLearnPage() {
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
-  const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'community'>('video');
+  const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
@@ -106,6 +116,8 @@ export default function CourseLearnPage() {
     lessonsWithNotes: '0/0',
     lastUpdate: '-'
   });
+  const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] = useState(false);
+  const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
 
   // Función para formatear timestamp
   const formatTimestamp = (dateString: string): string => {
@@ -441,12 +453,258 @@ export default function CourseLearnPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Función para encontrar todas las lecciones ordenadas en una lista plana
+  const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
+    const allLessons: Array<{ lesson: Lesson; module: Module }> = [];
+    
+    // Ordenar módulos por module_order_index
+    const sortedModules = [...modules].sort((a, b) => a.module_order_index - b.module_order_index);
+    
+    sortedModules.forEach((module) => {
+      // Ordenar lecciones por lesson_order_index dentro de cada módulo
+      const sortedLessons = [...module.lessons].sort((a, b) => a.lesson_order_index - b.lesson_order_index);
+      sortedLessons.forEach((lesson) => {
+        allLessons.push({ lesson, module });
+      });
+    });
+    
+    return allLessons;
+  };
+
+  // Función para encontrar la lección anterior
+  const getPreviousLesson = (): Lesson | null => {
+    if (!currentLesson || modules.length === 0) return null;
+    
+    const allLessons = getAllLessonsOrdered();
+    const currentIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === currentLesson.lesson_id
+    );
+    
+    if (currentIndex === -1 || currentIndex === 0) return null;
+    
+    return allLessons[currentIndex - 1].lesson;
+  };
+
+  // Función para encontrar la lección siguiente
+  const getNextLesson = (): Lesson | null => {
+    if (!currentLesson || modules.length === 0) return null;
+    
+    const allLessons = getAllLessonsOrdered();
+    const currentIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === currentLesson.lesson_id
+    );
+    
+    if (currentIndex === -1 || currentIndex === allLessons.length - 1) return null;
+    
+    return allLessons[currentIndex + 1].lesson;
+  };
+
+  // Función para verificar si una lección puede ser completada
+  const canCompleteLesson = (lessonId: string): boolean => {
+    if (!lessonId || modules.length === 0) return false;
+    
+    const allLessons = getAllLessonsOrdered();
+    const lessonIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === lessonId
+    );
+    
+    // Si es la primera lección del curso, puede ser completada
+    if (lessonIndex === 0) return true;
+    
+    // Si no es la primera, verificar que la anterior esté completada
+    const previousLesson = allLessons[lessonIndex - 1].lesson;
+    return previousLesson.is_completed;
+  };
+
+  // Función para marcar una lección como completada (local y BD)
+  const markLessonAsCompleted = async (lessonId: string): Promise<boolean> => {
+    if (!canCompleteLesson(lessonId)) {
+      console.log('No se puede completar la lección porque la anterior no está completada');
+      return false;
+    }
+
+    // Actualizar estado local primero (optimistic update)
+    setModules((prevModules) => {
+      const updatedModules = prevModules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map((lesson) =>
+          lesson.lesson_id === lessonId
+            ? { ...lesson, is_completed: true }
+            : lesson
+        ),
+      }));
+
+      // Recalcular el progreso del curso con los módulos actualizados
+      const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
+      const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
+      const totalProgress = allLessons.length > 0 
+        ? Math.round((completedLessons.length / allLessons.length) * 100)
+        : 0;
+      
+      // Actualizar progreso del curso
+      setCourseProgress(totalProgress);
+
+      return updatedModules;
+    });
+
+    // Actualizar currentLesson si es la lección actual
+    if (currentLesson?.lesson_id === lessonId) {
+      setCurrentLesson((prev) => prev ? { ...prev, is_completed: true } : null);
+    }
+
+    // Guardar en la base de datos
+    try {
+      const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        
+        // Si el error es que la lección anterior no está completada, revertir el estado local
+        if (errorData.code === 'PREVIOUS_LESSON_NOT_COMPLETED') {
+          // Revertir el estado local
+          setModules((prevModules) => {
+            const updatedModules = prevModules.map((module) => ({
+              ...module,
+              lessons: module.lessons.map((lesson) =>
+                lesson.lesson_id === lessonId
+                  ? { ...lesson, is_completed: false }
+                  : lesson
+              ),
+            }));
+
+            const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
+            const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
+            const totalProgress = allLessons.length > 0 
+              ? Math.round((completedLessons.length / allLessons.length) * 100)
+              : 0;
+            
+            setCourseProgress(totalProgress);
+            return updatedModules;
+          });
+
+          if (currentLesson?.lesson_id === lessonId) {
+            setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+          }
+
+          console.error('Error del servidor:', errorData.error);
+          return false;
+        }
+
+        // Para otros errores, loguear pero mantener el estado local
+        console.error('Error al guardar progreso en BD:', errorData);
+        return true; // Retornar true porque el estado local se actualizó
+      }
+
+      const result = await response.json();
+      
+      // Actualizar progreso con el valor del servidor si está disponible
+      if (result.progress?.overall_progress !== undefined) {
+        setCourseProgress(Math.round(result.progress.overall_progress));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error al guardar progreso en BD:', error);
+      // Mantener el estado local aunque falle la BD
+      return true;
+    }
+  };
+
+  // Función para navegar a la lección anterior
+  const navigateToPreviousLesson = () => {
+    const previousLesson = getPreviousLesson();
+    if (previousLesson) {
+      setCurrentLesson(previousLesson);
+      // Cambiar al tab de video cuando navegas
+      setActiveTab('video');
+      // Hacer scroll hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Función para navegar a la lección siguiente
+  const navigateToNextLesson = async () => {
+    // Si hay una lección actual, intentar marcarla como completada antes de avanzar
+    if (currentLesson) {
+      await markLessonAsCompleted(currentLesson.lesson_id);
+    }
+
+    const nextLesson = getNextLesson();
+    if (nextLesson) {
+      setCurrentLesson(nextLesson);
+      // Cambiar al tab de video cuando navegas
+      setActiveTab('video');
+      // Hacer scroll hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Función para borrar progreso local
+  const resetLocalProgress = () => {
+    if (!confirm('¿Estás seguro de que quieres borrar todo tu progreso local? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    // Resetear todas las lecciones a no completadas
+    setModules((prevModules) =>
+      prevModules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map((lesson) => ({
+          ...lesson,
+          is_completed: false
+        })),
+      }))
+    );
+
+    // Actualizar currentLesson si está completada
+    if (currentLesson?.is_completed) {
+      setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+    }
+
+    // Resetear progreso del curso
+    setCourseProgress(0);
+
+    // Si no hay lección seleccionada o la actual está completada, seleccionar la primera
+    const allLessons = getAllLessonsOrdered();
+    if (allLessons.length > 0 && (!currentLesson || currentLesson.is_completed)) {
+      setCurrentLesson(allLessons[0].lesson);
+    }
+  };
+
+  // Función para manejar el cambio de lección desde el panel
+  const handleLessonChange = async (selectedLesson: Lesson) => {
+    // Si hay una lección actual y se está avanzando (seleccionando una lección posterior)
+    if (currentLesson) {
+      const allLessons = getAllLessonsOrdered();
+      const currentIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === currentLesson.lesson_id
+      );
+      const selectedIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === selectedLesson.lesson_id
+      );
+
+      // Si se está avanzando (seleccionando una lección posterior), marcar como completada la actual
+      if (selectedIndex > currentIndex) {
+        await markLessonAsCompleted(currentLesson.lesson_id);
+      }
+    }
+
+    setCurrentLesson(selectedLesson);
+    setActiveTab('video');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const tabs = [
     { id: 'video' as const, label: 'Video', icon: Play },
     { id: 'transcript' as const, label: 'Transcripción', icon: ScrollText },
     { id: 'summary' as const, label: 'Resumen', icon: FileText },
     { id: 'activities' as const, label: 'Actividades', icon: Activity },
-    { id: 'community' as const, label: 'Comunidad', icon: MessageCircle },
+    { id: 'questions' as const, label: 'Preguntas', icon: MessageCircle },
   ];
 
   if (loading) {
@@ -543,6 +801,14 @@ export default function CourseLearnPage() {
 
           {/* Sección derecha: Usuario */}
         <div className="flex items-center gap-2">
+            {/* Botón para resetear progreso local */}
+            <button
+              onClick={resetLocalProgress}
+              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors group"
+              title="Borrar progreso local"
+            >
+              <RotateCcw className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
+            </button>
             {/* Menú de usuario */}
             <UserDropdown />
           </div>
@@ -638,7 +904,7 @@ export default function CourseLearnPage() {
                             key={lesson.lesson_id}
                             whileHover={{ x: 4, scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setCurrentLesson(lesson)}
+                            onClick={() => handleLessonChange(lesson)}
                             className={`w-full p-4 rounded-xl transition-all duration-200 ${
                               isActive
                                 ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-blue-400/50 shadow-lg shadow-blue-500/20'
@@ -835,15 +1101,62 @@ export default function CourseLearnPage() {
 
         {/* Barra vertical para abrir panel izquierdo */}
         {!isLeftPanelOpen && (
-          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
-            <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
-            <button
-              onClick={() => setIsLeftPanelOpen(true)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
-              title="Mostrar material del curso"
-            >
-              <ChevronRight className="w-5 h-5 text-gray-900 dark:text-white" />
-            </button>
+          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10">
+            <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(false);
+                  setIsNotesCollapsed(false);
+                }}
+                className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
+                title="Mostrar material del curso"
+              >
+                <ChevronRight className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Botones visibles solo cuando el panel está colapsado */}
+            <div className="flex-1 flex flex-col items-center gap-2 p-2">
+              {/* Abrir lecciones y cerrar notas */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(false);
+                  setIsNotesCollapsed(true);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
+                title="Ver lecciones"
+              >
+                <Layers className="w-4 h-4 text-white/80" />
+              </button>
+
+              {/* Abrir notas y cerrar lecciones */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(true);
+                  setIsNotesCollapsed(false);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
+                title="Ver notas"
+              >
+                <FileText className="w-4 h-4 text-white/80" />
+              </button>
+
+              {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsMaterialCollapsed(true);
+                  setIsNotesCollapsed(false);
+                  openNewNoteModal();
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg shadow-blue-500/25"
+                title="Nueva nota"
+              >
+                <Plus className="w-4 h-4 text-white" />
+              </button>
             </div>
           </div>
         )}
@@ -896,11 +1209,24 @@ export default function CourseLearnPage() {
                     transition={{ duration: 0.3 }}
                     className="h-full p-6"
                   >
-                    {activeTab === 'video' && <VideoContent lesson={currentLesson} />}
-                    {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} />}
+                    {activeTab === 'video' && (
+                      <VideoContent 
+                        lesson={currentLesson} 
+                        modules={modules}
+                        onNavigatePrevious={navigateToPreviousLesson}
+                        onNavigateNext={navigateToNextLesson}
+                        getPreviousLesson={getPreviousLesson}
+                        getNextLesson={getNextLesson}
+                        markLessonAsCompleted={markLessonAsCompleted}
+                        canCompleteLesson={canCompleteLesson}
+                        onCourseCompleted={() => setIsCourseCompletedModalOpen(true)}
+                        onCannotComplete={() => setIsCannotCompleteModalOpen(true)}
+                      />
+                    )}
+                    {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && <SummaryContent lesson={currentLesson} />}
-                    {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} />}
-                    {activeTab === 'community' && <CommunityContent />}
+                    {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} slug={slug} />}
+                    {activeTab === 'questions' && <QuestionsContent slug={slug} />}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -1028,92 +1354,1423 @@ export default function CourseLearnPage() {
         initialNote={editingNote}
         isEditing={!!editingNote}
       />
+
+      {/* Modal de Curso Completado */}
+      <AnimatePresence>
+        {isCourseCompletedModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsCourseCompletedModalOpen(false)}
+          >
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+            >
+              {/* Icono de éxito */}
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
+                  <CheckCircle2 className="w-10 h-10 text-white" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-2xl font-bold text-white text-center mb-2">
+                ¡Felicidades!
+              </h3>
+
+              {/* Mensaje */}
+              <p className="text-slate-300 text-center mb-6">
+                Has completado el curso exitosamente. ¡Buen trabajo!
+              </p>
+
+              {/* Botón de cerrar */}
+              <button
+                onClick={() => setIsCourseCompletedModalOpen(false)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+              >
+                Aceptar
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de No Puede Completar */}
+      <AnimatePresence>
+        {isCannotCompleteModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsCannotCompleteModalOpen(false)}
+          >
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+            >
+              {/* Icono de advertencia */}
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/25">
+                  <HelpCircle className="w-10 h-10 text-white" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-2xl font-bold text-white text-center mb-2">
+                No puedes completar esta lección
+              </h3>
+
+              {/* Mensaje */}
+              <p className="text-slate-300 text-center mb-6">
+                Tienes lecciones pendientes que debes completar antes de terminar el curso. Completa todas las lecciones anteriores en orden.
+              </p>
+
+              {/* Botón de cerrar */}
+              <button
+                onClick={() => setIsCannotCompleteModalOpen(false)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+              >
+                Entendido
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // Componentes de contenido
-function VideoContent({ lesson }: { lesson: Lesson }) {
+function VideoContent({ 
+  lesson, 
+  modules, 
+  onNavigatePrevious, 
+  onNavigateNext,
+  getPreviousLesson,
+  getNextLesson,
+  markLessonAsCompleted,
+  canCompleteLesson,
+  onCourseCompleted,
+  onCannotComplete
+}: { 
+  lesson: Lesson;
+  modules: Module[];
+  onNavigatePrevious: () => void;
+  onNavigateNext: () => void;
+  getPreviousLesson: () => Lesson | null;
+  getNextLesson: () => Lesson | null;
+  markLessonAsCompleted: (lessonId: string) => Promise<boolean>;
+  canCompleteLesson: (lessonId: string) => boolean;
+  onCourseCompleted: () => void;
+  onCannotComplete: () => void;
+}) {
+  // Verificar si la lección tiene video
+  const hasVideo = lesson.video_provider && lesson.video_provider_id;
+  
+  // Obtener lecciones anterior y siguiente
+  const previousLesson = getPreviousLesson();
+  const nextLesson = getNextLesson();
+  
+  // Determinar si hay lección anterior y siguiente (con o sin video)
+  const hasPreviousLesson = previousLesson !== null;
+  const hasNextLesson = nextLesson !== null;
+  
+  // Determinar si hay video anterior y siguiente
+  const hasPreviousVideo = hasPreviousLesson && previousLesson.video_provider && previousLesson.video_provider_id;
+  const hasNextVideo = hasNextLesson && nextLesson.video_provider && nextLesson.video_provider_id;
+  
+  // Determinar si es la última lección
+  const isLastLesson = !hasNextLesson;
+  
+  // Debug logging
+  console.log('VideoContent - Lesson data:', {
+    lesson_id: lesson.lesson_id,
+    lesson_title: lesson.lesson_title,
+    video_provider: lesson.video_provider,
+    video_provider_id: lesson.video_provider_id,
+    hasVideo,
+    hasPreviousVideo,
+    hasNextVideo,
+    fullLesson: lesson
+  });
+  
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{lesson.lesson_title}</h2>
-      
-      <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-gray-300 dark:border-carbon-600 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
-        <div className="text-center relative z-10">
-          <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
-            <Play className="w-10 h-10 text-white ml-1" />
+      <div className="relative">
+        {hasVideo ? (
+          <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative">
+            <VideoPlayer
+              videoProvider={lesson.video_provider!}
+              videoProviderId={lesson.video_provider_id!}
+              title={lesson.lesson_title}
+              className="w-full h-full"
+            />
+            
+            {/* Botones de navegación - Centrados verticalmente */}
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+              {/* Botón anterior - lado izquierdo */}
+              {hasPreviousVideo && (
+                <button
+                  onClick={onNavigatePrevious}
+                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                >
+                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                    Anterior
+                  </span>
+                </button>
+              )}
+              
+              {/* Botón siguiente o terminar - lado derecho */}
+              {(hasNextVideo || isLastLesson) && (
+                <button
+                  onClick={isLastLesson ? async () => {
+                    // Verificar si se puede completar la lección
+                    if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                      // Marcar la última lección como completada antes de terminar
+                      const success = await markLessonAsCompleted(lesson.lesson_id);
+                      if (success) {
+                        // Mostrar modal de curso completado
+                        onCourseCompleted();
+                      } else {
+                        // Mostrar modal de error si no se puede completar
+                        onCannotComplete();
+                      }
+                    } else {
+                      // Mostrar modal de error si no se puede completar
+                      onCannotComplete();
+                    }
+                  } : onNavigateNext}
+                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                    isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
+                  }`}
+                >
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                    {isLastLesson ? 'Terminar' : 'Siguiente'}
+                  </span>
+                  {isLastLesson ? (
+                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-          <p className="text-gray-700 dark:text-white/70">Video de la lección</p>
-        </div>
+        ) : (
+          <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-carbon-600 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
+            <div className="text-center relative z-10">
+              <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
+                <Play className="w-10 h-10 text-white ml-1" />
+              </div>
+              <p className="text-white/70">Video no disponible</p>
+            </div>
+            
+            {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+              {/* Botón anterior - lado izquierdo */}
+              {hasPreviousVideo && (
+                <button
+                  onClick={onNavigatePrevious}
+                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                >
+                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                    Anterior
+                  </span>
+                </button>
+              )}
+              
+              {/* Botón siguiente o terminar - lado derecho */}
+              {(hasNextVideo || isLastLesson) && (
+                <button
+                  onClick={isLastLesson ? async () => {
+                    // Verificar si se puede completar la lección
+                    if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                      // Marcar la última lección como completada antes de terminar
+                      const success = await markLessonAsCompleted(lesson.lesson_id);
+                      if (success) {
+                        // Mostrar modal de curso completado
+                        onCourseCompleted();
+                      } else {
+                        // Mostrar modal de error si no se puede completar
+                        onCannotComplete();
+                      }
+                    } else {
+                      // Mostrar modal de error si no se puede completar
+                      onCannotComplete();
+                    }
+                  } : onNavigateNext}
+                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                    isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
+                  }`}
+                >
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                    {isLastLesson ? 'Terminar' : 'Siguiente'}
+                  </span>
+                  {isLastLesson ? (
+                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
+        {lesson.lesson_description && (
+          <p className="text-slate-300 mt-2">{lesson.lesson_description}</p>
+        )}
       </div>
     </div>
   );
 }
 
-function TranscriptContent({ lesson }: { lesson: Lesson }) {
+function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: string }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  
+  // Verificar si existe contenido de transcripción
+  const hasTranscript = lesson?.transcript_content && lesson.transcript_content.trim().length > 0;
+  
+  // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
+  const estimatedReadingTime = lesson?.transcript_content 
+    ? Math.ceil(lesson.transcript_content.split(/\s+/).length / 200)
+    : 0;
+  
+  // Función para descargar la transcripción
+  const handleDownloadTranscript = () => {
+    if (!lesson?.transcript_content) return;
+    
+    const blob = new Blob([lesson.transcript_content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transcripcion-${lesson.lesson_title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+  
+  // Función para copiar al portapapeles
+  const handleCopyToClipboard = async () => {
+    if (!lesson?.transcript_content) return;
+    
+    try {
+      await navigator.clipboard.writeText(lesson.transcript_content);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000); // Reset después de 2 segundos
+    } catch (error) {
+      console.error('Error al copiar al portapapeles:', error);
+      alert('Error al copiar al portapapeles');
+    }
+  };
+  
+  // Función para guardar en notas
+  const handleSaveToNotes = async () => {
+    if (!lesson?.transcript_content) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Preparar payload según el formato que espera la API REST
+      const notePayload = {
+        note_title: `Transcripción: ${lesson?.lesson_title}`,
+        note_content: lesson.transcript_content,
+        note_tags: ['transcripción', 'automática'],
+        source_type: 'manual' // Usar valor válido según la restricción de la BD
+      };
+
+      console.log('=== DEBUG TRANSCRIPCIÓN ===');
+      console.log('Enviando payload de nota:', notePayload);
+      console.log('URL de la API:', `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`);
+
+      const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(notePayload)
+      });
+      
+      console.log('Respuesta del servidor:', response.status, response.statusText);
+      console.log('Headers de respuesta:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          const responseText = await response.text();
+          console.log('Respuesta del servidor (texto):', responseText);
+          
+          if (responseText) {
+            errorData = JSON.parse(responseText);
+          } else {
+            errorData = { error: 'Respuesta vacía del servidor' };
+          }
+        } catch (parseError) {
+          console.error('Error al parsear respuesta JSON:', parseError);
+          errorData = { error: 'Error al procesar respuesta del servidor' };
+        }
+        
+        console.error('Error detallado del servidor:', errorData);
+        alert(`Error al guardar la transcripción en notas:\n\n${errorData.error || 'Error desconocido'}\n\nDetalles: ${errorData.message || 'Sin detalles adicionales'}\n\nCódigo de estado: ${response.status}`);
+        return;
+      }
+      
+      const newNote = await response.json();
+      console.log('Nota creada exitosamente:', newNote);
+      console.log('=== FIN DEBUG ===');
+      
+      // Mostrar mensaje de éxito
+      alert('✅ Transcripción guardada exitosamente en notas');
+      
+      // Aquí podrías actualizar la lista de notas si es necesario
+      // loadLessonNotes(lesson.lesson_id, slug);
+      
+    } catch (error) {
+      console.error('Error al guardar transcripción en notas:', error);
+      console.log('=== FIN DEBUG (ERROR) ===');
+      alert(`❌ Error al guardar la transcripción en notas:\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nRevisa la consola para más detalles.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  if (!lesson) {
   return (
+      <div className="space-y-6">
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Transcripción del Video - {lesson.lesson_title}</h2>
-      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
-        <p className="text-gray-700 dark:text-white/70 text-center py-8">
-          Esta lección aún no tiene transcripción disponible
+          <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
+        </div>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Selecciona una lección</h3>
+          <p className="text-slate-400">
+            Selecciona una lección del panel izquierdo para ver su transcripción
         </p>
       </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
+        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+      </div>
+      
+      {hasTranscript ? (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+          {/* Header de la transcripción */}
+          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <ScrollText className="w-5 h-5 text-blue-400" />
+                <h3 className="text-white font-semibold">Transcripción Completa</h3>
+              </div>
+              <div className="flex items-center space-x-4 text-sm text-slate-400">
+                <span>{lesson.transcript_content?.length || 0} caracteres</span>
+                <span>•</span>
+                <span>{estimatedReadingTime} min lectura</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contenido de la transcripción */}
+          <div className="p-6">
+            <div className="prose prose-invert max-w-none">
+              <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                {lesson.transcript_content}
+              </div>
+            </div>
+          </div>
+          
+          {/* Footer con acciones */}
+          <div className="bg-carbon-700 px-6 py-4 border-t border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={handleCopyToClipboard}
+                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  <span className="text-sm">{isCopied ? 'Copiado!' : 'Copiar'}</span>
+                </button>
+                <button 
+                  onClick={handleDownloadTranscript}
+                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg"
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span className="text-sm">Descargar</span>
+                </button>
+                <button 
+                  onClick={handleSaveToNotes}
+                  disabled={isSaving}
+                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+                  <span className="text-sm">{isSaving ? 'Guardando...' : 'Guardar en notas'}</span>
+                </button>
+              </div>
+              <div className="text-xs text-slate-500">
+                Última actualización: {new Date().toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Transcripción no disponible</h3>
+          <p className="text-slate-400 mb-4">
+            Esta lección aún no tiene transcripción disponible. La transcripción se agregará próximamente.
+          </p>
+          <div className="text-sm text-slate-500">
+            <p>• Verifica que el video tenga audio</p>
+            <p>• La transcripción se genera automáticamente</p>
+            <p>• Contacta al instructor si necesitas ayuda</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function SummaryContent({ lesson }: { lesson: Lesson }) {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Resumen del Video - {lesson.lesson_title}</h2>
-      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
-        <p className="text-gray-700 dark:text-white/70 text-center py-8">
-          Esta lección aún no tiene resumen disponible
-        </p>
-      </div>
-    </div>
-  );
-}
+  // Verificar si existe contenido de resumen
+  const hasSummary = lesson?.summary_content && lesson.summary_content.trim().length > 0;
+  
+  // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
+  const estimatedReadingTime = lesson?.summary_content 
+    ? Math.ceil(lesson.summary_content.split(/\s+/).length / 200)
+    : 0;
 
-function ActivitiesContent({ lesson }: { lesson: Lesson }) {
+  if (!hasSummary) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+        
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Resumen no disponible</h3>
+          <p className="text-slate-400 mb-4">
+            Esta lección aún no tiene resumen disponible. El resumen se agregará próximamente.
+          </p>
+          <div className="text-sm text-slate-500">
+            <p>• El resumen se genera o agrega manualmente</p>
+            <p>• Contacta al instructor si necesitas ayuda</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Actividades del Video - {lesson.lesson_title}</h2>
-      
-      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
-        <div className="flex items-center gap-3 mb-3">
-          <FileText className="w-5 h-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Descripción de la Actividad</h3>
-        </div>
-        <p className="text-gray-700 dark:text-white/70">Este video no tiene ninguna Actividad</p>
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
+        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
       </div>
-
-      <div className="bg-gray-50 dark:bg-carbon-600 rounded-lg p-6 border border-gray-200 dark:border-carbon-700">
-        <div className="flex items-center gap-3 mb-3">
-          <HelpCircle className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Prompts y Ejercicios</h3>
+      
+      <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+        {/* Header del resumen */}
+        <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <FileText className="w-5 h-5 text-blue-400" />
+              <h3 className="text-white font-semibold">Resumen Completo</h3>
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <span>{lesson.summary_content?.split(/\s+/).length || 0} palabras</span>
+              <span>•</span>
+              <span>{estimatedReadingTime} min lectura</span>
+            </div>
+          </div>
         </div>
-        <p className="text-gray-700 dark:text-white/70">Este video no tiene ninguna Actividad</p>
+        
+        {/* Contenido del resumen */}
+        <div className="p-6">
+          <div className="prose prose-invert max-w-none">
+            <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+              {lesson.summary_content}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function CommunityContent() {
+function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+  const [activities, setActivities] = useState<Array<{
+    activity_id: string;
+    activity_title: string;
+    activity_description?: string;
+    activity_type: 'reflection' | 'exercise' | 'quiz' | 'discussion' | 'ai_chat';
+    activity_content: string;
+    ai_prompts?: string;
+    activity_order_index: number;
+    is_required: boolean;
+  }>>([]);
+  const [materials, setMaterials] = useState<Array<{
+    material_id: string;
+    material_title: string;
+    material_description?: string;
+    material_type: 'pdf' | 'link' | 'document' | 'quiz' | 'exercise' | 'reading';
+    file_url?: string;
+    external_url?: string;
+    content_data?: any;
+    material_order_index: number;
+    is_downloadable: boolean;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadActivitiesAndMaterials() {
+      if (!lesson?.lesson_id || !slug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Cargar actividades
+        const activitiesResponse = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`);
+        if (activitiesResponse.ok) {
+          const activitiesData = await activitiesResponse.json();
+          setActivities(activitiesData || []);
+        } else {
+          setActivities([]);
+        }
+
+        // Cargar materiales
+        const materialsResponse = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`);
+        if (materialsResponse.ok) {
+          const materialsData = await materialsResponse.json();
+          setMaterials(materialsData || []);
+        } else {
+          setMaterials([]);
+        }
+      } catch (error) {
+        console.error('Error loading activities and materials:', error);
+        setActivities([]);
+        setMaterials([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadActivitiesAndMaterials();
+  }, [lesson?.lesson_id, slug]);
+
+  const hasActivities = activities.length > 0;
+  const hasMaterials = materials.length > 0;
+  const hasContent = hasActivities || hasMaterials;
+
+  if (loading) {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Comunidad del Taller</h2>
-        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2">
-          <span className="text-lg">+</span>
-          Hacer Pregunta
+    <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-slate-400 animate-pulse" />
+          </div>
+          <p className="text-slate-400">Cargando actividades...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasContent) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+        
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-slate-400" />
+      </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Actividades no disponibles</h3>
+          <p className="text-slate-400 mb-4">
+            Esta lección aún no tiene actividades disponibles. Las actividades se agregarán próximamente.
+          </p>
+          <div className="text-sm text-slate-500">
+            <p>• Las actividades se agregan manualmente</p>
+            <p>• Contacta al instructor si necesitas ayuda</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
+        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+
+      {/* Actividades */}
+      {hasActivities && (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+          {/* Header de actividades */}
+          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Activity className="w-5 h-5 text-blue-400" />
+                <h3 className="text-white font-semibold">Actividades</h3>
+      </div>
+              <div className="flex items-center space-x-4 text-sm text-slate-400">
+                <span>{activities.length} actividad{activities.length !== 1 ? 'es' : ''}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contenido de actividades */}
+          <div className="p-6 space-y-4">
+            {activities.map((activity) => (
+              <div
+                key={activity.activity_id}
+                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="text-white font-semibold text-lg">{activity.activity_title}</h4>
+                      {activity.is_required && (
+                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
+                          Requerida
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
+                        {activity.activity_type}
+                      </span>
+                    </div>
+                    {activity.activity_description && (
+                      <p className="text-slate-300 text-sm mb-3">{activity.activity_description}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
+                  <div className="prose prose-invert max-w-none">
+                    <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                      {activity.activity_content}
+                    </div>
+                  </div>
+                </div>
+
+                {activity.ai_prompts && (
+                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <HelpCircle className="w-4 h-4 text-purple-400" />
+                      <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                      <div className="prose prose-invert max-w-none">
+                        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap text-sm">
+                          {activity.ai_prompts}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Materiales */}
+      {hasMaterials && (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+          {/* Header de materiales */}
+          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FileText className="w-5 h-5 text-green-400" />
+                <h3 className="text-white font-semibold">Materiales</h3>
+              </div>
+              <div className="flex items-center space-x-4 text-sm text-slate-400">
+                <span>{materials.length} material{materials.length !== 1 ? 'es' : ''}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contenido de materiales */}
+          <div className="p-6 space-y-4">
+            {materials.map((material) => (
+              <div
+                key={material.material_id}
+                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="text-white font-semibold text-lg">{material.material_title}</h4>
+                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 capitalize">
+                        {material.material_type}
+                      </span>
+                      {material.is_downloadable && (
+                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
+                          Descargable
+                        </span>
+                      )}
+                    </div>
+                    {material.material_description && (
+                      <p className="text-slate-300 text-sm mb-3">{material.material_description}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Enlaces y acciones */}
+                <div className="flex items-center gap-3">
+                  {material.external_url && (
+                    <a
+                      href={material.external_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span className="text-sm">Abrir enlace</span>
+                    </a>
+                  )}
+                  {material.file_url && (
+                    <a
+                      href={material.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span className="text-sm">Ver archivo</span>
+                    </a>
+                  )}
+                  {material.content_data && typeof material.content_data === 'object' && (
+                    <div className="flex-1 bg-carbon-800/50 rounded-lg p-3 border border-carbon-600/50">
+                      <p className="text-slate-300 text-sm">
+                        {JSON.stringify(material.content_data, null, 2)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestionsContent({ slug }: { slug: string }) {
+  const [questions, setQuestions] = useState<Array<{
+    id: string;
+    title?: string;
+    content: string;
+    view_count: number;
+    response_count: number;
+    reaction_count: number;
+    is_pinned: boolean;
+    is_resolved: boolean;
+    created_at: string;
+    updated_at: string;
+    user: {
+      id: string;
+      username: string;
+      display_name?: string;
+      first_name?: string;
+      last_name?: string;
+      profile_picture_url?: string;
+    };
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'resolved' | 'unresolved' | 'pinned'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    async function loadQuestions() {
+      if (!slug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Construir URL con filtros
+        const params = new URLSearchParams();
+        if (filter === 'resolved') params.append('resolved', 'true');
+        else if (filter === 'unresolved') params.append('resolved', 'false');
+        if (filter === 'pinned') params.append('pinned', 'true');
+        if (searchQuery) params.append('search', searchQuery);
+
+        const url = `/api/courses/${slug}/questions${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setQuestions(data || []);
+        } else {
+          setQuestions([]);
+        }
+      } catch (error) {
+        console.error('Error loading questions:', error);
+        setQuestions([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuestions();
+  }, [slug, filter, searchQuery]);
+
+  const getUserDisplayName = (user: any) => {
+    return user?.display_name || 
+           (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+           user?.username || 
+           'Usuario';
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'hace un momento';
+    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} min`;
+    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} h`;
+    if (diffInSeconds < 2592000) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+    return date.toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
+        </div>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-slate-400 animate-pulse" />
+          </div>
+          <p className="text-slate-400">Cargando preguntas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Hacer Pregunta
+          </button>
+        </div>
+
+        {/* Filtros y búsqueda */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-2 bg-carbon-700/50 rounded-lg p-1">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              onClick={() => setFilter('unresolved')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'unresolved'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Sin resolver
+            </button>
+            <button
+              onClick={() => setFilter('resolved')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'resolved'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Resueltas
+            </button>
+            <button
+              onClick={() => setFilter('pinned')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'pinned'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Fijadas
+            </button>
+          </div>
+          
+          <div className="flex-1 max-w-md">
+            <input
+              type="text"
+              placeholder="Buscar preguntas..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 bg-carbon-700/50 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      {questions.length === 0 ? (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">No hay preguntas</h3>
+          <p className="text-slate-400 mb-4">
+            {searchQuery ? 'No se encontraron preguntas con tu búsqueda' : 'Aún no hay preguntas en este curso'}
+          </p>
+          {!searchQuery && (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Hacer Primera Pregunta
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {questions.map((question) => (
+            <motion.div
+              key={question.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors"
+              onClick={() => setSelectedQuestion(selectedQuestion === question.id ? null : question.id)}
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {question.is_pinned && (
+                        <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                          Fijada
+                        </span>
+                      )}
+                      {question.is_resolved && (
+                        <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                          Resuelta
+                        </span>
+                      )}
+                    </div>
+                    {question.title && (
+                      <h3 className="text-white font-semibold text-lg mb-2">{question.title}</h3>
+                    )}
+                    <p className="text-slate-300 text-sm line-clamp-2">{question.content}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-carbon-500/50">
+                  <div className="flex items-center gap-4 text-sm text-slate-400">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>{getUserDisplayName(question.user)}</span>
+                    </div>
+                    <span>{formatTimeAgo(question.created_at)}</span>
+                    <div className="flex items-center gap-4">
+                      <span>{question.response_count} respuestas</span>
+                      <span>{question.view_count} vistas</span>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={`w-5 h-5 text-slate-400 transition-transform ${
+                      selectedQuestion === question.id ? 'rotate-180' : ''
+                    }`}
+                  />
+                </div>
+              </div>
+              
+              {selectedQuestion === question.id && (
+                <QuestionDetail
+                  questionId={question.id}
+                  slug={slug}
+                  onClose={() => setSelectedQuestion(null)}
+                />
+              )}
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {showCreateForm && (
+        <CreateQuestionForm
+          slug={slug}
+          onClose={() => setShowCreateForm(false)}
+          onSuccess={() => {
+            setShowCreateForm(false);
+            // Recargar preguntas
+            window.location.reload();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slug: string; onClose: () => void }) {
+  const [question, setQuestion] = useState<any>(null);
+  const [responses, setResponses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newResponse, setNewResponse] = useState('');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+
+  useEffect(() => {
+    async function loadQuestion() {
+      try {
+        setLoading(true);
+        const [questionRes, responsesRes] = await Promise.all([
+          fetch(`/api/courses/${slug}/questions/${questionId}`),
+          fetch(`/api/courses/${slug}/questions/${questionId}/responses`)
+        ]);
+
+        if (questionRes.ok) {
+          const questionData = await questionRes.json();
+          setQuestion(questionData);
+        }
+
+        if (responsesRes.ok) {
+          const responsesData = await responsesRes.json();
+          setResponses(responsesData);
+        }
+      } catch (error) {
+        console.error('Error loading question:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuestion();
+  }, [questionId, slug]);
+
+  const handleSubmitResponse = async (e: React.FormEvent) => {
+    e.stopPropagation();
+    if (!newResponse.trim()) return;
+
+    try {
+      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newResponse.trim() })
+      });
+
+      if (response.ok) {
+        const newResponseData = await response.json();
+        setResponses(prev => [...prev, { ...newResponseData, replies: [] }]);
+        setNewResponse('');
+      }
+    } catch (error) {
+      console.error('Error submitting response:', error);
+    }
+  };
+
+  const handleSubmitReply = async (parentId: string) => {
+    if (!replyContent.trim()) return;
+
+    try {
+      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: replyContent.trim(),
+          parent_response_id: parentId
+        })
+      });
+
+      if (response.ok) {
+        const newReplyData = await response.json();
+        setResponses(prev => prev.map(r => 
+          r.id === parentId 
+            ? { ...r, replies: [...(r.replies || []), newReplyData] }
+            : r
+        ));
+        setReplyContent('');
+        setReplyingTo(null);
+      }
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 border-t border-carbon-500/50 bg-carbon-700/30">
+        <p className="text-slate-400">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!question) return null;
+
+  return (
+    <div className="p-6 border-t border-carbon-500/50 bg-carbon-700/30" onClick={(e) => e.stopPropagation()}>
+      <div className="mb-6">
+        <h3 className="text-white font-semibold text-lg mb-2">{question.title || 'Pregunta'}</h3>
+        <p className="text-slate-300 whitespace-pre-wrap">{question.content}</p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        {responses.map((response) => (
+          <div key={response.id} className="bg-carbon-800/50 rounded-lg p-4 border border-carbon-600/50">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white font-semibold text-sm">
+                    {response.user?.display_name || response.user?.username || 'Usuario'}
+                  </span>
+                  {response.is_instructor_answer && (
+                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
+                      Instructor
+                    </span>
+                  )}
+                  {response.is_approved_answer && (
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                      ✓ Respuesta Aprobada
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-300 text-sm mb-3">{response.content}</p>
+                <button
+                  onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
+                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Responder
+                </button>
+              </div>
+            </div>
+
+            {replyingTo === response.id && (
+              <div className="mt-3 pl-11">
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Escribe tu respuesta..."
+                  className="w-full px-4 py-2 bg-carbon-700 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                  rows={3}
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleSubmitReply(response.id)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                  >
+                    Enviar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReplyingTo(null);
+                      setReplyContent('');
+                    }}
+                    className="px-4 py-2 bg-carbon-600 hover:bg-carbon-500 text-white rounded-lg transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {response.replies && response.replies.length > 0 && (
+              <div className="mt-4 pl-11 space-y-3 border-l-2 border-carbon-600/50">
+                {response.replies.map((reply: any) => (
+                  <div key={reply.id} className="bg-carbon-900/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-semibold text-xs">
+                        {reply.user?.display_name || reply.user?.username || 'Usuario'}
+                      </span>
+                      {reply.is_instructor_answer && (
+                        <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30">
+                          Instructor
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-300 text-xs">{reply.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-carbon-600/50 pt-4">
+        <textarea
+          value={newResponse}
+          onChange={(e) => setNewResponse(e.target.value)}
+          placeholder="Escribe tu respuesta..."
+          className="w-full px-4 py-2 bg-carbon-700 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+          rows={4}
+        />
+        <button
+          onClick={handleSubmitResponse}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          Enviar Respuesta
         </button>
       </div>
-      
-      <div className="space-y-4">
-        <p className="text-gray-700 dark:text-white/70 text-center py-12">No hay preguntas aún en esta lección</p>
+    </div>
+  );
+}
+
+function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClose: () => void; onSuccess: () => void }) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`/api/courses/${slug}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim() || null,
+          content: content.trim()
+        })
+      });
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating question:', error);
+      alert('Error al crear la pregunta');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-carbon-700 rounded-xl border border-carbon-600 p-6 w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-white font-semibold text-xl mb-4">Hacer una Pregunta</h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-slate-300 text-sm mb-2">Título (opcional)</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Título de tu pregunta..."
+              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-slate-300 text-sm mb-2">Contenido *</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Describe tu pregunta..."
+              required
+              rows={6}
+              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-carbon-600 hover:bg-carbon-500 text-white rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !content.trim()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Enviando...' : 'Publicar Pregunta'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
