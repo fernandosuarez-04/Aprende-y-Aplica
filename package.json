@@ -19,11 +19,11 @@
     "type-check": "npm run type-check --workspaces && tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "tsx": "^4.6.2",
+    "concurrently": "^8.2.2",
     "eslint": "^8.56.0",
     "prettier": "^3.2.5",
-    "concurrently": "^8.2.2"
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -42,5 +42,8 @@
     "typescript"
   ],
   "author": "Equipo Aprende y Aplica",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^4.1.12"
+  }
 }

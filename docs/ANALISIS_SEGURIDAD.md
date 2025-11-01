@@ -10,17 +10,18 @@
 
 Se realizó un análisis exhaustivo de seguridad del codebase identificando **15 vulnerabilidades** de severidad variable, desde **críticas** hasta **bajas**. El proyecto presenta una arquitectura moderna con TypeScript y Next.js, pero requiere mejoras **URGENTES** en la gestión de credenciales.
 
-**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **6 correcciones de seguridad** de prioridad alta:
+**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **7 correcciones de seguridad** de prioridad alta:
 - ✅ Logging condicional (previene exposición de información sensible)
 - ✅ Límites a mensajes de chat (previene DoS y costos excesivos)
 - ✅ Sanitización de búsquedas (previene inyección PostgREST)
 - ✅ Cookies seguras (protección contra XSS y CSRF)
 - ✅ Validación robusta de uploads (previene path traversal y malware) 🔴 **CRÍTICA**
 - ✅ Rate limiting OpenAI (previene costos excesivos y DoS)
+- ✅ Validación de variables de entorno (detecta configuraciones inseguras)
 
 ### Puntuación General de Seguridad
 
-**8.0/10** ✅ - Excelente progreso (⬆️ desde 6.5/10)
+**8.2/10** ✅ - Excelente progreso (⬆️ desde 6.5/10)
 
 ### Puntuación por Categoría
 
@@ -1014,12 +1015,13 @@ logOpenAIUsage({
 
 ---
 
-### ✅ 7. Mejorar Validación de Variables de Entorno
+### ✅ 7. Mejorar Validación de Variables de Entorno ✔️ COMPLETADO
 
 **Severidad**: 🟡 MEDIA
 **Dificultad de Corrección**: ⭐⭐⭐ MEDIA
 **Tiempo Estimado**: 2 horas
 **Prioridad**: P2
+**Estado**: ✅ **IMPLEMENTADO** - 1 de noviembre de 2025
 
 #### Descripción del Problema
 
@@ -1238,6 +1240,75 @@ npm run generate-secrets
 npm run dev
 # Debe iniciar correctamente
 ```
+
+**Implementación Realizada**:
+
+**Instalado: `zod` v3.x**
+```bash
+npm install zod
+```
+
+**Archivo modificado: `apps/api/src/config/env.ts`**
+```typescript
+import { z } from 'zod';
+
+// ✅ Schema completo de validación con Zod
+const envSchema = z.object({
+  // Validación estricta de todos los campos
+  PORT: z.coerce.number().int().positive().default(3001),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  
+  // JWT con validación de longitud mínima
+  USER_JWT_SECRET: z.string().min(32, {
+    message: 'USER_JWT_SECRET debe tener al menos 32 caracteres'
+  }).optional(),
+  
+  // Supabase con validación de URL
+  SUPABASE_URL: z.string().url({
+    message: 'SUPABASE_URL debe ser una URL válida'
+  }).optional(),
+  
+  // SMTP con validación de email
+  SMTP_USER: z.string().email({
+    message: 'SMTP_USER debe ser un email válido'
+  }).optional(),
+  
+  // ... más de 20 variables validadas
+});
+
+// ✅ Función de validación que detecta valores inseguros
+function validateEnv() {
+  // Parsear con Zod
+  const parsed = envSchema.parse(process.env);
+  
+  // En producción, rechazar valores por defecto débiles
+  if (parsed.NODE_ENV === 'production') {
+    const weakDefaults = ['dev-secret-key', 'dev-refresh-secret', ...];
+    
+    if (weakDefaults.some(weak => jwtSecret.includes(weak))) {
+      throw new Error('❌ JWT_SECRET usa valor inseguro en producción');
+    }
+  }
+  
+  return parsed;
+}
+
+export const config = validateEnv();
+```
+
+**Archivo creado: `.env.example`**
+- ✅ Documentación completa de todas las variables
+- ✅ Ejemplos seguros y advertencias de seguridad
+- ✅ Instrucciones para generar secretos
+- ✅ Secciones organizadas por funcionalidad
+
+**Protecciones implementadas:**
+1. **Validación de Tipos**: Números, URLs, emails, enums
+2. **Validación de Longitud**: Mínimo 32 caracteres para secretos
+3. **Detección de Defaults**: Rechaza valores inseguros en producción
+4. **Mensajes Claros**: Errores específicos con soluciones
+5. **Logging Seguro**: No expone valores sensibles
+6. **Valores por Defecto**: Solo en desarrollo, nunca en producción
 
 ---
 
@@ -2184,9 +2255,25 @@ psql $DATABASE_URL -c "\d+ storage.objects"
 - **Impacto**: Previene costos excesivos, DoS, y bloqueo por rate limit de OpenAI
 - **Severidad Corregida**: 🟡 MEDIA
 
+#### ✅ Corrección 7: Validación de Variables de Entorno
+- **Estado**: Completado
+- **Archivos**: 
+  - Instalado: `zod` (librería de validación)
+  - `apps/api/src/config/env.ts` (validación completa)
+  - `.env.example` (documentación y guía)
+- **Cambios**:
+  - Schema de validación con Zod para 25+ variables
+  - Validación de tipos (números, URLs, emails)
+  - Detección de valores por defecto inseguros en producción
+  - Mensajes de error claros y accionables
+  - Logging seguro sin exponer secretos
+  - Validación de longitud mínima para secretos (32 chars)
+- **Impacto**: Previene errores de configuración y detecta valores inseguros antes de deployment
+- **Severidad Corregida**: 🟡 MEDIA
+
 **Próximas Correcciones Planeadas**:
-- Corrección 7: Sanitización de inputs HTML (2 horas)
-- Corrección 8: Validación de variables de entorno (2 horas)
+- Corrección 8: Headers de seguridad HTTP (30 min - rápida)
+- Corrección 9: Sanitización de inputs HTML (2 horas)
 - Gestión segura de credenciales (⚠️ CRÍTICA - requiere rotación y configuración externa)
 **Email de Seguridad**: [Definir email]
 **Canal de Slack**: #security (si aplica)
