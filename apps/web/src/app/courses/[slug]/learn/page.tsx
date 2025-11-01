@@ -74,7 +74,7 @@ export default function CourseLearnPage() {
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
-  const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'community'>('video');
+  const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
@@ -704,7 +704,7 @@ export default function CourseLearnPage() {
     { id: 'transcript' as const, label: 'Transcripción', icon: ScrollText },
     { id: 'summary' as const, label: 'Resumen', icon: FileText },
     { id: 'activities' as const, label: 'Actividades', icon: Activity },
-    { id: 'community' as const, label: 'Comunidad', icon: MessageCircle },
+    { id: 'questions' as const, label: 'Preguntas', icon: MessageCircle },
   ];
 
   if (loading) {
@@ -1226,7 +1226,7 @@ export default function CourseLearnPage() {
                     {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && <SummaryContent lesson={currentLesson} />}
                     {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} slug={slug} />}
-                    {activeTab === 'community' && <CommunityContent />}
+                    {activeTab === 'questions' && <QuestionsContent slug={slug} />}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -2216,19 +2216,561 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   );
 }
 
-function CommunityContent() {
+function QuestionsContent({ slug }: { slug: string }) {
+  const [questions, setQuestions] = useState<Array<{
+    id: string;
+    title?: string;
+    content: string;
+    view_count: number;
+    response_count: number;
+    reaction_count: number;
+    is_pinned: boolean;
+    is_resolved: boolean;
+    created_at: string;
+    updated_at: string;
+    user: {
+      id: string;
+      username: string;
+      display_name?: string;
+      first_name?: string;
+      last_name?: string;
+      profile_picture_url?: string;
+    };
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'resolved' | 'unresolved' | 'pinned'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    async function loadQuestions() {
+      if (!slug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Construir URL con filtros
+        const params = new URLSearchParams();
+        if (filter === 'resolved') params.append('resolved', 'true');
+        else if (filter === 'unresolved') params.append('resolved', 'false');
+        if (filter === 'pinned') params.append('pinned', 'true');
+        if (searchQuery) params.append('search', searchQuery);
+
+        const url = `/api/courses/${slug}/questions${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setQuestions(data || []);
+        } else {
+          setQuestions([]);
+        }
+      } catch (error) {
+        console.error('Error loading questions:', error);
+        setQuestions([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuestions();
+  }, [slug, filter, searchQuery]);
+
+  const getUserDisplayName = (user: any) => {
+    return user?.display_name || 
+           (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+           user?.username || 
+           'Usuario';
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'hace un momento';
+    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} min`;
+    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} h`;
+    if (diffInSeconds < 2592000) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+    return date.toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
+        </div>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-slate-400 animate-pulse" />
+          </div>
+          <p className="text-slate-400">Cargando preguntas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Comunidad del Taller</h2>
-        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2">
-          <span className="text-lg">+</span>
-          Hacer Pregunta
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Hacer Pregunta
+          </button>
+        </div>
+
+        {/* Filtros y búsqueda */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-2 bg-carbon-700/50 rounded-lg p-1">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              onClick={() => setFilter('unresolved')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'unresolved'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Sin resolver
+            </button>
+            <button
+              onClick={() => setFilter('resolved')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'resolved'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Resueltas
+            </button>
+            <button
+              onClick={() => setFilter('pinned')}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                filter === 'pinned'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Fijadas
+            </button>
+          </div>
+          
+          <div className="flex-1 max-w-md">
+            <input
+              type="text"
+              placeholder="Buscar preguntas..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 bg-carbon-700/50 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      {questions.length === 0 ? (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-white text-lg font-semibold mb-2">No hay preguntas</h3>
+          <p className="text-slate-400 mb-4">
+            {searchQuery ? 'No se encontraron preguntas con tu búsqueda' : 'Aún no hay preguntas en este curso'}
+          </p>
+          {!searchQuery && (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Hacer Primera Pregunta
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {questions.map((question) => (
+            <motion.div
+              key={question.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors"
+              onClick={() => setSelectedQuestion(selectedQuestion === question.id ? null : question.id)}
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {question.is_pinned && (
+                        <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                          Fijada
+                        </span>
+                      )}
+                      {question.is_resolved && (
+                        <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                          Resuelta
+                        </span>
+                      )}
+                    </div>
+                    {question.title && (
+                      <h3 className="text-white font-semibold text-lg mb-2">{question.title}</h3>
+                    )}
+                    <p className="text-slate-300 text-sm line-clamp-2">{question.content}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-carbon-500/50">
+                  <div className="flex items-center gap-4 text-sm text-slate-400">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>{getUserDisplayName(question.user)}</span>
+                    </div>
+                    <span>{formatTimeAgo(question.created_at)}</span>
+                    <div className="flex items-center gap-4">
+                      <span>{question.response_count} respuestas</span>
+                      <span>{question.view_count} vistas</span>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={`w-5 h-5 text-slate-400 transition-transform ${
+                      selectedQuestion === question.id ? 'rotate-180' : ''
+                    }`}
+                  />
+                </div>
+              </div>
+              
+              {selectedQuestion === question.id && (
+                <QuestionDetail
+                  questionId={question.id}
+                  slug={slug}
+                  onClose={() => setSelectedQuestion(null)}
+                />
+              )}
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {showCreateForm && (
+        <CreateQuestionForm
+          slug={slug}
+          onClose={() => setShowCreateForm(false)}
+          onSuccess={() => {
+            setShowCreateForm(false);
+            // Recargar preguntas
+            window.location.reload();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slug: string; onClose: () => void }) {
+  const [question, setQuestion] = useState<any>(null);
+  const [responses, setResponses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newResponse, setNewResponse] = useState('');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+
+  useEffect(() => {
+    async function loadQuestion() {
+      try {
+        setLoading(true);
+        const [questionRes, responsesRes] = await Promise.all([
+          fetch(`/api/courses/${slug}/questions/${questionId}`),
+          fetch(`/api/courses/${slug}/questions/${questionId}/responses`)
+        ]);
+
+        if (questionRes.ok) {
+          const questionData = await questionRes.json();
+          setQuestion(questionData);
+        }
+
+        if (responsesRes.ok) {
+          const responsesData = await responsesRes.json();
+          setResponses(responsesData);
+        }
+      } catch (error) {
+        console.error('Error loading question:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuestion();
+  }, [questionId, slug]);
+
+  const handleSubmitResponse = async (e: React.FormEvent) => {
+    e.stopPropagation();
+    if (!newResponse.trim()) return;
+
+    try {
+      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newResponse.trim() })
+      });
+
+      if (response.ok) {
+        const newResponseData = await response.json();
+        setResponses(prev => [...prev, { ...newResponseData, replies: [] }]);
+        setNewResponse('');
+      }
+    } catch (error) {
+      console.error('Error submitting response:', error);
+    }
+  };
+
+  const handleSubmitReply = async (parentId: string) => {
+    if (!replyContent.trim()) return;
+
+    try {
+      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: replyContent.trim(),
+          parent_response_id: parentId
+        })
+      });
+
+      if (response.ok) {
+        const newReplyData = await response.json();
+        setResponses(prev => prev.map(r => 
+          r.id === parentId 
+            ? { ...r, replies: [...(r.replies || []), newReplyData] }
+            : r
+        ));
+        setReplyContent('');
+        setReplyingTo(null);
+      }
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 border-t border-carbon-500/50 bg-carbon-700/30">
+        <p className="text-slate-400">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!question) return null;
+
+  return (
+    <div className="p-6 border-t border-carbon-500/50 bg-carbon-700/30" onClick={(e) => e.stopPropagation()}>
+      <div className="mb-6">
+        <h3 className="text-white font-semibold text-lg mb-2">{question.title || 'Pregunta'}</h3>
+        <p className="text-slate-300 whitespace-pre-wrap">{question.content}</p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        {responses.map((response) => (
+          <div key={response.id} className="bg-carbon-800/50 rounded-lg p-4 border border-carbon-600/50">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white font-semibold text-sm">
+                    {response.user?.display_name || response.user?.username || 'Usuario'}
+                  </span>
+                  {response.is_instructor_answer && (
+                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
+                      Instructor
+                    </span>
+                  )}
+                  {response.is_approved_answer && (
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                      ✓ Respuesta Aprobada
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-300 text-sm mb-3">{response.content}</p>
+                <button
+                  onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
+                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Responder
+                </button>
+              </div>
+            </div>
+
+            {replyingTo === response.id && (
+              <div className="mt-3 pl-11">
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Escribe tu respuesta..."
+                  className="w-full px-4 py-2 bg-carbon-700 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                  rows={3}
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleSubmitReply(response.id)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                  >
+                    Enviar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReplyingTo(null);
+                      setReplyContent('');
+                    }}
+                    className="px-4 py-2 bg-carbon-600 hover:bg-carbon-500 text-white rounded-lg transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {response.replies && response.replies.length > 0 && (
+              <div className="mt-4 pl-11 space-y-3 border-l-2 border-carbon-600/50">
+                {response.replies.map((reply: any) => (
+                  <div key={reply.id} className="bg-carbon-900/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-semibold text-xs">
+                        {reply.user?.display_name || reply.user?.username || 'Usuario'}
+                      </span>
+                      {reply.is_instructor_answer && (
+                        <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30">
+                          Instructor
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-300 text-xs">{reply.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-carbon-600/50 pt-4">
+        <textarea
+          value={newResponse}
+          onChange={(e) => setNewResponse(e.target.value)}
+          placeholder="Escribe tu respuesta..."
+          className="w-full px-4 py-2 bg-carbon-700 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+          rows={4}
+        />
+        <button
+          onClick={handleSubmitResponse}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          Enviar Respuesta
         </button>
       </div>
-      
-      <div className="space-y-4">
-        <p className="text-white/70 text-center py-12">No hay preguntas aún en esta lección</p>
+    </div>
+  );
+}
+
+function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClose: () => void; onSuccess: () => void }) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`/api/courses/${slug}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim() || null,
+          content: content.trim()
+        })
+      });
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating question:', error);
+      alert('Error al crear la pregunta');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-carbon-700 rounded-xl border border-carbon-600 p-6 w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-white font-semibold text-xl mb-4">Hacer una Pregunta</h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-slate-300 text-sm mb-2">Título (opcional)</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Título de tu pregunta..."
+              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-slate-300 text-sm mb-2">Contenido *</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Describe tu pregunta..."
+              required
+              rows={6}
+              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-carbon-600 hover:bg-carbon-500 text-white rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !content.trim()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Enviando...' : 'Publicar Pregunta'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
