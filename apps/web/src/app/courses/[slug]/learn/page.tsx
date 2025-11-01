@@ -1225,7 +1225,7 @@ export default function CourseLearnPage() {
                     )}
                     {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && <SummaryContent lesson={currentLesson} />}
-                    {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} />}
+                    {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'community' && <CommunityContent />}
                   </motion.div>
                 </AnimatePresence>
@@ -1946,26 +1946,272 @@ function SummaryContent({ lesson }: { lesson: Lesson }) {
   );
 }
 
-function ActivitiesContent({ lesson }: { lesson: Lesson }) {
+function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+  const [activities, setActivities] = useState<Array<{
+    activity_id: string;
+    activity_title: string;
+    activity_description?: string;
+    activity_type: 'reflection' | 'exercise' | 'quiz' | 'discussion' | 'ai_chat';
+    activity_content: string;
+    ai_prompts?: string;
+    activity_order_index: number;
+    is_required: boolean;
+  }>>([]);
+  const [materials, setMaterials] = useState<Array<{
+    material_id: string;
+    material_title: string;
+    material_description?: string;
+    material_type: 'pdf' | 'link' | 'document' | 'quiz' | 'exercise' | 'reading';
+    file_url?: string;
+    external_url?: string;
+    content_data?: any;
+    material_order_index: number;
+    is_downloadable: boolean;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadActivitiesAndMaterials() {
+      if (!lesson?.lesson_id || !slug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Cargar actividades
+        const activitiesResponse = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`);
+        if (activitiesResponse.ok) {
+          const activitiesData = await activitiesResponse.json();
+          setActivities(activitiesData || []);
+        } else {
+          setActivities([]);
+        }
+
+        // Cargar materiales
+        const materialsResponse = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`);
+        if (materialsResponse.ok) {
+          const materialsData = await materialsResponse.json();
+          setMaterials(materialsData || []);
+        } else {
+          setMaterials([]);
+        }
+      } catch (error) {
+        console.error('Error loading activities and materials:', error);
+        setActivities([]);
+        setMaterials([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadActivitiesAndMaterials();
+  }, [lesson?.lesson_id, slug]);
+
+  const hasActivities = activities.length > 0;
+  const hasMaterials = materials.length > 0;
+  const hasContent = hasActivities || hasMaterials;
+
+  if (loading) {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Actividades del Video - {lesson.lesson_title}</h2>
-      
-      <div className="bg-carbon-600 rounded-lg p-6">
-        <div className="flex items-center gap-3 mb-3">
-          <FileText className="w-5 h-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-white">Descripción de la Actividad</h3>
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <p className="text-white/70">Este video no tiene ninguna Actividad</p>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-slate-400 animate-pulse" />
+          </div>
+          <p className="text-slate-400">Cargando actividades...</p>
+        </div>
       </div>
+    );
+  }
 
-      <div className="bg-carbon-600 rounded-lg p-6">
-        <div className="flex items-center gap-3 mb-3">
-          <HelpCircle className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-semibold text-white">Prompts y Ejercicios</h3>
+  if (!hasContent) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <p className="text-white/70">Este video no tiene ninguna Actividad</p>
+        
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-slate-400" />
       </div>
+          <h3 className="text-white text-lg font-semibold mb-2">Actividades no disponibles</h3>
+          <p className="text-slate-400 mb-4">
+            Esta lección aún no tiene actividades disponibles. Las actividades se agregarán próximamente.
+          </p>
+          <div className="text-sm text-slate-500">
+            <p>• Las actividades se agregan manualmente</p>
+            <p>• Contacta al instructor si necesitas ayuda</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
+        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+
+      {/* Actividades */}
+      {hasActivities && (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+          {/* Header de actividades */}
+          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Activity className="w-5 h-5 text-blue-400" />
+                <h3 className="text-white font-semibold">Actividades</h3>
+      </div>
+              <div className="flex items-center space-x-4 text-sm text-slate-400">
+                <span>{activities.length} actividad{activities.length !== 1 ? 'es' : ''}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contenido de actividades */}
+          <div className="p-6 space-y-4">
+            {activities.map((activity) => (
+              <div
+                key={activity.activity_id}
+                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="text-white font-semibold text-lg">{activity.activity_title}</h4>
+                      {activity.is_required && (
+                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
+                          Requerida
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
+                        {activity.activity_type}
+                      </span>
+                    </div>
+                    {activity.activity_description && (
+                      <p className="text-slate-300 text-sm mb-3">{activity.activity_description}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
+                  <div className="prose prose-invert max-w-none">
+                    <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                      {activity.activity_content}
+                    </div>
+                  </div>
+                </div>
+
+                {activity.ai_prompts && (
+                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <HelpCircle className="w-4 h-4 text-purple-400" />
+                      <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                      <div className="prose prose-invert max-w-none">
+                        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap text-sm">
+                          {activity.ai_prompts}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Materiales */}
+      {hasMaterials && (
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+          {/* Header de materiales */}
+          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FileText className="w-5 h-5 text-green-400" />
+                <h3 className="text-white font-semibold">Materiales</h3>
+              </div>
+              <div className="flex items-center space-x-4 text-sm text-slate-400">
+                <span>{materials.length} material{materials.length !== 1 ? 'es' : ''}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contenido de materiales */}
+          <div className="p-6 space-y-4">
+            {materials.map((material) => (
+              <div
+                key={material.material_id}
+                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="text-white font-semibold text-lg">{material.material_title}</h4>
+                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 capitalize">
+                        {material.material_type}
+                      </span>
+                      {material.is_downloadable && (
+                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
+                          Descargable
+                        </span>
+                      )}
+                    </div>
+                    {material.material_description && (
+                      <p className="text-slate-300 text-sm mb-3">{material.material_description}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Enlaces y acciones */}
+                <div className="flex items-center gap-3">
+                  {material.external_url && (
+                    <a
+                      href={material.external_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span className="text-sm">Abrir enlace</span>
+                    </a>
+                  )}
+                  {material.file_url && (
+                    <a
+                      href={material.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span className="text-sm">Ver archivo</span>
+                    </a>
+                  )}
+                  {material.content_data && typeof material.content_data === 'object' && (
+                    <div className="flex-1 bg-carbon-800/50 rounded-lg p-3 border border-carbon-600/50">
+                      <p className="text-slate-300 text-sm">
+                        {JSON.stringify(material.content_data, null, 2)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
