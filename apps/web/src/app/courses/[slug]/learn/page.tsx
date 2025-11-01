@@ -26,8 +26,9 @@ import {
   Send,
   User,
   Copy,
-  Check
-  , Plus
+  Check,
+  Plus,
+  RotateCcw
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
@@ -114,6 +115,8 @@ export default function CourseLearnPage() {
     lessonsWithNotes: '0/0',
     lastUpdate: '-'
   });
+  const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] = useState(false);
+  const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
 
   // Función para formatear timestamp
   const formatTimestamp = (dateString: string): string => {
@@ -449,6 +452,192 @@ export default function CourseLearnPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Función para encontrar todas las lecciones ordenadas en una lista plana
+  const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
+    const allLessons: Array<{ lesson: Lesson; module: Module }> = [];
+    
+    // Ordenar módulos por module_order_index
+    const sortedModules = [...modules].sort((a, b) => a.module_order_index - b.module_order_index);
+    
+    sortedModules.forEach((module) => {
+      // Ordenar lecciones por lesson_order_index dentro de cada módulo
+      const sortedLessons = [...module.lessons].sort((a, b) => a.lesson_order_index - b.lesson_order_index);
+      sortedLessons.forEach((lesson) => {
+        allLessons.push({ lesson, module });
+      });
+    });
+    
+    return allLessons;
+  };
+
+  // Función para encontrar la lección anterior
+  const getPreviousLesson = (): Lesson | null => {
+    if (!currentLesson || modules.length === 0) return null;
+    
+    const allLessons = getAllLessonsOrdered();
+    const currentIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === currentLesson.lesson_id
+    );
+    
+    if (currentIndex === -1 || currentIndex === 0) return null;
+    
+    return allLessons[currentIndex - 1].lesson;
+  };
+
+  // Función para encontrar la lección siguiente
+  const getNextLesson = (): Lesson | null => {
+    if (!currentLesson || modules.length === 0) return null;
+    
+    const allLessons = getAllLessonsOrdered();
+    const currentIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === currentLesson.lesson_id
+    );
+    
+    if (currentIndex === -1 || currentIndex === allLessons.length - 1) return null;
+    
+    return allLessons[currentIndex + 1].lesson;
+  };
+
+  // Función para verificar si una lección puede ser completada
+  const canCompleteLesson = (lessonId: string): boolean => {
+    if (!lessonId || modules.length === 0) return false;
+    
+    const allLessons = getAllLessonsOrdered();
+    const lessonIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === lessonId
+    );
+    
+    // Si es la primera lección del curso, puede ser completada
+    if (lessonIndex === 0) return true;
+    
+    // Si no es la primera, verificar que la anterior esté completada
+    const previousLesson = allLessons[lessonIndex - 1].lesson;
+    return previousLesson.is_completed;
+  };
+
+  // Función para marcar una lección como completada (solo local)
+  const markLessonAsCompleted = (lessonId: string) => {
+    if (!canCompleteLesson(lessonId)) {
+      console.log('No se puede completar la lección porque la anterior no está completada');
+      return false;
+    }
+
+    // Actualizar módulos y recalcular progreso
+    setModules((prevModules) => {
+      const updatedModules = prevModules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map((lesson) =>
+          lesson.lesson_id === lessonId
+            ? { ...lesson, is_completed: true }
+            : lesson
+        ),
+      }));
+
+      // Recalcular el progreso del curso con los módulos actualizados
+      const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
+      const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
+      const totalProgress = allLessons.length > 0 
+        ? Math.round((completedLessons.length / allLessons.length) * 100)
+        : 0;
+      
+      // Actualizar progreso del curso
+      setCourseProgress(totalProgress);
+
+      return updatedModules;
+    });
+
+    // Actualizar currentLesson si es la lección actual
+    if (currentLesson?.lesson_id === lessonId) {
+      setCurrentLesson((prev) => prev ? { ...prev, is_completed: true } : null);
+    }
+
+    return true;
+  };
+
+  // Función para navegar a la lección anterior
+  const navigateToPreviousLesson = () => {
+    const previousLesson = getPreviousLesson();
+    if (previousLesson) {
+      setCurrentLesson(previousLesson);
+      // Cambiar al tab de video cuando navegas
+      setActiveTab('video');
+      // Hacer scroll hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Función para navegar a la lección siguiente
+  const navigateToNextLesson = () => {
+    // Si hay una lección actual, intentar marcarla como completada antes de avanzar
+    if (currentLesson) {
+      markLessonAsCompleted(currentLesson.lesson_id);
+    }
+
+    const nextLesson = getNextLesson();
+    if (nextLesson) {
+      setCurrentLesson(nextLesson);
+      // Cambiar al tab de video cuando navegas
+      setActiveTab('video');
+      // Hacer scroll hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Función para borrar progreso local
+  const resetLocalProgress = () => {
+    if (!confirm('¿Estás seguro de que quieres borrar todo tu progreso local? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    // Resetear todas las lecciones a no completadas
+    setModules((prevModules) =>
+      prevModules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map((lesson) => ({
+          ...lesson,
+          is_completed: false
+        })),
+      }))
+    );
+
+    // Actualizar currentLesson si está completada
+    if (currentLesson?.is_completed) {
+      setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+    }
+
+    // Resetear progreso del curso
+    setCourseProgress(0);
+
+    // Si no hay lección seleccionada o la actual está completada, seleccionar la primera
+    const allLessons = getAllLessonsOrdered();
+    if (allLessons.length > 0 && (!currentLesson || currentLesson.is_completed)) {
+      setCurrentLesson(allLessons[0].lesson);
+    }
+  };
+
+  // Función para manejar el cambio de lección desde el panel
+  const handleLessonChange = (selectedLesson: Lesson) => {
+    // Si hay una lección actual y se está avanzando (seleccionando una lección posterior)
+    if (currentLesson) {
+      const allLessons = getAllLessonsOrdered();
+      const currentIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === currentLesson.lesson_id
+      );
+      const selectedIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === selectedLesson.lesson_id
+      );
+
+      // Si se está avanzando (seleccionando una lección posterior), marcar como completada la actual
+      if (selectedIndex > currentIndex) {
+        markLessonAsCompleted(currentLesson.lesson_id);
+      }
+    }
+
+    setCurrentLesson(selectedLesson);
+    setActiveTab('video');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const tabs = [
     { id: 'video' as const, label: 'Video', icon: Play },
     { id: 'transcript' as const, label: 'Transcripción', icon: ScrollText },
@@ -551,6 +740,14 @@ export default function CourseLearnPage() {
 
           {/* Sección derecha: Usuario */}
         <div className="flex items-center gap-2">
+            {/* Botón para resetear progreso local */}
+            <button
+              onClick={resetLocalProgress}
+              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors group"
+              title="Borrar progreso local"
+            >
+              <RotateCcw className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
+            </button>
             {/* Menú de usuario */}
             <UserDropdown />
           </div>
@@ -646,7 +843,7 @@ export default function CourseLearnPage() {
                             key={lesson.lesson_id}
                             whileHover={{ x: 4, scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setCurrentLesson(lesson)}
+                            onClick={() => handleLessonChange(lesson)}
                             className={`w-full p-4 rounded-xl transition-all duration-200 ${
                               isActive
                                 ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-blue-400/50 shadow-lg shadow-blue-500/20'
@@ -951,7 +1148,20 @@ export default function CourseLearnPage() {
                     transition={{ duration: 0.3 }}
                     className="h-full p-6"
                   >
-                    {activeTab === 'video' && <VideoContent lesson={currentLesson} />}
+                    {activeTab === 'video' && (
+                      <VideoContent 
+                        lesson={currentLesson} 
+                        modules={modules}
+                        onNavigatePrevious={navigateToPreviousLesson}
+                        onNavigateNext={navigateToNextLesson}
+                        getPreviousLesson={getPreviousLesson}
+                        getNextLesson={getNextLesson}
+                        markLessonAsCompleted={markLessonAsCompleted}
+                        canCompleteLesson={canCompleteLesson}
+                        onCourseCompleted={() => setIsCourseCompletedModalOpen(true)}
+                        onCannotComplete={() => setIsCannotCompleteModalOpen(true)}
+                      />
+                    )}
                     {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && <SummaryContent lesson={currentLesson} />}
                     {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} />}
@@ -1083,14 +1293,161 @@ export default function CourseLearnPage() {
         initialNote={editingNote}
         isEditing={!!editingNote}
       />
+
+      {/* Modal de Curso Completado */}
+      <AnimatePresence>
+        {isCourseCompletedModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsCourseCompletedModalOpen(false)}
+          >
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+            >
+              {/* Icono de éxito */}
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
+                  <CheckCircle2 className="w-10 h-10 text-white" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-2xl font-bold text-white text-center mb-2">
+                ¡Felicidades!
+              </h3>
+
+              {/* Mensaje */}
+              <p className="text-slate-300 text-center mb-6">
+                Has completado el curso exitosamente. ¡Buen trabajo!
+              </p>
+
+              {/* Botón de cerrar */}
+              <button
+                onClick={() => setIsCourseCompletedModalOpen(false)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+              >
+                Aceptar
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de No Puede Completar */}
+      <AnimatePresence>
+        {isCannotCompleteModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsCannotCompleteModalOpen(false)}
+          >
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+            >
+              {/* Icono de advertencia */}
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/25">
+                  <HelpCircle className="w-10 h-10 text-white" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-2xl font-bold text-white text-center mb-2">
+                No puedes completar esta lección
+              </h3>
+
+              {/* Mensaje */}
+              <p className="text-slate-300 text-center mb-6">
+                Tienes lecciones pendientes que debes completar antes de terminar el curso. Completa todas las lecciones anteriores en orden.
+              </p>
+
+              {/* Botón de cerrar */}
+              <button
+                onClick={() => setIsCannotCompleteModalOpen(false)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+              >
+                Entendido
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // Componentes de contenido
-function VideoContent({ lesson }: { lesson: Lesson }) {
+function VideoContent({ 
+  lesson, 
+  modules, 
+  onNavigatePrevious, 
+  onNavigateNext,
+  getPreviousLesson,
+  getNextLesson,
+  markLessonAsCompleted,
+  canCompleteLesson,
+  onCourseCompleted,
+  onCannotComplete
+}: { 
+  lesson: Lesson;
+  modules: Module[];
+  onNavigatePrevious: () => void;
+  onNavigateNext: () => void;
+  getPreviousLesson: () => Lesson | null;
+  getNextLesson: () => Lesson | null;
+  markLessonAsCompleted: (lessonId: string) => boolean;
+  canCompleteLesson: (lessonId: string) => boolean;
+  onCourseCompleted: () => void;
+  onCannotComplete: () => void;
+}) {
   // Verificar si la lección tiene video
   const hasVideo = lesson.video_provider && lesson.video_provider_id;
+  
+  // Obtener lecciones anterior y siguiente
+  const previousLesson = getPreviousLesson();
+  const nextLesson = getNextLesson();
+  
+  // Determinar si hay lección anterior y siguiente (con o sin video)
+  const hasPreviousLesson = previousLesson !== null;
+  const hasNextLesson = nextLesson !== null;
+  
+  // Determinar si hay video anterior y siguiente
+  const hasPreviousVideo = hasPreviousLesson && previousLesson.video_provider && previousLesson.video_provider_id;
+  const hasNextVideo = hasNextLesson && nextLesson.video_provider && nextLesson.video_provider_id;
+  
+  // Determinar si es la última lección
+  const isLastLesson = !hasNextLesson;
   
   // Debug logging
   console.log('VideoContent - Lesson data:', {
@@ -1099,31 +1456,127 @@ function VideoContent({ lesson }: { lesson: Lesson }) {
     video_provider: lesson.video_provider,
     video_provider_id: lesson.video_provider_id,
     hasVideo,
+    hasPreviousVideo,
+    hasNextVideo,
     fullLesson: lesson
   });
   
   return (
     <div className="space-y-6">
-      {hasVideo ? (
-        <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600">
-          <VideoPlayer
-            videoProvider={lesson.video_provider!}
-            videoProviderId={lesson.video_provider_id!}
-            title={lesson.lesson_title}
-            className="w-full h-full"
-          />
-        </div>
-      ) : (
-        <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-carbon-600 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
-          <div className="text-center relative z-10">
-            <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
-              <Play className="w-10 h-10 text-white ml-1" />
+      <div className="relative">
+        {hasVideo ? (
+          <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative">
+            <VideoPlayer
+              videoProvider={lesson.video_provider!}
+              videoProviderId={lesson.video_provider_id!}
+              title={lesson.lesson_title}
+              className="w-full h-full"
+            />
+            
+            {/* Botones de navegación - Centrados verticalmente */}
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+              {/* Botón anterior - lado izquierdo */}
+              {hasPreviousVideo && (
+                <button
+                  onClick={onNavigatePrevious}
+                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                >
+                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                    Anterior
+                  </span>
+                </button>
+              )}
+              
+              {/* Botón siguiente o terminar - lado derecho */}
+              {(hasNextVideo || isLastLesson) && (
+                <button
+                  onClick={isLastLesson ? () => {
+                    // Verificar si se puede completar la lección
+                    if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                      // Marcar la última lección como completada antes de terminar
+                      markLessonAsCompleted(lesson.lesson_id);
+                      // Mostrar modal de curso completado
+                      onCourseCompleted();
+                    } else {
+                      // Mostrar modal de error si no se puede completar
+                      onCannotComplete();
+                    }
+                  } : onNavigateNext}
+                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                    isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
+                  }`}
+                >
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                    {isLastLesson ? 'Terminar' : 'Siguiente'}
+                  </span>
+                  {isLastLesson ? (
+                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  )}
+                </button>
+              )}
             </div>
-            <p className="text-white/70">Video no disponible</p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-carbon-600 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
+            <div className="text-center relative z-10">
+              <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
+                <Play className="w-10 h-10 text-white ml-1" />
+              </div>
+              <p className="text-white/70">Video no disponible</p>
+            </div>
+            
+            {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+              {/* Botón anterior - lado izquierdo */}
+              {hasPreviousVideo && (
+                <button
+                  onClick={onNavigatePrevious}
+                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                >
+                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                    Anterior
+                  </span>
+                </button>
+              )}
+              
+              {/* Botón siguiente o terminar - lado derecho */}
+              {(hasNextVideo || isLastLesson) && (
+                <button
+                  onClick={isLastLesson ? () => {
+                    // Verificar si se puede completar la lección
+                    if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                      // Marcar la última lección como completada antes de terminar
+                      markLessonAsCompleted(lesson.lesson_id);
+                      // Mostrar modal de curso completado
+                      onCourseCompleted();
+                    } else {
+                      // Mostrar modal de error si no se puede completar
+                      onCannotComplete();
+                    }
+                  } : onNavigateNext}
+                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                    isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
+                  }`}
+                >
+                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                    {isLastLesson ? 'Terminar' : 'Siguiente'}
+                  </span>
+                  {isLastLesson ? (
+                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div>
         <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
