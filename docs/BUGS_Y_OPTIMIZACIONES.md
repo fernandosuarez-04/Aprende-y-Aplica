@@ -10,12 +10,12 @@
 
 | Severidad | Cantidad | Pendientes | Corregidos |
 |-----------|----------|------------|------------|
-| 🔴 **CRÍTICO** | 4 | 1 | ✅ 3 |
+| 🔴 **CRÍTICO** | 4 | 0 | ✅ 4 |
 | 🟠 **ALTO** | 9 | 3 | ✅ 6 |
 | 🟡 **MEDIO** | 10 | 6 | ✅ 4 |
 | 🟢 **BAJO** | 2 | 1 | ✅ 1 |
 
-**Estado general**: El proyecto ha mejorado significativamente su seguridad. Queda **1 vulnerabilidad crítica** (validación de rol en middleware) y **3 de alta prioridad** pendientes. El sistema de refresh tokens reduce la ventana de ataque en un 99.9% (de 30 días a 30 minutos).
+**Estado general**: 🎉 **¡TODAS LAS VULNERABILIDADES CRÍTICAS RESUELTAS!** El proyecto ha mejorado dramáticamente su seguridad. Quedan **3 de alta prioridad** y **7 de media/baja** pendientes. El sistema de refresh tokens reduce la ventana de ataque en un 99.9% (de 30 días a 30 minutos). La validación robusta de roles previene escalación de privilegios.
 
 **Última actualización**: 31 de Octubre, 2025
 - ✅ **Issue #2 (Stack traces expuestos)** - RESUELTO (17 endpoints corregidos - 27 Oct 2025)
@@ -31,11 +31,14 @@
 - ✅ **Issue #12 (Slug sin validación ni sanitización)** - RESUELTO (29 Oct 2025)
 - ✅ **Issue #13 (Race condition en creación de username)** - RESUELTO (29 Oct 2025)
 - ✅ **Issue #15 (Certificados SMTP sin validación)** - RESUELTO (29 Oct 2025)
-- ✅ **Issue #17 (Expiración de sesión débil - Sistema de refresh tokens)** - RESUELTO (31 Oct 2025)
+- ✅ **Issue #16 (Validación de rol insuficiente en middleware)** - RESUELTO (31 Oct 2025) 🎉
+- ✅ **Issue #17 (Expiración de sesión débil - Sistema de refresh tokens)** - RESUELTO (31 Oct 2025) 🎉
 - ✅ **Issue #18 (N+1 queries en getAllCommunities)** - RESUELTO
 - ✅ **Issue #19 (Sin paginación en getAllCommunities)** - RESUELTO (29 Oct 2025)
 - ✅ **Optimización de carga de comunidades (Batch endpoint)** - IMPLEMENTADO (28 Oct 2025)
 - ✅ **Corrección tabla favoritos (user_favorites → app_favorites)** - RESUELTO (28 Oct 2025)
+
+🎉 **HITO ALCANZADO**: ¡Todas las vulnerabilidades CRÍTICAS han sido resueltas! (31 Oct 2025)
 ---
 
 ## 🎯 CATEGORIZACIÓN POR DIFICULTAD
@@ -1454,13 +1457,14 @@ tls: {
 
 ### 🚀 NIVEL 3: DIFÍCIL (8+ horas cada uno)
 
-#### 16. 🔴 **Validación de rol insuficiente en middleware**
+#### 16. ✅ **Validación de rol insuficiente en middleware** [CORREGIDO - 31 Oct 2025]
 - **Archivo**: `middleware.ts` (líneas 86-125)
-- **Severidad**: CRÍTICO
+- **Severidad**: CRÍTICO (RESUELTO)
 - **Impacto UX**: Instructor puede acceder a rutas admin bajo ciertas condiciones
 - **Tiempo estimado**: 6-8 horas
+- **Estado**: ✅ **IMPLEMENTADO Y PROBADO**
 
-**Problema**:
+**Problema Original**:
 ```typescript
 // Línea 67: Verifica expiración
 if (isExpired) {
@@ -1482,14 +1486,14 @@ if (!userData || userData.cargo_rol !== 'Administrador') {
 }
 ```
 
-**Issues detectados**:
-1. **Sesión puede expirar entre línea 67 y 111** (race condition temporal)
-2. **No es case-sensitive**: "administrador" ≠ "Administrador"
-3. **No valida si cargo_rol es válido**: ¿qué si BD devuelve "Hacker"?
-4. **Solo redirige**: No registra intentos de acceso no autorizado
-5. **No invalida la cookie** en caso de acceso denegado
+**Issues Resueltos**: ✅
+1. ✅ **Sesión puede expirar entre línea 67 y 111** → Ahora verificación atómica en una sola query
+2. ✅ **No es case-sensitive** → Normalización con trim() y validación
+3. ✅ **No valida si cargo_rol es válido** → Whitelist de 3 roles únicos
+4. ✅ **Solo redirige** → Logging de 7 tipos de eventos de seguridad
+5. ✅ **No invalida la cookie** → Cookies limpiadas en todos los casos de error
 
-**Solución robusta**:
+**Solución Implementada**: ✅
 ```typescript
 // apps/web/src/core/middleware/auth.middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -1593,10 +1597,37 @@ async function logSecurityEvent(event: string, data: any) {
 }
 ```
 
-**Archivos a modificar**:
-- `middleware.ts:86-125` - reemplazar lógica actual
-- Crear `apps/web/src/core/middleware/auth.middleware.ts`
-- Agregar columna `is_active` a tabla `users` en Supabase
+**Archivos Implementados**: ✅
+- ✅ `apps/web/src/core/middleware/auth.middleware.ts` (NUEVO - 440+ líneas)
+  * Módulo completo de validación de roles
+  * 3 funciones principales: validateRoleAccess(), validateAdminAccess(), validateInstructorAccess()
+  * Whitelist de roles: ['Usuario', 'Instructor', 'Administrador']
+  * 7 tipos de eventos de seguridad
+  * Helpers: normalizeRole(), hasRoleAccess(), getClientIp()
+  
+- ✅ `apps/web/middleware.ts` (MODIFICADO)
+  * Integrado con auth.middleware.ts
+  * Validación por tipo de ruta (admin, instructor, user)
+  * Flujo: auth → refresh tokens → validación de rol
+  * Logging detallado de cada paso
+  
+- ✅ `docs/VALIDACION_ROLES_ROBUSTA.md` (NUEVO)
+  * Documentación completa del sistema
+  * Guías de testing
+  * Queries de monitoreo
+  * Checklist de validación
+
+**Mejoras de Seguridad Implementadas**: ✅
+- ✅ Verificación atómica (una sola query)
+- ✅ Timestamp actual en cada validación (previene race conditions)
+- ✅ Normalización case-insensitive con trim()
+- ✅ Whitelist estricta de 3 roles únicos
+- ✅ Logging de 7 tipos de eventos de seguridad
+- ✅ Limpieza automática de cookies inválidas
+- ✅ Verificación de sesiones revocadas
+- ✅ Jerarquía de permisos (Admin > Instructor > Usuario)
+- ✅ IP tracking para auditoría
+- ✅ User-Agent logging
 
 ---
 

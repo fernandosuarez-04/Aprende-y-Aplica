@@ -1,6 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from './src/lib/supabase/middleware'
 import { RefreshTokenService } from './src/lib/auth/refreshToken.service'
+import { 
+  validateAdminAccess, 
+  validateInstructorAccess, 
+  validateUserAccess,
+  ROLE_ROUTES 
+} from './src/core/middleware/auth.middleware'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -10,12 +16,14 @@ export async function middleware(request: NextRequest) {
   // Actualizar sesión de Supabase
   let response = await updateSession(request);
   
-  // Rutas protegidas que requieren autenticación
-  const protectedRoutes = ['/dashboard', '/profile', '/courses', '/communities', '/admin'];
+  // Rutas protegidas por rol
+  const isAdminRoute = ROLE_ROUTES.admin.some(route => pathname.startsWith(route));
+  const isInstructorRoute = ROLE_ROUTES.instructor.some(route => pathname.startsWith(route));
+  const isUserRoute = ROLE_ROUTES.user.some(route => pathname.startsWith(route));
   const authRoutes = ['/auth'];
   
   // Verificar si es una ruta protegida
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const isProtectedRoute = isAdminRoute || isInstructorRoute || isUserRoute;
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
   
   console.log('📍 Ruta protegida:', isProtectedRoute, 'Ruta auth:', isAuthRoute);
@@ -74,6 +82,31 @@ export async function middleware(request: NextRequest) {
         return redirectResponse;
       }
     }
+    
+    // ✅ VALIDACIÓN DE ROL ROBUSTA (Issue #16)
+    // Verificar permisos basados en el rol del usuario
+    console.log('🔐 Validando permisos de rol para:', pathname);
+    
+    let roleValidationResponse: NextResponse | null = null;
+    
+    if (isAdminRoute) {
+      console.log('🔐 Validando acceso de Administrador');
+      roleValidationResponse = await validateAdminAccess(request);
+    } else if (isInstructorRoute) {
+      console.log('🔐 Validando acceso de Instructor');
+      roleValidationResponse = await validateInstructorAccess(request);
+    } else if (isUserRoute) {
+      console.log('🔐 Validando acceso de Usuario');
+      roleValidationResponse = await validateUserAccess(request);
+    }
+    
+    // Si la validación de rol devuelve una respuesta, significa que el acceso fue denegado
+    if (roleValidationResponse) {
+      console.log('❌ Acceso denegado por validación de rol');
+      return roleValidationResponse;
+    }
+    
+    console.log('✅ Validación de rol exitosa');
   }
   
   // Si es una ruta de auth y hay sesión válida, redirigir al dashboard
