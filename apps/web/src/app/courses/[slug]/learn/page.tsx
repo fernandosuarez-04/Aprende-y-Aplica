@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
   Play, 
   BookOpen, 
@@ -28,7 +29,12 @@ import {
   Copy,
   Check,
   Plus,
-  RotateCcw
+  RotateCcw,
+  Reply,
+  Heart,
+  Eye,
+  CheckCircle,
+  X
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
@@ -2240,8 +2246,9 @@ function QuestionsContent({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'resolved' | 'unresolved' | 'pinned'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [userReactions, setUserReactions] = useState<Record<string, string>>({}); // questionId -> reaction_type
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({}); // questionId -> count
 
   useEffect(() => {
     async function loadQuestions() {
@@ -2253,11 +2260,8 @@ function QuestionsContent({ slug }: { slug: string }) {
       try {
         setLoading(true);
         
-        // Construir URL con filtros
+        // Construir URL con búsqueda (si existe)
         const params = new URLSearchParams();
-        if (filter === 'resolved') params.append('resolved', 'true');
-        else if (filter === 'unresolved') params.append('resolved', 'false');
-        if (filter === 'pinned') params.append('pinned', 'true');
         if (searchQuery) params.append('search', searchQuery);
 
         const url = `/api/courses/${slug}/questions${params.toString() ? `?${params.toString()}` : ''}`;
@@ -2266,6 +2270,51 @@ function QuestionsContent({ slug }: { slug: string }) {
         if (response.ok) {
           const data = await response.json();
           setQuestions(data || []);
+          
+          // Cargar reacciones del usuario para cada pregunta
+          if (data && data.length > 0) {
+            const reactionsMap: Record<string, string> = {};
+            const countsMap: Record<string, number> = {};
+            
+            // Inicializar contadores con los valores de las preguntas
+            data.forEach((q: any) => {
+              countsMap[q.id] = q.reaction_count || 0;
+            });
+            
+            // Cargar reacciones del usuario actual
+            try {
+              const { createClient } = await import('@supabase/supabase-js');
+              const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+              );
+              
+              const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+              
+              if (supabaseUser) {
+                // Cargar todas las reacciones del usuario para estas preguntas
+                const questionIds = data.map((q: any) => q.id);
+                const { data: userReactionsData } = await supabase
+                  .from('course_question_reactions')
+                  .select('question_id, reaction_type')
+                  .eq('user_id', supabaseUser.id)
+                  .in('question_id', questionIds);
+                
+                if (userReactionsData) {
+                  userReactionsData.forEach((reaction: any) => {
+                    if (reaction.question_id) {
+                      reactionsMap[reaction.question_id] = reaction.reaction_type;
+                    }
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('Error loading user reactions:', error);
+            }
+            
+            setUserReactions(reactionsMap);
+            setReactionCounts(countsMap);
+          }
         } else {
           setQuestions([]);
         }
@@ -2278,13 +2327,23 @@ function QuestionsContent({ slug }: { slug: string }) {
     }
 
     loadQuestions();
-  }, [slug, filter, searchQuery]);
+  }, [slug, searchQuery]);
 
   const getUserDisplayName = (user: any) => {
     return user?.display_name || 
            (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
            user?.username || 
            'Usuario';
+  };
+
+  const getUserInitials = (user: any) => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+    }
+    if (user?.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    return 'U';
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -2299,14 +2358,91 @@ function QuestionsContent({ slug }: { slug: string }) {
     return date.toLocaleDateString();
   };
 
+  const handleReaction = async (questionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const currentReaction = userReactions[questionId];
+    const newReactionType = currentReaction === 'like' ? null : 'like';
+    
+    // Actualización optimista
+    const currentCount = reactionCounts[questionId] || 0;
+    const newCount = currentReaction === 'like' ? Math.max(0, currentCount - 1) : currentCount + 1;
+    
+    setReactionCounts(prev => ({ ...prev, [questionId]: newCount }));
+    setUserReactions(prev => {
+      if (newReactionType) {
+        return { ...prev, [questionId]: newReactionType };
+      } else {
+        const updated = { ...prev };
+        delete updated[questionId];
+        return updated;
+      }
+    });
+    
+    try {
+      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/reactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          reaction_type: 'like',
+          action: 'toggle'
+        })
+      });
+      
+      if (!response.ok) {
+        // Revertir en caso de error
+        setReactionCounts(prev => ({ ...prev, [questionId]: currentCount }));
+        setUserReactions(prev => {
+          if (currentReaction) {
+            return { ...prev, [questionId]: currentReaction };
+          } else {
+            const updated = { ...prev };
+            delete updated[questionId];
+            return updated;
+          }
+        });
+      } else {
+        // Actualizar con datos reales del servidor
+        const result = await response.json();
+        // Si se eliminó, actualizar el contador
+        if (result.action === 'removed') {
+          setReactionCounts(prev => ({ 
+            ...prev, 
+            [questionId]: Math.max(0, (prev[questionId] || 0) - 1)
+          }));
+        } else {
+          // Actualizar la pregunta para reflejar el nuevo contador
+          setQuestions(prev => prev.map(q => 
+            q.id === questionId 
+              ? { ...q, reaction_count: (q.reaction_count || 0) + (currentReaction ? -1 : 1) }
+              : q
+          ));
+        }
+      }
+    } catch (error) {
+      console.error('Error handling reaction:', error);
+      // Revertir en caso de error
+      setReactionCounts(prev => ({ ...prev, [questionId]: currentCount }));
+      setUserReactions(prev => {
+        if (currentReaction) {
+          return { ...prev, [questionId]: currentReaction };
+        } else {
+          const updated = { ...prev };
+          delete updated[questionId];
+          return updated;
+        }
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
         </div>
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-8 text-center">
+          <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
             <MessageCircle className="w-8 h-8 text-slate-400 animate-pulse" />
           </div>
           <p className="text-slate-400">Cargando preguntas...</p>
@@ -2322,73 +2458,30 @@ function QuestionsContent({ slug }: { slug: string }) {
           <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
           >
             <Plus className="w-5 h-5" />
             Hacer Pregunta
           </button>
         </div>
 
-        {/* Filtros y búsqueda */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex items-center gap-2 bg-carbon-700/50 rounded-lg p-1">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                filter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Todas
-            </button>
-            <button
-              onClick={() => setFilter('unresolved')}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                filter === 'unresolved'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Sin resolver
-            </button>
-            <button
-              onClick={() => setFilter('resolved')}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                filter === 'resolved'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Resueltas
-            </button>
-            <button
-              onClick={() => setFilter('pinned')}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                filter === 'pinned'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Fijadas
-            </button>
-          </div>
-          
-          <div className="flex-1 max-w-md">
+        {/* Búsqueda */}
+        <div className="mb-6">
+          <div className="max-w-md">
             <input
               type="text"
               placeholder="Buscar preguntas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 bg-carbon-700/50 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
             />
           </div>
         </div>
       </div>
 
       {questions.length === 0 ? (
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-8 text-center">
+          <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
             <MessageCircle className="w-8 h-8 text-slate-400" />
           </div>
           <h3 className="text-white text-lg font-semibold mb-2">No hay preguntas</h3>
@@ -2398,7 +2491,7 @@ function QuestionsContent({ slug }: { slug: string }) {
           {!searchQuery && (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 inline-flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
             >
               <Plus className="w-5 h-5" />
               Hacer Primera Pregunta
@@ -2412,51 +2505,117 @@ function QuestionsContent({ slug }: { slug: string }) {
               key={question.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors"
-              onClick={() => setSelectedQuestion(selectedQuestion === question.id ? null : question.id)}
+              className="bg-gradient-to-br from-slate-800/50 via-slate-700/30 to-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden hover:border-slate-600/50 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {question.is_pinned && (
-                        <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
-                          Fijada
-                        </span>
-                      )}
-                      {question.is_resolved && (
-                        <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
-                          Resuelta
+              {/* Post Header - Estilo Facebook/Comunidad */}
+              <div className="p-6 pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                      {question.user?.profile_picture_url ? (
+                        <Image
+                          src={question.user.profile_picture_url}
+                          alt={getUserDisplayName(question.user)}
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="text-white font-semibold text-sm">
+                          {getUserInitials(question.user)}
                         </span>
                       )}
                     </div>
-                    {question.title && (
-                      <h3 className="text-white font-semibold text-lg mb-2">{question.title}</h3>
-                    )}
-                    <p className="text-slate-300 text-sm line-clamp-2">{question.content}</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-white">
+                          {getUserDisplayName(question.user)}
+                        </h3>
+                        {question.is_pinned && (
+                          <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                            Fijada
+                          </span>
+                        )}
+                        {question.is_resolved && (
+                          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Resuelta
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-400">
+                        {formatTimeAgo(question.created_at)} • Curso
+                      </p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-carbon-500/50">
-                  <div className="flex items-center gap-4 text-sm text-slate-400">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span>{getUserDisplayName(question.user)}</span>
-                    </div>
-                    <span>{formatTimeAgo(question.created_at)}</span>
-                    <div className="flex items-center gap-4">
-                      <span>{question.response_count} respuestas</span>
-                      <span>{question.view_count} vistas</span>
-                    </div>
+
+                {/* Post Content */}
+                <div className="mb-4" onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
+                }}>
+                  {question.title && (
+                    <h4 className="text-white font-semibold text-lg mb-2">{question.title}</h4>
+                  )}
+                  <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+                    {selectedQuestion === question.id ? question.content : (
+                      question.content.length > 200 ? `${question.content.substring(0, 200)}...` : question.content
+                    )}
+                  </p>
+                  {question.content.length > 200 && selectedQuestion !== question.id && (
+                    <button className="text-blue-400 hover:text-blue-300 text-sm mt-2">
+                      Ver más
+                    </button>
+                  )}
+                </div>
+
+                {/* Stats Bar - Estilo Facebook */}
+                <div className="flex items-center justify-between py-2 px-0 text-sm text-slate-400 border-t border-slate-700/50">
+                  <div className="flex items-center gap-4">
+                    <button className="flex items-center gap-1 hover:text-blue-400 transition-colors">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>{question.response_count}</span>
+                    </button>
+                    <button className="flex items-center gap-1 hover:text-red-400 transition-colors">
+                      <Heart className="w-4 h-4" />
+                      <span>{reactionCounts[question.id] ?? (question.reaction_count ?? 0)}</span>
+                    </button>
+                    <button className="flex items-center gap-1 hover:text-slate-300 transition-colors">
+                      <Eye className="w-4 h-4" />
+                      <span>{question.view_count}</span>
+                    </button>
                   </div>
-                  <ChevronDown
-                    className={`w-5 h-5 text-slate-400 transition-transform ${
-                      selectedQuestion === question.id ? 'rotate-180' : ''
+                </div>
+
+                {/* Action Buttons - Estilo Facebook */}
+                <div className="flex items-center justify-around py-2 border-t border-slate-700/50 mt-2">
+                  <button 
+                    onClick={(e) => handleReaction(question.id, e)}
+                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30 font-medium ${
+                      userReactions[question.id] === 'like'
+                        ? 'text-red-400'
+                        : 'text-slate-400 hover:text-red-400'
                     }`}
-                  />
+                  >
+                    <Heart className={`w-5 h-5 ${userReactions[question.id] === 'like' ? 'fill-current' : ''}`} />
+                    <span>Me gusta</span>
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
+                    }}
+                    className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30 font-medium"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    <span>Comentar</span>
+                  </button>
                 </div>
               </div>
               
+              {/* Question Detail - Se expande cuando está seleccionada */}
               {selectedQuestion === question.id && (
                 <QuestionDetail
                   questionId={question.id}
@@ -2491,6 +2650,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   const [newResponse, setNewResponse] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
+  const [replyingToReply, setReplyingToReply] = useState<string | null>(null); // Para responder a comentarios anidados
+  const [replyToReplyContent, setReplyToReplyContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [responseReactions, setResponseReactions] = useState<Record<string, string>>({}); // responseId -> reaction_type
+  const [responseReactionCounts, setResponseReactionCounts] = useState<Record<string, number>>({}); // responseId -> count
 
   useEffect(() => {
     async function loadQuestion() {
@@ -2509,6 +2673,78 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         if (responsesRes.ok) {
           const responsesData = await responsesRes.json();
           setResponses(responsesData);
+          
+          // Cargar reacciones del usuario para las respuestas
+          if (responsesData && responsesData.length > 0) {
+            try {
+              const { createClient } = await import('@supabase/supabase-js');
+              const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+              );
+              
+              const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+              
+              if (supabaseUser) {
+                // Recopilar todos los IDs de respuestas (principales y anidadas de todos los niveles)
+                const allResponseIds: string[] = [];
+                responsesData.forEach((r: any) => {
+                  if (r.id) allResponseIds.push(r.id);
+                  if (r.replies && r.replies.length > 0) {
+                    r.replies.forEach((reply: any) => {
+                      if (reply.id) allResponseIds.push(reply.id);
+                      // Incluir respuestas anidadas de nivel 2 (replies de replies)
+                      if (reply.replies && reply.replies.length > 0) {
+                        reply.replies.forEach((nestedReply: any) => {
+                          if (nestedReply.id) allResponseIds.push(nestedReply.id);
+                        });
+                      }
+                    });
+                  }
+                });
+                
+                if (allResponseIds.length > 0) {
+                  const { data: userReactionsData } = await supabase
+                    .from('course_question_reactions')
+                    .select('response_id, reaction_type')
+                    .eq('user_id', supabaseUser.id)
+                    .in('response_id', allResponseIds);
+                  
+                  if (userReactionsData) {
+                    const reactionsMap: Record<string, string> = {};
+                    const countsMap: Record<string, number> = {};
+                    
+                    userReactionsData.forEach((reaction: any) => {
+                      if (reaction.response_id) {
+                        reactionsMap[reaction.response_id] = reaction.reaction_type;
+                      }
+                    });
+                    
+                    // Inicializar contadores con valores de las respuestas (todos los niveles)
+                    responsesData.forEach((r: any) => {
+                      if (r.id) countsMap[r.id] = r.reaction_count || 0;
+                      if (r.replies && r.replies.length > 0) {
+                        r.replies.forEach((reply: any) => {
+                          if (reply.id) countsMap[reply.id] = reply.reaction_count || 0;
+                          // Incluir contadores de respuestas anidadas de nivel 2
+                          if (reply.replies && reply.replies.length > 0) {
+                            reply.replies.forEach((nestedReply: any) => {
+                              if (nestedReply.id) countsMap[nestedReply.id] = nestedReply.reaction_count || 0;
+                            });
+                          }
+                        });
+                      }
+                    });
+                    
+                    setResponseReactions(reactionsMap);
+                    setResponseReactionCounts(countsMap);
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error loading response reactions:', error);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading question:', error);
@@ -2520,10 +2756,98 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     loadQuestion();
   }, [questionId, slug]);
 
-  const handleSubmitResponse = async (e: React.FormEvent) => {
+  const getUserDisplayName = (user: any) => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    }
+    return user?.display_name || user?.username || 'Usuario';
+  };
+
+  const getUserInitials = (user: any) => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+    }
+    if (user?.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'hace un momento';
+    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} min`;
+    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} h`;
+    if (diffInSeconds < 2592000) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+    return date.toLocaleDateString();
+  };
+
+  const handleResponseReaction = async (responseId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    const currentReaction = responseReactions[responseId];
+    const currentCount = responseReactionCounts[responseId] || 0;
+    const newCount = currentReaction === 'like' ? Math.max(0, currentCount - 1) : currentCount + 1;
+    
+    // Actualización optimista
+    setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCount }));
+    setResponseReactions(prev => {
+      if (currentReaction === 'like') {
+        const updated = { ...prev };
+        delete updated[responseId];
+        return updated;
+      } else {
+        return { ...prev, [responseId]: 'like' };
+      }
+    });
+    
+    try {
+      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses/${responseId}/reactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          reaction_type: 'like',
+          action: 'toggle'
+        })
+      });
+      
+      if (!response.ok) {
+        // Revertir en caso de error
+        setResponseReactionCounts(prev => ({ ...prev, [responseId]: currentCount }));
+        setResponseReactions(prev => {
+          if (currentReaction) {
+            return { ...prev, [responseId]: currentReaction };
+          } else {
+            const updated = { ...prev };
+            delete updated[responseId];
+            return updated;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error handling response reaction:', error);
+      // Revertir en caso de error
+      setResponseReactionCounts(prev => ({ ...prev, [responseId]: currentCount }));
+      setResponseReactions(prev => {
+        if (currentReaction) {
+          return { ...prev, [responseId]: currentReaction };
+        } else {
+          const updated = { ...prev };
+          delete updated[responseId];
+          return updated;
+        }
+      });
+    }
+  };
+
+  const handleSubmitResponse = async (e?: React.FormEvent) => {
+    e?.stopPropagation();
     if (!newResponse.trim()) return;
 
+    setIsSubmitting(true);
     try {
       const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
         method: 'POST',
@@ -2538,12 +2862,15 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
       }
     } catch (error) {
       console.error('Error submitting response:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSubmitReply = async (parentId: string) => {
     if (!replyContent.trim()) return;
 
+    setIsSubmitting(true);
     try {
       const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
         method: 'POST',
@@ -2566,12 +2893,57 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
       }
     } catch (error) {
       console.error('Error submitting reply:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitReplyToReply = async (parentReplyId: string, parentResponseId: string) => {
+    if (!replyToReplyContent.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: replyToReplyContent.trim(),
+          parent_response_id: parentReplyId
+        })
+      });
+
+      if (response.ok) {
+        const newReplyData = await response.json();
+        // Buscar la respuesta principal y actualizar sus replies
+        setResponses(prev => prev.map(response => {
+          if (response.id === parentResponseId) {
+            const updatedReplies = (response.replies || []).map((reply: any) => {
+              if (reply.id === parentReplyId) {
+                // Si el reply ya tiene replies, agregarlo, sino crear el array
+                return {
+                  ...reply,
+                  replies: [...(reply.replies || []), newReplyData]
+                };
+              }
+              return reply;
+            });
+            return { ...response, replies: updatedReplies };
+          }
+          return response;
+        }));
+        setReplyToReplyContent('');
+        setReplyingToReply(null);
+      }
+    } catch (error) {
+      console.error('Error submitting reply to reply:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="p-6 border-t border-carbon-500/50 bg-carbon-700/30">
+      <div className="p-6 border-t border-slate-700/50 bg-slate-800/30">
         <p className="text-slate-400">Cargando...</p>
       </div>
     );
@@ -2580,114 +2952,318 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   if (!question) return null;
 
   return (
-    <div className="p-6 border-t border-carbon-500/50 bg-carbon-700/30" onClick={(e) => e.stopPropagation()}>
-      <div className="mb-6">
-        <h3 className="text-white font-semibold text-lg mb-2">{question.title || 'Pregunta'}</h3>
-        <p className="text-slate-300 whitespace-pre-wrap">{question.content}</p>
-      </div>
-
-      <div className="space-y-4 mb-6">
-        {responses.map((response) => (
-          <div key={response.id} className="bg-carbon-800/50 rounded-lg p-4 border border-carbon-600/50">
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-white font-semibold text-sm">
-                    {response.user?.display_name || response.user?.username || 'Usuario'}
-                  </span>
-                  {response.is_instructor_answer && (
-                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
-                      Instructor
-                    </span>
-                  )}
-                  {response.is_approved_answer && (
-                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
-                      ✓ Respuesta Aprobada
-                    </span>
-                  )}
-                </div>
-                <p className="text-slate-300 text-sm mb-3">{response.content}</p>
-                <button
-                  onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
-                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Responder
-                </button>
-              </div>
-            </div>
-
-            {replyingTo === response.id && (
-              <div className="mt-3 pl-11">
-                <textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Escribe tu respuesta..."
-                  className="w-full px-4 py-2 bg-carbon-700 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-                  rows={3}
-                />
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleSubmitReply(response.id)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-                  >
-                    Enviar
-                  </button>
-                  <button
-                    onClick={() => {
-                      setReplyingTo(null);
-                      setReplyContent('');
-                    }}
-                    className="px-4 py-2 bg-carbon-600 hover:bg-carbon-500 text-white rounded-lg transition-colors text-sm"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {response.replies && response.replies.length > 0 && (
-              <div className="mt-4 pl-11 space-y-3 border-l-2 border-carbon-600/50">
-                {response.replies.map((reply: any) => (
-                  <div key={reply.id} className="bg-carbon-900/50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-white font-semibold text-xs">
-                        {reply.user?.display_name || reply.user?.username || 'Usuario'}
-                      </span>
-                      {reply.is_instructor_answer && (
-                        <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30">
-                          Instructor
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-slate-300 text-xs">{reply.content}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="p-6 border-t border-slate-700/50 bg-gradient-to-br from-slate-800/40 via-slate-700/20 to-slate-800/40"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Formulario de nueva respuesta - Estilo Facebook */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 bg-gradient-to-br from-slate-800/50 via-slate-700/30 to-slate-800/50 rounded-2xl p-6 border border-slate-600/30 backdrop-blur-sm"
+      >
+        <div className="flex gap-4">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
+            U
           </div>
-        ))}
-      </div>
+          <div className="flex-1">
+            <textarea
+              value={newResponse}
+              onChange={(e) => setNewResponse(e.target.value)}
+              placeholder="Escribe tu respuesta..."
+              className="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none transition-all duration-200"
+              rows={3}
+              maxLength={1000}
+            />
+            <div className="flex justify-between items-center mt-3">
+              <span className="text-xs text-slate-400">
+                {newResponse.length}/1000
+              </span>
+              <motion.button
+                onClick={handleSubmitResponse}
+                disabled={!newResponse.trim() || isSubmitting}
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isSubmitting ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                {isSubmitting ? 'Enviando...' : 'Responder'}
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
-      <div className="border-t border-carbon-600/50 pt-4">
-        <textarea
-          value={newResponse}
-          onChange={(e) => setNewResponse(e.target.value)}
-          placeholder="Escribe tu respuesta..."
-          className="w-full px-4 py-2 bg-carbon-700 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
-          rows={4}
-        />
-        <button
-          onClick={handleSubmitResponse}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          Enviar Respuesta
-        </button>
+      {/* Lista de respuestas - Estilo Facebook */}
+      <div className="space-y-4">
+        {responses.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-slate-400">Aún no hay respuestas. Sé el primero en responder.</p>
+          </div>
+        ) : (
+          responses.map((response, index) => (
+            <motion.div
+              key={response.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-gradient-to-br from-slate-800/40 via-slate-700/20 to-slate-800/40 rounded-2xl p-5 border border-slate-600/30 backdrop-blur-sm hover:border-slate-500/40 transition-all duration-300"
+            >
+              <div className="flex gap-4">
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg flex-shrink-0">
+                  {response.user?.profile_picture_url ? (
+                    <Image
+                      src={response.user.profile_picture_url}
+                      alt={getUserDisplayName(response.user)}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    getUserInitials(response.user)
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3 flex-wrap">
+                    <span className="font-semibold text-white">
+                      {getUserDisplayName(response.user)}
+                    </span>
+                    {response.is_instructor_answer && (
+                      <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
+                        Instructor
+                      </span>
+                    )}
+                    {response.is_approved_answer && (
+                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Respuesta Aprobada
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded-full">
+                      {formatTimeAgo(response.created_at)}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 mb-4 leading-relaxed whitespace-pre-wrap">{response.content}</p>
+                  
+                  {/* Botones de acción - Me gusta y Responder */}
+                  <div className="flex items-center gap-4 mt-3">
+                    <button
+                      onClick={(e) => handleResponseReaction(response.id, e)}
+                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-700/30 ${
+                        responseReactions[response.id] === 'like'
+                          ? 'text-red-400'
+                          : 'text-slate-400 hover:text-red-400'
+                      }`}
+                    >
+                      <Heart className={`w-4 h-4 ${responseReactions[response.id] === 'like' ? 'fill-current' : ''}`} />
+                      <span className="text-sm font-medium">
+                        {responseReactionCounts[response.id] ?? (response.reaction_count || 0)}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
+                      className="group flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-all duration-200 hover:bg-blue-500/10 px-3 py-1.5 rounded-lg"
+                    >
+                      <Reply className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
+                      <span className="text-sm font-medium">Responder</span>
+                    </button>
+                  </div>
+
+                  {/* Formulario de respuesta */}
+                  <AnimatePresence>
+                    {replyingTo === response.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-3 bg-slate-700/30 rounded-lg p-3"
+                      >
+                        <div className="flex gap-2">
+                          <textarea
+                            value={replyContent}
+                            onChange={(e) => setReplyContent(e.target.value)}
+                            placeholder="Escribe una respuesta..."
+                            className="flex-1 bg-slate-600/50 border border-slate-500/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
+                            rows={2}
+                          />
+                          <motion.button
+                            onClick={() => handleSubmitReply(response.id)}
+                            disabled={!replyContent.trim() || isSubmitting}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Send className="w-4 h-4" />
+                          </motion.button>
+                          <button
+                            onClick={() => {
+                              setReplyingTo(null);
+                              setReplyContent('');
+                            }}
+                            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Respuestas anidadas */}
+                  {response.replies && response.replies.length > 0 && (
+                    <div className="mt-4 ml-4 space-y-3 border-l-2 border-slate-600/50 pl-4">
+                      {response.replies.map((reply: any) => (
+                        <div key={reply.id} className="bg-slate-700/30 rounded-lg p-3">
+                          <div className="flex gap-2">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
+                              {reply.user?.profile_picture_url ? (
+                                <Image
+                                  src={reply.user.profile_picture_url}
+                                  alt={getUserDisplayName(reply.user)}
+                                  width={24}
+                                  height={24}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                getUserInitials(reply.user)
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="font-semibold text-white text-sm">
+                                  {getUserDisplayName(reply.user)}
+                                </span>
+                                {reply.is_instructor_answer && (
+                                  <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30">
+                                    Instructor
+                                  </span>
+                                )}
+                                <span className="text-slate-400 text-xs">
+                                  {formatTimeAgo(reply.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-slate-200 text-sm whitespace-pre-wrap mb-2">{reply.content}</p>
+                              
+                              {/* Botones de acción para comentarios anidados */}
+                              <div className="flex items-center gap-3 mt-2">
+                                <button
+                                  onClick={(e) => handleResponseReaction(reply.id, e)}
+                                  className={`flex items-center gap-1.5 transition-colors ${
+                                    responseReactions[reply.id] === 'like'
+                                      ? 'text-red-400'
+                                      : 'text-slate-400 hover:text-red-400'
+                                  }`}
+                                >
+                                  <Heart className={`w-3.5 h-3.5 ${responseReactions[reply.id] === 'like' ? 'fill-current' : ''}`} />
+                                  <span className="text-xs font-medium">
+                                    {responseReactionCounts[reply.id] ?? (reply.reaction_count || 0)}
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={() => setReplyingToReply(replyingToReply === reply.id ? null : reply.id)}
+                                  className="group flex items-center gap-1.5 text-slate-400 hover:text-blue-400 transition-all duration-200 text-xs"
+                                >
+                                  <Reply className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200" />
+                                  <span className="font-medium">Responder</span>
+                                </button>
+                              </div>
+
+                              {/* Formulario para responder a comentarios anidados */}
+                              <AnimatePresence>
+                                {replyingToReply === reply.id && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="mt-3 bg-slate-600/30 rounded-lg p-2"
+                                  >
+                                    <div className="flex gap-2">
+                                      <textarea
+                                        value={replyToReplyContent}
+                                        onChange={(e) => setReplyToReplyContent(e.target.value)}
+                                        placeholder="Escribe una respuesta..."
+                                        className="flex-1 bg-slate-500/50 border border-slate-400/50 rounded-lg px-2 py-1.5 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none text-sm"
+                                        rows={2}
+                                      />
+                                      <motion.button
+                                        onClick={() => handleSubmitReplyToReply(reply.id, response.id)}
+                                        disabled={!replyToReplyContent.trim() || isSubmitting}
+                                        className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-sm"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                      >
+                                        <Send className="w-3.5 h-3.5" />
+                                      </motion.button>
+                                      <button
+                                        onClick={() => {
+                                          setReplyingToReply(null);
+                                          setReplyToReplyContent('');
+                                        }}
+                                        className="px-3 py-1.5 bg-slate-500 hover:bg-slate-400 text-white rounded-lg transition-colors text-sm"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              {/* Respuestas anidadas a comentarios anidados (si existen) */}
+                              {reply.replies && reply.replies.length > 0 && (
+                                <div className="mt-3 ml-4 space-y-2 border-l-2 border-slate-500/50 pl-3">
+                                  {reply.replies.map((nestedReply: any) => (
+                                    <div key={nestedReply.id} className="bg-slate-600/20 rounded-lg p-2">
+                                      <div className="flex gap-2">
+                                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-400 to-blue-400 flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
+                                          {nestedReply.user?.profile_picture_url ? (
+                                            <Image
+                                              src={nestedReply.user.profile_picture_url}
+                                              alt={getUserDisplayName(nestedReply.user)}
+                                              width={20}
+                                              height={20}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            getUserInitials(nestedReply.user)?.charAt(0) || 'U'
+                                          )}
+                                        </div>
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            <span className="font-semibold text-white text-xs">
+                                              {getUserDisplayName(nestedReply.user)}
+                                            </span>
+                                            <span className="text-slate-400 text-xs">
+                                              {formatTimeAgo(nestedReply.created_at)}
+                                            </span>
+                                          </div>
+                                          <p className="text-slate-200 text-xs whitespace-pre-wrap">{nestedReply.content}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ))
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

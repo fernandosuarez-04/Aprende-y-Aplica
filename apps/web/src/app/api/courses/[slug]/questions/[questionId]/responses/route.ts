@@ -72,7 +72,7 @@ export async function GET(
       );
     }
 
-    // Para cada respuesta, obtener sus respuestas anidadas
+    // Para cada respuesta, obtener sus respuestas anidadas (y sus respuestas anidadas también)
     const responsesWithReplies = await Promise.all(
       (responses || []).map(async (response) => {
         const { data: replies, error: repliesError } = await supabase
@@ -97,7 +97,36 @@ export async function GET(
           return { ...response, replies: [] };
         }
 
-        return { ...response, replies: replies || [] };
+        // Para cada reply, obtener sus respuestas anidadas (nivel 2)
+        const repliesWithNestedReplies = await Promise.all(
+          (replies || []).map(async (reply) => {
+            const { data: nestedReplies, error: nestedRepliesError } = await supabase
+              .from('course_question_responses')
+              .select(`
+                *,
+                user:users!course_question_responses_user_id_fkey(
+                  id,
+                  username,
+                  display_name,
+                  first_name,
+                  last_name,
+                  profile_picture_url
+                )
+              `)
+              .eq('parent_response_id', reply.id)
+              .eq('is_deleted', false)
+              .order('created_at', { ascending: true });
+
+            if (nestedRepliesError) {
+              console.error('Error fetching nested replies:', nestedRepliesError);
+              return { ...reply, replies: [] };
+            }
+
+            return { ...reply, replies: nestedReplies || [] };
+          })
+        );
+
+        return { ...response, replies: repliesWithNestedReplies || [] };
       })
     );
 
