@@ -81,6 +81,34 @@ export async function GET(
       );
     }
 
+    // Calcular response_count total incluyendo todas las respuestas anidadas
+    if (questions && questions.length > 0) {
+      const questionsWithCounts = await Promise.all(
+        questions.map(async (question: any) => {
+          // Contar todas las respuestas (directas y anidadas) para esta pregunta
+          const { count, error: countError } = await supabase
+            .from('course_question_responses')
+            .select('*', { count: 'exact', head: true })
+            .eq('question_id', question.id)
+            .eq('is_deleted', false);
+
+          if (countError) {
+            console.error(`Error counting responses for question ${question.id}:`, countError);
+            // Mantener el response_count original si hay error
+            return question;
+          }
+
+          // Reemplazar response_count con el conteo total incluyendo anidadas
+          return {
+            ...question,
+            response_count: count || 0
+          };
+        })
+      );
+
+      return NextResponse.json(questionsWithCounts || []);
+    }
+
     return NextResponse.json(questions || []);
   } catch (error) {
     console.error('Error in questions API:', error);

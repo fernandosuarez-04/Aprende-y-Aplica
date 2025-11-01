@@ -29,7 +29,6 @@ import {
   Copy,
   Check,
   Plus,
-  RotateCcw,
   Reply,
   Heart,
   Eye,
@@ -650,37 +649,6 @@ export default function CourseLearnPage() {
     }
   };
 
-  // Función para borrar progreso local
-  const resetLocalProgress = () => {
-    if (!confirm('¿Estás seguro de que quieres borrar todo tu progreso local? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
-    // Resetear todas las lecciones a no completadas
-    setModules((prevModules) =>
-      prevModules.map((module) => ({
-        ...module,
-        lessons: module.lessons.map((lesson) => ({
-          ...lesson,
-          is_completed: false
-        })),
-      }))
-    );
-
-    // Actualizar currentLesson si está completada
-    if (currentLesson?.is_completed) {
-      setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
-    }
-
-    // Resetear progreso del curso
-    setCourseProgress(0);
-
-    // Si no hay lección seleccionada o la actual está completada, seleccionar la primera
-    const allLessons = getAllLessonsOrdered();
-    if (allLessons.length > 0 && (!currentLesson || currentLesson.is_completed)) {
-      setCurrentLesson(allLessons[0].lesson);
-    }
-  };
 
   // Función para manejar el cambio de lección desde el panel
   const handleLessonChange = async (selectedLesson: Lesson) => {
@@ -807,14 +775,6 @@ export default function CourseLearnPage() {
 
           {/* Sección derecha: Usuario */}
         <div className="flex items-center gap-2">
-            {/* Botón para resetear progreso local */}
-            <button
-              onClick={resetLocalProgress}
-              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors group"
-              title="Borrar progreso local"
-            >
-              <RotateCcw className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
-            </button>
             {/* Menú de usuario */}
             <UserDropdown />
           </div>
@@ -2283,29 +2243,37 @@ function QuestionsContent({ slug }: { slug: string }) {
             
             // Cargar reacciones del usuario actual
             try {
-              const { createClient } = await import('@supabase/supabase-js');
-              const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-              );
+              // Usar el endpoint de autenticación personalizado
+              const userResponse = await fetch('/api/auth/me', {
+                credentials: 'include'
+              });
               
-              const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-              
-              if (supabaseUser) {
-                // Cargar todas las reacciones del usuario para estas preguntas
-                const questionIds = data.map((q: any) => q.id);
-                const { data: userReactionsData } = await supabase
-                  .from('course_question_reactions')
-                  .select('question_id, reaction_type')
-                  .eq('user_id', supabaseUser.id)
-                  .in('question_id', questionIds);
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
                 
-                if (userReactionsData) {
-                  userReactionsData.forEach((reaction: any) => {
-                    if (reaction.question_id) {
-                      reactionsMap[reaction.question_id] = reaction.reaction_type;
-                    }
-                  });
+                if (userId) {
+                  // Cargar reacciones usando Supabase directamente
+                  const { createClient } = await import('@supabase/supabase-js');
+                  const supabase = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                  );
+                  
+                  const questionIds = data.map((q: any) => q.id);
+                  const { data: userReactionsData } = await supabase
+                    .from('course_question_reactions')
+                    .select('question_id, reaction_type')
+                    .eq('user_id', userId)
+                    .in('question_id', questionIds);
+                  
+                  if (userReactionsData) {
+                    userReactionsData.forEach((reaction: any) => {
+                      if (reaction.question_id) {
+                        reactionsMap[reaction.question_id] = reaction.reaction_type;
+                      }
+                    });
+                  }
                 }
               }
             } catch (error) {
@@ -2362,16 +2330,18 @@ function QuestionsContent({ slug }: { slug: string }) {
     e.stopPropagation();
     
     const currentReaction = userReactions[questionId];
-    const newReactionType = currentReaction === 'like' ? null : 'like';
+    const isCurrentlyLiked = currentReaction === 'like';
+    const currentCount = reactionCounts[questionId] ?? 0;
     
-    // Actualización optimista
-    const currentCount = reactionCounts[questionId] || 0;
-    const newCount = currentReaction === 'like' ? Math.max(0, currentCount - 1) : currentCount + 1;
+    // Actualización optimista - aplicar cambios inmediatamente
+    const newCount = isCurrentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+    const newReactionState = isCurrentlyLiked ? null : 'like';
     
+    // Actualizar estado optimista
     setReactionCounts(prev => ({ ...prev, [questionId]: newCount }));
     setUserReactions(prev => {
-      if (newReactionType) {
-        return { ...prev, [questionId]: newReactionType };
+      if (newReactionState) {
+        return { ...prev, [questionId]: newReactionState };
       } else {
         const updated = { ...prev };
         delete updated[questionId];
@@ -2402,21 +2372,62 @@ function QuestionsContent({ slug }: { slug: string }) {
           }
         });
       } else {
-        // Actualizar con datos reales del servidor
+        // Sincronizar estado con el servidor - verificar si realmente se agregó o eliminó
         const result = await response.json();
-        // Si se eliminó, actualizar el contador
-        if (result.action === 'removed') {
-          setReactionCounts(prev => ({ 
-            ...prev, 
-            [questionId]: Math.max(0, (prev[questionId] || 0) - 1)
-          }));
-        } else {
-          // Actualizar la pregunta para reflejar el nuevo contador
-          setQuestions(prev => prev.map(q => 
-            q.id === questionId 
-              ? { ...q, reaction_count: (q.reaction_count || 0) + (currentReaction ? -1 : 1) }
-              : q
-          ));
+        
+        // Recargar reacciones del usuario para esta pregunta específica
+        try {
+          const userResponse = await fetch('/api/auth/me', { credentials: 'include' });
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
+            
+            if (userId) {
+              const { createClient } = await import('@supabase/supabase-js');
+              const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+              );
+              
+              // Verificar estado actual de la reacción después de la actualización
+              const { data: currentReaction } = await supabase
+                .from('course_question_reactions')
+                .select('reaction_type')
+                .eq('user_id', userId)
+                .eq('question_id', questionId)
+                .eq('reaction_type', 'like')
+                .maybeSingle();
+              
+              // Actualizar estado de reacción según el servidor (estado real)
+              setUserReactions(prev => {
+                if (currentReaction) {
+                  return { ...prev, [questionId]: 'like' };
+                } else {
+                  const updated = { ...prev };
+                  delete updated[questionId];
+                  return updated;
+                }
+              });
+              
+              // Obtener contador actualizado de la pregunta desde el servidor
+              const questionResponse = await fetch(`/api/courses/${slug}/questions`);
+              if (questionResponse.ok) {
+                const questionsData = await questionResponse.json();
+                const updatedQuestion = questionsData.find((q: any) => q.id === questionId);
+                if (updatedQuestion) {
+                  // Reemplazar el contador con el valor real del servidor (sin sumar/restar)
+                  setReactionCounts(prev => ({ ...prev, [questionId]: updatedQuestion.reaction_count || 0 }));
+                  setQuestions(prev => prev.map(q => 
+                    q.id === questionId 
+                      ? { ...q, reaction_count: updatedQuestion.reaction_count || 0 }
+                      : q
+                  ));
+                }
+              }
+            }
+          }
+        } catch (syncError) {
+          console.error('Error syncing reaction state:', syncError);
         }
       }
     } catch (error) {
@@ -2677,67 +2688,75 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
           // Cargar reacciones del usuario para las respuestas
           if (responsesData && responsesData.length > 0) {
             try {
-              const { createClient } = await import('@supabase/supabase-js');
-              const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-              );
+              // Usar el sistema de autenticación personalizado
+              const userResponse = await fetch('/api/auth/me', {
+                credentials: 'include'
+              });
               
-              const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-              
-              if (supabaseUser) {
-                // Recopilar todos los IDs de respuestas (principales y anidadas de todos los niveles)
-                const allResponseIds: string[] = [];
-                responsesData.forEach((r: any) => {
-                  if (r.id) allResponseIds.push(r.id);
-                  if (r.replies && r.replies.length > 0) {
-                    r.replies.forEach((reply: any) => {
-                      if (reply.id) allResponseIds.push(reply.id);
-                      // Incluir respuestas anidadas de nivel 2 (replies de replies)
-                      if (reply.replies && reply.replies.length > 0) {
-                        reply.replies.forEach((nestedReply: any) => {
-                          if (nestedReply.id) allResponseIds.push(nestedReply.id);
-                        });
-                      }
-                    });
-                  }
-                });
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
                 
-                if (allResponseIds.length > 0) {
-                  const { data: userReactionsData } = await supabase
-                    .from('course_question_reactions')
-                    .select('response_id, reaction_type')
-                    .eq('user_id', supabaseUser.id)
-                    .in('response_id', allResponseIds);
+                if (userId) {
+                  // Recopilar todos los IDs de respuestas (principales y anidadas de todos los niveles)
+                  const allResponseIds: string[] = [];
+                  responsesData.forEach((r: any) => {
+                    if (r.id) allResponseIds.push(r.id);
+                    if (r.replies && r.replies.length > 0) {
+                      r.replies.forEach((reply: any) => {
+                        if (reply.id) allResponseIds.push(reply.id);
+                        // Incluir respuestas anidadas de nivel 2 (replies de replies)
+                        if (reply.replies && reply.replies.length > 0) {
+                          reply.replies.forEach((nestedReply: any) => {
+                            if (nestedReply.id) allResponseIds.push(nestedReply.id);
+                          });
+                        }
+                      });
+                    }
+                  });
                   
-                  if (userReactionsData) {
-                    const reactionsMap: Record<string, string> = {};
-                    const countsMap: Record<string, number> = {};
+                  if (allResponseIds.length > 0) {
+                    const { createClient } = await import('@supabase/supabase-js');
+                    const supabase = createClient(
+                      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                    );
                     
-                    userReactionsData.forEach((reaction: any) => {
-                      if (reaction.response_id) {
-                        reactionsMap[reaction.response_id] = reaction.reaction_type;
-                      }
-                    });
+                    const { data: userReactionsData } = await supabase
+                      .from('course_question_reactions')
+                      .select('response_id, reaction_type')
+                      .eq('user_id', userId)
+                      .in('response_id', allResponseIds);
                     
-                    // Inicializar contadores con valores de las respuestas (todos los niveles)
-                    responsesData.forEach((r: any) => {
-                      if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                      if (r.replies && r.replies.length > 0) {
-                        r.replies.forEach((reply: any) => {
-                          if (reply.id) countsMap[reply.id] = reply.reaction_count || 0;
-                          // Incluir contadores de respuestas anidadas de nivel 2
-                          if (reply.replies && reply.replies.length > 0) {
-                            reply.replies.forEach((nestedReply: any) => {
-                              if (nestedReply.id) countsMap[nestedReply.id] = nestedReply.reaction_count || 0;
-                            });
-                          }
-                        });
-                      }
-                    });
-                    
-                    setResponseReactions(reactionsMap);
-                    setResponseReactionCounts(countsMap);
+                    if (userReactionsData) {
+                      const reactionsMap: Record<string, string> = {};
+                      const countsMap: Record<string, number> = {};
+                      
+                      userReactionsData.forEach((reaction: any) => {
+                        if (reaction.response_id) {
+                          reactionsMap[reaction.response_id] = reaction.reaction_type;
+                        }
+                      });
+                      
+                      // Inicializar contadores con valores de las respuestas (todos los niveles)
+                      responsesData.forEach((r: any) => {
+                        if (r.id) countsMap[r.id] = r.reaction_count || 0;
+                        if (r.replies && r.replies.length > 0) {
+                          r.replies.forEach((reply: any) => {
+                            if (reply.id) countsMap[reply.id] = reply.reaction_count || 0;
+                            // Incluir contadores de respuestas anidadas de nivel 2
+                            if (reply.replies && reply.replies.length > 0) {
+                              reply.replies.forEach((nestedReply: any) => {
+                                if (nestedReply.id) countsMap[nestedReply.id] = nestedReply.reaction_count || 0;
+                              });
+                            }
+                          });
+                        }
+                      });
+                      
+                      setResponseReactions(reactionsMap);
+                      setResponseReactionCounts(countsMap);
+                    }
                   }
                 }
               }
@@ -2789,18 +2808,22 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     e.stopPropagation();
     
     const currentReaction = responseReactions[responseId];
-    const currentCount = responseReactionCounts[responseId] || 0;
-    const newCount = currentReaction === 'like' ? Math.max(0, currentCount - 1) : currentCount + 1;
+    const isCurrentlyLiked = currentReaction === 'like';
+    const currentCount = responseReactionCounts[responseId] ?? 0;
     
-    // Actualización optimista
+    // Actualización optimista - aplicar cambios inmediatamente
+    const newCount = isCurrentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+    const newReactionState = isCurrentlyLiked ? null : 'like';
+    
+    // Actualizar estado optimista
     setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCount }));
     setResponseReactions(prev => {
-      if (currentReaction === 'like') {
+      if (newReactionState) {
+        return { ...prev, [responseId]: newReactionState };
+      } else {
         const updated = { ...prev };
         delete updated[responseId];
         return updated;
-      } else {
-        return { ...prev, [responseId]: 'like' };
       }
     });
     
@@ -2826,6 +2849,76 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
             return updated;
           }
         });
+      } else {
+        // Sincronizar estado con el servidor
+        try {
+          const userResponse = await fetch('/api/auth/me', { credentials: 'include' });
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
+            
+            if (userId) {
+              const { createClient } = await import('@supabase/supabase-js');
+              const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+              );
+              
+              // Verificar estado actual de la reacción después de la actualización
+              const { data: currentReaction } = await supabase
+                .from('course_question_reactions')
+                .select('reaction_type')
+                .eq('user_id', userId)
+                .eq('response_id', responseId)
+                .eq('reaction_type', 'like')
+                .maybeSingle();
+              
+              // Actualizar estado de reacción según el servidor (estado real)
+              setResponseReactions(prev => {
+                if (currentReaction) {
+                  return { ...prev, [responseId]: 'like' };
+                } else {
+                  const updated = { ...prev };
+                  delete updated[responseId];
+                  return updated;
+                }
+              });
+              
+              // Recargar respuestas para obtener contadores actualizados desde el servidor
+              const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
+              if (responsesRes.ok) {
+                const responsesData = await responsesRes.json();
+                
+                // Función para actualizar contadores desde respuestas
+                const updateCountsFromResponses = (responses: any[], countsMap: Record<string, number>) => {
+                  responses.forEach((r: any) => {
+                    if (r.id) countsMap[r.id] = r.reaction_count || 0;
+                    if (r.replies && r.replies.length > 0) {
+                      r.replies.forEach((reply: any) => {
+                        if (reply.id) countsMap[reply.id] = reply.reaction_count || 0;
+                        if (reply.replies && reply.replies.length > 0) {
+                          reply.replies.forEach((nestedReply: any) => {
+                            if (nestedReply.id) countsMap[nestedReply.id] = nestedReply.reaction_count || 0;
+                          });
+                        }
+                      });
+                    }
+                  });
+                };
+                
+                const newCountsMap: Record<string, number> = {};
+                updateCountsFromResponses(responsesData, newCountsMap);
+                
+                // Reemplazar contador con el valor real del servidor (sin sumar/restar)
+                if (newCountsMap[responseId] !== undefined) {
+                  setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCountsMap[responseId] }));
+                }
+              }
+            }
+          }
+        } catch (syncError) {
+          console.error('Error syncing response reaction state:', syncError);
+        }
       }
     } catch (error) {
       console.error('Error handling response reaction:', error);
