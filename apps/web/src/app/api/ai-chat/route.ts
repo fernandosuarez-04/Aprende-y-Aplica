@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/core/lib/rate-limit';
+import { 
+  checkUsageLimit, 
+  logOpenAIUsage, 
+  calculateCost 
+} from '@/lib/openai/usage-monitor';
 
 // Contextos específicos para diferentes secciones
 const getContextPrompt = (context: string, userName?: string) => {
@@ -29,6 +35,18 @@ const getContextPrompt = (context: string, userName?: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ CORRECCIÓN 6: Rate limiting específico para OpenAI
+    // 10 requests por minuto por usuario
+    const rateLimitResult = checkRateLimit(request, {
+      maxRequests: 10,
+      windowMs: 60 * 1000, // 1 minuto
+      message: 'Demasiadas solicitudes al chatbot. Por favor, espera un momento.'
+    }, 'openai');
+
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
+    }
+
     const supabase = await createClient();
     
     // Verificar autenticación (hacer opcional para pruebas)
@@ -45,13 +63,44 @@ export async function POST(request: NextRequest) {
     }
     */
 
+    // ✅ Verificar límites diarios de uso de OpenAI
+    const userId = user?.id || 'anonymous';
+    const usageCheck = checkUsageLimit(userId);
+
+    if (!usageCheck.allowed) {
+      return NextResponse.json(
+        { 
+          error: usageCheck.reason,
+          usage: usageCheck.usage
+        },
+        { status: 429 }
+      );
+    }
+
     const { message, context = 'general', conversationHistory = [], userName } = await request.json();
 
+    // ✅ Validaciones básicas
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
         { error: 'El mensaje es requerido' },
         { status: 400 }
       );
+    }
+
+    // ✅ Límite de longitud del mensaje (2000 caracteres)
+    const MAX_MESSAGE_LENGTH = 2000;
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `El mensaje es muy largo. Máximo ${MAX_MESSAGE_LENGTH} caracteres.` },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Límite de historial de conversación (últimos 20 mensajes)
+    const MAX_HISTORY_LENGTH = 20;
+    let limitedHistory = conversationHistory;
+    if (Array.isArray(conversationHistory) && conversationHistory.length > MAX_HISTORY_LENGTH) {
+      limitedHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH);
     }
 
     // Obtener información del usuario desde la base de datos
@@ -79,14 +128,15 @@ export async function POST(request: NextRequest) {
 
     if (openaiApiKey) {
       try {
-        response = await callOpenAI(message, contextPrompt, conversationHistory);
+        // ✅ Pasar userId para logging de uso
+        response = await callOpenAI(message, contextPrompt, limitedHistory, userId);
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
-        response = generateAIResponse(message, context, conversationHistory, contextPrompt);
+        response = generateAIResponse(message, context, limitedHistory, contextPrompt);
       }
     } else {
       // Usar respuestas predeterminadas si no hay API key
-      response = generateAIResponse(message, context, conversationHistory, contextPrompt);
+      response = generateAIResponse(message, context, limitedHistory, contextPrompt);
     }
 
     // Guardar la conversación en la base de datos (opcional)
@@ -125,7 +175,8 @@ export async function POST(request: NextRequest) {
 async function callOpenAI(
   message: string,
   systemPrompt: string,
-  conversationHistory: Array<{ role: string; content: string }>
+  conversationHistory: Array<{ role: string; content: string }>,
+  userId?: string
 ): Promise<string> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
@@ -171,6 +222,33 @@ async function callOpenAI(
   }
 
   const data = await response.json();
+  
+  // ✅ CORRECCIÓN 6: Registrar uso de OpenAI
+  if (userId && data.usage) {
+    const model = data.model || process.env.CHATBOT_MODEL || 'gpt-4o-mini';
+    const promptTokens = data.usage.prompt_tokens || 0;
+    const completionTokens = data.usage.completion_tokens || 0;
+    const totalTokens = data.usage.total_tokens || 0;
+    const estimatedCost = calculateCost(promptTokens, completionTokens, model);
+
+    logOpenAIUsage({
+      userId,
+      timestamp: new Date(),
+      model,
+      promptTokens,
+      completionTokens,
+      totalTokens,
+      estimatedCost
+    });
+
+    logger.info('OpenAI usage logged', {
+      userId,
+      model,
+      totalTokens,
+      estimatedCost: `$${estimatedCost.toFixed(4)}`
+    });
+  }
+  
   return data.choices[0]?.message?.content || 'Lo siento, no pude procesar tu mensaje.';
 }
 

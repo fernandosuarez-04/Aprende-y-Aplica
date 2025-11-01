@@ -11,6 +11,7 @@ import {
   Send,
   MoreHorizontal
 } from 'lucide-react';
+import { sanitizeComment } from '../../../lib/sanitize/html-sanitizer';
 
 interface Reply {
   id: string;
@@ -153,9 +154,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
             </button>
           </div>
           
-          <p className="text-sm text-gray-800 dark:text-gray-200 mb-3 leading-relaxed">
-            {comment.content}
-          </p>
+          <p 
+            className="text-sm text-gray-800 dark:text-gray-200 mb-3 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: sanitizeComment(comment.content) }}
+          />
           
           {/* Botones de acción */}
           <div className="flex items-center space-x-4">
@@ -276,9 +278,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                         {formatDate(reply.created_at)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed">
-                      {reply.content}
-                    </p>
+                    <p 
+                      className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: sanitizeComment(reply.content) }}
+                    />
                   </div>
                 </motion.div>
               ))

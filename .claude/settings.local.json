@@ -13,7 +13,9 @@
       "Bash(npx next build:*)",
       "Bash(tree:*)",
       "Bash(sort:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(git log:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

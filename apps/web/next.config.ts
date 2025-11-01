@@ -223,6 +223,67 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_NAME: 'Aprende y Aplica',
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
   },
+
+  // 🔒 Headers de Seguridad HTTP
+  async headers() {
+    return [
+      {
+        // Aplicar headers de seguridad a todas las rutas
+        source: '/:path*',
+        headers: [
+          // Content Security Policy - Protege contra XSS
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com data:",
+              "img-src 'self' data: blob: https://*.supabase.co https://via.placeholder.com https://picsum.photos https://images.unsplash.com https://img.youtube.com",
+              "media-src 'self' https://*.supabase.co",
+              "connect-src 'self' https://*.supabase.co https://api.openai.com https://accounts.google.com https://oauth2.googleapis.com",
+              "frame-src 'self' https://accounts.google.com https://www.youtube.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'none'",
+              "upgrade-insecure-requests"
+            ].join('; ')
+          },
+          // Previene clickjacking - no permite que el sitio se cargue en iframes
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          // Previene MIME type sniffing
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          // Controla información del referrer enviada
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin'
+          },
+          // Control de permisos del navegador
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+          },
+          // Previene ataques XSS en navegadores antiguos
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block'
+          },
+          // Fuerza HTTPS en navegadores modernos (solo en producción)
+          ...(process.env.NODE_ENV === 'production' ? [{
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload'
+          }] : [])
+        ],
+      },
+    ];
+  },
   
   // Configuración de Webpack para resolver alias en el monorepo
   webpack: (config, { isServer }) => {

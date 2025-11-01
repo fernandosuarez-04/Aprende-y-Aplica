@@ -3,8 +3,16 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from './lib/supabase/types'
 
+// ✅ Sistema de logging condicional - solo en desarrollo
+const isDevelopment = process.env.NODE_ENV === 'development';
+const logger = {
+  log: (...args: any[]) => isDevelopment && console.log(...args),
+  error: console.error, // Siempre logguear errores
+  warn: (...args: any[]) => isDevelopment && console.warn(...args),
+};
+
 export async function middleware(request: NextRequest) {
-  console.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
+  logger.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
   
   // Verificar si la ruta requiere autenticación
   const protectedRoutes = ['/admin', '/instructor', '/dashboard']
@@ -13,11 +21,11 @@ export async function middleware(request: NextRequest) {
   )
 
   if (!isProtectedRoute) {
-    console.log('✅ Ruta no protegida, continuando...')
+    logger.log('✅ Ruta no protegida, continuando...')
     return NextResponse.next()
   }
 
-  console.log('🔒 Ruta protegida detectada:', request.nextUrl.pathname)
+  logger.log('🔒 Ruta protegida detectada:', request.nextUrl.pathname)
 
   let response = NextResponse.next({
     request: {
@@ -48,16 +56,16 @@ export async function middleware(request: NextRequest) {
 
   // Verificar sesión personalizada
   const sessionCookie = request.cookies.get('aprende-y-aplica-session')
-  console.log('🍪 Cookie de sesión:', sessionCookie ? 'Encontrada' : 'No encontrada')
+  logger.log('🍪 Cookie de sesión:', sessionCookie ? 'Encontrada' : 'No encontrada')
 
   if (!sessionCookie) {
-    console.log('❌ No hay sesión, redirigiendo a /auth')
+    logger.log('❌ No hay sesión, redirigiendo a /auth')
     // Redirigir a login si no hay sesión
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
   // Validar que la sesión sea válida en la base de datos
-  console.log('🔍 Validando sesión en base de datos...')
+  logger.log('🔍 Validando sesión en base de datos...')
   try {
     const { data: sessionData, error: sessionError } = await supabase
       .from('user_session')
@@ -67,25 +75,25 @@ export async function middleware(request: NextRequest) {
       .gt('expires_at', new Date().toISOString())
       .single()
 
-    console.log('📋 Sesión en DB:', sessionData ? 'Válida' : 'No válida')
-    console.log('❌ Error de sesión:', sessionError?.message || 'Ninguno')
+    logger.log('📋 Sesión en DB:', sessionData ? 'Válida' : 'No válida')
+    logger.log('❌ Error de sesión:', sessionError?.message || 'Ninguno')
 
     if (sessionError || !sessionData) {
-      console.log('❌ Sesión inválida o expirada, redirigiendo a /auth')
+      logger.log('❌ Sesión inválida o expirada, redirigiendo a /auth')
       // Eliminar cookie inválida
       response.cookies.delete('aprende-y-aplica-session')
       return NextResponse.redirect(new URL('/auth', request.url))
     }
 
-    console.log('✅ Sesión válida para usuario:', sessionData.user_id)
+    logger.log('✅ Sesión válida para usuario:', sessionData.user_id)
   } catch (error) {
-    console.error('❌ Error validando sesión:', error)
+    logger.error('❌ Error validando sesión:', error)
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
   // Para rutas de admin, verificar rol
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    console.log('👑 Verificando acceso de administrador...')
+    logger.log('👑 Verificando acceso de administrador...')
     try {
       // Obtener información de la sesión
       const { data: sessionData } = await supabase
@@ -96,10 +104,10 @@ export async function middleware(request: NextRequest) {
         .gt('expires_at', new Date().toISOString())
         .single()
 
-      console.log('📋 Datos de sesión:', sessionData ? 'Encontrados' : 'No encontrados')
+      logger.log('📋 Datos de sesión:', sessionData ? 'Encontrados' : 'No encontrados')
 
       if (!sessionData) {
-        console.log('❌ Sesión inválida, redirigiendo a /auth')
+        logger.log('❌ Sesión inválida, redirigiendo a /auth')
         return NextResponse.redirect(new URL('/auth', request.url))
       }
 
@@ -110,19 +118,19 @@ export async function middleware(request: NextRequest) {
         .eq('id', sessionData.user_id)
         .single()
 
-      console.log('👤 Rol del usuario:', userData?.cargo_rol)
+      logger.log('👤 Rol del usuario:', userData?.cargo_rol)
 
       // ✅ Normalizar rol antes de comparar (toLowerCase y trim)
       const userRole = userData?.cargo_rol?.toLowerCase().trim()
       
       if (!userData || userRole !== 'administrador') {
-        console.log('❌ No es administrador, redirigiendo a /dashboard')
+        logger.log('❌ No es administrador, redirigiendo a /dashboard')
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
 
-      console.log('✅ Acceso de administrador autorizado')
+      logger.log('✅ Acceso de administrador autorizado')
     } catch (error) {
-      console.error('❌ Error checking admin role:', error)
+      logger.error('❌ Error checking admin role:', error)
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
@@ -158,7 +166,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     } catch (error) {
-      console.error('Error checking instructor role:', error)
+      logger.error('Error checking instructor role:', error)
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }

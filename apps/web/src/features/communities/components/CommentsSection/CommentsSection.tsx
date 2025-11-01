@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send, Users, Reply } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { sanitizeComment } from '../../../../lib/sanitize/html-sanitizer';
 
 interface Comment {
   id: string;
@@ -271,7 +272,10 @@ export function CommentsSection({
                           {formatTimeAgo(comment.created_at)}
                         </span>
                       </div>
-                      <p className="text-slate-300 mb-4 leading-relaxed">{comment.content}</p>
+                      <p 
+                        className="text-slate-300 mb-4 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: sanitizeComment(comment.content) }}
+                      />
                       
                       {/* Botón de responder */}
                       <button
