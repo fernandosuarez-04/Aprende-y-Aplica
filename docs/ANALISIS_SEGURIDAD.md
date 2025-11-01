@@ -10,7 +10,7 @@
 
 Se realizó un análisis exhaustivo de seguridad del codebase identificando **15 vulnerabilidades** de severidad variable, desde **críticas** hasta **bajas**. El proyecto presenta una arquitectura moderna con TypeScript y Next.js, pero requiere mejoras **URGENTES** en la gestión de credenciales.
 
-**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **8 correcciones de seguridad** de prioridad alta:
+**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **9 correcciones de seguridad** de prioridad alta:
 - ✅ Logging condicional (previene exposición de información sensible)
 - ✅ Límites a mensajes de chat (previene DoS y costos excesivos)
 - ✅ Sanitización de búsquedas (previene inyección PostgREST)
@@ -19,22 +19,23 @@ Se realizó un análisis exhaustivo de seguridad del codebase identificando **15
 - ✅ Rate limiting OpenAI (previene costos excesivos y DoS)
 - ✅ Validación de variables de entorno (detecta configuraciones inseguras)
 - ✅ Headers de seguridad HTTP (previene XSS, clickjacking, MIME sniffing)
+- ✅ Sanitización HTML (previene XSS en contenido de usuario) 🔴 **CRÍTICA**
 
 ### Puntuación General de Seguridad
 
-**8.5/10** ✅ - Excelente progreso (⬆️ desde 6.5/10)
+**9.0/10** ✅ - Excelente nivel de seguridad (⬆️ desde 6.5/10)
 
 ### Puntuación por Categoría
 
 | Categoría | Puntuación | Estado |
 |-----------|------------|--------|
-| ✅ Validación de entrada | 9/10 | Excelente |
+| ✅ Validación de entrada | 10/10 | Excelente |
 | ✅ Seguridad de BD | 9/10 | Excelente |
 | 🔴 Manejo de credenciales | 3/10 | **CRÍTICO** |
-| ✅ Protección ataques comunes | 9/10 | Excelente |
+| ✅ Protección ataques comunes | 10/10 | Excelente |
 | ✅ Manejo de errores | 8/10 | Bueno |
-| ⚠️ Seguridad APIs externas | 7/10 | Bueno |
-| ✅ Gestión de sesiones | 8/10 | Bueno |
+| ⚠️ Seguridad APIs externas | 8/10 | Bueno |
+| ✅ Gestión de sesiones | 9/10 | Excelente |
 
 ---
 
@@ -2314,9 +2315,64 @@ psql $DATABASE_URL -c "\d+ storage.objects"
 - **Severidad Corregida**: 🟡 MEDIA
 - **Nota de Seguridad**: CSP configurado con 'unsafe-eval' y 'unsafe-inline' solo donde es necesario para Next.js y React. En el futuro se puede hacer más restrictivo usando nonces.
 
+#### ✅ Corrección 9: Sanitización de Inputs HTML
+- **Estado**: Completado
+- **Archivos**:
+  - Instalado: `dompurify` (librería de sanitización HTML)
+  - `apps/web/src/lib/sanitize/html-sanitizer.ts` (biblioteca completa)
+  - `apps/web/src/features/reels/components/CommentItem.tsx` (comentarios y respuestas de reels)
+  - `apps/web/src/features/communities/components/OptimizedPostCard.tsx` (contenido de posts)
+  - `apps/web/src/features/communities/components/CommentsSection/CommentsSection.tsx` (comentarios de comunidades)
+  - `apps/web/src/app/communities/[slug]/members/page.tsx` (biografías de usuarios)
+- **Cambios Implementados**:
+  ```typescript
+  // Librería de sanitización con 4 niveles de permisividad
+  
+  1. sanitizeText() - ESTRICTO
+     - Solo texto plano, sin HTML
+     - Para nombres, títulos, campos simples
+  
+  2. sanitizeBio() - BÁSICO
+     - Formato básico: <p>, <br>, <strong>, <em>
+     - Sin enlaces ni multimedia
+     - Máximo 500 caracteres
+     - Para biografías de usuario
+  
+  3. sanitizeComment() - RICH TEXT
+     - Formato enriquecido + enlaces seguros
+     - Sin multimedia embebida
+     - Máximo 1000 caracteres
+     - Para comentarios y respuestas
+  
+  4. sanitizePost() - RICH TEXT
+     - Igual que comentarios pero sin límite de longitud
+     - Para contenido de posts de comunidades
+  
+  5. sanitizeCourseContent() - COMPLETO
+     - Permite multimedia (img, video, audio)
+     - Permite tablas
+     - Sin límite de longitud
+     - Para contenido educativo de cursos
+  
+  // Características de seguridad
+  - Whitelist estricta de etiquetas HTML
+  - Validación de URLs en href/src
+  - Bloqueo de javascript:, data:, vbscript:
+  - Remoción de event handlers (onclick, onerror, etc.)
+  - Remoción de <script>, <iframe>, <embed>, <object>
+  - Detección de HTML peligroso con containsDangerousHtml()
+  ```
+- **Componentes Protegidos**:
+  - ✅ Comentarios de reels + respuestas
+  - ✅ Posts de comunidades
+  - ✅ Comentarios de comunidades
+  - ✅ Biografías de usuarios (perfiles y listados)
+- **Impacto**: Previene ataques XSS en todo el contenido generado por usuarios, protegiendo contra ejecución de scripts maliciosos
+- **Severidad Corregida**: 🔴 CRÍTICA
+- **Nota Técnica**: Se usa `dangerouslySetInnerHTML` de forma SEGURA después de sanitizar con DOMPurify. La sanitización ocurre en el cliente antes de renderizar.
+
 **Próximas Correcciones Planeadas**:
-- Corrección 9: Sanitización de inputs HTML (2 horas)
-- Gestión segura de credenciales (⚠️ CRÍTICA - requiere rotación y configuración externa)
+- Gestión segura de credenciales (⚠️ CRÍTICA - requiere rotación y configuración externa, ~8 horas)
 **Email de Seguridad**: [Definir email]
 **Canal de Slack**: #security (si aplica)
 

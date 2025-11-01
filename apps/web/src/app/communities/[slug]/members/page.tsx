@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sanitizeBio } from '../../../../lib/sanitize/html-sanitizer';
 import { 
   ArrowLeft,
   Search,
@@ -551,9 +552,10 @@ export default function MembersPage() {
                           <p className="text-sm text-gray-600 dark:text-slate-400">@{member.user.username}</p>
                         )}
                         {member.user.bio && (
-                          <p className="text-sm text-gray-700 dark:text-slate-300 mt-1 line-clamp-2">
-                            {member.user.bio}
-                          </p>
+                          <p 
+                            className="text-sm text-gray-700 dark:text-slate-300 mt-1 line-clamp-2"
+                            dangerouslySetInnerHTML={{ __html: sanitizeBio(member.user.bio) }}
+                          />
                         )}
                       </div>
                     </div>
@@ -696,7 +698,10 @@ export default function MembersPage() {
                   <p className="text-gray-600 dark:text-slate-400">@{selectedMember.user.username}</p>
                 )}
                 {selectedMember.user.bio && (
-                  <p className="text-gray-700 dark:text-slate-300 mt-2">{selectedMember.user.bio}</p>
+                  <p 
+                    className="text-gray-700 dark:text-slate-300 mt-2"
+                    dangerouslySetInnerHTML={{ __html: sanitizeBio(selectedMember.user.bio) }}
+                  />
                 )}
               </div>
 

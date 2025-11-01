@@ -4,6 +4,7 @@ import React, { memo } from 'react'
 import Image from 'next/image'
 import { useLazyImage } from '../../../core/hooks/useIntersectionObserver'
 import { User, Heart, MessageSquare, Share2, MoreHorizontal } from 'lucide-react'
+import { sanitizePost } from '../../../lib/sanitize/html-sanitizer'
 
 interface OptimizedPostCardProps {
   post: any // Tipo flexible para aceptar diferentes estructuras de post
@@ -72,7 +73,10 @@ export const OptimizedPostCard = memo(function OptimizedPostCard({
       </div>
 
       {/* Content */}
-      <p className="text-slate-200 mb-4 whitespace-pre-wrap">{post.content}</p>
+      <p 
+        className="text-slate-200 mb-4 whitespace-pre-wrap"
+        dangerouslySetInnerHTML={{ __html: sanitizePost(post.content) }}
+      />
 
       {/* Image with lazy loading */}
       {post.image_url && (
