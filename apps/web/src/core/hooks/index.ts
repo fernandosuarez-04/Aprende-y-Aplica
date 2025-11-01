@@ -1,3 +1,6 @@
 export { useTheme } from './useTheme'
 export { useUserRole } from './useUserRole'
 export { useLogoEasterEgg } from './useLogoEasterEgg'
+export { useLiaChat } from './useLiaChat'
+export type { UseLiaChatReturn } from './useLiaChat'
+export type { LiaMessage, CourseLessonContext } from '@/core/types/lia.types'
