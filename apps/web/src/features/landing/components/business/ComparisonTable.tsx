@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, Info } from 'lucide-react';
 import { ComparisonCategory } from '@aprende-y-aplica/shared';
-import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
+import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../../shared/utils/animations';
 
 interface ComparisonTableProps {
   title: string;

@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
+import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../shared/utils/animations';
 import { BookOpen, FileText, Video, Trophy, Download, ArrowRight } from 'lucide-react';
 
 export default function ResourcesPage() {

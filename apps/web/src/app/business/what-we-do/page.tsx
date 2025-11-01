@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
-import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
+import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../shared/utils/animations';
 import { ArrowRight, Users, Award, Sparkles, TrendingUp } from 'lucide-react';
 
 export default function WhatWeDoPage() {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { fadeIn, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
+import { fadeIn, staggerContainer, staggerItem } from '../../../../../shared/utils/animations';
 import { 
   MessageSquare, 
   Users, 

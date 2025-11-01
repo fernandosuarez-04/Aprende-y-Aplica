@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, Badge, Button } from '@aprende-y-aplica/ui';
-import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
+import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../../shared/utils/animations';
 import { DollarSign, BarChart, Wrench, GraduationCap, Check, ArrowRight, Calculator } from 'lucide-react';
 
 interface InstructorsInfoSectionProps {

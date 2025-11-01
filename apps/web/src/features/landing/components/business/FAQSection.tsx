@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, HelpCircle } from 'lucide-react';
-import { fadeIn, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
+import { fadeIn, staggerContainer, staggerItem } from '../../../../../shared/utils/animations';
 
 interface FAQ {
   question: string;

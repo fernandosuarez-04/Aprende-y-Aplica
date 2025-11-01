@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, Badge } from '@aprende-y-aplica/ui';
 import { Instructor } from '@aprende-y-aplica/shared';
-import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
+import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../../shared/utils/animations';
 import { Star, Users, GraduationCap } from 'lucide-react';
 
 interface InstructorsSectionProps {
