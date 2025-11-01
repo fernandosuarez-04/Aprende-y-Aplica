@@ -7,9 +7,61 @@ import {
   validateUserAccess,
   ROLE_ROUTES 
 } from './src/core/middleware/auth.middleware'
+import { applyRateLimit, RATE_LIMITS, addRateLimitHeaders, checkRateLimit } from './src/core/lib/rate-limit'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // ✅ RATE LIMITING (Issue #20)
+  // Aplicar rate limiting antes de cualquier procesamiento
+  
+  // 1. Rate limiting estricto para auth endpoints
+  if (pathname.startsWith('/api/auth/login') || pathname.startsWith('/api/auth/register')) {
+    const rateLimitResponse = await applyRateLimit(request, RATE_LIMITS.strict, 'auth');
+    if (rateLimitResponse) return rateLimitResponse;
+  }
+  
+  // 2. Rate limiting estricto para password reset
+  if (pathname.startsWith('/api/auth/reset-password') || pathname.startsWith('/api/auth/forgot-password')) {
+    const rateLimitResponse = await applyRateLimit(request, RATE_LIMITS.strict, 'password');
+    if (rateLimitResponse) return rateLimitResponse;
+  }
+  
+  // 3. Rate limiting para operaciones de creación
+  if (request.method === 'POST' && (
+    pathname.includes('/create') || 
+    pathname.startsWith('/api/admin/communities') ||
+    pathname.startsWith('/api/courses') && pathname.includes('create')
+  )) {
+    const rateLimitResponse = await applyRateLimit(request, RATE_LIMITS.create, 'create');
+    if (rateLimitResponse) return rateLimitResponse;
+  }
+  
+  // 4. Rate limiting para uploads
+  if (pathname.startsWith('/api/upload') || pathname.includes('/upload')) {
+    const rateLimitResponse = await applyRateLimit(request, RATE_LIMITS.upload, 'upload');
+    if (rateLimitResponse) return rateLimitResponse;
+  }
+  
+  // 5. Rate limiting para admin endpoints
+  if (pathname.startsWith('/api/admin')) {
+    const rateLimitResponse = await applyRateLimit(request, RATE_LIMITS.admin, 'admin');
+    if (rateLimitResponse) return rateLimitResponse;
+  }
+  
+  // 6. Rate limiting general para todos los API endpoints
+  if (pathname.startsWith('/api/')) {
+    const rateLimitResult = checkRateLimit(request, RATE_LIMITS.api, 'api');
+    if (!rateLimitResult.success && rateLimitResult.response) {
+      return rateLimitResult.response;
+    }
+    // Guardar info de rate limit para agregar headers después
+    request.headers.set('X-Rate-Limit-Info', JSON.stringify({
+      limit: rateLimitResult.limit,
+      remaining: rateLimitResult.remaining,
+      reset: rateLimitResult.reset.toISOString()
+    }));
+  }
   
   console.log('🚀 Middleware ejecutándose para:', pathname);
   
@@ -116,6 +168,18 @@ export async function middleware(request: NextRequest) {
   }
   
   console.log('➡️ Continuando sin redirección');
+  
+  // Agregar headers de rate limit a la respuesta si están disponibles
+  const rateLimitInfo = request.headers.get('X-Rate-Limit-Info');
+  if (rateLimitInfo) {
+    try {
+      const { limit, remaining, reset } = JSON.parse(rateLimitInfo);
+      response = addRateLimitHeaders(response, limit, remaining, new Date(reset));
+    } catch (error) {
+      console.warn('Error agregando headers de rate limit:', error);
+    }
+  }
+  
   return response;
 }
 
