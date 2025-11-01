@@ -12,7 +12,7 @@ import { InstructorsSection } from '../../features/landing/components/business/I
 import { TestimonialsSection } from '../../features/landing/components/TestimonialsSection';
 import { CTASection } from '../../features/landing/components/CTASection';
 import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../shared/utils/animations';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Building2, Users, GraduationCap, Award, Bot, User } from 'lucide-react';
 
 export default function BusinessHomePage() {
   const [content, setContent] = useState<BusinessPageContent | null>(null);
@@ -85,22 +85,29 @@ export default function BusinessHomePage() {
             variants={staggerContainer}
           >
             {[
-              { value: '500+', label: 'Empresas', icon: '🏢' },
-              { value: '50K+', label: 'Usuarios', icon: '👥' },
-              { value: '100+', label: 'Instructores', icon: '🎓' },
-            ].map((stat, idx) => (
-              <motion.div
-                key={idx}
-                variants={staggerItem}
-                className="relative"
-              >
-                <div className="text-5xl mb-3">{stat.icon}</div>
-                <div className="text-4xl font-bold bg-gradient-to-r from-primary to-success bg-clip-text text-transparent mb-2">
-                  {stat.value}
-                </div>
-                <div className="text-lg opacity-70">{stat.label}</div>
-              </motion.div>
-            ))}
+              { value: '500+', label: 'Empresas', icon: Building2 },
+              { value: '50K+', label: 'Usuarios', icon: Users },
+              { value: '100+', label: 'Instructores', icon: GraduationCap },
+            ].map((stat, idx) => {
+              const IconComponent = stat.icon;
+              return (
+                <motion.div
+                  key={idx}
+                  variants={staggerItem}
+                  className="relative"
+                >
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-success/20 rounded-xl flex items-center justify-center">
+                      <IconComponent className="w-8 h-8 text-primary" />
+                    </div>
+                  </div>
+                  <div className="text-4xl font-bold bg-gradient-to-r from-primary to-success bg-clip-text text-transparent mb-2">
+                    {stat.value}
+                  </div>
+                  <div className="text-lg opacity-70">{stat.label}</div>
+                </motion.div>
+              );
+            })}
           </motion.div>
         </div>
       </section>
@@ -124,81 +131,66 @@ export default function BusinessHomePage() {
             {[
               {
                 id: 'enterprise-training',
-                icon: '🏢',
+                icon: Building2,
                 title: 'Capacitación a nivel de empresa',
                 description: 'Mejora las habilidades de toda tu organización',
                 link: '/business/what-we-do',
               },
               {
                 id: 'certifications',
-                icon: '🎖️',
+                icon: Award,
                 title: 'Preparación para certificaciones',
                 description: 'Desarrolla y valida habilidades',
                 link: '/business/what-we-do',
               },
               {
                 id: 'ai-skills',
-                icon: '🤖',
+                icon: Bot,
                 title: 'Obtención de nuevas habilidades con IA',
                 description: 'Aumenta la productividad con IA generativa',
                 link: '/business/how-it-works',
               },
               {
                 id: 'leadership',
-                icon: '👤',
+                icon: User,
                 title: 'Desarrollo de liderazgo',
                 description: 'Identifica y empodera a los líderes',
                 link: '/business/resources',
               },
-            ].map((useCase, idx) => (
-              <motion.div
-                key={useCase.id}
-                variants={staggerItem}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                whileHover={{ y: -8, scale: 1.02 }}
-                className="cursor-pointer"
-              >
-                <Link href={useCase.link}>
-                  <div className="bg-glass border border-glass-light rounded-2xl p-8 h-full hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10">
-                    <div className="text-5xl mb-4">{useCase.icon}</div>
-                    <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">
-                      {useCase.title}
-                    </h3>
-                    <p className="text-text-secondary text-sm mb-4">
-                      {useCase.description}
-                    </p>
-                    <div className="flex items-center text-primary text-sm font-medium group-hover:gap-2 transition-all">
-                      Ver más
-                      <ArrowRight className="w-4 h-4" />
+            ].map((useCase, idx) => {
+              const IconComponent = useCase.icon;
+              return (
+                <motion.div
+                  key={useCase.id}
+                  variants={staggerItem}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  className="cursor-pointer"
+                >
+                  <Link href={useCase.link}>
+                    <div className="bg-glass border border-glass-light rounded-2xl p-8 h-full hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10">
+                      <div className="flex justify-center mb-6">
+                        <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-success/20 rounded-xl flex items-center justify-center group-hover:from-primary/40 group-hover:to-success/40 transition-all duration-300">
+                          <IconComponent className="w-8 h-8 text-primary" />
+                        </div>
+                      </div>
+                      <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">
+                        {useCase.title}
+                      </h3>
+                      <p className="text-text-secondary text-sm mb-4">
+                        {useCase.description}
+                      </p>
+                      <div className="flex items-center text-primary text-sm font-medium group-hover:gap-2 transition-all">
+                        Ver más
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-      
-      {/* Client Logos Section */}
-      <section className="py-16 bg-carbon/30">
-        <div className="container mx-auto px-4">
-          <motion.p
-            className="text-center text-sm uppercase tracking-wider mb-8 opacity-70"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeIn}
-          >
-            Empresas que confían en nosotros
-          </motion.p>
-          <div className="flex flex-wrap justify-center items-center gap-12 opacity-50">
-            {['Citi', 'Ford', 'Mattel', 'Volkswagen', 'Bosch', 'Vimeo'].map((company, idx) => (
-              <div key={idx} className="text-2xl font-bold text-text-secondary">
-                {company}
-              </div>
-            ))}
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
