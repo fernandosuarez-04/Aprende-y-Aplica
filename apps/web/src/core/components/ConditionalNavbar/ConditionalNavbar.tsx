@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Navbar } from '../Navbar';
 import { DashboardNavbar } from '../DashboardNavbar';
+import { BusinessNavbar } from '../BusinessNavbar';
 
 interface ConditionalNavbarProps {
   children: React.ReactNode;
@@ -25,22 +26,27 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isCreditsPage = pathname.startsWith('/credits');
   const isReelsPage = pathname.startsWith('/reels');
   const isLearnPage = pathname.includes('/learn');
+  const isBusinessPage = pathname.startsWith('/business');
   
   // Determine which navbar to show
   // For the home page (/), always show the regular navbar
   // NO mostrar navbar en páginas de /learn
-  const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage);
-  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !isProfilePage && !isAdminPage && !isInstructorPage && !isCreditsPage && !isReelsPage && !isLearnPage && !isAuthPage;
+  const shouldShowBusinessNavbar = isBusinessPage;
+  const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && !isBusinessPage && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage);
+  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !shouldShowBusinessNavbar && !isProfilePage && !isAdminPage && !isInstructorPage && !isCreditsPage && !isReelsPage && !isLearnPage && !isAuthPage;
   
   return (
     <>
+      {/* Mostrar BusinessNavbar para página business */}
+      {shouldShowBusinessNavbar && <BusinessNavbar />}
+      
       {/* Mostrar DashboardNavbar para páginas del dashboard */}
       {shouldShowDashboardNavbar && <DashboardNavbar activeItem={getActiveItem(pathname)} />}
       
       {/* Mostrar Navbar regular para páginas que no son del dashboard */}
       {shouldShowRegularNavbar && <Navbar />}
       
-      <main className={shouldShowDashboardNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage || isAuthPage ? '' : 'pt-16 lg:pt-20'}>
+      <main className={shouldShowDashboardNavbar || shouldShowBusinessNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage || isAuthPage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>

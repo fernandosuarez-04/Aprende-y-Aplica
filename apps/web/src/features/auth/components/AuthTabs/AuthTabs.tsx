@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthTab } from '../../types/auth.types';
 import { LoginForm } from '../LoginForm';
@@ -72,35 +73,61 @@ export function AuthTabs() {
 
       {/* Footer Link con Animación */}
       <motion.div
-        className="text-center text-sm text-text-secondary"
+        className="text-center space-y-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
         {activeTab === 'login' ? (
-          <p>
-            ¿No tienes cuenta?{' '}
-            <motion.button
-              onClick={() => setActiveTab('register')}
-              className="text-primary hover:text-primary/80 font-medium transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Crear cuenta
-            </motion.button>
-          </p>
+          <>
+            <p className="text-sm text-text-secondary">
+              ¿No tienes cuenta?{' '}
+              <motion.button
+                onClick={() => setActiveTab('register')}
+                className="text-primary hover:text-primary/80 font-medium transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Crear cuenta
+              </motion.button>
+            </p>
+            <p className="text-xs text-text-secondary">
+              ¿Eres{' '}
+              <Link href="/instructor" className="text-primary hover:text-primary/80 font-medium transition-colors">
+                Instructor
+              </Link>
+              {' '}o representas una{' '}
+              <Link href="/business" className="text-primary hover:text-primary/80 font-medium transition-colors">
+                Empresa
+              </Link>
+              ?
+            </p>
+          </>
         ) : (
-          <p>
-            ¿Ya tienes cuenta?{' '}
-            <motion.button
-              onClick={() => setActiveTab('login')}
-              className="text-primary hover:text-primary/80 font-medium transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Iniciar sesión
-            </motion.button>
-          </p>
+          <>
+            <p className="text-sm text-text-secondary">
+              ¿Ya tienes cuenta?{' '}
+              <motion.button
+                onClick={() => setActiveTab('login')}
+                className="text-primary hover:text-primary/80 font-medium transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Iniciar sesión
+              </motion.button>
+            </p>
+            <p className="text-xs text-text-secondary">
+              ¿Eres{' '}
+              <Link href="/instructor" className="text-primary hover:text-primary/80 font-medium transition-colors">
+                Instructor
+              </Link>
+              {' '}o representas una{' '}
+              <Link href="/business" className="text-primary hover:text-primary/80 font-medium transition-colors">
+                Empresa
+              </Link>
+              ?
+            </p>
+          </>
         )}
       </motion.div>
     </div>
