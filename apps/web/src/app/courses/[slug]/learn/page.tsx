@@ -515,14 +515,14 @@ export default function CourseLearnPage() {
     return previousLesson.is_completed;
   };
 
-  // Función para marcar una lección como completada (solo local)
-  const markLessonAsCompleted = (lessonId: string) => {
+  // Función para marcar una lección como completada (local y BD)
+  const markLessonAsCompleted = async (lessonId: string): Promise<boolean> => {
     if (!canCompleteLesson(lessonId)) {
       console.log('No se puede completar la lección porque la anterior no está completada');
       return false;
     }
 
-    // Actualizar módulos y recalcular progreso
+    // Actualizar estado local primero (optimistic update)
     setModules((prevModules) => {
       const updatedModules = prevModules.map((module) => ({
         ...module,
@@ -551,7 +551,67 @@ export default function CourseLearnPage() {
       setCurrentLesson((prev) => prev ? { ...prev, is_completed: true } : null);
     }
 
-    return true;
+    // Guardar en la base de datos
+    try {
+      const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        
+        // Si el error es que la lección anterior no está completada, revertir el estado local
+        if (errorData.code === 'PREVIOUS_LESSON_NOT_COMPLETED') {
+          // Revertir el estado local
+          setModules((prevModules) => {
+            const updatedModules = prevModules.map((module) => ({
+              ...module,
+              lessons: module.lessons.map((lesson) =>
+                lesson.lesson_id === lessonId
+                  ? { ...lesson, is_completed: false }
+                  : lesson
+              ),
+            }));
+
+            const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
+            const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
+            const totalProgress = allLessons.length > 0 
+              ? Math.round((completedLessons.length / allLessons.length) * 100)
+              : 0;
+            
+            setCourseProgress(totalProgress);
+            return updatedModules;
+          });
+
+          if (currentLesson?.lesson_id === lessonId) {
+            setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+          }
+
+          console.error('Error del servidor:', errorData.error);
+          return false;
+        }
+
+        // Para otros errores, loguear pero mantener el estado local
+        console.error('Error al guardar progreso en BD:', errorData);
+        return true; // Retornar true porque el estado local se actualizó
+      }
+
+      const result = await response.json();
+      
+      // Actualizar progreso con el valor del servidor si está disponible
+      if (result.progress?.overall_progress !== undefined) {
+        setCourseProgress(Math.round(result.progress.overall_progress));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error al guardar progreso en BD:', error);
+      // Mantener el estado local aunque falle la BD
+      return true;
+    }
   };
 
   // Función para navegar a la lección anterior
@@ -567,10 +627,10 @@ export default function CourseLearnPage() {
   };
 
   // Función para navegar a la lección siguiente
-  const navigateToNextLesson = () => {
+  const navigateToNextLesson = async () => {
     // Si hay una lección actual, intentar marcarla como completada antes de avanzar
     if (currentLesson) {
-      markLessonAsCompleted(currentLesson.lesson_id);
+      await markLessonAsCompleted(currentLesson.lesson_id);
     }
 
     const nextLesson = getNextLesson();
@@ -616,7 +676,7 @@ export default function CourseLearnPage() {
   };
 
   // Función para manejar el cambio de lección desde el panel
-  const handleLessonChange = (selectedLesson: Lesson) => {
+  const handleLessonChange = async (selectedLesson: Lesson) => {
     // Si hay una lección actual y se está avanzando (seleccionando una lección posterior)
     if (currentLesson) {
       const allLessons = getAllLessonsOrdered();
@@ -629,7 +689,7 @@ export default function CourseLearnPage() {
 
       // Si se está avanzando (seleccionando una lección posterior), marcar como completada la actual
       if (selectedIndex > currentIndex) {
-        markLessonAsCompleted(currentLesson.lesson_id);
+        await markLessonAsCompleted(currentLesson.lesson_id);
       }
     }
 
@@ -1426,7 +1486,7 @@ function VideoContent({
   onNavigateNext: () => void;
   getPreviousLesson: () => Lesson | null;
   getNextLesson: () => Lesson | null;
-  markLessonAsCompleted: (lessonId: string) => boolean;
+  markLessonAsCompleted: (lessonId: string) => Promise<boolean>;
   canCompleteLesson: (lessonId: string) => boolean;
   onCourseCompleted: () => void;
   onCannotComplete: () => void;
@@ -1491,13 +1551,18 @@ function VideoContent({
               {/* Botón siguiente o terminar - lado derecho */}
               {(hasNextVideo || isLastLesson) && (
                 <button
-                  onClick={isLastLesson ? () => {
+                  onClick={isLastLesson ? async () => {
                     // Verificar si se puede completar la lección
                     if (lesson && canCompleteLesson(lesson.lesson_id)) {
                       // Marcar la última lección como completada antes de terminar
-                      markLessonAsCompleted(lesson.lesson_id);
-                      // Mostrar modal de curso completado
-                      onCourseCompleted();
+                      const success = await markLessonAsCompleted(lesson.lesson_id);
+                      if (success) {
+                        // Mostrar modal de curso completado
+                        onCourseCompleted();
+                      } else {
+                        // Mostrar modal de error si no se puede completar
+                        onCannotComplete();
+                      }
                     } else {
                       // Mostrar modal de error si no se puede completar
                       onCannotComplete();
@@ -1547,13 +1612,18 @@ function VideoContent({
               {/* Botón siguiente o terminar - lado derecho */}
               {(hasNextVideo || isLastLesson) && (
                 <button
-                  onClick={isLastLesson ? () => {
+                  onClick={isLastLesson ? async () => {
                     // Verificar si se puede completar la lección
                     if (lesson && canCompleteLesson(lesson.lesson_id)) {
                       // Marcar la última lección como completada antes de terminar
-                      markLessonAsCompleted(lesson.lesson_id);
-                      // Mostrar modal de curso completado
-                      onCourseCompleted();
+                      const success = await markLessonAsCompleted(lesson.lesson_id);
+                      if (success) {
+                        // Mostrar modal de curso completado
+                        onCourseCompleted();
+                      } else {
+                        // Mostrar modal de error si no se puede completar
+                        onCannotComplete();
+                      }
                     } else {
                       // Mostrar modal de error si no se puede completar
                       onCannotComplete();
