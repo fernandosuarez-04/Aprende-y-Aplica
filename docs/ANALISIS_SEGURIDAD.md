@@ -10,7 +10,7 @@
 
 Se realizó un análisis exhaustivo de seguridad del codebase identificando **15 vulnerabilidades** de severidad variable, desde **críticas** hasta **bajas**. El proyecto presenta una arquitectura moderna con TypeScript y Next.js, pero requiere mejoras **URGENTES** en la gestión de credenciales.
 
-**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **7 correcciones de seguridad** de prioridad alta:
+**✅ ACTUALIZACIÓN (1 de noviembre de 2025)**: Se han implementado **8 correcciones de seguridad** de prioridad alta:
 - ✅ Logging condicional (previene exposición de información sensible)
 - ✅ Límites a mensajes de chat (previene DoS y costos excesivos)
 - ✅ Sanitización de búsquedas (previene inyección PostgREST)
@@ -18,22 +18,23 @@ Se realizó un análisis exhaustivo de seguridad del codebase identificando **15
 - ✅ Validación robusta de uploads (previene path traversal y malware) 🔴 **CRÍTICA**
 - ✅ Rate limiting OpenAI (previene costos excesivos y DoS)
 - ✅ Validación de variables de entorno (detecta configuraciones inseguras)
+- ✅ Headers de seguridad HTTP (previene XSS, clickjacking, MIME sniffing)
 
 ### Puntuación General de Seguridad
 
-**8.2/10** ✅ - Excelente progreso (⬆️ desde 6.5/10)
+**8.5/10** ✅ - Excelente progreso (⬆️ desde 6.5/10)
 
 ### Puntuación por Categoría
 
 | Categoría | Puntuación | Estado |
 |-----------|------------|--------|
-| ✅ Validación de entrada | 8/10 | Bueno |
+| ✅ Validación de entrada | 9/10 | Excelente |
 | ✅ Seguridad de BD | 9/10 | Excelente |
 | 🔴 Manejo de credenciales | 3/10 | **CRÍTICO** |
-| ✅ Protección ataques comunes | 8/10 | Bueno |
+| ✅ Protección ataques comunes | 9/10 | Excelente |
 | ✅ Manejo de errores | 8/10 | Bueno |
-| ⚠️ Seguridad APIs externas | 6/10 | Medio |
-| ✅ Gestión de sesiones | 7/10 | Bueno |
+| ⚠️ Seguridad APIs externas | 7/10 | Bueno |
+| ✅ Gestión de sesiones | 8/10 | Bueno |
 
 ---
 
@@ -2271,8 +2272,49 @@ psql $DATABASE_URL -c "\d+ storage.objects"
 - **Impacto**: Previene errores de configuración y detecta valores inseguros antes de deployment
 - **Severidad Corregida**: 🟡 MEDIA
 
+#### ✅ Corrección 8: Headers de Seguridad HTTP
+- **Estado**: Completado
+- **Archivos**: `apps/web/next.config.ts`
+- **Cambios Implementados**:
+  ```typescript
+  // Headers aplicados a todas las rutas
+  1. Content-Security-Policy (CSP)
+     - default-src 'self' - Solo recursos del mismo origen
+     - script-src con whitelist de Google APIs y OpenAI
+     - img-src con whitelist de Supabase, Unsplash, YouTube
+     - connect-src limitado a APIs necesarias
+     - frame-ancestors 'none' - Previene clickjacking
+     - upgrade-insecure-requests - Fuerza HTTPS
+  
+  2. X-Frame-Options: DENY
+     - Previene que el sitio se cargue en iframes
+     - Protección adicional contra clickjacking
+  
+  3. X-Content-Type-Options: nosniff
+     - Previene MIME type sniffing
+     - Evita ejecución de scripts no esperados
+  
+  4. Referrer-Policy: strict-origin-when-cross-origin
+     - Controla información enviada en header Referer
+     - Balance entre privacidad y funcionalidad
+  
+  5. Permissions-Policy
+     - Deshabilita camera, microphone, geolocation
+     - Bloquea FLoC/interest-cohort de Google
+  
+  6. X-XSS-Protection: 1; mode=block
+     - Protección XSS en navegadores antiguos
+  
+  7. Strict-Transport-Security (solo producción)
+     - max-age=63072000 (2 años)
+     - includeSubDomains y preload
+     - Fuerza HTTPS en todo el dominio
+  ```
+- **Impacto**: Protege contra XSS, clickjacking, MIME sniffing y otros ataques comunes
+- **Severidad Corregida**: 🟡 MEDIA
+- **Nota de Seguridad**: CSP configurado con 'unsafe-eval' y 'unsafe-inline' solo donde es necesario para Next.js y React. En el futuro se puede hacer más restrictivo usando nonces.
+
 **Próximas Correcciones Planeadas**:
-- Corrección 8: Headers de seguridad HTTP (30 min - rápida)
 - Corrección 9: Sanitización de inputs HTML (2 horas)
 - Gestión segura de credenciales (⚠️ CRÍTICA - requiere rotación y configuración externa)
 **Email de Seguridad**: [Definir email]
