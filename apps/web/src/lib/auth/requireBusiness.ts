@@ -231,13 +231,21 @@ export async function requireBusinessUser(): Promise<BusinessAuth | NextResponse
       );
     }
 
-    // Permitir Business y Business User
-    const normalizedRole = user.cargo_rol?.toLowerCase().trim();
-    if (normalizedRole !== 'business' && normalizedRole !== 'business user') {
+    // Permitir Business y Business User (flexible con variaciones)
+    const normalizedRole = user.cargo_rol?.toLowerCase().trim() || '';
+    const isBusiness = normalizedRole === 'business' || normalizedRole.includes('business');
+    const isBusinessUser = normalizedRole === 'business user' || normalizedRole.includes('business user');
+    
+    if (!isBusiness && !isBusinessUser) {
+      logger.warn('Unauthorized access attempt - invalid role', {
+        userId: user.id,
+        role: user.cargo_rol,
+        normalizedRole
+      });
       return NextResponse.json(
         { 
           success: false,
-          error: 'Permisos insuficientes. Se requiere rol de Business o Business User.' 
+          error: `Permisos insuficientes. Se requiere rol de Business o Business User. Rol actual: ${user.cargo_rol || 'sin rol'}` 
         },
         { status: 403 }
       );

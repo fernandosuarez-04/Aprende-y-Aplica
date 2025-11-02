@@ -1355,3 +1355,357 @@ function RolesTab({ data }: { data: any }) {
   )
 }
 
+// Tab: Skills Insights
+function SkillsTab() {
+  const [skillsData, setSkillsData] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchSkillsData()
+  }, [])
+
+  const fetchSkillsData = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/business/analytics/skills', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        setSkillsData(data)
+      } else {
+        setError(data.error || 'Error al obtener datos de skills')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar skills')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-20">
+        <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+        <p className="text-red-400 text-lg mb-4">{error}</p>
+        <button
+          onClick={fetchSkillsData}
+          className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+        >
+          Reintentar
+        </button>
+      </div>
+    )
+  }
+
+  if (!skillsData) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-carbon-400">No hay datos disponibles</p>
+      </div>
+    )
+  }
+
+  const { stats, gaps, recommendations } = skillsData
+
+  const gapsChartData = stats?.top_gaps?.map((item: any) => ({
+    skill: item.skill,
+    count: item.count
+  })) || []
+
+  const learnedChartData = stats?.top_learned?.map((item: any) => ({
+    skill: item.skill,
+    count: item.count
+  })) || []
+
+  return (
+    <div className="space-y-8">
+      {/* Cards de Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <MetricCard
+          icon={Users}
+          label="Usuarios Analizados"
+          value={stats?.total_users?.toString() || '0'}
+          trend=""
+          color={COLORS.info}
+        />
+        <MetricCard
+          icon={AlertTriangle}
+          label="Usuarios con Gaps"
+          value={stats?.users_with_gaps?.toString() || '0'}
+          trend=""
+          color={COLORS.warning}
+        />
+        <MetricCard
+          icon={Target}
+          label="Cobertura de Skills"
+          value={`${stats?.skills_coverage || 0}%`}
+          trend=""
+          color={COLORS.success}
+        />
+        <MetricCard
+          icon={Brain}
+          label="Total Skills"
+          value={stats?.total_skills?.toString() || '0'}
+          trend=""
+          color={COLORS.primary}
+        />
+      </div>
+
+      {/* Gráficas de Top Skills */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Skills Faltantes */}
+        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-warning" />
+            Top Skills Faltantes
+          </h3>
+          <div className="h-80">
+            {gapsChartData.length > 0 ? (
+              <ResponsiveBar
+                data={gapsChartData}
+                keys={['count']}
+                indexBy="skill"
+                margin={{ top: 50, right: 50, bottom: 100, left: 60 }}
+                padding={0.3}
+                valueScale={{ type: 'linear' }}
+                indexScale={{ type: 'band', round: true }}
+                colors={COLORS.warning}
+                borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: -45,
+                  legend: 'Skill',
+                  legendPosition: 'middle',
+                  legendOffset: 80
+                }}
+                axisLeft={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: 'Cantidad de Usuarios',
+                  legendPosition: 'middle',
+                  legendOffset: -40
+                }}
+                labelSkipWidth={12}
+                labelSkipHeight={12}
+                labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                theme={nivoTheme}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-carbon-400">
+                No hay gaps identificados
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Skills Aprendidas */}
+        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-success" />
+            Top Skills Aprendidas
+          </h3>
+          <div className="h-80">
+            {learnedChartData.length > 0 ? (
+              <ResponsiveBar
+                data={learnedChartData}
+                keys={['count']}
+                indexBy="skill"
+                margin={{ top: 50, right: 50, bottom: 100, left: 60 }}
+                padding={0.3}
+                valueScale={{ type: 'linear' }}
+                indexScale={{ type: 'band', round: true }}
+                colors={COLORS.success}
+                borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: -45,
+                  legend: 'Skill',
+                  legendPosition: 'middle',
+                  legendOffset: 80
+                }}
+                axisLeft={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: 'Cantidad de Usuarios',
+                  legendPosition: 'middle',
+                  legendOffset: -40
+                }}
+                labelSkipWidth={12}
+                labelSkipHeight={12}
+                labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                theme={nivoTheme}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-carbon-400">
+                No hay skills aprendidas registradas
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabla de Gaps por Usuario */}
+      {gaps && gaps.length > 0 && (
+        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-warning" />
+              Gaps de Conocimiento por Usuario
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-carbon-700">
+                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Usuario</th>
+                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Rol</th>
+                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Skills Aprendidas</th>
+                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Skills Faltantes</th>
+                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Cobertura</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gaps.map((gap: any, idx: number) => {
+                  const totalSkills = (gap.learned_skills?.length || 0) + (gap.missing_skills?.length || 0)
+                  const coverage = totalSkills > 0 
+                    ? Math.round(((gap.learned_skills?.length || 0) / totalSkills) * 100)
+                    : 0
+
+                  return (
+                    <motion.tr
+                      key={gap.user_id || idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="border-b border-carbon-700 hover:bg-carbon-800/50 transition-colors"
+                    >
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold">
+                            {gap.user_name?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <span className="text-white font-medium">{gap.user_name || 'Usuario'}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-carbon-300">{gap.user_role || 'N/A'}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-wrap gap-2">
+                          {(gap.learned_skills || []).slice(0, 3).map((skill: string, i: number) => (
+                            <span
+                              key={i}
+                              className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {(gap.learned_skills?.length || 0) > 3 && (
+                            <span className="px-2 py-1 bg-carbon-700 text-carbon-400 rounded text-xs">
+                              +{(gap.learned_skills?.length || 0) - 3}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-wrap gap-2">
+                          {(gap.missing_skills || []).slice(0, 3).map((skill: string, i: number) => (
+                            <span
+                              key={i}
+                              className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {(gap.missing_skills?.length || 0) > 3 && (
+                            <span className="px-2 py-1 bg-carbon-700 text-carbon-400 rounded text-xs">
+                              +{(gap.missing_skills?.length || 0) - 3}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-carbon-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-primary to-success transition-all"
+                              style={{ width: `${coverage}%` }}
+                            />
+                          </div>
+                          <span className="text-carbon-300 text-sm min-w-[45px]">{coverage}%</span>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Recomendaciones de Cursos */}
+      {recommendations && recommendations.length > 0 && (
+        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
+          <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <BookMarked className="w-5 h-5 text-primary" />
+            Recomendaciones de Cursos para Cerrar Gaps
+          </h3>
+          <div className="space-y-4">
+            {recommendations.slice(0, 10).map((rec: any, idx: number) => (
+              <motion.div
+                key={`${rec.user_id}-${rec.gap_skill}-${idx}`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="bg-carbon-800 rounded-lg p-4 border border-carbon-700"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-sm font-medium">
+                        {rec.gap_skill}
+                      </span>
+                      <span className="text-carbon-400 text-sm">→</span>
+                      <span className="text-carbon-300 text-sm">Recomendado para usuario</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(rec.recommended_courses || []).map((course: any, i: number) => (
+                        <span
+                          key={course.id || i}
+                          className="px-3 py-1 bg-primary/20 text-primary rounded text-sm"
+                        >
+                          {course.title}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+

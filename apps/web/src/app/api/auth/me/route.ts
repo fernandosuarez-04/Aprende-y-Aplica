@@ -25,7 +25,7 @@ export async function GET() {
         const supabase = await createClient();
         const { data: orgData, error: orgError } = await supabase
           .from('organizations')
-          .select('id, name, logo_url')
+          .select('id, name, logo_url, slug')
           .eq('id', user.organization_id)
           .single();
 
@@ -33,7 +33,8 @@ export async function GET() {
           organization = {
             id: orgData.id,
             name: orgData.name,
-            logo_url: orgData.logo_url
+            logo_url: orgData.logo_url,
+            slug: orgData.slug
           };
         }
       } catch (orgError) {
