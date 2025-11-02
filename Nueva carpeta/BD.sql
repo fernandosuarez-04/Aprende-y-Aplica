@@ -137,6 +137,19 @@ CREATE TABLE public.certificate_ledger (
   CONSTRAINT certificate_ledger_pkey PRIMARY KEY (block_id),
   CONSTRAINT certificate_ledger_cert_id_fkey FOREIGN KEY (cert_id) REFERENCES public.user_course_certificates(certificate_id)
 );
+CREATE TABLE public.certificate_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  design_config jsonb NOT NULL DEFAULT '{}'::jsonb,
+  is_default boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT certificate_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT certificate_templates_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
 CREATE TABLE public.communities (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,
@@ -464,6 +477,17 @@ CREATE TABLE public.courses (
   CONSTRAINT fk_courses_instructor FOREIGN KEY (instructor_id) REFERENCES public.users(id),
   CONSTRAINT courses_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
 );
+CREATE TABLE public.dashboard_layouts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  name character varying NOT NULL,
+  layout_config jsonb NOT NULL DEFAULT '{}'::jsonb,
+  is_default boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT dashboard_layouts_pkey PRIMARY KEY (id),
+  CONSTRAINT dashboard_layouts_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
 CREATE TABLE public.lesson_activities (
   activity_id uuid NOT NULL DEFAULT gen_random_uuid(),
   activity_title character varying NOT NULL,
@@ -531,6 +555,18 @@ CREATE TABLE public.niveles (
   nombre text NOT NULL,
   CONSTRAINT niveles_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.notification_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  event_type character varying NOT NULL,
+  enabled boolean DEFAULT true,
+  channels jsonb DEFAULT '["email"]'::jsonb,
+  template text,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT notification_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT notification_settings_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
 CREATE TABLE public.oauth_accounts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -575,9 +611,11 @@ CREATE TABLE public.organization_course_assignments (
   completed_at timestamp without time zone,
   created_at timestamp without time zone DEFAULT now(),
   updated_at timestamp without time zone DEFAULT now(),
+  message text,
   CONSTRAINT organization_course_assignments_pkey PRIMARY KEY (id),
   CONSTRAINT organization_course_assignments_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
   CONSTRAINT organization_course_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT organization_course_assignments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
   CONSTRAINT organization_course_assignments_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.organization_users (
@@ -612,6 +650,13 @@ CREATE TABLE public.organizations (
   is_active boolean DEFAULT true,
   created_at timestamp without time zone DEFAULT now(),
   updated_at timestamp without time zone DEFAULT now(),
+  brand_color_primary character varying DEFAULT '#3b82f6'::character varying,
+  brand_color_secondary character varying DEFAULT '#10b981'::character varying,
+  brand_color_accent character varying DEFAULT '#8b5cf6'::character varying,
+  brand_font_family character varying DEFAULT 'Inter'::character varying,
+  brand_logo_url text,
+  brand_favicon_url text,
+  slug character varying UNIQUE,
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.password_reset_tokens (
@@ -895,10 +940,12 @@ CREATE TABLE public.user_course_certificates (
   expires_at timestamp with time zone,
   certificate_hash character DEFAULT certificate_hash_immutable(user_id, course_id, enrollment_id, certificate_id, issued_at, certificate_url) UNIQUE,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  template_id uuid,
   CONSTRAINT user_course_certificates_pkey PRIMARY KEY (certificate_id),
   CONSTRAINT user_course_certificates_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_course_certificates_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
-  CONSTRAINT user_course_certificates_enrollment_id_fkey FOREIGN KEY (enrollment_id) REFERENCES public.user_course_enrollments(enrollment_id)
+  CONSTRAINT user_course_certificates_enrollment_id_fkey FOREIGN KEY (enrollment_id) REFERENCES public.user_course_enrollments(enrollment_id),
+  CONSTRAINT user_course_certificates_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.certificate_templates(id)
 );
 CREATE TABLE public.user_course_enrollments (
   enrollment_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -915,6 +962,25 @@ CREATE TABLE public.user_course_enrollments (
   CONSTRAINT user_course_enrollments_pkey PRIMARY KEY (enrollment_id),
   CONSTRAINT user_course_enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_course_enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.user_group_members (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  group_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  assigned_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT user_group_members_pkey PRIMARY KEY (id),
+  CONSTRAINT user_group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.user_groups(id),
+  CONSTRAINT user_group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_groups (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT user_groups_pkey PRIMARY KEY (id),
+  CONSTRAINT user_groups_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
 CREATE TABLE public.user_lesson_notes (
   note_id uuid NOT NULL DEFAULT gen_random_uuid(),

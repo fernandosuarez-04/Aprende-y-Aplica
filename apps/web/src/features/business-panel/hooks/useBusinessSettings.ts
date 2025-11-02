@@ -8,6 +8,7 @@ export interface OrganizationData {
   contact_phone?: string | null
   website_url?: string | null
   logo_url?: string | null
+  slug?: string | null
   subscription_plan?: string
   subscription_status?: string
   subscription_start_date?: string | null

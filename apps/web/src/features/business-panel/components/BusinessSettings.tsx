@@ -24,7 +24,10 @@ import {
   Palette,
   Type,
   Bell,
-  Award
+  Award,
+  Link as LinkIcon,
+  Copy,
+  Check
 } from 'lucide-react'
 import { useBusinessSettings, OrganizationData } from '../hooks/useBusinessSettings'
 import { BusinessNotificationsSettings } from './BusinessNotificationsSettings'
@@ -396,6 +399,11 @@ function OrganizationTab({
         </div>
       </div>
 
+      {/* Link Personalizado de Login */}
+      {organization?.slug && (
+        <LoginPersonalizadoSection organization={organization} />
+      )}
+
       {/* Configuración de Usuarios */}
       <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -466,6 +474,176 @@ function OrganizationTab({
         </button>
       </div>
     </form>
+  )
+}
+
+// Componente: Link Personalizado de Login
+function LoginPersonalizadoSection({ organization }: { organization: OrganizationData }) {
+  const [copiedLogin, setCopiedLogin] = useState(false)
+  const [copiedRegister, setCopiedRegister] = useState(false)
+  const [baseUrl, setBaseUrl] = useState('')
+
+  useEffect(() => {
+    // Obtener URL base del navegador
+    if (typeof window !== 'undefined') {
+      setBaseUrl(window.location.origin)
+    }
+  }, [])
+
+  const loginUrl = `${baseUrl}/auth/${organization.slug}`
+  const registerUrl = `${baseUrl}/auth/${organization.slug}/register`
+
+  const copyToClipboard = (text: string, type: 'login' | 'register') => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        if (type === 'login') {
+          setCopiedLogin(true)
+          setTimeout(() => setCopiedLogin(false), 2000)
+        } else {
+          setCopiedRegister(true)
+          setTimeout(() => setCopiedRegister(false), 2000)
+        }
+      }).catch(() => {
+        // Fallback para navegadores antiguos
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        textArea.style.position = 'fixed'
+        textArea.style.opacity = '0'
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        if (type === 'login') {
+          setCopiedLogin(true)
+          setTimeout(() => setCopiedLogin(false), 2000)
+        } else {
+          setCopiedRegister(true)
+          setTimeout(() => setCopiedRegister(false), 2000)
+        }
+      })
+    }
+  }
+
+  const canUseCustomLogin = () => {
+    if (!organization.slug) return false
+    const allowedPlans = ['team', 'business', 'enterprise']
+    const activeStatuses = ['active', 'trial']
+    return (
+      allowedPlans.includes(organization.subscription_plan || '') &&
+      activeStatuses.includes(organization.subscription_status || '') &&
+      organization.is_active
+    )
+  }
+
+  if (!canUseCustomLogin()) {
+    return (
+      <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-6">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-yellow-400 mb-2">
+              Login Personalizado No Disponible
+            </h3>
+            <p className="text-yellow-300 text-sm">
+              Para acceder a login personalizado, necesitas una suscripción activa (Team, Business o Enterprise).
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
+      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <LinkIcon className="w-5 h-5" />
+        Link Personalizado de Login
+      </h3>
+      <p className="text-sm text-carbon-400 mb-4">
+        Comparte estos links con tus empleados para que accedan directamente al login personalizado de tu organización.
+      </p>
+
+      {/* Link de Login */}
+      <div className="space-y-3 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-carbon-300 mb-2">
+            Link de Login
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={loginUrl}
+              readOnly
+              className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => copyToClipboard(loginUrl, 'login')}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+              title="Copiar link de login"
+            >
+              {copiedLogin ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copiar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Link de Registro */}
+        <div>
+          <label className="block text-sm font-medium text-carbon-300 mb-2">
+            Link de Registro
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={registerUrl}
+              readOnly
+              className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => copyToClipboard(registerUrl, 'register')}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+              title="Copiar link de registro"
+            >
+              {copiedRegister ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copiar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Información adicional */}
+      <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-primary">
+              <strong>Nota:</strong> Los usuarios que accedan a estos links verán el login personalizado con tu logo y nombre de empresa. 
+              Si intentan acceder al login principal, serán redirigidos automáticamente a tu login personalizado.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

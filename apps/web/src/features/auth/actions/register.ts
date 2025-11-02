@@ -45,7 +45,35 @@ export async function registerAction(formData: FormData) {
     
     const parsed = registerSchema.parse(formDataParsed)
 
+    // Obtener contexto de organización si viene de registro personalizado
+    const organizationId = formData.get('organizationId')?.toString()
+    const organizationSlug = formData.get('organizationSlug')?.toString()
+
     const supabase = await createClient()
+
+    // Validar organización si viene de registro personalizado
+    if (organizationId && organizationSlug) {
+      const { data: organization, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, slug, subscription_plan, subscription_status, is_active')
+        .eq('id', organizationId)
+        .eq('slug', organizationSlug)
+        .single()
+
+      if (orgError || !organization) {
+        return { error: 'Organización no encontrada' }
+      }
+
+      // Validar que puede usar login personalizado
+      const allowedPlans = ['team', 'business', 'enterprise']
+      const activeStatuses = ['active', 'trial']
+      
+      if (!allowedPlans.includes(organization.subscription_plan) || 
+          !activeStatuses.includes(organization.subscription_status) ||
+          !organization.is_active) {
+        return { error: 'Esta organización no permite nuevos registros' }
+      }
+    }
 
     // Verificar usuario/email no exista en nuestra tabla (como antes)
     const { data: existing } = await supabase
@@ -82,6 +110,7 @@ export async function registerAction(formData: FormData) {
         cargo_rol: 'Usuario', // Rol por defecto para nuevos usuarios
         type_rol: 'Usuario', // Tipo de rol por defecto para nuevos usuarios
         email_verified: false, // Se verificará después con email manual
+        organization_id: organizationId || null, // Asignar organización si viene de registro personalizado
       })
       .select()
       .single()

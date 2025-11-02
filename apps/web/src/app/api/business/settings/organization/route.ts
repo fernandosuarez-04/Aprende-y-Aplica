@@ -24,7 +24,7 @@ export async function GET() {
 
     const { data: organization, error } = await supabase
       .from('organizations')
-      .select('*')
+      .select('*, slug')
       .eq('id', organizationId)
       .single()
 

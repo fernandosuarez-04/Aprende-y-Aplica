@@ -31,10 +31,14 @@ export async function loginAction(formData: FormData) {
     // 2. Crear cliente Supabase
     const supabase = await createClient()
 
+    // 3. Obtener contexto de organización si viene de login personalizado
+    const organizationId = formData.get('organizationId')?.toString()
+    const organizationSlug = formData.get('organizationSlug')?.toString()
+
     // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, organization_id')
       .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .single()
 
@@ -53,6 +57,35 @@ export async function loginAction(formData: FormData) {
     
     if (!passwordValid) {
       return { error: 'Credenciales inválidas' }
+    }
+
+    // 4.5. Validar contexto de organización si viene de login personalizado
+    if (organizationId && organizationSlug) {
+      if (user.organization_id !== organizationId) {
+        return { error: 'Este usuario no pertenece a esta organización' }
+      }
+
+      // Verificar que la organización existe y tiene suscripción válida
+      const { data: organization, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, slug, subscription_plan, subscription_status, is_active')
+        .eq('id', organizationId)
+        .eq('slug', organizationSlug)
+        .single()
+
+      if (orgError || !organization) {
+        return { error: 'Organización no encontrada' }
+      }
+
+      // Validar que puede usar login personalizado
+      const allowedPlans = ['team', 'business', 'enterprise']
+      const activeStatuses = ['active', 'trial']
+      
+      if (!allowedPlans.includes(organization.subscription_plan) || 
+          !activeStatuses.includes(organization.subscription_status) ||
+          !organization.is_active) {
+        return { error: 'Esta organización no tiene acceso a login personalizado' }
+      }
     }
 
     // 5. Verificar email (RF-012) - TEMPORAL: Comentado

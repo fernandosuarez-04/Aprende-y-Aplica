@@ -6,6 +6,71 @@ import type { Database } from './lib/supabase/types'
 export async function middleware(request: NextRequest) {
   console.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
   
+  // Verificar si es una ruta de auth y si el usuario tiene organización
+  if (request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/auth/') {
+    const sessionCookie = request.cookies.get('aprende-y-aplica-session')
+    if (sessionCookie) {
+      try {
+        const supabase = createServerClient<Database>(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              getAll() {
+                return request.cookies.getAll()
+              },
+              setAll() {},
+            },
+          }
+        )
+
+        // Verificar sesión y obtener usuario
+        const { data: sessionData } = await supabase
+          .from('user_session')
+          .select('user_id')
+          .eq('jwt_id', sessionCookie.value)
+          .eq('revoked', false)
+          .gt('expires_at', new Date().toISOString())
+          .single()
+
+        if (sessionData) {
+          // Obtener información del usuario y su organización
+          const { data: user } = await supabase
+            .from('users')
+            .select('organization_id')
+            .eq('id', sessionData.user_id)
+            .single()
+
+          if (user?.organization_id) {
+            // Obtener slug de la organización
+            const { data: organization } = await supabase
+              .from('organizations')
+              .select('slug, subscription_plan, subscription_status, is_active')
+              .eq('id', user.organization_id)
+              .single()
+
+            if (organization?.slug) {
+              // Validar que puede usar login personalizado
+              const allowedPlans = ['team', 'business', 'enterprise']
+              const activeStatuses = ['active', 'trial']
+              
+              if (allowedPlans.includes(organization.subscription_plan) && 
+                  activeStatuses.includes(organization.subscription_status) &&
+                  organization.is_active) {
+                // Redirigir a login personalizado
+                console.log('🔄 Redirigiendo usuario de organización a login personalizado')
+                return NextResponse.redirect(new URL(`/auth/${organization.slug}`, request.url))
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error verificando organización en middleware:', error)
+        // Continuar con flujo normal si hay error
+      }
+    }
+  }
+  
   // Verificar si la ruta requiere autenticación
   const protectedRoutes = ['/admin', '/instructor', '/dashboard']
   const isProtectedRoute = protectedRoutes.some(route => 
