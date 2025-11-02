@@ -3086,7 +3086,9 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slug: string; onClose: () => void }) {
   const [question, setQuestion] = useState<any>(null);
   const [responses, setResponses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Cambiado a false para mostrar skeleton inmediatamente
+  const [loadingResponses, setLoadingResponses] = useState(false);
+  const [loadingReactions, setLoadingReactions] = useState(false);
   const [newResponse, setNewResponse] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
@@ -3119,112 +3121,162 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     adjustTextareaHeight();
   }, []);
 
+  // OPTIMIZACIÓN: Carga separada - primero pregunta básica (rápido), luego respuestas y reacciones (lazy)
   useEffect(() => {
-    async function loadQuestion() {
+    let cancelled = false;
+
+    // Cargar pregunta básica primero (sin bloquear UI)
+    async function loadQuestionBasic() {
       try {
         setLoading(true);
-        const [questionRes, responsesRes] = await Promise.all([
-          fetch(`/api/courses/${slug}/questions/${questionId}`),
-          fetch(`/api/courses/${slug}/questions/${questionId}/responses`)
-        ]);
+        const questionRes = await fetch(`/api/courses/${slug}/questions/${questionId}`);
+        
+        if (cancelled) return;
 
         if (questionRes.ok) {
           const questionData = await questionRes.json();
           setQuestion(questionData);
         }
-
-        if (responsesRes.ok) {
-          const responsesData = await responsesRes.json();
-          setResponses(responsesData);
-          
-          // Cargar reacciones del usuario para las respuestas
-          if (responsesData && responsesData.length > 0) {
-            try {
-              // Usar el sistema de autenticación personalizado
-              const userResponse = await fetch('/api/auth/me', {
-                credentials: 'include'
-              });
-              
-              if (userResponse.ok) {
-                const userData = await userResponse.json();
-                const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
-                
-                if (userId) {
-                  // Recopilar todos los IDs de respuestas (principales y anidadas de todos los niveles)
-                  const allResponseIds: string[] = [];
-                  responsesData.forEach((r: any) => {
-                    if (r.id) allResponseIds.push(r.id);
-                    if (r.replies && r.replies.length > 0) {
-                      r.replies.forEach((reply: any) => {
-                        if (reply.id) allResponseIds.push(reply.id);
-                        // Incluir respuestas anidadas de nivel 2 (replies de replies)
-                        if (reply.replies && reply.replies.length > 0) {
-                          reply.replies.forEach((nestedReply: any) => {
-                            if (nestedReply.id) allResponseIds.push(nestedReply.id);
-                          });
-                        }
-                      });
-                    }
-                  });
-                  
-                  if (allResponseIds.length > 0) {
-                    const { createClient } = await import('@supabase/supabase-js');
-                    const supabase = createClient(
-                      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-                    );
-                    
-                    const { data: userReactionsData } = await supabase
-                      .from('course_question_reactions')
-                      .select('response_id, reaction_type')
-                      .eq('user_id', userId)
-                      .in('response_id', allResponseIds);
-                    
-                    if (userReactionsData) {
-                      const reactionsMap: Record<string, string> = {};
-                      const countsMap: Record<string, number> = {};
-                      
-                      userReactionsData.forEach((reaction: any) => {
-                        if (reaction.response_id) {
-                          reactionsMap[reaction.response_id] = reaction.reaction_type;
-                        }
-                      });
-                      
-                      // Inicializar contadores con valores de las respuestas (todos los niveles)
-                      responsesData.forEach((r: any) => {
-                        if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                        if (r.replies && r.replies.length > 0) {
-                          r.replies.forEach((reply: any) => {
-                            if (reply.id) countsMap[reply.id] = reply.reaction_count || 0;
-                            // Incluir contadores de respuestas anidadas de nivel 2
-                            if (reply.replies && reply.replies.length > 0) {
-                              reply.replies.forEach((nestedReply: any) => {
-                                if (nestedReply.id) countsMap[nestedReply.id] = nestedReply.reaction_count || 0;
-                              });
-                            }
-                          });
-                        }
-                      });
-                      
-                      setResponseReactions(reactionsMap);
-                      setResponseReactionCounts(countsMap);
-                    }
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Error loading response reactions:', error);
-            }
-          }
-        }
       } catch (error) {
         console.error('Error loading question:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    loadQuestion();
+    loadQuestionBasic();
+
+    // Cargar respuestas de forma lazy (sin bloquear la UI)
+    async function loadResponsesLazy() {
+      try {
+        setLoadingResponses(true);
+        const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
+        
+        if (cancelled) return;
+
+        if (responsesRes.ok) {
+          const responsesData = await responsesRes.json();
+          setResponses(responsesData || []);
+          
+          // Cargar reacciones solo si hay respuestas
+          if (responsesData && responsesData.length > 0) {
+            loadReactionsLazy(responsesData);
+          } else {
+            // Inicializar contadores vacíos si no hay respuestas
+            setResponseReactionCounts({});
+          }
+        }
+      } catch (error) {
+        console.error('Error loading responses:', error);
+      } finally {
+        if (!cancelled) {
+          setLoadingResponses(false);
+        }
+      }
+    }
+
+    // Cargar reacciones de forma lazy y en background
+    async function loadReactionsLazy(responsesData: any[]) {
+      try {
+        setLoadingReactions(true);
+        
+        // Usar el sistema de autenticación personalizado
+        const userResponse = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+        
+        if (cancelled) return;
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
+          
+          if (!userId) {
+            // Si no hay usuario, solo inicializar contadores
+            const countsMap: Record<string, number> = {};
+            const collectIds = (responses: any[]) => {
+              responses.forEach((r: any) => {
+                if (r.id) countsMap[r.id] = r.reaction_count || 0;
+                if (r.replies && r.replies.length > 0) {
+                  collectIds(r.replies);
+                }
+              });
+            };
+            collectIds(responsesData);
+            setResponseReactionCounts(countsMap);
+            return;
+          }
+          
+          // Recopilar todos los IDs de respuestas (recursivamente)
+          const allResponseIds: string[] = [];
+          const collectIds = (responses: any[]) => {
+            responses.forEach((r: any) => {
+              if (r.id) allResponseIds.push(r.id);
+              if (r.replies && r.replies.length > 0) {
+                collectIds(r.replies);
+              }
+            });
+          };
+          collectIds(responsesData);
+          
+          if (allResponseIds.length > 0) {
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabase = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            
+            const { data: userReactionsData } = await supabase
+              .from('course_question_reactions')
+              .select('response_id, reaction_type')
+              .eq('user_id', userId)
+              .in('response_id', allResponseIds);
+            
+            if (cancelled) return;
+            
+            const reactionsMap: Record<string, string> = {};
+            const countsMap: Record<string, number> = {};
+            
+            if (userReactionsData) {
+              userReactionsData.forEach((reaction: any) => {
+                if (reaction.response_id) {
+                  reactionsMap[reaction.response_id] = reaction.reaction_type;
+                }
+              });
+            }
+            
+            // Inicializar contadores con valores de las respuestas
+            const initCounts = (responses: any[]) => {
+              responses.forEach((r: any) => {
+                if (r.id) countsMap[r.id] = r.reaction_count || 0;
+                if (r.replies && r.replies.length > 0) {
+                  initCounts(r.replies);
+                }
+              });
+            };
+            initCounts(responsesData);
+            
+            setResponseReactions(reactionsMap);
+            setResponseReactionCounts(countsMap);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading response reactions:', error);
+      } finally {
+        if (!cancelled) {
+          setLoadingReactions(false);
+        }
+      }
+    }
+
+    // Cargar respuestas en paralelo con la pregunta (pero sin bloquear)
+    loadResponsesLazy();
+
+    return () => {
+      cancelled = true;
+    };
   }, [questionId, slug]);
 
   const getUserDisplayName = (user: any) => {
@@ -3486,10 +3538,16 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     }
   };
 
+  // Mostrar skeleton solo si la pregunta está cargando
   if (loading) {
     return (
-      <div className="p-6 border-t border-slate-700/50 bg-slate-800/30">
-        <p className="text-slate-400">Cargando...</p>
+      <div className="p-6 border-t border-slate-700/50 bg-gradient-to-br from-slate-800/40 via-slate-700/20 to-slate-800/40">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-slate-700/50 rounded w-3/4"></div>
+          <div className="h-4 bg-slate-700/50 rounded w-1/2"></div>
+          <div className="h-20 bg-slate-700/50 rounded"></div>
+          <div className="h-10 bg-slate-700/50 rounded w-32"></div>
+        </div>
       </div>
     );
   }
@@ -3549,7 +3607,22 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
       {/* Lista de respuestas - Estilo Facebook */}
       <div className="space-y-4">
-        {responses.length === 0 ? (
+        {loadingResponses ? (
+          <div className="space-y-3 animate-pulse">
+            {[1, 2].map((i) => (
+              <div key={i} className="bg-slate-700/30 rounded-xl p-5">
+                <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-600/50"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-slate-600/50 rounded w-1/4"></div>
+                    <div className="h-20 bg-slate-600/50 rounded"></div>
+                    <div className="h-8 bg-slate-600/50 rounded w-32"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : responses.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-slate-400">Aún no hay respuestas. Sé el primero en responder.</p>
           </div>

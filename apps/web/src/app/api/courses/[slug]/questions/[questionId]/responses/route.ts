@@ -43,8 +43,9 @@ export async function GET(
       );
     }
 
-    // Obtener respuestas directas (sin parent_response_id)
-    const { data: responses, error: responsesError } = await supabase
+    // OPTIMIZACIÓN: Cargar todas las respuestas de una vez (incluyendo todas las anidadas)
+    // Esto reduce de N queries a solo 1 query
+    const { data: allResponses, error: responsesError } = await supabase
       .from('course_question_responses')
       .select(`
         *,
@@ -58,11 +59,30 @@ export async function GET(
         )
       `)
       .eq('question_id', questionId)
-      .is('parent_response_id', null)
       .eq('is_deleted', false)
-      .order('is_approved_answer', { ascending: false })
-      .order('is_instructor_answer', { ascending: false })
       .order('created_at', { ascending: true });
+
+    // OPTIMIZACIÓN: Calcular contadores de reacciones en batch
+    // Si hay respuestas, obtener los contadores de reacciones en una sola query
+    let reactionCountsMap = new Map<string, number>();
+    if (allResponses && allResponses.length > 0) {
+      const responseIds = allResponses.map((r: any) => r.id);
+      
+      // Contar reacciones por respuesta en una sola query
+      const { data: reactionCounts, error: reactionCountsError } = await supabase
+        .from('course_question_reactions')
+        .select('response_id')
+        .in('response_id', responseIds);
+      
+      if (!reactionCountsError && reactionCounts) {
+        reactionCounts.forEach((reaction: any) => {
+          const responseId = reaction.response_id;
+          if (responseId) {
+            reactionCountsMap.set(responseId, (reactionCountsMap.get(responseId) || 0) + 1);
+          }
+        });
+      }
+    }
 
     if (responsesError) {
       console.error('Error fetching responses:', responsesError);
@@ -72,65 +92,67 @@ export async function GET(
       );
     }
 
-    // Para cada respuesta, obtener sus respuestas anidadas (y sus respuestas anidadas también)
-    const responsesWithReplies = await Promise.all(
-      (responses || []).map(async (response) => {
-        const { data: replies, error: repliesError } = await supabase
-          .from('course_question_responses')
-          .select(`
-            *,
-            user:users!course_question_responses_user_id_fkey(
-              id,
-              username,
-              display_name,
-              first_name,
-              last_name,
-              profile_picture_url
-            )
-          `)
-          .eq('parent_response_id', response.id)
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: true });
+    if (!allResponses || allResponses.length === 0) {
+      return NextResponse.json([]);
+    }
 
-        if (repliesError) {
-          console.error('Error fetching replies:', repliesError);
-          return { ...response, replies: [] };
+    // Estructurar el árbol de respuestas en memoria (mucho más rápido que múltiples queries)
+    // Separar respuestas por nivel
+    const responseMap = new Map<string, any>();
+    const topLevelResponses: any[] = [];
+
+    // Primero, indexar todas las respuestas por ID e incluir contadores de reacciones
+    allResponses.forEach((response: any) => {
+      const reactionCount = reactionCountsMap.get(response.id) || 0;
+      responseMap.set(response.id, { 
+        ...response, 
+        replies: [],
+        reaction_count: reactionCount // Añadir contador de reacciones
+      });
+    });
+
+    // Luego, construir el árbol
+    allResponses.forEach((response: any) => {
+      const responseWithReplies = responseMap.get(response.id)!;
+      
+      if (!response.parent_response_id) {
+        // Respuesta de nivel superior
+        topLevelResponses.push(responseWithReplies);
+      } else {
+        // Respuesta anidada - encontrar el padre
+        const parent = responseMap.get(response.parent_response_id);
+        if (parent) {
+          if (!parent.replies) {
+            parent.replies = [];
+          }
+          parent.replies.push(responseWithReplies);
         }
+      }
+    });
 
-        // Para cada reply, obtener sus respuestas anidadas (nivel 2)
-        const repliesWithNestedReplies = await Promise.all(
-          (replies || []).map(async (reply) => {
-            const { data: nestedReplies, error: nestedRepliesError } = await supabase
-              .from('course_question_responses')
-              .select(`
-                *,
-                user:users!course_question_responses_user_id_fkey(
-                  id,
-                  username,
-                  display_name,
-                  first_name,
-                  last_name,
-                  profile_picture_url
-                )
-              `)
-              .eq('parent_response_id', reply.id)
-              .eq('is_deleted', false)
-              .order('created_at', { ascending: true });
+    // Ordenar respuestas de nivel superior
+    topLevelResponses.sort((a, b) => {
+      // Primero las respuestas aprobadas
+      if (a.is_approved_answer && !b.is_approved_answer) return -1;
+      if (!a.is_approved_answer && b.is_approved_answer) return 1;
+      // Luego las del instructor
+      if (a.is_instructor_answer && !b.is_instructor_answer) return -1;
+      if (!a.is_instructor_answer && b.is_instructor_answer) return 1;
+      // Finalmente por fecha
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
 
-            if (nestedRepliesError) {
-              console.error('Error fetching nested replies:', nestedRepliesError);
-              return { ...reply, replies: [] };
-            }
+    // Ordenar respuestas anidadas (ya están ordenadas por created_at desde la query)
+    const sortRepliesRecursively = (responses: any[]) => {
+      responses.forEach(response => {
+        if (response.replies && response.replies.length > 0) {
+          sortRepliesRecursively(response.replies);
+        }
+      });
+    };
+    sortRepliesRecursively(topLevelResponses);
 
-            return { ...reply, replies: nestedReplies || [] };
-          })
-        );
-
-        return { ...response, replies: repliesWithNestedReplies || [] };
-      })
-    );
-
-    return NextResponse.json(responsesWithReplies);
+    return NextResponse.json(topLevelResponses);
   } catch (error) {
     console.error('Error in responses API:', error);
     return NextResponse.json(
