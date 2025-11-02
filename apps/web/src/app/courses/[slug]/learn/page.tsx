@@ -35,7 +35,10 @@ import {
   CheckCircle,
   X,
   Loader2,
-  Search
+  Search,
+  Maximize2,
+  Minimize2,
+  Trash2
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
@@ -84,6 +87,7 @@ export default function CourseLearnPage() {
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -106,6 +110,8 @@ export default function CourseLearnPage() {
   
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
+  // Ref para hacer scroll automático al final de los mensajes de LIA
+  const liaMessagesEndRef = useRef<HTMLDivElement>(null);
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -122,6 +128,7 @@ export default function CourseLearnPage() {
   });
   const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] = useState(false);
   const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
+  const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
 
   // Función para formatear timestamp
   const formatTimestamp = (dateString: string): string => {
@@ -243,6 +250,38 @@ export default function CourseLearnPage() {
 
     // Enviar mensaje con contexto
     await sendLiaMessage(message, lessonContext);
+  };
+
+  // Auto-scroll al final cuando hay nuevos mensajes o cuando está cargando
+  useEffect(() => {
+    if (liaMessagesEndRef.current) {
+      // Usar setTimeout para asegurar que el DOM se ha actualizado
+      setTimeout(() => {
+        liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [liaMessages, isLiaLoading]);
+
+  // Función para expandir/colapsar LIA
+  const handleToggleLiaExpanded = () => {
+    const newExpandedState = !isLiaExpanded;
+    setIsLiaExpanded(newExpandedState);
+    
+    // Si se está expandiendo, cerrar el panel izquierdo
+    if (newExpandedState && isLeftPanelOpen) {
+      setIsLeftPanelOpen(false);
+    }
+  };
+
+  // Función para abrir modal de confirmación para limpiar historial
+  const handleOpenClearHistoryModal = () => {
+    setIsClearHistoryModalOpen(true);
+  };
+
+  // Función para limpiar el historial de LIA
+  const handleConfirmClearHistory = () => {
+    clearLiaHistory();
+    setIsClearHistoryModalOpen(false);
   };
 
   // Función para abrir modal de nueva nota
@@ -1126,6 +1165,10 @@ export default function CourseLearnPage() {
                   setIsLeftPanelOpen(true);
                   setIsMaterialCollapsed(false);
                   setIsNotesCollapsed(false);
+                  // Si LIA está abierto, ponerlo en tamaño pequeño
+                  if (isRightPanelOpen) {
+                    setIsLiaExpanded(false);
+                  }
                 }}
                 className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
                 title="Mostrar material del curso"
@@ -1142,6 +1185,10 @@ export default function CourseLearnPage() {
                   setIsLeftPanelOpen(true);
                   setIsMaterialCollapsed(false);
                   setIsNotesCollapsed(true);
+                  // Si LIA está abierto, ponerlo en tamaño pequeño
+                  if (isRightPanelOpen) {
+                    setIsLiaExpanded(false);
+                  }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
                 title="Ver lecciones"
@@ -1155,6 +1202,10 @@ export default function CourseLearnPage() {
                   setIsLeftPanelOpen(true);
                   setIsMaterialCollapsed(true);
                   setIsNotesCollapsed(false);
+                  // Si LIA está abierto, ponerlo en tamaño pequeño
+                  if (isRightPanelOpen) {
+                    setIsLiaExpanded(false);
+                  }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
                 title="Ver notas"
@@ -1169,6 +1220,10 @@ export default function CourseLearnPage() {
                   setIsMaterialCollapsed(true);
                   setIsNotesCollapsed(false);
                   openNewNoteModal();
+                  // Si LIA está abierto, ponerlo en tamaño pequeño
+                  if (isRightPanelOpen) {
+                    setIsLiaExpanded(false);
+                  }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg shadow-blue-500/25"
                 title="Nueva nota"
@@ -1198,19 +1253,32 @@ export default function CourseLearnPage() {
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
+                  const shouldHideText = isLiaExpanded && !isActive;
 
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 ${
+                      className={`flex items-center rounded-xl transition-all duration-200 relative group ${
+                        shouldHideText
+                          ? 'px-2 py-2 hover:px-3 hover:gap-2'
+                          : 'px-4 py-2 gap-2'
+                      } ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
                           : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span className="text-sm font-medium">{tab.label}</span>
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span 
+                        className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                          shouldHideText
+                            ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
+                            : ''
+                        }`}
+                      >
+                        {tab.label}
+                      </span>
                     </button>
                   );
                 })}
@@ -1263,7 +1331,7 @@ export default function CourseLearnPage() {
           {isRightPanelOpen && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 320, opacity: 1 }}
+              animate={{ width: isLiaExpanded ? 640 : 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
               className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2 border border-gray-200 dark:border-slate-700/50"
@@ -1279,12 +1347,32 @@ export default function CourseLearnPage() {
                     <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsRightPanelOpen(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                >
-                  <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleOpenClearHistoryModal}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                    title="Reiniciar conversación con LIA"
+                  >
+                    <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                  </button>
+                  <button
+                    onClick={handleToggleLiaExpanded}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                    title={isLiaExpanded ? "Reducir tamaño de LIA" : "Expandir LIA"}
+                  >
+                    {isLiaExpanded ? (
+                      <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    ) : (
+                      <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setIsRightPanelOpen(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                  </button>
+                </div>
               </div>
 
               {/* Chat de LIA expandido */}
@@ -1326,6 +1414,9 @@ export default function CourseLearnPage() {
                       </div>
                     </div>
                   )}
+                  
+                  {/* Elemento de anclaje para scroll automático */}
+                  <div ref={liaMessagesEndRef} />
                 </div>
 
                 {/* Área de entrada */}
@@ -1368,7 +1459,10 @@ export default function CourseLearnPage() {
           <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
-              onClick={() => setIsRightPanelOpen(true)}
+              onClick={() => {
+                setIsRightPanelOpen(true);
+                setIsLiaExpanded(false);
+              }}
               className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
               title="Mostrar LIA"
             >
@@ -1496,6 +1590,69 @@ export default function CourseLearnPage() {
               >
                 Entendido
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Confirmación para Limpiar Historial de LIA */}
+      <AnimatePresence>
+        {isClearHistoryModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsClearHistoryModalOpen(false)}
+          >
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+            >
+              {/* Icono */}
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                  <MessageSquare className="w-8 h-8 text-white" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                ¿Reiniciar conversación con LIA?
+              </h3>
+
+              {/* Mensaje */}
+              <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
+                ¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con LIA.
+              </p>
+
+              {/* Botones */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsClearHistoryModalOpen(false)}
+                  className="flex-1 px-6 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white font-medium rounded-xl transition-all duration-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmClearHistory}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                >
+                  Reiniciar conversación
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
