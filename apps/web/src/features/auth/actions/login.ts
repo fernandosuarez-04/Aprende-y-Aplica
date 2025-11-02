@@ -75,12 +75,20 @@ export async function loginAction(formData: FormData) {
     // 7. Redirigir según el rol del usuario
     console.log('🔄 Redirigiendo según rol:', user.cargo_rol);
     
-    if (user.cargo_rol === 'Administrador') {
+    const normalizedRole = user.cargo_rol?.trim();
+    
+    if (normalizedRole === 'Administrador') {
       console.log('🎯 Redirigiendo a /admin/dashboard');
       redirect('/admin/dashboard')
-    } else if (user.cargo_rol === 'Instructor') {
+    } else if (normalizedRole === 'Instructor') {
       console.log('🎯 Redirigiendo a /instructor/dashboard');
       redirect('/instructor/dashboard')
+    } else if (normalizedRole === 'Business') {
+      console.log('🎯 Redirigiendo a /business-panel/dashboard');
+      redirect('/business-panel/dashboard')
+    } else if (normalizedRole === 'Business User') {
+      console.log('🎯 Redirigiendo a /business-user/dashboard');
+      redirect('/business-user/dashboard')
     } else {
       console.log('🎯 Redirigiendo a /dashboard');
       redirect('/dashboard')
