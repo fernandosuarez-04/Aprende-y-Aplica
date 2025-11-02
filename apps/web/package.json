@@ -19,6 +19,7 @@
     "@aprende-y-aplica/ui": "*",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^3.10.0",
     "@nivo/bar": "^0.99.0",
     "@nivo/bullet": "^0.99.0",
     "@nivo/bump": "^0.99.0",
