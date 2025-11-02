@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -34,7 +34,8 @@ import {
   Eye,
   CheckCircle,
   X,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
@@ -1243,7 +1244,7 @@ export default function CourseLearnPage() {
                     {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} slug={slug} />}
-                    {activeTab === 'questions' && <QuestionsContent slug={slug} />}
+                    {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -2350,7 +2351,7 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   );
 }
 
-function QuestionsContent({ slug }: { slug: string }) {
+function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: string }) {
   const [questions, setQuestions] = useState<Array<{
     id: string;
     title?: string;
@@ -2702,7 +2703,7 @@ function QuestionsContent({ slug }: { slug: string }) {
 
         {/* Búsqueda */}
         <div className="mb-6">
-          <div className="max-w-md flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <input
                 type="text"
@@ -2725,15 +2726,14 @@ function QuestionsContent({ slug }: { slug: string }) {
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
+              className="p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-blue-500/25"
               aria-label="Buscar"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <Eye className="w-5 h-5" />
+                <Search className="w-5 h-5" />
               )}
-              <span className="hidden sm:inline">Buscar</span>
             </button>
           </div>
         </div>
@@ -2805,7 +2805,7 @@ function QuestionsContent({ slug }: { slug: string }) {
                         )}
                       </div>
                       <p className="text-sm text-slate-400">
-                        {formatTimeAgo(question.created_at)} • Curso
+                        {formatTimeAgo(question.created_at)} • {courseTitle}
                       </p>
                     </div>
                   </div>
@@ -2938,6 +2938,29 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responseReactions, setResponseReactions] = useState<Record<string, string>>({}); // responseId -> reaction_type
   const [responseReactionCounts, setResponseReactionCounts] = useState<Record<string, number>>({}); // responseId -> count
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Función para ajustar altura del textarea
+  const adjustTextareaHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const minHeight = 40; // Altura mínima en px (equivalente a ~1 línea)
+      const maxHeight = 200; // Altura máxima en px (equivalente a ~8-9 líneas)
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  };
+
+  // Ajustar altura del textarea dinámicamente cuando cambia el contenido
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [newResponse]);
+
+  // Ajustar altura inicial cuando se monta el componente
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, []);
 
   useEffect(() => {
     async function loadQuestion() {
@@ -3324,40 +3347,41 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
       className="p-6 border-t border-slate-700/50 bg-gradient-to-br from-slate-800/40 via-slate-700/20 to-slate-800/40"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Formulario de nueva respuesta - Estilo Facebook */}
+      {/* Formulario de nueva respuesta - Diseño compacto */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 bg-gradient-to-br from-slate-800/50 via-slate-700/30 to-slate-800/50 rounded-2xl p-6 border border-slate-600/30 backdrop-blur-sm"
+        className="mb-4 bg-gradient-to-br from-slate-800/50 via-slate-700/30 to-slate-800/50 rounded-xl p-3 border border-slate-600/30 backdrop-blur-sm"
       >
-        <div className="flex gap-4">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
+        <div className="flex gap-3 items-end">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-lg flex-shrink-0">
             U
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <textarea
+              ref={textareaRef}
               value={newResponse}
               onChange={(e) => setNewResponse(e.target.value)}
               placeholder="Escribe tu respuesta..."
-              className="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none transition-all duration-200"
-              rows={3}
+              className="w-full bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none transition-all duration-200 overflow-y-auto"
+              style={{ minHeight: '40px', maxHeight: '200px' }}
               maxLength={1000}
             />
-            <div className="flex justify-between items-center mt-3">
+            <div className="flex justify-between items-center mt-2">
               <span className="text-xs text-slate-400">
                 {newResponse.length}/1000
               </span>
               <motion.button
                 onClick={handleSubmitResponse}
                 disabled={!newResponse.trim() || isSubmitting}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-blue-500/25"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 {isSubmitting ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Send className="w-4 h-4" />
+                  <Send className="w-3.5 h-3.5" />
                 )}
                 {isSubmitting ? 'Enviando...' : 'Responder'}
               </motion.button>
@@ -3667,8 +3691,16 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-carbon-700 rounded-xl border border-carbon-600 p-6 w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      
+      {/* Modal Content */}
+      <div 
+        className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 w-full max-w-2xl p-6 mx-4" 
+        onClick={(e) => e.stopPropagation()}
+        style={{ boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.6), 0 0 0 0 rgba(0, 0, 0, 0)' }}
+      >
         <h3 className="text-white font-semibold text-xl mb-4">Hacer una Pregunta</h3>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -3679,7 +3711,7 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Título de tu pregunta..."
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-slate-700/80 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
           
@@ -3691,7 +3723,7 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
               placeholder="Describe tu pregunta..."
               required
               rows={6}
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-slate-700/80 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
             />
           </div>
 
@@ -3699,14 +3731,14 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-carbon-600 hover:bg-carbon-500 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 text-white rounded-lg transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !content.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25"
             >
               {isSubmitting ? 'Enviando...' : 'Publicar Pregunta'}
             </button>
