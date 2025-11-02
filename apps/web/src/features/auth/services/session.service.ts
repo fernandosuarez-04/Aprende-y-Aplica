@@ -103,7 +103,7 @@ export class SessionService {
       console.log('👤 Buscando usuario con ID:', (session as any).user_id)
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url')
+        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, organization_id')
         .eq('id', (session as any).user_id)
         .single();
 

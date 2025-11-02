@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Home, 
@@ -18,6 +19,12 @@ import {
   Building2,
   ClipboardCheck
 } from 'lucide-react'
+
+interface Organization {
+  id: string;
+  name: string;
+  logo_url?: string | null;
+}
 
 interface BusinessPanelSidebarProps {
   isOpen: boolean
@@ -53,10 +60,44 @@ export function BusinessPanelSidebar({
   const pathname = usePathname()
   const [isHovered, setIsHovered] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
+  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [loadingOrg, setLoadingOrg] = useState(true)
+
+  // Obtener información de la organización
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.user?.organization) {
+            setOrganization(data.user.organization)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching organization:', error)
+      } finally {
+        setLoadingOrg(false)
+      }
+    }
+
+    fetchOrganization()
+  }, [])
 
   // Lógica para determinar si el sidebar debe estar expandido
   const shouldExpand = isPinned || (isCollapsed && isHovered)
   const actualWidth = shouldExpand ? 'w-64' : (isCollapsed ? 'w-16' : 'w-64')
+
+  // Valores por defecto si no hay organización
+  const orgName = organization?.name || 'Aprende y Aplica'
+  const orgLogo = organization?.logo_url || '/icono.png'
 
   // Detectar clics fuera del sidebar para cerrarlo
   useEffect(() => {
@@ -143,17 +184,46 @@ export function BusinessPanelSidebar({
               animate={{ opacity: 1 }}
               className="flex items-center gap-3"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-xl flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-xl flex items-center justify-center overflow-hidden relative p-1">
+                <div className="w-full h-full rounded-lg bg-carbon-900 flex items-center justify-center">
+                  {!loadingOrg && (
+                    <Image
+                      src={orgLogo}
+                      alt={`${orgName} Logo`}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => {
+                        // Fallback al logo por defecto si hay error cargando el logo de la organización
+                        (e.target as HTMLImageElement).src = '/icono.png';
+                      }}
+                    />
+                  )}
+                </div>
               </div>
               <div>
-                <h2 className="text-sm font-bold text-white">Aprende y Aplica</h2>
+                <h2 className="text-sm font-bold text-white">
+                  {loadingOrg ? 'Cargando...' : orgName}
+                </h2>
                 <p className="text-xs text-carbon-300">Business</p>
               </div>
             </motion.div>
           ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-xl flex items-center justify-center mx-auto">
-              <Building2 className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-xl flex items-center justify-center overflow-hidden relative p-1 mx-auto">
+              <div className="w-full h-full rounded-lg bg-carbon-900 flex items-center justify-center">
+                {!loadingOrg && (
+                  <Image
+                    src={orgLogo}
+                    alt={`${orgName} Logo`}
+                    width={24}
+                    height={24}
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/icono.png';
+                    }}
+                  />
+                )}
+              </div>
             </div>
           )}
 

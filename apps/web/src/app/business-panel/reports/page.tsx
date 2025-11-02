@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { BusinessReports } from '@/features/business-panel/components/BusinessReports'
 
 export default function BusinessPanelReportsPage() {
   return (
@@ -14,11 +15,7 @@ export default function BusinessPanelReportsPage() {
         <p className="text-carbon-300">Genera reportes detallados y exporta datos</p>
       </div>
       
-      <div className="grid gap-6">
-        <div className="bg-gradient-to-r from-carbon-700 to-carbon-800 rounded-xl p-8 border border-carbon-600">
-          <p className="text-center text-carbon-300">Próximamente: Generador de reportes</p>
-        </div>
-      </div>
+      <BusinessReports />
     </motion.div>
   )
 }

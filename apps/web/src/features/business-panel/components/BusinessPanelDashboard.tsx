@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Users, 
@@ -14,36 +14,143 @@ import {
 } from 'lucide-react'
 import { Card, CardContent } from '@aprende-y-aplica/ui'
 
+interface DashboardStats {
+  activeUsers: { value: string; change: string; changeType: 'positive' | 'negative' };
+  assignedCourses: { value: string; change: string; changeType: 'positive' | 'negative' };
+  completed: { value: string; change: string; changeType: 'positive' | 'negative' };
+  inProgress: { value: string; change: string; changeType: 'positive' | 'negative' };
+}
+
+interface ActivityItem {
+  user: string;
+  action: string;
+  time: string;
+  icon: string;
+}
+
+interface CourseProgress {
+  label: string;
+  progress: number;
+  students: number;
+}
+
+const iconMap: Record<string, typeof Users> = {
+  'Users': Users,
+  'CheckCircle': CheckCircle,
+  'BookOpen': BookOpen,
+}
+
 export function BusinessPanelDashboard() {
-  const stats = [
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [courses, setCourses] = useState<CourseProgress[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        
+        // Obtener estadísticas, actividad y progreso en paralelo
+        const [statsRes, activityRes, progressRes] = await Promise.all([
+          fetch('/api/business/dashboard/stats', { credentials: 'include' }),
+          fetch('/api/business/dashboard/activity', { credentials: 'include' }),
+          fetch('/api/business/dashboard/progress', { credentials: 'include' })
+        ])
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          if (statsData.success && statsData.stats) {
+            setStats(statsData.stats)
+          }
+        }
+
+        if (activityRes.ok) {
+          const activityData = await activityRes.json()
+          if (activityData.success && activityData.activities) {
+            setActivities(activityData.activities)
+          }
+        }
+
+        if (progressRes.ok) {
+          const progressData = await progressRes.json()
+          if (progressData.success && progressData.courses) {
+            setCourses(progressData.courses)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  // Estadísticas con valores por defecto mientras carga
+  const statsData = stats ? [
     {
       name: 'Usuarios Activos',
-      value: '145',
-      change: '+12%',
+      value: stats.activeUsers.value,
+      change: stats.activeUsers.change,
+      changeType: stats.activeUsers.changeType,
+      icon: Users,
+      gradient: 'from-blue-500 to-cyan-500'
+    },
+    {
+      name: 'Cursos Asignados',
+      value: stats.assignedCourses.value,
+      change: stats.assignedCourses.change,
+      changeType: stats.assignedCourses.changeType,
+      icon: BookOpen,
+      gradient: 'from-purple-500 to-pink-500'
+    },
+    {
+      name: 'Completados',
+      value: stats.completed.value,
+      change: stats.completed.change,
+      changeType: stats.completed.changeType,
+      icon: CheckCircle,
+      gradient: 'from-green-500 to-emerald-500'
+    },
+    {
+      name: 'En Progreso',
+      value: stats.inProgress.value,
+      change: stats.inProgress.change,
+      changeType: stats.inProgress.changeType,
+      icon: TrendingUp,
+      gradient: 'from-orange-500 to-red-500'
+    },
+  ] : [
+    {
+      name: 'Usuarios Activos',
+      value: '0',
+      change: '0%',
       changeType: 'positive' as const,
       icon: Users,
       gradient: 'from-blue-500 to-cyan-500'
     },
     {
       name: 'Cursos Asignados',
-      value: '48',
-      change: '+8',
+      value: '0',
+      change: '0',
       changeType: 'positive' as const,
       icon: BookOpen,
       gradient: 'from-purple-500 to-pink-500'
     },
     {
       name: 'Completados',
-      value: '23',
-      change: '+15%',
+      value: '0',
+      change: '0%',
       changeType: 'positive' as const,
       icon: CheckCircle,
       gradient: 'from-green-500 to-emerald-500'
     },
     {
       name: 'En Progreso',
-      value: '62%',
-      change: '+5%',
+      value: '0%',
+      change: '0%',
       changeType: 'positive' as const,
       icon: TrendingUp,
       gradient: 'from-orange-500 to-red-500'
@@ -81,13 +188,6 @@ export function BusinessPanelDashboard() {
     },
   ]
 
-  const recentActivity = [
-    { user: 'María García', action: 'completó el curso de IA Generativa', time: 'hace 2 horas', icon: CheckCircle },
-    { user: 'Juan Pérez', action: 'se unió a tu organización', time: 'hace 5 horas', icon: Users },
-    { user: 'Ana López', action: 'inició el curso de Python Avanzado', time: 'hace 1 día', icon: BookOpen },
-    { user: 'Carlos Ruiz', action: 'completó el curso de Machine Learning', time: 'hace 2 días', icon: CheckCircle },
-  ]
-
   return (
     <div className="w-full space-y-8">
       {/* Welcome Section */}
@@ -109,7 +209,7 @@ export function BusinessPanelDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
+        {statsData.map((stat, index) => {
           const Icon = stat.icon
           return (
             <motion.div
@@ -179,29 +279,35 @@ export function BusinessPanelDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-white mb-6">Actividad Reciente</h2>
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => {
-              const Icon = activity.icon
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ x: 5 }}
-                  className="flex items-start gap-4 p-4 bg-gradient-to-r from-carbon-700/50 to-carbon-800/50 rounded-xl border border-carbon-600/50 hover:border-primary/30 transition-all duration-300 cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm">
-                      <span className="font-semibold">{activity.user}</span> {activity.action}
-                    </p>
-                    <p className="text-carbon-400 text-xs mt-1">{activity.time}</p>
-                  </div>
-                </motion.div>
-              )
-            })}
+            {loading ? (
+              <div className="text-carbon-400 text-center py-8">Cargando actividad...</div>
+            ) : activities.length > 0 ? (
+              activities.map((activity, index) => {
+                const Icon = iconMap[activity.icon] || CheckCircle
+                return (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ x: 5 }}
+                    className="flex items-start gap-4 p-4 bg-gradient-to-r from-carbon-700/50 to-carbon-800/50 rounded-xl border border-carbon-600/50 hover:border-primary/30 transition-all duration-300 cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm">
+                        <span className="font-semibold">{activity.user}</span> {activity.action}
+                      </p>
+                      <p className="text-carbon-400 text-xs mt-1">{activity.time}</p>
+                    </div>
+                  </motion.div>
+                )
+              })
+            ) : (
+              <div className="text-carbon-400 text-center py-8">No hay actividad reciente</div>
+            )}
           </div>
         </div>
       </div>
@@ -211,32 +317,33 @@ export function BusinessPanelDashboard() {
         <h2 className="text-2xl font-bold text-white mb-6">Resumen de Progreso</h2>
         <Card variant="glassmorphism" className="border-carbon-600">
           <CardContent className="p-8">
-            <div className="space-y-6">
-              {[
-                { label: 'IA Generativa para Negocios', progress: 85, students: 45 },
-                { label: 'Python Avanzado', progress: 62, students: 32 },
-                { label: 'Machine Learning Fundamentals', progress: 48, students: 28 },
-                { label: 'Diseño UX/UI', progress: 73, students: 19 },
-              ].map((course, index) => (
-                <div key={index}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">{course.label}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-carbon-400 text-sm">{course.students} estudiantes</span>
-                      <span className="text-primary font-semibold">{course.progress}%</span>
+            {loading ? (
+              <div className="text-carbon-400 text-center py-8">Cargando progreso...</div>
+            ) : courses.length > 0 ? (
+              <div className="space-y-6">
+                {courses.map((course, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-white font-medium">{course.label}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-carbon-400 text-sm">{course.students} estudiantes</span>
+                        <span className="text-primary font-semibold">{course.progress}%</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-carbon-600 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${course.progress}%` }}
+                        transition={{ delay: index * 0.1 + 0.5, duration: 0.8 }}
+                        className="h-full bg-gradient-to-r from-primary to-success rounded-full"
+                      />
                     </div>
                   </div>
-                  <div className="h-2 bg-carbon-600 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${course.progress}%` }}
-                      transition={{ delay: index * 0.1 + 0.5, duration: 0.8 }}
-                      className="h-full bg-gradient-to-r from-primary to-success rounded-full"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-carbon-400 text-center py-8">No hay cursos asignados aún</div>
+            )}
           </CardContent>
         </Card>
       </div>

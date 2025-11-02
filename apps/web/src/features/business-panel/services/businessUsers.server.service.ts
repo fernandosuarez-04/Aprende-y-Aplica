@@ -13,13 +13,16 @@ export class BusinessUsersServerService {
       console.log('🔄 BusinessUsersService.getUsers: Iniciando para organización:', organizationId)
 
       // Primero obtener usuarios de la tabla organization_users con joins
+      // IMPORTANTE: Validar que organization_id coincida para seguridad
+      // Usar la relación específica organization_users_user_id_fkey para evitar ambigüedad
       const { data: orgUsersData, error: orgUsersError } = await supabase
         .from('organization_users')
         .select(`
           role,
           status,
           joined_at,
-          user:users!inner (
+          user_id,
+          users!organization_users_user_id_fkey (
             id,
             username,
             email,
@@ -29,7 +32,6 @@ export class BusinessUsersServerService {
             cargo_rol,
             type_rol,
             organization_id,
-            is_organization_admin,
             email_verified,
             profile_picture_url,
             points,
@@ -46,15 +48,64 @@ export class BusinessUsersServerService {
         throw orgUsersError
       }
 
+      console.log('📊 Datos brutos de organization_users:', orgUsersData?.length || 0)
+      console.log('📊 Estructura del primer registro:', orgUsersData?.[0] ? JSON.stringify(orgUsersData[0], null, 2) : 'No hay datos')
+
       // Transformar datos para incluir org_role y org_status
-      const users: BusinessUser[] = (orgUsersData || []).map((ou: any) => ({
-        ...ou.user,
+      // IMPORTANTE: Validar que el user_id coincide con el user.id para seguridad adicional
+      // Usando la relación específica organization_users_user_id_fkey, Supabase retorna los datos como 'users'
+      const users: BusinessUser[] = (orgUsersData || [])
+        .filter((ou: any) => {
+          // Acceder a los datos del usuario usando la relación específica
+          const userData = ou.users
+          
+          // Validación de seguridad: verificar que el user existe y que user_id coincide
+          if (!userData || !ou.user_id) {
+            console.warn('⚠️ Registro de organization_users sin usuario asociado:', ou)
+            return false
+          }
+          
+          // Validar que user_id coincide con el id del usuario
+          if (userData.id !== ou.user_id) {
+            console.warn('⚠️ user_id no coincide con user.id:', {
+              user_id: ou.user_id,
+              user_data_id: userData.id
+            })
+            return false
+          }
+          
+          // Validación adicional: verificar que user.organization_id coincide (doble verificación)
+          if (userData.organization_id && userData.organization_id !== organizationId) {
+            console.error('🚨 ERROR DE SEGURIDAD: Usuario de otra organización detectado!', {
+              user_org: userData.organization_id,
+              expected_org: organizationId,
+              user_id: userData.id
+            })
+            return false
+          }
+          return true
+        })
+        .map((ou: any) => {
+          // Acceder a los datos del usuario usando la relación específica
+          const userData = ou.users
+          
+          return {
+            ...userData,
         org_role: ou.role as 'owner' | 'admin' | 'member',
         org_status: ou.status as 'active' | 'invited' | 'suspended' | 'removed',
         joined_at: ou.joined_at
-      }))
+          }
+        })
 
       console.log('✅ Usuarios de organización obtenidos:', users?.length || 0)
+      if (users.length > 0) {
+        console.log('✅ Primer usuario mapeado:', {
+          id: users[0].id,
+          username: users[0].username,
+          org_role: users[0].org_role,
+          org_status: users[0].org_status
+        })
+      }
       return users
     } catch (error) {
       console.error('💥 Error in BusinessUsersService.getOrganizationUsers:', error)
@@ -106,13 +157,19 @@ export class BusinessUsersServerService {
     const supabase = await createClient()
 
     try {
-      // Paso 1: Hash de contraseña si se proporciona
-      let passwordHash: string | undefined = undefined
-      if (userData.password) {
-        passwordHash = await bcrypt.hash(userData.password, 10)
+      // Paso 1: Validar que la contraseña esté presente
+      if (!userData.password || !userData.password.trim()) {
+        throw new Error('La contraseña es obligatoria')
       }
 
-      // Paso 2: Crear el usuario
+      if (userData.password.trim().length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres')
+      }
+
+      // Paso 2: Hash de contraseña (obligatoria)
+      const passwordHash = await bcrypt.hash(userData.password.trim(), 10)
+
+      // Paso 3: Crear el usuario
       const userInsertData: any = {
         username: userData.username,
         email: userData.email,
@@ -122,11 +179,7 @@ export class BusinessUsersServerService {
         cargo_rol: 'Business User',
         type_rol: 'Business User',
         organization_id: organizationId,
-        is_organization_admin: false
-      }
-
-      if (passwordHash) {
-        userInsertData.password_hash = passwordHash
+        password_hash: passwordHash
       }
 
       const { data: newUser, error: userError } = await supabase
@@ -140,17 +193,17 @@ export class BusinessUsersServerService {
         throw userError
       }
 
-      // Paso 3: Agregar a organization_users
+      // Paso 4: Agregar a organization_users (siempre activo porque siempre hay contraseña)
       const { error: orgUserError } = await supabase
         .from('organization_users')
         .insert({
           organization_id: organizationId,
           user_id: newUser.id,
           role: userData.org_role || 'member',
-          status: userData.password ? 'active' : 'invited',
+          status: 'active',
           invited_by: createdBy,
           invited_at: new Date().toISOString(),
-          joined_at: userData.password ? new Date().toISOString() : null
+          joined_at: new Date().toISOString()
         })
 
       if (orgUserError) {
@@ -252,7 +305,7 @@ export class BusinessUsersServerService {
           role,
           status,
           joined_at,
-          user:users!inner (
+          users!organization_users_user_id_fkey (
             id,
             username,
             email,
@@ -262,7 +315,6 @@ export class BusinessUsersServerService {
             cargo_rol,
             type_rol,
             organization_id,
-            is_organization_admin,
             email_verified,
             profile_picture_url,
             points,
@@ -275,8 +327,12 @@ export class BusinessUsersServerService {
         .eq('user_id', userId)
         .single()
 
+      if (!orgUserData || !orgUserData.users) {
+        throw new Error('Usuario no encontrado después de actualizar')
+      }
+
       return {
-        ...orgUserData.user,
+        ...orgUserData.users,
         org_role: orgUserData?.role || 'member',
         org_status: orgUserData?.status || 'active',
         joined_at: orgUserData?.joined_at

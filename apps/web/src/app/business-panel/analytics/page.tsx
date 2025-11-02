@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { BusinessAnalytics } from '@/features/business-panel/components/BusinessAnalytics'
 
 export default function BusinessPanelAnalyticsPage() {
   return (
@@ -14,11 +15,7 @@ export default function BusinessPanelAnalyticsPage() {
         <p className="text-carbon-300">Analíticas detalladas de comportamiento y rendimiento</p>
       </div>
       
-      <div className="grid gap-6">
-        <div className="bg-gradient-to-r from-carbon-700 to-carbon-800 rounded-xl p-8 border border-carbon-600">
-          <p className="text-center text-carbon-300">Próximamente: Dashboard de analytics</p>
-        </div>
-      </div>
+      <BusinessAnalytics />
     </motion.div>
   )
 }

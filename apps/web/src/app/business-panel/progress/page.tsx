@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { BusinessTeamProgress } from '@/features/business-panel/components/BusinessTeamProgress'
 
 export default function BusinessPanelProgressPage() {
   return (
@@ -14,11 +15,7 @@ export default function BusinessPanelProgressPage() {
         <p className="text-carbon-300">Visualiza y analiza el avance de aprendizaje</p>
       </div>
       
-      <div className="grid gap-6">
-        <div className="bg-gradient-to-r from-carbon-700 to-carbon-800 rounded-xl p-8 border border-carbon-600">
-          <p className="text-center text-carbon-300">Próximamente: Gráficos y métricas de progreso</p>
-        </div>
-      </div>
+      <BusinessTeamProgress />
     </motion.div>
   )
 }

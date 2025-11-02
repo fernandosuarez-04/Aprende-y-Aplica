@@ -15,11 +15,15 @@ import {
   Mail,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Download,
+  BarChart3
 } from 'lucide-react'
 import { useBusinessUsers } from '@/features/business-panel/hooks/useBusinessUsers'
 import { BusinessUser } from '@/features/business-panel/services/businessUsers.service'
 import { Button } from '@aprende-y-aplica/ui'
+import Image from 'next/image'
 
 const AddUserModal = dynamic(() => import('@/features/business-panel/components/BusinessAddUserModal').then(mod => ({ default: mod.BusinessAddUserModal })), {
   ssr: false
@@ -30,6 +34,17 @@ const EditUserModal = dynamic(() => import('@/features/business-panel/components
 const DeleteUserModal = dynamic(() => import('@/features/business-panel/components/BusinessDeleteUserModal').then(mod => ({ default: mod.BusinessDeleteUserModal })), {
   ssr: false
 })
+const ImportUsersModal = dynamic(() => import('@/features/business-panel/components/BusinessImportUsersModal').then(mod => ({ default: mod.BusinessImportUsersModal })), {
+  ssr: false
+})
+const UserStatsModal = dynamic(
+  () => import('@/features/business-panel/components/BusinessUserStatsModal').then((mod) => ({ 
+    default: mod.BusinessUserStatsModal 
+  })),
+  { 
+    ssr: false 
+  }
+)
 
 export default function BusinessPanelUsersPage() {
   const { users, stats, isLoading, error, refetch, createUser, updateUser, deleteUser, resendInvitation, suspendUser, activateUser } = useBusinessUsers()
@@ -41,6 +56,9 @@ export default function BusinessPanelUsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [statsUser, setStatsUser] = useState<BusinessUser | null>(null)
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
 
   const filteredUsers = users.filter(user => {
     const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
@@ -110,12 +128,11 @@ export default function BusinessPanelUsersPage() {
   const handleSaveNewUser = async (userData: {
     username: string
     email: string
-    password?: string
+    password: string
     first_name?: string
     last_name?: string
     display_name?: string
     org_role?: 'owner' | 'admin' | 'member'
-    send_invitation?: boolean
   }) => {
     await createUser(userData)
     refetch()
@@ -195,10 +212,50 @@ export default function BusinessPanelUsersPage() {
             <h1 className="text-4xl font-bold text-white mb-3">Gestión de Usuarios</h1>
             <p className="text-carbon-300">Administra y gestiona los miembros de tu organización</p>
           </div>
-          <Button onClick={() => setIsAddModalOpen(true)} variant="gradient" className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Button 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/business/users/template', {
+                    credentials: 'include'
+                  })
+                  if (!response.ok) throw new Error('Error al descargar')
+                  const blob = await response.blob()
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = 'plantilla-importacion-usuarios.csv'
+                  document.body.appendChild(a)
+                  a.click()
+                  document.body.removeChild(a)
+                  window.URL.revokeObjectURL(url)
+                } catch (err) {
+                  console.error('Error descargando plantilla:', err)
+                }
+              }}
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Plantilla
+            </Button>
+            <Button 
+              onClick={() => setIsImportModalOpen(true)} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Importar
+            </Button>
+            <Button 
+              onClick={() => setIsAddModalOpen(true)} 
+              variant="gradient" 
+              className="flex items-center gap-2"
+            >
             <Plus className="w-5 h-5" />
             Agregar Usuario
           </Button>
+          </div>
         </div>
       </div>
 
@@ -393,9 +450,21 @@ export default function BusinessPanelUsersPage() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold">
+                          {user.profile_picture_url ? (
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary/30">
+                              <Image
+                                src={user.profile_picture_url}
+                                alt={displayName}
+                                fill
+                                className="object-cover"
+                                sizes="40px"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
                             {(user.first_name?.[0] || user.username[0]).toUpperCase()}
                           </div>
+                          )}
                           <div>
                             <p className="text-white font-medium">{displayName}</p>
                             <p className="text-carbon-400 text-sm">{user.username}</p>
@@ -457,6 +526,16 @@ export default function BusinessPanelUsersPage() {
                             </button>
                           )}
                           <button
+                            onClick={() => {
+                              setStatsUser(user)
+                              setIsStatsModalOpen(true)
+                            }}
+                            className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
+                            title="Ver estadísticas"
+                          >
+                            <BarChart3 className="w-4 h-4 text-blue-400" />
+                          </button>
+                          <button
                             onClick={() => handleEditUser(user)}
                             className="p-2 hover:bg-primary/20 rounded-lg transition-colors"
                             title="Editar usuario"
@@ -501,6 +580,26 @@ export default function BusinessPanelUsersPage() {
         onClose={closeDeleteModal}
         onConfirm={handleConfirmDelete}
       />
+
+      <ImportUsersModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportComplete={() => {
+          refetch()
+          setIsImportModalOpen(false)
+        }}
+      />
+
+      {statsUser && (
+        <UserStatsModal
+          user={statsUser}
+          isOpen={isStatsModalOpen}
+          onClose={() => {
+            setIsStatsModalOpen(false)
+            setStatsUser(null)
+          }}
+        />
+      )}
     </motion.div>
   )
 }

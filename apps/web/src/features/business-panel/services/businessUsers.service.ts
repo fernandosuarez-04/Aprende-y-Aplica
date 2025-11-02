@@ -8,7 +8,6 @@ export interface BusinessUser {
   cargo_rol: string
   type_rol: string
   organization_id?: string | null
-  is_organization_admin?: boolean
   email_verified: boolean
   profile_picture_url?: string | null
   points: number
@@ -32,12 +31,11 @@ export interface BusinessUserStats {
 export interface CreateBusinessUserRequest {
   username: string
   email: string
-  password?: string
+  password: string
   first_name?: string
   last_name?: string
   display_name?: string
   org_role?: 'owner' | 'admin' | 'member'
-  send_invitation?: boolean
 }
 
 export interface UpdateBusinessUserRequest {

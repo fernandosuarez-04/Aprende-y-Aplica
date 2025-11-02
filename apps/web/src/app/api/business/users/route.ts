@@ -21,6 +21,18 @@ export async function GET() {
         { status: 403 }
       )
     }
+
+    // Validación adicional de seguridad: asegurar que organizationId no sea null/undefined
+    if (!auth.organizationId || typeof auth.organizationId !== 'string') {
+      logger.error('🚨 ERROR DE SEGURIDAD: organizationId inválido')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Organización inválida'
+        },
+        { status: 403 }
+      )
+    }
     
     const [users, stats] = await Promise.all([
       BusinessUsersServerService.getOrganizationUsers(auth.organizationId),
@@ -28,10 +40,24 @@ export async function GET() {
     ])
 
     logger.log('✅ Usuarios de organización cargados:', users?.length || 0)
+    logger.log('🔒 Validación de seguridad: Solo usuarios de organización', auth.organizationId)
+
+    // Validación final: asegurar que todos los usuarios pertenecen a la organización correcta
+    const validatedUsers = (users || []).filter((user: any) => {
+      const belongsToOrg = !user.organization_id || user.organization_id === auth.organizationId
+      if (!belongsToOrg) {
+        logger.error('🚨 ERROR DE SEGURIDAD: Usuario con organization_id incorrecto filtrado', {
+          user_id: user.id,
+          user_org: user.organization_id,
+          expected_org: auth.organizationId
+        })
+      }
+      return belongsToOrg
+    })
 
     return NextResponse.json({
       success: true,
-      users: users || [],
+      users: validatedUsers,
       stats: stats || {}
     })
   } catch (error) {

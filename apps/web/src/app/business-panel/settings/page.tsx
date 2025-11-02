@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { BusinessSettings } from '@/features/business-panel/components/BusinessSettings'
 
 export default function BusinessPanelSettingsPage() {
   return (
@@ -14,11 +15,7 @@ export default function BusinessPanelSettingsPage() {
         <p className="text-carbon-300">Gestiona las configuraciones de tu organización</p>
       </div>
       
-      <div className="grid gap-6">
-        <div className="bg-gradient-to-r from-carbon-700 to-carbon-800 rounded-xl p-8 border border-carbon-600">
-          <p className="text-center text-carbon-300">Próximamente: Configuración de organización</p>
-        </div>
-      </div>
+      <BusinessSettings />
     </motion.div>
   )
 }
