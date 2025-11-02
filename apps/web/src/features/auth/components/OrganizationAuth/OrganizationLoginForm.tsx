@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { Mail } from 'lucide-react';
+import { Mail, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
@@ -28,6 +28,7 @@ export function OrganizationLoginForm({
   const [redirectInfo, setRedirectInfo] = useState<{ to: string; message: string; countdown: number } | null>(null);
   const router = useRouter();
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const redirectUrlRef = useRef<string | null>(null);
   
   const {
     register,
@@ -48,9 +49,76 @@ export function OrganizationLoginForm({
     return () => {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
+      redirectUrlRef.current = null;
     };
   }, []);
+  
+  // Efecto para redirigir cuando countdown llegue a 0
+  useEffect(() => {
+    if (redirectInfo && redirectInfo.countdown === 0) {
+      const urlToRedirect = redirectUrlRef.current || redirectInfo.to;
+      console.log('🔄 Redirigiendo (useEffect) a:', urlToRedirect);
+      
+      // Limpiar intervalo si aún existe
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      
+      let timeoutId: NodeJS.Timeout | null = null;
+      let isCleanedUp = false;
+      
+      let finalUrl = urlToRedirect;
+      
+      const performRedirect = () => {
+        if (!isCleanedUp) {
+          timeoutId = setTimeout(() => {
+            window.location.href = finalUrl;
+          }, 300);
+        }
+      };
+      
+      // Si redirigimos a /auth, primero cerrar sesión para evitar que el middleware nos redirija de vuelta
+      if (urlToRedirect === '/auth' || urlToRedirect.startsWith('/auth')) {
+        // Agregar parámetro para evitar redirección automática del middleware
+        if (urlToRedirect === '/auth' || urlToRedirect === '/auth/') {
+          finalUrl = '/auth?redirect=force';
+        } else if (urlToRedirect.includes('?')) {
+          finalUrl = urlToRedirect + '&redirect=force';
+        } else {
+          finalUrl = urlToRedirect + '?redirect=force';
+        }
+        
+        // Llamar a logout API para limpiar la sesión
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }).then(() => {
+          console.log('✅ Sesión cerrada antes de redirigir (useEffect)');
+          performRedirect();
+        }).catch((logoutError) => {
+          console.error('⚠️ Error al cerrar sesión:', logoutError);
+          // Continuar con la redirección aunque haya error
+          performRedirect();
+        });
+      } else {
+        // Para otras URLs, redirigir directamente
+        performRedirect();
+      }
+      
+      return () => {
+        isCleanedUp = true;
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      };
+    }
+  }, [redirectInfo]);
 
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
@@ -77,29 +145,84 @@ export function OrganizationLoginForm({
         // Si hay información de redirección, mostrar mensaje con countdown
         if (result.redirectTo && result.redirectMessage) {
           setError(result.error);
-          setRedirectInfo({
-            to: result.redirectTo,
-            message: result.redirectMessage,
-            countdown: 5
-          });
+          
+          // Guardar URL de redirección en ref para usar en el intervalo
+          redirectUrlRef.current = result.redirectTo;
           
           // Limpiar intervalo anterior si existe
           if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
           }
           
           // Iniciar countdown y redirección
           let countdown = 5;
-          countdownIntervalRef.current = setInterval(() => {
+          setRedirectInfo({
+            to: result.redirectTo,
+            message: result.redirectMessage,
+            countdown: countdown
+          });
+          
+          countdownIntervalRef.current = setInterval(async () => {
             countdown -= 1;
-            setRedirectInfo(prev => prev ? { ...prev, countdown } : null);
             
-            if (countdown <= 0) {
+            if (countdown > 0) {
+              setRedirectInfo(prev => {
+                if (!prev) return null;
+                return { ...prev, countdown };
+              });
+            } else {
+              // Limpiar intervalo antes de redirigir
               if (countdownIntervalRef.current) {
                 clearInterval(countdownIntervalRef.current);
                 countdownIntervalRef.current = null;
               }
-              router.push(result.redirectTo);
+              
+              // Actualizar estado a 0
+              setRedirectInfo(prev => prev ? { ...prev, countdown: 0 } : null);
+              
+              // Usar la URL del ref para asegurar que tenemos la URL correcta
+              let urlToRedirect = redirectUrlRef.current || result.redirectTo;
+              console.log('🔄 Redirigiendo a:', urlToRedirect);
+              
+              // Si redirigimos a /auth, primero cerrar sesión para evitar que el middleware nos redirija de vuelta
+              if (urlToRedirect === '/auth' || urlToRedirect.startsWith('/auth')) {
+                try {
+                  // Llamar a logout API para limpiar la sesión
+                  await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  });
+                  console.log('✅ Sesión cerrada antes de redirigir');
+                  
+                  // Agregar parámetro para evitar redirección automática del middleware
+                  if (urlToRedirect === '/auth' || urlToRedirect === '/auth/') {
+                    urlToRedirect = '/auth?redirect=force';
+                  } else if (urlToRedirect.includes('?')) {
+                    urlToRedirect += '&redirect=force';
+                  } else {
+                    urlToRedirect += '?redirect=force';
+                  }
+                } catch (logoutError) {
+                  console.error('⚠️ Error al cerrar sesión:', logoutError);
+                  // Agregar parámetro como respaldo
+                  if (urlToRedirect === '/auth' || urlToRedirect === '/auth/') {
+                    urlToRedirect = '/auth?redirect=force';
+                  } else if (urlToRedirect.includes('?')) {
+                    urlToRedirect += '&redirect=force';
+                  } else {
+                    urlToRedirect += '?redirect=force';
+                  }
+                }
+              }
+              
+              // Pequeño delay para asegurar que el estado se actualice y la cookie se elimine
+              setTimeout(() => {
+                window.location.href = urlToRedirect;
+              }, 300);
             }
           }, 1000);
           
@@ -149,19 +272,55 @@ export function OrganizationLoginForm({
       {/* Error Message */}
       {error && (
         <motion.div 
-          className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm space-y-2"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          className="relative overflow-hidden rounded-2xl backdrop-blur-xl bg-gradient-to-br from-red-950/80 via-red-900/60 to-orange-950/60 border border-red-500/30 shadow-2xl shadow-red-500/20"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
-          <p>{error}</p>
-          {redirectInfo && (
-            <div className="mt-2 pt-2 border-t border-red-300">
-              <p className="text-xs text-red-600 font-medium">
-                {redirectInfo.message.replace('5 segundos', `${redirectInfo.countdown} segundo${redirectInfo.countdown !== 1 ? 's' : ''}`)}
-              </p>
+          {/* Efecto de brillo animado en el borde */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/0 via-red-400/20 to-red-500/0 opacity-50 animate-pulse" />
+          
+          {/* Contenido */}
+          <div className="relative p-6 space-y-4">
+            <div className="flex items-start gap-4">
+              <motion.div
+                className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-red-500/30 to-orange-500/30 flex items-center justify-center border border-red-500/40 shadow-lg shadow-red-500/20"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+              >
+                <AlertCircle className="w-6 h-6 text-red-300" />
+              </motion.div>
+              <div className="flex-1 min-w-0 space-y-3">
+                <p className="text-red-100 font-bold text-lg leading-tight">{error}</p>
+                {redirectInfo && (
+                  <div className="pt-3 border-t border-red-500/30">
+                    <div className="flex items-center gap-3">
+                      <motion.div
+                        className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-red-400/60 border-t-red-400"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                      />
+                      <p className="text-sm text-red-200/90 font-medium flex-1">
+                        {redirectInfo.message.replace('5 segundos', `${redirectInfo.countdown} segundo${redirectInfo.countdown !== 1 ? 's' : ''}`)}
+                      </p>
+                      {redirectInfo.countdown > 0 && (
+                        <motion.span
+                          key={redirectInfo.countdown}
+                          className="inline-flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-lg bg-gradient-to-br from-red-500/30 to-orange-500/30 border border-red-400/40 text-red-100 font-bold text-base shadow-lg shadow-red-500/20"
+                          initial={{ scale: 1.4 }}
+                          animate={{ scale: 1 }}
+                          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                          {redirectInfo.countdown}
+                        </motion.span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </motion.div>
       )}
 
