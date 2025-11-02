@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/utils/logger';
-import { createClient } from '@/lib/supabase/server';
-import type { CourseLessonContext } from '@/core/types/lia.types';
+import { logger } from '../../../lib/utils/logger';
+import { createClient } from '../../../lib/supabase/server';
+import type { CourseLessonContext } from '../../../core/types/lia.types';
+import { checkRateLimit } from '../../../core/lib/rate-limit';
+import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor';
+import type { Database } from '../../../lib/supabase/types';
 
 // Contextos específicos para diferentes secciones
 const getContextPrompt = (
@@ -155,7 +158,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener información del usuario desde la base de datos
-    let userInfo = null;
+    let userInfo: Database['public']['Tables']['users']['Row'] | null = null;
     if (user) {
       const { data: userData } = await supabase
         .from('users')
@@ -164,7 +167,7 @@ export async function POST(request: NextRequest) {
         .single();
       
       if (userData) {
-        userInfo = userData;
+        userInfo = userData as Database['public']['Tables']['users']['Row'];
       }
     }
 
@@ -177,10 +180,11 @@ export async function POST(request: NextRequest) {
     const openaiApiKey = process.env.OPENAI_API_KEY;
     let response: string;
     const hasCourseContext = context === 'course' && courseContext !== undefined;
+    const userId = user?.id || null; // Obtener userId para registro de uso
 
     if (openaiApiKey) {
       try {
-        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext);
+        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId);
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
         response = generateAIResponse(message, context, limitedHistory, contextPrompt);
@@ -192,10 +196,11 @@ export async function POST(request: NextRequest) {
 
     // Guardar la conversación en la base de datos (opcional)
     // Solo guardar si el usuario está autenticado
+    // Nota: La tabla ai_chat_history puede no estar en los tipos generados
     if (user) {
       try {
         const { error: dbError } = await supabase
-          .from('ai_chat_history')
+          .from('ai_chat_history' as any)
           .insert({
             user_id: user.id,
             context: context,
@@ -204,7 +209,7 @@ export async function POST(request: NextRequest) {
             // Guardar contexto de curso si existe
             lesson_id: courseContext?.lessonTitle ? courseContext.lessonTitle.substring(0, 100) : null,
             created_at: new Date().toISOString()
-          });
+          } as any);
 
         if (dbError) {
           logger.error('Error guardando historial de chat:', dbError);
@@ -229,7 +234,8 @@ async function callOpenAI(
   message: string,
   systemPrompt: string,
   conversationHistory: Array<{ role: string; content: string }>,
-  hasCourseContext: boolean = false
+  hasCourseContext: boolean = false,
+  userId: string | null = null
 ): Promise<string> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
