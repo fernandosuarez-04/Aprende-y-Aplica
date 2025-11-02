@@ -132,35 +132,56 @@ export async function requireBusiness(): Promise<BusinessAuth | NextResponse> {
       );
     }
 
-    // PASO 6: Verificar que el usuario sea Business
-    const normalizedRole = user.cargo_rol?.toLowerCase().trim();
-    if (normalizedRole !== 'business') {
+    // PASO 6: Verificar que el usuario sea Business (flexible con variaciones)
+    const normalizedRole = user.cargo_rol?.toLowerCase().trim() || '';
+    const isBusiness = normalizedRole === 'business' || normalizedRole.includes('business');
+    
+    if (!isBusiness) {
       logger.warn('Non-business user attempted to access business route', { 
         userId: user.id,
         email: user.email,
-        role: user.cargo_rol 
+        role: user.cargo_rol,
+        normalizedRole
       });
       return NextResponse.json(
         { 
           success: false,
-          error: 'Permisos insuficientes. Se requiere rol de Business.' 
+          error: `Permisos insuficientes. Se requiere rol de Business. Rol actual: ${user.cargo_rol || 'sin rol'}` 
         },
         { status: 403 }
       );
+    }
+
+    // PASO 7: Obtener organizationId (prioridad: users.organization_id, luego organization_users más reciente)
+    let organizationId: string | undefined = user.organization_id || undefined;
+
+    if (!organizationId) {
+      // Si no tiene organization_id directo, buscar en organization_users (más reciente)
+      const { data: userOrgs } = await supabase
+        .from('organization_users')
+        .select('organization_id, joined_at')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('joined_at', { ascending: false })
+        .limit(1);
+
+      if (userOrgs && userOrgs.length > 0) {
+        organizationId = userOrgs[0].organization_id;
+      }
     }
 
     // ✅ AUTENTICACIÓN Y AUTORIZACIÓN EXITOSA
     logger.auth('Business access granted', { 
       userId: user.id, 
       email: user.email,
-      organizationId: user.organization_id
+      organizationId: organizationId
     });
 
     return {
       userId: user.id,
       userEmail: user.email,
       userRole: user.cargo_rol,
-      organizationId: user.organization_id || undefined
+      organizationId: organizationId
     };
 
   } catch (error) {
