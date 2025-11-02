@@ -15,7 +15,9 @@ export async function middleware(request: NextRequest) {
   logger.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
   
   // Verificar si es una ruta de auth y si el usuario tiene organización
-  if (request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/auth/') {
+  // NO redirigir si hay un parámetro ?redirect=force que indica redirección forzada
+  if ((request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/auth/') 
+      && !request.nextUrl.searchParams.has('redirect')) {
     const sessionCookie = request.cookies.get('aprende-y-aplica-session')
     if (sessionCookie) {
       try {
