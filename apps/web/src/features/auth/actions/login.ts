@@ -22,36 +22,61 @@ export async function loginAction(formData: FormData) {
       rememberMe: formData.get('rememberMe') === 'true',
     })
 
-    // console.log('🔍 Login attempt:', {
-    //   emailOrUsername: parsed.emailOrUsername,
-    //   passwordLength: parsed.password.length,
-    //   rememberMe: parsed.rememberMe
-    // })
+    console.log('🔍 Login attempt:', {
+      emailOrUsername: parsed.emailOrUsername,
+      passwordLength: parsed.password.length,
+      rememberMe: parsed.rememberMe
+    })
 
     // 2. Crear cliente Supabase
     const supabase = await createClient()
 
     // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
-    const { data: user, error } = await supabase
+    // Escapar el valor para evitar problemas con caracteres especiales
+    const searchValue = parsed.emailOrUsername.trim();
+    
+    // Buscar usuario por username o email (case-insensitive match exacto)
+    // Intentar primero por username
+    let { data: user, error } = await supabase
       .from('users')
       .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol')
-      .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
-      .single()
+      .ilike('username', searchValue)
+      .maybeSingle();
+    
+    // Si no se encuentra por username, buscar por email
+    if (!user && !error) {
+      const emailResult = await supabase
+        .from('users')
+        .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol')
+        .ilike('email', searchValue)
+        .maybeSingle();
+      
+      user = emailResult.data;
+      if (emailResult.error && !error) {
+        error = emailResult.error;
+      }
+    }
 
-    // console.log('🔍 User query result:', {
-    //   user: user ? { id: user.id, username: user.username, email: user.email } : null,
-    //   error: error ? { code: error.code, message: error.message } : null
-    // })
+    console.log('🔍 User query result:', {
+      user: user ? { id: user.id, username: user.username, email: user.email } : null,
+      error: error ? { code: error.code, message: error.message } : null
+    })
 
     if (error || !user) {
-      // console.log('❌ User not found or error:', error)
+      console.log('❌ User not found or error:', error)
       return { error: 'Credenciales inválidas' }
     }
 
     // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)
+    if (!user.password_hash) {
+      console.error('❌ User has no password_hash');
+      return { error: 'Error en la configuración de la cuenta. Por favor, contacta al soporte.' }
+    }
+
     const passwordValid = await bcrypt.compare(parsed.password, user.password_hash)
     
     if (!passwordValid) {
+      console.log('❌ Invalid password');
       return { error: 'Credenciales inválidas' }
     }
 
@@ -64,15 +89,25 @@ export async function loginAction(formData: FormData) {
     //   }
     // }
 
-    // 5. Crear sesión personalizada (sin Supabase Auth)
+    // 6. Crear sesión personalizada (sin Supabase Auth)
     console.log('🔐 Iniciando creación de sesión...');
-    await SessionService.createSession(user.id, parsed.rememberMe)
-    console.log('✅ Sesión creada exitosamente');
+    try {
+      await SessionService.createSession(user.id, parsed.rememberMe)
+      console.log('✅ Sesión creada exitosamente');
+    } catch (sessionError) {
+      console.error('❌ Error creando sesión:', sessionError);
+      return { error: 'Error al crear la sesión. Por favor, intenta nuevamente.' }
+    }
 
-    // 6. Limpiar sesiones expiradas (mantenimiento)
-    await AuthService.clearExpiredSessions()
+    // 7. Limpiar sesiones expiradas (mantenimiento)
+    try {
+      await AuthService.clearExpiredSessions()
+    } catch (clearError) {
+      // No fallar el login si falla la limpieza
+      console.warn('⚠️ Error limpiando sesiones expiradas:', clearError);
+    }
 
-    // 7. Redirigir según el rol del usuario
+    // 8. Redirigir según el rol del usuario
     console.log('🔄 Redirigiendo según rol:', user.cargo_rol);
     
     const normalizedRole = user.cargo_rol?.trim();
@@ -107,10 +142,29 @@ export async function loginAction(formData: FormData) {
     
     if (error instanceof z.ZodError) {
       console.log('❌ Validation error:', error.errors)
-      return { error: error.errors[0].message }
+      const firstError = error.errors[0];
+      return { error: firstError?.message || 'Error de validación' }
+    }
+    
+    // Proporcionar mensajes de error más específicos
+    if (error instanceof Error) {
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      // Mensajes de error más específicos según el tipo
+      if (error.message.includes('password_hash') || error.message.includes('password')) {
+        return { error: 'Error al verificar las credenciales. Por favor, intenta nuevamente.' }
+      }
+      
+      if (error.message.includes('session') || error.message.includes('cookie')) {
+        return { error: 'Error al crear la sesión. Por favor, verifica las cookies de tu navegador.' }
+      }
     }
     
     console.log('❌ Unexpected error:', error)
-    return { error: 'Error inesperado al iniciar sesión' }
+    return { error: 'Error inesperado al iniciar sesión. Por favor, intenta nuevamente o contacta al soporte.' }
   }
 }

@@ -18,37 +18,16 @@ export class SessionService {
   static async createSession(userId: string, rememberMe: boolean = false): Promise<void> {
     logger.auth('🔐 Creando sesión con refresh tokens', { rememberMe });
     
+    const headersList = await headers();
+    const cookieStore = await cookies();
+    const supabase = await createClient();
+    
+    // Crear sesión legacy (sistema principal)
+    // Este sistema es más simple y confiable
     try {
-      // Crear una Request mock para el RefreshTokenService
-      const headersList = await headers();
-      const requestHeaders = new Headers();
-      headersList.forEach((value, key) => {
-        requestHeaders.set(key, value);
-      });
-      
-      const mockRequest = new Request('http://localhost', {
-        headers: requestHeaders
-      });
-      
-      // Crear sesión con refresh tokens (access token: 30min, refresh token: 7-30 días)
-      const sessionInfo = await RefreshTokenService.createSession(
-        userId, 
-        rememberMe, 
-        mockRequest
-      );
-      
-      logger.auth('✅ Sesión con refresh tokens creada exitosamente', {
-        userId,
-        accessExpiresAt: sessionInfo.accessExpiresAt,
-        refreshExpiresAt: sessionInfo.refreshExpiresAt
-      });
-
-      // Mantener compatibilidad con sistema legacy (user_session)
-      // Esto permite una migración gradual y rollback si es necesario
       const sessionToken = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000);
       
-      const supabase = await createClient();
       const userAgent = headersList.get('user-agent') || '';
       const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                  headersList.get('x-real-ip') || 
@@ -64,18 +43,65 @@ export class SessionService {
         revoked: false,
       };
       
-      await supabase.from('user_session').insert(legacySession);
+      const { error: insertError } = await supabase.from('user_session').insert(legacySession);
       
-      const cookieStore = await cookies();
+      if (insertError) {
+        logger.error('❌ Error insertando sesión en DB:', insertError);
+        throw new Error(`Error al crear sesión en base de datos: ${insertError.message}`);
+      }
+      
       // ✅ Usar configuración segura de cookies
       const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
       cookieStore.set(this.SESSION_COOKIE_NAME, sessionToken, getCustomCookieOptions(maxAge));
       
-      logger.debug('✅ Sesión legacy mantenida para compatibilidad');
+      logger.auth('✅ Sesión legacy creada exitosamente', { userId });
+      
+      // Intentar crear sesión con refresh tokens (opcional, no crítico)
+      // Solo si RefreshTokenService está disponible
+      if (RefreshTokenService) {
+        try {
+          const requestHeaders = new Headers();
+          headersList.forEach((value, key) => {
+            requestHeaders.set(key, value);
+          });
+          
+          const mockRequest = new Request('http://localhost', {
+            headers: requestHeaders
+          });
+          
+          const sessionInfo = await RefreshTokenService.createSession(
+            userId, 
+            rememberMe, 
+            mockRequest
+          );
+          
+          logger.auth('✅ Sesión con refresh tokens creada exitosamente', {
+            userId,
+            accessExpiresAt: sessionInfo.accessExpiresAt,
+            refreshExpiresAt: sessionInfo.refreshExpiresAt
+          });
+        } catch (refreshTokenError) {
+          // No fallar si falla el sistema de refresh tokens
+          // El sistema legacy ya está funcionando
+          logger.warn('⚠️ Error creando refresh token (no crítico):', refreshTokenError);
+          logger.debug('✅ Continuando con sesión legacy únicamente');
+        }
+      } else {
+        logger.debug('ℹ️ RefreshTokenService no disponible, usando solo sistema legacy');
+      }
       
     } catch (error) {
-      logger.error('❌ Error creando sesión con refresh tokens', error);
-      throw new Error('Error al crear sesión');
+      logger.error('❌ Error creando sesión:', error);
+      
+      // Proporcionar mensajes de error más específicos
+      if (error instanceof Error) {
+        if (error.message.includes('user_session')) {
+          throw new Error('Error al crear la sesión en la base de datos. Verifica la configuración de la base de datos.');
+        }
+        throw error;
+      }
+      
+      throw new Error('Error inesperado al crear sesión');
     }
   }
 
@@ -167,7 +193,7 @@ export class SessionService {
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, organization_id')
-        .eq('id', (session as any).user_id)
+        .eq('id', userId)
         .single();
 
       console.log('👤 Usuario encontrado:', user ? 'Sí' : 'No')
