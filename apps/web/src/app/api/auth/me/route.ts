@@ -18,11 +18,31 @@ export async function GET() {
       });
     }
 
-    // Si el usuario tiene organization_id, obtener información de la organización
+    // Buscar organización del usuario (prioridad: organization_users más reciente, luego users.organization_id)
     let organization = null;
-    if (user.organization_id) {
-      try {
-        const supabase = await createClient();
+    try {
+      const supabase = await createClient();
+      
+      // Prioridad 1: Buscar en organization_users (más reciente por joined_at)
+      const { data: userOrgs, error: userOrgsError } = await supabase
+        .from('organization_users')
+        .select('organization_id, joined_at, organizations!inner(id, name, logo_url, slug)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('joined_at', { ascending: false })
+        .limit(1);
+
+      if (!userOrgsError && userOrgs && userOrgs.length > 0) {
+        // Usuario tiene organización vía organization_users (más reciente)
+        const org = userOrgs[0].organizations;
+        organization = {
+          id: org.id,
+          name: org.name,
+          logo_url: org.logo_url,
+          slug: org.slug
+        };
+      } else if (user.organization_id) {
+        // Prioridad 2: Si no hay en organization_users, usar users.organization_id
         const { data: orgData, error: orgError } = await supabase
           .from('organizations')
           .select('id, name, logo_url, slug')
@@ -37,10 +57,10 @@ export async function GET() {
             slug: orgData.slug
           };
         }
-      } catch (orgError) {
-        logger.warn('Error fetching organization info:', orgError);
-        // No fallamos si no podemos obtener la organización
       }
+    } catch (orgError) {
+      logger.warn('Error fetching organization info:', orgError);
+      // No fallamos si no podemos obtener la organización
     }
 
     return NextResponse.json({ 

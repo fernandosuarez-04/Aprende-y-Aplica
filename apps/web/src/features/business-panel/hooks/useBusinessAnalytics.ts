@@ -82,7 +82,15 @@ export function useBusinessAnalytics() {
       })
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || errorData.message || `Error ${response.status}: ${response.statusText}`
+        
+        // Si es error 401 o 403, el usuario no está autenticado o no tiene permisos
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(errorMessage)
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
@@ -112,7 +120,19 @@ export function useBusinessAnalytics() {
         throw new Error(result.error || 'Error al obtener datos de analytics')
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al cargar analytics'
+      let errorMessage = 'Error desconocido al cargar analytics'
+      
+      if (err instanceof Error) {
+        errorMessage = err.message
+        
+        // Si es error de autenticación, mostrar mensaje más claro
+        if (err.message.includes('401') || err.message.includes('No autenticado') || err.message.includes('Sesión')) {
+          errorMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente.'
+        } else if (err.message.includes('403') || err.message.includes('Permisos insuficientes')) {
+          errorMessage = 'No tienes permisos para acceder a esta información.'
+        }
+      }
+      
       setError(errorMessage)
       console.error('Error fetching analytics:', err)
     } finally {

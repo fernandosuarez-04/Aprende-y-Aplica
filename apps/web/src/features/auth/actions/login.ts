@@ -61,10 +61,6 @@ export async function loginAction(formData: FormData) {
 
     // 4.5. Validar contexto de organización si viene de login personalizado
     if (organizationId && organizationSlug) {
-      if (user.organization_id !== organizationId) {
-        return { error: 'Este usuario no pertenece a esta organización' }
-      }
-
       // Verificar que la organización existe y tiene suscripción válida
       const { data: organization, error: orgError } = await supabase
         .from('organizations')
@@ -86,6 +82,65 @@ export async function loginAction(formData: FormData) {
           !organization.is_active) {
         return { error: 'Esta organización no tiene acceso a login personalizado' }
       }
+
+      // Verificar pertenencia a organización (users.organization_id y organization_users)
+      const belongsViaDirect = user.organization_id === organizationId
+
+      // Verificar organization_users
+      const { data: orgUser } = await supabase
+        .from('organization_users')
+        .select('organization_id, joined_at')
+        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
+        .eq('status', 'active')
+        .single()
+
+      const belongsViaTable = !!orgUser
+      const belongsToOrganization = belongsViaDirect || belongsViaTable
+
+      if (!belongsToOrganization) {
+        // Usuario NO pertenece a esta organización - buscar su organización correcta
+        let correctSlug: string | null = null
+
+        // Prioridad 1: Buscar en organization_users (más reciente por joined_at)
+        const { data: userOrgs } = await supabase
+          .from('organization_users')
+          .select('organization_id, joined_at, organizations!inner(slug)')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('joined_at', { ascending: false })
+          .limit(1)
+
+        if (userOrgs && userOrgs.length > 0) {
+          correctSlug = userOrgs[0].organizations?.slug || null
+        } else if (user.organization_id) {
+          // Prioridad 2: Si no hay en organization_users, usar users.organization_id
+          const { data: userOrg } = await supabase
+            .from('organizations')
+            .select('slug')
+            .eq('id', user.organization_id)
+            .single()
+
+          if (userOrg) {
+            correctSlug = userOrg.slug
+          }
+        }
+
+        // Retornar error con información de redirección
+        if (correctSlug) {
+          return {
+            error: 'Este usuario no pertenece a esta organización',
+            redirectTo: `/auth/${correctSlug}`,
+            redirectMessage: `Serás redirigido a tu organización en 5 segundos...`
+          }
+        } else {
+          return {
+            error: 'Este usuario no pertenece a esta organización',
+            redirectTo: '/auth',
+            redirectMessage: 'Serás redirigido al login principal en 5 segundos...'
+          }
+        }
+      }
     }
 
     // 5. Verificar email (RF-012) - TEMPORAL: Comentado
@@ -105,7 +160,44 @@ export async function loginAction(formData: FormData) {
     // 6. Limpiar sesiones expiradas (mantenimiento)
     await AuthService.clearExpiredSessions()
 
-    // 7. Redirigir según el rol del usuario
+    // 7. Si NO es login personalizado (login general), verificar si usuario tiene organización
+    // Si tiene organización, redirigir a su login personalizado antes de redirigir según rol
+    if (!organizationId && !organizationSlug) {
+      // Buscar organización del usuario
+      let userOrgSlug: string | null = null
+
+      // Prioridad 1: Buscar en organization_users (más reciente por joined_at)
+      const { data: userOrgs } = await supabase
+        .from('organization_users')
+        .select('organization_id, joined_at, organizations!inner(slug)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('joined_at', { ascending: false })
+        .limit(1)
+
+      if (userOrgs && userOrgs.length > 0) {
+        userOrgSlug = userOrgs[0].organizations?.slug || null
+      } else if (user.organization_id) {
+        // Prioridad 2: Si no hay en organization_users, usar users.organization_id
+        const { data: userOrg } = await supabase
+          .from('organizations')
+          .select('slug')
+          .eq('id', user.organization_id)
+          .single()
+
+        if (userOrg) {
+          userOrgSlug = userOrg.slug
+        }
+      }
+
+      // Si usuario tiene organización, redirigir a su login personalizado
+      if (userOrgSlug) {
+        console.log(`🎯 Usuario con organización, redirigiendo a /auth/${userOrgSlug}`);
+        redirect(`/auth/${userOrgSlug}`)
+      }
+    }
+
+    // 8. Redirigir según el rol del usuario
     console.log('🔄 Redirigiendo según rol:', user.cargo_rol);
     
     const normalizedRole = user.cargo_rol?.trim();

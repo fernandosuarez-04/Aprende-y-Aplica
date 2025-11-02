@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -25,7 +25,9 @@ export function OrganizationLoginForm({
 }: OrganizationLoginFormProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [redirectInfo, setRedirectInfo] = useState<{ to: string; message: string; countdown: number } | null>(null);
   const router = useRouter();
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const {
     register,
@@ -40,6 +42,15 @@ export function OrganizationLoginForm({
       rememberMe: false,
     },
   });
+
+  // Limpiar intervalo al desmontar componente
+  useEffect(() => {
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, []);
 
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
@@ -62,8 +73,41 @@ export function OrganizationLoginForm({
       
       if (result?.error) {
         console.error('❌ Error en login:', result.error);
-        setError(result.error);
-        setIsPending(false);
+        
+        // Si hay información de redirección, mostrar mensaje con countdown
+        if (result.redirectTo && result.redirectMessage) {
+          setError(result.error);
+          setRedirectInfo({
+            to: result.redirectTo,
+            message: result.redirectMessage,
+            countdown: 5
+          });
+          
+          // Limpiar intervalo anterior si existe
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+          }
+          
+          // Iniciar countdown y redirección
+          let countdown = 5;
+          countdownIntervalRef.current = setInterval(() => {
+            countdown -= 1;
+            setRedirectInfo(prev => prev ? { ...prev, countdown } : null);
+            
+            if (countdown <= 0) {
+              if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+                countdownIntervalRef.current = null;
+              }
+              router.push(result.redirectTo);
+            }
+          }, 1000);
+          
+          setIsPending(false);
+        } else {
+          setError(result.error);
+          setIsPending(false);
+        }
       }
     } catch (error: any) {
       console.error('💥 Error capturado en onSubmit:', error);
@@ -105,12 +149,19 @@ export function OrganizationLoginForm({
       {/* Error Message */}
       {error && (
         <motion.div 
-          className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+          className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm space-y-2"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {error}
+          <p>{error}</p>
+          {redirectInfo && (
+            <div className="mt-2 pt-2 border-t border-red-300">
+              <p className="text-xs text-red-600 font-medium">
+                {redirectInfo.message.replace('5 segundos', `${redirectInfo.countdown} segundo${redirectInfo.countdown !== 1 ? 's' : ''}`)}
+              </p>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -227,14 +278,7 @@ export function OrganizationLoginForm({
         </motion.div>
       </motion.div>
 
-      {/* Social Login Buttons */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      >
-        <SocialLoginButtons />
-      </motion.div>
+      {/* Social Login Buttons - Oculto en login personalizado de organización */}
     </form>
   );
 }

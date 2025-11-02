@@ -109,19 +109,6 @@ export default function OrganizationLoginPage() {
           organizationId={organization.id}
           organizationSlug={organization.slug || slug}
         />
-        
-        {/* Link a registro */}
-        <div className="text-center">
-          <p className="text-sm text-text-secondary">
-            ¿No tienes cuenta?{' '}
-            <Link
-              href={`/auth/${slug}/register`}
-              className="text-primary hover:text-primary/80 font-medium transition-colors"
-            >
-              Registrarse
-            </Link>
-          </p>
-        </div>
       </div>
     </OrganizationAuthLayout>
   );
