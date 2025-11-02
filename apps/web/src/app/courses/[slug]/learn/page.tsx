@@ -436,7 +436,10 @@ export default function CourseLearnPage() {
         }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
         fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/materials`, {
           method: 'GET',
-        }).catch(() => {}) // Ignorar errores silenciosamente en prefetch
+        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
+        fetch(`/api/courses/${slug}/questions`, {
+          method: 'GET',
+        }).catch(() => {}) // Prefetch de questions para mejorar rendimiento
       ]);
     }
   }, [currentLesson?.lesson_id, slug]);
@@ -2369,98 +2372,154 @@ function QuestionsContent({ slug }: { slug: string }) {
     };
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState(''); // Query activa para búsqueda
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({}); // questionId -> reaction_type
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({}); // questionId -> count
 
-  useEffect(() => {
-    async function loadQuestions() {
-      if (!slug) {
-        setLoading(false);
-        return;
-      }
+  // Función para ejecutar búsqueda
+  const handleSearch = () => {
+    setActiveSearchQuery(searchQuery);
+    setOffset(0);
+    setHasMore(true);
+  };
 
-      try {
-        setLoading(true);
-        
-        // Construir URL con búsqueda (si existe)
-        const params = new URLSearchParams();
-        if (searchQuery) params.append('search', searchQuery);
+  // Función para limpiar búsqueda
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setActiveSearchQuery('');
+    setOffset(0);
+    setHasMore(true);
+  };
 
-        const url = `/api/courses/${slug}/questions${params.toString() ? `?${params.toString()}` : ''}`;
-        const response = await fetch(url);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setQuestions(data || []);
-          
-          // Cargar reacciones del usuario para cada pregunta
-          if (data && data.length > 0) {
-            const reactionsMap: Record<string, string> = {};
-            const countsMap: Record<string, number> = {};
-            
-            // Inicializar contadores con los valores de las preguntas
-            data.forEach((q: any) => {
-              countsMap[q.id] = q.reaction_count || 0;
-            });
-            
-            // Cargar reacciones del usuario actual
-            try {
-              // Usar el endpoint de autenticación personalizado
-              const userResponse = await fetch('/api/auth/me', {
-                credentials: 'include'
-              });
-              
-              if (userResponse.ok) {
-                const userData = await userResponse.json();
-                const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
-                
-                if (userId) {
-                  // Cargar reacciones usando Supabase directamente
-                  const { createClient } = await import('@supabase/supabase-js');
-                  const supabase = createClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-                  );
-                  
-                  const questionIds = data.map((q: any) => q.id);
-                  const { data: userReactionsData } = await supabase
-                    .from('course_question_reactions')
-                    .select('question_id, reaction_type')
-                    .eq('user_id', userId)
-                    .in('question_id', questionIds);
-                  
-                  if (userReactionsData) {
-                    userReactionsData.forEach((reaction: any) => {
-                      if (reaction.question_id) {
-                        reactionsMap[reaction.question_id] = reaction.reaction_type;
-                      }
-                    });
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Error loading user reactions:', error);
-            }
-            
-            setUserReactions(reactionsMap);
-            setReactionCounts(countsMap);
-          }
-        } else {
-          setQuestions([]);
-        }
-      } catch (error) {
-        console.error('Error loading questions:', error);
-        setQuestions([]);
-      } finally {
-        setLoading(false);
-      }
+  // Manejar Enter en el input
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
+  // Función para recargar preguntas (extraída para poder llamarla desde onSuccess)
+  const reloadQuestions = React.useCallback(async () => {
+    if (!slug) {
+      setLoading(false);
+      return;
     }
 
-    loadQuestions();
-  }, [slug, searchQuery]);
+    try {
+      setLoading(true);
+      setOffset(0);
+      setHasMore(true);
+      
+      // Construir URL con búsqueda y límite inicial para carga más rápida
+      const params = new URLSearchParams();
+      if (activeSearchQuery) params.append('search', activeSearchQuery);
+      // Optimización: Limitar a 20 preguntas iniciales para carga más rápida
+      params.append('limit', '20');
+      params.append('offset', '0');
+
+      const url = `/api/courses/${slug}/questions?${params.toString()}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setQuestions(data || []);
+        
+        // Verificar si hay más preguntas
+        setHasMore(data && data.length === 20);
+        
+        // Optimización: Las reacciones del usuario ya vienen del servidor en user_reaction
+        if (data && data.length > 0) {
+          const reactionsMap: Record<string, string> = {};
+          const countsMap: Record<string, number> = {};
+          
+          // Extraer reacciones del usuario y contadores desde los datos del servidor
+          data.forEach((q: any) => {
+            countsMap[q.id] = q.reaction_count || 0;
+            if (q.user_reaction) {
+              reactionsMap[q.id] = q.user_reaction;
+            }
+          });
+          
+          setUserReactions(reactionsMap);
+          setReactionCounts(countsMap);
+        }
+      } else {
+        setQuestions([]);
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading questions:', error);
+      setQuestions([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug, activeSearchQuery]);
+
+  useEffect(() => {
+    reloadQuestions();
+  }, [reloadQuestions]);
+
+  // Función para cargar más preguntas
+  const loadMoreQuestions = async () => {
+    if (!slug || loadingMore || !hasMore) return;
+
+    try {
+      setLoadingMore(true);
+      const nextOffset = offset + 20;
+      
+      const params = new URLSearchParams();
+      if (activeSearchQuery) params.append('search', activeSearchQuery);
+      params.append('limit', '20');
+      params.append('offset', nextOffset.toString());
+
+      const url = `/api/courses/${slug}/questions?${params.toString()}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          // Agregar nuevas preguntas a las existentes
+          setQuestions(prev => [...prev, ...data]);
+          setOffset(nextOffset);
+          
+          // Verificar si hay más preguntas
+          setHasMore(data.length === 20);
+          
+          // Actualizar reacciones y contadores con las nuevas preguntas
+          const newReactionsMap: Record<string, string> = {};
+          const newCountsMap: Record<string, number> = {};
+          
+          data.forEach((q: any) => {
+            newCountsMap[q.id] = q.reaction_count || 0;
+            if (q.user_reaction) {
+              newReactionsMap[q.id] = q.user_reaction;
+            }
+          });
+          
+          setUserReactions(prev => ({ ...prev, ...newReactionsMap }));
+          setReactionCounts(prev => ({ ...prev, ...newCountsMap }));
+        } else {
+          setHasMore(false);
+        }
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more questions:', error);
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const getUserDisplayName = (user: any) => {
     return user?.display_name || 
@@ -2643,14 +2702,39 @@ function QuestionsContent({ slug }: { slug: string }) {
 
         {/* Búsqueda */}
         <div className="mb-6">
-          <div className="max-w-md">
-            <input
-              type="text"
-              placeholder="Buscar preguntas..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
-            />
+          <div className="max-w-md flex items-center gap-2">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Buscar preguntas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="w-full px-4 py-2.5 pr-10 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white transition-colors rounded"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
+              aria-label="Buscar"
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+              <span className="hidden sm:inline">Buscar</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2662,9 +2746,9 @@ function QuestionsContent({ slug }: { slug: string }) {
           </div>
           <h3 className="text-white text-lg font-semibold mb-2">No hay preguntas</h3>
           <p className="text-slate-400 mb-4">
-            {searchQuery ? 'No se encontraron preguntas con tu búsqueda' : 'Aún no hay preguntas en este curso'}
+            {activeSearchQuery ? 'No se encontraron preguntas con tu búsqueda' : 'Aún no hay preguntas en este curso'}
           </p>
-          {!searchQuery && (
+          {!activeSearchQuery && (
             <button
               onClick={() => setShowCreateForm(true)}
               className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 inline-flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
@@ -2801,6 +2885,29 @@ function QuestionsContent({ slug }: { slug: string }) {
               )}
             </motion.div>
           ))}
+          
+          {/* Botón "Cargar más" */}
+          {hasMore && (
+            <div className="flex justify-center pt-6">
+              <button
+                onClick={loadMoreQuestions}
+                disabled={loadingMore}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Cargando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5" />
+                    <span>Cargar más preguntas</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -2810,8 +2917,8 @@ function QuestionsContent({ slug }: { slug: string }) {
           onClose={() => setShowCreateForm(false)}
           onSuccess={() => {
             setShowCreateForm(false);
-            // Recargar preguntas
-            window.location.reload();
+            // Recargar preguntas sin recargar toda la página
+            reloadQuestions();
           }}
         />
       )}
