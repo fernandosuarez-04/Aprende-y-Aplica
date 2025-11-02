@@ -40,7 +40,7 @@ import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
 import { VideoPlayer } from '../../../../core/components/VideoPlayer';
 import { useLiaChat } from '../../../../core/hooks';
-import type { CourseLessonContext } from '@/core/types/lia.types';
+import type { CourseLessonContext } from '../../../../core/types/lia.types';
 
 interface Lesson {
   lesson_id: string;
@@ -52,8 +52,6 @@ interface Lesson {
   progress_percentage: number;
   video_provider_id?: string;
   video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
-  transcript_content?: string;
-  summary_content?: string;
 }
 
 interface Module {
@@ -227,9 +225,8 @@ export default function CourseLearnPage() {
       moduleTitle: currentModule?.module_title,
       lessonTitle: currentLesson.lesson_title,
       lessonDescription: currentLesson.lesson_description,
-      transcriptContent: currentLesson.transcript_content,
-      summaryContent: currentLesson.summary_content,
       durationSeconds: currentLesson.duration_seconds
+      // transcriptContent y summaryContent se cargan bajo demanda desde sus respectivos endpoints
     };
   };
 
@@ -423,6 +420,27 @@ export default function CourseLearnPage() {
     }
   }, [currentLesson?.lesson_id, slug]);
 
+  // Prefetch de contenidos cuando cambia la lección para mejorar rendimiento
+  useEffect(() => {
+    if (currentLesson?.lesson_id && slug) {
+      // Prefetch en paralelo usando Promise.all para precargar en caché del navegador
+      Promise.all([
+        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript`, {
+          method: 'GET',
+        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
+        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary`, {
+          method: 'GET',
+        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
+        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/activities`, {
+          method: 'GET',
+        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
+        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/materials`, {
+          method: 'GET',
+        }).catch(() => {}) // Ignorar errores silenciosamente en prefetch
+      ]);
+    }
+  }, [currentLesson?.lesson_id, slug]);
+
 
   const loadModules = async (courseSlug: string) => {
     try {
@@ -575,11 +593,20 @@ export default function CourseLearnPage() {
         },
       });
 
+      // Intentar parsear la respuesta primero (puede ser éxito o error)
+      let responseData: any;
+      try {
+        responseData = await response.json();
+      } catch (jsonError) {
+        // Si no es JSON válido, manejar como error
+        console.warn('Respuesta no es JSON válido - Status:', response.status);
+        // Retornar true porque el estado local se actualizó
+        return true;
+      }
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        
         // Si el error es que la lección anterior no está completada, revertir el estado local
-        if (errorData.code === 'PREVIOUS_LESSON_NOT_COMPLETED') {
+        if (responseData?.code === 'PREVIOUS_LESSON_NOT_COMPLETED') {
           // Revertir el estado local
           setModules((prevModules) => {
             const updatedModules = prevModules.map((module) => ({
@@ -605,16 +632,23 @@ export default function CourseLearnPage() {
             setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
           }
 
-          console.error('Error del servidor:', errorData.error);
+          console.error('Error del servidor:', responseData?.error || responseData);
           return false;
         }
 
-        // Para otros errores, loguear pero mantener el estado local
-        console.error('Error al guardar progreso en BD:', errorData);
-        return true; // Retornar true porque el estado local se actualizó
+        // Para otros errores, solo loguear si hay un mensaje de error claro
+        if (responseData?.error) {
+          console.warn('Advertencia al guardar progreso en BD:', responseData.error);
+        } else if (response.status >= 500) {
+          // Solo loguear errores del servidor (500+), no errores del cliente
+          console.warn('Error del servidor al guardar progreso - Status:', response.status);
+        }
+        // Retornar true porque el estado local se actualizó y los datos pueden haberse guardado
+        return true;
       }
 
-      const result = await response.json();
+      // Si la respuesta es exitosa, procesar el resultado
+      const result = responseData;
       
       // Actualizar progreso con el valor del servidor si está disponible
       if (result.progress?.overall_progress !== undefined) {
@@ -642,26 +676,33 @@ export default function CourseLearnPage() {
   };
 
   // Función para navegar a la lección siguiente
-  const navigateToNextLesson = async () => {
-    // Si hay una lección actual, intentar marcarla como completada antes de avanzar
-    if (currentLesson) {
-      await markLessonAsCompleted(currentLesson.lesson_id);
-    }
-
+  const navigateToNextLesson = () => {
     const nextLesson = getNextLesson();
     if (nextLesson) {
+      // Cambiar inmediatamente (no bloqueante)
       setCurrentLesson(nextLesson);
-      // Cambiar al tab de video cuando navegas
       setActiveTab('video');
-      // Hacer scroll hacia arriba
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Marcar lección anterior como completada en segundo plano (no bloqueante)
+      if (currentLesson) {
+        markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
+          console.error('Error al marcar lección como completada:', error);
+        });
+      }
     }
   };
 
 
   // Función para manejar el cambio de lección desde el panel
-  const handleLessonChange = async (selectedLesson: Lesson) => {
-    // Si hay una lección actual y se está avanzando (seleccionando una lección posterior)
+  const handleLessonChange = (selectedLesson: Lesson) => {
+    // Cambiar inmediatamente (no bloqueante)
+    setCurrentLesson(selectedLesson);
+    setActiveTab('video');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Si hay una lección actual y se está avanzando (seleccionando una lección posterior), 
+    // marcar como completada la actual en segundo plano (no bloqueante)
     if (currentLesson) {
       const allLessons = getAllLessonsOrdered();
       const currentIndex = allLessons.findIndex(
@@ -671,15 +712,13 @@ export default function CourseLearnPage() {
         (item) => item.lesson.lesson_id === selectedLesson.lesson_id
       );
 
-      // Si se está avanzando (seleccionando una lección posterior), marcar como completada la actual
+      // Si se está avanzando, marcar como completada en segundo plano
       if (selectedIndex > currentIndex) {
-        await markLessonAsCompleted(currentLesson.lesson_id);
+        markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
+          console.error('Error al marcar lección como completada:', error);
+        });
       }
     }
-
-    setCurrentLesson(selectedLesson);
-    setActiveTab('video');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const tabs = [
@@ -1199,7 +1238,7 @@ export default function CourseLearnPage() {
                       />
                     )}
                     {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
-                    {activeTab === 'summary' && <SummaryContent lesson={currentLesson} />}
+                    {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} />}
                   </motion.div>
@@ -1655,20 +1694,50 @@ function VideoContent({
 function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  
+  const [transcriptContent, setTranscriptContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar transcripción bajo demanda
+  useEffect(() => {
+    async function loadTranscript() {
+      if (!lesson?.lesson_id || !slug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript`);
+        if (response.ok) {
+          const data = await response.json();
+          setTranscriptContent(data.transcript_content || null);
+        } else {
+          setTranscriptContent(null);
+        }
+      } catch (error) {
+        console.error('Error loading transcript:', error);
+        setTranscriptContent(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadTranscript();
+  }, [lesson?.lesson_id, slug]);
+
   // Verificar si existe contenido de transcripción
-  const hasTranscript = lesson?.transcript_content && lesson.transcript_content.trim().length > 0;
+  const hasTranscript = transcriptContent && transcriptContent.trim().length > 0;
   
   // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
-  const estimatedReadingTime = lesson?.transcript_content 
-    ? Math.ceil(lesson.transcript_content.split(/\s+/).length / 200)
+  const estimatedReadingTime = transcriptContent 
+    ? Math.ceil(transcriptContent.split(/\s+/).length / 200)
     : 0;
   
   // Función para descargar la transcripción
   const handleDownloadTranscript = () => {
-    if (!lesson?.transcript_content) return;
+    if (!transcriptContent || !lesson) return;
     
-    const blob = new Blob([lesson.transcript_content], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([transcriptContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -1681,10 +1750,10 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   
   // Función para copiar al portapapeles
   const handleCopyToClipboard = async () => {
-    if (!lesson?.transcript_content) return;
+    if (!transcriptContent) return;
     
     try {
-      await navigator.clipboard.writeText(lesson.transcript_content);
+      await navigator.clipboard.writeText(transcriptContent);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000); // Reset después de 2 segundos
     } catch (error) {
@@ -1695,15 +1764,15 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   
   // Función para guardar en notas
   const handleSaveToNotes = async () => {
-    if (!lesson?.transcript_content) return;
+    if (!transcriptContent || !lesson) return;
     
     setIsSaving(true);
     
     try {
       // Preparar payload según el formato que espera la API REST
       const notePayload = {
-        note_title: `Transcripción: ${lesson?.lesson_title}`,
-        note_content: lesson.transcript_content,
+        note_title: `Transcripción: ${lesson.lesson_title}`,
+        note_content: transcriptContent,
         note_tags: ['transcripción', 'automática'],
         source_type: 'manual' // Usar valor válido según la restricción de la BD
       };
@@ -1765,9 +1834,9 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   };
   
   if (!lesson) {
-  return (
+    return (
       <div className="space-y-6">
-    <div>
+        <div>
           <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
         </div>
         <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
@@ -1777,8 +1846,25 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
           <h3 className="text-white text-lg font-semibold mb-2">Selecciona una lección</h3>
           <p className="text-slate-400">
             Selecciona una lección del panel izquierdo para ver su transcripción
-        </p>
+          </p>
+        </div>
       </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-slate-400 animate-pulse" />
+          </div>
+          <p className="text-slate-400">Cargando transcripción...</p>
+        </div>
       </div>
     );
   }
@@ -1800,7 +1886,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
                 <h3 className="text-white font-semibold">Transcripción Completa</h3>
               </div>
               <div className="flex items-center space-x-4 text-sm text-slate-400">
-                <span>{lesson.transcript_content?.length || 0} caracteres</span>
+                <span>{transcriptContent?.length || 0} caracteres</span>
                 <span>•</span>
                 <span>{estimatedReadingTime} min lectura</span>
               </div>
@@ -1811,7 +1897,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
           <div className="p-6">
             <div className="prose prose-invert max-w-none">
               <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {lesson.transcript_content}
+                {transcriptContent}
               </div>
             </div>
           </div>
@@ -1869,14 +1955,62 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   );
 }
 
-function SummaryContent({ lesson }: { lesson: Lesson }) {
+function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+  const [summaryContent, setSummaryContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar resumen bajo demanda
+  useEffect(() => {
+    async function loadSummary() {
+      if (!lesson?.lesson_id || !slug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary`);
+        if (response.ok) {
+          const data = await response.json();
+          setSummaryContent(data.summary_content || null);
+        } else {
+          setSummaryContent(null);
+        }
+      } catch (error) {
+        console.error('Error loading summary:', error);
+        setSummaryContent(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSummary();
+  }, [lesson?.lesson_id, slug]);
+
   // Verificar si existe contenido de resumen
-  const hasSummary = lesson?.summary_content && lesson.summary_content.trim().length > 0;
+  const hasSummary = summaryContent && summaryContent.trim().length > 0;
   
   // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
-  const estimatedReadingTime = lesson?.summary_content 
-    ? Math.ceil(lesson.summary_content.split(/\s+/).length / 200)
+  const estimatedReadingTime = summaryContent 
+    ? Math.ceil(summaryContent.split(/\s+/).length / 200)
     : 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
+          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        </div>
+        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
+          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-slate-400 animate-pulse" />
+          </div>
+          <p className="text-slate-400">Cargando resumen...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasSummary) {
     return (
@@ -1919,7 +2053,7 @@ function SummaryContent({ lesson }: { lesson: Lesson }) {
               <h3 className="text-white font-semibold">Resumen Completo</h3>
             </div>
             <div className="flex items-center space-x-4 text-sm text-slate-400">
-              <span>{lesson.summary_content?.split(/\s+/).length || 0} palabras</span>
+              <span>{summaryContent?.split(/\s+/).length || 0} palabras</span>
               <span>•</span>
               <span>{estimatedReadingTime} min lectura</span>
             </div>
@@ -1930,7 +2064,7 @@ function SummaryContent({ lesson }: { lesson: Lesson }) {
         <div className="p-6">
           <div className="prose prose-invert max-w-none">
             <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-              {lesson.summary_content}
+              {summaryContent}
             </div>
           </div>
         </div>
@@ -1973,8 +2107,13 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
       try {
         setLoading(true);
         
-        // Cargar actividades
-        const activitiesResponse = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`);
+        // Cargar actividades y materiales en paralelo para mejorar el rendimiento
+        const [activitiesResponse, materialsResponse] = await Promise.all([
+          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`),
+          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`)
+        ]);
+
+        // Procesar actividades
         if (activitiesResponse.ok) {
           const activitiesData = await activitiesResponse.json();
           setActivities(activitiesData || []);
@@ -1982,8 +2121,7 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           setActivities([]);
         }
 
-        // Cargar materiales
-        const materialsResponse = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`);
+        // Procesar materiales
         if (materialsResponse.ok) {
           const materialsData = await materialsResponse.json();
           setMaterials(materialsData || []);

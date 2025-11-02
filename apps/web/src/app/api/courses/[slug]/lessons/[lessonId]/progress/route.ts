@@ -77,27 +77,23 @@ export async function POST(
 
     const enrollmentId = enrollment.enrollment_id;
 
-    // Obtener todas las lecciones del curso ordenadas
-    const { data: modules } = await supabase
+    // Obtener módulos del curso
+    const { data: modules, error: modulesError } = await supabase
       .from('course_modules')
-      .select(`
-        module_id,
-        module_order_index
-      `)
+      .select('module_id, module_order_index')
       .eq('course_id', courseId)
       .eq('is_published', true)
       .order('module_order_index', { ascending: true });
 
-    if (!modules || modules.length === 0) {
+    if (modulesError || !modules || modules.length === 0) {
       return NextResponse.json(
         { error: 'El curso no tiene módulos' },
         { status: 404 }
       );
     }
 
-    // Obtener todas las lecciones ordenadas
-    const allLessons = [];
-    for (const module of modules) {
+    // Obtener todas las lecciones de los módulos en paralelo
+    const lessonsPromises = modules.map(async (module) => {
       const { data: lessons } = await supabase
         .from('course_lessons')
         .select('lesson_id, lesson_order_index, module_id')
@@ -105,13 +101,14 @@ export async function POST(
         .eq('is_published', true)
         .order('lesson_order_index', { ascending: true });
 
-      if (lessons) {
-        allLessons.push(...lessons.map((l: any) => ({
-          ...l,
-          module_order_index: module.module_order_index,
-        })));
-      }
-    }
+      return (lessons || []).map((lesson: any) => ({
+        ...lesson,
+        module_order_index: module.module_order_index,
+      }));
+    });
+
+    const lessonsArrays = await Promise.all(lessonsPromises);
+    const allLessons = lessonsArrays.flat();
 
     // Ordenar lecciones: primero por module_order_index, luego por lesson_order_index
     allLessons.sort((a, b) => {
@@ -120,6 +117,14 @@ export async function POST(
       }
       return a.lesson_order_index - b.lesson_order_index;
     });
+
+    // Verificar que hay lecciones
+    if (allLessons.length === 0) {
+      return NextResponse.json(
+        { error: 'El curso no tiene lecciones' },
+        { status: 404 }
+      );
+    }
 
     // Encontrar la lección actual
     const currentLessonIndex = allLessons.findIndex(
@@ -134,10 +139,11 @@ export async function POST(
     }
 
     // Si no es la primera lección, verificar que la anterior esté completada
+    // Optimización: Si la lección actual es la primera, no necesitamos verificar
     if (currentLessonIndex > 0) {
       const previousLesson = allLessons[currentLessonIndex - 1];
       
-      // Obtener progreso de la lección anterior
+      // Optimización: Obtener progreso de la lección anterior en una sola consulta
       const { data: previousProgress } = await supabase
         .from('user_lesson_progress')
         .select('is_completed, lesson_status')
