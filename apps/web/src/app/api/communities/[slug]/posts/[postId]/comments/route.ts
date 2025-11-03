@@ -176,6 +176,49 @@ export async function POST(
       return NextResponse.json({ error: 'El comentario es demasiado largo' }, { status: 400 });
     }
 
+    // ⭐ MODERACIÓN: Verificar si contiene palabras prohibidas
+    const { containsForbiddenContent, registerWarning } = await import('../../../../../../../lib/moderation');
+    const forbiddenCheck = await containsForbiddenContent(content);
+
+    if (forbiddenCheck.contains) {
+      try {
+        const warningResult = await registerWarning(
+          user.id,
+          content,
+          'comment'
+        );
+        
+        // Si el usuario fue baneado
+        if (warningResult.userBanned) {
+          return NextResponse.json(
+            { 
+              error: '❌ Has sido baneado del sistema por reiteradas violaciones de las reglas de la comunidad.',
+              banned: true
+            },
+            { status: 403 }
+          );
+        }
+        
+        // Si solo es advertencia
+        return NextResponse.json(
+          { 
+            error: `⚠️ El comentario contiene lenguaje inapropiado y ha sido bloqueado. ${warningResult.message}`,
+            warning: true,
+            warningCount: warningResult.warningCount,
+            foundWords: forbiddenCheck.words
+          },
+          { status: 400 }
+        );
+      } catch (error) {
+        console.error('Error registering warning:', error);
+        // Si falla el registro, al menos bloquear el contenido
+        return NextResponse.json(
+          { error: 'El contenido contiene lenguaje inapropiado y ha sido bloqueado.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Obtener el community_id desde el slug
     const { data: community, error: communityError } = await (supabase as any)
       .from('communities')

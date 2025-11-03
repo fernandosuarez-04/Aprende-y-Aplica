@@ -43,18 +43,27 @@ export async function loginAction(formData: FormData) {
     // Intentar primero por username
     let { data: user, error } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, organization_id')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .single()
 
-    // console.log('🔍 User query result:', {
-    //   user: user ? { id: user.id, username: user.username, email: user.email } : null,
-    //   error: error ? { code: error.code, message: error.message } : null
-    // })
+    console.log('🔍 User query result:', {
+      user: user ? { id: user.id, username: user.username, email: user.email } : null,
+      error: error ? { code: error.code, message: error.message } : null
+    })
 
     if (error || !user) {
       console.log('❌ User not found or error:', error)
       return { error: 'Credenciales inválidas' }
+    }
+
+    // ⭐ MODERACIÓN: Verificar si el usuario está baneado
+    if ((user as any).is_banned) {
+      console.log('🚫 Usuario baneado intenta iniciar sesión');
+      return { 
+        error: `❌ Tu cuenta ha sido suspendida por violaciones de las reglas de la comunidad. ${(user as any).ban_reason || ''}`,
+        banned: true
+      }
     }
 
     // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)
@@ -245,11 +254,15 @@ export async function loginAction(formData: FormData) {
       const digest = (error as any).digest
       if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
         // Es una redirección, no un error - re-lanzar para que Next.js la maneje
+        console.log('✅ Redirección exitosa detectada');
         throw error
       }
     }
     
-    console.error('❌ Login error:', error)
+    console.error('❌ Login error completo:', error)
+    console.error('❌ Error name:', (error as any)?.name)
+    console.error('❌ Error message:', (error as any)?.message)
+    console.error('❌ Error stack:', (error as any)?.stack)
     
     if (error instanceof z.ZodError) {
       console.log('❌ Validation error:', error.errors)
@@ -275,7 +288,9 @@ export async function loginAction(formData: FormData) {
       }
     }
     
-    console.log('❌ Unexpected error:', error)
-    return { error: 'Error inesperado al iniciar sesión. Por favor, intenta nuevamente o contacta al soporte.' }
+    // Proporcionar mensaje de error más descriptivo
+    const errorMessage = (error as any)?.message || 'Error inesperado al iniciar sesión';
+    console.log('❌ Unexpected error:', errorMessage)
+    return { error: errorMessage }
   }
 }
