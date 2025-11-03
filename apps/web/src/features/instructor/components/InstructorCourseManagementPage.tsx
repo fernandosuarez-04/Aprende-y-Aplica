@@ -38,7 +38,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule } = useAdminModules()
-  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson } = useAdminLessons()
+  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson } = useAdminLessons(courseId)
   const { materials, fetchMaterials, createMaterial } = useAdminMaterials()
   const { activities, fetchActivities, createActivity, updateActivity } = useAdminActivities()
   const { user } = useAuth()
@@ -149,7 +149,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       if (next.has(moduleId)) next.delete(moduleId)
       else {
         next.add(moduleId)
-        fetchLessons(moduleId)
+        fetchLessons(moduleId, courseId)
       }
       return next
     })
@@ -877,8 +877,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               setEditingModuleId(null)
             }}
             onSave={async (data) => {
-              if (selectedLesson) await updateLesson(selectedLesson.lesson_id, data)
-              else await createLesson(editingModuleId, data)
+              if (selectedLesson) await updateLesson(selectedLesson.lesson_id, data, courseId)
+              else await createLesson(editingModuleId, data, courseId)
               setShowLessonModal(false)
               setSelectedLesson(null)
               setEditingModuleId(null)

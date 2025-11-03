@@ -40,7 +40,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const [chartData, setChartData] = useState<any>(null)
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useAdminModules()
-  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useAdminLessons()
+  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useAdminLessons(courseId)
   const { materials, fetchMaterials, createMaterial } = useAdminMaterials()
   const { activities, fetchActivities, createActivity } = useAdminActivities()
 
@@ -85,7 +85,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         newSet.delete(moduleId)
       } else {
         newSet.add(moduleId)
-        fetchLessons(moduleId)
+        fetchLessons(moduleId, courseId)
       }
       return newSet
     })
@@ -115,7 +115,9 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
   const handleCreateLesson = async (data: any) => {
     if (editingModuleId) {
-      await createLesson(editingModuleId, data)
+      await createLesson(editingModuleId, data, courseId)
+      // Refetch lessons después de crear
+      await fetchLessons(editingModuleId, courseId)
     }
   }
 

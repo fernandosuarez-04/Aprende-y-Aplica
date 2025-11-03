@@ -11,7 +11,8 @@
 
 [build.environment]
   # Versión de Node.js (lee automáticamente desde .nvmrc)
-  NODE_VERSION = "18"
+  # Actualizado a Node.js 20 para compatibilidad con Supabase (Node.js 18 está deprecado)
+  NODE_VERSION = "20"
   
   # Habilitar plugin de Next.js
   NETLIFY_NEXT_PLUGIN_SKIP = "false"
@@ -62,6 +63,8 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
   external_node_modules = ["sharp", "canvas"]
+  # Aumentar timeout para uploads de videos grandes (máximo 26s en plan Pro)
+  timeout = 26
 
 # Configuración específica para diferentes contextos (opcional)
 # Si no se especifica, se usa el comando de [build]

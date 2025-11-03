@@ -147,6 +147,11 @@ export class AdminLessonsService {
     const supabase = await createClient()
 
     try {
+      // Validar que duration_seconds sea mayor a 0
+      if (!lessonData.duration_seconds || lessonData.duration_seconds <= 0) {
+        throw new Error('La duración debe ser mayor a 0 segundos. Por favor, ingrese una duración válida.')
+      }
+
       // Obtener el próximo order_index
       const { count } = await supabase
         .from('course_lessons')
@@ -154,6 +159,9 @@ export class AdminLessonsService {
         .eq('module_id', moduleId)
 
       const nextOrderIndex = (count || 0) + 1
+
+      // Asegurar que duration_seconds sea al menos 1 segundo
+      const validDurationSeconds = Math.max(1, Math.floor(lessonData.duration_seconds))
 
       const { data, error } = await supabase
         .from('course_lessons')
@@ -164,7 +172,7 @@ export class AdminLessonsService {
           lesson_order_index: nextOrderIndex,
           video_provider_id: lessonData.video_provider_id,
           video_provider: lessonData.video_provider,
-          duration_seconds: lessonData.duration_seconds,
+          duration_seconds: validDurationSeconds,
           transcript_content: lessonData.transcript_content,
           summary_content: lessonData.summary_content,
           is_published: lessonData.is_published ?? false,
