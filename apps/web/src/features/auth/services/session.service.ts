@@ -80,12 +80,8 @@ export class SessionService {
         logger.debug('✅ Sesión legacy creada exitosamente');
       }
       
-      if (insertError) {
-        logger.error('❌ Error insertando sesión en DB:', insertError);
-        throw new Error(`Error al crear sesión en base de datos: ${insertError.message}`);
-      }
-      
       // ✅ Usar configuración segura de cookies
+      const cookieStore = await cookies();
       const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
       cookieStore.set(this.SESSION_COOKIE_NAME, sessionToken, getCustomCookieOptions(maxAge));
       
