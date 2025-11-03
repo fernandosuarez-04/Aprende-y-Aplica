@@ -34,7 +34,7 @@ export async function loginAction(formData: FormData) {
     // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .single()
 
@@ -46,6 +46,15 @@ export async function loginAction(formData: FormData) {
     if (error || !user) {
       // console.log('❌ User not found or error:', error)
       return { error: 'Credenciales inválidas' }
+    }
+
+    // ⭐ MODERACIÓN: Verificar si el usuario está baneado
+    if ((user as any).is_banned) {
+      console.log('🚫 Usuario baneado intenta iniciar sesión');
+      return { 
+        error: `❌ Tu cuenta ha sido suspendida por violaciones de las reglas de la comunidad. ${(user as any).ban_reason || ''}`,
+        banned: true
+      }
     }
 
     // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)

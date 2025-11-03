@@ -166,7 +166,7 @@ export class SessionService {
       const supabase = await createClient();
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url')
+        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned')
         .eq('id', userId)
         .single();
 
@@ -175,6 +175,14 @@ export class SessionService {
       
       if (userError || !user) {
         console.log('❌ Usuario no encontrado')
+        return null;
+      }
+
+      // ⭐ MODERACIÓN: Verificar si el usuario está baneado
+      if ((user as any).is_banned) {
+        logger.auth('🚫 Usuario baneado intentando acceder');
+        // Destruir la sesión automáticamente
+        await this.destroySession();
         return null;
       }
 
