@@ -499,44 +499,45 @@ export function BusinessSubscriptionPlans() {
                   ))}
                 </ul>
 
-            {(() => {
-              const isCurrentPlan = currentPlan && plan.id === currentPlan
-              const isDisabled = isCurrentPlan || planLoading
-              
-              return (
-                <button
-                  onClick={() => !isDisabled && handleSelectPlan(plan.id)}
-                  disabled={isDisabled}
-                  className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                    isDisabled
-                      ? 'bg-carbon-700 text-carbon-400 cursor-not-allowed'
-                      : plan.isPopular
-                      ? 'bg-primary hover:bg-primary/90 text-white'
-                      : plan.id === 'enterprise'
-                      ? 'bg-carbon-800 hover:bg-carbon-700 text-white border border-carbon-600'
-                      : 'bg-carbon-800 hover:bg-carbon-700 text-white'
-                  }`}
-                >
-                  {isCurrentPlan ? (
-                    <>
-                      Adquirido
-                      <CheckCircle2 className="w-5 h-5" />
-                    </>
-                  ) : plan.id === 'enterprise' ? (
-                    <>
-                      Contactar Ventas
-                      <Mail className="w-5 h-5" />
-                    </>
-                  ) : (
-                    <>
-                      Cambiar de plan
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
-              )
-            })()}
-          </motion.div>
+                {(() => {
+                  const isCurrentPlan = currentPlan && plan.id === currentPlan
+                  const isDisabled = isCurrentPlan || planLoading
+                  
+                  return (
+                    <button
+                      onClick={() => !isDisabled && handleSelectPlan(plan.id)}
+                      disabled={isDisabled}
+                      className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                        isDisabled
+                          ? 'bg-carbon-700 text-carbon-400 cursor-not-allowed'
+                          : plan.isPopular
+                          ? 'bg-primary hover:bg-primary/90 text-white'
+                          : plan.id === 'enterprise'
+                          ? 'bg-carbon-800 hover:bg-carbon-700 text-white border border-carbon-600'
+                          : 'bg-carbon-800 hover:bg-carbon-700 text-white'
+                      }`}
+                    >
+                      {isCurrentPlan ? (
+                        <>
+                          Adquirido
+                          <CheckCircle2 className="w-5 h-5" />
+                        </>
+                      ) : plan.id === 'enterprise' ? (
+                        <>
+                          Contactar Ventas
+                          <Mail className="w-5 h-5" />
+                        </>
+                      ) : (
+                        <>
+                          Cambiar de plan
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </button>
+                  )
+                })()}
+              </div>
+            </motion.div>
         ))}
       </div>
 

@@ -293,9 +293,9 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
 
                 const Icon = item.icon
                 return (
-                  <motion.button
-                    key={item.id}
-                    onClick={item.onClick}
+                  <React.Fragment key={item.id}>
+                    <motion.button
+                      onClick={item.onClick}
                     className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
                       item.isDestructive 
                         ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
@@ -391,7 +391,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                         })}
                       </div>
                     )}
-                  </div>
+                  </React.Fragment>
                 )
               })}
             </div>
