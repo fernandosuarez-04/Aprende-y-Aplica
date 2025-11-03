@@ -23,6 +23,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No se proporcionó bucket' }, { status: 400 });
     }
 
+    // Validar tamaño y tipo según el bucket
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+    
+    // Validaciones específicas para el bucket "courses" (solo imágenes, 8MB)
+    if (bucket === 'courses') {
+      const allowedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+      if (!allowedImageTypes.includes(file.type)) {
+        return NextResponse.json(
+          { error: 'El bucket "courses" solo acepta imágenes (PNG, JPEG, JPG, GIF)' },
+          { status: 400 }
+        );
+      }
+      const maxSize = 8 * 1024 * 1024; // 8MB
+      if (file.size > maxSize) {
+        return NextResponse.json(
+          { error: 'El archivo es demasiado grande. Máximo 8MB para el bucket "courses"' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Validación para otros buckets
+      const maxSize = isVideo ? 500 * 1024 * 1024 : 10 * 1024 * 1024; // 500MB para videos, 10MB para otros
+      if (file.size > maxSize) {
+        return NextResponse.json(
+          { 
+            error: `El archivo es demasiado grande. Máximo ${isVideo ? '500MB' : '10MB'}` 
+          }, 
+          { status: 400 }
+        );
+      }
+    }
+
     // Generar nombre único para el archivo
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
