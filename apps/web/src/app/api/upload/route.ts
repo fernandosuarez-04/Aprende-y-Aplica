@@ -65,10 +65,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Sanitizar el folder si existe
+    const sanitizedFolder = folder ? sanitizePath(folder) : '';
+    
     // Generar nombre único para el archivo
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = folder ? `${folder}/${fileName}` : fileName;
+    const fileName = generateSafeFileName(file.name, fileExt || '');
+    const filePath = sanitizedFolder ? `${sanitizedFolder}/${fileName}` : fileName;
 
     // Subir archivo usando service role key
     const { data, error } = await supabase.storage
@@ -106,7 +109,7 @@ export async function POST(request: NextRequest) {
       validation: {
         sanitized: sanitizedFolder !== folder,
         bucket: bucket,
-        maxSizeAllowed: UPLOAD_CONFIG.maxFileSize
+        maxSizeAllowed: bucket === 'courses' ? '8MB' : (isVideo ? '500MB' : '10MB')
       }
     });
 

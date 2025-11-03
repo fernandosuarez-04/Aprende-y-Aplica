@@ -15,6 +15,7 @@ import { ModuleModal } from '@/features/admin/components/ModuleModal'
 import { LessonModal } from '@/features/admin/components/LessonModal'
 import { MaterialModal } from '@/features/admin/components/MaterialModal'
 import { ActivityModal } from '@/features/admin/components/ActivityModal'
+import { ImageUploadCourse } from './ImageUploadCourse'
 
 interface InstructorCourseManagementPageProps {
   courseId: string
@@ -453,8 +454,12 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
                 <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
-                  <label className="block text-sm font-medium text-purple-200 mb-2">URL de Imagen</label>
-                  <input name="thumbnail_url" value={configData.thumbnail_url} onChange={handleConfigChange} className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2" />
+                  <label className="block text-sm font-medium text-purple-200 mb-2">Imagen del Curso</label>
+                  <ImageUploadCourse
+                    value={configData.thumbnail_url}
+                    onChange={(url) => setConfigData(prev => ({ ...prev, thumbnail_url: url }))}
+                    disabled={savingConfig}
+                  />
                 </div>
                 <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                   <label className="block text-sm font-medium text-purple-200 mb-2">Slug (URL)</label>
