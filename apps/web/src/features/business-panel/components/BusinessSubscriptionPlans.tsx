@@ -14,7 +14,8 @@ import {
   Mail,
   Phone,
   ExternalLink,
-  CheckCircle2
+  CheckCircle2,
+  TrendingUp
 } from 'lucide-react'
 import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
 

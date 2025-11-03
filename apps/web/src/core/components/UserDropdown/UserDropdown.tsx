@@ -77,6 +77,29 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   }
 
   const menuItems = [
+    // Accesos rápidos
+    {
+      id: 'stats',
+      label: 'Mis Estadísticas',
+      icon: BarChart,
+      onClick: () => {
+        router.push('/statistics')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'learning',
+      label: 'Mi aprendizaje',
+      icon: BookOpen,
+      onClick: () => {
+        router.push('/my-courses')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'separator1',
+      isSeparator: true
+    },
     {
       id: 'profile',
       label: 'Editar perfil',
@@ -129,6 +152,19 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
     },
     {
       id: 'separator3',
+      isSeparator: true
+    },
+    // Tema (submenu)
+    {
+      id: 'theme',
+      label: theme === 'light' ? 'Modo claro' : theme === 'dark' ? 'Modo oscuro' : 'Modo sistema',
+      icon: resolvedTheme === 'light' ? Sun : resolvedTheme === 'dark' ? Moon : Monitor,
+      onClick: () => {
+        setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
+      }
+    },
+    {
+      id: 'separator4',
       isSeparator: true
     },
     // Botón de administración - Solo para administradores
