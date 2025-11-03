@@ -59,8 +59,6 @@ export function LoginForm() {
       // Si no hay error, la acción redirect ya maneja la navegación
       // No necesitamos hacer nada más aquí
     } catch (error: any) {
-      console.error('💥 Error capturado en onSubmit:', error);
-      
       // Verificar si es una redirección de Next.js (no es un error real)
       if (error && typeof error === 'object') {
         // Next.js redirect lanza un error especial que debemos re-lanzar
@@ -80,6 +78,7 @@ export function LoginForm() {
         }
       }
       
+      // Solo mostrar error si NO es una redirección
       console.error('❌ Error inesperado:', error);
       setError('Error inesperado al iniciar sesión');
       setIsPending(false);

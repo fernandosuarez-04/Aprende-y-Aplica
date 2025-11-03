@@ -22,11 +22,11 @@ export async function loginAction(formData: FormData) {
       rememberMe: formData.get('rememberMe') === 'true',
     })
 
-    // console.log('🔍 Login attempt:', {
-    //   emailOrUsername: parsed.emailOrUsername,
-    //   passwordLength: parsed.password.length,
-    //   rememberMe: parsed.rememberMe
-    // })
+    console.log('🔍 Login attempt:', {
+      emailOrUsername: parsed.emailOrUsername,
+      passwordLength: parsed.password.length,
+      rememberMe: parsed.rememberMe
+    })
 
     // 2. Crear cliente Supabase
     const supabase = await createClient()
@@ -38,13 +38,13 @@ export async function loginAction(formData: FormData) {
       .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .single()
 
-    // console.log('🔍 User query result:', {
-    //   user: user ? { id: user.id, username: user.username, email: user.email } : null,
-    //   error: error ? { code: error.code, message: error.message } : null
-    // })
+    console.log('🔍 User query result:', {
+      user: user ? { id: user.id, username: user.username, email: user.email } : null,
+      error: error ? { code: error.code, message: error.message } : null
+    })
 
     if (error || !user) {
-      // console.log('❌ User not found or error:', error)
+      console.log('❌ User not found or error:', error)
       return { error: 'Credenciales inválidas' }
     }
 
@@ -100,18 +100,24 @@ export async function loginAction(formData: FormData) {
       const digest = (error as any).digest
       if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
         // Es una redirección, no un error - re-lanzar para que Next.js la maneje
+        console.log('✅ Redirección exitosa detectada');
         throw error
       }
     }
     
-    console.error('❌ Login error:', error)
+    console.error('❌ Login error completo:', error)
+    console.error('❌ Error name:', (error as any)?.name)
+    console.error('❌ Error message:', (error as any)?.message)
+    console.error('❌ Error stack:', (error as any)?.stack)
     
     if (error instanceof z.ZodError) {
       console.log('❌ Validation error:', error.errors)
       return { error: error.errors[0].message }
     }
     
-    console.log('❌ Unexpected error:', error)
-    return { error: 'Error inesperado al iniciar sesión' }
+    // Proporcionar mensaje de error más descriptivo
+    const errorMessage = (error as any)?.message || 'Error inesperado al iniciar sesión';
+    console.log('❌ Unexpected error:', errorMessage)
+    return { error: errorMessage }
   }
 }

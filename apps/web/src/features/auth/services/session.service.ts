@@ -16,21 +16,31 @@ export class SessionService {
    * @param rememberMe Si true, el refresh token dura 30 días; si false, 7 días
    */
   static async createSession(userId: string, rememberMe: boolean = false): Promise<void> {
-    logger.auth('🔐 Creando sesión con refresh tokens', { rememberMe });
+    logger.auth('🔐 Creando sesión con refresh tokens', { userId, rememberMe });
     
     try {
-      // Crear una Request mock para el RefreshTokenService
+      // Obtener headers
       const headersList = await headers();
+      const userAgent = headersList.get('user-agent') || 'unknown';
+      const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                 headersList.get('x-real-ip') || 
+                 '127.0.0.1';
+      
+      logger.debug('Headers obtenidos', { userAgent, ip });
+      
+      // Crear una Request mock para el RefreshTokenService
       const requestHeaders = new Headers();
-      headersList.forEach((value, key) => {
-        requestHeaders.set(key, value);
-      });
+      requestHeaders.set('user-agent', userAgent);
+      requestHeaders.set('x-real-ip', ip);
       
       const mockRequest = new Request('http://localhost', {
         headers: requestHeaders
       });
       
+      logger.debug('Mock request creado');
+      
       // Crear sesión con refresh tokens (access token: 30min, refresh token: 7-30 días)
+      logger.debug('Llamando a RefreshTokenService.createSession');
       const sessionInfo = await RefreshTokenService.createSession(
         userId, 
         rememberMe, 
@@ -45,14 +55,11 @@ export class SessionService {
 
       // Mantener compatibilidad con sistema legacy (user_session)
       // Esto permite una migración gradual y rollback si es necesario
+      logger.debug('Creando sesión legacy para compatibilidad');
       const sessionToken = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000);
       
       const supabase = await createClient();
-      const userAgent = headersList.get('user-agent') || '';
-      const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                 headersList.get('x-real-ip') || 
-                 '127.0.0.1';
       
       const legacySession: any = {
         user_id: userId,
@@ -64,18 +71,31 @@ export class SessionService {
         revoked: false,
       };
       
-      await supabase.from('user_session').insert(legacySession);
+      const { error: legacyError } = await supabase.from('user_session').insert(legacySession);
+      
+      if (legacyError) {
+        logger.error('Error creando sesión legacy (no crítico)', legacyError);
+        // No lanzar error, la sesión con refresh tokens ya está creada
+      } else {
+        logger.debug('✅ Sesión legacy creada exitosamente');
+      }
       
       const cookieStore = await cookies();
       // ✅ Usar configuración segura de cookies
       const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
       cookieStore.set(this.SESSION_COOKIE_NAME, sessionToken, getCustomCookieOptions(maxAge));
       
-      logger.debug('✅ Sesión legacy mantenida para compatibilidad');
+      logger.debug('✅ Cookie de sesión legacy establecida');
+      logger.auth('✅ Sesión completa creada exitosamente');
       
     } catch (error) {
-      logger.error('❌ Error creando sesión con refresh tokens', error);
-      throw new Error('Error al crear sesión');
+      logger.error('❌ Error creando sesión', error);
+      logger.error('❌ Error details:', {
+        name: (error as any)?.name,
+        message: (error as any)?.message,
+        stack: (error as any)?.stack
+      });
+      throw error; // Re-lanzar el error original, no crear uno nuevo
     }
   }
 
