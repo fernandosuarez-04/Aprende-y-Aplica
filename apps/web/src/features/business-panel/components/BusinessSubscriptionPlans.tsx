@@ -13,8 +13,10 @@ import {
   Star,
   Mail,
   Phone,
-  ExternalLink
+  ExternalLink,
+  TrendingUp
 } from 'lucide-react'
+import { Button } from '@aprende-y-aplica/ui'
 
 interface PlanFeature {
   name: string
@@ -351,187 +353,259 @@ export function BusinessSubscriptionPlans() {
     }
   }
 
+  const getPlanIcon = (planId: string) => {
+    switch (planId) {
+      case 'team':
+        return <Users className="w-6 h-6" />;
+      case 'business':
+        return <Building2 className="w-6 h-6" />;
+      case 'enterprise':
+        return <Crown className="w-6 h-6" />;
+      default:
+        return <Sparkles className="w-6 h-6" />;
+    }
+  };
+
+  const getPlanColor = (planId: string) => {
+    switch (planId) {
+      case 'team':
+        return 'from-blue-500 to-blue-600';
+      case 'business':
+        return 'from-purple-500 to-purple-600';
+      case 'enterprise':
+        return 'from-amber-500 to-amber-600';
+      default:
+        return 'from-gray-500 to-gray-600';
+    }
+  };
+
+  const calculateYearlySavings = (plan: Plan): number => {
+    if (plan.price === 'Personalizado') return 0;
+    const monthlyTotal = plan.priceMonthly * 12;
+    const savings = monthlyTotal - plan.priceYearly;
+    const percentage = (savings / monthlyTotal) * 100;
+    return Math.round(percentage);
+  };
+
   return (
     <div className="w-full space-y-12">
       {/* Toggle de Facturación */}
-      <div className="flex justify-center">
-        <div className="bg-carbon-900 rounded-lg p-1 border border-carbon-700 inline-flex gap-2">
-          <button
-            onClick={() => setBillingCycle('monthly')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              billingCycle === 'monthly'
-                ? 'bg-primary text-white'
-                : 'text-carbon-400 hover:text-carbon-300'
-            }`}
-          >
-            Mensual
-          </button>
-          <button
-            onClick={() => setBillingCycle('yearly')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              billingCycle === 'yearly'
-                ? 'bg-primary text-white'
-                : 'text-carbon-400 hover:text-carbon-300'
-            }`}
-          >
-            Anual
-          </button>
-        </div>
+      <div className="flex items-center justify-center gap-4 mb-8">
+        <button
+          onClick={() => setBillingCycle('monthly')}
+          className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            billingCycle === 'monthly'
+              ? 'bg-primary text-white shadow-lg'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          Mensual
+        </button>
+        <button
+          onClick={() => setBillingCycle('yearly')}
+          className={`px-6 py-3 rounded-lg font-medium transition-all relative ${
+            billingCycle === 'yearly'
+              ? 'bg-primary text-white shadow-lg'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          Anual
+          <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+            Ahorra ~20%
+          </span>
+        </button>
       </div>
 
       {/* Cards de Planes */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan, index) => (
-          <motion.div
-            key={plan.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`relative bg-carbon-900 rounded-xl border-2 p-8 ${
-              plan.isPopular
-                ? 'border-primary bg-gradient-to-b from-carbon-900 to-carbon-800'
-                : 'border-carbon-700'
-            }`}
-          >
-            {plan.isPopular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-primary text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
-                  <Star className="w-4 h-4 fill-current" />
-                  MÁS POPULAR
-                </div>
-              </div>
-            )}
+        {plans.map((plan, index) => {
+          const savings = calculateYearlySavings(plan);
+          const monthlyEquivalent = billingCycle === 'yearly' 
+            ? Math.round(plan.priceYearly / 12)
+            : plan.priceMonthly;
 
-            {plan.badge && (
-              <div className="absolute top-4 right-4">
-                <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                  {plan.badge}
-                </div>
-              </div>
-            )}
-
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-              <p className="text-carbon-400 text-sm mb-4">{plan.tagline}</p>
-              <div className="mb-2">
-                <span className="text-3xl font-bold text-white">
-                  {plan.price !== 'Personalizado' 
-                    ? billingCycle === 'yearly' 
-                      ? plan.yearlyPrice 
-                      : plan.monthlyPrice
-                    : plan.price
-                  }
-                </span>
-                {plan.price !== 'Personalizado' && (
-                  <span className="text-carbon-400 text-sm ml-2">
-                    {billingCycle === 'yearly' ? '/año' : '/mes'}
-                  </span>
-                )}
-              </div>
-              {plan.price !== 'Personalizado' && billingCycle === 'yearly' && (
-                <p className="text-carbon-400 text-sm">
-                  ${Math.round(plan.priceYearly / 12).toLocaleString('es-ES')}/mes facturado anualmente
-                </p>
-              )}
-            </div>
-
-            <ul className="space-y-3 mb-8">
-              {plan.features.map((feature, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-carbon-300 text-sm">{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button
-              onClick={() => handleSelectPlan(plan.id)}
-              className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+          return (
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={`relative rounded-xl border-2 overflow-hidden transition-all ${
                 plan.isPopular
-                  ? 'bg-primary hover:bg-primary/90 text-white'
-                  : plan.id === 'enterprise'
-                  ? 'bg-carbon-800 hover:bg-carbon-700 text-white border border-carbon-600'
-                  : 'bg-carbon-800 hover:bg-carbon-700 text-white'
+                  ? 'border-primary shadow-xl scale-105'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
               }`}
             >
-              {plan.id === 'enterprise' ? (
-                <>
-                  Contactar Ventas
-                  <Mail className="w-5 h-5" />
-                </>
-              ) : (
-                <>
-                  Comenzar Prueba Gratis
-                  <ArrowRight className="w-5 h-5" />
-                </>
+              {/* Popular Badge */}
+              {plan.isPopular && (
+                <div className="absolute top-0 right-0 bg-primary text-white px-4 py-1 rounded-bl-lg text-sm font-semibold z-10 flex items-center gap-2">
+                  <Star className="w-4 h-4 fill-current" />
+                  {plan.badge || 'Más Popular'}
+                </div>
               )}
-            </button>
-          </motion.div>
-        ))}
+
+              {/* Badge de descuento */}
+              {plan.badge && !plan.isPopular && (
+                <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-10">
+                  {plan.badge}
+                </div>
+              )}
+
+              {/* Header con gradiente */}
+              <div className={`bg-gradient-to-br ${getPlanColor(plan.id)} p-6 text-white`}>
+                <div className="flex items-center gap-3 mb-2">
+                  {getPlanIcon(plan.id)}
+                  <h3 className="text-2xl font-bold">{plan.name}</h3>
+                </div>
+                <p className="text-white/80 text-sm mb-4">{plan.tagline}</p>
+                <div className="flex items-baseline gap-2">
+                  {plan.price === 'Personalizado' ? (
+                    <span className="text-3xl font-bold">Personalizado</span>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-bold">
+                        ${billingCycle === 'yearly' 
+                          ? plan.priceYearly.toLocaleString('es-MX')
+                          : plan.priceMonthly.toLocaleString('es-MX')
+                        }
+                      </span>
+                      <span className="text-white/70">
+                        /{billingCycle === 'yearly' ? 'año' : 'mes'}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {plan.price !== 'Personalizado' && billingCycle === 'yearly' && savings > 0 && (
+                  <p className="text-white/80 text-sm mt-2">
+                    Ahorra {savings}% vs plan mensual
+                  </p>
+                )}
+                {plan.price !== 'Personalizado' && billingCycle === 'yearly' && (
+                  <p className="text-white/70 text-sm mt-1">
+                    ${monthlyEquivalent.toLocaleString('es-MX')}/mes facturado anualmente
+                  </p>
+                )}
+              </div>
+
+              {/* Features */}
+              <div className="p-6 bg-white dark:bg-gray-800">
+                <ul className="space-y-3 mb-6">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA Button */}
+                <Button
+                  variant={plan.isPopular ? 'primary' : plan.id === 'enterprise' ? 'secondary' : 'secondary'}
+                  size="lg"
+                  className="w-full"
+                  onClick={() => handleSelectPlan(plan.id)}
+                >
+                  {plan.id === 'enterprise' ? (
+                    <>
+                      Contactar Ventas
+                      <Mail className="w-5 h-5 ml-2" />
+                    </>
+                  ) : (
+                    <>
+                      Comenzar Prueba Gratis
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Comparación Detallada por Categorías */}
-      <div className="space-y-8">
-        {Object.entries(featuresByCategory).map(([category, features]) => (
-          <div key={category} className="bg-carbon-900 rounded-xl border border-carbon-700 overflow-hidden">
-            <div className="bg-carbon-800 px-6 py-4 border-b border-carbon-700">
-              <h3 className="text-xl font-bold text-white">{category}</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-carbon-800 border-b border-carbon-700">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300 w-1/2">
-                      Característica
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-carbon-300">
-                      Team
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-carbon-300">
-                      Business
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-carbon-300">
-                      Enterprise
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-carbon-700">
-                  {features.map((feature, idx) => (
-                    <tr key={idx} className="hover:bg-carbon-800/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-white font-medium">{feature.name}</p>
-                          <p className="text-carbon-400 text-sm mt-1">{feature.description}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {feature.team ? (
-                          <Check className="w-6 h-6 text-green-400 mx-auto" />
-                        ) : (
-                          <X className="w-6 h-6 text-carbon-600 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {feature.business ? (
-                          <Check className="w-6 h-6 text-green-400 mx-auto" />
-                        ) : (
-                          <X className="w-6 h-6 text-carbon-600 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {feature.enterprise ? (
-                          <Check className="w-6 h-6 text-green-400 mx-auto" />
-                        ) : (
-                          <X className="w-6 h-6 text-carbon-600 mx-auto" />
-                        )}
-                      </td>
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-text-primary mb-6 text-center">
+          Comparación Detallada de Características
+        </h2>
+        <div className="space-y-6">
+          {Object.entries(featuresByCategory).map(([category, features]) => (
+            <div
+              key={category}
+              className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
+            >
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  {category}
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary w-1/2">
+                        Característica
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Team
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Business
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Enterprise
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {features.map((feature, idx) => (
+                      <tr
+                        key={idx}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-text-primary font-medium">{feature.name}</p>
+                            <p className="text-text-tertiary text-sm mt-1">{feature.description}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {feature.team ? (
+                            <Check className="w-6 h-6 text-green-500 mx-auto" />
+                          ) : (
+                            <X className="w-6 h-6 text-gray-400 dark:text-gray-600 mx-auto" />
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {feature.business ? (
+                            <Check className="w-6 h-6 text-green-500 mx-auto" />
+                          ) : (
+                            <X className="w-6 h-6 text-gray-400 dark:text-gray-600 mx-auto" />
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {feature.enterprise ? (
+                            <Check className="w-6 h-6 text-green-500 mx-auto" />
+                          ) : (
+                            <X className="w-6 h-6 text-gray-400 dark:text-gray-600 mx-auto" />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* Nota de comparación */}
+      <div className="mt-8 text-center">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Todas las suscripciones incluyen cancelación en cualquier momento. Sin cargos ocultos.
+        </p>
       </div>
     </div>
   )

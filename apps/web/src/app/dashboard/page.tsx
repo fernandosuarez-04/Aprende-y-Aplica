@@ -13,7 +13,9 @@ import {
   LogOut,
   Settings,
   Bell,
-  Loader2
+  Loader2,
+  Eye,
+  ShoppingCart
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useAuth } from '../../features/auth/hooks/useAuth';
@@ -22,6 +24,7 @@ import { useFavorites } from '../../features/courses/hooks/useFavorites';
 import { useCategories } from '../../features/courses/hooks/useCategories';
 import { UserDropdown } from '../../core/components/UserDropdown';
 import { useRouter } from 'next/navigation';
+import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
 
 // 🚀 Lazy Loading - AIChatAgent pesado
 const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
@@ -52,6 +55,7 @@ export default function DashboardPage() {
   } = useCourses();
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+  const { addItem } = useShoppingCartStore();
 
   // Sincronizar favoritos entre hooks
   React.useEffect(() => {
@@ -81,8 +85,8 @@ export default function DashboardPage() {
 
   // Usar únicamente datos de la API
   const workshops = filteredCourses.map(course => {
-    // Debug: verificar que se esté obteniendo la imagen
-    console.log(`Curso: ${course.title}, Thumbnail: ${course.thumbnail}`);
+    // Debug: verificar que se esté obteniendo la imagen y el status
+    console.log(`Curso: ${course.title}, Thumbnail: ${course.thumbnail}, Status: ${course.status}`);
     
     return {
       id: course.id,
@@ -90,7 +94,7 @@ export default function DashboardPage() {
       instructor: course.instructor_name || 'Instructor',
       rating: course.rating || 4.5,
       price: course.price || 'MX$0',
-      status: course.status || 'Disponible',
+      status: course.status || 'Disponible', // Usar el status del curso desde la API
       image: course.thumbnail || null, // Usar null en lugar de placeholder para detectar si hay imagen
       category: course.category || 'General',
       isFavorite: isFavorite(course.id), // Usar el hook de favoritos
@@ -263,22 +267,67 @@ export default function DashboardPage() {
                       <span className="text-lg font-bold text-primary">{workshop.price}</span>
                     </div>
 
-                    <Button
-                      variant={workshop.status === 'Adquirido' ? 'secondary' : 'primary'}
-                      size="sm"
-                      className="w-full"
-                      onClick={() => {
-                        if (workshop.status === 'Disponible') {
-                          // Navegar al slug del curso
+                    {/* Botones de acción */}
+                    {workshop.status === 'Adquirido' ? (
+                      // Si el curso está comprado: solo mostrar botón "Ir al curso"
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
                           const course = courses.find(c => c.id === workshop.id);
                           if (course?.slug) {
-                            window.location.href = `/courses/${course.slug}`;
+                            router.push(`/courses/${course.slug}/learn`);
                           }
-                        }
-                      }}
-                    >
-                      {workshop.status}
-                    </Button>
+                        }}
+                      >
+                        <BookOpen className="w-4 h-4 mr-2" />
+                        Ir al curso
+                      </Button>
+                    ) : (
+                      // Si el curso NO está comprado: mostrar "Ver detalles" y "Agregar al carrito"
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            const course = courses.find(c => c.id === workshop.id);
+                            if (course?.slug) {
+                              router.push(`/courses/${course.slug}`);
+                            }
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver detalles
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            const course = courses.find(c => c.id === workshop.id);
+                            if (course) {
+                              // Extraer precio numérico del string (ej: "MX$1500" -> 1500)
+                              const priceString = workshop.price?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
+                              const price = parseFloat(priceString);
+                              
+                              addItem({
+                                id: `course-${course.id}`,
+                                itemType: 'course',
+                                itemId: course.id,
+                                title: workshop.title,
+                                price: price || 0,
+                                thumbnail: workshop.image || course.thumbnail || undefined,
+                              });
+                            }
+                          }}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Agregar al carrito
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
                 ))}

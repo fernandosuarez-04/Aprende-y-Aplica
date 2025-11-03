@@ -8,12 +8,12 @@ import {
   Users, 
   Newspaper,
   Bell,
-  Settings,
   ChevronDown,
   Sparkles,
   Grid3X3
 } from 'lucide-react'
 import { UserDropdown } from '../UserDropdown'
+import { ShoppingCart } from '../ShoppingCart'
 import { HiddenAdminButton } from '../HiddenAdminButton'
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg'
 import { useRouter } from 'next/navigation'
@@ -326,14 +326,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
               />
             </motion.button>
 
-            {/* Configuración */}
-            <motion.button 
-              className="p-3 text-text-secondary dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50 dark:hover:bg-carbon-700/50"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Settings className="w-5 h-5 text-text-secondary dark:text-text-secondary" />
-            </motion.button>
+            {/* Carrito de compras */}
+            <ShoppingCart />
 
             {/* User Dropdown */}
             <UserDropdown />

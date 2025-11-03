@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(courses, {
-      headers: cacheHeaders.static // Cache 1 hora - cursos cambian raramente
+      // NO usar cache para cursos ya que el status puede cambiar según el usuario
+      headers: cacheHeaders.private
     })
   } catch (error) {
     logError('GET /api/courses', error)

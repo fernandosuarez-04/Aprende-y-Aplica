@@ -14,7 +14,11 @@ import {
   LogOut,
   ChevronDown,
   ShieldCheck,
-  GraduationCap
+  GraduationCap,
+  CreditCard,
+  Wallet,
+  Settings,
+  Receipt
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
@@ -73,6 +77,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   }
 
   const menuItems = [
+    // Sección: Estadísticas y Aprendizaje
     {
       id: 'stats',
       label: 'Mis Estadísticas',
@@ -92,6 +97,11 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       }
     },
     {
+      id: 'separator1',
+      isSeparator: true
+    },
+    // Sección: Cuenta y Perfil
+    {
       id: 'profile',
       label: 'Editar perfil',
       icon: Edit3,
@@ -99,6 +109,51 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         router.push('/profile')
         setIsOpen(false)
       }
+    },
+    {
+      id: 'account-settings',
+      label: 'Configuración de la cuenta',
+      icon: Settings,
+      onClick: () => {
+        router.push('/account-settings')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'separator2',
+      isSeparator: true
+    },
+    // Sección: Suscripciones y Pagos
+    {
+      id: 'subscriptions',
+      label: 'Suscripciones',
+      icon: CreditCard,
+      onClick: () => {
+        router.push('/subscriptions')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'payment-methods',
+      label: 'Métodos de pago',
+      icon: Wallet,
+      onClick: () => {
+        router.push('/payment-methods')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'purchase-history',
+      label: 'Historial de compras',
+      icon: Receipt,
+      onClick: () => {
+        router.push('/purchase-history')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'separator3',
+      isSeparator: true
     },
     // Botón de administración - Solo para administradores
     ...(user?.cargo_rol?.toLowerCase() === 'administrador' ? [{
@@ -123,6 +178,11 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       isInstructor: true
     }] : []),
     {
+      id: 'separator4',
+      isSeparator: true
+    },
+    // Sección: Tema
+    {
       id: 'theme',
       label: theme === 'light' ? 'Modo claro' : theme === 'dark' ? 'Modo oscuro' : 'Modo sistema',
       icon: theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor,
@@ -131,6 +191,11 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       },
       hasSubmenu: true
     },
+    {
+      id: 'separator5',
+      isSeparator: true
+    },
+    // Sección: Cerrar sesión
     {
       id: 'logout',
       label: 'Cerrar sesión',
@@ -204,7 +269,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm"
+              className="fixed inset-0 z-[9999] bg-black/20 backdrop-blur-sm"
               onClick={() => setIsOpen(false)}
             />
             
@@ -217,10 +282,10 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                 duration: 0.2,
                 ease: "easeOut"
               }}
-              className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-none border-2 border-gray-200 dark:border-gray-700 z-[9999]"
+              className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-8rem)] bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-none border-2 border-gray-200 dark:border-gray-700 z-[10000] flex flex-col"
             >
             {/* Header del usuario */}
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
               <div className="flex items-center space-x-5">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center dark:shadow-none overflow-hidden">
                   {userProfile?.profile_picture_url ? (
@@ -244,9 +309,19 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
               </div>
             </div>
 
-            {/* Items del menú */}
-            <div className="py-3">
+            {/* Items del menú - Con scroll invisible */}
+            <div className="py-3 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
               {menuItems.map((item, index) => {
+                // Renderizar separador
+                if ((item as any).isSeparator) {
+                  return (
+                    <div
+                      key={item.id}
+                      className="h-px bg-gray-200 dark:bg-gray-700 my-2 mx-6"
+                    />
+                  )
+                }
+
                 const Icon = item.icon
                 return (
                   <div key={item.id} className="relative">
