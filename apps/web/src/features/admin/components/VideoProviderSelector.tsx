@@ -48,11 +48,35 @@ export function VideoProviderSelector({
         body: formData
       })
 
-      const result = await response.json()
+      // Verificar el Content-Type antes de parsear JSON
+      const contentType = response.headers.get('content-type')
+      const isJson = contentType && contentType.includes('application/json')
+
+      let result
+      
+      if (!isJson) {
+        // Si la respuesta no es JSON, probablemente es HTML (página de error)
+        const textResponse = await response.text()
+        console.error('❌ Server returned non-JSON response:', {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          preview: textResponse.substring(0, 200)
+        })
+        throw new Error(`El servidor devolvió una respuesta inválida (${response.status}). Esto puede ocurrir si el archivo es demasiado grande o hay un error en el servidor.`)
+      }
+
+      try {
+        result = await response.json()
+      } catch (jsonError) {
+        // Si falla el parseo JSON, leer el texto (pero esto solo funciona si no lo hemos leído antes)
+        console.error('❌ Failed to parse JSON response:', jsonError)
+        throw new Error(`Error al procesar la respuesta del servidor: ${jsonError instanceof Error ? jsonError.message : 'JSON inválido'}`)
+      }
 
       if (!response.ok) {
         // Mostrar error detallado del servidor
-        const errorMessage = result.details || result.error || 'Error al subir el video'
+        const errorMessage = result.details || result.error || result.message || 'Error al subir el video'
         console.error('❌ Error uploading video:', result)
         alert(`Error al subir el video: ${errorMessage}`)
         return
