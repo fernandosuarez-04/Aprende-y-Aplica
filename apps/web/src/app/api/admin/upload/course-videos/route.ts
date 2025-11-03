@@ -7,7 +7,10 @@ export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 minutos para videos grandes
 
 export async function POST(request: NextRequest) {
+  // Wrapper para capturar CUALQUIER error y devolver JSON
   try {
+    console.log('📥 Received upload request')
+    
     // Verificar variables de entorno
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -22,24 +25,71 @@ export async function POST(request: NextRequest) {
             hasServiceKey: !!supabaseServiceKey
           }
         },
-        { status: 500 }
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
       )
     }
 
+    console.log('✅ Environment variables OK')
+
     const auth = await requireAdmin()
-    if (auth instanceof NextResponse) return auth
+    if (auth instanceof NextResponse) {
+      // requireAdmin ya devuelve JSON, solo asegurar Content-Type
+      const clonedResponse = auth.clone()
+      clonedResponse.headers.set('Content-Type', 'application/json')
+      return clonedResponse
+    }
     
-    const formData = await request.formData()
+    console.log('✅ Authentication OK')
+
+    // Intentar leer FormData con manejo de errores específico
+    let formData: FormData
+    try {
+      console.log('📥 Reading FormData...')
+      formData = await request.formData()
+      console.log('✅ FormData read successfully')
+    } catch (formDataError) {
+      console.error('❌ Error reading FormData:', formDataError)
+      return NextResponse.json(
+        {
+          error: 'Error al leer el archivo. El archivo puede ser demasiado grande o estar corrupto.',
+          details: formDataError instanceof Error ? formDataError.message : 'Error desconocido al leer FormData'
+        },
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
     const file = formData.get('file') as File
 
     if (!file) {
-      return NextResponse.json({ error: 'No se proporcionó archivo de video' }, { status: 400 })
+      console.error('❌ No file provided')
+      return NextResponse.json(
+        { error: 'No se proporcionó archivo de video' },
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
     }
+
+    console.log('✅ File received:', { name: file.name, size: file.size, type: file.type })
 
     // Validar tamaño (máximo 1GB para videos)
     const maxSize = 1024 * 1024 * 1024 // 1GB
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'El video excede el tamaño máximo de 1GB' }, { status: 400 })
+      console.error('❌ File too large:', file.size)
+      return NextResponse.json(
+        { error: 'El video excede el tamaño máximo de 1GB' },
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Validar tipo de archivo
@@ -138,18 +188,44 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    // Asegurar que SIEMPRE devolvemos JSON, nunca HTML
     console.error('💥 Unexpected error in upload video API:', error)
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
     const errorStack = error instanceof Error ? error.stack : undefined
     
-    return NextResponse.json(
-      { 
-        error: 'Error interno del servidor',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
-      },
-      { status: 500 }
-    )
+    // Intentar devolver JSON incluso si hay un error
+    try {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Error interno del servidor',
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+          stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+        },
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+    } catch (jsonError) {
+      // Si incluso devolver JSON falla, devolver un string JSON simple
+      console.error('💥 Error even creating JSON response:', jsonError)
+      return new NextResponse(
+        JSON.stringify({ 
+          success: false,
+          error: 'Error interno del servidor',
+          message: errorMessage
+        }),
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+    }
   }
 }
 
