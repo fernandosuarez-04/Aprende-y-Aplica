@@ -538,7 +538,8 @@ export function BusinessSubscriptionPlans() {
                 })()}
               </div>
             </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Comparación Detallada por Categorías */}
