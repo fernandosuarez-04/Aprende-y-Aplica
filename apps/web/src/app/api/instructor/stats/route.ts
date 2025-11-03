@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { InstructorStatsService } from '@/features/instructor/services/instructorStats.service'
+import { InstructorStatsServerService } from '@/features/instructor/services/instructorStats.server.service'
 import { SessionService } from '@/features/auth/services/session.service'
 
 export async function GET() {
@@ -24,7 +24,7 @@ export async function GET() {
     }
 
     // Obtener estadísticas del instructor usando su ID como instructor_id
-    const stats = await InstructorStatsService.getInstructorStats(currentUser.id)
+    const stats = await InstructorStatsServerService.getInstructorStats(currentUser.id)
 
     return NextResponse.json(stats)
   } catch (error) {

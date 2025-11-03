@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { useAdminReels } from '../../admin/hooks/useAdminReels'
-import { AdminReel } from '../../admin/services/adminReels.service'
+import { useInstructorReels } from '../hooks/useInstructorReels'
+import { InstructorReel } from '../services/instructorReels.service'
 
 // Lazy loading de modales de Reels
 const AddReelModal = dynamic(() => import('../../admin/components/AddReelModal').then(mod => ({ default: mod.AddReelModal })), {
@@ -52,7 +52,7 @@ export function InstructorReelsPage() {
     deleteReel, 
     toggleReelStatus, 
     toggleReelFeatured 
-  } = useAdminReels()
+  } = useInstructorReels()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
@@ -61,7 +61,7 @@ export function InstructorReelsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
-  const [selectedReel, setSelectedReel] = useState<AdminReel | null>(null)
+  const [selectedReel, setSelectedReel] = useState<InstructorReel | null>(null)
 
   const filteredReels = reels.filter(reel => {
     const matchesSearch = reel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,7 +110,7 @@ export function InstructorReelsPage() {
     }
   }
 
-  const handleToggleStatus = async (reel: AdminReel) => {
+  const handleToggleStatus = async (reel: InstructorReel) => {
     try {
       await toggleReelStatus(reel.id)
     } catch (error) {
@@ -118,7 +118,7 @@ export function InstructorReelsPage() {
     }
   }
 
-  const handleToggleFeatured = async (reel: AdminReel) => {
+  const handleToggleFeatured = async (reel: InstructorReel) => {
     try {
       await toggleReelFeatured(reel.id)
     } catch (error) {
