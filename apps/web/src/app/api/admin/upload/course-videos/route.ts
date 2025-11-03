@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { logger } from '@/lib/utils/logger';
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-// Cliente con service role key para bypass de RLS
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Configurar para permitir uploads grandes
+export const runtime = 'nodejs'
+export const maxDuration = 300 // 5 minutos para videos grandes
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar variables de entorno
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase environment variables')
+      return NextResponse.json(
+        { 
+          error: 'Configuración del servidor incompleta. Variables de entorno faltantes.',
+          details: {
+            hasUrl: !!supabaseUrl,
+            hasServiceKey: !!supabaseServiceKey
+          }
+        },
+        { status: 500 }
+      )
+    }
+
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
     
@@ -28,33 +43,90 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar tipo de archivo
-    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg']
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo']
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Tipo de video no permitido. Solo se permiten MP4, WebM y OGG' }, { status: 400 })
+      return NextResponse.json({ 
+        error: 'Tipo de video no permitido. Solo se permiten MP4, WebM y OGG',
+        receivedType: file.type
+      }, { status: 400 })
+    }
+
+    // Cliente con service role key para bypass de RLS
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Verificar que el bucket existe
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
+    
+    if (bucketsError) {
+      console.error('❌ Error listing buckets:', bucketsError)
+      return NextResponse.json(
+        { error: 'Error al acceder al almacenamiento', details: bucketsError.message },
+        { status: 500 }
+      )
+    }
+
+    const bucketExists = buckets?.some(b => b.name === 'course-videos')
+    if (!bucketExists) {
+      console.error('❌ Bucket "course-videos" does not exist')
+      return NextResponse.json(
+        { 
+          error: 'El bucket de almacenamiento no existe. Por favor, créalo en Supabase.',
+          availableBuckets: buckets?.map(b => b.name) || []
+        },
+        { status: 500 }
+      )
     }
 
     // Generar nombre único para el archivo
-    const fileExt = file.name.split('.').pop()
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'mp4'
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
     const filePath = `videos/${fileName}`
 
+    console.log('📤 Uploading video:', { fileName, size: file.size, type: file.type })
+
     // Subir archivo usando service role key
-    const { data, error } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('course-videos')
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: file.type
       })
 
-    if (error) {
-      logger.error('Error uploading video:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (uploadError) {
+      console.error('❌ Error uploading video:', uploadError)
+      return NextResponse.json(
+        { 
+          error: 'Error al subir el video',
+          details: uploadError.message,
+          code: uploadError.statusCode || 'UNKNOWN'
+        },
+        { status: 500 }
+      )
+    }
+
+    if (!uploadData) {
+      console.error('❌ No upload data returned')
+      return NextResponse.json(
+        { error: 'No se recibió confirmación de la subida' },
+        { status: 500 }
+      )
     }
 
     // Obtener URL pública
     const { data: urlData } = supabase.storage
       .from('course-videos')
       .getPublicUrl(filePath)
+
+    if (!urlData?.publicUrl) {
+      console.error('❌ Could not get public URL')
+      return NextResponse.json(
+        { error: 'Error al obtener la URL pública del video' },
+        { status: 500 }
+      )
+    }
+
+    console.log('✅ Video uploaded successfully:', urlData.publicUrl)
 
     return NextResponse.json({
       success: true,
@@ -66,9 +138,16 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Error in upload video API:', error)
+    console.error('💥 Unexpected error in upload video API:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
     return NextResponse.json(
-      { error: 'Error interno del servidor' }, 
+      { 
+        error: 'Error interno del servidor',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      },
       { status: 500 }
     )
   }

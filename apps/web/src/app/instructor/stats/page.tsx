@@ -267,21 +267,23 @@ export default function InstructorStatsPage() {
             Recursos Humanos
           </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Mapa de Países */}
+          {/* Mapa de Países - Arriba */}
+          <div className="mb-6">
             <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
               <ChoroplethChart
                 data={hrUsersByCountry}
-                height={400}
+                height={500}
                 title="Usuarios por País"
               />
             </div>
+          </div>
 
-            {/* Calendario de Registros */}
+          {/* Calendario de Registros - Abajo */}
+          <div className="mb-6">
             <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
               <CalendarChart
                 data={hrRegistrationsByDate}
-                height={400}
+                height={500}
                 title="Distribución de Registros"
               />
             </div>

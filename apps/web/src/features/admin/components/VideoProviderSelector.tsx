@@ -48,15 +48,25 @@ export function VideoProviderSelector({
         body: formData
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        throw new Error('Error al subir el video')
+        // Mostrar error detallado del servidor
+        const errorMessage = result.details || result.error || 'Error al subir el video'
+        console.error('❌ Error uploading video:', result)
+        alert(`Error al subir el video: ${errorMessage}`)
+        return
       }
 
-      const result = await response.json()
+      if (!result.success || !result.url) {
+        throw new Error('No se recibió la URL del video subido')
+      }
+
       onVideoIdChange(result.url)
     } catch (err) {
-      console.error('Error uploading video:', err)
-      alert('Error al subir el video')
+      console.error('💥 Error uploading video:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al subir el video'
+      alert(`Error al subir el video: ${errorMessage}`)
     } finally {
       setUploading(false)
     }

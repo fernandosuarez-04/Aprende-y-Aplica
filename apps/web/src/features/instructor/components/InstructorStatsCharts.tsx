@@ -90,20 +90,47 @@ export function ChoroplethChart({ data, height = 400, title }: ChoroplethChartPr
     value: item.count,
   }))
 
-  // Cargar GeoJSON desde un CDN público
+  // Cargar GeoJSON desde nuestra API route (evita problemas de CORS)
   const [worldMap, setWorldMap] = useState<any>(null)
   const [mapLoading, setMapLoading] = useState(true)
+  const [mapError, setMapError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Cargar GeoJSON desde un CDN público
-    fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
-      .then(res => res.json())
+    // Cargar GeoJSON desde nuestra API route
+    fetch('/api/geo/world')
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        return res.json()
+      })
       .then(data => {
-        setWorldMap(data)
+        // Verificar que es un GeoJSON válido
+        if (data.type === 'Topology') {
+          // TopoJSON no es compatible directamente, necesitaríamos convertirlo
+          setMapError('Formato de mapa no compatible. Por favor, intente más tarde.')
+          return { type: 'FeatureCollection', features: [] }
+        }
+        
+        if (data.error) {
+          setMapError(data.error)
+          return { type: 'FeatureCollection', features: [] }
+        }
+        
+        return data
+      })
+      .then(data => {
+        if (data.features && data.features.length > 0) {
+          setWorldMap(data)
+          setMapError(null)
+        } else {
+          setMapError('El mapa está vacío. No hay datos geográficos disponibles.')
+        }
         setMapLoading(false)
       })
       .catch(err => {
         console.error('Error loading world map:', err)
+        setMapError('Error al cargar el mapa. Por favor, intente más tarde.')
         setMapLoading(false)
       })
   }, [])
@@ -119,39 +146,103 @@ export function ChoroplethChart({ data, height = 400, title }: ChoroplethChartPr
   if (mapLoading) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <p className="text-gray-500 dark:text-gray-400">Cargando mapa...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Cargando mapa...</p>
+        </div>
       </div>
     )
   }
 
-  if (!worldMap || !worldMap.features || worldMap.features.length === 0) {
+  if (mapError || !worldMap || !worldMap.features || worldMap.features.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <p className="text-gray-500 dark:text-gray-400">Error al cargar el mapa</p>
+      <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+        <div className="text-center p-6">
+          <p className="text-gray-500 dark:text-gray-400 mb-2">{mapError || 'Error al cargar el mapa'}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Los datos de países se mostrarán en la tabla de estadísticas</p>
+        </div>
       </div>
     )
   }
 
-  // Mapear los códigos de país del formato ISO alpha-2 a ISO alpha-3 que usa el GeoJSON
-  const countryCodeMap: Record<string, string> = {
-    'MEX': 'MEX', 'USA': 'USA', 'ESP': 'ESP', 'ARG': 'ARG', 'COL': 'COL', 'CHL': 'CHL',
-    'PER': 'PER', 'VEN': 'VEN', 'ECU': 'ECU', 'GTM': 'GTM', 'CUB': 'CUB', 'BOL': 'BOL',
-    'DOM': 'DOM', 'HND': 'HND', 'PRY': 'PRY', 'SLV': 'SLV', 'NIC': 'NIC', 'CRI': 'CRI',
-    'PAN': 'PAN', 'URY': 'URY', 'BRA': 'BRA', 'PRT': 'PRT', 'FRA': 'FRA', 'DEU': 'DEU',
-    'ITA': 'ITA', 'GBR': 'GBR', 'CAN': 'CAN', 'AUS': 'AUS', 'NZL': 'NZL', 'JPN': 'JPN',
-    'CHN': 'CHN', 'IND': 'IND', 'KOR': 'KOR', 'RUS': 'RUS', 'ZAF': 'ZAF', 'EGY': 'EGY',
+  // Determinar qué propiedad usar para identificar países en el GeoJSON
+  // Diferentes GeoJSON usan diferentes propiedades (ISO_A3, ISO3, ISO_A2, etc.)
+  const firstFeature = worldMap.features[0]
+  let countryIdProperty: string | null = null
+  
+  if (firstFeature?.properties) {
+    // Buscar la propiedad que contiene el código del país
+    const props = firstFeature.properties
+    if (props.ISO_A3) {
+      countryIdProperty = 'ISO_A3'
+    } else if (props.ISO3) {
+      countryIdProperty = 'ISO3'
+    } else if (props.iso_a3) {
+      countryIdProperty = 'iso_a3'
+    } else if (props.iso3) {
+      countryIdProperty = 'iso3'
+    } else if (props.ISO_A2) {
+      countryIdProperty = 'ISO_A2'
+    } else if (props.ISO2) {
+      countryIdProperty = 'ISO2'
+    } else if (props.ISO) {
+      countryIdProperty = 'ISO'
+    } else if (props.id) {
+      countryIdProperty = 'id'
+    }
   }
 
-  // Transformar datos para que coincidan con el formato ISO alpha-3 del GeoJSON
-  const transformedData = chartData.map(item => {
-    // Si el país ya está en formato ISO alpha-3, usarlo directamente
-    // Si no, intentar mapearlo
-    const countryCode = item.country.length === 3 ? item.country : countryCodeMap[item.country] || item.country
+  // Debug: Log para ver qué propiedades tiene el GeoJSON
+  if (firstFeature?.properties) {
+    console.log('🔍 GeoJSON properties sample:', Object.keys(firstFeature.properties))
+    console.log('🔍 First feature properties:', firstFeature.properties)
+    console.log('🔍 Country ID property:', countryIdProperty)
+    console.log('🔍 Chart data:', chartData)
+  }
+
+  // Transformar features para que tengan un id que coincida con nuestros datos
+  const transformedFeatures = worldMap.features.map((feature: any) => {
+    const props = feature.properties || {}
+    
+    // Extraer el código de país de diferentes propiedades posibles
+    // Normalizar a mayúsculas para consistencia
+    let countryId = (props.ISO_A3 || 
+                    props.ISO3 || 
+                    props.iso_a3 || 
+                    props.iso3 ||
+                    props.ISO_A2 ||
+                    props.ISO2 ||
+                    props.ISO ||
+                    props.id ||
+                    feature.id ||
+                    null)?.toString().toUpperCase()
+    
     return {
-      id: countryCode,
+      ...feature,
+      id: countryId
+    }
+  })
+
+  // Transformar datos para que coincidan con el formato del GeoJSON
+  // Normalizar a mayúsculas para consistencia
+  const transformedData = chartData.map(item => {
+    // El código viene del backend ya en formato ISO alpha-3 (MEX, USA, etc.)
+    // Normalizar a mayúsculas para asegurar el match
+    return {
+      id: item.country.toString().toUpperCase(),
       value: item.count
     }
   })
+
+  // Debug: Log para verificar el matching
+  console.log('🔍 Transformed data:', transformedData)
+  console.log('🔍 Sample transformed feature IDs:', transformedFeatures.slice(0, 10).map((f: any) => f.id))
+  
+  // Verificar si hay matches
+  const matchedCountries = transformedFeatures
+    .filter((f: any) => transformedData.some(d => d.id === f.id))
+    .map((f: any) => f.id)
+  console.log('🔍 Matched countries:', matchedCountries)
 
   return (
     <div className="w-full">
@@ -161,12 +252,21 @@ export function ChoroplethChart({ data, height = 400, title }: ChoroplethChartPr
       <div style={{ height: `${height}px` }}>
         <ResponsiveChoropleth
           data={transformedData}
-          features={worldMap.features}
+          features={transformedFeatures}
           margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
           colors="purples"
           domain={[0, Math.max(...transformedData.map(d => d.value), 1)]}
           unknownColor={isDark ? '#374151' : '#e5e7eb'}
-          label="properties.NAME"
+          label={(feature: any) => {
+            // Intentar obtener el nombre del país de diferentes propiedades
+            return feature.properties?.NAME || 
+                   feature.properties?.name || 
+                   feature.properties?.NAME_LONG ||
+                   feature.properties?.name_long ||
+                   feature.properties?.ADMIN ||
+                   feature.properties?.admin ||
+                   'País'
+          }}
           valueFormat=".2s"
           projectionTranslation={[0.5, 0.5]}
           projectionRotation={[0, 0, 0]}
