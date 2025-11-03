@@ -306,6 +306,32 @@ const nextConfig: NextConfig = {
         path: false,
         os: false,
       };
+      
+      // Optimización para Nivo: dividir chunks grandes
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Chunk separado para Nivo (biblioteca grande)
+            nivo: {
+              name: 'nivo',
+              test: /[\\/]node_modules[\\/]@nivo[\\/]/,
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+            // Chunk para otras librerías grandes
+            vendor: {
+              name: 'vendor',
+              test: /[\\/]node_modules[\\/]/,
+              priority: 10,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+      };
     }
 
     return config;

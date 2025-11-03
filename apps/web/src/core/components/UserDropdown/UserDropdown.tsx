@@ -77,30 +77,6 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   }
 
   const menuItems = [
-    // Sección: Estadísticas y Aprendizaje
-    {
-      id: 'stats',
-      label: 'Mis Estadísticas',
-      icon: BarChart,
-      onClick: () => {
-        router.push('/statistics')
-        setIsOpen(false)
-      }
-    },
-    {
-      id: 'learning',
-      label: 'Mi aprendizaje',
-      icon: BookOpen,
-      onClick: () => {
-        router.push('/my-courses')
-        setIsOpen(false)
-      }
-    },
-    {
-      id: 'separator1',
-      isSeparator: true
-    },
-    // Sección: Cuenta y Perfil
     {
       id: 'profile',
       label: 'Editar perfil',
@@ -178,25 +154,6 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       isInstructor: true
     }] : []),
     {
-      id: 'separator4',
-      isSeparator: true
-    },
-    // Sección: Tema
-    {
-      id: 'theme',
-      label: theme === 'light' ? 'Modo claro' : theme === 'dark' ? 'Modo oscuro' : 'Modo sistema',
-      icon: theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor,
-      onClick: () => {
-        setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
-      },
-      hasSubmenu: true
-    },
-    {
-      id: 'separator5',
-      isSeparator: true
-    },
-    // Sección: Cerrar sesión
-    {
       id: 'logout',
       label: 'Cerrar sesión',
       icon: LogOut,
@@ -243,10 +200,16 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         </motion.div>
         
         <div className="hidden sm:block text-left">
-          <p className="text-sm font-medium text-text-primary dark:text-text-primary">
+          <p 
+            className="text-sm font-medium"
+            style={{ color: 'var(--org-text-color, #f8fafc)' }}
+          >
             {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
           </p>
-          <p className="text-xs text-text-tertiary dark:text-text-tertiary">
+          <p 
+            className="text-xs"
+            style={{ color: 'var(--org-text-color, #94a3b8)' }}
+          >
             {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
           </p>
         </div>
@@ -299,10 +262,16 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-text-primary truncate">
+                  <h3 
+                    className="text-lg font-semibold truncate"
+                    style={{ color: 'var(--org-text-color, #f8fafc)' }}
+                  >
                     {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
                   </h3>
-                  <p className="text-sm text-text-tertiary truncate">
+                  <p 
+                    className="text-sm truncate"
+                    style={{ color: 'var(--org-text-color, #cbd5e1)' }}
+                  >
                     {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
                   </p>
                 </div>
@@ -324,40 +293,41 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
 
                 const Icon = item.icon
                 return (
-                  <div key={item.id} className="relative">
-                    <motion.button
-                      onClick={item.onClick}
-                      className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
-                        item.isDestructive 
-                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300' 
-                          : item.isAdmin
-                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300'
-                          : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
-                      }`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ 
-                        duration: 0.2,
-                        delay: index * 0.05
-                      }}
+                  <motion.button
+                    key={item.id}
+                    onClick={item.onClick}
+                    className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
+                      item.isDestructive 
+                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
+                        : item.isAdmin
+                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300'
+                        : 'hover:bg-gray-800'
+                    }`}
+                    style={!item.isDestructive && !item.isAdmin ? { color: 'var(--org-text-color, #94a3b8)' } : {}}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ 
+                      duration: 0.2,
+                      delay: index * 0.05
+                    }}
+                    whileHover={{ 
+                      x: 4,
+                      transition: { duration: 0.2 }
+                    }}
+                    whileTap={{ 
+                      scale: 0.98,
+                      transition: { duration: 0.1 }
+                    }}
+                  >
+                    <motion.div
                       whileHover={{ 
-                        x: 4,
-                        transition: { duration: 0.2 }
+                        scale: 1.1,
+                        rotate: item.id === 'theme' ? 15 : 0
                       }}
-                      whileTap={{ 
-                        scale: 0.98,
-                        transition: { duration: 0.1 }
-                      }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <motion.div
-                        whileHover={{ 
-                          scale: 1.1,
-                          rotate: item.id === 'theme' ? 15 : 0
-                        }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Icon className={`w-6 h-6 ${
-                        item.isDestructive || item.isAdmin ? 'text-red-600 dark:text-red-400' : 'text-primary dark:text-primary'
+                      <Icon className={`w-6 h-6 ${
+                        item.isDestructive || item.isAdmin ? 'text-red-400' : 'text-primary'
                       }`} />
                       </motion.div>
                       <span className="font-medium text-base flex-1">{item.label}</span>

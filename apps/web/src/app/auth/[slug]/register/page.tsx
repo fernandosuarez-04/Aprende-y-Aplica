@@ -15,6 +15,7 @@ interface Organization {
   brand_color_primary?: string | null;
   brand_color_secondary?: string | null;
   brand_font_family?: string | null;
+  brand_favicon_url?: string | null;
 }
 
 export default function OrganizationRegisterPage() {

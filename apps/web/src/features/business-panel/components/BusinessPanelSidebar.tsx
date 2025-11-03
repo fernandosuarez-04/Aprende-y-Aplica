@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { getBackgroundStyle } from '../utils/styles'
 import { 
   Home, 
   Users, 
@@ -13,17 +15,17 @@ import {
   FileText,
   Settings,
   X,
-  ChevronRight,
-  ChevronLeft,
-  Menu,
   Building2,
-  ClipboardCheck
+  ClipboardCheck,
+  Pin,
+  PinOff
 } from 'lucide-react'
 
 interface Organization {
   id: string;
   name: string;
   logo_url?: string | null;
+  favicon_url?: string | null;
 }
 
 interface BusinessPanelSidebarProps {
@@ -58,10 +60,77 @@ export function BusinessPanelSidebar({
   onTogglePin 
 }: BusinessPanelSidebarProps) {
   const pathname = usePathname()
+  const { styles } = useOrganizationStylesContext()
   const [isHovered, setIsHovered] = useState(false)
+  const [isClicking, setIsClicking] = useState(false)
+  const [showPinFeedback, setShowPinFeedback] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loadingOrg, setLoadingOrg] = useState(true)
+
+  // Aplicar estilos personalizados del sidebar
+  const panelStyles = styles?.panel
+  const sidebarBackground = panelStyles?.sidebar_background || '#1e293b'
+  
+  // useMemo para recalcular estilos cuando cambien los panelStyles
+  const sidebarStyle: React.CSSProperties = useMemo(() => {
+    console.log('🎨 Sidebar Background Value:', sidebarBackground);
+    console.log('🎨 Panel Styles:', panelStyles);
+    
+    const getSidebarBackgroundStyle = (backgroundValue: string): React.CSSProperties => {
+      const opacity = panelStyles?.sidebar_opacity || 1;
+      
+      if (!backgroundValue) {
+        return { backgroundColor: `rgba(30, 41, 59, ${opacity})` };
+      }
+
+      // Si es un gradiente CSS (verificar primero porque puede contener URLs)
+      if (backgroundValue.includes('linear-gradient') || backgroundValue.includes('radial-gradient') || backgroundValue.includes('conic-gradient')) {
+        console.log('✅ Aplicando gradiente con opacidad:', backgroundValue, opacity);
+        return {
+          background: backgroundValue,
+          backgroundColor: 'transparent',
+          opacity: opacity,
+        };
+      }
+
+      // Si es una imagen (URL absoluta o relativa)
+      if (backgroundValue.startsWith('http://') || backgroundValue.startsWith('https://') || 
+          (backgroundValue.startsWith('/') && !backgroundValue.startsWith('/#'))) {
+        console.log('✅ Aplicando imagen con opacidad:', backgroundValue, opacity);
+        return {
+          backgroundImage: `url(${backgroundValue})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: 'transparent',
+          opacity: opacity,
+        };
+      }
+
+      // Si es un color (hex, rgb, rgba, hsl, etc.)
+      console.log('✅ Aplicando color con opacidad:', backgroundValue, opacity);
+      // Convertir color hex/rgb a rgba con opacidad
+      if (backgroundValue.startsWith('#')) {
+        // Convertir hex a rgb
+        const hex = backgroundValue.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return {
+          backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})`,
+        };
+      }
+      return {
+        backgroundColor: backgroundValue,
+        opacity: opacity,
+      };
+    }
+    
+    const result = getSidebarBackgroundStyle(sidebarBackground);
+    console.log('🎨 Sidebar Style Result:', result);
+    return result;
+  }, [sidebarBackground, panelStyles])
 
   // Obtener información de la organización
   useEffect(() => {
@@ -97,7 +166,7 @@ export function BusinessPanelSidebar({
 
   // Valores por defecto si no hay organización
   const orgName = organization?.name || 'Aprende y Aplica'
-  const orgLogo = organization?.logo_url || '/icono.png'
+  const orgFavicon = organization?.favicon_url || organization?.logo_url || '/icono.png'
 
   // Detectar clics fuera del sidebar para cerrarlo
   useEffect(() => {
@@ -143,6 +212,13 @@ export function BusinessPanelSidebar({
     }
   }, [isCollapsed, isHovered, isPinned, isOpen, onClose])
 
+  // Limpiar estado de hover cuando cambia el estado de colapso
+  useEffect(() => {
+    if (!isCollapsed) {
+      setIsHovered(false)
+    }
+  }, [isCollapsed])
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -161,20 +237,54 @@ export function BusinessPanelSidebar({
 
       {/* Sidebar */}
       <motion.div
+        key={`sidebar-${sidebarBackground}`}
         ref={sidebarRef}
         initial={{ x: 0 }}
         animate={{ x: 0 }}
+        style={{
+          ...sidebarStyle,
+          // Forzar aplicación de estilos
+          ...(sidebarStyle.backgroundColor && { backgroundColor: sidebarStyle.backgroundColor }),
+          ...(sidebarStyle.background && { background: sidebarStyle.background }),
+          ...(sidebarStyle.backgroundImage && { backgroundImage: sidebarStyle.backgroundImage })
+        }}
         className={`
-          fixed lg:relative z-50 h-full flex flex-col
-          bg-gradient-to-b from-carbon-700 via-carbon-800 to-carbon-900
+          fixed lg:relative z-50 h-screen lg:h-full flex flex-col
           border-r border-carbon-600/50
           transition-all duration-300 ease-in-out
           ${actualWidth}
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           shadow-2xl
         `}
-        onMouseEnter={() => isCollapsed && !isPinned && setIsHovered(true)}
-        onMouseLeave={() => isCollapsed && !isPinned && setIsHovered(false)}
+        onMouseEnter={() => {
+          if (isCollapsed && !isPinned) {
+            setIsHovered(true)
+          }
+        }}
+        onMouseLeave={() => {
+          if (isCollapsed && !isPinned) {
+            setIsHovered(false)
+          }
+        }}
+        onDoubleClick={(event) => {
+          // Solo activar doble click si no se hace click en un enlace o botón
+          const target = event.target as HTMLElement
+          if (target.tagName !== 'A' && target.tagName !== 'BUTTON' && !target.closest('a') && !target.closest('button')) {
+            onTogglePin()
+            setShowPinFeedback(true)
+            setTimeout(() => setShowPinFeedback(false), 2000)
+          }
+        }}
+        onClick={(event) => {
+          // Manejar clicks en el sidebar colapsado cuando está expandido por hover
+          if (isCollapsed && isHovered && !isPinned && !isClicking) {
+            setIsClicking(true)
+            event.preventDefault()
+            event.stopPropagation()
+            onTogglePin()
+            setTimeout(() => setIsClicking(false), 300)
+          }
+        }}
       >
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-carbon-600/50">
@@ -184,57 +294,101 @@ export function BusinessPanelSidebar({
               animate={{ opacity: 1 }}
               className="flex items-center gap-3"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-xl flex items-center justify-center overflow-hidden relative p-1">
-                <div className="w-full h-full rounded-lg bg-carbon-900 flex items-center justify-center">
                   {!loadingOrg && (
                     <Image
-                      src={orgLogo}
-                      alt={`${orgName} Logo`}
+                  src={orgFavicon}
+                  alt={`${orgName} Favicon`}
                       width={32}
                       height={32}
                       className="w-8 h-8 object-contain"
                       onError={(e) => {
-                        // Fallback al logo por defecto si hay error cargando el logo de la organización
+                    // Fallback al favicon por defecto si hay error cargando el favicon de la organización
                         (e.target as HTMLImageElement).src = '/icono.png';
                       }}
                     />
                   )}
-                </div>
-              </div>
               <div>
-                <h2 className="text-sm font-bold text-white">
+                <h2 className="text-sm font-bold" style={{ color: 'var(--org-text-color, #ffffff)' }}>
                   {loadingOrg ? 'Cargando...' : orgName}
                 </h2>
-                <p className="text-xs text-carbon-300">Business</p>
+                <p className="text-xs" style={{ color: 'var(--org-text-color, #cbd5e1)' }}>Business</p>
               </div>
             </motion.div>
           ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-xl flex items-center justify-center overflow-hidden relative p-1 mx-auto">
-              <div className="w-full h-full rounded-lg bg-carbon-900 flex items-center justify-center">
-                {!loadingOrg && (
+            !loadingOrg && (
                   <Image
-                    src={orgLogo}
-                    alt={`${orgName} Logo`}
+                src={orgFavicon}
+                alt={`${orgName} Favicon`}
                     width={24}
                     height={24}
-                    className="w-6 h-6 object-contain"
+                className="w-6 h-6 object-contain mx-auto"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/icono.png';
                     }}
                   />
-                )}
-              </div>
-            </div>
+            )
           )}
 
-          {/* Mobile Close Button */}
-          <button
-            onClick={onClose}
-            className="lg:hidden p-2 rounded-lg text-carbon-400 hover:text-white hover:bg-carbon-700 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Botones del Header */}
+          <div className="flex items-center gap-2">
+            {/* Botón de fijar - siempre visible en desktop */}
+            <button
+              onClick={(event) => {
+                event.stopPropagation()
+                onTogglePin()
+              }}
+              className="hidden lg:block p-2 rounded-lg text-carbon-400 hover:text-white hover:bg-carbon-700 transition-colors"
+              title={isPinned ? 'Desfijar panel' : 'Fijar panel'}
+            >
+              {isPinned ? (
+                <PinOff className="w-4 h-4" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+              ) : (
+                <Pin className="w-4 h-4" />
+              )}
+            </button>
+            
+            {/* Botón de cerrar en mobile */}
+            <button
+              onClick={(event) => {
+                event.stopPropagation()
+                onClose()
+              }}
+              className="lg:hidden p-2 rounded-lg text-carbon-400 hover:text-white hover:bg-carbon-700 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
+
+        {/* Indicador de hover para fijar */}
+        {isCollapsed && isHovered && !isPinned && (
+          <div className="px-4 py-1.5 bg-gradient-to-r from-primary/10 to-transparent border-b border-carbon-600/30">
+            <p className="text-xs font-light flex items-center gap-1.5" style={{ color: 'var(--org-text-color, #cbd5e1)' }}>
+              <Pin className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+              Doble clic para fijar
+            </p>
+          </div>
+        )}
+        
+        {/* Indicador de panel fijado */}
+        {isPinned && !isCollapsed && (
+          <div className="px-4 py-1.5 bg-gradient-to-r from-primary/15 to-transparent border-b border-carbon-600/30">
+            <p className="text-xs font-light flex items-center gap-1.5" style={{ color: 'var(--org-text-color, #e0e7ff)' }}>
+              <PinOff className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+              Panel fijado
+            </p>
+          </div>
+        )}
+        
+        {/* Feedback temporal de doble click */}
+        {showPinFeedback && (
+          <div className="px-4 py-1.5 bg-gradient-to-r from-primary/20 to-transparent border-b border-carbon-700/40">
+            <p className="text-xs font-light flex items-center gap-1.5 animate-in fade-in duration-200" style={{ color: 'var(--org-text-color, #e0e7ff)' }}>
+              <PinOff className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+              {isPinned ? 'Panel fijado' : 'Panel desfijado'}
+            </p>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4">
@@ -253,9 +407,14 @@ export function BusinessPanelSidebar({
                   {!isCollapsed || shouldExpand ? (
                     <Link
                       href={item.href}
-                      onClick={() => {
+                      onClick={(event) => {
+                        event.stopPropagation()
                         onSectionChange(item.name.toLowerCase())
                         onClose()
+                        // Si está expandido por hover, cerrarlo
+                        if (isCollapsed && isHovered && !isPinned) {
+                          setIsHovered(false)
+                        }
                       }}
                       className={`
                         group relative flex items-center px-4 py-3 rounded-xl
@@ -271,7 +430,10 @@ export function BusinessPanelSidebar({
                       {isActive && (
                         <motion.div
                           layoutId="activeIndicator"
-                          className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-success rounded-r-full"
+                          className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
+                          style={{
+                            backgroundImage: `linear-gradient(to bottom, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))`
+                          }}
                           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                         />
                       )}
@@ -283,7 +445,12 @@ export function BusinessPanelSidebar({
                       `} />
 
                       {/* Label */}
-                      <span className="text-sm font-medium">{item.name}</span>
+                      <span 
+                        className="text-sm font-medium"
+                        style={isActive ? { color: 'var(--org-text-color, #ffffff)' } : {}}
+                      >
+                        {item.name}
+                      </span>
 
                       {/* Hover effect */}
                       <motion.div
@@ -315,57 +482,6 @@ export function BusinessPanelSidebar({
           </div>
         </nav>
 
-        {/* Footer */}
-        <div className="border-t border-carbon-600/50 p-4">
-          {!isCollapsed || shouldExpand ? (
-            <div className="space-y-2">
-              <button
-                onClick={onToggleCollapse}
-                className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-carbon-400 hover:bg-carbon-700 hover:text-white transition-colors text-sm"
-              >
-                <span>Colapsar</span>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={onTogglePin}
-                className={`
-                  w-full px-4 py-2 rounded-lg transition-colors text-sm
-                  ${
-                    isPinned
-                      ? 'bg-primary/20 text-primary'
-                      : 'text-carbon-400 hover:bg-carbon-700 hover:text-white'
-                  }
-                `}
-              >
-                {isPinned ? 'Desanclar' : 'Anclar'}
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={onToggleCollapse}
-                className="p-2 rounded-lg text-carbon-400 hover:bg-carbon-700 hover:text-white transition-colors mx-auto"
-                title="Expandir"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-              <button
-                onClick={onTogglePin}
-                className={`
-                  p-2 rounded-lg transition-colors mx-auto
-                  ${
-                    isPinned
-                      ? 'bg-primary/20 text-primary'
-                      : 'text-carbon-400 hover:bg-carbon-700 hover:text-white'
-                  }
-                `}
-                title={isPinned ? 'Desanclar' : 'Anclar'}
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-        </div>
       </motion.div>
     </>
   )

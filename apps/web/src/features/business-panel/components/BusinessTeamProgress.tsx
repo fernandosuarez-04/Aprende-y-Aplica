@@ -16,30 +16,133 @@ import {
   XCircle,
   PlayCircle
 } from 'lucide-react'
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts'
+import dynamic from 'next/dynamic'
+
+// Importaciones dinámicas de Nivo para mejor performance
+const ResponsiveLine = dynamic(() => import('@nivo/line').then(mod => mod.ResponsiveLine), { ssr: false })
+const ResponsiveBar = dynamic(() => import('@nivo/bar').then(mod => mod.ResponsiveBar), { ssr: false })
+const ResponsivePie = dynamic(() => import('@nivo/pie').then(mod => mod.ResponsivePie), { ssr: false })
 import { useTeamProgress } from '../hooks/useTeamProgress'
 import Image from 'next/image'
 
+// Colores del tema
 const COLORS = {
+  primary: '#8b5cf6',
+  secondary: '#6366f1',
   success: '#10b981',
   warning: '#f59e0b',
-  info: '#6b7280',
-  primary: '#8b5cf6',
-  secondary: '#6366f1'
+  danger: '#ef4444',
+  info: '#3b82f6',
+  gray: '#6b7280'
+}
+
+// Tema para Nivo (dark mode)
+const nivoTheme = {
+  background: 'transparent',
+  text: {
+    fontSize: 12,
+    fill: '#e5e7eb',
+    outlineWidth: 0,
+    outlineColor: 'transparent'
+  },
+  axis: {
+    domain: {
+      line: {
+        stroke: '#4b5563',
+        strokeWidth: 1
+      }
+    },
+    legend: {
+      text: {
+        fontSize: 12,
+        fill: '#e5e7eb',
+        outlineWidth: 0,
+        outlineColor: 'transparent'
+      }
+    },
+    ticks: {
+      line: {
+        stroke: '#4b5563',
+        strokeWidth: 1
+      },
+      text: {
+        fontSize: 11,
+        fill: '#9ca3af',
+        outlineWidth: 0,
+        outlineColor: 'transparent'
+      }
+    }
+  },
+  grid: {
+    line: {
+      stroke: '#374151',
+      strokeWidth: 1
+    }
+  },
+  legends: {
+    title: {
+      text: {
+        fontSize: 11,
+        fill: '#e5e7eb',
+        outlineWidth: 0,
+        outlineColor: 'transparent'
+      }
+    },
+    text: {
+      fontSize: 11,
+      fill: '#9ca3af',
+      outlineWidth: 0,
+      outlineColor: 'transparent'
+    },
+    ticks: {
+      line: {},
+      text: {
+        fontSize: 10,
+        fill: '#9ca3af',
+        outlineWidth: 0,
+        outlineColor: 'transparent'
+      }
+    }
+  },
+  annotations: {
+    text: {
+      fontSize: 13,
+      fill: '#e5e7eb',
+      outlineWidth: 2,
+      outlineColor: '#1f2937',
+      outlineOpacity: 1
+    },
+    link: {
+      stroke: '#4b5563',
+      strokeWidth: 1,
+      outlineWidth: 2,
+      outlineColor: '#1f2937',
+      outlineOpacity: 1
+    },
+    outline: {
+      stroke: '#4b5563',
+      strokeWidth: 2,
+      outlineWidth: 2,
+      outlineColor: '#1f2937',
+      outlineOpacity: 1
+    },
+    symbol: {
+      fill: '#e5e7eb',
+      outlineWidth: 2,
+      outlineColor: '#1f2937',
+      outlineOpacity: 1
+    }
+  },
+  tooltip: {
+    container: {
+      background: '#1f2937',
+      color: '#e5e7eb',
+      fontSize: 12,
+      borderRadius: '8px',
+      padding: '8px 12px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+    }
+  }
 }
 
 export function BusinessTeamProgress() {
@@ -225,32 +328,30 @@ export function BusinessTeamProgress() {
                   <Target className="w-5 h-5 text-primary" />
                   Distribución de Cursos
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.charts.distribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {data.charts.distribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1f2937',
-                        border: '1px solid #334155',
-                        borderRadius: '8px',
-                        color: '#e9d5ff'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="h-80">
+                  <ResponsivePie
+                    data={data.charts.distribution.map(item => ({
+                      id: item.name,
+                      value: item.value,
+                      label: item.name
+                    }))}
+                    margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
+                    innerRadius={0.5}
+                    padAngle={0.7}
+                    cornerRadius={3}
+                    activeOuterRadiusOffset={8}
+                    colors={data.charts.distribution.map(item => item.color)}
+                    borderWidth={1}
+                    borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+                    arcLinkLabelsSkipAngle={10}
+                    arcLinkLabelsTextColor="#e5e7eb"
+                    arcLinkLabelsThickness={2}
+                    arcLinkLabelsColor={{ from: 'color' }}
+                    arcLabelsSkipAngle={10}
+                    arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
+                    theme={nivoTheme}
+                  />
+                </div>
               </div>
             )}
 
@@ -261,44 +362,47 @@ export function BusinessTeamProgress() {
                   <BookOpen className="w-5 h-5 text-primary" />
                   Progreso por Curso
                 </h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={data.charts.progress_by_course.slice(0, 10)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
-                    <XAxis
-                      dataKey="course_title"
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                    />
-                    <YAxis
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                      domain={[0, 100]}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1f2937',
-                        border: '1px solid #334155',
-                        borderRadius: '8px',
-                        color: '#e9d5ff'
-                      }}
-                    />
-                    <Bar dataKey="progress" name="Progreso (%)" radius={[8, 8, 0, 0]}>
-                      {data.charts.progress_by_course.slice(0, 10).map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            entry.progress >= 80 ? COLORS.success :
-                            entry.progress >= 50 ? COLORS.warning :
-                            COLORS.info
-                          }
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="h-96">
+                  <ResponsiveBar
+                    data={data.charts.progress_by_course.slice(0, 10).map(entry => ({
+                      curso: entry.course_title,
+                      progreso: entry.progress,
+                      color: entry.progress >= 80 ? COLORS.success :
+                             entry.progress >= 50 ? COLORS.warning :
+                             COLORS.info
+                    }))}
+                    keys={['progreso']}
+                    indexBy="curso"
+                    margin={{ top: 50, right: 130, bottom: 120, left: 60 }}
+                    padding={0.3}
+                    valueScale={{ type: 'linear' }}
+                    indexScale={{ type: 'band', round: true }}
+                    colors={(entry: any) => entry.data.color}
+                    borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                    axisTop={null}
+                    axisRight={null}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: -45,
+                      legend: 'Curso',
+                      legendPosition: 'middle',
+                      legendOffset: 100
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      legend: 'Progreso (%)',
+                      legendPosition: 'middle',
+                      legendOffset: -40
+                    }}
+                    labelSkipWidth={12}
+                    labelSkipHeight={12}
+                    labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                    theme={nivoTheme}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -372,33 +476,44 @@ export function BusinessTeamProgress() {
                   <Clock className="w-5 h-5 text-primary" />
                   Tiempo Dedicado por Curso
                 </h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={data.charts.time_by_course.slice(0, 10)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
-                    <XAxis
-                      dataKey="course_title"
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                    />
-                    <YAxis
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                      label={{ value: 'Horas', angle: -90, position: 'insideLeft', fill: '#c4b5fd' }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1f2937',
-                        border: '1px solid #334155',
-                        borderRadius: '8px',
-                        color: '#e9d5ff'
-                      }}
-                    />
-                    <Bar dataKey="total_hours" name="Horas" fill={COLORS.secondary} radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="h-96">
+                  <ResponsiveBar
+                    data={data.charts.time_by_course.slice(0, 10).map(entry => ({
+                      curso: entry.course_title,
+                      horas: entry.total_hours
+                    }))}
+                    keys={['horas']}
+                    indexBy="curso"
+                    margin={{ top: 50, right: 130, bottom: 120, left: 60 }}
+                    padding={0.3}
+                    valueScale={{ type: 'linear' }}
+                    indexScale={{ type: 'band', round: true }}
+                    colors={COLORS.secondary}
+                    borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                    axisTop={null}
+                    axisRight={null}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: -45,
+                      legend: 'Curso',
+                      legendPosition: 'middle',
+                      legendOffset: 100
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      legend: 'Horas',
+                      legendPosition: 'middle',
+                      legendOffset: -40
+                    }}
+                    labelSkipWidth={12}
+                    labelSkipHeight={12}
+                    labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                    theme={nivoTheme}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -530,33 +645,45 @@ export function BusinessTeamProgress() {
                   <TrendingUp className="w-5 h-5 text-primary" />
                   Top 10 Usuarios por Progreso
                 </h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={data.charts.progress_by_user} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
-                    <XAxis
-                      type="number"
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                      domain={[0, 100]}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="display_name"
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                      width={150}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1f2937',
-                        border: '1px solid #334155',
-                        borderRadius: '8px',
-                        color: '#e9d5ff'
-                      }}
-                    />
-                    <Bar dataKey="progress" name="Progreso (%)" fill={COLORS.primary} radius={[0, 8, 8, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="h-96">
+                  <ResponsiveBar
+                    data={data.charts.progress_by_user.map(entry => ({
+                      usuario: entry.display_name,
+                      progreso: entry.progress
+                    }))}
+                    keys={['progreso']}
+                    indexBy="usuario"
+                    margin={{ top: 50, right: 130, bottom: 50, left: 150 }}
+                    padding={0.3}
+                    layout="horizontal"
+                    valueScale={{ type: 'linear' }}
+                    indexScale={{ type: 'band', round: true }}
+                    colors={COLORS.primary}
+                    borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                    axisTop={null}
+                    axisRight={null}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      legend: 'Progreso (%)',
+                      legendPosition: 'middle',
+                      legendOffset: 40
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      legend: 'Usuario',
+                      legendPosition: 'middle',
+                      legendOffset: -120
+                    }}
+                    labelSkipWidth={12}
+                    labelSkipHeight={12}
+                    labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                    theme={nivoTheme}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -572,39 +699,55 @@ export function BusinessTeamProgress() {
                   <TrendingUp className="w-5 h-5 text-primary" />
                   Tendencias de Completación
                 </h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={data.charts.completion_trends}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
-                    <XAxis
-                      dataKey="month"
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                      tickFormatter={formatMonth}
-                    />
-                    <YAxis
-                      stroke="#a78bfa"
-                      tick={{ fill: '#c4b5fd', fontSize: 12 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1f2937',
-                        border: '1px solid #334155',
-                        borderRadius: '8px',
-                        color: '#e9d5ff'
-                      }}
-                      labelFormatter={(label) => formatMonth(label)}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="count"
-                      name="Cursos Completados"
-                      stroke={COLORS.success}
-                      strokeWidth={3}
-                      dot={{ fill: COLORS.success, r: 5 }}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="h-96">
+                  <ResponsiveLine
+                    data={[{
+                      id: 'Cursos Completados',
+                      color: COLORS.success,
+                      data: data.charts.completion_trends.map(entry => ({
+                        x: formatMonth(entry.month),
+                        y: entry.count
+                      }))
+                    }]}
+                    margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
+                    xScale={{ type: 'point' }}
+                    yScale={{
+                      type: 'linear',
+                      min: 'auto',
+                      max: 'auto',
+                      stacked: false,
+                      reverse: false
+                    }}
+                    yFormat=" >-.0f"
+                    curve="cardinal"
+                    axisTop={null}
+                    axisRight={null}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: -45,
+                      legend: 'Mes',
+                      legendPosition: 'middle',
+                      legendOffset: 60
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      legend: 'Cursos Completados',
+                      legendPosition: 'middle',
+                      legendOffset: -40
+                    }}
+                    pointSize={8}
+                    pointColor={{ theme: 'background' }}
+                    pointBorderWidth={2}
+                    pointBorderColor={{ from: 'serieColor' }}
+                    pointLabelYOffset={-12}
+                    useMesh={true}
+                    theme={nivoTheme}
+                    colors={[COLORS.success]}
+                  />
+                </div>
               </div>
             )}
           </div>

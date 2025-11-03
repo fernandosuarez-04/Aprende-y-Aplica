@@ -19,6 +19,11 @@ interface OrganizationLoginFormProps {
   organizationSlug: string;
 }
 
+interface LoginStyles {
+  primary_button_color?: string;
+  secondary_button_color?: string;
+}
+
 export function OrganizationLoginForm({
   organizationId,
   organizationSlug,
@@ -29,6 +34,29 @@ export function OrganizationLoginForm({
   const router = useRouter();
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const redirectUrlRef = useRef<string | null>(null);
+  const [loginStyles, setLoginStyles] = useState<LoginStyles | null>(null);
+
+  // Obtener estilos de login desde la API
+  useEffect(() => {
+    const fetchLoginStyles = async () => {
+      try {
+        const response = await fetch(`/api/organizations/${organizationSlug}/styles`, {
+          credentials: 'include',
+        });
+
+        const data = await response.json();
+        if (data.success && data.styles?.login) {
+          setLoginStyles(data.styles.login);
+        }
+      } catch (error) {
+        console.error('Error fetching login styles:', error);
+      }
+    };
+
+    if (organizationSlug) {
+      fetchLoginStyles();
+    }
+  }, [organizationSlug]);
   
   const {
     register,
@@ -341,6 +369,11 @@ export function OrganizationLoginForm({
             placeholder="tu@email.com o usuario"
             {...register('emailOrUsername')}
             className={`auth-input pr-12 ${errors.emailOrUsername ? 'border-error' : ''}`}
+            style={{
+              backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.8)',
+              color: 'var(--org-text-color, #ffffff)',
+              borderRadius: '12px'
+            } as React.CSSProperties}
           />
           <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
         </div>
@@ -397,7 +430,7 @@ export function OrganizationLoginForm({
             {...register('rememberMe')}
             className="auth-checkbox"
           />
-          <span className="text-sm text-text-secondary">Recordarme</span>
+          <span className="text-sm" style={{ color: 'var(--org-text-color, #94a3b8)' }}>Recordarme</span>
         </label>
         <motion.div
           whileHover={{ scale: 1.05 }}
@@ -428,6 +461,9 @@ export function OrganizationLoginForm({
             size="lg"
             className="w-full relative overflow-hidden group"
             disabled={isPending}
+            style={{
+              backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
+            } as React.CSSProperties}
           >
             <span className="relative z-10">
               {isPending ? 'Ingresando...' : 'Ingresar'}

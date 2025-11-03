@@ -14,9 +14,9 @@ import {
   Mail,
   Phone,
   ExternalLink,
-  TrendingUp
+  CheckCircle2
 } from 'lucide-react'
-import { Button } from '@aprende-y-aplica/ui'
+import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
 
 interface PlanFeature {
   name: string
@@ -41,6 +41,7 @@ interface Plan {
 }
 
 export function BusinessSubscriptionPlans() {
+  const { plan: currentPlan, loading: planLoading } = useSubscriptionFeatures()
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly')
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
 
@@ -498,29 +499,45 @@ export function BusinessSubscriptionPlans() {
                   ))}
                 </ul>
 
-                {/* CTA Button */}
-                <Button
-                  variant={plan.isPopular ? 'primary' : plan.id === 'enterprise' ? 'secondary' : 'secondary'}
-                  size="lg"
-                  className="w-full"
-                  onClick={() => handleSelectPlan(plan.id)}
+            {(() => {
+              const isCurrentPlan = currentPlan && plan.id === currentPlan
+              const isDisabled = isCurrentPlan || planLoading
+              
+              return (
+                <button
+                  onClick={() => !isDisabled && handleSelectPlan(plan.id)}
+                  disabled={isDisabled}
+                  className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    isDisabled
+                      ? 'bg-carbon-700 text-carbon-400 cursor-not-allowed'
+                      : plan.isPopular
+                      ? 'bg-primary hover:bg-primary/90 text-white'
+                      : plan.id === 'enterprise'
+                      ? 'bg-carbon-800 hover:bg-carbon-700 text-white border border-carbon-600'
+                      : 'bg-carbon-800 hover:bg-carbon-700 text-white'
+                  }`}
                 >
-                  {plan.id === 'enterprise' ? (
+                  {isCurrentPlan ? (
+                    <>
+                      Adquirido
+                      <CheckCircle2 className="w-5 h-5" />
+                    </>
+                  ) : plan.id === 'enterprise' ? (
                     <>
                       Contactar Ventas
-                      <Mail className="w-5 h-5 ml-2" />
+                      <Mail className="w-5 h-5" />
                     </>
                   ) : (
                     <>
-                      Comenzar Prueba Gratis
-                      <ArrowRight className="w-5 h-5 ml-2" />
+                      Cambiar de plan
+                      <ArrowRight className="w-5 h-5" />
                     </>
                   )}
-                </Button>
-              </div>
-            </motion.div>
-          );
-        })}
+                </button>
+              )
+            })()}
+          </motion.div>
+        ))}
       </div>
 
       {/* Comparación Detallada por Categorías */}

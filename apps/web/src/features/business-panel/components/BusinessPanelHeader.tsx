@@ -24,7 +24,12 @@ export function BusinessPanelHeader({ onMenuClick, title, isCollapsed, onToggleC
               <Menu className="h-6 w-6" />
             </button>
             <div className="flex items-center">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
+              <h1 
+                className="text-xl font-bold bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: `linear-gradient(to right, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))`
+                }}
+              >
                 {title}
               </h1>
             </div>

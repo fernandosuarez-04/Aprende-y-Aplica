@@ -206,7 +206,13 @@ export function BusinessAnalytics() {
         <p className="text-red-400 text-lg mb-4">{error}</p>
         <button
           onClick={refetch}
-          className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+          className="px-4 py-2 text-white rounded-lg transition-colors"
+          style={{
+            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
+            opacity: 0.2
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.3')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.2')}
         >
           Reintentar
         </button>
@@ -291,9 +297,13 @@ export function BusinessAnalytics() {
             onClick={() => setActiveTab('overview')}
             className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
               activeTab === 'overview'
-                ? 'text-primary border-b-2 border-primary'
+                ? 'border-b-2'
                 : 'text-carbon-400 hover:text-carbon-300'
             }`}
+            style={activeTab === 'overview' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <BarChart3 className="w-4 h-4 inline-block mr-2" />
             Vista General
@@ -302,9 +312,13 @@ export function BusinessAnalytics() {
             onClick={() => setActiveTab('users')}
             className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
               activeTab === 'users'
-                ? 'text-primary border-b-2 border-primary'
+                ? 'border-b-2'
                 : 'text-carbon-400 hover:text-carbon-300'
             }`}
+            style={activeTab === 'users' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <Users className="w-4 h-4 inline-block mr-2" />
             Por Usuario
@@ -313,9 +327,13 @@ export function BusinessAnalytics() {
             onClick={() => setActiveTab('trends')}
             className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
               activeTab === 'trends'
-                ? 'text-primary border-b-2 border-primary'
+                ? 'border-b-2'
                 : 'text-carbon-400 hover:text-carbon-300'
             }`}
+            style={activeTab === 'trends' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <TrendingUp className="w-4 h-4 inline-block mr-2" />
             Tendencias
@@ -324,9 +342,13 @@ export function BusinessAnalytics() {
             onClick={() => setActiveTab('roles')}
             className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
               activeTab === 'roles'
-                ? 'text-primary border-b-2 border-primary'
+                ? 'border-b-2'
                 : 'text-carbon-400 hover:text-carbon-300'
             }`}
+            style={activeTab === 'roles' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <PieChartIcon className="w-4 h-4 inline-block mr-2" />
             Por Rol
@@ -335,9 +357,13 @@ export function BusinessAnalytics() {
             onClick={() => setActiveTab('skills')}
             className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
               activeTab === 'skills'
-                ? 'text-primary border-b-2 border-primary'
+                ? 'border-b-2'
                 : 'text-carbon-400 hover:text-carbon-300'
             }`}
+            style={activeTab === 'skills' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <Brain className="w-4 h-4 inline-block mr-2" />
             Skills Insights
@@ -710,7 +736,12 @@ function UsersTab({
                           />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                          style={{
+                            backgroundImage: `linear-gradient(to bottom right, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))`
+                          }}
+                        >
                           {(user.display_name[0] || user.username[0]).toUpperCase()}
                         </div>
                       )}
@@ -1402,7 +1433,13 @@ function SkillsTab() {
         <p className="text-red-400 text-lg mb-4">{error}</p>
         <button
           onClick={fetchSkillsData}
-          className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+          className="px-4 py-2 text-white rounded-lg transition-colors"
+          style={{
+            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
+            opacity: 0.2
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.3')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.2')}
         >
           Reintentar
         </button>
@@ -1667,7 +1704,7 @@ function SkillsTab() {
       {recommendations && recommendations.length > 0 && (
         <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
           <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <BookMarked className="w-5 h-5 text-primary" />
+            <BookMarked className="w-5 h-5" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
             Recomendaciones de Cursos para Cerrar Gaps
           </h3>
           <div className="space-y-4">
@@ -1692,7 +1729,11 @@ function SkillsTab() {
                       {(rec.recommended_courses || []).map((course: any, i: number) => (
                         <span
                           key={course.id || i}
-                          className="px-3 py-1 bg-primary/20 text-primary rounded text-sm"
+                          className="px-3 py-1 rounded text-sm"
+                          style={{
+                            backgroundColor: 'var(--org-primary-button-color, #3b82f6)33',
+                            color: 'var(--org-primary-button-color, #3b82f6)'
+                          }}
                         >
                           {course.title}
                         </span>

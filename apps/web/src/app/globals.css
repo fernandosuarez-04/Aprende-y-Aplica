@@ -1120,3 +1120,150 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* Estilos personalizados para Business Panel */
+/* Aplicar backdrop-filter para mejorar legibilidad */
+.business-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Asegurar que las tarjetas respeten la opacidad personalizada */
+.business-panel-content .bg-carbon-900:not(.no-theme),
+.business-panel-content .bg-carbon-800:not(.no-theme),
+.bg-carbon-900.business-card,
+.bg-carbon-800.business-card {
+  background-color: rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1)) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--org-text-color, #f8fafc);
+}
+
+/* Aplicar a TODAS las tarjetas del business panel - REGLA GLOBAL AMPLIA */
+.business-panel-layout .bg-carbon-900:not(.sidebar):not(.header),
+.business-panel-layout .bg-carbon-800:not(.sidebar):not(.header),
+.business-panel-layout .from-carbon-700,
+.business-panel-layout .to-carbon-800,
+.business-panel-layout .bg-gradient-to-br {
+  background: rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1)) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Regla específica para tarjetas con bg-gradient-to-br */
+.business-panel-layout .bg-gradient-to-br.from-carbon-700.to-carbon-800,
+.business-panel-layout [class*="bg-gradient-to-br"][class*="from-carbon"] {
+  background: rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1)) !important;
+}
+
+/* Aplicar color de texto a todos los elementos dentro del panel business */
+.business-panel-content h1,
+.business-panel-content h2, 
+.business-panel-content h3,
+.business-panel-content h4,
+.business-panel-content label,
+.business-panel-content p,
+.business-panel-layout h1,
+.business-panel-layout h2,
+.business-panel-layout h3,
+.business-panel-layout h4,
+.business-panel-layout label {
+  color: var(--org-text-color, #f8fafc);
+}
+
+/* Textos de placeholder y secundarios */
+.business-panel-content .text-carbon-300,
+.business-panel-content .text-carbon-400 {
+  color: var(--org-text-color, #94a3b8) !important;
+  opacity: 0.7;
+}
+
+/* Inputs y textareas */
+.business-panel-content input:not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+.business-panel-content textarea,
+.business-panel-content select {
+  color: var(--org-text-color, #ffffff) !important;
+}
+
+/* Selects y dropdowns - Fondo personalizado */
+.business-panel-layout select,
+.business-panel-layout option {
+  background-color: rgba(var(--org-card-background-rgb, 30, 41, 59), var(--org-card-opacity, 1)) !important;
+  color: var(--org-text-color, #ffffff) !important;
+  border-color: var(--org-border-color, #334155) !important;
+}
+
+/* Inputs de búsqueda y texto */
+.business-panel-layout input:not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
+  background-color: rgba(var(--org-card-background-rgb, 30, 41, 59), var(--org-card-opacity, 1)) !important;
+  color: var(--org-text-color, #ffffff) !important;
+  border-color: var(--org-border-color, #334155) !important;
+}
+
+.business-panel-layout textarea {
+  background-color: rgba(var(--org-card-background-rgb, 30, 41, 59), var(--org-card-opacity, 1)) !important;
+  color: var(--org-text-color, #ffffff) !important;
+  border-color: var(--org-border-color, #334155) !important;
+}
+
+/* Placeholder text */
+.business-panel-content input::placeholder,
+.business-panel-content textarea::placeholder,
+.business-panel-layout input::placeholder,
+.business-panel-layout textarea::placeholder {
+  color: var(--org-text-color, #94a3b8) !important;
+  opacity: 0.5;
+}
+
+/* Textos dentro de tarjetas */
+.business-panel-layout .text-white,
+.business-panel-layout .text-carbon-200,
+.business-panel-layout .text-carbon-300 {
+  color: var(--org-text-color, #f8fafc) !important;
+}
+
+.business-panel-layout .text-carbon-400 {
+  color: var(--org-text-color, #94a3b8) !important;
+  opacity: 0.8;
+}
+
+/* Estilos para inputs de auth (login/register) */
+.auth-input {
+  background-color: rgba(var(--org-card-background-rgb, 30, 41, 59), 0.8) !important;
+  color: var(--org-text-color, #ffffff) !important;
+  border-color: var(--org-border-color, #334155) !important;
+}
+
+.auth-input::placeholder {
+  color: var(--org-text-color, #94a3b8) !important;
+  opacity: 0.6;
+}
+
+.auth-input:focus {
+  border-color: var(--org-primary-button-color, #3b82f6) !important;
+  box-shadow: 0 0 0 3px rgba(var(--org-primary-button-color), 0.1);
+}
+
+/* Labels de auth */
+.auth-label {
+  color: var(--org-text-color, #f8fafc) !important;
+}
+
+/* Focus personalizado para iconos de inputs */
+.group:focus-within .group-focus-within-custom {
+  color: var(--org-primary-button-color, #3b82f6) !important;
+}
+
+/* Ring de focus personalizado */
+.focus\:ring-2:focus {
+  --tw-ring-color: var(--org-primary-button-color, #3b82f6);
+}
+
+/* Accent color personalizado para sliders */
+input[type="range"]::-webkit-slider-thumb {
+  background-color: var(--org-primary-button-color, #3b82f6);
+}
+
+input[type="range"]::-moz-range-thumb {
+  background-color: var(--org-primary-button-color, #3b82f6);
+}

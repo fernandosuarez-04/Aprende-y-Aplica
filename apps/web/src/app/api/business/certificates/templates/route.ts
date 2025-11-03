@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireBusiness } from '@/lib/auth/requireBusiness'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
+import { requireFeature } from '@/lib/subscription/subscriptionHelper'
 
 /**
  * GET /api/business/certificates/templates
@@ -21,19 +22,10 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Verificar que el plan permite certificados personalizados (Business y Enterprise)
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan_type')
-      .eq('organization_id', auth.organizationId)
-      .eq('status', 'active')
-      .maybeSingle()
-
-    if (!subscription || !['business', 'enterprise'].includes(subscription.plan_type)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Tu plan no incluye certificados personalizados. Actualiza a Business o Enterprise.'
-      }, { status: 403 })
+    // Verificar que el plan permite certificados personalizados (solo Enterprise según tablas)
+    const featureCheck = await requireFeature(auth.organizationId, 'custom_certificates')
+    if (featureCheck) {
+      return featureCheck
     }
 
     // Obtener templates de la organización
@@ -130,19 +122,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Verificar que el plan permite certificados personalizados
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan_type')
-      .eq('organization_id', auth.organizationId)
-      .eq('status', 'active')
-      .maybeSingle()
-
-    if (!subscription || !['business', 'enterprise'].includes(subscription.plan_type)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Tu plan no incluye certificados personalizados'
-      }, { status: 403 })
+    // Verificar que el plan permite certificados personalizados (solo Enterprise según tablas)
+    const featureCheck = await requireFeature(auth.organizationId, 'custom_certificates')
+    if (featureCheck) {
+      return featureCheck
     }
 
     const body = await request.json()

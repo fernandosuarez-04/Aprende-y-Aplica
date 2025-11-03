@@ -69,8 +69,8 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
   if (!isOpen || !user) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-gradient-to-br from-carbon-800 to-carbon-900 rounded-2xl shadow-2xl border border-carbon-600 w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+      <div className="backdrop-blur-md rounded-2xl shadow-2xl border border-carbon-600 w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4" style={{ backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-modal-opacity, 0.95))` }}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-carbon-600">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
