@@ -112,6 +112,8 @@ export default function CourseLearnPage() {
   const [liaMessage, setLiaMessage] = useState('');
   // Ref para hacer scroll automático al final de los mensajes de LIA
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
+  // Ref para el textarea de LIA
+  const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -238,12 +240,63 @@ export default function CourseLearnPage() {
     };
   };
 
+  // Función para ajustar altura del textarea de LIA dinámicamente
+  const adjustLiaTextareaHeight = () => {
+    if (liaTextareaRef.current) {
+      // Resetear altura para calcular scrollHeight correctamente
+      liaTextareaRef.current.style.height = 'auto';
+      liaTextareaRef.current.style.overflowY = 'hidden';
+      
+      const scrollHeight = liaTextareaRef.current.scrollHeight;
+      
+      // Altura mínima igual al botón de enviar (48px = h-12)
+      const minHeight = 48; // Igual al botón (h-12)
+      
+      // Alturas calculadas para cada línea
+      // Con padding de 12px arriba + 12px abajo = 24px
+      // Fuente 14px * line-height 1.5 = 21px por línea
+      const height1Line = 21 + 24; // 45px (pero usamos 48px para igualar botón)
+      const height2Line = (21 * 2) + 24; // 66px
+      const height3Line = (21 * 3) + 24; // 87px - altura máxima antes del scroll
+      
+      // Solo activar scroll si el contenido supera las 3 líneas
+      if (scrollHeight > height3Line) {
+        // Contenido mayor a 3 líneas: fijar altura máxima y activar scroll
+        liaTextareaRef.current.style.height = `${height3Line}px`;
+        liaTextareaRef.current.style.overflowY = 'auto';
+      } else {
+        // Contenido de 1-3 líneas: ajustar altura dinámicamente sin scroll
+        const newHeight = Math.max(scrollHeight, minHeight);
+        liaTextareaRef.current.style.height = `${newHeight}px`;
+        liaTextareaRef.current.style.overflowY = 'hidden';
+      }
+    }
+  };
+
+  // Ajustar altura del textarea cuando cambia el contenido
+  useEffect(() => {
+    adjustLiaTextareaHeight();
+  }, [liaMessage]);
+
+  // Inicializar altura del textarea al montar el componente (igual al botón: 48px)
+  useEffect(() => {
+    if (liaTextareaRef.current) {
+      liaTextareaRef.current.style.height = '48px';
+    }
+  }, []);
+
   // Función para enviar mensaje a LIA con contexto de la lección
   const handleSendLiaMessage = async () => {
     if (!liaMessage.trim() || isLiaLoading) return;
 
     const message = liaMessage.trim();
     setLiaMessage(''); // Limpiar input inmediatamente
+    
+    // Resetear altura del textarea después de enviar (igual al botón: 48px)
+    if (liaTextareaRef.current) {
+      liaTextareaRef.current.style.height = '48px';
+      liaTextareaRef.current.style.overflowY = 'hidden';
+    }
 
     // Construir contexto de la lección actual
     const lessonContext = getLessonContext();
@@ -1385,13 +1438,13 @@ export default function CourseLearnPage() {
                       className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                        className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 ${
                           message.role === 'user'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                             : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                         <p className="text-xs mt-1 opacity-70">
                           {message.timestamp.toLocaleTimeString('es-ES', { 
                             hour: '2-digit', 
@@ -1421,20 +1474,25 @@ export default function CourseLearnPage() {
 
                 {/* Área de entrada */}
                 <div className="border-t border-gray-200 dark:border-slate-700/50 p-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
+                  <div className="flex gap-2 items-end">
+                    <textarea
+                      ref={liaTextareaRef}
                       placeholder="Escribe tu pregunta a LIA..."
                       value={liaMessage}
-                      onChange={(e) => setLiaMessage(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !isLiaLoading) {
+                      onChange={(e) => {
+                        setLiaMessage(e.target.value);
+                        // Ajustar altura inmediatamente al cambiar el contenido
+                        setTimeout(() => adjustLiaTextareaHeight(), 0);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && !isLiaLoading) {
                           e.preventDefault();
                           handleSendLiaMessage();
                         }
                       }}
                       disabled={isLiaLoading}
-                      className="flex-1 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                      className="flex-1 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none lia-textarea-scrollbar"
+                      style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
                     />
                     <button
                       onClick={handleSendLiaMessage}

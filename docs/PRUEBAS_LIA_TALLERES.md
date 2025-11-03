@@ -733,3 +733,4 @@ Usa este checklist para realizar una prueba completa:
 **Última actualización**: Diciembre 2024
 **Versión**: 1.0
 
+

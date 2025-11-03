@@ -131,6 +131,41 @@ a {
   background: var(--color-gray-500);
 }
 
+/* Custom scrollbar para textarea de LIA - más pequeño y discreto */
+.lia-textarea-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.lia-textarea-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.lia-textarea-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lia-textarea-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 2px;
+}
+
+.lia-textarea-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark .lia-textarea-scrollbar {
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+
+.dark .lia-textarea-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.dark .lia-textarea-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
 /* Navbar styles */
 .dark .navbar-scrolled {
   background: rgba(15, 23, 42, 0.8);
