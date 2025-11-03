@@ -34,7 +34,7 @@
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.youtube.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com; frame-src 'self' https://www.youtube.com;"
+    Content-Security-Policy = 'default-src "self"; script-src "self" "unsafe-inline" "unsafe-eval" https://cdn.jsdelivr.net https://www.youtube.com; style-src "self" "unsafe-inline" https://fonts.googleapis.com; font-src "self" https://fonts.gstatic.com; img-src "self" data: https:; connect-src "self" https://*.supabase.co wss://*.supabase.co https://api.openai.com; frame-src "self" https://www.youtube.com;'
 
 # Cache para assets estáticos
 [[headers]]
@@ -55,17 +55,15 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
   external_node_modules = ["sharp", "canvas"]
-  # Aumentar timeout para uploads de videos grandes (máximo 26s en plan Pro)
-  timeout = 26
 
 # Configuración específica para diferentes contextos (opcional)
 # Si no se especifica, se usa el comando de [build]
 [context.production]
   command = "bash scripts/netlify-build.sh"
-  
+
 [context.branch-deploys]
   command = "bash scripts/netlify-build.sh"
-  
+
 [context.deploy-preview]
   command = "bash scripts/netlify-build.sh"
 
