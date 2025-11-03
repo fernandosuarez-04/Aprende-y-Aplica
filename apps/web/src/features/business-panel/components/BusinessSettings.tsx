@@ -32,14 +32,22 @@ import {
 import { useBusinessSettings, OrganizationData } from '../hooks/useBusinessSettings'
 import { BusinessNotificationsSettings } from './BusinessNotificationsSettings'
 import { BusinessCertificateCustomizer } from './BusinessCertificateCustomizer'
+import { BusinessThemeCustomizer } from './BusinessThemeCustomizer'
 import { Button } from '@aprende-y-aplica/ui'
 import Image from 'next/image'
+import { ImageUpload } from '../../admin/components/ImageUpload'
+import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
 
 export function BusinessSettings() {
   const { data, isLoading, error, refetch, updateOrganization } = useBusinessSettings()
-  const [activeTab, setActiveTab] = useState<'organization' | 'subscription' | 'branding' | 'notifications' | 'certificates' | 'advanced'>('organization')
+  const { canUse } = useSubscriptionFeatures()
+  const [activeTab, setActiveTab] = useState<'organization' | 'subscription' | 'branding' | 'personalization' | 'notifications' | 'certificates'>('organization')
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Validar si puede acceder a tabs premium
+  const canUseBranding = canUse('corporate_branding')
+  const canUseCertificates = canUse('custom_certificates')
 
   if (isLoading) {
     return (
@@ -56,7 +64,13 @@ export function BusinessSettings() {
         <p className="text-red-400 text-lg mb-4">{error}</p>
         <button
           onClick={refetch}
-          className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+          className="px-4 py-2 rounded-lg transition-colors"
+          style={{
+            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
+            opacity: 0.2
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.3')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.2')}
         >
           Reintentar
         </button>
@@ -67,7 +81,7 @@ export function BusinessSettings() {
   return (
     <div className="w-full space-y-6">
       {/* Tabs */}
-      <div className="bg-carbon-800 rounded-xl border border-carbon-700 overflow-hidden">
+      <div className="rounded-xl border border-carbon-700 overflow-hidden backdrop-blur-md" style={{ backgroundColor: `rgba(var(--org-card-background-rgb, 30, 41, 59), var(--org-card-opacity, 1))` }}>
         <div className="flex border-b border-carbon-700 overflow-x-auto">
           <button
             onClick={() => setActiveTab('organization')}
@@ -91,16 +105,29 @@ export function BusinessSettings() {
             <CreditCard className="w-5 h-5" />
             Suscripción
           </button>
+          {canUseBranding && (
+            <button
+              onClick={() => setActiveTab('branding')}
+              className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'branding'
+                  ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                  : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
+              }`}
+            >
+              <Palette className="w-5 h-5" />
+              Branding
+            </button>
+          )}
           <button
-            onClick={() => setActiveTab('branding')}
+            onClick={() => setActiveTab('personalization')}
             className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'branding'
+              activeTab === 'personalization'
                 ? 'text-primary border-b-2 border-primary bg-carbon-900'
                 : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
             }`}
           >
             <Palette className="w-5 h-5" />
-            Branding
+            Personalización
           </button>
           <button
             onClick={() => setActiveTab('notifications')}
@@ -113,28 +140,19 @@ export function BusinessSettings() {
             <Bell className="w-5 h-5" />
             Notificaciones
           </button>
-          <button
-            onClick={() => setActiveTab('certificates')}
-            className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'certificates'
-                ? 'text-primary border-b-2 border-primary bg-carbon-900'
-                : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
-            }`}
-          >
-            <Award className="w-5 h-5" />
-            Certificados
-          </button>
-          <button
-            onClick={() => setActiveTab('advanced')}
-            className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'advanced'
-                ? 'text-primary border-b-2 border-primary bg-carbon-900'
-                : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
-            }`}
-          >
-            <SettingsIcon className="w-5 h-5" />
-            Configuración Avanzada
-          </button>
+          {canUseCertificates && (
+            <button
+              onClick={() => setActiveTab('certificates')}
+              className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'certificates'
+                  ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                  : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
+              }`}
+            >
+              <Award className="w-5 h-5" />
+              Certificados
+            </button>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -152,17 +170,31 @@ export function BusinessSettings() {
           {activeTab === 'subscription' && (
             <SubscriptionTab subscription={data.subscription} />
           )}
-          {activeTab === 'branding' && (
+          {activeTab === 'branding' && canUseBranding && (
             <BrandingTab />
+          )}
+          {activeTab === 'branding' && !canUseBranding && (
+            <div className="text-center py-20">
+              <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+              <p className="text-yellow-400 text-lg mb-2">Branding Corporativo No Disponible</p>
+              <p className="text-carbon-400 text-sm">Esta función solo está disponible en Enterprise. Actualiza tu plan para acceder a esta funcionalidad.</p>
+            </div>
+          )}
+          {activeTab === 'personalization' && (
+            <BusinessThemeCustomizer />
           )}
           {activeTab === 'notifications' && (
             <BusinessNotificationsSettings />
           )}
-          {activeTab === 'certificates' && (
+          {activeTab === 'certificates' && canUseCertificates && (
             <BusinessCertificateCustomizer />
           )}
-          {activeTab === 'advanced' && (
-            <AdvancedTab organization={data.organization} />
+          {activeTab === 'certificates' && !canUseCertificates && (
+            <div className="text-center py-20">
+              <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+              <p className="text-yellow-400 text-lg mb-2">Certificados Personalizados No Disponibles</p>
+              <p className="text-carbon-400 text-sm">Esta función solo está disponible en Enterprise. Actualiza tu plan para acceder a esta funcionalidad.</p>
+            </div>
           )}
         </div>
       </div>
@@ -248,63 +280,33 @@ function OrganizationTab({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Logo */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div 
+        className="rounded-lg p-6 border border-carbon-700 backdrop-blur-md"
+        style={{
+          backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`
+        }}
+      >
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <ImageIcon className="w-5 h-5" />
           Logo de la Empresa
         </h3>
-        <div className="flex items-start gap-6">
-          <div className="flex-shrink-0">
-            {logoPreview ? (
-              <div className="relative w-32 h-32 rounded-xl overflow-hidden border-2 border-primary/30 bg-carbon-800">
-                <Image
-                  src={logoPreview}
-                  alt="Logo preview"
-                  fill
-                  className="object-cover"
-                  sizes="128px"
-                  onError={() => setLogoPreview(null)}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, logo_url: '' }))
-                    setLogoPreview(null)
-                  }}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="w-32 h-32 rounded-xl border-2 border-dashed border-carbon-600 bg-carbon-800 flex items-center justify-center">
-                <ImageIcon className="w-12 h-12 text-carbon-400" />
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <label htmlFor="logo_url" className="block text-sm font-medium text-carbon-300 mb-2">
-              URL del Logo
-            </label>
-            <input
-              type="url"
-              id="logo_url"
-              name="logo_url"
+        <div className="space-y-4">
+          <ImageUpload
               value={formData.logo_url}
-              onChange={handleChange}
-              placeholder="https://ejemplo.com/logo.png"
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            onChange={(url) => {
+              setFormData(prev => ({ ...prev, logo_url: url }))
+              setLogoPreview(url)
+            }}
+            bucket="Panel-Business"
+            folder="Logo"
+            className="w-full"
             />
-            <p className="mt-2 text-sm text-carbon-400">
-              Ingresa la URL de la imagen del logo de tu empresa
-            </p>
-          </div>
         </div>
       </div>
 
       {/* Información Básica */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700 space-y-4">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 space-y-4 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <Building2 className="w-5 h-5" />
           Información Básica
         </h3>
@@ -342,8 +344,8 @@ function OrganizationTab({
       </div>
 
       {/* Información de Contacto */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700 space-y-4">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 space-y-4 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <Mail className="w-5 h-5" />
           Información de Contacto
         </h3>
@@ -405,8 +407,8 @@ function OrganizationTab({
       )}
 
       {/* Configuración de Usuarios */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <Users className="w-5 h-5" />
           Límite de Usuarios
         </h3>
@@ -458,7 +460,12 @@ function OrganizationTab({
         <button
           type="submit"
           disabled={isSaving}
-          className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-3 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          style={{
+            backgroundColor: 'var(--org-primary-button-color, #3b82f6)'
+          }}
+          onMouseEnter={(e) => !isSaving && (e.currentTarget.style.opacity = '0.9')}
+          onMouseLeave={(e) => !isSaving && (e.currentTarget.style.opacity = '1')}
         >
           {isSaving ? (
             <>
@@ -554,7 +561,7 @@ function LoginPersonalizadoSection({ organization }: { organization: Organizatio
   }
 
   return (
-    <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
+    <div className="rounded-lg p-6 border border-carbon-700 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <LinkIcon className="w-5 h-5" />
         Link Personalizado de Login
@@ -579,7 +586,12 @@ function LoginPersonalizadoSection({ organization }: { organization: Organizatio
             <button
               type="button"
               onClick={() => copyToClipboard(loginUrl, 'login')}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+              className="px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--org-primary-button-color, #3b82f6)'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               title="Copiar link de login"
             >
               {copiedLogin ? (
@@ -612,7 +624,12 @@ function LoginPersonalizadoSection({ organization }: { organization: Organizatio
             <button
               type="button"
               onClick={() => copyToClipboard(registerUrl, 'register')}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+              className="px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--org-primary-button-color, #3b82f6)'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               title="Copiar link de registro"
             >
               {copiedRegister ? (
@@ -725,8 +742,8 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
   return (
     <div className="space-y-6">
       {/* Plan Actual */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <CreditCard className="w-5 h-5" />
           Plan Actual
         </h3>
@@ -747,8 +764,8 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
       </div>
 
       {/* Fechas de Suscripción */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <Calendar className="w-5 h-5" />
           Fechas de Suscripción
         </h3>
@@ -798,13 +815,18 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
       )}
 
       {/* Botones de Acción */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
+      <div className="rounded-lg p-6 border border-carbon-700 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
         <h3 className="text-lg font-semibold text-white mb-4">Acciones</h3>
         <div className="flex flex-wrap gap-4">
           <button
             onClick={handleChangePlan}
             disabled={isCancelling}
-            className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-3 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{
+              backgroundColor: 'var(--org-primary-button-color, #3b82f6)'
+            }}
+            onMouseEnter={(e) => !isCancelling && (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={(e) => !isCancelling && (e.currentTarget.style.opacity = '1')}
           >
             <CreditCard className="w-5 h-5" />
             Cambiar de Plan
@@ -955,108 +977,50 @@ function BrandingTab() {
       )}
 
       {/* Logo y Favicon */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700 space-y-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 space-y-6 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <ImageIcon className="w-5 h-5" />
           Logo y Favicon
         </h3>
 
         {/* Logo */}
-        <div className="flex items-start gap-6">
-          <div className="flex-shrink-0">
-            {logoPreview ? (
-              <div className="relative w-32 h-32 rounded-xl overflow-hidden border-2 border-primary/30 bg-carbon-800">
-                <Image
-                  src={logoPreview}
-                  alt="Logo preview"
-                  fill
-                  className="object-cover"
-                  sizes="128px"
-                  onError={() => setLogoPreview(null)}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBranding(prev => ({ ...prev, logo_url: '' }))
-                    setLogoPreview(null)
-                  }}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="w-32 h-32 rounded-xl border-2 border-dashed border-carbon-600 bg-carbon-800 flex items-center justify-center">
-                <ImageIcon className="w-12 h-12 text-carbon-400" />
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <label htmlFor="logo_url" className="block text-sm font-medium text-carbon-300 mb-2">
-              URL del Logo
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-carbon-300 mb-2">
+            Logo de la Empresa
             </label>
-            <input
-              type="url"
-              id="logo_url"
-              name="logo_url"
+          <ImageUpload
               value={branding.logo_url}
-              onChange={handleChange}
-              placeholder="https://ejemplo.com/logo.png"
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            onChange={(url) => {
+              setBranding(prev => ({ ...prev, logo_url: url }))
+              setLogoPreview(url)
+            }}
+            bucket="Panel-Business"
+            folder="Logo"
+            className="w-full"
             />
-          </div>
         </div>
 
         {/* Favicon */}
-        <div className="flex items-start gap-6">
-          <div className="flex-shrink-0">
-            {faviconPreview ? (
-              <div className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-primary/30 bg-carbon-800">
-                <Image
-                  src={faviconPreview}
-                  alt="Favicon preview"
-                  fill
-                  className="object-cover"
-                  sizes="64px"
-                  onError={() => setFaviconPreview(null)}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBranding(prev => ({ ...prev, favicon_url: '' }))
-                    setFaviconPreview(null)
-                  }}
-                  className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <div className="w-16 h-16 rounded-xl border-2 border-dashed border-carbon-600 bg-carbon-800 flex items-center justify-center">
-                <ImageIcon className="w-8 h-8 text-carbon-400" />
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <label htmlFor="favicon_url" className="block text-sm font-medium text-carbon-300 mb-2">
-              URL del Favicon
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-carbon-300 mb-2">
+            Favicon
             </label>
-            <input
-              type="url"
-              id="favicon_url"
-              name="favicon_url"
+          <ImageUpload
               value={branding.favicon_url}
-              onChange={handleChange}
-              placeholder="https://ejemplo.com/favicon.ico"
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            onChange={(url) => {
+              setBranding(prev => ({ ...prev, favicon_url: url }))
+              setFaviconPreview(url)
+            }}
+            bucket="Panel-Business"
+            folder="Icono"
+            className="w-full"
             />
-          </div>
         </div>
       </div>
 
       {/* Colores */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700 space-y-4">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 space-y-4 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <Palette className="w-5 h-5" />
           Colores de la Marca
         </h3>
@@ -1137,8 +1101,8 @@ function BrandingTab() {
       </div>
 
       {/* Fuente */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="rounded-lg p-6 border border-carbon-700 backdrop-blur-md" style={{ backgroundColor: `rgba(15, 23, 42, var(--org-card-opacity, 1))` }}>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
           <Type className="w-5 h-5" />
           Tipografía
         </h3>
@@ -1194,23 +1158,6 @@ function BrandingTab() {
         </Button>
       </div>
     </form>
-  )
-}
-
-// Tab: Configuración Avanzada
-function AdvancedTab({ organization }: { organization: OrganizationData | null }) {
-  return (
-    <div className="space-y-6">
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <SettingsIcon className="w-5 h-5" />
-          Configuración Avanzada
-        </h3>
-        <p className="text-carbon-400">
-          Próximamente: Más opciones de configuración estarán disponibles aquí.
-        </p>
-      </div>
-    </div>
   )
 }
 

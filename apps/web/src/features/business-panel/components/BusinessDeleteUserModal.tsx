@@ -35,8 +35,8 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
   const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-gradient-to-br from-carbon-800 to-carbon-900 rounded-2xl shadow-2xl border border-red-500/30 w-full max-w-md m-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+      <div className="backdrop-blur-md rounded-2xl shadow-2xl border border-red-500/30 w-full max-w-md m-4" style={{ backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-modal-opacity, 0.95))` }}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-carbon-600">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">

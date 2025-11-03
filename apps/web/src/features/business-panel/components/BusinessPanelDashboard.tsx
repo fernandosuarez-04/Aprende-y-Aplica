@@ -6,11 +6,7 @@ import {
   Users, 
   BookOpen, 
   CheckCircle, 
-  BarChart3,
-  Clock,
-  TrendingUp,
-  GraduationCap,
-  Settings
+  TrendingUp
 } from 'lucide-react'
 import { Card, CardContent } from '@aprende-y-aplica/ui'
 
@@ -157,48 +153,26 @@ export function BusinessPanelDashboard() {
     },
   ]
 
-  const quickActions = [
-    {
-      title: 'Agregar Usuario',
-      description: 'Invitar nuevo miembro al equipo',
-      icon: Users,
-      href: '/business-panel/users/add',
-      color: 'from-blue-500 to-cyan-500'
-    },
-    {
-      title: 'Asignar Curso',
-      description: 'Crear nueva asignación de curso',
-      icon: BookOpen,
-      href: '/business-panel/courses/assign',
-      color: 'from-purple-500 to-pink-500'
-    },
-    {
-      title: 'Ver Reportes',
-      description: 'Revisar analíticas y métricas',
-      icon: BarChart3,
-      href: '/business-panel/reports',
-      color: 'from-green-500 to-emerald-500'
-    },
-    {
-      title: 'Configuración',
-      description: 'Gestionar preferencias del equipo',
-      icon: Settings,
-      href: '/business-panel/settings',
-      color: 'from-orange-500 to-red-500'
-    },
-  ]
-
   return (
     <div className="w-full space-y-8">
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-r from-primary/20 via-success/10 to-primary/20 rounded-2xl border border-primary/30 p-8 shadow-xl"
+        className="relative overflow-hidden rounded-2xl p-8 shadow-xl"
+        style={{
+          backgroundImage: `linear-gradient(to right, var(--org-primary-button-color, #3b82f6)20, var(--org-secondary-button-color, #10b981)10, var(--org-primary-button-color, #3b82f6)20)`,
+          borderColor: 'var(--org-primary-button-color, #3b82f6)55'
+        }}
       >
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
         <div className="relative z-10">
-          <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
+          <h1 
+            className="text-4xl font-bold mb-3 bg-clip-text text-transparent"
+            style={{
+              backgroundImage: `linear-gradient(to right, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))`
+            }}
+          >
             ¡Bienvenido de vuelta!
           </h1>
           <p className="text-carbon-200 text-lg">
@@ -220,10 +194,15 @@ export function BusinessPanelDashboard() {
               whileHover={{ y: -5 }}
               className="relative group"
             >
-              <Card variant="glassmorphism" className="h-full border-carbon-600 hover:border-primary/50 transition-all duration-300">
+              <Card variant="glassmorphism" className="h-full border-carbon-600 transition-all duration-300" onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--org-primary-button-color, #3b82f6)88'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = ''; }}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
+                    <div 
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
+                      style={{
+                        backgroundImage: `linear-gradient(to bottom right, var(--org-primary-button-color, #3b82f6), var(--org-accent-color, #60a5fa))`
+                      }}
+                    >
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
@@ -243,40 +222,8 @@ export function BusinessPanelDashboard() {
         })}
       </div>
 
-      {/* Quick Actions & Recent Activity Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-6">Acciones Rápidas</h2>
-          <div className="grid grid-cols-2 gap-4">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon
-              return (
-                <motion.a
-                  key={action.title}
-                  href={action.href}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600 hover:border-primary/50 transition-all duration-300 cursor-pointer"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-carbon-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="relative z-10">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-white font-semibold mb-1">{action.title}</h3>
-                    <p className="text-carbon-400 text-sm">{action.description}</p>
-                  </div>
-                </motion.a>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div>
+      {/* Recent Activity */}
+      <div>
           <h2 className="text-2xl font-bold text-white mb-6">Actividad Reciente</h2>
           <div className="space-y-4">
             {loading ? (
@@ -291,10 +238,12 @@ export function BusinessPanelDashboard() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                     whileHover={{ x: 5 }}
-                    className="flex items-start gap-4 p-4 bg-gradient-to-r from-carbon-700/50 to-carbon-800/50 rounded-xl border border-carbon-600/50 hover:border-primary/30 transition-all duration-300 cursor-pointer"
+                    className="flex items-start gap-4 p-4 bg-gradient-to-r from-carbon-700/50 to-carbon-800/50 rounded-xl border border-carbon-600/50 transition-all duration-300 cursor-pointer"
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--org-primary-button-color, #3b82f6)55'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = ''; }}
                   >
-                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--org-primary-button-color, #3b82f6)33' }}>
+                      <Icon className="w-5 h-5" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm">
@@ -310,7 +259,6 @@ export function BusinessPanelDashboard() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Progress Overview */}
       <div>
@@ -327,7 +275,7 @@ export function BusinessPanelDashboard() {
                       <span className="text-white font-medium">{course.label}</span>
                       <div className="flex items-center gap-4">
                         <span className="text-carbon-400 text-sm">{course.students} estudiantes</span>
-                        <span className="text-primary font-semibold">{course.progress}%</span>
+                        <span className="font-semibold" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }}>{course.progress}%</span>
                       </div>
                     </div>
                     <div className="h-2 bg-carbon-600 rounded-full overflow-hidden">

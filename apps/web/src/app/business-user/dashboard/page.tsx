@@ -14,15 +14,14 @@ import {
       Loader2, 
       AlertCircle,
       Edit3,
-      Moon,
-      Sun,
       LogOut,
       ChevronDown,
       User,
       Building2
     } from 'lucide-react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { useTheme } from '@/core/hooks/useTheme'
+import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
+import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
 
 interface DashboardStats {
   total_assigned: number
@@ -49,17 +48,25 @@ interface Organization {
   id: string
   name: string
   logo_url?: string | null
+  favicon_url?: string | null
 }
 
 export default function BusinessUserDashboardPage() {
   const router = useRouter()
   const { user, logout } = useAuth()
-  const { toggleTheme, isDark } = useTheme()
+  const { styles } = useOrganizationStyles()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Aplicar estilos personalizados
+  const userDashboardStyles = styles?.userDashboard
+  const backgroundStyle = getBackgroundStyle(userDashboardStyles)
+  const cssVariables = generateCSSVariables(userDashboardStyles)
+  const loadingBackgroundStyle = getBackgroundStyle(userDashboardStyles)
+  
   const [stats, setStats] = useState<DashboardStats>({
     total_assigned: 0,
     in_progress: 0,
@@ -196,7 +203,10 @@ export default function BusinessUserDashboardPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-carbon via-carbon to-carbon-dark p-6 lg:p-8 flex items-center justify-center">
+      <main 
+        className="min-h-screen p-6 lg:p-8 flex items-center justify-center transition-all duration-300"
+        style={loadingBackgroundStyle}
+      >
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <AlertCircle className="w-12 h-12 text-red-400" />
           <p className="text-red-400 text-lg font-semibold">Error al cargar datos</p>
@@ -213,7 +223,13 @@ export default function BusinessUserDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-carbon via-carbon-900 to-carbon-dark">
+    <div 
+      className="min-h-screen transition-all duration-300"
+      style={{
+        ...backgroundStyle,
+        ...cssVariables
+      } as React.CSSProperties}
+    >
       {/* Header Premium */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-gradient-to-r from-carbon-800/95 via-carbon-800/90 to-carbon-800/95 border-b border-carbon-700/50 shadow-2xl shadow-black/20">
         <div className="px-6 lg:px-10 py-5">
@@ -225,14 +241,17 @@ export default function BusinessUserDashboardPage() {
               transition={{ duration: 0.5 }}
               className="flex items-center gap-4"
             >
-              {organization?.logo_url ? (
+              {(organization?.favicon_url || organization?.logo_url) ? (
                 <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg border-2 border-primary/30 ring-2 ring-primary/20">
                   <Image
-                    src={organization.logo_url}
+                    src={organization.favicon_url || organization.logo_url || '/icono.png'}
                     alt={organization.name}
                     width={48}
                     height={48}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/icono.png';
+                    }}
                   />
                 </div>
               ) : (
@@ -348,22 +367,6 @@ export default function BusinessUserDashboardPage() {
                         >
                           <Edit3 className="w-5 h-5 text-primary" />
                           <span className="font-medium">Editar perfil</span>
-                        </motion.button>
-
-                        <motion.button
-                          onClick={() => {
-                            toggleTheme()
-                            setUserDropdownOpen(false)
-                          }}
-                          className="w-full flex items-center gap-4 px-6 py-3.5 text-left text-carbon-300 hover:text-white hover:bg-carbon-700 transition-all duration-200"
-                          whileHover={{ x: 4 }}
-                        >
-                          {isDark ? (
-                            <Sun className="w-5 h-5 text-yellow-400" />
-                          ) : (
-                            <Moon className="w-5 h-5 text-blue-400" />
-                          )}
-                          <span className="font-medium">{isDark ? 'Modo claro' : 'Modo oscuro'}</span>
                         </motion.button>
 
                         <div className="h-px bg-carbon-700 my-2" />

@@ -120,9 +120,9 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', duration: 0.3 }}
-          className="relative rounded-2xl shadow-2xl border w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col z-10"
+          className="relative rounded-2xl shadow-2xl border w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col z-10 backdrop-blur-md"
           style={{
-            backgroundColor: '#1e293b',
+            backgroundColor: `rgba(var(--org-card-background-rgb, 30, 41, 59), var(--org-modal-opacity, 0.95))`,
             borderColor: '#334155'
           }}
         >

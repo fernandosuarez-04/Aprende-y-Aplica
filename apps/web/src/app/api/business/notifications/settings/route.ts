@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireBusiness } from '@/lib/auth/requireBusiness'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
+import { getAllowedNotificationChannels } from '@/lib/subscription/subscriptionFeatures'
+import { getOrganizationPlan } from '@/lib/subscription/subscriptionHelper'
 
 /**
  * GET /api/business/notifications/settings
@@ -84,10 +86,14 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
+    // Obtener canales disponibles según el plan
+    const plan = await getOrganizationPlan(auth.organizationId)
+    const availableChannels = getAllowedNotificationChannels(plan)
+
     return NextResponse.json({
       success: true,
       settings: allSettings || [],
-      available_channels: ['email', 'push', 'sms'],
+      available_channels: availableChannels,
       event_types: eventTypes.map(et => ({
         value: et,
         label: getEventTypeLabel(et),
@@ -131,15 +137,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Validar canales disponibles según plan
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan_type')
-      .eq('organization_id', auth.organizationId)
-      .eq('status', 'active')
-      .maybeSingle()
-
-    const planType = subscription?.plan_type || 'team'
-    const allowedChannels = getAllowedChannels(planType)
+    const plan = await getOrganizationPlan(auth.organizationId)
+    const allowedChannels = getAllowedNotificationChannels(plan)
 
     // Actualizar o insertar cada configuración
     const updates = []
@@ -252,12 +251,4 @@ function getEventTypeDescription(eventType: string): string {
   return descriptions[eventType] || ''
 }
 
-function getAllowedChannels(planType: string): string[] {
-  const channelMap: Record<string, string[]> = {
-    'team': ['email'],
-    'business': ['email', 'push'],
-    'enterprise': ['email', 'push', 'sms']
-  }
-  return channelMap[planType] || ['email']
-}
 

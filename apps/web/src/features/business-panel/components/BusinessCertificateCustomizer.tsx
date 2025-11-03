@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
 import Image from 'next/image'
+import { ImageUpload } from '../../admin/components/ImageUpload'
+import { FeatureLock } from './FeatureLock'
 
 interface CertificateTemplate {
   id?: string
@@ -226,7 +228,8 @@ export function BusinessCertificateCustomizer() {
   }
 
   return (
-    <div className="space-y-6">
+    <FeatureLock feature="custom_certificates">
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -394,6 +397,7 @@ export function BusinessCertificateCustomizer() {
         </div>
       </div>
     </div>
+    </FeatureLock>
   )
 }
 
@@ -595,26 +599,26 @@ function CertificateEditor({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-carbon-300 mb-2">
-              URL del Logo
+              Logo del Certificado
             </label>
-            <input
-              type="url"
+            <ImageUpload
               value={template.design_config.logo_url || ''}
-              onChange={(e) => updateDesignConfig(['logo_url'], e.target.value)}
-              placeholder="https://ejemplo.com/logo.png"
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(url) => updateDesignConfig(['logo_url'], url)}
+              bucket="Panel-Business"
+              folder="Certificado-logo"
+              className="w-full"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-carbon-300 mb-2">
-              URL de la Firma
+              Firma del Certificado
             </label>
-            <input
-              type="url"
+            <ImageUpload
               value={template.design_config.signature_url || ''}
-              onChange={(e) => updateDesignConfig(['signature_url'], e.target.value)}
-              placeholder="https://ejemplo.com/firma.png"
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(url) => updateDesignConfig(['signature_url'], url)}
+              bucket="Panel-Business"
+              folder="Certificado-Firma"
+              className="w-full"
             />
           </div>
         </div>

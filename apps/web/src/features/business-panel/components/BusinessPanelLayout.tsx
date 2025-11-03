@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { BusinessPanelSidebar } from './BusinessPanelSidebar'
 import { BusinessPanelHeader } from './BusinessPanelHeader'
+import { OrganizationStylesProvider, useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { generateCSSVariables, getBackgroundStyle } from '../utils/styles'
 
 interface BusinessPanelLayoutProps {
   children: React.ReactNode
 }
 
-export function BusinessPanelLayout({ children }: BusinessPanelLayoutProps) {
+function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  const { styles } = useOrganizationStylesContext()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -87,8 +90,19 @@ export function BusinessPanelLayout({ children }: BusinessPanelLayoutProps) {
     return null
   }
 
+  // Aplicar estilos personalizados
+  const panelStyles = styles?.panel
+  const backgroundStyle = getBackgroundStyle(panelStyles)
+  const cssVariables = generateCSSVariables(panelStyles)
+
   return (
-    <div className="h-screen bg-gradient-to-br from-carbon via-carbon to-carbon-dark flex flex-col overflow-hidden">
+    <div 
+      className="h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
+      style={{
+        ...backgroundStyle,
+        ...cssVariables
+      } as React.CSSProperties}
+    >
       {/* Header Global - Full Width */}
       <BusinessPanelHeader 
         onMenuClick={() => setSidebarOpen(true)}
@@ -112,7 +126,7 @@ export function BusinessPanelLayout({ children }: BusinessPanelLayoutProps) {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 business-panel-content">
           {children}
         </main>
       </div>
@@ -120,3 +134,10 @@ export function BusinessPanelLayout({ children }: BusinessPanelLayoutProps) {
   )
 }
 
+export function BusinessPanelLayout({ children }: BusinessPanelLayoutProps) {
+  return (
+    <OrganizationStylesProvider>
+      <BusinessPanelLayoutInner>{children}</BusinessPanelLayoutInner>
+    </OrganizationStylesProvider>
+  )
+}

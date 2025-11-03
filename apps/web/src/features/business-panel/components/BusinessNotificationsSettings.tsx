@@ -11,9 +11,11 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  Info
+  Info,
+  Lock
 } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
+import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
 
 interface NotificationSetting {
   id?: string
@@ -30,6 +32,7 @@ interface EventType {
 }
 
 export function BusinessNotificationsSettings() {
+  const { canUse, getAllowedChannels, getMessage, loading: subscriptionLoading } = useSubscriptionFeatures()
   const [settings, setSettings] = useState<NotificationSetting[]>([])
   const [eventTypes, setEventTypes] = useState<EventType[]>([])
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
@@ -56,7 +59,9 @@ export function BusinessNotificationsSettings() {
       if (data.success) {
         setSettings(data.settings || [])
         setEventTypes(data.event_types || [])
-        setAvailableChannels(data.available_channels || ['email'])
+        // Usar canales del hook si están disponibles, sino los del API
+        const channelsFromHook = getAllowedChannels()
+        setAvailableChannels(channelsFromHook.length > 0 ? channelsFromHook : (data.available_channels || ['email']))
       } else {
         setError(data.error || 'Error al cargar configuración')
       }
@@ -231,7 +236,7 @@ export function BusinessNotificationsSettings() {
         <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <p className="text-primary font-medium mb-1">Canales Disponibles</p>
-          <p className="text-carbon-300 text-sm">
+          <div className="text-carbon-300 text-sm">
             {availableChannels.includes('email') && (
               <span className="inline-flex items-center gap-1 mr-4">
                 <Mail className="w-4 h-4" />
@@ -250,7 +255,14 @@ export function BusinessNotificationsSettings() {
                 SMS (Enterprise)
               </span>
             )}
-          </p>
+          </div>
+          {!canUse('notification_sms') && (
+            <div className="mt-2 pt-2 border-t border-primary/20">
+              <p className="text-yellow-400 text-xs">
+                {getMessage('notification_sms')}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -298,24 +310,35 @@ export function BusinessNotificationsSettings() {
                     {availableChannels.map((channel) => {
                       const Icon = getChannelIcon(channel)
                       const isSelected = channels.includes(channel)
+                      const isSMS = channel === 'sms'
+                      const canUseSMS = canUse('notification_sms')
+                      const isDisabled = (channel === 'email' && channels.length === 1) || (isSMS && !canUseSMS)
 
                       return (
                         <button
                           key={channel}
-                          onClick={() => toggleChannel(eventType.value, channel)}
-                          disabled={channel === 'email' && channels.length === 1}
-                          className={`px-4 py-2 rounded-lg border transition-colors flex items-center gap-2 ${
+                          onClick={() => {
+                            if (!isDisabled) {
+                              toggleChannel(eventType.value, channel)
+                            }
+                          }}
+                          disabled={isDisabled}
+                          title={isSMS && !canUseSMS ? getMessage('notification_sms') : undefined}
+                          className={`px-4 py-2 rounded-lg border transition-colors flex items-center gap-2 relative ${
                             isSelected
                               ? 'bg-primary/20 border-primary text-primary'
                               : 'bg-carbon-800 border-carbon-700 text-carbon-400 hover:border-carbon-600'
                           } ${
-                            channel === 'email' && channels.length === 1
+                            isDisabled
                               ? 'opacity-50 cursor-not-allowed'
                               : 'cursor-pointer'
                           }`}
                         >
                           <Icon className="w-4 h-4" />
                           <span className="text-sm font-medium">{getChannelLabel(channel)}</span>
+                          {isSMS && !canUseSMS && (
+                            <Lock className="w-3 h-3 text-yellow-400 ml-1" />
+                          )}
                         </button>
                       )
                     })}

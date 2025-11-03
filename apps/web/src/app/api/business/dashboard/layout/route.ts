@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireBusiness } from '@/lib/auth/requireBusiness'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
+import { requireFeature } from '@/lib/subscription/subscriptionHelper'
 
 /**
  * GET /api/business/dashboard/layout
@@ -87,24 +88,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Verificar que el plan permite dashboards personalizables (Business y Enterprise)
-    const supabase = await createClient()
-    
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan_type')
-      .eq('organization_id', auth.organizationId)
-      .eq('status', 'active')
-      .maybeSingle()
-
-    // Solo Enterprise tiene dashboards completamente personalizables
-    // Por ahora, permitir a Business también (se puede restringir después)
-    if (!subscription || !['business', 'enterprise'].includes(subscription.plan_type)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Tu plan no incluye dashboards personalizables. Actualiza a Business o Enterprise.'
-      }, { status: 403 })
+    // Verificar que el plan permite dashboards personalizables (solo Enterprise según tablas)
+    const featureCheck = await requireFeature(auth.organizationId, 'custom_dashboard')
+    if (featureCheck) {
+      return featureCheck
     }
+
+    const supabase = await createClient()
 
     const body = await request.json()
     const { name, layout_config, is_default } = body

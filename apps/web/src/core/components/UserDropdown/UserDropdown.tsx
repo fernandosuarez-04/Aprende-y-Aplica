@@ -61,24 +61,6 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
 
   const menuItems = [
     {
-      id: 'stats',
-      label: 'Mis Estadísticas',
-      icon: BarChart,
-      onClick: () => {
-        router.push('/statistics')
-        setIsOpen(false)
-      }
-    },
-    {
-      id: 'learning',
-      label: 'Mi aprendizaje',
-      icon: BookOpen,
-      onClick: () => {
-        router.push('/my-courses')
-        setIsOpen(false)
-      }
-    },
-    {
       id: 'profile',
       label: 'Editar perfil',
       icon: Edit3,
@@ -109,15 +91,6 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       },
       isInstructor: true
     }] : []),
-    {
-      id: 'theme',
-      label: isDark ? 'Modo claro' : 'Modo oscuro',
-      icon: Moon,
-      onClick: () => {
-        toggleTheme()
-        setIsOpen(false)
-      }
-    },
     {
       id: 'logout',
       label: 'Cerrar sesión',
@@ -165,10 +138,16 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         </motion.div>
         
         <div className="hidden sm:block text-left">
-          <p className="text-sm font-medium text-text-primary">
+          <p 
+            className="text-sm font-medium"
+            style={{ color: 'var(--org-text-color, #f8fafc)' }}
+          >
             {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
           </p>
-          <p className="text-xs text-text-tertiary">
+          <p 
+            className="text-xs"
+            style={{ color: 'var(--org-text-color, #94a3b8)' }}
+          >
             {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
           </p>
         </div>
@@ -221,10 +200,16 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-text-primary truncate">
+                  <h3 
+                    className="text-lg font-semibold truncate"
+                    style={{ color: 'var(--org-text-color, #f8fafc)' }}
+                  >
                     {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
                   </h3>
-                  <p className="text-sm text-text-tertiary truncate">
+                  <p 
+                    className="text-sm truncate"
+                    style={{ color: 'var(--org-text-color, #cbd5e1)' }}
+                  >
                     {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
                   </p>
                 </div>
@@ -244,8 +229,9 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                         ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
                         : item.isAdmin
                         ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300'
-                        : 'text-text-secondary hover:bg-gray-800 hover:text-text-primary'
+                        : 'hover:bg-gray-800'
                     }`}
+                    style={!item.isDestructive && !item.isAdmin ? { color: 'var(--org-text-color, #94a3b8)' } : {}}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ 

@@ -89,13 +89,13 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop con blur */}
+        {/* Backdrop con blur - Mejorado para mejor contraste */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-carbon-900/80 backdrop-blur-md"
+          className="absolute inset-0 bg-black/70 backdrop-blur-md"
         />
 
         {/* Modal */}
@@ -104,9 +104,9 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', duration: 0.3 }}
-          className="relative rounded-2xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10"
+          className="relative rounded-2xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10 backdrop-blur-md"
           style={{ 
-            backgroundColor: '#1e293b',
+            backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-modal-opacity, 0.95))`,
             borderColor: '#334155'
           }}
         >
@@ -117,7 +117,12 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
           }}>
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-success flex items-center justify-center shadow-lg">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
+                  style={{
+                    backgroundImage: `linear-gradient(to bottom right, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))`
+                  }}
+                >
                   <UserPlus className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -180,7 +185,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     Nombre de Usuario <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within-custom" style={{ '--focus-color': 'var(--org-primary-button-color, #3b82f6)' } as React.CSSProperties} />
                     <input
                       type="text"
                       name="username"
@@ -207,7 +212,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     Email <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within-custom" style={{ '--focus-color': 'var(--org-primary-button-color, #3b82f6)' } as React.CSSProperties} />
                     <input
                       type="email"
                       name="email"
@@ -306,7 +311,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                   Contraseña <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within-custom" style={{ '--focus-color': 'var(--org-primary-button-color, #3b82f6)' } as React.CSSProperties} />
                   <input
                     type="password"
                     name="password"
@@ -338,7 +343,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                   Rol en la Organización <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors z-10" />
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors z-10 group-focus-within-custom" style={{ '--focus-color': 'var(--org-primary-button-color, #3b82f6)' } as React.CSSProperties} />
                   <select
                     name="org_role"
                     value={formData.org_role}

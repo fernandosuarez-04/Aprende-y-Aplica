@@ -217,7 +217,13 @@ export function CustomDashboard({ onClose }: CustomDashboardProps) {
         <div className="text-red-400 text-lg mb-4">{error}</div>
         <button
           onClick={fetchLayout}
-          className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+          className="px-4 py-2 text-white rounded-lg transition-colors"
+          style={{
+            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
+            opacity: 0.2
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.3')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.2')}
         >
           Reintentar
         </button>

@@ -26,7 +26,7 @@ export async function GET() {
       // Prioridad 1: Buscar en organization_users (más reciente por joined_at)
       const { data: userOrgs, error: userOrgsError } = await supabase
         .from('organization_users')
-        .select('organization_id, joined_at, organizations!inner(id, name, logo_url, slug)')
+        .select('organization_id, joined_at, organizations!inner(id, name, logo_url, brand_favicon_url, slug)')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .order('joined_at', { ascending: false })
@@ -39,13 +39,14 @@ export async function GET() {
           id: org.id,
           name: org.name,
           logo_url: org.logo_url,
+          favicon_url: org.brand_favicon_url,
           slug: org.slug
         };
       } else if (user.organization_id) {
         // Prioridad 2: Si no hay en organization_users, usar users.organization_id
         const { data: orgData, error: orgError } = await supabase
           .from('organizations')
-          .select('id, name, logo_url, slug')
+          .select('id, name, logo_url, brand_favicon_url, slug')
           .eq('id', user.organization_id)
           .single();
 
@@ -54,6 +55,7 @@ export async function GET() {
             id: orgData.id,
             name: orgData.name,
             logo_url: orgData.logo_url,
+            favicon_url: orgData.brand_favicon_url,
             slug: orgData.slug
           };
         }
