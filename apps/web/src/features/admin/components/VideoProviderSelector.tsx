@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Youtube, Video, Link as LinkIcon } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface VideoProviderSelectorProps {
   provider: 'youtube' | 'vimeo' | 'direct' | 'custom'
@@ -19,12 +20,13 @@ export function VideoProviderSelector({
   disabled = false
 }: VideoProviderSelectorProps) {
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const handleFileUpload = async (file: File) => {
     if (!file) return
 
     // Validar tipo de video
-    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg']
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo']
     if (!allowedTypes.includes(file.type)) {
       alert('Tipo de video no válido. Solo se permiten MP4, WebM y OGG')
       return
@@ -38,61 +40,110 @@ export function VideoProviderSelector({
     }
 
     setUploading(true)
+    setUploadProgress(0)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/admin/upload/course-videos', {
-        method: 'POST',
-        body: formData
-      })
-
-      // Verificar el Content-Type antes de parsear JSON
-      const contentType = response.headers.get('content-type')
-      const isJson = contentType && contentType.includes('application/json')
-
-      let result
+      // Subir directamente a Supabase Storage desde el cliente
+      // Esto evita los límites de tamaño de body en Next.js/Netlify
+      const supabase = createClient()
       
-      if (!isJson) {
-        // Si la respuesta no es JSON, probablemente es HTML (página de error)
-        const textResponse = await response.text()
-        console.error('❌ Server returned non-JSON response:', {
-          status: response.status,
-          statusText: response.statusText,
-          contentType,
-          preview: textResponse.substring(0, 200)
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'mp4'
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `videos/${fileName}`
+
+      console.log('📤 Subiendo video directamente a Supabase:', { fileName, size: file.size, type: file.type })
+
+      // Simular progreso (Supabase no tiene callback de progreso nativo)
+      setUploadProgress(30)
+
+      // Intentar subir directamente al bucket course-videos
+      // Si falla por permisos, intentar obtener signed URL primero
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('course-videos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type
         })
-        throw new Error(`El servidor devolvió una respuesta inválida (${response.status}). Esto puede ocurrir si el archivo es demasiado grande o hay un error en el servidor.`)
+
+      setUploadProgress(70)
+
+      if (uploadError) {
+        console.error('❌ Error uploading directly to Supabase:', uploadError)
+        
+        // Si el error es de permisos, intentar usar API route como fallback
+        if (uploadError.message?.includes('new row violates row-level security') || 
+            uploadError.message?.includes('permission denied') ||
+            uploadError.statusCode === '403') {
+          console.log('⚠️ Direct upload failed due to permissions, trying API route...')
+          
+          // Fallback: usar API route (puede fallar para archivos muy grandes, pero intentamos)
+          const formData = new FormData()
+          formData.append('file', file)
+
+          const response = await fetch('/api/admin/upload/course-videos', {
+            method: 'POST',
+            body: formData
+          })
+
+          const contentType = response.headers.get('content-type')
+          const isJson = contentType && contentType.includes('application/json')
+
+          if (!isJson) {
+            const textResponse = await response.text().catch(() => '')
+            console.error('❌ Server returned non-JSON response:', {
+              status: response.status,
+              contentType,
+              preview: textResponse.substring(0, 200)
+            })
+            throw new Error(`El servidor devolvió una respuesta inválida (${response.status}). El archivo puede ser demasiado grande para la API route.`)
+          }
+
+          const result = await response.json()
+
+          if (!response.ok) {
+            const errorMessage = result.details || result.error || result.message || 'Error al subir el video'
+            throw new Error(errorMessage)
+          }
+
+          if (!result.success || !result.url) {
+            throw new Error('No se recibió la URL del video subido')
+          }
+
+          setUploadProgress(100)
+          onVideoIdChange(result.url)
+          return
+        }
+        
+        throw new Error(`Error al subir el video: ${uploadError.message}`)
       }
 
-      try {
-        result = await response.json()
-      } catch (jsonError) {
-        // Si falla el parseo JSON, leer el texto (pero esto solo funciona si no lo hemos leído antes)
-        console.error('❌ Failed to parse JSON response:', jsonError)
-        throw new Error(`Error al procesar la respuesta del servidor: ${jsonError instanceof Error ? jsonError.message : 'JSON inválido'}`)
+      if (!uploadData) {
+        throw new Error('No se recibió confirmación de la subida')
       }
 
-      if (!response.ok) {
-        // Mostrar error detallado del servidor
-        const errorMessage = result.details || result.error || result.message || 'Error al subir el video'
-        console.error('❌ Error uploading video:', result)
-        alert(`Error al subir el video: ${errorMessage}`)
-        return
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('course-videos')
+        .getPublicUrl(filePath)
+
+      if (!urlData?.publicUrl) {
+        throw new Error('Error al obtener la URL pública del video')
       }
 
-      if (!result.success || !result.url) {
-        throw new Error('No se recibió la URL del video subido')
-      }
+      console.log('✅ Video uploaded successfully:', urlData.publicUrl)
 
-      onVideoIdChange(result.url)
+      setUploadProgress(100)
+      onVideoIdChange(urlData.publicUrl)
+      
     } catch (err) {
       console.error('💥 Error uploading video:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al subir el video'
       alert(`Error al subir el video: ${errorMessage}`)
     } finally {
       setUploading(false)
+      setTimeout(() => setUploadProgress(0), 1000)
     }
   }
 
@@ -224,9 +275,19 @@ export function VideoProviderSelector({
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
             {uploading && (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Subiendo video...
-              </p>
+              <div className="mt-2">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Subiendo video... {uploadProgress}%
+                  </p>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
             )}
           </>
         )}

@@ -9,7 +9,36 @@ export const maxDuration = 300 // 5 minutos para videos grandes
 export async function POST(request: NextRequest) {
   // Wrapper para capturar CUALQUIER error y devolver JSON
   try {
-    console.log('📥 Received upload request')
+    // Logging temprano para ver si la request llega
+    console.log('📥 Received upload request', {
+      url: request.url,
+      method: request.method,
+      headers: {
+        'content-type': request.headers.get('content-type'),
+        'content-length': request.headers.get('content-length'),
+      }
+    })
+    
+    // Verificar Content-Length antes de procesar
+    const contentLength = request.headers.get('content-length')
+    if (contentLength) {
+      const sizeBytes = parseInt(contentLength, 10)
+      const maxSize = 1024 * 1024 * 1024 // 1GB
+      if (sizeBytes > maxSize) {
+        console.error('❌ Request too large:', sizeBytes)
+        return NextResponse.json(
+          { 
+            error: 'El archivo excede el tamaño máximo de 1GB',
+            details: `Tamaño recibido: ${(sizeBytes / 1024 / 1024).toFixed(2)} MB`
+          },
+          { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      }
+      console.log('✅ Content-Length OK:', `${(sizeBytes / 1024 / 1024).toFixed(2)} MB`)
+    }
     
     // Verificar variables de entorno
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
