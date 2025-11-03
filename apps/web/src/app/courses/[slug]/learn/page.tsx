@@ -1211,8 +1211,8 @@ export default function CourseLearnPage() {
 
         {/* Barra vertical para abrir panel izquierdo */}
         {!isLeftPanelOpen && (
-          <div className="w-12 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10">
-            <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
+            <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
               <button
                 onClick={() => {
                   setIsLeftPanelOpen(true);
@@ -1223,10 +1223,10 @@ export default function CourseLearnPage() {
                     setIsLiaExpanded(false);
                   }
                 }}
-                className="p-2 hover:bg-slate-600/50 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
                 title="Mostrar material del curso"
               >
-                <ChevronRight className="w-5 h-5 text-white" />
+                <ChevronRight className="w-5 h-5 text-gray-700 dark:text-white" />
               </button>
             </div>
 
@@ -1243,10 +1243,10 @@ export default function CourseLearnPage() {
                     setIsLiaExpanded(false);
                   }
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
                 title="Ver lecciones"
               >
-                <Layers className="w-4 h-4 text-white/80" />
+                <Layers className="w-4 h-4 text-gray-700 dark:text-white/80" />
               </button>
 
               {/* Abrir notas y cerrar lecciones */}
@@ -1260,10 +1260,10 @@ export default function CourseLearnPage() {
                     setIsLiaExpanded(false);
                   }
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700/50 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
                 title="Ver notas"
               >
-                <FileText className="w-4 h-4 text-white/80" />
+                <FileText className="w-4 h-4 text-gray-700 dark:text-white/80" />
               </button>
 
               {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
@@ -1288,7 +1288,7 @@ export default function CourseLearnPage() {
         )}
 
         {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-2 mx-2 border border-gray-200 dark:border-slate-700/50">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-2 mx-2 border-2 border-gray-300 dark:border-slate-700/50">
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -1843,7 +1843,7 @@ function VideoContent({
               <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
                 <Play className="w-10 h-10 text-white ml-1" />
               </div>
-              <p className="text-white/70">Video no disponible</p>
+              <p className="text-gray-700 dark:text-white/70">Video no disponible</p>
             </div>
             
             {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
@@ -1901,9 +1901,9 @@ function VideoContent({
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-white">{lesson.lesson_title}</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{lesson.lesson_title}</h2>
         {lesson.lesson_description && (
-          <p className="text-slate-300 mt-2">{lesson.lesson_description}</p>
+          <p className="text-gray-600 dark:text-slate-300 mt-2">{lesson.lesson_description}</p>
         )}
       </div>
     </div>
@@ -2075,14 +2075,14 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
-          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
+          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
           </div>
-          <p className="text-slate-400">Cargando transcripción...</p>
+          <p className="text-gray-600 dark:text-slate-400">Cargando transcripción...</p>
         </div>
       </div>
     );
@@ -2091,20 +2091,20 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
-        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
+        <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
       </div>
       
       {hasTranscript ? (
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 overflow-hidden">
           {/* Header de la transcripción */}
-          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+          <div className="bg-gray-50 dark:bg-slate-800 px-6 py-4 border-b-2 border-gray-300 dark:border-slate-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <ScrollText className="w-5 h-5 text-blue-400" />
-                <h3 className="text-white font-semibold">Transcripción Completa</h3>
+                <ScrollText className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <h3 className="text-gray-900 dark:text-white font-semibold">Transcripción Completa</h3>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
                 <span>{transcriptContent?.length || 0} caracteres</span>
                 <span>•</span>
                 <span>{estimatedReadingTime} min lectura</span>
@@ -2114,27 +2114,27 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
           
           {/* Contenido de la transcripción */}
           <div className="p-6">
-            <div className="prose prose-invert max-w-none">
-              <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+            <div className="prose dark:prose-invert max-w-none">
+              <div className="text-gray-900 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
                 {transcriptContent}
               </div>
             </div>
           </div>
           
           {/* Footer con acciones */}
-          <div className="bg-carbon-700 px-6 py-4 border-t border-carbon-500">
+          <div className="bg-gray-50 dark:bg-slate-800 px-6 py-4 border-t-2 border-gray-300 dark:border-slate-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button 
                   onClick={handleCopyToClipboard}
-                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg"
+                  className="flex items-center space-x-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600"
                 >
-                  {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  {isCopied ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4" />}
                   <span className="text-sm">{isCopied ? 'Copiado!' : 'Copiar'}</span>
                 </button>
                 <button 
                   onClick={handleDownloadTranscript}
-                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg"
+                  className="flex items-center space-x-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600"
                 >
                   <FileDown className="w-4 h-4" />
                   <span className="text-sm">Descargar</span>
@@ -2142,28 +2142,28 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
                 <button 
                   onClick={handleSaveToNotes}
                   disabled={isSaving}
-                  className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors hover:bg-carbon-600 px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center space-x-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
                   <span className="text-sm">{isSaving ? 'Guardando...' : 'Guardar en notas'}</span>
                 </button>
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-gray-500 dark:text-slate-500">
                 Última actualización: {new Date().toLocaleDateString()}
               </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-slate-400" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-gray-400 dark:text-slate-400" />
           </div>
-          <h3 className="text-white text-lg font-semibold mb-2">Transcripción no disponible</h3>
-          <p className="text-slate-400 mb-4">
+          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Transcripción no disponible</h3>
+          <p className="text-gray-600 dark:text-slate-400 mb-4">
             Esta lección aún no tiene transcripción disponible. La transcripción se agregará próximamente.
           </p>
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-gray-500 dark:text-slate-500">
             <p>• Verifica que el video tenga audio</p>
             <p>• La transcripción se genera automáticamente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
@@ -2218,14 +2218,14 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
-          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
+          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
           </div>
-          <p className="text-slate-400">Cargando resumen...</p>
+          <p className="text-gray-600 dark:text-slate-400">Cargando resumen...</p>
         </div>
       </div>
     );
@@ -2235,19 +2235,19 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
-          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
+          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
         
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-slate-400" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-gray-400 dark:text-slate-400" />
           </div>
-          <h3 className="text-white text-lg font-semibold mb-2">Resumen no disponible</h3>
-          <p className="text-slate-400 mb-4">
+          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Resumen no disponible</h3>
+          <p className="text-gray-600 dark:text-slate-400 mb-4">
             Esta lección aún no tiene resumen disponible. El resumen se agregará próximamente.
           </p>
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-gray-500 dark:text-slate-500">
             <p>• El resumen se genera o agrega manualmente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
           </div>
@@ -2259,19 +2259,19 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Resumen del Video</h2>
-        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
+        <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
       </div>
       
-      <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+      <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 overflow-hidden">
         {/* Header del resumen */}
-        <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+        <div className="bg-gray-50 dark:bg-slate-800 px-6 py-4 border-b-2 border-gray-300 dark:border-slate-600">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <FileText className="w-5 h-5 text-blue-400" />
-              <h3 className="text-white font-semibold">Resumen Completo</h3>
+              <FileText className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+              <h3 className="text-gray-900 dark:text-white font-semibold">Resumen Completo</h3>
             </div>
-            <div className="flex items-center space-x-4 text-sm text-slate-400">
+            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
               <span>{summaryContent?.split(/\s+/).length || 0} palabras</span>
               <span>•</span>
               <span>{estimatedReadingTime} min lectura</span>
@@ -2281,8 +2281,8 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         
         {/* Contenido del resumen */}
         <div className="p-6">
-          <div className="prose prose-invert max-w-none">
-            <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+          <div className="prose dark:prose-invert max-w-none">
+            <div className="text-gray-900 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
               {summaryContent}
             </div>
           </div>
@@ -2367,14 +2367,14 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   return (
     <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
-          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
+          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Activity className="w-8 h-8 text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
           </div>
-          <p className="text-slate-400">Cargando actividades...</p>
+          <p className="text-gray-600 dark:text-slate-400">Cargando actividades...</p>
         </div>
       </div>
     );
@@ -2384,19 +2384,19 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
-          <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
+          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
         
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Activity className="w-8 h-8 text-slate-400" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400" />
       </div>
-          <h3 className="text-white text-lg font-semibold mb-2">Actividades no disponibles</h3>
-          <p className="text-slate-400 mb-4">
+          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Actividades no disponibles</h3>
+          <p className="text-gray-600 dark:text-slate-400 mb-4">
             Esta lección aún no tiene actividades disponibles. Las actividades se agregarán próximamente.
           </p>
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-gray-500 dark:text-slate-500">
             <p>• Las actividades se agregan manualmente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
           </div>
@@ -2890,13 +2890,13 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
         </div>
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-8 text-center">
-          <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
           </div>
-          <p className="text-slate-400">Cargando preguntas...</p>
+          <p className="text-gray-600 dark:text-slate-400">Cargando preguntas...</p>
         </div>
       </div>
     );
@@ -2906,7 +2906,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     <div className="space-y-6">
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white mb-2">Preguntas y Respuestas</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
           <button
             onClick={() => setShowCreateForm(true)}
             className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
@@ -2926,12 +2926,12 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full px-4 py-2.5 pr-10 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                className="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800/50 border-2 border-gray-300 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={handleClearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white transition-colors rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors rounded"
                   aria-label="Limpiar búsqueda"
                 >
                   <X className="w-4 h-4" />
@@ -2955,12 +2955,12 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
       </div>
 
       {questions.length === 0 ? (
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-8 text-center">
-          <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-slate-400" />
+        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-slate-400" />
           </div>
-          <h3 className="text-white text-lg font-semibold mb-2">No hay preguntas</h3>
-          <p className="text-slate-400 mb-4">
+          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">No hay preguntas</h3>
+          <p className="text-gray-600 dark:text-slate-400 mb-4">
             {activeSearchQuery ? 'No se encontraron preguntas con tu búsqueda' : 'Aún no hay preguntas en este curso'}
           </p>
           {!activeSearchQuery && (
@@ -2980,7 +2980,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
               key={question.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-slate-800/50 via-slate-700/30 to-slate-800/50 rounded-2xl border border-slate-700/50 overflow-hidden hover:border-slate-600/50 transition-all duration-300 shadow-lg hover:shadow-xl"
+              className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-gray-300 dark:border-slate-700/50 overflow-hidden hover:border-gray-400 dark:hover:border-slate-600/50 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               {/* Post Header - Estilo Facebook/Comunidad */}
               <div className="p-6 pb-4">
@@ -3004,22 +3004,22 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-white">
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
                           {getUserDisplayName(question.user)}
                         </h3>
                         {question.is_pinned && (
-                          <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                          <span className="px-2 py-0.5 bg-yellow-500/20 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-xs rounded-full border border-yellow-500/30 dark:border-yellow-500/30">
                             Fijada
                           </span>
                         )}
                         {question.is_resolved && (
-                          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
+                          <span className="px-2 py-0.5 bg-green-500/20 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs rounded-full border border-green-500/30 dark:border-green-500/30 flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" />
                             Resuelta
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-gray-600 dark:text-slate-400">
                         {formatTimeAgo(question.created_at)} • {courseTitle}
                       </p>
                     </div>
@@ -3032,32 +3032,32 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                   setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
                 }}>
                   {question.title && (
-                    <h4 className="text-white font-semibold text-lg mb-2">{question.title}</h4>
+                    <h4 className="text-gray-900 dark:text-white font-semibold text-lg mb-2">{question.title}</h4>
                   )}
-                  <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-gray-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                     {selectedQuestion === question.id ? question.content : (
                       question.content.length > 200 ? `${question.content.substring(0, 200)}...` : question.content
                     )}
                   </p>
                   {question.content.length > 200 && selectedQuestion !== question.id && (
-                    <button className="text-blue-400 hover:text-blue-300 text-sm mt-2">
+                    <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm mt-2">
                       Ver más
                     </button>
                   )}
                 </div>
 
                 {/* Stats Bar - Estilo Facebook */}
-                <div className="flex items-center justify-between py-2 px-0 text-sm text-slate-400 border-t border-slate-700/50">
+                <div className="flex items-center justify-between py-2 px-0 text-sm text-gray-600 dark:text-slate-400 border-t-2 border-gray-300 dark:border-slate-700/50">
                   <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-1 hover:text-blue-400 transition-colors">
+                    <button className="flex items-center gap-1 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       <MessageSquare className="w-4 h-4" />
                       <span>{question.response_count}</span>
                     </button>
-                    <button className="flex items-center gap-1 hover:text-red-400 transition-colors">
+                    <button className="flex items-center gap-1 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                       <Heart className="w-4 h-4" />
                       <span>{reactionCounts[question.id] ?? (question.reaction_count ?? 0)}</span>
                     </button>
-                    <button className="flex items-center gap-1 hover:text-slate-300 transition-colors">
+                    <button className="flex items-center gap-1 text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
                       <Eye className="w-4 h-4" />
                       <span>{question.view_count}</span>
                     </button>
@@ -3065,13 +3065,13 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 </div>
 
                 {/* Action Buttons - Estilo Facebook */}
-                <div className="flex items-center justify-around py-2 border-t border-slate-700/50 mt-2">
+                <div className="flex items-center justify-around py-2 border-t-2 border-gray-300 dark:border-slate-700/50 mt-2">
                   <button 
                     onClick={(e) => handleReaction(question.id, e)}
-                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30 font-medium ${
+                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30 font-medium ${
                       userReactions[question.id] === 'like'
-                        ? 'text-red-400'
-                        : 'text-slate-400 hover:text-red-400'
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${userReactions[question.id] === 'like' ? 'fill-current' : ''}`} />
@@ -3082,7 +3082,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                       e.stopPropagation();
                       setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
                     }}
-                    className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30 font-medium"
+                    className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30 font-medium"
                   >
                     <MessageSquare className="w-5 h-5" />
                     <span>Comentar</span>
@@ -3145,7 +3145,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   const [question, setQuestion] = useState<any>(null);
   const [responses, setResponses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false); // Cambiado a false para mostrar skeleton inmediatamente
-  const [loadingResponses, setLoadingResponses] = useState(false);
+  const [loadingResponses, setLoadingResponses] = useState(true); // Iniciar en true para mostrar skeleton inmediatamente
   const [loadingReactions, setLoadingReactions] = useState(false);
   const [newResponse, setNewResponse] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -3599,12 +3599,12 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   // Mostrar skeleton solo si la pregunta está cargando
   if (loading) {
     return (
-      <div className="p-6 border-t border-slate-700/50 bg-gradient-to-br from-slate-800/40 via-slate-700/20 to-slate-800/40">
+      <div className="p-6 border-t-2 border-gray-300 dark:border-slate-700/50 bg-white dark:bg-gradient-to-br dark:from-slate-800/40 dark:via-slate-700/20 dark:to-slate-800/40">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-slate-700/50 rounded w-3/4"></div>
-          <div className="h-4 bg-slate-700/50 rounded w-1/2"></div>
-          <div className="h-20 bg-slate-700/50 rounded"></div>
-          <div className="h-10 bg-slate-700/50 rounded w-32"></div>
+          <div className="h-4 bg-gray-200 dark:bg-slate-700/50 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 dark:bg-slate-700/50 rounded w-1/2"></div>
+          <div className="h-20 bg-gray-200 dark:bg-slate-700/50 rounded"></div>
+          <div className="h-10 bg-gray-200 dark:bg-slate-700/50 rounded w-32"></div>
         </div>
       </div>
     );
@@ -3617,14 +3617,14 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
-      className="p-6 border-t border-slate-700/50 bg-gradient-to-br from-slate-800/40 via-slate-700/20 to-slate-800/40"
+      className="p-6 border-t-2 border-gray-300 dark:border-slate-700/50 bg-white dark:bg-slate-800"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Formulario de nueva respuesta - Diseño compacto */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-4 bg-gradient-to-br from-slate-800/50 via-slate-700/30 to-slate-800/50 rounded-xl p-3 border border-slate-600/30 backdrop-blur-sm"
+        className="mb-4 bg-white dark:bg-slate-800/90 rounded-xl p-3 border-2 border-gray-300 dark:border-slate-700/50 backdrop-blur-sm"
       >
         <div className="flex gap-3 items-end">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-lg flex-shrink-0">
@@ -3636,12 +3636,12 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
               value={newResponse}
               onChange={(e) => setNewResponse(e.target.value)}
               placeholder="Escribe tu respuesta..."
-              className="w-full bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none transition-all duration-200 overflow-y-auto"
+              className="w-full bg-white dark:bg-slate-700/50 border-2 border-gray-300 dark:border-slate-600/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none transition-all duration-200 overflow-y-auto"
               style={{ minHeight: '40px', maxHeight: '200px' }}
               maxLength={1000}
             />
             <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-gray-600 dark:text-slate-400">
                 {newResponse.length}/1000
               </span>
               <motion.button
@@ -3666,15 +3666,29 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
       {/* Lista de respuestas - Estilo Facebook */}
       <div className="space-y-4">
         {loadingResponses ? (
-          <div className="space-y-3 animate-pulse">
-            {[1, 2].map((i) => (
-              <div key={i} className="bg-slate-700/30 rounded-xl p-5">
+          <div className="space-y-4 animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-5 border-2 border-gray-300 dark:border-slate-700/50">
                 <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-600/50"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-600/50 rounded w-1/4"></div>
-                    <div className="h-20 bg-slate-600/50 rounded"></div>
-                    <div className="h-8 bg-slate-600/50 rounded w-32"></div>
+                  {/* Avatar skeleton */}
+                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:!bg-slate-700 flex-shrink-0"></div>
+                  <div className="flex-1 space-y-3">
+                    {/* Header skeleton */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="h-4 bg-gray-200 dark:!bg-slate-700 rounded w-32"></div>
+                      <div className="h-4 bg-gray-200 dark:!bg-slate-700 rounded w-20"></div>
+                    </div>
+                    {/* Content skeleton */}
+                    <div className="space-y-2">
+                      <div className="h-3 bg-gray-200 dark:!bg-slate-700 rounded w-full"></div>
+                      <div className="h-3 bg-gray-200 dark:!bg-slate-700 rounded w-full"></div>
+                      <div className="h-3 bg-gray-200 dark:!bg-slate-700 rounded w-3/4"></div>
+                    </div>
+                    {/* Action buttons skeleton */}
+                    <div className="flex items-center gap-4 pt-2">
+                      <div className="h-6 bg-gray-200 dark:!bg-slate-700 rounded w-16"></div>
+                      <div className="h-6 bg-gray-200 dark:!bg-slate-700 rounded w-20"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3682,7 +3696,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
           </div>
         ) : responses.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-slate-400">Aún no hay respuestas. Sé el primero en responder.</p>
+            <p className="text-gray-600 dark:text-slate-400">Aún no hay respuestas. Sé el primero en responder.</p>
           </div>
         ) : (
           responses.map((response, index) => (
@@ -3691,7 +3705,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-gradient-to-br from-slate-800/40 via-slate-700/20 to-slate-800/40 rounded-2xl p-5 border border-slate-600/30 backdrop-blur-sm hover:border-slate-500/40 transition-all duration-300"
+              className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border-2 border-gray-300 dark:border-slate-700/50 backdrop-blur-sm hover:border-gray-400 dark:hover:border-slate-600/50 transition-all duration-300"
             >
               <div className="flex gap-4">
                 {/* Avatar */}
@@ -3710,34 +3724,34 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3 flex-wrap">
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-gray-900 dark:text-white">
                       {getUserDisplayName(response.user)}
                     </span>
                     {response.is_instructor_answer && (
-                      <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
+                      <span className="px-2 py-0.5 bg-purple-500/20 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-xs rounded-full border border-purple-500/30 dark:border-purple-500/30">
                         Instructor
                       </span>
                     )}
                     {response.is_approved_answer && (
-                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-green-500/20 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs rounded-full border border-green-500/30 dark:border-green-500/30 flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
                         Respuesta Aprobada
                       </span>
                     )}
-                    <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded-full">
+                    <span className="text-xs text-gray-600 dark:text-slate-400 bg-gray-100 dark:bg-slate-700/50 px-2 py-1 rounded-full">
                       {formatTimeAgo(response.created_at)}
                     </span>
                   </div>
-                  <p className="text-slate-300 mb-4 leading-relaxed whitespace-pre-wrap">{response.content}</p>
+                  <p className="text-gray-800 dark:text-slate-300 mb-4 leading-relaxed whitespace-pre-wrap">{response.content}</p>
                   
                   {/* Botones de acción - Me gusta y Responder */}
                   <div className="flex items-center gap-4 mt-3">
                     <button
                       onClick={(e) => handleResponseReaction(response.id, e)}
-                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-700/30 ${
+                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30 ${
                         responseReactions[response.id] === 'like'
-                          ? 'text-red-400'
-                          : 'text-slate-400 hover:text-red-400'
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
                       }`}
                     >
                       <Heart className={`w-4 h-4 ${responseReactions[response.id] === 'like' ? 'fill-current' : ''}`} />
@@ -3747,7 +3761,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                     </button>
                     <button
                       onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
-                      className="group flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-all duration-200 hover:bg-blue-500/10 px-3 py-1.5 rounded-lg"
+                      className="group flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 hover:bg-blue-500/10 dark:hover:bg-blue-500/10 px-3 py-1.5 rounded-lg"
                     >
                       <Reply className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
                       <span className="text-sm font-medium">Responder</span>
@@ -3761,14 +3775,14 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="mt-3 bg-slate-700/30 rounded-lg p-3"
+                        className="mt-3 bg-gray-100 dark:bg-slate-800/90 rounded-lg p-3 border-2 border-gray-300 dark:border-slate-700/50"
                       >
                         <div className="flex gap-2">
                           <textarea
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
                             placeholder="Escribe una respuesta..."
-                            className="flex-1 bg-slate-600/50 border border-slate-500/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
+                            className="flex-1 bg-white dark:bg-slate-600/50 border-2 border-gray-300 dark:border-slate-500/50 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
                             rows={2}
                           />
                           <motion.button
@@ -3785,7 +3799,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                               setReplyingTo(null);
                               setReplyContent('');
                             }}
-                            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors"
+                            className="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 text-gray-900 dark:text-white rounded-lg transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -3796,9 +3810,9 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
                   {/* Respuestas anidadas */}
                   {response.replies && response.replies.length > 0 && (
-                    <div className="mt-4 ml-4 space-y-3 border-l-2 border-slate-600/50 pl-4">
+                    <div className="mt-4 ml-4 space-y-3 border-l-2 border-gray-300 dark:border-slate-600/50 pl-4">
                       {response.replies.map((reply: any) => (
-                        <div key={reply.id} className="bg-slate-700/30 rounded-lg p-3">
+                        <div key={reply.id} className="bg-gray-100 dark:bg-slate-800/90 rounded-lg p-3 border-2 border-gray-300 dark:border-slate-700/50">
                           <div className="flex gap-2">
                             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
                               {reply.user?.profile_picture_url ? (
@@ -3815,19 +3829,19 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="font-semibold text-white text-sm">
+                                <span className="font-semibold text-gray-900 dark:text-white text-sm">
                                   {getUserDisplayName(reply.user)}
                                 </span>
                                 {reply.is_instructor_answer && (
-                                  <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30">
+                                  <span className="px-1.5 py-0.5 bg-purple-500/20 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-xs rounded border border-purple-500/30 dark:border-purple-500/30">
                                     Instructor
                                   </span>
                                 )}
-                                <span className="text-slate-400 text-xs">
+                                <span className="text-gray-600 dark:text-slate-400 text-xs">
                                   {formatTimeAgo(reply.created_at)}
                                 </span>
                               </div>
-                              <p className="text-slate-200 text-sm whitespace-pre-wrap mb-2">{reply.content}</p>
+                              <p className="text-gray-800 dark:text-slate-200 text-sm whitespace-pre-wrap mb-2">{reply.content}</p>
                               
                               {/* Botones de acción para comentarios anidados */}
                               <div className="flex items-center gap-3 mt-2">
@@ -3835,8 +3849,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                   onClick={(e) => handleResponseReaction(reply.id, e)}
                                   className={`flex items-center gap-1.5 transition-colors ${
                                     responseReactions[reply.id] === 'like'
-                                      ? 'text-red-400'
-                                      : 'text-slate-400 hover:text-red-400'
+                                      ? 'text-red-600 dark:text-red-400'
+                                      : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
                                   }`}
                                 >
                                   <Heart className={`w-3.5 h-3.5 ${responseReactions[reply.id] === 'like' ? 'fill-current' : ''}`} />
@@ -3846,7 +3860,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                 </button>
                                 <button
                                   onClick={() => setReplyingToReply(replyingToReply === reply.id ? null : reply.id)}
-                                  className="group flex items-center gap-1.5 text-slate-400 hover:text-blue-400 transition-all duration-200 text-xs"
+                                  className="group flex items-center gap-1.5 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 text-xs"
                                 >
                                   <Reply className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200" />
                                   <span className="font-medium">Responder</span>
@@ -3860,14 +3874,14 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="mt-3 bg-slate-600/30 rounded-lg p-2"
+                                    className="mt-3 bg-gray-100 dark:bg-slate-800/90 rounded-lg p-2 border-2 border-gray-300 dark:border-slate-700/50"
                                   >
                                     <div className="flex gap-2">
                                       <textarea
                                         value={replyToReplyContent}
                                         onChange={(e) => setReplyToReplyContent(e.target.value)}
                                         placeholder="Escribe una respuesta..."
-                                        className="flex-1 bg-slate-500/50 border border-slate-400/50 rounded-lg px-2 py-1.5 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none text-sm"
+                                        className="flex-1 bg-white dark:bg-slate-500/50 border-2 border-gray-300 dark:border-slate-400/50 rounded-lg px-2 py-1.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none text-sm"
                                         rows={2}
                                       />
                                       <motion.button
@@ -3884,7 +3898,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                           setReplyingToReply(null);
                                           setReplyToReplyContent('');
                                         }}
-                                        className="px-3 py-1.5 bg-slate-500 hover:bg-slate-400 text-white rounded-lg transition-colors text-sm"
+                                        className="px-3 py-1.5 bg-gray-300 dark:bg-slate-500 hover:bg-gray-400 dark:hover:bg-slate-400 text-gray-900 dark:text-white rounded-lg transition-colors text-sm"
                                       >
                                         <X className="w-3.5 h-3.5" />
                                       </button>
@@ -3895,9 +3909,9 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
                               {/* Respuestas anidadas a comentarios anidados (si existen) */}
                               {reply.replies && reply.replies.length > 0 && (
-                                <div className="mt-3 ml-4 space-y-2 border-l-2 border-slate-500/50 pl-3">
+                                <div className="mt-3 ml-4 space-y-2 border-l-2 border-gray-300 dark:border-slate-500/50 pl-3">
                                   {reply.replies.map((nestedReply: any) => (
-                                    <div key={nestedReply.id} className="bg-slate-600/20 rounded-lg p-2">
+                                    <div key={nestedReply.id} className="bg-gray-100 dark:bg-slate-800/90 rounded-lg p-2 border-2 border-gray-300 dark:border-slate-700/50">
                                       <div className="flex gap-2">
                                         <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-400 to-blue-400 flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
                                           {nestedReply.user?.profile_picture_url ? (
@@ -3914,14 +3928,14 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                         </div>
                                         <div className="flex-1">
                                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <span className="font-semibold text-white text-xs">
+                                            <span className="font-semibold text-gray-900 dark:text-white text-xs">
                                               {getUserDisplayName(nestedReply.user)}
                                             </span>
-                                            <span className="text-slate-400 text-xs">
+                                            <span className="text-gray-600 dark:text-slate-400 text-xs">
                                               {formatTimeAgo(nestedReply.created_at)}
                                             </span>
                                           </div>
-                                          <p className="text-slate-200 text-xs whitespace-pre-wrap">{nestedReply.content}</p>
+                                          <p className="text-gray-800 dark:text-slate-200 text-xs whitespace-pre-wrap">{nestedReply.content}</p>
                                         </div>
                                       </div>
                                     </div>

@@ -453,7 +453,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Barra de herramientas */}
-            <div className="p-4 border-b border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-800/50">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50">
               <div className="flex flex-wrap gap-2">
                 {/* Primera fila */}
                 <div className="flex gap-1">
@@ -575,12 +575,12 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                   placeholder="Título de la nota..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-lg font-semibold placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                  className="w-full bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-lg font-semibold placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                 />
               </div>
 
               {/* Editor de contenido */}
-              <div className="flex-1 bg-gray-50 dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/50 rounded-xl p-4">
+              <div className="flex-1 bg-white dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/50 rounded-xl p-4">
                 <div
                   ref={editorRef}
                   contentEditable
@@ -640,23 +640,34 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Footer con botones */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-800/50">
-              <button
-                onClick={handleSave}
-                disabled={isSaving || !title.trim() || !content.trim()}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? 'Guardando...' : 'Guardar Nota'}
-              </button>
-              
-              <button
-                onClick={handleExportPDF}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
-              >
-                <FileDown className="w-4 h-4" />
-                Convertir en PDF
-              </button>
+            <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50">
+              <div className="text-sm text-gray-600 dark:text-slate-400">
+                Ctrl+S para guardar • Ctrl+Z para deshacer • Ctrl+Y para rehacer
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-3 bg-gray-200 dark:bg-slate-700/50 hover:bg-gray-300 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white rounded-xl font-medium transition-all duration-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || !title.trim() || !content.trim()}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSaving ? 'Guardando...' : 'Guardar Nota'}
+                </button>
+                
+                <button
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                >
+                  <FileDown className="w-4 h-4" />
+                  Convertir en PDF
+                </button>
+              </div>
             </div>
           </motion.div>
         </motion.div>

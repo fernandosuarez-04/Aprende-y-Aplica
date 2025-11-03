@@ -145,7 +145,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       {/* Botón del usuario */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 px-4 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-carbon-700/50 transition-colors"
+        className="flex items-center space-x-3 px-4 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
