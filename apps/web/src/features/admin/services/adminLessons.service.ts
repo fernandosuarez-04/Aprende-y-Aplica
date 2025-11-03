@@ -73,9 +73,9 @@ export class AdminLessonsService {
         throw error
       }
 
-      // Obtener nombres de instructores
+      // Obtener nombres de instructores y reconstruir URLs de Supabase Storage
       const lessonsWithInstructors = await Promise.all(
-        (data || []).map(async (lesson) => {
+        (data || []).map(async (lesson: any) => {
           let instructorName = 'Instructor no asignado'
           
           if (lesson.instructor_id) {
@@ -86,16 +86,33 @@ export class AdminLessonsService {
               .single()
             
             if (instructor) {
-              instructorName = instructor.display_name || 
-                `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+              instructorName = (instructor as any).display_name || 
+                `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
                 'Instructor'
+            }
+          }
+
+          // Si el provider es 'direct' y el video_provider_id parece ser solo un path o nombre de archivo
+          // (no empieza con 'http'), reconstruir la URL completa de Supabase Storage
+          let videoProviderId = lesson.video_provider_id || ''
+          if (lesson.video_provider === 'direct' && videoProviderId && !videoProviderId.startsWith('http')) {
+            // Reconstruir URL de Supabase Storage
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+            if (supabaseUrl) {
+              // Si el path no incluye el bucket, asumir que está en 'course-videos/videos'
+              if (!videoProviderId.includes('/')) {
+                videoProviderId = `${supabaseUrl}/storage/v1/object/public/course-videos/videos/${videoProviderId}`
+              } else {
+                videoProviderId = `${supabaseUrl}/storage/v1/object/public/${videoProviderId}`
+              }
             }
           }
 
           return {
             ...lesson,
+            video_provider_id: videoProviderId,
             instructor_name: instructorName
-          }
+          } as AdminLesson
         })
       )
 
@@ -122,21 +139,21 @@ export class AdminLessonsService {
       }
 
       // Obtener nombre del instructor
-      if (data?.instructor_id) {
+      if ((data as any)?.instructor_id) {
         const { data: instructor } = await supabase
           .from('users')
           .select('display_name, first_name, last_name')
-          .eq('id', data.instructor_id)
+          .eq('id', (data as any).instructor_id)
           .single()
         
         if (instructor) {
-          data.instructor_name = instructor.display_name || 
-            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+          (data as any).instructor_name = (instructor as any).display_name || 
+            `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
             'Instructor'
         }
       }
 
-      return data
+      return data as AdminLesson
     } catch (error) {
       console.error('Error in AdminLessonsService.getLessonById:', error)
       return null
@@ -163,6 +180,29 @@ export class AdminLessonsService {
       // Asegurar que duration_seconds sea al menos 1 segundo
       const validDurationSeconds = Math.max(1, Math.floor(lessonData.duration_seconds))
 
+      // Si el provider es 'direct' y la URL es de Supabase Storage, extraer solo el path relativo
+      let videoProviderId = lessonData.video_provider_id
+      if (lessonData.video_provider === 'direct' && videoProviderId.includes('supabase.co/storage/v1/object/public/')) {
+        // Extraer el path después de '/public/'
+        const publicIndex = videoProviderId.indexOf('/public/')
+        if (publicIndex !== -1) {
+          const path = videoProviderId.substring(publicIndex + 8) // +8 para saltar '/public/'
+          // Si el path tiene el formato 'bucket/path', extraer solo 'path'
+          // Si es muy largo (más de 50 caracteres), tomar solo el nombre del archivo
+          if (path.length > 50) {
+            const parts = path.split('/')
+            videoProviderId = parts[parts.length - 1] // Solo el nombre del archivo
+          } else {
+            videoProviderId = path
+          }
+        }
+      }
+
+      // Asegurar que video_provider_id no exceda 50 caracteres (truncar si es necesario)
+      if (videoProviderId.length > 50) {
+        videoProviderId = videoProviderId.substring(0, 50)
+      }
+
       const { data, error } = await supabase
         .from('course_lessons')
         .insert({
@@ -170,7 +210,7 @@ export class AdminLessonsService {
           lesson_title: lessonData.lesson_title,
           lesson_description: lessonData.lesson_description,
           lesson_order_index: nextOrderIndex,
-          video_provider_id: lessonData.video_provider_id,
+          video_provider_id: videoProviderId,
           video_provider: lessonData.video_provider,
           duration_seconds: validDurationSeconds,
           transcript_content: lessonData.transcript_content,
@@ -179,7 +219,7 @@ export class AdminLessonsService {
           instructor_id: lessonData.instructor_id,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .select()
         .single()
 
@@ -188,25 +228,27 @@ export class AdminLessonsService {
         throw error
       }
 
+      const createdLesson = data as any
+
       // Recalcular duración del módulo
       await this.updateModuleDuration(moduleId)
 
       // Obtener nombre del instructor
-      if (data?.instructor_id) {
+      if (createdLesson?.instructor_id) {
         const { data: instructor } = await supabase
           .from('users')
           .select('display_name, first_name, last_name')
-          .eq('id', data.instructor_id)
+          .eq('id', createdLesson.instructor_id)
           .single()
         
         if (instructor) {
-          data.instructor_name = instructor.display_name || 
-            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+          createdLesson.instructor_name = (instructor as any).display_name || 
+            `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
             'Instructor'
         }
       }
 
-      return data
+      return createdLesson as AdminLesson
     } catch (error) {
       console.error('Error in AdminLessonsService.createLesson:', error)
       throw error
@@ -217,12 +259,47 @@ export class AdminLessonsService {
     const supabase = await createClient()
 
     try {
+      // Si el provider es 'direct' y la URL es de Supabase Storage, extraer solo el path relativo
+      let videoProviderId = lessonData.video_provider_id
+      if (lessonData.video_provider === 'direct' && videoProviderId && videoProviderId.includes('supabase.co/storage/v1/object/public/')) {
+        // Extraer el path después de '/public/'
+        const publicIndex = videoProviderId.indexOf('/public/')
+        if (publicIndex !== -1) {
+          const path = videoProviderId.substring(publicIndex + 8) // +8 para saltar '/public/'
+          // Si el path tiene el formato 'bucket/path', extraer solo 'path'
+          // Si es muy largo (más de 50 caracteres), tomar solo el nombre del archivo
+          if (path.length > 50) {
+            const parts = path.split('/')
+            videoProviderId = parts[parts.length - 1] // Solo el nombre del archivo
+          } else {
+            videoProviderId = path
+          }
+        }
+      }
+
+      // Asegurar que video_provider_id no exceda 50 caracteres (truncar si es necesario)
+      if (videoProviderId && videoProviderId.length > 50) {
+        videoProviderId = videoProviderId.substring(0, 50)
+      }
+
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      }
+
+      if (lessonData.lesson_title !== undefined) updateData.lesson_title = lessonData.lesson_title
+      if (lessonData.lesson_description !== undefined) updateData.lesson_description = lessonData.lesson_description
+      if (lessonData.video_provider_id !== undefined) updateData.video_provider_id = videoProviderId
+      if (lessonData.video_provider !== undefined) updateData.video_provider = lessonData.video_provider
+      if (lessonData.duration_seconds !== undefined) updateData.duration_seconds = Math.max(1, Math.floor(lessonData.duration_seconds))
+      if (lessonData.transcript_content !== undefined) updateData.transcript_content = lessonData.transcript_content
+      if (lessonData.summary_content !== undefined) updateData.summary_content = lessonData.summary_content
+      if (lessonData.is_published !== undefined) updateData.is_published = lessonData.is_published
+      if (lessonData.instructor_id !== undefined) updateData.instructor_id = lessonData.instructor_id
+
       const { data, error } = await supabase
         .from('course_lessons')
-        .update({
-          ...lessonData,
-          updated_at: new Date().toISOString()
-        })
+        // @ts-expect-error - Supabase type inference issue, updateData is valid
+        .update(updateData)
         .eq('lesson_id', lessonId)
         .select()
         .single()
@@ -232,27 +309,29 @@ export class AdminLessonsService {
         throw error
       }
 
+      const updatedLesson = data as any
+
       // Recalcular duración del módulo
-      if (data?.module_id) {
-        await this.updateModuleDuration(data.module_id)
+      if (updatedLesson?.module_id) {
+        await this.updateModuleDuration(updatedLesson.module_id)
       }
 
       // Obtener nombre del instructor
-      if (data?.instructor_id) {
+      if (updatedLesson?.instructor_id) {
         const { data: instructor } = await supabase
           .from('users')
           .select('display_name, first_name, last_name')
-          .eq('id', data.instructor_id)
+          .eq('id', updatedLesson.instructor_id)
           .single()
         
         if (instructor) {
-          data.instructor_name = instructor.display_name || 
-            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+          updatedLesson.instructor_name = (instructor as any).display_name || 
+            `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
             'Instructor'
         }
       }
 
-      return data
+      return updatedLesson as AdminLesson
     } catch (error) {
       console.error('Error in AdminLessonsService.updateLesson:', error)
       throw error
@@ -281,8 +360,9 @@ export class AdminLessonsService {
       }
 
       // Recalcular duración del módulo si existía
-      if (lesson?.module_id) {
-        await this.updateModuleDuration(lesson.module_id)
+      const lessonData = lesson as any
+      if (lessonData?.module_id) {
+        await this.updateModuleDuration(lessonData.module_id)
       }
     } catch (error) {
       console.error('Error in AdminLessonsService.deleteLesson:', error)
@@ -294,12 +374,17 @@ export class AdminLessonsService {
     const supabase = await createClient()
 
     try {
-      const updates = lessons.map((lesson) =>
-        supabase
+      const updates = lessons.map((lesson) => {
+        const updateData = {
+          lesson_order_index: lesson.lesson_order_index,
+          updated_at: new Date().toISOString()
+        }
+        return supabase
           .from('course_lessons')
-          .update({ lesson_order_index: lesson.lesson_order_index, updated_at: new Date().toISOString() })
+          // @ts-expect-error - Supabase type inference issue, updateData is valid
+          .update(updateData)
           .eq('lesson_id', lesson.lesson_id)
-      )
+      })
 
       const results = await Promise.all(updates)
       const errors = results.filter(r => r.error)
@@ -328,12 +413,14 @@ export class AdminLessonsService {
         throw new Error('Lección no encontrada')
       }
 
+      const updateData = {
+        is_published: !(currentLesson as any).is_published,
+        updated_at: new Date().toISOString()
+      }
       const { data, error } = await supabase
         .from('course_lessons')
-        .update({
-          is_published: !currentLesson.is_published,
-          updated_at: new Date().toISOString()
-        })
+        // @ts-expect-error - Supabase type inference issue, updateData is valid
+        .update(updateData)
         .eq('lesson_id', lessonId)
         .select()
         .single()
@@ -343,7 +430,7 @@ export class AdminLessonsService {
         throw error
       }
 
-      return data
+      return (data as any) as AdminLesson
     } catch (error) {
       console.error('Error in AdminLessonsService.toggleLessonPublished:', error)
       throw error
@@ -360,13 +447,18 @@ export class AdminLessonsService {
         .select('duration_seconds')
         .eq('module_id', moduleId)
 
-      const totalSeconds = lessons?.reduce((sum, lesson) => sum + (lesson.duration_seconds || 0), 0) || 0
+      const totalSeconds = (lessons as any[])?.reduce((sum: number, lesson: any) => sum + (lesson.duration_seconds || 0), 0) || 0
       const totalMinutes = Math.round(totalSeconds / 60)
 
       // Actualizar duración del módulo
+      const moduleUpdateData = {
+        module_duration_minutes: totalMinutes,
+        updated_at: new Date().toISOString()
+      }
       await supabase
         .from('course_modules')
-        .update({ module_duration_minutes: totalMinutes, updated_at: new Date().toISOString() })
+        // @ts-expect-error - Supabase type inference issue, moduleUpdateData is valid
+        .update(moduleUpdateData)
         .eq('module_id', moduleId)
 
       // Obtener course_id del módulo para actualizar duración del curso
@@ -376,8 +468,8 @@ export class AdminLessonsService {
         .eq('module_id', moduleId)
         .single()
 
-      if (module?.course_id) {
-        await this.updateCourseDuration(module.course_id)
+      if ((module as any)?.course_id) {
+        await this.updateCourseDuration((module as any).course_id)
       }
     } catch (error) {
       console.error('Error in AdminLessonsService.updateModuleDuration:', error)
@@ -395,12 +487,17 @@ export class AdminLessonsService {
         .select('module_duration_minutes')
         .eq('course_id', courseId)
 
-      const totalMinutes = modules?.reduce((sum, module) => sum + (module.module_duration_minutes || 0), 0) || 0
+      const totalMinutes = (modules as any[])?.reduce((sum: number, module: any) => sum + (module.module_duration_minutes || 0), 0) || 0
 
       // Actualizar duración del curso
+      const courseUpdateData = {
+        duration_total_minutes: totalMinutes,
+        updated_at: new Date().toISOString()
+      }
       await supabase
         .from('courses')
-        .update({ duration_total_minutes: totalMinutes, updated_at: new Date().toISOString() })
+        // @ts-expect-error - Supabase type inference issue, courseUpdateData is valid
+        .update(courseUpdateData)
         .eq('id', courseId)
     } catch (error) {
       console.error('Error in AdminLessonsService.updateCourseDuration:', error)

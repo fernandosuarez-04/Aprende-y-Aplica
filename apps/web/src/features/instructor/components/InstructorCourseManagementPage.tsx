@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from '@/features/admin/components/AdvancedCharts'
-import { useAdminModules } from '@/features/admin/hooks/useAdminModules'
+import { useInstructorModules } from '@/features/instructor/hooks/useInstructorModules'
 import { useAdminLessons } from '@/features/admin/hooks/useAdminLessons'
 import { useAdminMaterials } from '@/features/admin/hooks/useAdminMaterials'
 import { useAdminActivities } from '@/features/admin/hooks/useAdminActivities'
@@ -37,7 +37,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null)
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
 
-  const { modules, loading: modulesLoading, fetchModules, createModule, updateModule } = useAdminModules()
+  const { modules, loading: modulesLoading, fetchModules, createModule, updateModule } = useInstructorModules()
   const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson } = useAdminLessons(courseId)
   const { materials, fetchMaterials, createMaterial } = useAdminMaterials()
   const { activities, fetchActivities, createActivity, updateActivity } = useAdminActivities()
@@ -860,7 +860,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               setSelectedModule(null)
             }}
             onSave={async (data) => {
-              if (selectedModule) await updateModule(selectedModule.module_id, data)
+              if (selectedModule) await updateModule(courseId, selectedModule.module_id, data)
               else await createModule(courseId, data)
               setShowModuleModal(false)
             }}
