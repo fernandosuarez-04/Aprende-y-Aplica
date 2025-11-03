@@ -70,8 +70,9 @@ export class RefreshTokenService {
 
   /**
    * Verifica un token contra su hash
+   * Público para permitir validación desde SessionService
    */
-  private static async verifyToken(token: string, hash: string): Promise<boolean> {
+  static async verifyToken(token: string, hash: string): Promise<boolean> {
     return bcrypt.compare(token, hash)
   }
 

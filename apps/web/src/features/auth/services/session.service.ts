@@ -122,18 +122,54 @@ export class SessionService {
         const refreshToken = cookieStore.get('refresh_token')?.value;
         
         if (refreshToken) {
-          const { data: tokens } = await supabase
-            .from('refresh_tokens')
-            .select('user_id, last_used_at')
-            .eq('is_revoked', false)
-            .gt('expires_at', new Date().toISOString())
-            .order('last_used_at', { ascending: false })
-            .limit(1);
+          logger.debug('Refresh token encontrado en cookie, validando...');
           
-          if (tokens && tokens.length > 0) {
-            userId = (tokens[0] as any).user_id;
-            logger.debug('Usuario encontrado via refresh token');
+          // Obtener todos los tokens no revocados y no expirados
+          const { data: tokens, error: tokensError } = await supabase
+            .from('refresh_tokens')
+            .select('id, user_id, token_hash, expires_at, last_used_at')
+            .eq('is_revoked', false)
+            .gt('expires_at', new Date().toISOString());
+          
+          if (tokensError) {
+            logger.error('Error obteniendo tokens de la DB:', tokensError);
+          } else if (tokens && tokens.length > 0) {
+            logger.debug(`Validando refresh token contra ${tokens.length} tokens activos`);
+            
+            // Validar el refresh token actual contra todos los tokens
+            // Esto asegura que el token en la cookie corresponda al token en la DB
+            for (const token of tokens) {
+              try {
+                const isValid = await RefreshTokenService.verifyToken(refreshToken, token.token_hash);
+                if (isValid) {
+                  userId = token.user_id;
+                  logger.auth('✅ Refresh token válido encontrado', {
+                    userId: token.user_id,
+                    tokenId: token.id
+                  });
+                  
+                  // Actualizar last_used_at para tracking de actividad
+                  await supabase
+                    .from('refresh_tokens')
+                    .update({ last_used_at: new Date().toISOString() })
+                    .eq('id', token.id);
+                  
+                  break;
+                }
+              } catch (verifyError) {
+                logger.error('Error verificando token:', verifyError);
+                // Continuar con el siguiente token
+              }
+            }
+            
+            if (!userId) {
+              logger.warn('⚠️ Refresh token no coincide con ningún token válido en la DB');
+            }
+          } else {
+            logger.debug('No hay tokens activos en la DB');
           }
+        } else {
+          logger.debug('No hay refresh token en cookie');
         }
       }
       
@@ -143,46 +179,60 @@ export class SessionService {
         const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
         
         if (!sessionToken) {
-          logger.debug('No hay token de sesión en cookie');
+          logger.debug('No hay token de sesión legacy en cookie');
           return null;
         }
+
+        logger.debug('Session token encontrado en cookie, validando...');
 
         // Cache de 30s por token para evitar golpear DB en cada request
         const cached = cacheGet<any>(`user-by-session:${sessionToken}`)
         if (cached) {
+          logger.debug('Usuario encontrado en cache (sistema legacy)');
           return cached
         }
 
         const supabase = await createClient();
         
-        // Buscar sesión válida
-        logger.debug('Buscando sesión en DB');
+        // Buscar sesión válida - validar que el token en la cookie corresponda al jwt_id en la DB
+        logger.debug('Buscando sesión legacy en DB con jwt_id:', sessionToken.substring(0, 8) + '...');
         const { data: session, error: sessionError } = await supabase
           .from('user_session')
-          .select('user_id, expires_at')
-          .eq('jwt_id', sessionToken)
+          .select('user_id, expires_at, revoked')
+          .eq('jwt_id', sessionToken) // ✅ Validación correcta: token de cookie = jwt_id en DB
           .eq('revoked', false)
           .gt('expires_at', new Date().toISOString())
           .single();
 
-        console.log('📋 Sesión encontrada:', session ? 'Sí' : 'No')
-        console.log('❌ Error de sesión:', sessionError)
-        
-        if (sessionError || !session) {
-          console.log('❌ Sesión no válida o no encontrada')
+        if (sessionError) {
+          logger.warn('⚠️ Error buscando sesión legacy:', {
+            code: sessionError.code,
+            message: sessionError.message,
+            hint: sessionError.hint
+          });
           return null;
         }
+        
+        if (!session) {
+          logger.warn('⚠️ Sesión legacy no encontrada o inválida');
+          return null;
+        }
+        
+        logger.auth('✅ Sesión legacy válida encontrada', {
+          userId: session.user_id,
+          expiresAt: session.expires_at
+        });
         
         userId = (session as any).user_id;
       }
 
       // Obtener datos del usuario
       if (!userId) {
-        logger.debug('No se pudo determinar userId');
+        logger.debug('No se pudo determinar userId de ninguna sesión');
         return null;
       }
       
-      console.log('👤 Buscando usuario con ID:', userId)
+      logger.debug('Buscando usuario con ID:', userId);
       const supabase = await createClient();
       const { data: user, error: userError } = await supabase
         .from('users')
@@ -190,27 +240,50 @@ export class SessionService {
         .eq('id', userId)
         .single();
 
-      console.log('👤 Usuario encontrado:', user ? 'Sí' : 'No')
-      console.log('❌ Error de usuario:', userError)
+      if (userError) {
+        logger.error('Error obteniendo usuario de la DB:', {
+          userId,
+          error: userError
+        });
+        return null;
+      }
       
-      if (userError || !user) {
-        console.log('❌ Usuario no encontrado')
+      if (!user) {
+        logger.warn('⚠️ Usuario no encontrado en la DB:', userId);
         return null;
       }
 
       // ⭐ MODERACIÓN: Verificar si el usuario está baneado
       if ((user as any).is_banned) {
-        logger.auth('🚫 Usuario baneado intentando acceder');
+        logger.auth('🚫 Usuario baneado intentando acceder', {
+          userId: user.id,
+          username: user.username
+        });
         // Destruir la sesión automáticamente
         await this.destroySession();
         return null;
       }
 
-      console.log('✅ Usuario obtenido exitosamente:', user)
-      cacheSet(`user-by-session:${userId}`, user, 30_000)
+      logger.auth('✅ Usuario obtenido exitosamente', {
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        cargo_rol: user.cargo_rol
+      });
+      
+      // Cachear por token de sesión para evitar consultas repetidas
+      const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
+      if (sessionToken) {
+        cacheSet(`user-by-session:${sessionToken}`, user, 30_000);
+      }
+      
       return user;
     } catch (error) {
-      console.error('💥 Error getting current user:', error);
+      logger.error('💥 Error crítico obteniendo usuario actual:', {
+        name: (error as any)?.name,
+        message: (error as any)?.message,
+        stack: (error as any)?.stack
+      });
       return null;
     }
   }

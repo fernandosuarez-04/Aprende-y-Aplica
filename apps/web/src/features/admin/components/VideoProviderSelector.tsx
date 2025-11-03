@@ -30,9 +30,10 @@ export function VideoProviderSelector({
       return
     }
 
-    // Validar tamaño
-    if (file.size > 500 * 1024 * 1024) {
-      alert('El video excede el tamaño máximo de 500MB')
+    // Validar tamaño (máximo 1GB)
+    const maxSize = 1024 * 1024 * 1024 // 1GB
+    if (file.size > maxSize) {
+      alert('El video excede el tamaño máximo de 1GB')
       return
     }
 

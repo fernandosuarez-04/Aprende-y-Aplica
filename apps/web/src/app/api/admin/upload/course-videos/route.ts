@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No se proporcionó archivo de video' }, { status: 400 })
     }
 
-    // Validar tamaño (máximo 500MB para videos)
-    if (file.size > 500 * 1024 * 1024) {
-      return NextResponse.json({ error: 'El video excede el tamaño máximo de 500MB' }, { status: 400 })
+    // Validar tamaño (máximo 1GB para videos)
+    const maxSize = 1024 * 1024 * 1024 // 1GB
+    if (file.size > maxSize) {
+      return NextResponse.json({ error: 'El video excede el tamaño máximo de 1GB' }, { status: 400 })
     }
 
     // Validar tipo de archivo
