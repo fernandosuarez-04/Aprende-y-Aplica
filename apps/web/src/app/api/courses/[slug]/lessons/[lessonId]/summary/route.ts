@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * GET /api/courses/[slug]/lessons/[lessonId]/activities
- * Obtiene todas las actividades de una lección
+ * GET /api/courses/[slug]/lessons/[lessonId]/summary
+ * Obtiene el resumen de una lección
  */
 export async function GET(
   request: NextRequest,
@@ -49,24 +49,26 @@ export async function GET(
       );
     }
 
-    // Obtener actividades de la lección
-    const { data: activities, error: activitiesError } = await supabase
-      .from('lesson_activities')
-      .select('*')
+    // Obtener resumen de la lección
+    const { data: lessonData, error: summaryError } = await supabase
+      .from('course_lessons')
+      .select('summary_content')
       .eq('lesson_id', lessonId)
-      .order('activity_order_index', { ascending: true });
+      .single();
 
-    if (activitiesError) {
-      console.error('Error fetching activities:', activitiesError);
+    if (summaryError) {
+      console.error('Error fetching summary:', summaryError);
       return NextResponse.json(
-        { error: 'Error al obtener actividades' },
+        { error: 'Error al obtener resumen' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(activities || []);
+    return NextResponse.json({
+      summary_content: lessonData?.summary_content || null
+    });
   } catch (error) {
-    console.error('Error in activities API:', error);
+    console.error('Error in summary API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',
