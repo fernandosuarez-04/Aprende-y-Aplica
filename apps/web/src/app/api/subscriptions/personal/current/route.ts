@@ -21,15 +21,19 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     // Buscar suscripción personal activa
+    // Nota: subscription_type en BD es 'monthly', 'yearly', 'lifetime', 'course_access'
+    // Para distinguir personal vs business, necesitamos usar course_id IS NULL para personales
+    // o agregar un campo subscription_category a la tabla
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', currentUser.id)
-      .eq('subscription_type', 'personal')
+      .is('course_id', null) // Suscripciones personales no tienen course_id asociado
       .eq('subscription_status', 'active')
+      .in('subscription_type', ['monthly', 'yearly', 'lifetime']) // Excluir 'course_access'
       .order('start_date', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (subscriptionError && subscriptionError.code !== 'PGRST116') {
       // PGRST116 = no rows returned (no hay suscripción)

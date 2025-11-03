@@ -53,13 +53,14 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Verificar si ya tiene una suscripción activa
+    // Buscar suscripciones personales (course_id IS NULL)
     const { data: existingSubscription } = await supabase
       .from('subscriptions')
       .select('subscription_id')
       .eq('user_id', currentUser.id)
-      .eq('subscription_type', 'personal')
+      .is('course_id', null) // Suscripciones personales no tienen course_id
       .eq('subscription_status', 'active')
-      .single();
+      .maybeSingle();
 
     if (existingSubscription) {
       return NextResponse.json(
@@ -69,22 +70,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear nueva suscripción
+    // IMPORTANTE: La tabla subscriptions tiene estos campos válidos:
+    // - subscription_type: 'monthly', 'yearly', 'lifetime', 'course_access' (NO 'personal')
+    // - subscription_status: 'active', 'paused', 'cancelled', 'expired' (NO 'pending')
+    // - Campos: user_id, price_cents, start_date, end_date, next_billing_date, course_id
+    // Para suscripciones personales, usamos course_id = NULL para distinguirlas
+    // TODO: Necesitamos agregar campos plan_id (basic/premium/pro) y subscription_category (personal/business) a la tabla
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
       .insert({
         user_id: currentUser.id,
-        subscription_type: 'personal',
-        subscription_status: 'pending', // Cambiará a 'active' cuando se procese el pago
-        plan_id: planId,
-        price_cents: price * 100, // Convertir a centavos
-        currency: plan.currency || 'MXN',
-        billing_cycle: billingCycle,
+        subscription_type: billingCycle === 'monthly' ? 'monthly' : 'yearly',
+        subscription_status: 'active', // Usar 'active' ya que 'pending' no existe en el CHECK constraint
+        price_cents: price * 100,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         next_billing_date: billingCycle === 'monthly' 
           ? new Date(endDate.getTime()).toISOString()
           : new Date(endDate.getFullYear(), endDate.getMonth(), startDate.getDate()).toISOString(),
-        auto_renew: true,
+        course_id: null, // NULL para suscripciones personales (sin curso asociado)
       })
       .select()
       .single();

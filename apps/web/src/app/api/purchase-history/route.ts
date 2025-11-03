@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener suscripciones
+    // Nota: subscription_type en BD es 'monthly', 'yearly', 'lifetime', 'course_access'
+    // Para suscripciones personales, course_id será NULL
     const { data: subscriptions, error: subscriptionsError } = await supabase
       .from('subscriptions')
       .select(`
@@ -73,6 +75,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('user_id', userId)
+      .is('course_id', null) // Solo suscripciones personales (sin curso asociado)
       .order('start_date', { ascending: false });
 
     if (subscriptionsError) {
@@ -99,21 +102,19 @@ export async function GET(request: NextRequest) {
     const formattedSubscriptions = (subscriptions || []).map((subscription: any) => ({
       id: subscription.subscription_id,
       type: 'subscription',
-      subscription_type: subscription.subscription_type,
-      title: subscription.courses?.title 
-        ? `Suscripción: ${subscription.courses.title}` 
-        : subscription.subscription_type === 'monthly' 
-          ? 'Suscripción Mensual'
-          : subscription.subscription_type === 'yearly'
-          ? 'Suscripción Anual'
-          : subscription.subscription_type === 'lifetime'
-          ? 'Suscripción de por vida'
-          : 'Suscripción',
-      description: subscription.courses?.description || '',
-      thumbnail_url: subscription.courses?.thumbnail_url,
-      slug: subscription.courses?.slug,
+      subscription_type: subscription.subscription_type, // 'monthly', 'yearly', 'lifetime'
+      title: subscription.subscription_type === 'monthly' 
+        ? 'Suscripción Mensual'
+        : subscription.subscription_type === 'yearly'
+        ? 'Suscripción Anual'
+        : subscription.subscription_type === 'lifetime'
+        ? 'Suscripción de por vida'
+        : 'Suscripción',
+      description: 'Suscripción personal a la plataforma',
+      thumbnail_url: null,
+      slug: undefined,
       price: subscription.price_cents ? (subscription.price_cents / 100).toFixed(2) : '0.00',
-      currency: 'USD',
+      currency: 'MXN',
       purchased_at: subscription.start_date,
       status: subscription.subscription_status,
       subscription_status: subscription.subscription_status,

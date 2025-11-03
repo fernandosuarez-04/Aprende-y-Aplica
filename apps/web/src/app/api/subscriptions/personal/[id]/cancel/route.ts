@@ -26,12 +26,13 @@ export async function POST(
     const supabase = await createClient();
 
     // Verificar que la suscripción pertenece al usuario
+    // Suscripciones personales tienen course_id IS NULL
     const { data: subscription, error: fetchError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('subscription_id', id)
       .eq('user_id', currentUser.id)
-      .eq('subscription_type', 'personal')
+      .is('course_id', null) // Suscripciones personales no tienen course_id
       .single();
 
     if (fetchError || !subscription) {
@@ -49,12 +50,11 @@ export async function POST(
     }
 
     // Actualizar suscripción a cancelada
+    // Nota: La tabla no tiene campo cancelled_at ni auto_renew, solo subscription_status
     const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
       .update({
         subscription_status: 'cancelled',
-        cancelled_at: new Date().toISOString(),
-        auto_renew: false,
       })
       .eq('subscription_id', id)
       .select()
