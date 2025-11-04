@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, Trash2, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, Trash2, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Award } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from '@/features/admin/components/AdvancedCharts'
 import { useInstructorModules } from '@/features/instructor/hooks/useInstructorModules'
 import { useInstructorLessons } from '@/features/instructor/hooks/useInstructorLessons'
@@ -23,7 +23,7 @@ interface InstructorCourseManagementPageProps {
 
 export function InstructorCourseManagementPage({ courseId }: InstructorCourseManagementPageProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'preview' | 'stats'>('modules')
+  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'certificates' | 'preview' | 'stats'>('modules')
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
 
@@ -38,9 +38,11 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
   const [deletingModule, setDeletingModule] = useState<AdminModule | null>(null)
   const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false)
+  const [deletingLesson, setDeletingLesson] = useState<AdminLesson | null>(null)
+  const [showDeleteLessonModal, setShowDeleteLessonModal] = useState(false)
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useInstructorModules()
-  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson } = useInstructorLessons(courseId)
+  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useInstructorLessons(courseId)
   const { materials, fetchMaterials, createMaterial } = useInstructorMaterials()
   const { activities, fetchActivities, createActivity, updateActivity } = useInstructorActivities()
   const { user } = useAuth()
@@ -200,6 +202,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
             {[
               { key: 'modules', label: 'Módulos', icon: Book },
               { key: 'config', label: 'Configuración', icon: Settings },
+              { key: 'certificates', label: 'Certificados', icon: Award },
               { key: 'preview', label: 'Vista Previa', icon: Eye },
               { key: 'stats', label: 'Estadísticas', icon: BarChart3 },
             ].map((tab) => (
@@ -319,6 +322,27 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedLesson(lesson)
+                                      setEditingModuleId(lesson.module_id)
+                                      setShowLessonModal(true)
+                                    }}
+                                    className="px-3 py-2 bg-blue-900/30 hover:bg-blue-800/40 rounded-lg text-sm text-blue-200"
+                                    title="Editar lección"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setDeletingLesson(lesson)
+                                      setShowDeleteLessonModal(true)
+                                    }}
+                                    className="px-3 py-2 bg-red-900/30 hover:bg-red-800/40 rounded-lg text-sm text-red-200"
+                                    title="Eliminar lección"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
                                   <button
                                     onClick={() => {
                                       setEditingLessonId(lesson.lesson_id)
@@ -490,6 +514,150 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 </div>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Certificados */}
+        {activeTab === 'certificates' && (
+          <div className="mt-6 space-y-6">
+            <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+              <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                <Award className="w-6 h-6 text-purple-300" />
+                Configuración de Certificados
+              </h2>
+              <p className="text-purple-200/80 mb-6">
+                Configura los certificados que se emitirán automáticamente cuando los estudiantes completen este curso.
+              </p>
+
+              <div className="space-y-6">
+                <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Certificado de Finalización</h3>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-purple-200/70 mb-4">
+                    Emite un certificado automáticamente cuando un estudiante complete el 100% del curso.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">Plantilla de Certificado</label>
+                      <select className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2">
+                        <option value="default">Plantilla por Defecto</option>
+                        <option value="premium">Plantilla Premium</option>
+                        <option value="minimal">Plantilla Minimalista</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">Porcentaje de Completación Requerido</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        max="100" 
+                        defaultValue="100" 
+                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Certificado de Participación</h3>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-purple-200/70 mb-4">
+                    Emite un certificado de participación para estudiantes que hayan completado al menos el 50% del curso.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">Porcentaje Mínimo de Completación</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        max="100" 
+                        defaultValue="50" 
+                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Información del Certificado</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">Nombre de la Organización Emisora</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ej: Aprende y Aplica"
+                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">Firma del Instructor</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nombre del instructor"
+                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">Mensaje Personalizado</label>
+                      <textarea 
+                        rows={4}
+                        placeholder="Mensaje que aparecerá en el certificado..."
+                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button 
+                    className="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg"
+                  >
+                    Guardar Configuración de Certificados
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Estadísticas de Certificados */}
+            <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+              <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
+                <Award className="w-6 h-6 text-purple-300" />
+                Certificados Emitidos
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
+                  <div className="text-sm text-purple-300/80 mb-2">Total Emitidos</div>
+                  <div className="text-3xl font-bold text-white">{userStats?.total_certificates ?? 0}</div>
+                </div>
+                <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
+                  <div className="text-sm text-purple-300/80 mb-2">Este Mes</div>
+                  <div className="text-3xl font-bold text-white">0</div>
+                </div>
+                <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
+                  <div className="text-sm text-purple-300/80 mb-2">Tasa de Emisión</div>
+                  <div className="text-3xl font-bold text-white">
+                    {userStats?.total_enrolled > 0 
+                      ? `${Math.round((userStats?.total_certificates / userStats?.total_enrolled) * 100)}%`
+                      : '0%'
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -921,6 +1089,48 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
+        {showDeleteLessonModal && deletingLesson && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold text-white mb-4">Confirmar Eliminación</h3>
+              <p className="text-gray-300 mb-6">
+                ¿Estás seguro de que deseas eliminar la lección "{deletingLesson.lesson_title}"? 
+                Esta acción no se puede deshacer y eliminará todos los materiales y actividades asociados.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteLessonModal(false)
+                    setDeletingLesson(null)
+                  }}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteLesson(deletingLesson.lesson_id, courseId)
+                      // Recargar lecciones del módulo después de eliminar
+                      if (deletingLesson.module_id) {
+                        await fetchLessons(deletingLesson.module_id, courseId)
+                      }
+                      setShowDeleteLessonModal(false)
+                      setDeletingLesson(null)
+                    } catch (error) {
+                      console.error('Error deleting lesson:', error)
+                      alert('Error al eliminar la lección')
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showLessonModal && editingModuleId && (
           <LessonModal
             moduleId={editingModuleId}
@@ -931,8 +1141,17 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               setEditingModuleId(null)
             }}
             onSave={async (data) => {
-              if (selectedLesson) await updateLesson(selectedLesson.lesson_id, data, courseId)
-              else await createLesson(editingModuleId, data, courseId)
+              if (selectedLesson) {
+                await updateLesson(selectedLesson.lesson_id, data, courseId)
+                // Recargar lecciones del módulo después de actualizar
+                if (selectedLesson.module_id) {
+                  await fetchLessons(selectedLesson.module_id, courseId)
+                }
+              } else {
+                await createLesson(editingModuleId, data, courseId)
+                // Recargar lecciones del módulo después de crear
+                await fetchLessons(editingModuleId, courseId)
+              }
               setShowLessonModal(false)
               setSelectedLesson(null)
               setEditingModuleId(null)
