@@ -282,10 +282,10 @@ export function AddWorkshopModal({ isOpen, onClose, onSave }: AddWorkshopModalPr
                 Imagen del Taller
               </label>
               <ImageUploadCourse
-                value={formData.thumbnail_url}
+                  value={formData.thumbnail_url}
                 onChange={(url) => setFormData(prev => ({ ...prev, thumbnail_url: url }))}
                 disabled={isLoading}
-              />
+                />
             </div>
 
             <div className={fieldStyles.container}>
