@@ -172,6 +172,58 @@ export class AdminModulesService {
     const supabase = await createClient()
 
     try {
+      // Primero obtener todas las lecciones del módulo
+      const { data: lessons, error: lessonsError } = await supabase
+        .from('course_lessons')
+        .select('lesson_id')
+        .eq('module_id', moduleId)
+
+      if (lessonsError) {
+        console.error('Error fetching lessons for module:', lessonsError)
+        throw lessonsError
+      }
+
+      // Eliminar todas las lecciones asociadas (y sus materiales/actividades en cascada si están configurados)
+      if (lessons && lessons.length > 0) {
+        const lessonIds = lessons.map((lesson: any) => lesson.lesson_id)
+        
+        // Eliminar materiales de todas las lecciones
+        for (const lessonId of lessonIds) {
+          const { error: materialsError } = await supabase
+            .from('lesson_materials')
+            .delete()
+            .eq('lesson_id', lessonId)
+
+          if (materialsError) {
+            console.warn(`Error deleting materials for lesson ${lessonId}:`, materialsError)
+            // Continuar aunque falle, no es crítico
+          }
+
+          // Eliminar actividades de todas las lecciones
+          const { error: activitiesError } = await supabase
+            .from('lesson_activities')
+            .delete()
+            .eq('lesson_id', lessonId)
+
+          if (activitiesError) {
+            console.warn(`Error deleting activities for lesson ${lessonId}:`, activitiesError)
+            // Continuar aunque falle, no es crítico
+          }
+        }
+
+        // Eliminar todas las lecciones del módulo
+        const { error: deleteLessonsError } = await supabase
+          .from('course_lessons')
+          .delete()
+          .eq('module_id', moduleId)
+
+        if (deleteLessonsError) {
+          console.error('Error deleting lessons:', deleteLessonsError)
+          throw deleteLessonsError
+        }
+      }
+
+      // Finalmente eliminar el módulo
       const { error } = await supabase
         .from('course_modules')
         .delete()
@@ -181,8 +233,6 @@ export class AdminModulesService {
         console.error('Error deleting module:', error)
         throw error
       }
-
-      // También se eliminarán las lecciones en cascada según BD.sql
     } catch (error) {
       console.error('Error in AdminModulesService.deleteModule:', error)
       throw error
