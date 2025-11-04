@@ -124,7 +124,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
       {/* Mobile backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+          className="fixed inset-0 z-40 bg-gray-900/50 dark:bg-gray-600/75 backdrop-blur-sm lg:hidden"
           onClick={onClose}
         />
       )}
@@ -133,7 +133,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
           <div 
             ref={sidebarRef}
             className={`
-              fixed inset-y-0 left-0 z-50 bg-gray-800 shadow-lg transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:flex lg:flex-col
+              fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-800 shadow-lg transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:flex lg:flex-col border-r border-gray-200 dark:border-gray-700
               ${isOpen ? 'translate-x-0' : '-translate-x-full'}
               ${actualWidth}
             `}
@@ -168,7 +168,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between h-16 px-4 border-b border-gray-700 flex-shrink-0">
+            <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50">
               <div className="flex items-center">
                 <img 
                   src="/icono.png" 
@@ -183,7 +183,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                     event.stopPropagation()
                     onTogglePin()
                   }}
-                  className="hidden lg:block p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700 transition-colors"
+                  className="hidden lg:block p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title={isPinned ? 'Desfijar panel' : 'Fijar panel'}
                 >
                   {isPinned ? (
@@ -199,7 +199,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                     event.stopPropagation()
                     onClose()
                   }}
-                  className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700 transition-colors"
+                  className="lg:hidden p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -258,7 +258,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                         group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105
                         ${isActive 
                           ? 'bg-blue-600 text-white shadow-md' 
-                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                         }
                         ${(isCollapsed && !shouldExpand) ? 'justify-center' : ''}
                       `}
@@ -269,7 +269,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                           h-5 w-5 transition-colors duration-200 flex-shrink-0
                           ${isActive 
                             ? 'text-white' 
-                            : 'text-gray-400 group-hover:text-white'
+                            : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
                           }
                           ${(isCollapsed && !shouldExpand) ? '' : 'mr-3'}
                         `} 
@@ -289,7 +289,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
             </nav>
 
             {/* User info at bottom */}
-            <div className="flex-shrink-0 p-4 border-t border-gray-700">
+            <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
               <div className={`flex items-center ${(isCollapsed && !shouldExpand) ? 'justify-center' : ''}`}>
                 <div className="flex-shrink-0">
                   <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
@@ -298,10 +298,10 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                 </div>
                 {(!isCollapsed || shouldExpand) && (
                   <div className="ml-3 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       Administrador
                     </p>
-                    <p className="text-xs text-gray-400 truncate">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       Panel de Control
                     </p>
                   </div>

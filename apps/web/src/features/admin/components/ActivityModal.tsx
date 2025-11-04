@@ -71,24 +71,24 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-600">
-          <h2 className="text-xl font-semibold text-white">
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700/50">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50 rounded-t-2xl">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             {activity ? 'Editar Actividad' : 'Crear Actividad'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto scrollbar-thin-dark flex-1">
           {/* Título */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Título de la Actividad *
             </label>
             <input
@@ -96,34 +96,34 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
               required
               value={formData.activity_title}
               onChange={(e) => setFormData(prev => ({ ...prev, activity_title: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
               placeholder="Ej: Reflexión sobre IA"
             />
           </div>
 
           {/* Descripción */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Descripción
             </label>
             <textarea
               rows={2}
               value={formData.activity_description}
               onChange={(e) => setFormData(prev => ({ ...prev, activity_description: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 resize-y min-h-[80px] scrollbar-thin-dark"
               placeholder="Descripción de la actividad..."
             />
           </div>
 
           {/* Tipo de Actividad */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tipo de Actividad *
             </label>
             <select
               value={formData.activity_type}
               onChange={(e) => setFormData(prev => ({ ...prev, activity_type: e.target.value as any }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="reflection">Reflexión</option>
               <option value="exercise">Ejercicio</option>
@@ -135,7 +135,7 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
 
           {/* Contenido */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Contenido de la Actividad *
             </label>
             <textarea
@@ -143,7 +143,7 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
               required
               value={formData.activity_content}
               onChange={(e) => setFormData(prev => ({ ...prev, activity_content: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 resize-y min-h-[150px] scrollbar-thin-dark"
               placeholder="Instrucciones o contenido de la actividad..."
             />
           </div>
@@ -152,7 +152,7 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
           {formData.activity_type === 'ai_chat' && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Prompts de IA
                 </label>
                 <button
@@ -173,7 +173,7 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
                         const value = e.target.value
                         setAiPromptsList(prev => prev.map((p, i) => (i === idx ? value : p)))
                       }}
-                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 resize-y min-h-[60px] scrollbar-thin-dark"
                       placeholder={`Prompt #${idx + 1}`}
                     />
                     <button
@@ -187,7 +187,7 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-2">Se guardarán como lista JSON. El sistema usará uno o varios según la lógica de la actividad.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Se guardarán como lista JSON. El sistema usará uno o varios según la lógica de la actividad.</p>
             </div>
           )}
 
@@ -197,24 +197,24 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
               type="checkbox"
               checked={formData.is_required}
               onChange={(e) => setFormData(prev => ({ ...prev, is_required: e.target.checked }))}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
             />
-            <span className="ml-2 text-sm text-gray-300">Actividad Requerida</span>
+            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Actividad Requerida</span>
           </label>
 
           {/* Botones */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-600">
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700/50 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+              className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 font-medium shadow-lg shadow-blue-500/20"
             >
               {loading ? (
                 <>

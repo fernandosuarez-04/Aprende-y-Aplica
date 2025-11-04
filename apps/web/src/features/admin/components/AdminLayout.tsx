@@ -64,7 +64,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Mostrar loading spinner si isLoading es true
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-800">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     )
@@ -76,7 +76,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-800">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800">
           {/* Sidebar Global */}
           <AdminSidebar 
             isOpen={sidebarOpen} 
@@ -90,7 +90,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           />
 
       {/* Main Content Area */}
-      <div className={`bg-gray-800 min-h-screen transition-all duration-300 ease-in-out ${
+      <div className={`bg-gray-50 dark:bg-gray-800 min-h-screen transition-all duration-300 ease-in-out ${
         sidebarCollapsed && !sidebarPinned ? 'lg:ml-16' : 'lg:ml-64'
       }`}>
         {/* Header Global */}
@@ -102,7 +102,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         />
 
         {/* Page Content */}
-        <main className="bg-gray-800 min-h-screen">
+        <main className="bg-gray-50 dark:bg-gray-800 min-h-screen">
           {children}
         </main>
       </div>

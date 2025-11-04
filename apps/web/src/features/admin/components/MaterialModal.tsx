@@ -69,24 +69,24 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-600">
-          <h2 className="text-xl font-semibold text-white">
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700/50">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50 rounded-t-2xl">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             {material ? 'Editar Material' : 'Crear Material'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto scrollbar-thin-dark flex-1">
           {/* Título */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Título del Material *
             </label>
             <input
@@ -94,28 +94,28 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
               required
               value={formData.material_title}
               onChange={(e) => setFormData(prev => ({ ...prev, material_title: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
               placeholder="Ej: Guía de Python"
             />
           </div>
 
           {/* Descripción */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Descripción
             </label>
             <textarea
               rows={2}
               value={formData.material_description}
               onChange={(e) => setFormData(prev => ({ ...prev, material_description: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 resize-y min-h-[80px] scrollbar-thin-dark"
               placeholder="Descripción del material..."
             />
           </div>
 
           {/* Tipo de Material */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tipo de Material *
             </label>
             <select
@@ -126,7 +126,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
                 file_url: '',
                 external_url: ''
               }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="pdf">PDF</option>
               <option value="document">Documento Word</option>
@@ -154,7 +154,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
 
           {formData.material_type === 'link' && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 URL del Enlace *
               </label>
               <input
@@ -162,7 +162,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
                 required={formData.material_type === 'link'}
                 value={formData.external_url}
                 onChange={(e) => setFormData(prev => ({ ...prev, external_url: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
                 placeholder="https://ejemplo.com/recurso"
               />
             </div>
@@ -174,24 +174,24 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
               type="checkbox"
               checked={formData.is_downloadable}
               onChange={(e) => setFormData(prev => ({ ...prev, is_downloadable: e.target.checked }))}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
             />
-            <span className="ml-2 text-sm text-gray-300">Permitir Descarga</span>
+            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Permitir Descarga</span>
           </label>
 
           {/* Botones */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-600">
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700/50 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+              className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 font-medium shadow-lg shadow-blue-500/20"
             >
               {loading ? (
                 <>
