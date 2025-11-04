@@ -198,8 +198,8 @@ export async function POST(
       return NextResponse.json({ error: 'El contenido es requerido' }, { status: 400 });
     }
 
-    // ⭐ MODERACIÓN: Verificar si contiene palabras prohibidas
-    const { containsForbiddenContent, registerWarning } = await import('../../../../../lib/moderation');
+    // ⭐ MODERACIÓN CAPA 1: Verificar si contiene palabras prohibidas
+    const { containsForbiddenContent, registerWarning, getUserWarningsCount } = await import('../../../../../lib/moderation');
     const forbiddenCheck = await containsForbiddenContent(content);
 
     if (forbiddenCheck.contains) {
@@ -239,6 +239,135 @@ export async function POST(
           { status: 400 }
         );
       }
+    }
+
+    // ⭐ MODERACIÓN CAPA 2: Análisis con IA (solo si pasó el filtro de palabras)
+    try {
+      const { 
+        analyzeContentWithAI, 
+        logAIModerationAnalysis,
+        shouldAutoBan 
+      } = await import('../../../../../lib/ai-moderation');
+      
+      // Analizar contenido con IA
+      const aiResult = await analyzeContentWithAI(content, {
+        contentType: 'post',
+        userId: user.id,
+        previousWarnings: await getUserWarningsCount(user.id),
+      });
+      
+      // Registrar análisis en BD (sin await para no bloquear)
+      logAIModerationAnalysis(
+        user.id,
+        'post',
+        null,
+        content,
+        aiResult
+      ).catch(err => console.error('Error logging AI analysis:', err));
+      
+      // Si la IA detectó contenido inapropiado
+      if (aiResult.isInappropriate) {
+        // Si el nivel de confianza es muy alto, baneo automático
+        if (shouldAutoBan(aiResult)) {
+          const warningResult = await registerWarning(
+            user.id,
+            content,
+            'post'
+          );
+          
+          return NextResponse.json(
+            { 
+              error: '❌ Contenido altamente inapropiado detectado por IA. Has sido baneado automáticamente.',
+              banned: true,
+              aiAnalysis: {
+                confidence: aiResult.confidence,
+                categories: aiResult.categories,
+                reasoning: aiResult.reasoning,
+              }
+            },
+            { status: 403 }
+          );
+        }
+        
+        // Si requiere revisión humana, marcar para revisión pero bloquear
+        if (aiResult.requiresHumanReview) {
+          logger.log('⚠️ Content flagged for human review by AI:', {
+            userId: user.id,
+            confidence: aiResult.confidence,
+            categories: aiResult.categories,
+          });
+          
+          // Bloquear y registrar advertencia
+          const warningResult = await registerWarning(
+            user.id,
+            content,
+            'post'
+          );
+          
+          if (warningResult.userBanned) {
+            return NextResponse.json(
+              { 
+                error: '❌ Has sido baneado del sistema por reiteradas violaciones de las reglas de la comunidad.',
+                banned: true
+              },
+              { status: 403 }
+            );
+          }
+          
+          return NextResponse.json(
+            { 
+              error: `🤖 El contenido ha sido identificado como potencialmente inapropiado por nuestro sistema de IA y será revisado. ${warningResult.message}`,
+              warning: true,
+              warningCount: warningResult.warningCount,
+              aiAnalysis: {
+                confidence: aiResult.confidence,
+                categories: aiResult.categories,
+                reasoning: aiResult.reasoning,
+              }
+            },
+            { status: 400 }
+          );
+        } else {
+          // Bloquear y registrar advertencia (confianza media-alta)
+          const warningResult = await registerWarning(
+            user.id,
+            content,
+            'post'
+          );
+          
+          if (warningResult.userBanned) {
+            return NextResponse.json(
+              { 
+                error: '❌ Has sido baneado del sistema por reiteradas violaciones de las reglas de la comunidad.',
+                banned: true
+              },
+              { status: 403 }
+            );
+          }
+          
+          return NextResponse.json(
+            { 
+              error: `🤖 El contenido ha sido identificado como inapropiado por nuestro sistema de IA. ${warningResult.message}`,
+              warning: true,
+              warningCount: warningResult.warningCount,
+              aiAnalysis: {
+                confidence: aiResult.confidence,
+                categories: aiResult.categories,
+                reasoning: aiResult.reasoning,
+              }
+            },
+            { status: 400 }
+          );
+        }
+      }
+      
+      // Si la IA aprobó el contenido, continuar con la creación del post
+      logger.log('✅ Content approved by AI moderation');
+      
+    } catch (error) {
+      logger.error('Error in AI moderation:', error);
+      // En caso de error en AI, permitir el contenido pero loggearlo
+      logger.log('⚠️ AI moderation failed, allowing content to proceed');
     }
 
     // Obtener la comunidad por slug
