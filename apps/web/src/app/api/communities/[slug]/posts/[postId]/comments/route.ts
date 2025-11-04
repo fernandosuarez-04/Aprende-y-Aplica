@@ -219,95 +219,6 @@ export async function POST(
       }
     }
 
-    // ⭐ MODERACIÓN CAPA 2: Análisis con IA (solo si pasó el filtro de palabras)
-    try {
-      const { 
-        analyzeContentWithAI, 
-        logAIModerationAnalysis,
-        shouldAutoBan 
-      } = await import('../../../../../../../lib/ai-moderation');
-      
-      // Analizar contenido con IA
-      const aiResult = await analyzeContentWithAI(content, {
-        contentType: 'comment',
-        userId: user.id,
-        previousWarnings: await getUserWarningsCount(user.id),
-      });
-      
-      // Registrar análisis en BD (sin await para no bloquear)
-      logAIModerationAnalysis(
-        user.id,
-        'comment',
-        null,
-        content,
-        aiResult
-      ).catch(err => console.error('Error logging AI analysis:', err));
-      
-      // Si la IA detectó contenido inapropiado
-      if (aiResult.isInappropriate) {
-        // Si el nivel de confianza es muy alto, baneo automático
-        if (shouldAutoBan(aiResult)) {
-          const warningResult = await registerWarning(
-            user.id,
-            content,
-            'comment'
-          );
-          
-          return NextResponse.json(
-            { 
-              error: '❌ Contenido altamente inapropiado detectado por IA. Has sido baneado automáticamente.',
-              banned: true,
-              aiAnalysis: {
-                confidence: aiResult.confidence,
-                categories: aiResult.categories,
-                reasoning: aiResult.reasoning,
-              }
-            },
-            { status: 403 }
-          );
-        }
-        
-        // Si requiere revisión humana o confianza media-alta, bloquear
-        const warningResult = await registerWarning(
-          user.id,
-          content,
-          'comment'
-        );
-        
-        if (warningResult.userBanned) {
-          return NextResponse.json(
-            { 
-              error: '❌ Has sido baneado del sistema por reiteradas violaciones de las reglas de la comunidad.',
-              banned: true
-            },
-            { status: 403 }
-          );
-        }
-        
-        return NextResponse.json(
-          { 
-            error: `🤖 El comentario ha sido identificado como inapropiado por nuestro sistema de IA. ${warningResult.message}`,
-            warning: true,
-            warningCount: warningResult.warningCount,
-            aiAnalysis: {
-              confidence: aiResult.confidence,
-              categories: aiResult.categories,
-              reasoning: aiResult.reasoning,
-            }
-          },
-          { status: 400 }
-        );
-      }
-      
-      // Si la IA aprobó el contenido, continuar con la creación del comentario
-      console.log('✅ Comment approved by AI moderation');
-      
-    } catch (error) {
-      console.error('Error in AI moderation:', error);
-      // En caso de error en AI, permitir el contenido pero loggearlo
-      console.log('⚠️ AI moderation failed, allowing content to proceed');
-    }
-
     // Obtener el community_id desde el slug
     const { data: community, error: communityError } = await (supabase as any)
       .from('communities')
@@ -359,9 +270,100 @@ export async function POST(
       console.error('Error updating comment count:', updateError);
     }
 
+    console.log('✅ Comment created successfully:', newComment.id);
+
+    // ⭐ MODERACIÓN CAPA 2: Análisis con IA DESPUÉS de crear el comentario
+    // Este análisis se ejecuta en background sin bloquear la respuesta
+    (async () => {
+      try {
+        const { 
+          analyzeContentWithAI, 
+          logAIModerationAnalysis,
+          shouldAutoBan 
+        } = await import('../../../../../../../lib/ai-moderation');
+        
+        console.log('🤖 Starting AI moderation analysis for comment:', newComment.id);
+        
+        // Analizar contenido con IA
+        const aiResult = await analyzeContentWithAI(content, {
+          contentType: 'comment',
+          userId: user.id,
+          previousWarnings: await getUserWarningsCount(user.id),
+        });
+        
+        console.log('🤖 AI Analysis Result:', {
+          commentId: newComment.id,
+          isInappropriate: aiResult.isInappropriate,
+          confidence: (aiResult.confidence * 100).toFixed(1) + '%',
+          categories: aiResult.categories,
+          requiresHumanReview: aiResult.requiresHumanReview,
+        });
+        
+        // Registrar análisis en BD
+        await logAIModerationAnalysis(
+          user.id,
+          'comment',
+          newComment.id,
+          content,
+          aiResult
+        );
+        
+        // Si la IA detectó contenido inapropiado
+        if (aiResult.isInappropriate) {
+          console.log('🚨 Inappropriate content detected! Deleting comment:', newComment.id);
+          
+          // ELIMINAR EL COMENTARIO
+          const { error: deleteError } = await supabase
+            .from('community_comments')
+            .delete()
+            .eq('id', newComment.id);
+          
+          if (deleteError) {
+            console.error('❌ Error deleting flagged comment:', deleteError);
+          } else {
+            console.log('✅ Comment deleted successfully:', newComment.id);
+            
+            // Decrementar el contador de comentarios
+            const { error: decrementError } = await (supabase as any).rpc('decrement_comment_count', {
+              post_id: postId
+            });
+            
+            if (decrementError) {
+              console.error('Error decrementing comment count:', decrementError);
+            }
+          }
+          
+          // Registrar advertencia
+          const warningResult = await registerWarning(
+            user.id,
+            content,
+            'comment'
+          );
+          
+          console.log('⚠️ Warning registered for user:', {
+            userId: user.id,
+            warningCount: warningResult.warningCount,
+            userBanned: warningResult.userBanned,
+          });
+          
+          // Si el usuario fue baneado (4ta advertencia)
+          if (warningResult.userBanned) {
+            console.log('🚫 User has been banned:', user.id);
+          }
+        } else {
+          console.log('✅ Content approved by AI moderation:', newComment.id);
+        }
+        
+      } catch (error) {
+        console.error('❌ Error in background AI moderation:', error);
+      }
+    })();
+
+    // Responder inmediatamente con el comentario creado
     return NextResponse.json({ 
       message: 'Comentario creado exitosamente',
-      comment: commentWithUser 
+      comment: commentWithUser,
+      aiModerationPending: true // Indica que el análisis de IA está en proceso
     });
   } catch (error) {
     console.error('Error in comments POST:', error);
