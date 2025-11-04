@@ -19,6 +19,10 @@ export interface AdminWorkshop {
   student_count: number // Cambiado de 'current_students' a 'student_count'
   review_count: number
   learning_objectives?: any // JSONB
+  approval_status?: 'pending' | 'approved' | 'rejected'
+  approved_by?: string
+  approved_at?: string
+  rejection_reason?: string
   created_at: string
   updated_at: string
 }
@@ -54,6 +58,10 @@ export class AdminWorkshopsService {
           student_count,
           review_count,
           learning_objectives,
+          approval_status,
+          approved_by,
+          approved_at,
+          rejection_reason,
           created_at,
           updated_at
         `)
@@ -247,22 +255,56 @@ export class AdminWorkshopsService {
         .eq('id', workshopId)
         .single()
 
+      // Preparar datos de actualización
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      }
+
+      // Campos básicos
+      if (workshopData.title !== undefined) updateData.title = workshopData.title
+      if (workshopData.description !== undefined) updateData.description = workshopData.description
+      if (workshopData.category !== undefined) updateData.category = workshopData.category
+      if (workshopData.level !== undefined) updateData.level = workshopData.level
+      if (workshopData.duration_total_minutes !== undefined) updateData.duration_total_minutes = workshopData.duration_total_minutes
+      if (workshopData.instructor_id !== undefined) updateData.instructor_id = workshopData.instructor_id
+      if (workshopData.is_active !== undefined) updateData.is_active = workshopData.is_active
+      if (workshopData.thumbnail_url !== undefined) updateData.thumbnail_url = workshopData.thumbnail_url
+      if (workshopData.slug !== undefined) updateData.slug = workshopData.slug
+      if (workshopData.price !== undefined) updateData.price = workshopData.price
+      if (workshopData.learning_objectives !== undefined) updateData.learning_objectives = workshopData.learning_objectives
+
+      // Campos de aprobación
+      if (workshopData.approval_status !== undefined) {
+        updateData.approval_status = workshopData.approval_status
+        
+        // Si se aprueba, establecer approved_by y approved_at
+        if (workshopData.approval_status === 'approved') {
+          updateData.approved_by = adminUserId
+          updateData.approved_at = new Date().toISOString()
+          updateData.rejection_reason = null // Limpiar razón de rechazo si se aprueba
+        }
+        
+        // Si se rechaza, limpiar approved_by y approved_at
+        if (workshopData.approval_status === 'rejected') {
+          updateData.approved_by = null
+          updateData.approved_at = null
+        }
+        
+        // Si vuelve a pending, limpiar todo
+        if (workshopData.approval_status === 'pending') {
+          updateData.approved_by = null
+          updateData.approved_at = null
+          updateData.rejection_reason = null
+        }
+      }
+      
+      if (workshopData.rejection_reason !== undefined) {
+        updateData.rejection_reason = workshopData.rejection_reason
+      }
+
       const { data, error } = await supabase
         .from('courses')
-        .update({
-          title: workshopData.title,
-          description: workshopData.description,
-          category: workshopData.category,
-          level: workshopData.level,
-          duration_total_minutes: workshopData.duration_total_minutes,
-          instructor_id: workshopData.instructor_id,
-          is_active: workshopData.is_active,
-          thumbnail_url: workshopData.thumbnail_url,
-          slug: workshopData.slug,
-          price: workshopData.price,
-          learning_objectives: workshopData.learning_objectives,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', workshopId)
         .select(`
           id,
@@ -280,6 +322,10 @@ export class AdminWorkshopsService {
           student_count,
           review_count,
           learning_objectives,
+          approval_status,
+          approved_by,
+          approved_at,
+          rejection_reason,
           created_at,
           updated_at
         `)

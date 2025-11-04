@@ -2292,6 +2292,495 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   );
 }
 
+// Componente para renderizar quizzes
+function QuizRenderer({ quizData }: { quizData: Array<{
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: string | number;
+  explanation?: string;
+  points?: number;
+  questionType?: string;
+}> }) {
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
+  const [showResults, setShowResults] = useState(false);
+  const [score, setScore] = useState(0);
+
+  const handleAnswerSelect = (questionId: string, answer: string | number) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  const handleSubmit = () => {
+    let correct = 0;
+    quizData.forEach(question => {
+      if (selectedAnswers[question.id] === question.correctAnswer) {
+        correct++;
+      }
+    });
+    setScore(correct);
+    setShowResults(true);
+  };
+
+  const totalQuestions = quizData.length;
+  const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+  const passingThreshold = 80;
+  const passed = percentage >= passingThreshold;
+
+  return (
+    <div className="space-y-6">
+      {/* Instrucciones */}
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+        <p className="text-slate-200 text-sm mb-2">
+          <strong>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
+        </p>
+        <p className="text-slate-300 text-sm">
+          Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas). 
+          <span className="block mt-1"><strong>Umbral de aprobación:</strong> {passingThreshold}%</span>
+        </p>
+      </div>
+
+      {/* Preguntas */}
+      <div className="space-y-6">
+        {quizData.map((question, index) => {
+          const isCorrect = selectedAnswers[question.id] === question.correctAnswer;
+          const showExplanation = showResults && selectedAnswers[question.id] !== undefined;
+
+          return (
+            <div
+              key={question.id}
+              className={`bg-carbon-800/70 rounded-lg p-5 border-2 ${
+                showResults
+                  ? isCorrect
+                    ? 'border-green-500/50 bg-green-500/5'
+                    : 'border-red-500/50 bg-red-500/5'
+                  : 'border-carbon-600/50'
+              }`}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${
+                  showResults
+                    ? isCorrect
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                }`}>
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-4 leading-relaxed">
+                    {question.question}
+                  </h4>
+                  
+                  {/* Opciones */}
+                  <div className="space-y-2">
+                    {question.options.map((option, optIndex) => {
+                      const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D...
+                      const isSelected = selectedAnswers[question.id] === optIndex || selectedAnswers[question.id] === option;
+                      const isCorrectOption = question.correctAnswer === optIndex || question.correctAnswer === option;
+                      
+                      return (
+                        <label
+                          key={optIndex}
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            showResults
+                              ? isCorrectOption
+                                ? 'bg-green-500/10 border-green-500/50'
+                                : isSelected && !isCorrectOption
+                                ? 'bg-red-500/10 border-red-500/50'
+                                : 'bg-carbon-700/50 border-carbon-600/50'
+                              : isSelected
+                              ? 'bg-blue-500/10 border-blue-500/50'
+                              : 'bg-carbon-700/50 border-carbon-600/50 hover:border-carbon-500/50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${question.id}`}
+                            value={optIndex}
+                            checked={isSelected}
+                            onChange={() => handleAnswerSelect(question.id, optIndex)}
+                            disabled={showResults}
+                            className="mt-1 w-4 h-4 text-blue-500 border-carbon-600 focus:ring-blue-500 focus:ring-2"
+                          />
+                          <div className="flex-1">
+                            <span className="font-semibold text-slate-300 mr-2">
+                              ({optionLetter})
+                            </span>
+                            <span className="text-slate-200">{option}</span>
+                          </div>
+                          {showResults && isCorrectOption && (
+                            <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                          )}
+                          {showResults && isSelected && !isCorrectOption && (
+                            <X className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/* Explicación */}
+                  {showExplanation && question.explanation && (
+                    <div className={`mt-4 p-4 rounded-lg ${
+                      isCorrect
+                        ? 'bg-green-500/10 border border-green-500/30'
+                        : 'bg-red-500/10 border border-red-500/30'
+                    }`}>
+                      <p className="text-sm font-semibold text-slate-300 mb-1">
+                        {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
+                      </p>
+                      <p className="text-slate-200 text-sm whitespace-pre-wrap">
+                        {question.explanation}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Botón de envío */}
+      {!showResults && (
+        <div className="flex justify-end pt-4 border-t border-carbon-600/50">
+          <button
+            onClick={handleSubmit}
+            disabled={Object.keys(selectedAnswers).length < totalQuestions}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            Enviar Respuestas
+          </button>
+        </div>
+      )}
+
+      {/* Resultados */}
+      {showResults && (
+        <div className={`mt-6 p-6 rounded-lg border-2 ${
+          passed
+            ? 'bg-green-500/10 border-green-500/50'
+            : 'bg-red-500/10 border-red-500/50'
+        }`}>
+          <div className="text-center">
+            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-400' : 'text-red-400'}`}>
+              {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
+            </h3>
+            <p className="text-slate-200 text-lg mb-1">
+              Obtuviste {score} de {totalQuestions} correctas
+            </p>
+            <p className="text-slate-300 text-sm">
+              Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Componente para renderizar prompts como botones en lista
+function PromptsRenderer({ prompts }: { prompts: string | any }) {
+  let promptsList: string[] = [];
+
+  try {
+    // Si es string, intentar parsearlo como JSON
+    if (typeof prompts === 'string') {
+      try {
+        const parsed = JSON.parse(prompts);
+        if (Array.isArray(parsed)) {
+          promptsList = parsed;
+        } else {
+          promptsList = [prompts];
+        }
+      } catch (e) {
+        // Si no es JSON, puede ser un string simple o un array como string
+        // Intentar detectar si parece un array
+        if (prompts.trim().startsWith('[') && prompts.trim().endsWith(']')) {
+          try {
+            const parsed = JSON.parse(prompts);
+            if (Array.isArray(parsed)) {
+              promptsList = parsed;
+            }
+          } catch (e2) {
+            promptsList = [prompts];
+          }
+        } else {
+          // Es un string simple, dividir por líneas si tiene saltos
+          promptsList = prompts.split('\n').filter(p => p.trim().length > 0);
+          if (promptsList.length === 0) {
+            promptsList = [prompts];
+          }
+        }
+      }
+    } else if (Array.isArray(prompts)) {
+      promptsList = prompts;
+    } else {
+      promptsList = [String(prompts)];
+    }
+  } catch (e) {
+    console.warn('Error parsing prompts:', e);
+    promptsList = [String(prompts)];
+  }
+
+  return (
+    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+      <div className="space-y-2">
+        {promptsList.map((prompt, index) => {
+          // Limpiar el prompt (remover comillas si las tiene)
+          const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+          
+          return (
+            <button
+              key={index}
+              onClick={() => {
+                // Aquí puedes agregar lógica para copiar el prompt o enviarlo a LIA
+                navigator.clipboard.writeText(cleanPrompt).then(() => {
+                  alert('Prompt copiado al portapapeles');
+                }).catch(() => {
+                  // Fallback: mostrar el prompt
+                  console.log('Prompt:', cleanPrompt);
+                });
+              }}
+              className="w-full text-left px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 rounded-lg transition-all hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 group"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-500/50 transition-colors">
+                  <span className="text-purple-300 text-xs font-bold">{index + 1}</span>
+                </div>
+                <p className="text-slate-200 text-sm leading-relaxed flex-1 group-hover:text-white transition-colors">
+                  {cleanPrompt}
+                </p>
+                <Copy className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Componente para renderizar materiales de lectura
+function ReadingMaterialRenderer({ content }: { content: any }) {
+  let readingContent = content;
+  
+  // Si el contenido es un objeto con propiedades, intentar extraer el texto
+  if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+    // Buscar propiedades comunes que contengan el texto
+    readingContent = content.text || content.content || content.body || content.description || content.title || '';
+    
+    // Si no encontramos contenido, intentar convertir todo el objeto a string
+    if (!readingContent || readingContent === '') {
+      readingContent = JSON.stringify(content, null, 2);
+    }
+  }
+
+  // Si es un string, intentar parsearlo si parece JSON
+  if (typeof readingContent === 'string') {
+    try {
+      const parsed = JSON.parse(readingContent);
+      if (typeof parsed === 'object' && parsed !== null) {
+        readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
+      }
+    } catch (e) {
+      // No es JSON, usar directamente
+    }
+  }
+
+  // Asegurar que es string
+  if (typeof readingContent !== 'string') {
+    readingContent = String(readingContent);
+  }
+
+  // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
+  const lines = readingContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const formattedContent: Array<{ 
+    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
+    content: string;
+    level?: number;
+  }> = [];
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+    
+    // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
+    const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
+    if (mainSections.test(trimmedLine)) {
+      formattedContent.push({ type: 'main-title', content: trimmedLine.replace(/[:]$/, ''), level: 1 });
+      return;
+    }
+    
+    // Detectar subtítulos numerados principales (1. Los Datos, 2. El Modelo, etc.)
+    const numberedSubsection = /^(\d+)[\.\)]\s+([A-ZÁÉÍÓÚÑ][^.!?]*)$/;
+    const numberedMatch = trimmedLine.match(numberedSubsection);
+    if (numberedMatch && trimmedLine.length < 100) {
+      formattedContent.push({ type: 'subsection-title', content: trimmedLine, level: 2 });
+      return;
+    }
+    
+    // Detectar títulos de sección (líneas cortas sin punto, con mayúsculas al inicio)
+    if (trimmedLine.length > 0 && trimmedLine.length < 80 && 
+        trimmedLine.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) && 
+        !trimmedLine.match(/^\d+[\.\)]/) &&
+        !trimmedLine.includes(':') &&
+        index < lines.length - 1 && // No es la última línea
+        lines[index + 1] && lines[index + 1].length > 50) { // La siguiente línea es un párrafo largo
+      formattedContent.push({ type: 'section-title', content: trimmedLine, level: 1 });
+      return;
+    }
+    
+    // Detectar ejemplos (líneas que contienen "Ejemplo:", "Ejemplos:", "Por ejemplo", etc.)
+    if (trimmedLine.match(/^Ejemplos?[:]?/i) || trimmedLine.match(/Por ejemplo/i)) {
+      formattedContent.push({ type: 'example', content: trimmedLine });
+      return;
+    }
+    
+    // Detectar texto destacado (líneas cortas con comillas o entre comillas)
+    if (trimmedLine.match(/^["']|["']$/) && trimmedLine.length < 100) {
+      formattedContent.push({ type: 'highlight', content: trimmedLine });
+      return;
+    }
+    
+    // Detectar listas (líneas que empiezan con - o • o números seguidos de guión)
+    if (trimmedLine.match(/^[-•]\s/) || trimmedLine.match(/^\d+[\.\)]\s+[-•]/)) {
+      formattedContent.push({ type: 'list', content: trimmedLine });
+      return;
+    }
+    
+    // Párrafos normales
+    formattedContent.push({ type: 'paragraph', content: trimmedLine });
+  });
+
+  return (
+    <div className="bg-carbon-800/50 rounded-lg p-8 md:p-10 border border-carbon-600/50 shadow-lg">
+      <article className="prose prose-invert max-w-none">
+        <div className="text-slate-200 leading-relaxed space-y-6">
+          {formattedContent.map((item, index) => {
+            // Título principal (Introducción, Cuerpo, Cierre)
+            if (item.type === 'main-title') {
+              return (
+                <div key={`item-${index}`} className="mt-10 mb-6 first:mt-0">
+                  <h1 className="text-white font-bold text-3xl mb-2 border-b-2 border-purple-500/40 pb-3">
+                    {item.content}
+                  </h1>
+                </div>
+              );
+            }
+            
+            // Título de sección
+            if (item.type === 'section-title') {
+              return (
+                <h2 
+                  key={`item-${index}`} 
+                  className="text-white font-bold text-2xl mb-4 mt-8 border-b border-purple-500/20 pb-2"
+                >
+                  {item.content}
+                </h2>
+              );
+            }
+            
+            // Subtítulo numerado (1. Los Datos, 2. El Modelo)
+            if (item.type === 'subsection-title') {
+              const numberMatch = item.content.match(/^(\d+)[\.\)]\s+(.+)$/);
+              if (numberMatch) {
+                const [, number, title] = numberMatch;
+                return (
+                  <div key={`item-${index}`} className="mt-8 mb-4">
+                    <h3 className="text-purple-300 font-semibold text-xl mb-3 flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500/40 flex items-center justify-center text-purple-300 font-bold text-lg">
+                        {number}
+                      </span>
+                      <span>{title}</span>
+                    </h3>
+                  </div>
+                );
+              }
+              return (
+                <h3 
+                  key={`item-${index}`} 
+                  className="text-purple-300 font-semibold text-xl mb-3 mt-6"
+                >
+                  {item.content}
+                </h3>
+              );
+            }
+            
+            // Ejemplos
+            if (item.type === 'example') {
+              return (
+                <div key={`item-${index}`} className="bg-blue-500/10 border-l-4 border-blue-500/50 rounded-r-lg p-4 my-4">
+                  <p className="text-blue-300 font-semibold mb-2 text-sm uppercase tracking-wide">
+                    {item.content.match(/^Ejemplos?[:]?/i) ? item.content : 'Ejemplo'}
+                  </p>
+                </div>
+              );
+            }
+            
+            // Texto destacado
+            if (item.type === 'highlight') {
+              return (
+                <div key={`item-${index}`} className="bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg p-4 my-4">
+                  <p className="text-yellow-200 italic text-lg leading-relaxed">
+                    {item.content.replace(/^["']|["']$/g, '')}
+                  </p>
+                </div>
+              );
+            }
+            
+            // Listas
+            if (item.type === 'list') {
+              const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
+              return (
+                <div key={`item-${index}`} className="flex items-start gap-3 my-3 pl-2">
+                  <span className="text-purple-400 mt-1.5 text-lg font-bold">•</span>
+                  <p className="text-slate-200 leading-relaxed flex-1 text-base">{cleanedContent}</p>
+                </div>
+              );
+            }
+            
+            // Párrafos normales
+            // Detectar si el párrafo contiene ejemplos o información destacada
+            const hasExamples = item.content.match(/Ejemplos?[:]?/i);
+            const hasQuotes = item.content.match(/["']/g);
+            
+            if (hasExamples && hasQuotes && hasQuotes.length >= 2) {
+              // Párrafo con ejemplos entre comillas
+              const parts = item.content.split(/(["'][^"']+["'])/g);
+              return (
+                <p key={`item-${index}`} className="text-slate-200 leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9' }}>
+                  {parts.map((part, partIndex) => {
+                    if (part.match(/^["']/)) {
+                      return (
+                        <span key={partIndex} className="bg-blue-500/10 px-2 py-1 rounded text-blue-200 font-medium">
+                          {part.replace(/^["']|["']$/g, '')}
+                        </span>
+                      );
+                    }
+                    return <span key={partIndex}>{part}</span>;
+                  })}
+                </p>
+              );
+            }
+            
+            return (
+              <p 
+                key={`item-${index}`} 
+                className="text-slate-200 leading-relaxed mb-6 text-base"
+                style={{ lineHeight: '1.9' }}
+              >
+                {item.content}
+              </p>
+            );
+          })}
+        </div>
+      </article>
+    </div>
+  );
+}
+
 function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -2455,26 +2944,107 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                 </div>
                 
                 <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-                      {activity.activity_content}
+                  {activity.activity_type === 'quiz' && (() => {
+                    try {
+                      // Intentar parsear el contenido como JSON si es un quiz
+                      let quizData = activity.activity_content;
+                      
+                      console.log('🔍 Processing quiz activity:', {
+                        type: typeof quizData,
+                        isString: typeof quizData === 'string',
+                        preview: typeof quizData === 'string' ? quizData.substring(0, 100) : 'Object'
+                      });
+                      
+                      // Si es string, intentar parsearlo
+                      if (typeof quizData === 'string') {
+                        // Intentar parsear como JSON
+                        try {
+                          quizData = JSON.parse(quizData);
+                          console.log('✅ Quiz parsed as JSON:', Array.isArray(quizData) ? `${quizData.length} questions` : 'Not an array');
+                        } catch (e) {
+                          // Si no es JSON válido, puede ser un string simple
+                          console.warn('⚠️ Quiz content is not valid JSON:', e);
+                          return (
+                            <div className="prose prose-invert max-w-none">
+                              <p className="text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
+                              <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                                {activity.activity_content}
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+                      
+                      // Verificar que es un array con preguntas
+                      if (Array.isArray(quizData) && quizData.length > 0) {
+                        console.log('📋 Quiz is array with', quizData.length, 'items');
+                        console.log('📋 First question preview:', quizData[0]);
+                        
+                        // Verificar que cada elemento tiene la estructura de pregunta
+                        const hasValidStructure = quizData.every((q: any) => {
+                          const isValid = q && typeof q === 'object' && (q.question || q.id);
+                          if (!isValid) {
+                            console.warn('⚠️ Invalid question structure:', q);
+                          }
+                          return isValid;
+                        });
+                        
+                        console.log('✅ Has valid structure:', hasValidStructure);
+                        
+                        if (hasValidStructure) {
+                          return <QuizRenderer quizData={quizData} />;
+                        } else {
+                          console.warn('⚠️ Quiz structure is invalid, showing raw content');
+                        }
+                      } else {
+                        console.warn('⚠️ Quiz is not an array or is empty:', {
+                          isArray: Array.isArray(quizData),
+                          length: Array.isArray(quizData) ? quizData.length : 'N/A'
+                        });
+                      }
+                      
+                      // Si llegamos aquí, mostrar como texto normal con mensaje de debug
+                      return (
+                        <div className="prose prose-invert max-w-none">
+                          <p className="text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
+                          <details className="mb-4">
+                            <summary className="text-slate-300 cursor-pointer">Ver contenido crudo</summary>
+                            <pre className="text-xs text-slate-400 mt-2 p-2 bg-carbon-900 rounded overflow-auto">
+                              {typeof activity.activity_content === 'string' 
+                                ? activity.activity_content 
+                                : JSON.stringify(activity.activity_content, null, 2)}
+                            </pre>
+                          </details>
+                        </div>
+                      );
+                    } catch (e) {
+                      console.error('❌ Error processing quiz:', e);
+                      return (
+                        <div className="prose prose-invert max-w-none">
+                          <p className="text-red-400 mb-2">❌ Error al procesar el quiz</p>
+                          <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                            {activity.activity_content}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
+                  {activity.activity_type !== 'quiz' && (
+                    <div className="prose prose-invert max-w-none">
+                      <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                        {activity.activity_content}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {activity.ai_prompts && (
                   <div className="mt-4 pt-4 border-t border-carbon-600/50">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-4">
                       <HelpCircle className="w-4 h-4 text-purple-400" />
                       <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
                     </div>
-                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                      <div className="prose prose-invert max-w-none">
-                        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap text-sm">
-                          {activity.ai_prompts}
-                        </div>
-                      </div>
-                    </div>
+                    <PromptsRenderer prompts={activity.ai_prompts} />
                   </div>
                 )}
               </div>
@@ -2525,38 +3095,81 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                   </div>
                 </div>
                 
+                {/* Contenido del material */}
+                {material.content_data && (
+                  <div className="w-full mt-4">
+                    {material.material_type === 'quiz' && (() => {
+                      try {
+                        let quizData = material.content_data;
+                        
+                        // Si es string, intentar parsearlo
+                        if (typeof quizData === 'string') {
+                          try {
+                            quizData = JSON.parse(quizData);
+                          } catch (e) {
+                            console.warn('Quiz content is not valid JSON:', e);
+                            return null;
+                          }
+                        }
+                        
+                        // Verificar que es un array con preguntas
+                        if (Array.isArray(quizData) && quizData.length > 0) {
+                          // Verificar que cada elemento tiene la estructura de pregunta
+                          const hasValidStructure = quizData.every((q: any) => 
+                            q && typeof q === 'object' && (q.question || q.id)
+                          );
+                          
+                          if (hasValidStructure) {
+                            return <QuizRenderer quizData={quizData} />;
+                          }
+                        }
+                      } catch (e) {
+                        console.warn('Error parsing quiz data:', e);
+                      }
+                      return null;
+                    })()}
+                    {material.material_type === 'reading' && (
+                      <ReadingMaterialRenderer content={material.content_data} />
+                    )}
+                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && typeof material.content_data === 'object' && (
+                      <div className="bg-carbon-800/50 rounded-lg p-4 border border-carbon-600/50">
+                        <p className="text-slate-300 text-sm whitespace-pre-wrap">
+                          {typeof material.content_data === 'string' 
+                            ? material.content_data 
+                            : JSON.stringify(material.content_data, null, 2)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Enlaces y acciones */}
-                <div className="flex items-center gap-3">
-                  {material.external_url && (
-                    <a
-                      href={material.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      <span className="text-sm">Abrir enlace</span>
-                    </a>
-                  )}
-                  {material.file_url && (
-                    <a
-                      href={material.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      <span className="text-sm">Ver archivo</span>
-                    </a>
-                  )}
-                  {material.content_data && typeof material.content_data === 'object' && (
-                    <div className="flex-1 bg-carbon-800/50 rounded-lg p-3 border border-carbon-600/50">
-                      <p className="text-slate-300 text-sm">
-                        {JSON.stringify(material.content_data, null, 2)}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {(material.external_url || material.file_url) && (
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-carbon-600/50">
+                    {material.external_url && (
+                      <a
+                        href={material.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Abrir enlace</span>
+                      </a>
+                    )}
+                    {material.file_url && (
+                      <a
+                        href={material.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Ver archivo</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Settings, Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface VideoPlayerProps {
   videoProvider: 'youtube' | 'vimeo' | 'direct' | 'custom';
@@ -64,10 +65,53 @@ export function VideoPlayer({
         url = `https://player.vimeo.com/video/${videoProviderId}`;
         break;
       case 'direct':
-        url = videoProviderId; // URL directa
-        break;
       case 'custom':
-        url = videoProviderId; // URL personalizada
+        // Para videos directos de Supabase, reconstruir la URL completa si es necesario
+        url = videoProviderId;
+        
+        // Si la URL es relativa (no empieza con http), reconstruirla
+        if (url && !url.startsWith('http')) {
+          try {
+            const supabase = createClient();
+            // Intentar obtener la URL pública usando Supabase client
+            // Si el path no incluye el bucket, asumir que está en 'course-videos/videos'
+            let filePath = url;
+            if (!filePath.includes('/')) {
+              filePath = `videos/${filePath}`;
+            } else if (!filePath.startsWith('course-videos/')) {
+              // Si no empieza con 'course-videos/', agregarlo
+              if (!filePath.startsWith('videos/')) {
+                filePath = `videos/${filePath}`;
+              }
+            }
+            
+            // Obtener la URL pública usando Supabase Storage
+            const { data: urlData } = supabase.storage
+              .from('course-videos')
+              .getPublicUrl(filePath);
+            
+            if (urlData?.publicUrl) {
+              url = urlData.publicUrl;
+            } else {
+              // Fallback: usar NEXT_PUBLIC_SUPABASE_URL directamente
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+              if (supabaseUrl) {
+                url = `${supabaseUrl}/storage/v1/object/public/course-videos/${filePath}`;
+              }
+            }
+          } catch (error) {
+            console.warn('Error getting Supabase public URL, using fallback:', error);
+            // Fallback: usar NEXT_PUBLIC_SUPABASE_URL directamente
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+            if (supabaseUrl) {
+              let filePath = url;
+              if (!filePath.includes('/')) {
+                filePath = `videos/${filePath}`;
+              }
+              url = `${supabaseUrl}/storage/v1/object/public/course-videos/${filePath}`;
+            }
+          }
+        }
         break;
       default:
         url = '';
@@ -135,6 +179,41 @@ export function VideoPlayer({
       );
     }
 
+    // Para videos directos o custom, usar tag <video> en lugar de iframe
+    // Esto evita problemas de CSP y es más eficiente para videos de Supabase
+    if (videoProvider === 'direct' || videoProvider === 'custom') {
+      return (
+        <div className="relative w-full h-full">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            </div>
+          )}
+          
+          <video
+            src={videoUrl}
+            controls
+            className="w-full h-full rounded-lg"
+            preload="metadata"
+            onLoadedData={() => {
+              console.log('VideoPlayer video loaded successfully');
+              setIsLoading(false);
+              setError(null);
+            }}
+            onError={(e) => {
+              console.error('VideoPlayer video error:', e);
+              setIsLoading(false);
+              setError('Error al cargar el video');
+            }}
+            style={{ display: isLoading ? 'none' : 'block' }}
+          >
+            Tu navegador no soporta la reproducción de video.
+          </video>
+        </div>
+      );
+    }
+
+    // Para YouTube y Vimeo, usar iframe
     return (
       <div className="relative w-full h-full">
         {isLoading && (

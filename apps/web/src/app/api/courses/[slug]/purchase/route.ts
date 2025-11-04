@@ -64,7 +64,13 @@ export async function POST(
 
     // Convertir precio de string a centavos
     // El precio viene como "MX$3000" o "MX$0"
-    const priceInCents = extractPriceInCents(course.price);
+    let priceInCents = extractPriceInCents(course.price);
+    
+    // Si el curso es gratuito (price = 0), usar 1 centavo como mínimo
+    // para cumplir con el constraint CHECK (amount_cents > 0)
+    if (priceInCents === 0) {
+      priceInCents = 1; // 1 centavo para cursos gratuitos
+    }
 
     // 0. Crear método de pago temporal (si no existe ya)
     let paymentMethodId: string;

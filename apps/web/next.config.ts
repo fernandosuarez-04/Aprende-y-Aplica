@@ -242,7 +242,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https://*.supabase.co https://via.placeholder.com https://picsum.photos https://images.unsplash.com https://img.youtube.com",
               "media-src 'self' https://*.supabase.co",
               "connect-src 'self' https://*.supabase.co https://api.openai.com https://accounts.google.com https://oauth2.googleapis.com",
-              "frame-src 'self' https://accounts.google.com https://www.youtube.com",
+              "frame-src 'self' https://accounts.google.com https://www.youtube.com https://*.supabase.co",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
