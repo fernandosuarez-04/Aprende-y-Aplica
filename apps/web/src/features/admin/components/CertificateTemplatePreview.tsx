@@ -60,21 +60,21 @@ export function CertificateTemplatePreview({
 }: CertificateTemplatePreviewProps) {
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null)
 
-  // Debug: Log cuando cambian los props de firma
+  // Debug: Log cuando cambian los props
   useEffect(() => {
     if (isOpen) {
-      console.log('CertificateTemplatePreview - Signature props updated:', {
+      console.log('CertificateTemplatePreview - Props updated:', {
+        studentName,
+        courseName,
         instructorSignatureUrl,
         instructorSignatureName,
         instructorDisplayName,
         hasSignatureName: !!instructorSignatureName,
         hasSignatureUrl: !!instructorSignatureUrl,
-        signatureNameLength: instructorSignatureName?.length || 0,
-        signatureNameValue: instructorSignatureName,
         willShowName: !!(instructorSignatureName && instructorSignatureName.trim() && (!instructorSignatureUrl || !instructorSignatureUrl.trim()))
       })
     }
-  }, [isOpen, instructorSignatureUrl, instructorSignatureName, instructorDisplayName])
+  }, [isOpen, studentName, courseName, instructorSignatureUrl, instructorSignatureName, instructorDisplayName])
   
   if (!isOpen) return null
 
@@ -86,6 +86,9 @@ export function CertificateTemplatePreview({
     const renderInstructorSignature = () => {
       const hasSignatureName = instructorSignatureName && typeof instructorSignatureName === 'string' && instructorSignatureName.trim().length > 0
       const hasSignatureUrl = instructorSignatureUrl && typeof instructorSignatureUrl === 'string' && instructorSignatureUrl.trim().length > 0
+      const hasDisplayName = instructorDisplayName && typeof instructorDisplayName === 'string' && instructorDisplayName.trim().length > 0
+      
+      console.log('Rendering instructor signature:', { hasSignatureName, hasSignatureUrl, hasDisplayName, instructorSignatureName, instructorSignatureUrl, instructorDisplayName })
       
       if (hasSignatureName && !hasSignatureUrl) {
         // Mostrar nombre arriba de la línea
@@ -107,16 +110,31 @@ export function CertificateTemplatePreview({
                 src={instructorSignatureUrl.trim()}
                 alt="Firma del instructor"
                 className="h-20 w-48 object-contain"
+                onError={(e) => {
+                  console.error('Error loading signature image:', instructorSignatureUrl)
+                  e.currentTarget.style.display = 'none'
+                }}
               />
             </div>
             <div className="h-1 w-40 border-b-4 mx-auto mb-3" style={{ borderColor: primaryColor }}></div>
-            {instructorDisplayName ? (
+            {hasDisplayName ? (
               <div className="text-base font-bold px-2" style={{ color: primaryColor }}>
-                {instructorDisplayName}
+                {instructorDisplayName.trim()}
               </div>
             ) : (
               <div className="text-xs text-gray-600">Instructor</div>
             )}
+          </>
+        )
+      } else if (hasDisplayName) {
+        // Mostrar nombre del instructor si no hay firma
+        return (
+          <>
+            <div className="text-base font-bold mb-3 px-2" style={{ color: primaryColor }}>
+              {instructorDisplayName.trim()}
+            </div>
+            <div className="h-1 w-40 border-b-4 mx-auto mb-3" style={{ borderColor: primaryColor }}></div>
+            <div className="text-xs text-gray-600">Instructor</div>
           </>
         )
       } else {
@@ -198,7 +216,7 @@ export function CertificateTemplatePreview({
                       borderColor: primaryColor,
                       backgroundColor: 'rgba(30, 58, 138, 0.05)'
                     }}>
-                      {studentName}
+                      {studentName && studentName !== '[Nombre del Estudiante]' ? studentName : 'Nombre del Estudiante'}
                     </div>
                     
                     <div className="text-lg mb-6 text-gray-700 max-w-3xl font-medium leading-relaxed px-8">
@@ -210,7 +228,7 @@ export function CertificateTemplatePreview({
                       borderColor: secondaryColor,
                       backgroundColor: 'rgba(96, 165, 250, 0.1)'
                     }}>
-                      {courseName}
+                      {courseName && courseName !== '[Nombre del Curso]' ? courseName : 'Nombre del Curso'}
                     </div>
 
                     {/* Firmas, QR Code y Fecha - Footer */}
@@ -225,8 +243,8 @@ export function CertificateTemplatePreview({
                         <div className="bg-white p-3 rounded-lg border-2 shadow-lg" style={{ borderColor: primaryColor }}>
                           <QRCodeSVG
                             value={certificateHash 
-                              ? `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/${certificateHash}`
-                              : `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/[hash]`
+                              ? `${process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://aprendeyaplica.ai')}/certificates/verify/${certificateHash}`
+                              : `${process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://aprendeyaplica.ai')}/certificates/verify/[hash]`
                             }
                             size={110}
                             level="H"
@@ -261,34 +279,19 @@ export function CertificateTemplatePreview({
             )}
           </div>
 
-          {/* Información de la plantilla */}
+          {/* Botón para expandir */}
           {!isExpanded && (
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{template.name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{template.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isSelected && (
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-                        <Check className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setExpandedTemplate(template.id)
-                    }}
-                    className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                    title="Ver certificado completo"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+            <div className="absolute top-4 right-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setExpandedTemplate(template.id)
+                }}
+                className="p-2 rounded-lg bg-white/90 hover:bg-white backdrop-blur-sm shadow-lg transition-colors"
+                title="Ver certificado completo"
+              >
+                <Maximize2 className="w-5 h-5 text-gray-700" />
+              </button>
             </div>
           )}
         </div>
@@ -297,42 +300,16 @@ export function CertificateTemplatePreview({
 
     if (isExpanded) {
       return (
-        <div className="fixed inset-0 bg-black/80 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col border border-gray-200 dark:border-gray-700">
-            {/* Header de vista expandida */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setExpandedTemplate(null)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{template.name}</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{template.description}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    onSelectTemplate(template.id)
-                  }}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    isSelected 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {isSelected ? '✓ Seleccionada' : 'Seleccionar'}
-                </button>
-                <button
-                  onClick={() => setExpandedTemplate(null)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/80 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
+          <div className="bg-transparent rounded-2xl w-full max-w-5xl max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Botón de cerrar simple */}
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
             </div>
 
             {/* Certificado completo */}
@@ -357,60 +334,12 @@ export function CertificateTemplatePreview({
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Vista Previa de Plantillas de Certificados
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Selecciona la plantilla que más te guste para tu certificado
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+  // Vista inicial: mostrar directamente la plantilla expandida
+  const defaultTemplate = templates.find(t => t.id === selectedTemplate) || templates[0]
+  if (defaultTemplate) {
+    return renderTemplatePreview(defaultTemplate, true)
+  }
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto scrollbar-thin-dark flex-1">
-          <div className="flex justify-center">
-            <div className="max-w-2xl w-full">
-              {templates.map(template => (
-                <div key={template.id}>
-                  {renderTemplatePreview(template, false)}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => {
-              onSelectTemplate(selectedTemplate)
-              onClose()
-            }}
-            className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-medium shadow-lg shadow-blue-500/20"
-          >
-            Seleccionar Plantilla
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  return null
 }
 

@@ -298,14 +298,28 @@ const nextConfig: NextConfig = {
       '@/hooks': path.resolve(__dirname, 'src/shared/hooks'),
     };
 
-    // Configuración para librerías que solo funcionan en el cliente
-    if (!isServer) {
+    // Configuración para librerías que solo funcionan en el servidor (pdfkit)
+    if (isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+      };
+    } else {
+      // Configuración para librerías que solo funcionan en el cliente
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
         path: false,
         os: false,
+        canvas: false,
+        pdfkit: false, // pdfkit solo funciona en el servidor
       };
+      
+      // Excluir pdfkit del bundle del cliente
+      config.externals = config.externals || [];
+      if (typeof config.externals === 'object' && !Array.isArray(config.externals)) {
+        config.externals.push({ pdfkit: 'commonjs pdfkit' });
+      }
       
       // Optimización para Nivo: dividir chunks grandes
       config.optimization = {

@@ -17,6 +17,7 @@ import { ActivityModal } from './ActivityModal'
 import { ImageUploadCourse } from '@/features/instructor/components/ImageUploadCourse'
 import { CertificateTemplatePreview } from './CertificateTemplatePreview'
 import { InstructorSignatureUpload } from '@/features/instructor/components/InstructorSignatureUpload'
+import { useAuth } from '@/features/auth/hooks/useAuth'
 
 interface CourseManagementPageProps {
   courseId: string
@@ -65,6 +66,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useAdminLessons(courseId)
   const { materials, getMaterialsByLesson, fetchMaterials, createMaterial, updateMaterial, deleteMaterial } = useAdminMaterials()
   const { activities, getActivitiesByLesson, fetchActivities, createActivity, updateActivity, deleteActivity } = useAdminActivities()
+  const { user: currentUser } = useAuth()
 
   useEffect(() => {
     fetchModules(courseId)
@@ -1362,9 +1364,9 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           }}
           instructorSignatureUrl={instructorSignatureUrl}
           instructorSignatureName={instructorSignatureName}
-          instructorDisplayName={workshopPreview?.instructor_name || undefined}
-          studentName={workshopPreview?.title ? 'Estudiante Ejemplo' : undefined}
-          courseName={workshopPreview?.title || undefined}
+          instructorDisplayName={workshopPreview?.instructor_name || currentUser?.display_name || currentUser?.first_name && currentUser?.last_name ? `${currentUser.first_name} ${currentUser.last_name}` : currentUser?.username || undefined}
+          studentName={currentUser?.display_name || (currentUser?.first_name && currentUser?.last_name ? `${currentUser.first_name} ${currentUser.last_name}` : currentUser?.username) || 'Estudiante Ejemplo'}
+          courseName={workshopPreview?.title || 'Nombre del Curso'}
           issueDate={new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
         />
       </div>

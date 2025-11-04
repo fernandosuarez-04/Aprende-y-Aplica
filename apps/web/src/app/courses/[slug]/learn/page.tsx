@@ -537,6 +537,33 @@ export default function CourseLearnPage() {
     }
   }, [currentLesson?.lesson_id, slug]);
 
+  // Verificar si el curso está completo al cargar la página
+  useEffect(() => {
+    const checkCourseCompletion = async () => {
+      if (!slug || !course) return;
+
+      try {
+        // Verificar si hay certificado (indicador de que el curso está completo)
+        const certResponse = await fetch(`/api/courses/${slug}/certificate`);
+        if (certResponse.ok) {
+          const certData = await certResponse.json();
+          if (certData.success && certData.certificate) {
+            // El curso está completo y tiene certificado, redirigir
+            router.push(`/courses/${slug}/completion`);
+          }
+        }
+      } catch (error) {
+        // Silenciar errores, solo verificar sin molestar al usuario
+        console.debug('Verificación de completitud del curso:', error);
+      }
+    };
+
+    // Verificar después de que se cargue el curso
+    if (course && !loading) {
+      checkCourseCompletion();
+    }
+  }, [course, slug, loading, router]);
+
 
   const loadModules = async (courseSlug: string) => {
     try {
@@ -749,6 +776,13 @@ export default function CourseLearnPage() {
       // Actualizar progreso con el valor del servidor si está disponible
       if (result.progress?.overall_progress !== undefined) {
         setCourseProgress(Math.round(result.progress.overall_progress));
+      }
+
+      // Si el curso está completo, redirigir a la página de completion inmediatamente
+      if (result.course_completed === true) {
+        // Redirigir inmediatamente sin delay
+        router.push(`/courses/${slug}/completion`);
+        return true;
       }
 
       return true;
@@ -1586,12 +1620,18 @@ export default function CourseLearnPage() {
                 Has completado el curso exitosamente. ¡Buen trabajo!
               </p>
 
-              {/* Botón de cerrar */}
+              {/* Botón de cerrar y redirigir */}
               <button
-                onClick={() => setIsCourseCompletedModalOpen(false)}
+                onClick={() => {
+                  setIsCourseCompletedModalOpen(false)
+                  // Redirigir a la página de completion después de cerrar el modal
+                  setTimeout(() => {
+                    router.push(`/courses/${slug}/completion`)
+                  }, 300)
+                }}
                 className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
               >
-                Aceptar
+                Ver Mi Certificado
               </button>
             </motion.div>
           </motion.div>
@@ -1809,8 +1849,11 @@ function VideoContent({
                       // Marcar la última lección como completada antes de terminar
                       const success = await markLessonAsCompleted(lesson.lesson_id);
                       if (success) {
-                        // Mostrar modal de curso completado
-                        onCourseCompleted();
+                        // La función markLessonAsCompleted ya redirige si el curso está completo
+                        // Si no redirigió, mostrar el modal como fallback
+                        setTimeout(() => {
+                          onCourseCompleted();
+                        }, 1500);
                       } else {
                         // Mostrar modal de error si no se puede completar
                         onCannotComplete();
@@ -1846,7 +1889,7 @@ function VideoContent({
               <p className="text-gray-700 dark:text-white/70">Video no disponible</p>
             </div>
             
-            {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
+              {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
             <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
               {/* Botón anterior - lado izquierdo */}
               {hasPreviousVideo && (
@@ -1870,8 +1913,11 @@ function VideoContent({
                       // Marcar la última lección como completada antes de terminar
                       const success = await markLessonAsCompleted(lesson.lesson_id);
                       if (success) {
-                        // Mostrar modal de curso completado
-                        onCourseCompleted();
+                        // La función markLessonAsCompleted ya redirige si el curso está completo
+                        // Si no redirigió, mostrar el modal como fallback
+                        setTimeout(() => {
+                          onCourseCompleted();
+                        }, 1500);
                       } else {
                         // Mostrar modal de error si no se puede completar
                         onCannotComplete();

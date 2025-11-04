@@ -249,6 +249,43 @@ export async function POST(
       // No retornar error aquí, el progreso de la lección ya se guardó
     }
 
+    // Si el curso está 100% completo, intentar generar el certificado automáticamente
+    let certificateGenerated = false
+    let certificateUrl: string | null = null
+    let certificateHash: string | null = null
+
+    if (overallProgress === 100) {
+      try {
+        // Verificar si ya existe un certificado
+        const { data: existingCertificate } = await supabase
+          .from('user_course_certificates')
+          .select('certificate_id, certificate_url, certificate_hash')
+          .eq('enrollment_id', enrollmentId)
+          .single()
+
+        if (!existingCertificate) {
+          // Generar certificado automáticamente
+          const { generateCertificate } = await import('@/lib/services/certificate.service')
+          const certificate = await generateCertificate(
+            enrollmentId,
+            courseId,
+            currentUser.id
+          )
+          certificateGenerated = true
+          certificateUrl = certificate.certificate_url
+          certificateHash = certificate.certificate_hash
+        } else {
+          // Ya existe certificado
+          certificateUrl = existingCertificate.certificate_url
+          certificateHash = existingCertificate.certificate_hash || null
+        }
+      } catch (certError) {
+        console.error('Error generando certificado automáticamente:', certError)
+        // No fallar la request si hay error generando el certificado
+        // El usuario puede generarlo manualmente después
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Lección marcada como completada',
@@ -257,6 +294,14 @@ export async function POST(
         is_completed: true,
         overall_progress: overallProgress,
       },
+      course_completed: overallProgress === 100,
+      certificate: certificateGenerated ? {
+        url: certificateUrl,
+        hash: certificateHash
+      } : (certificateUrl ? {
+        url: certificateUrl,
+        hash: certificateHash
+      } : null),
     });
   } catch (error) {
     console.error('Error en POST /api/courses/[slug]/lessons/[lessonId]/progress:', error);
