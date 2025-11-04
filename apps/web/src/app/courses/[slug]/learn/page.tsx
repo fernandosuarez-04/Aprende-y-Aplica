@@ -2595,48 +2595,109 @@ function ReadingMaterialRenderer({ content }: { content: any }) {
     readingContent = String(readingContent);
   }
 
-  // Mejorar el formato: detectar títulos, párrafos, listas, etc.
+  // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
   const lines = readingContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  const formattedContent: Array<{ type: 'heading' | 'subheading' | 'paragraph' | 'list'; content: string; level?: number }> = [];
+  const formattedContent: Array<{ 
+    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
+    content: string;
+    level?: number;
+  }> = [];
 
   lines.forEach((line, index) => {
-    // Detectar títulos principales (líneas cortas sin punto, con mayúsculas o números)
-    if (line.length > 0 && line.length < 80 && 
-        (line.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) || 
-         line.match(/^\d+[\.\)]\s/) ||
-         line.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*:$/))) {
-      // Verificar si es un subtítulo (empieza con número o tiene dos puntos)
-      if (line.includes(':') || line.match(/^\d+[\.\)]/)) {
-        formattedContent.push({ type: 'subheading', content: line, level: 2 });
-      } else {
-        formattedContent.push({ type: 'heading', content: line, level: 1 });
-      }
-    } 
-    // Detectar listas (líneas que empiezan con - o • o números)
-    else if (line.match(/^[-•]\s/) || line.match(/^\d+[\.\)]\s/)) {
-      formattedContent.push({ type: 'list', content: line });
+    const trimmedLine = line.trim();
+    
+    // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
+    const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
+    if (mainSections.test(trimmedLine)) {
+      formattedContent.push({ type: 'main-title', content: trimmedLine.replace(/[:]$/, ''), level: 1 });
+      return;
     }
+    
+    // Detectar subtítulos numerados principales (1. Los Datos, 2. El Modelo, etc.)
+    const numberedSubsection = /^(\d+)[\.\)]\s+([A-ZÁÉÍÓÚÑ][^.!?]*)$/;
+    const numberedMatch = trimmedLine.match(numberedSubsection);
+    if (numberedMatch && trimmedLine.length < 100) {
+      formattedContent.push({ type: 'subsection-title', content: trimmedLine, level: 2 });
+      return;
+    }
+    
+    // Detectar títulos de sección (líneas cortas sin punto, con mayúsculas al inicio)
+    if (trimmedLine.length > 0 && trimmedLine.length < 80 && 
+        trimmedLine.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) && 
+        !trimmedLine.match(/^\d+[\.\)]/) &&
+        !trimmedLine.includes(':') &&
+        index < lines.length - 1 && // No es la última línea
+        lines[index + 1] && lines[index + 1].length > 50) { // La siguiente línea es un párrafo largo
+      formattedContent.push({ type: 'section-title', content: trimmedLine, level: 1 });
+      return;
+    }
+    
+    // Detectar ejemplos (líneas que contienen "Ejemplo:", "Ejemplos:", "Por ejemplo", etc.)
+    if (trimmedLine.match(/^Ejemplos?[:]?/i) || trimmedLine.match(/Por ejemplo/i)) {
+      formattedContent.push({ type: 'example', content: trimmedLine });
+      return;
+    }
+    
+    // Detectar texto destacado (líneas cortas con comillas o entre comillas)
+    if (trimmedLine.match(/^["']|["']$/) && trimmedLine.length < 100) {
+      formattedContent.push({ type: 'highlight', content: trimmedLine });
+      return;
+    }
+    
+    // Detectar listas (líneas que empiezan con - o • o números seguidos de guión)
+    if (trimmedLine.match(/^[-•]\s/) || trimmedLine.match(/^\d+[\.\)]\s+[-•]/)) {
+      formattedContent.push({ type: 'list', content: trimmedLine });
+      return;
+    }
+    
     // Párrafos normales
-    else {
-      formattedContent.push({ type: 'paragraph', content: line });
-    }
+    formattedContent.push({ type: 'paragraph', content: trimmedLine });
   });
 
   return (
-    <div className="bg-carbon-800/50 rounded-lg p-8 border border-carbon-600/50">
+    <div className="bg-carbon-800/50 rounded-lg p-8 md:p-10 border border-carbon-600/50 shadow-lg">
       <article className="prose prose-invert max-w-none">
         <div className="text-slate-200 leading-relaxed space-y-6">
           {formattedContent.map((item, index) => {
-            if (item.type === 'heading') {
+            // Título principal (Introducción, Cuerpo, Cierre)
+            if (item.type === 'main-title') {
+              return (
+                <div key={`item-${index}`} className="mt-10 mb-6 first:mt-0">
+                  <h1 className="text-white font-bold text-3xl mb-2 border-b-2 border-purple-500/40 pb-3">
+                    {item.content}
+                  </h1>
+                </div>
+              );
+            }
+            
+            // Título de sección
+            if (item.type === 'section-title') {
               return (
                 <h2 
                   key={`item-${index}`} 
-                  className="text-white font-bold text-2xl mb-4 mt-8 first:mt-0 border-b-2 border-purple-500/30 pb-3"
+                  className="text-white font-bold text-2xl mb-4 mt-8 border-b border-purple-500/20 pb-2"
                 >
                   {item.content}
                 </h2>
               );
-            } else if (item.type === 'subheading') {
+            }
+            
+            // Subtítulo numerado (1. Los Datos, 2. El Modelo)
+            if (item.type === 'subsection-title') {
+              const numberMatch = item.content.match(/^(\d+)[\.\)]\s+(.+)$/);
+              if (numberMatch) {
+                const [, number, title] = numberMatch;
+                return (
+                  <div key={`item-${index}`} className="mt-8 mb-4">
+                    <h3 className="text-purple-300 font-semibold text-xl mb-3 flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500/40 flex items-center justify-center text-purple-300 font-bold text-lg">
+                        {number}
+                      </span>
+                      <span>{title}</span>
+                    </h3>
+                  </div>
+                );
+              }
               return (
                 <h3 
                   key={`item-${index}`} 
@@ -2645,24 +2706,74 @@ function ReadingMaterialRenderer({ content }: { content: any }) {
                   {item.content}
                 </h3>
               );
-            } else if (item.type === 'list') {
+            }
+            
+            // Ejemplos
+            if (item.type === 'example') {
               return (
-                <div key={`item-${index}`} className="flex items-start gap-3 mb-3">
-                  <span className="text-purple-400 mt-1">•</span>
-                  <p className="text-slate-200 leading-relaxed flex-1">{item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '')}</p>
+                <div key={`item-${index}`} className="bg-blue-500/10 border-l-4 border-blue-500/50 rounded-r-lg p-4 my-4">
+                  <p className="text-blue-300 font-semibold mb-2 text-sm uppercase tracking-wide">
+                    {item.content.match(/^Ejemplos?[:]?/i) ? item.content : 'Ejemplo'}
+                  </p>
                 </div>
               );
-            } else {
+            }
+            
+            // Texto destacado
+            if (item.type === 'highlight') {
               return (
-                <p 
-                  key={`item-${index}`} 
-                  className="text-slate-200 leading-relaxed mb-4 text-base"
-                  style={{ lineHeight: '1.8' }}
-                >
-                  {item.content}
+                <div key={`item-${index}`} className="bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg p-4 my-4">
+                  <p className="text-yellow-200 italic text-lg leading-relaxed">
+                    {item.content.replace(/^["']|["']$/g, '')}
+                  </p>
+                </div>
+              );
+            }
+            
+            // Listas
+            if (item.type === 'list') {
+              const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
+              return (
+                <div key={`item-${index}`} className="flex items-start gap-3 my-3 pl-2">
+                  <span className="text-purple-400 mt-1.5 text-lg font-bold">•</span>
+                  <p className="text-slate-200 leading-relaxed flex-1 text-base">{cleanedContent}</p>
+                </div>
+              );
+            }
+            
+            // Párrafos normales
+            // Detectar si el párrafo contiene ejemplos o información destacada
+            const hasExamples = item.content.match(/Ejemplos?[:]?/i);
+            const hasQuotes = item.content.match(/["']/g);
+            
+            if (hasExamples && hasQuotes && hasQuotes.length >= 2) {
+              // Párrafo con ejemplos entre comillas
+              const parts = item.content.split(/(["'][^"']+["'])/g);
+              return (
+                <p key={`item-${index}`} className="text-slate-200 leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9' }}>
+                  {parts.map((part, partIndex) => {
+                    if (part.match(/^["']/)) {
+                      return (
+                        <span key={partIndex} className="bg-blue-500/10 px-2 py-1 rounded text-blue-200 font-medium">
+                          {part.replace(/^["']|["']$/g, '')}
+                        </span>
+                      );
+                    }
+                    return <span key={partIndex}>{part}</span>;
+                  })}
                 </p>
               );
             }
+            
+            return (
+              <p 
+                key={`item-${index}`} 
+                className="text-slate-200 leading-relaxed mb-6 text-base"
+                style={{ lineHeight: '1.9' }}
+              >
+                {item.content}
+              </p>
+            );
           })}
         </div>
       </article>
