@@ -88,6 +88,7 @@ export default function CourseLearnPage() {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isLiaExpanded, setIsLiaExpanded] = useState(false);
+  const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -114,6 +115,13 @@ export default function CourseLearnPage() {
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Limpiar prompts cuando se cambia de tab
+  useEffect(() => {
+    if (activeTab !== 'activities') {
+      setCurrentActivityPrompts([]);
+    }
+  }, [activeTab]);
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -1364,7 +1372,13 @@ export default function CourseLearnPage() {
                     )}
                     {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
-                    {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} slug={slug} />}
+                    {activeTab === 'activities' && (
+                      <ActivitiesContent
+                        lesson={currentLesson}
+                        slug={slug}
+                        onPromptsChange={setCurrentActivityPrompts}
+                      />
+                    )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
                   </motion.div>
                 </AnimatePresence>
@@ -1472,8 +1486,73 @@ export default function CourseLearnPage() {
                   <div ref={liaMessagesEndRef} />
                 </div>
 
+                {/* Prompts Flotantes tipo NotebookLM */}
+                <AnimatePresence>
+                  {currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute bottom-20 left-4 right-4 z-10"
+                    >
+                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 p-4 max-h-[300px] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
+                              <HelpCircle className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
+                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a LIA</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setCurrentActivityPrompts([])}
+                            className="p-1.5 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
+                            title="Cerrar prompts"
+                          >
+                            <X className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {currentActivityPrompts.map((prompt, index) => (
+                            <motion.button
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              onClick={() => {
+                                setLiaMessage(prompt);
+                                setTimeout(() => {
+                                  handleSendLiaMessage();
+                                  setCurrentActivityPrompts([]);
+                                }, 100);
+                              }}
+                              className="w-full text-left px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-purple-200/50 dark:border-purple-500/30 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-200 dark:group-hover:bg-purple-500/30 transition-colors">
+                                  <span className="text-purple-600 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                    {prompt}
+                                  </p>
+                                </div>
+                                <Send className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Área de entrada */}
-                <div className="border-t border-gray-200 dark:border-slate-700/50 p-4">
+                <div className="border-t border-gray-200 dark:border-slate-700/50 p-4 relative">
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
@@ -2894,7 +2973,11 @@ function FormattedContentRenderer({ content }: { content: any }) {
   );
 }
 
-function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+function ActivitiesContent({ lesson, slug, onPromptsChange }: {
+  lesson: Lesson;
+  slug: string;
+  onPromptsChange?: (prompts: string[]) => void;
+}) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
     activity_title: string;
@@ -2960,6 +3043,52 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
     loadActivitiesAndMaterials();
   }, [lesson?.lesson_id, slug]);
+
+  // Extraer y actualizar prompts cuando cambien las actividades
+  useEffect(() => {
+    const allPrompts: string[] = [];
+
+    activities.forEach(activity => {
+      if (activity.ai_prompts) {
+        try {
+          let promptsList: string[] = [];
+
+          // Si es string, intentar parsearlo como JSON
+          if (typeof activity.ai_prompts === 'string') {
+            try {
+              const parsed = JSON.parse(activity.ai_prompts);
+              if (Array.isArray(parsed)) {
+                promptsList = parsed;
+              } else {
+                promptsList = [activity.ai_prompts];
+              }
+            } catch {
+              promptsList = [activity.ai_prompts];
+            }
+          } else if (Array.isArray(activity.ai_prompts)) {
+            promptsList = activity.ai_prompts;
+          } else {
+            promptsList = [String(activity.ai_prompts)];
+          }
+
+          // Limpiar prompts (remover comillas si las tiene)
+          promptsList.forEach(prompt => {
+            const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+            if (cleanPrompt) {
+              allPrompts.push(cleanPrompt);
+            }
+          });
+        } catch (error) {
+          console.warn('Error parsing prompts:', error);
+        }
+      }
+    });
+
+    // Notificar cambios al componente padre
+    if (onPromptsChange) {
+      onPromptsChange(allPrompts);
+    }
+  }, [activities, onPromptsChange]);
 
   const hasActivities = activities.length > 0;
   const hasMaterials = materials.length > 0;
