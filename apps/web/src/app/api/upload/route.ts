@@ -32,56 +32,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No se proporcionó bucket' }, { status: 400 });
     }
 
-    // ✅ Validación 3: Bucket válido (whitelist)
-    const bucketValidation = validateBucket(bucket);
-    if (!bucketValidation.valid) {
-      logger.warn('Intento de upload a bucket no permitido', { bucket });
-      return NextResponse.json({ error: bucketValidation.error }, { status: 400 });
-    }
-
-    // ✅ Validación 4: Archivo válido (tamaño, tipo, extensión)
-    const fileValidation = validateFile(file, {
-      allowedTypes: UPLOAD_CONFIG.allowedMimeTypes.all,
-      allowedExtensions: UPLOAD_CONFIG.allowedExtensions.all,
-      maxSize: UPLOAD_CONFIG.maxFileSize
-    });
-
-    if (!fileValidation.valid) {
-      logger.warn('Intento de upload de archivo inválido', { 
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        error: fileValidation.error
-      });
-      return NextResponse.json({ error: fileValidation.error }, { status: 400 });
-    }
-
-    // ✅ Validación 5: Sanitizar folder (prevenir path traversal)
-    const sanitizedFolder = sanitizePath(folder);
+    // Validar tamaño y tipo según el bucket
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
     
-    // Log de seguridad si el folder fue modificado
-    if (sanitizedFolder !== folder && folder) {
-      logger.warn('Path traversal attempt detected', {
-        originalFolder: folder,
-        sanitizedFolder: sanitizedFolder
-      });
+    // Validaciones específicas para el bucket "courses" (solo imágenes, 8MB)
+    if (bucket === 'courses') {
+      const allowedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+      if (!allowedImageTypes.includes(file.type)) {
+        return NextResponse.json(
+          { error: 'El bucket "courses" solo acepta imágenes (PNG, JPEG, JPG, GIF)' },
+          { status: 400 }
+        );
+      }
+      const maxSize = 8 * 1024 * 1024; // 8MB
+      if (file.size > maxSize) {
+        return NextResponse.json(
+          { error: 'El archivo es demasiado grande. Máximo 8MB para el bucket "courses"' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Validación para otros buckets
+      const maxSize = isVideo ? 500 * 1024 * 1024 : 10 * 1024 * 1024; // 500MB para videos, 10MB para otros
+      if (file.size > maxSize) {
+        return NextResponse.json(
+          { 
+            error: `El archivo es demasiado grande. Máximo ${isVideo ? '500MB' : '10MB'}` 
+          }, 
+          { status: 400 }
+        );
+      }
     }
 
-    // ✅ Generar nombre único y seguro para el archivo
-    const fileName = generateSafeFileName(file.name);
+    // Sanitizar el folder si existe
+    const sanitizedFolder = folder ? sanitizePath(folder) : '';
+    
+    // Generar nombre único para el archivo
+    const fileExt = file.name.split('.').pop();
+    const fileName = generateSafeFileName(file.name, fileExt || '');
     const filePath = sanitizedFolder ? `${sanitizedFolder}/${fileName}` : fileName;
-
-    // ✅ Log de seguridad: Registrar intento de upload exitoso
-    logger.info('Upload attempt validated successfully', {
-      originalFileName: file.name,
-      generatedFileName: fileName,
-      originalFolder: folder,
-      sanitizedFolder: sanitizedFolder,
-      fileType: file.type,
-      fileSize: file.size,
-      bucket: bucket,
-      filePath: filePath
-    });
 
     // Subir archivo usando service role key
     const { data, error } = await supabase.storage
@@ -119,7 +109,7 @@ export async function POST(request: NextRequest) {
       validation: {
         sanitized: sanitizedFolder !== folder,
         bucket: bucket,
-        maxSizeAllowed: UPLOAD_CONFIG.maxFileSize
+        maxSizeAllowed: bucket === 'courses' ? '8MB' : (isVideo ? '500MB' : '10MB')
       }
     });
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Youtube, Video, Link as LinkIcon } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface VideoProviderSelectorProps {
   provider: 'youtube' | 'vimeo' | 'direct' | 'custom'
@@ -19,45 +20,130 @@ export function VideoProviderSelector({
   disabled = false
 }: VideoProviderSelectorProps) {
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const handleFileUpload = async (file: File) => {
     if (!file) return
 
     // Validar tipo de video
-    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg']
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo']
     if (!allowedTypes.includes(file.type)) {
       alert('Tipo de video no válido. Solo se permiten MP4, WebM y OGG')
       return
     }
 
-    // Validar tamaño
-    if (file.size > 500 * 1024 * 1024) {
-      alert('El video excede el tamaño máximo de 500MB')
+    // Validar tamaño (máximo 1GB)
+    const maxSize = 1024 * 1024 * 1024 // 1GB
+    if (file.size > maxSize) {
+      alert('El video excede el tamaño máximo de 1GB')
       return
     }
 
     setUploading(true)
+    setUploadProgress(0)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      // Subir directamente a Supabase Storage desde el cliente
+      // Esto evita los límites de tamaño de body en Next.js/Netlify
+      const supabase = createClient()
+      
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'mp4'
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `videos/${fileName}`
 
-      const response = await fetch('/api/admin/upload/course-videos', {
-        method: 'POST',
-        body: formData
-      })
+      console.log('📤 Subiendo video directamente a Supabase:', { fileName, size: file.size, type: file.type })
 
-      if (!response.ok) {
-        throw new Error('Error al subir el video')
+      // Simular progreso (Supabase no tiene callback de progreso nativo)
+      setUploadProgress(30)
+
+      // Intentar subir directamente al bucket course-videos
+      // Si falla por permisos, intentar obtener signed URL primero
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('course-videos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type
+        })
+
+      setUploadProgress(70)
+
+      if (uploadError) {
+        console.error('❌ Error uploading directly to Supabase:', uploadError)
+        
+        // Si el error es de permisos, intentar usar API route como fallback
+        if (uploadError.message?.includes('new row violates row-level security') || 
+            uploadError.message?.includes('permission denied') ||
+            uploadError.statusCode === '403') {
+          console.log('⚠️ Direct upload failed due to permissions, trying API route...')
+          
+          // Fallback: usar API route (puede fallar para archivos muy grandes, pero intentamos)
+          const formData = new FormData()
+          formData.append('file', file)
+
+          const response = await fetch('/api/admin/upload/course-videos', {
+            method: 'POST',
+            body: formData
+          })
+
+          const contentType = response.headers.get('content-type')
+          const isJson = contentType && contentType.includes('application/json')
+
+          if (!isJson) {
+            const textResponse = await response.text().catch(() => '')
+            console.error('❌ Server returned non-JSON response:', {
+              status: response.status,
+              contentType,
+              preview: textResponse.substring(0, 200)
+            })
+            throw new Error(`El servidor devolvió una respuesta inválida (${response.status}). El archivo puede ser demasiado grande para la API route.`)
+          }
+
+          const result = await response.json()
+
+          if (!response.ok) {
+            const errorMessage = result.details || result.error || result.message || 'Error al subir el video'
+            throw new Error(errorMessage)
+          }
+
+          if (!result.success || !result.url) {
+            throw new Error('No se recibió la URL del video subido')
+          }
+
+          setUploadProgress(100)
+          onVideoIdChange(result.url)
+          return
+        }
+        
+        throw new Error(`Error al subir el video: ${uploadError.message}`)
       }
 
-      const result = await response.json()
-      onVideoIdChange(result.url)
+      if (!uploadData) {
+        throw new Error('No se recibió confirmación de la subida')
+      }
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('course-videos')
+        .getPublicUrl(filePath)
+
+      if (!urlData?.publicUrl) {
+        throw new Error('Error al obtener la URL pública del video')
+      }
+
+      console.log('✅ Video uploaded successfully:', urlData.publicUrl)
+
+      setUploadProgress(100)
+      onVideoIdChange(urlData.publicUrl)
+      
     } catch (err) {
-      console.error('Error uploading video:', err)
-      alert('Error al subir el video')
+      console.error('💥 Error uploading video:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al subir el video'
+      alert(`Error al subir el video: ${errorMessage}`)
     } finally {
       setUploading(false)
+      setTimeout(() => setUploadProgress(0), 1000)
     }
   }
 
@@ -189,9 +275,19 @@ export function VideoProviderSelector({
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
             {uploading && (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Subiendo video...
-              </p>
+              <div className="mt-2">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Subiendo video... {uploadProgress}%
+                  </p>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
             )}
           </>
         )}

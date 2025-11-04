@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+// Este archivo solo contiene interfaces y métodos del cliente
+// Para métodos del servidor, ver instructorStats.server.service.ts
 
 export interface InstructorStats {
   totalCourses: number
@@ -11,85 +12,107 @@ export interface InstructorStats {
   reelsThisMonth: number
 }
 
+// Interfaces para estadísticas detalladas
+export interface HRStats {
+  usersByCountry: Array<{ country: string; count: number }>
+  registrationsByDate: Array<{ date: string; count: number }>
+  demographics: {
+    byRole: Record<string, number>
+    byLevel: Record<string, number>
+    byArea: Record<string, number>
+    bySector: Record<string, number>
+    byCompanySize: Record<string, number>
+    byRelation: Record<string, number>
+    verifiedUsers: number
+  }
+}
+
+export interface CourseMetrics {
+  totalCourses: number
+  totalStudents: number
+  averageRating: number
+  totalRevenue: number
+  studentsByCourse: Array<{ courseId: string; courseTitle: string; studentCount: number }>
+  progressByCourse: Array<{ courseId: string; courseTitle: string; averageProgress: number }>
+  completionByCourse: Array<{ courseId: string; courseTitle: string; completionRate: number }>
+  ratingsByCourse: Array<{ courseId: string; courseTitle: string; averageRating: number }>
+  revenueByCourse: Array<{ courseId: string; courseTitle: string; revenue: number }>
+  enrollmentsByDate: Record<string, number>
+}
+
+export interface CommunityMetrics {
+  totalCommunities: number
+  totalMembers: number
+  totalPosts: number
+  totalComments: number
+  membersByCommunity: Array<{ communityId: string; communityName: string; memberCount: number }>
+  postsByCommunity: Array<{ communityId: string; communityName: string; postCount: number }>
+  commentsByCommunity: Array<{ communityId: string; communityName: string; commentCount: number }>
+  activityByCommunity: Array<{ communityId: string; communityName: string; activityScore: number }>
+  pointsByCommunity: Array<{ communityId: string; communityName: string; totalPoints: number }>
+  activityByDate: Record<string, { posts: number; comments: number }>
+}
+
+export interface NewsMetrics {
+  totalNews: number
+  publishedNews: number
+  totalViews: number
+  totalComments: number
+  viewsByDate: Record<string, number>
+  commentsByDate: Record<string, number>
+  engagementByNews: Array<{ newsId: string; newsTitle: string; views: number; comments: number; engagementRate: number }>
+  topNews: Array<{ newsId: string; newsTitle: string; views: number }>
+}
+
+export interface ReelMetrics {
+  totalReels: number
+  activeReels: number
+  totalViews: number
+  totalLikes: number
+  totalShares: number
+  totalComments: number
+  viewsByDate: Record<string, number>
+  likesByDate: Record<string, number>
+  engagementByReel: Array<{ reelId: string; reelTitle: string; views: number; likes: number; shares: number; comments: number; engagementRate: number }>
+  topReels: Array<{ reelId: string; reelTitle: string; views: number }>
+}
+
+export interface DetailedInstructorStats {
+  period: string
+  dateRange: {
+    start: string
+    end: string
+  }
+  hr: HRStats
+  courses: CourseMetrics
+  communities: CommunityMetrics
+  news: NewsMetrics
+  reels: ReelMetrics
+}
+
 export class InstructorStatsService {
   /**
-   * Obtiene las estadísticas del instructor basándose en su instructor_id
+   * Obtiene estadísticas detalladas del instructor incluyendo RRHH, cursos, comunidades, noticias y reels
+   * Este método debe ser llamado desde el cliente (client-side)
    */
-  static async getInstructorStats(instructorId: string): Promise<InstructorStats> {
-    const supabase = await createClient()
-
+  static async getDetailedStats(period: string = '1month'): Promise<DetailedInstructorStats> {
     try {
-      // Obtener todos los cursos del instructor
-      const { data: courses, error: coursesError } = await supabase
-        .from('courses')
-        .select('id, student_count, average_rating, duration_total_minutes, created_at')
-        .eq('instructor_id', instructorId)
-
-      if (coursesError) {
-        console.error('Error fetching courses for instructor:', coursesError)
-        throw new Error(`Error al obtener cursos: ${coursesError.message}`)
+      // Solo usar fetch si estamos en el cliente
+      if (typeof window === 'undefined') {
+        throw new Error('getDetailedStats debe ser llamado desde el cliente')
       }
 
-      // Obtener todos los reels del instructor
-      const { data: reels, error: reelsError } = await supabase
-        .from('reels')
-        .select('id, created_at')
-        .eq('created_by', instructorId)
-
-      if (reelsError) {
-        console.error('Error fetching reels for instructor:', reelsError)
-        throw new Error(`Error al obtener reels: ${reelsError.message}`)
+      const response = await fetch(`/api/instructor/stats/detailed?period=${period}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`)
       }
 
-      // Calcular totales
-      const totalCourses = courses?.length || 0
-      const totalReels = reels?.length || 0
-
-      // Sumar estudiantes (suma de student_count de todos los cursos)
-      const totalStudents = courses?.reduce((sum, course) => sum + (course.student_count || 0), 0) || 0
-
-      // Calcular calificación promedio (promedio de average_rating de los cursos que tienen rating)
-      const coursesWithRating = courses?.filter(c => c.average_rating && c.average_rating > 0) || []
-      const averageRating = coursesWithRating.length > 0
-        ? coursesWithRating.reduce((sum, course) => sum + (course.average_rating || 0), 0) / coursesWithRating.length
-        : 0
-
-      // Sumar horas totales (suma de duration_total_minutes convertido a horas)
-      const totalMinutes = courses?.reduce((sum, course) => sum + (course.duration_total_minutes || 0), 0) || 0
-      const totalHours = Math.round(totalMinutes / 60)
-
-      // Calcular crecimiento este mes
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-
-      const coursesThisMonth = courses?.filter(
-        course => new Date(course.created_at) >= startOfMonth
-      ).length || 0
-
-      const reelsThisMonth = reels?.filter(
-        reel => new Date(reel.created_at) >= startOfMonth
-      ).length || 0
-
-      // Para estudiantes este mes, necesitamos obtener los cursos creados este mes y sumar sus estudiantes
-      const newCoursesThisMonth = courses?.filter(
-        course => new Date(course.created_at) >= startOfMonth
-      ) || []
-      const studentsThisMonth = newCoursesThisMonth.reduce(
-        (sum, course) => sum + (course.student_count || 0), 0
-      )
-
-      return {
-        totalCourses,
-        totalStudents,
-        totalReels,
-        averageRating: Math.round(averageRating * 10) / 10, // Redondear a 1 decimal
-        totalHours,
-        coursesThisMonth,
-        studentsThisMonth,
-        reelsThisMonth
-      }
+      const data = await response.json()
+      return data
     } catch (error) {
-      console.error('Error in InstructorStatsService.getInstructorStats:', error)
+      console.error('Error in InstructorStatsService.getDetailedStats:', error)
       throw error
     }
   }

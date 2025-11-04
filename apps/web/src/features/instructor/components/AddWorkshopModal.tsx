@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { XMarkIcon, AcademicCapIcon, PhotoIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, AcademicCapIcon } from '@heroicons/react/24/outline'
+import { ImageUploadCourse } from './ImageUploadCourse'
 
 interface AddWorkshopModalProps {
   isOpen: boolean
@@ -278,19 +279,13 @@ export function AddWorkshopModal({ isOpen, onClose, onSave }: AddWorkshopModalPr
 
             <div className={fieldStyles.container}>
               <label className={fieldStyles.label}>
-                URL de Imagen
+                Imagen del Taller
               </label>
-              <div className={fieldStyles.inputContainer}>
-                <PhotoIcon className={fieldStyles.icon} />
-                <input
-                  type="url"
-                  name="thumbnail_url"
+              <ImageUploadCourse
                   value={formData.thumbnail_url}
-                  onChange={handleChange}
-                  className={fieldStyles.input}
-                  placeholder="https://ejemplo.com/imagen.jpg"
+                onChange={(url) => setFormData(prev => ({ ...prev, thumbnail_url: url }))}
+                disabled={isLoading}
                 />
-              </div>
             </div>
 
             <div className={fieldStyles.container}>

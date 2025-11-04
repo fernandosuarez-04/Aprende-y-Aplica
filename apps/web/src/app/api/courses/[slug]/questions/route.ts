@@ -81,30 +81,51 @@ export async function GET(
       );
     }
 
-    // Calcular response_count total incluyendo todas las respuestas anidadas
+    // Optimización: Calcular response_count para todas las preguntas en una sola consulta
     if (questions && questions.length > 0) {
-      const questionsWithCounts = await Promise.all(
-        questions.map(async (question: any) => {
-          // Contar todas las respuestas (directas y anidadas) para esta pregunta
-          const { count, error: countError } = await supabase
-            .from('course_question_responses')
-            .select('*', { count: 'exact', head: true })
-            .eq('question_id', question.id)
-            .eq('is_deleted', false);
+      const questionIds = questions.map((q: any) => q.id);
+      
+      // Obtener todos los conteos de respuestas en una sola consulta
+      const { data: responseCounts, error: countError } = await supabase
+        .from('course_question_responses')
+        .select('question_id')
+        .in('question_id', questionIds)
+        .eq('is_deleted', false);
 
-          if (countError) {
-            console.error(`Error counting responses for question ${question.id}:`, countError);
-            // Mantener el response_count original si hay error
-            return question;
-          }
+      // Crear un mapa de conteos: questionId -> count
+      const countsMap = new Map<string, number>();
+      if (responseCounts && !countError) {
+        responseCounts.forEach((response: any) => {
+          const questionId = response.question_id;
+          countsMap.set(questionId, (countsMap.get(questionId) || 0) + 1);
+        });
+      }
 
-          // Reemplazar response_count con el conteo total incluyendo anidadas
-          return {
-            ...question,
-            response_count: count || 0
-          };
-        })
-      );
+      // Obtener usuario actual para incluir reacciones del usuario
+      const currentUser = await SessionService.getCurrentUser();
+      let userReactionsMap = new Map<string, string>();
+      
+      if (currentUser && questionIds.length > 0) {
+        // Cargar reacciones del usuario en una sola consulta
+        const { data: userReactions } = await supabase
+          .from('course_question_reactions')
+          .select('question_id, reaction_type')
+          .eq('user_id', currentUser.id)
+          .in('question_id', questionIds);
+        
+        if (userReactions) {
+          userReactions.forEach((reaction: any) => {
+            userReactionsMap.set(reaction.question_id, reaction.reaction_type);
+          });
+        }
+      }
+
+      // Aplicar conteos y reacciones a las preguntas
+      const questionsWithCounts = questions.map((question: any) => ({
+        ...question,
+        response_count: countsMap.get(question.id) || question.response_count || 0,
+        user_reaction: userReactionsMap.get(question.id) || null
+      }));
 
       return NextResponse.json(questionsWithCounts || []);
     }

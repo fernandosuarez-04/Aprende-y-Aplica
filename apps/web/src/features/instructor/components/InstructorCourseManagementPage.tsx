@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, Trash2, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from '@/features/admin/components/AdvancedCharts'
-import { useAdminModules } from '@/features/admin/hooks/useAdminModules'
-import { useAdminLessons } from '@/features/admin/hooks/useAdminLessons'
-import { useAdminMaterials } from '@/features/admin/hooks/useAdminMaterials'
-import { useAdminActivities } from '@/features/admin/hooks/useAdminActivities'
+import { useInstructorModules } from '@/features/instructor/hooks/useInstructorModules'
+import { useInstructorLessons } from '@/features/instructor/hooks/useInstructorLessons'
+import { useInstructorMaterials } from '@/features/instructor/hooks/useInstructorMaterials'
+import { useInstructorActivities } from '@/features/instructor/hooks/useInstructorActivities'
 import { AdminModule } from '@/features/admin/services/adminModules.service'
 import { AdminLesson } from '@/features/admin/services/adminLessons.service'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -15,6 +15,7 @@ import { ModuleModal } from '@/features/admin/components/ModuleModal'
 import { LessonModal } from '@/features/admin/components/LessonModal'
 import { MaterialModal } from '@/features/admin/components/MaterialModal'
 import { ActivityModal } from '@/features/admin/components/ActivityModal'
+import { ImageUploadCourse } from './ImageUploadCourse'
 
 interface InstructorCourseManagementPageProps {
   courseId: string
@@ -35,11 +36,13 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null)
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null)
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
+  const [deletingModule, setDeletingModule] = useState<AdminModule | null>(null)
+  const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false)
 
-  const { modules, loading: modulesLoading, fetchModules, createModule, updateModule } = useAdminModules()
-  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson } = useAdminLessons()
-  const { materials, fetchMaterials, createMaterial } = useAdminMaterials()
-  const { activities, fetchActivities, createActivity, updateActivity } = useAdminActivities()
+  const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useInstructorModules()
+  const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson } = useInstructorLessons(courseId)
+  const { materials, fetchMaterials, createMaterial } = useInstructorMaterials()
+  const { activities, fetchActivities, createActivity, updateActivity } = useInstructorActivities()
   const { user } = useAuth()
 
   const [workshopPreview, setWorkshopPreview] = useState<any>(null)
@@ -148,7 +151,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       if (next.has(moduleId)) next.delete(moduleId)
       else {
         next.add(moduleId)
-        fetchLessons(moduleId)
+        fetchLessons(moduleId, courseId)
       }
       return next
     })
@@ -160,8 +163,12 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       if (next.has(lessonId)) next.delete(lessonId)
       else {
         next.add(lessonId)
-        fetchMaterials(lessonId)
-        fetchActivities(lessonId)
+        // Obtener el moduleId de la lección
+        const lesson = lessons.find(l => l.lesson_id === lessonId)
+        if (lesson && lesson.module_id) {
+          fetchMaterials(lessonId, courseId, lesson.module_id)
+          fetchActivities(lessonId, courseId, lesson.module_id)
+        }
       }
       return next
     })
@@ -267,7 +274,16 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       >
                         Editar
                       </button>
-                      {/* No mostramos eliminar en vista de instructor */}
+                      <button
+                        onClick={() => {
+                          setDeletingModule(module)
+                          setShowDeleteModuleModal(true)
+                        }}
+                        className="px-4 py-2 bg-red-900/30 hover:bg-red-800/40 rounded-lg text-sm text-red-200"
+                        title="Eliminar módulo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingModuleId(module.module_id)
@@ -453,8 +469,12 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
                 <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
-                  <label className="block text-sm font-medium text-purple-200 mb-2">URL de Imagen</label>
-                  <input name="thumbnail_url" value={configData.thumbnail_url} onChange={handleConfigChange} className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2" />
+                  <label className="block text-sm font-medium text-purple-200 mb-2">Imagen del Curso</label>
+                  <ImageUploadCourse
+                    value={configData.thumbnail_url}
+                    onChange={(url) => setConfigData(prev => ({ ...prev, thumbnail_url: url }))}
+                    disabled={savingConfig}
+                  />
                 </div>
                 <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                   <label className="block text-sm font-medium text-purple-200 mb-2">Slug (URL)</label>
@@ -855,11 +875,50 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               setSelectedModule(null)
             }}
             onSave={async (data) => {
-              if (selectedModule) await updateModule(selectedModule.module_id, data)
+              if (selectedModule) await updateModule(courseId, selectedModule.module_id, data)
               else await createModule(courseId, data)
               setShowModuleModal(false)
             }}
           />
+        )}
+
+        {showDeleteModuleModal && deletingModule && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold text-white mb-4">Confirmar Eliminación</h3>
+              <p className="text-gray-300 mb-6">
+                ¿Estás seguro de que deseas eliminar el módulo "{deletingModule.module_title}"? 
+                Esta acción no se puede deshacer y eliminará todas las lecciones asociadas.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModuleModal(false)
+                    setDeletingModule(null)
+                  }}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteModule(courseId, deletingModule.module_id)
+                      await fetchModules(courseId) // Recargar módulos después de eliminar
+                      setShowDeleteModuleModal(false)
+                      setDeletingModule(null)
+                    } catch (error) {
+                      console.error('Error deleting module:', error)
+                      alert('Error al eliminar el módulo')
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {showLessonModal && editingModuleId && (
@@ -872,8 +931,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               setEditingModuleId(null)
             }}
             onSave={async (data) => {
-              if (selectedLesson) await updateLesson(selectedLesson.lesson_id, data)
-              else await createLesson(editingModuleId, data)
+              if (selectedLesson) await updateLesson(selectedLesson.lesson_id, data, courseId)
+              else await createLesson(editingModuleId, data, courseId)
               setShowLessonModal(false)
               setSelectedLesson(null)
               setEditingModuleId(null)
@@ -882,43 +941,51 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           />
         )}
 
-        {showMaterialModal && editingLessonId && (
-          <MaterialModal
-            material={null}
-            lessonId={editingLessonId}
-            onClose={() => {
-              setShowMaterialModal(false)
-              setEditingLessonId(null)
-            }}
-            onSave={async (data) => {
-              await createMaterial(editingLessonId, data)
-              setShowMaterialModal(false)
-              setEditingLessonId(null)
-            }}
-          />
-        )}
+        {showMaterialModal && editingLessonId && (() => {
+          const lesson = lessons.find(l => l.lesson_id === editingLessonId)
+          if (!lesson || !lesson.module_id) return null
+          return (
+            <MaterialModal
+              material={null}
+              lessonId={editingLessonId}
+              onClose={() => {
+                setShowMaterialModal(false)
+                setEditingLessonId(null)
+              }}
+              onSave={async (data) => {
+                await createMaterial(editingLessonId, courseId, lesson.module_id, data)
+                setShowMaterialModal(false)
+                setEditingLessonId(null)
+              }}
+            />
+          )
+        })()}
 
-        {showActivityModal && editingLessonId && (
-          <ActivityModal
-            activity={editingActivityId ? activities.find(a => a.activity_id === editingActivityId) || null : null}
-            lessonId={editingLessonId}
-            onClose={() => {
-              setShowActivityModal(false)
-              setEditingLessonId(null)
-              setEditingActivityId(null)
-            }}
-            onSave={async (data) => {
-              if (editingActivityId) {
-                await updateActivity(editingActivityId, data)
-              } else {
-                await createActivity(editingLessonId, data)
-              }
-              setShowActivityModal(false)
-              setEditingLessonId(null)
-              setEditingActivityId(null)
-            }}
-          />
-        )}
+        {showActivityModal && editingLessonId && (() => {
+          const lesson = lessons.find(l => l.lesson_id === editingLessonId)
+          if (!lesson || !lesson.module_id) return null
+          return (
+            <ActivityModal
+              activity={editingActivityId ? activities.find(a => a.activity_id === editingActivityId) || null : null}
+              lessonId={editingLessonId}
+              onClose={() => {
+                setShowActivityModal(false)
+                setEditingLessonId(null)
+                setEditingActivityId(null)
+              }}
+              onSave={async (data) => {
+                if (editingActivityId) {
+                  await updateActivity(editingActivityId, courseId, lesson.module_id, editingLessonId, data)
+                } else {
+                  await createActivity(editingLessonId, courseId, lesson.module_id, data)
+                }
+                setShowActivityModal(false)
+                setEditingLessonId(null)
+                setEditingActivityId(null)
+              }}
+            />
+          )
+        })()}
       </div>
     </div>
   )

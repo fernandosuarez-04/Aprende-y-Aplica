@@ -59,6 +59,17 @@ export async function POST(
       )
     }
 
+    // Validar que duration_seconds sea mayor a 0
+    if (!body.duration_seconds || body.duration_seconds <= 0) {
+      return NextResponse.json(
+        { 
+          error: 'La duración debe ser mayor a 0 segundos',
+          details: 'El campo duration_seconds debe tener un valor positivo'
+        },
+        { status: 400 }
+      )
+    }
+
     const lesson = await AdminLessonsService.createLesson(moduleId, body)
 
     return NextResponse.json({

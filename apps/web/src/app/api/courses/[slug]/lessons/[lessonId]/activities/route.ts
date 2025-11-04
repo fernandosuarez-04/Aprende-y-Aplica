@@ -13,7 +13,7 @@ export async function GET(
     const { slug, lessonId } = await params;
     const supabase = await createClient();
 
-    // Verificar que el curso existe
+    // Optimización: Obtener curso primero, luego validar lección y módulo en una consulta
     const { data: course, error: courseError } = await supabase
       .from('courses')
       .select('id')
@@ -27,31 +27,24 @@ export async function GET(
       );
     }
 
-    // Verificar que la lección existe y pertenece al curso
+    // Optimización: Verificar lección y módulo en una sola consulta con JOIN
     const { data: lesson, error: lessonError } = await supabase
       .from('course_lessons')
-      .select('lesson_id, module_id')
+      .select(`
+        lesson_id,
+        module_id,
+        course_modules!inner (
+          module_id,
+          course_id
+        )
+      `)
       .eq('lesson_id', lessonId)
+      .eq('course_modules.course_id', course.id)
       .single();
 
     if (lessonError || !lesson) {
       return NextResponse.json(
-        { error: 'Lección no encontrada' },
-        { status: 404 }
-      );
-    }
-
-    // Verificar que el módulo pertenece al curso
-    const { data: module, error: moduleError } = await supabase
-      .from('course_modules')
-      .select('module_id')
-      .eq('module_id', lesson.module_id)
-      .eq('course_id', course.id)
-      .single();
-
-    if (moduleError || !module) {
-      return NextResponse.json(
-        { error: 'Módulo no encontrado o no pertenece al curso' },
+        { error: 'Lección no encontrada o no pertenece al curso' },
         { status: 404 }
       );
     }

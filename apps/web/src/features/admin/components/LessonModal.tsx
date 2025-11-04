@@ -56,6 +56,12 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
       return
     }
 
+    // Validar que duration_seconds sea mayor a 0
+    if (!formData.duration_seconds || formData.duration_seconds <= 0) {
+      alert('La duración debe ser mayor a 0 segundos. Por favor, ingrese una duración válida.')
+      return
+    }
+
     setLoading(true)
 
     try {
