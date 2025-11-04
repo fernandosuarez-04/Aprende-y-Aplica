@@ -16,6 +16,8 @@ import { LessonModal } from '@/features/admin/components/LessonModal'
 import { MaterialModal } from '@/features/admin/components/MaterialModal'
 import { ActivityModal } from '@/features/admin/components/ActivityModal'
 import { ImageUploadCourse } from './ImageUploadCourse'
+import { CertificateTemplatePreview } from '@/features/admin/components/CertificateTemplatePreview'
+import { InstructorSignatureUpload } from './InstructorSignatureUpload'
 
 interface InstructorCourseManagementPageProps {
   courseId: string
@@ -54,6 +56,10 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [statsLoading, setStatsLoading] = useState<boolean>(false)
   const [chartData, setChartData] = useState<any>(null)
   const [savingConfig, setSavingConfig] = useState<boolean>(false)
+  const [showTemplatePreview, setShowTemplatePreview] = useState<boolean>(false)
+  const [selectedCertificateTemplate, setSelectedCertificateTemplate] = useState<string>('default')
+  const [instructorSignatureUrl, setInstructorSignatureUrl] = useState<string | null>(null)
+  const [instructorSignatureName, setInstructorSignatureName] = useState<string | null>(null)
   const [configData, setConfigData] = useState({
     title: '',
     description: '',
@@ -79,7 +85,30 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       }
     }
     loadPreview()
-  }, [courseId])
+    
+    // Cargar firma del instructor desde la base de datos
+    const loadInstructorSignature = async () => {
+      if (!user?.id) return
+      
+      try {
+        const res = await fetch(`/api/auth/me`)
+        const data = await res.json()
+        if (res.ok && data?.user) {
+          // Los campos signature_url y signature_name se obtendrán cuando se agreguen a la BD
+          // Por ahora, se mantendrán en el estado local
+          if (data.user.signature_url) {
+            setInstructorSignatureUrl(data.user.signature_url)
+          }
+          if (data.user.signature_name) {
+            setInstructorSignatureName(data.user.signature_name)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading instructor signature:', error)
+      }
+    }
+    loadInstructorSignature()
+  }, [courseId, user?.id])
 
   useEffect(() => {
     if (workshopPreview) {
@@ -544,12 +573,14 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
-                      <label className="block text-sm font-medium text-purple-200 mb-2">Plantilla de Certificado</label>
-                      <select className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2">
-                        <option value="default">Plantilla por Defecto</option>
-                        <option value="premium">Plantilla Premium</option>
-                        <option value="minimal">Plantilla Minimalista</option>
-                      </select>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">Vista Previa de Plantilla</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowTemplatePreview(true)}
+                        className="w-full px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors"
+                      >
+                        Ver Plantilla
+                      </button>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-purple-200 mb-2">Porcentaje de Completación Requerido</label>
@@ -565,68 +596,56 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 </div>
 
                 <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Certificado de Participación</h3>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                  </div>
-                  <p className="text-sm text-purple-200/70 mb-4">
-                    Emite un certificado de participación para estudiantes que hayan completado al menos el 50% del curso.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="block text-sm font-medium text-purple-200 mb-2">Porcentaje Mínimo de Completación</label>
-                      <input 
-                        type="number" 
-                        min="0" 
-                        max="100" 
-                        defaultValue="50" 
-                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
                   <h3 className="text-lg font-semibold text-white mb-4">Información del Certificado</h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-purple-200 mb-2">Nombre de la Organización Emisora</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ej: Aprende y Aplica"
-                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
-                      />
-                    </div>
-                    <div>
                       <label className="block text-sm font-medium text-purple-200 mb-2">Firma del Instructor</label>
-                      <input 
-                        type="text" 
-                        placeholder="Nombre del instructor"
-                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-purple-200 mb-2">Mensaje Personalizado</label>
-                      <textarea 
-                        rows={4}
-                        placeholder="Mensaje que aparecerá en el certificado..."
-                        className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2"
+                      <p className="text-xs text-purple-200/60 mb-3">
+                        Sube una imagen de tu firma escaneada o escribe tu nombre completo para aparecer en los certificados
+                      </p>
+                      <InstructorSignatureUpload
+                        currentSignatureUrl={instructorSignatureUrl}
+                        currentSignatureName={instructorSignatureName}
+                        onUpload={async (url, signatureName) => {
+                          console.log('InstructorSignatureUpload - onUpload called:', { url, signatureName })
+                          // Actualizar estado inmediatamente
+                          setInstructorSignatureUrl(url)
+                          setInstructorSignatureName(signatureName)
+                          console.log('InstructorSignatureUpload - State updated:', { 
+                            newUrl: url, 
+                            newName: signatureName 
+                          })
+                          // Recargar la firma desde la base de datos después de un pequeño delay
+                          // para asegurar que la BD se haya actualizado
+                          setTimeout(async () => {
+                            try {
+                              const res = await fetch(`/api/auth/me`)
+                              const data = await res.json()
+                              if (res.ok && data?.user) {
+                                console.log('InstructorSignatureUpload - Reloaded from DB:', {
+                                  signature_url: data.user.signature_url,
+                                  signature_name: data.user.signature_name
+                                })
+                                if (data.user.signature_url) {
+                                  setInstructorSignatureUrl(data.user.signature_url)
+                                } else {
+                                  setInstructorSignatureUrl(null)
+                                }
+                                if (data.user.signature_name) {
+                                  setInstructorSignatureName(data.user.signature_name)
+                                } else {
+                                  setInstructorSignatureName(null)
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error reloading signature:', error)
+                            }
+                          }, 500)
+                        }}
                       />
                     </div>
                   </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button 
-                    className="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg"
-                  >
-                    Guardar Configuración de Certificados
-                  </button>
                 </div>
               </div>
             </div>
@@ -1205,6 +1224,23 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
             />
           )
         })()}
+
+        {/* Modal de Preview de Plantillas de Certificados */}
+        <CertificateTemplatePreview
+          key={`cert-preview-${instructorSignatureName || 'no-name'}-${instructorSignatureUrl || 'no-url'}`}
+          isOpen={showTemplatePreview}
+          onClose={() => setShowTemplatePreview(false)}
+          selectedTemplate={selectedCertificateTemplate}
+          onSelectTemplate={(templateId) => {
+            setSelectedCertificateTemplate(templateId)
+          }}
+          instructorSignatureUrl={instructorSignatureUrl}
+          instructorSignatureName={instructorSignatureName}
+          instructorDisplayName={workshopPreview?.instructor_name || user?.display_name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : user?.username) || undefined}
+          studentName={workshopPreview?.title ? 'Estudiante Ejemplo' : undefined}
+          courseName={workshopPreview?.title || undefined}
+          issueDate={new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+        />
       </div>
     </div>
   )

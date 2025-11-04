@@ -227,7 +227,7 @@ export class InstructorWorkshopsService {
   /**
    * Obtiene un taller por id (sin restricciones de instructor, para vista previa)
    */
-  static async getWorkshopById(workshopId: string): Promise<InstructorWorkshop | null> {
+  static async getWorkshopById(workshopId: string): Promise<(InstructorWorkshop & { instructor_name?: string }) | null> {
     const supabase = await createClient()
 
     try {
@@ -264,7 +264,27 @@ export class InstructorWorkshopsService {
         throw error
       }
 
-      return (data || null) as InstructorWorkshop | null
+      // Obtener información del instructor
+      let instructorName: string | undefined = undefined
+      if (data?.instructor_id) {
+        const { data: instructor } = await supabase
+          .from('users')
+          .select('display_name, first_name, last_name, username')
+          .eq('id', data.instructor_id)
+          .single()
+        
+        if (instructor) {
+          instructorName = instructor.display_name || 
+            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+            instructor.username ||
+            'Instructor'
+        }
+      }
+
+      return {
+        ...(data as InstructorWorkshop),
+        instructor_name: instructorName
+      }
     } catch (error) {
       console.error('Error in InstructorWorkshopsService.getWorkshopById:', error)
       throw error

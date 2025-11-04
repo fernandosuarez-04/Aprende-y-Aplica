@@ -72,11 +72,11 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-sm font-medium text-gray-300">Preguntas del Quiz</h4>
+        <h4 className="text-base font-semibold text-gray-200">Preguntas del Quiz</h4>
         <button
           type="button"
           onClick={addQuestion}
-          className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+          className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-md shadow-blue-500/20"
         >
           <Plus className="w-4 h-4" />
           <span>Agregar Pregunta</span>
@@ -84,7 +84,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
       </div>
 
       {questions.map((question, index) => (
-        <div key={question.id} className="p-4 bg-gray-700 rounded-lg border border-gray-600">
+        <div key={question.id} className="p-5 bg-gray-700/50 rounded-xl border border-gray-600/50 hover:border-gray-600 transition-all duration-200">
           {/* Header de la pregunta */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
@@ -106,7 +106,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
             <select
               value={question.questionType}
               onChange={(e) => updateQuestion(question.id, 'questionType', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-500"
             >
               <option value="multiple_choice">Opción Múltiple</option>
               <option value="true_false">Verdadero/Falso</option>
@@ -122,7 +122,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
               onChange={(e) => updateQuestion(question.id, 'question', e.target.value)}
               placeholder="Escribe la pregunta aquí..."
               rows={2}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-500 resize-y min-h-[80px] scrollbar-thin-dark"
             />
           </div>
 
@@ -144,7 +144,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
                       value={option}
                       onChange={(e) => updateOption(question.id, optIndex, e.target.value)}
                       placeholder={`Opción ${optIndex + 1}`}
-                      className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+                      className="flex-1 px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-500"
                     />
                     {question.options && question.options.length > 1 && (
                       <button
@@ -177,7 +177,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
                 <select
                   value={question.correctAnswer}
                   onChange={(e) => updateQuestion(question.id, 'correctAnswer', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-500"
                 >
                   <option value="">Seleccionar...</option>
                   <option value="true">Verdadero</option>
@@ -189,7 +189,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
                   value={question.correctAnswer}
                   onChange={(e) => updateQuestion(question.id, 'correctAnswer', e.target.value)}
                   placeholder="Respuesta correcta..."
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-500"
                 />
               )}
             </div>
@@ -203,7 +203,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
               onChange={(e) => updateQuestion(question.id, 'explanation', e.target.value)}
               placeholder="Explica por qué esta es la respuesta correcta..."
               rows={2}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-500 resize-y min-h-[80px] scrollbar-thin-dark"
             />
           </div>
 
@@ -215,7 +215,7 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
               value={question.points}
               onChange={(e) => updateQuestion(question.id, 'points', parseInt(e.target.value) || 1)}
               min="1"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
+              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-500"
             />
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, GripVertical, Book, FileText, ClipboardList, Flag, Clock, BarChart3, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, GripVertical, Book, FileText, ClipboardList, Flag, Clock, BarChart3, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Pencil, Trash2, Settings, Eye, Award } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from './AdvancedCharts'
 import { useAdminModules } from '../hooks/useAdminModules'
 import { useAdminLessons } from '../hooks/useAdminLessons'
@@ -14,6 +14,9 @@ import { ModuleModal } from './ModuleModal'
 import { LessonModal } from './LessonModal'
 import { MaterialModal } from './MaterialModal'
 import { ActivityModal } from './ActivityModal'
+import { ImageUploadCourse } from '@/features/instructor/components/ImageUploadCourse'
+import { CertificateTemplatePreview } from './CertificateTemplatePreview'
+import { InstructorSignatureUpload } from '@/features/instructor/components/InstructorSignatureUpload'
 
 interface CourseManagementPageProps {
   courseId: string
@@ -21,7 +24,7 @@ interface CourseManagementPageProps {
 
 export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'preview' | 'stats'>('modules')
+  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'certificates' | 'preview' | 'stats'>('modules')
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
   
@@ -33,16 +36,35 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const [selectedLesson, setSelectedLesson] = useState<AdminLesson | null>(null)
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null)
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null)
+  const [editingMaterial, setEditingMaterial] = useState<any | null>(null)
+  const [editingActivity, setEditingActivity] = useState<any | null>(null)
   const [instructors, setInstructors] = useState<Array<{ id: string, name: string }>>([])
   const [userStats, setUserStats] = useState<any>(null)
   const [enrolledUsers, setEnrolledUsers] = useState<any[]>([])
   const [statsLoading, setStatsLoading] = useState<boolean>(false)
   const [chartData, setChartData] = useState<any>(null)
+  const [workshopPreview, setWorkshopPreview] = useState<any>(null)
+  const [previewLoading, setPreviewLoading] = useState<boolean>(false)
+  const [savingConfig, setSavingConfig] = useState<boolean>(false)
+  const [showTemplatePreview, setShowTemplatePreview] = useState<boolean>(false)
+  const [selectedCertificateTemplate, setSelectedCertificateTemplate] = useState<string>('default')
+  const [instructorSignatureUrl, setInstructorSignatureUrl] = useState<string | null>(null)
+  const [instructorSignatureName, setInstructorSignatureName] = useState<string | null>(null)
+  const [configData, setConfigData] = useState({
+    title: '',
+    description: '',
+    category: 'ia',
+    level: 'beginner',
+    duration_total_minutes: 60,
+    price: 0,
+    thumbnail_url: '',
+    slug: '',
+  })
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useAdminModules()
   const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useAdminLessons(courseId)
-  const { materials, fetchMaterials, createMaterial } = useAdminMaterials()
-  const { activities, fetchActivities, createActivity } = useAdminActivities()
+  const { materials, getMaterialsByLesson, fetchMaterials, createMaterial, updateMaterial, deleteMaterial } = useAdminMaterials()
+  const { activities, getActivitiesByLesson, fetchActivities, createActivity, updateActivity, deleteActivity } = useAdminActivities()
 
   useEffect(() => {
     fetchModules(courseId)
@@ -55,7 +77,54 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         }
       })
       .catch(err => console.error('Error fetching instructors:', err))
+    
+    // Cargar datos para vista previa
+    const loadPreview = async () => {
+      try {
+        setPreviewLoading(true)
+        const res = await fetch(`/api/admin/workshops/${courseId}`)
+        const data = await res.json()
+        if (res.ok && data?.workshop) setWorkshopPreview(data.workshop)
+      } finally {
+        setPreviewLoading(false)
+      }
+    }
+    loadPreview()
+    
+    // Cargar firma del instructor desde la base de datos
+    const loadInstructorSignature = async () => {
+      try {
+        const res = await fetch(`/api/auth/me`)
+        const data = await res.json()
+        if (res.ok && data?.user) {
+          if (data.user.signature_url) {
+            setInstructorSignatureUrl(data.user.signature_url)
+          }
+          if (data.user.signature_name) {
+            setInstructorSignatureName(data.user.signature_name)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading instructor signature:', error)
+      }
+    }
+    loadInstructorSignature()
   }, [courseId])
+
+  useEffect(() => {
+    if (workshopPreview) {
+      setConfigData({
+        title: workshopPreview.title || '',
+        description: workshopPreview.description || '',
+        category: workshopPreview.category || 'ia',
+        level: workshopPreview.level || 'beginner',
+        duration_total_minutes: workshopPreview.duration_total_minutes || 60,
+        price: workshopPreview.price || 0,
+        thumbnail_url: workshopPreview.thumbnail_url || '',
+        slug: workshopPreview.slug || '',
+      })
+    }
+  }, [workshopPreview])
 
   useEffect(() => {
     if (activeTab === 'stats') {
@@ -77,6 +146,35 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       })()
     }
   }, [activeTab, courseId])
+
+  const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setConfigData(prev => ({ ...prev, [name]: name === 'price' || name === 'duration_total_minutes' ? Number(value) : value }))
+  }
+
+  const handleSaveConfig = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setSavingConfig(true)
+      const res = await fetch(`/api/admin/workshops/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configData),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Error al guardar la configuración')
+      }
+      // Refrescar preview
+      const refreshed = await fetch(`/api/admin/workshops/${courseId}`).then(r => r.json())
+      if (refreshed?.workshop) setWorkshopPreview(refreshed.workshop)
+      alert('Configuración guardada')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al guardar')
+    } finally {
+      setSavingConfig(false)
+    }
+  }
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => {
@@ -138,11 +236,13 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   }
 
   const getLessonMaterials = (lessonId: string) => {
-    return materials.filter(m => m.lesson_id === lessonId)
+    // Usar la función helper del hook que accede directamente al Map
+    return getMaterialsByLesson(lessonId)
   }
 
   const getLessonActivities = (lessonId: string) => {
-    return activities.filter(a => a.lesson_id === lessonId)
+    // Usar la función helper del hook que accede directamente al Map
+    return getActivitiesByLesson(lessonId)
   }
 
   return (
@@ -174,21 +274,23 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="flex space-x-1 p-1">
             {[
-              { key: 'modules', label: '📚 Módulos', icon: 'modules' },
-              { key: 'config', label: '⚙️ Configuración', icon: 'config' },
-              { key: 'preview', label: '👁️ Vista Previa', icon: 'preview' },
-              { key: 'stats', label: '📈 Estadísticas', icon: 'stats' }
+              { key: 'modules', label: 'Módulos', icon: Book },
+              { key: 'config', label: 'Configuración', icon: Settings },
+              { key: 'certificates', label: 'Certificados', icon: Award },
+              { key: 'preview', label: 'Vista Previa', icon: Eye },
+              { key: 'stats', label: 'Estadísticas', icon: BarChart3 }
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`flex-1 py-3 px-6 rounded-lg font-medium text-sm transition-all ${
+                className={`flex-1 py-3 px-6 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${
                   activeTab === tab.key
                     ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                 }`}
               >
-                {tab.label}
+                <tab.icon className="w-4 h-4" />
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>
@@ -351,6 +453,17 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                 <div className="flex items-center space-x-2">
                                   <button
                                     onClick={() => {
+                                      setSelectedLesson(lesson)
+                                      setEditingModuleId(lesson.module_id)
+                                      setShowLessonModal(true)
+                                    }}
+                                    className="p-2.5 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-all group"
+                                    title="Editar lección"
+                                  >
+                                    <Pencil className="w-5 h-5 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
                                       setEditingLessonId(lesson.lesson_id)
                                       setShowMaterialModal(true)
                                     }}
@@ -408,10 +521,37 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                       ) : (
                                         <div className="space-y-2">
                                           {getLessonMaterials(lesson.lesson_id).map(material => (
-                                            <div key={material.material_id} className="text-xs p-3 bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/20 dark:to-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
-                                              <div className="font-medium text-gray-900 dark:text-white">{material.material_title}</div>
-                                              <div className="text-gray-500 dark:text-gray-400 mt-1">
-                                                {material.material_type}
+                                            <div key={material.material_id} className="text-xs p-3 bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/20 dark:to-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800 flex items-center justify-between group">
+                                              <div className="flex-1">
+                                                <div className="font-medium text-gray-900 dark:text-white">{material.material_title}</div>
+                                                <div className="text-gray-500 dark:text-gray-400 mt-1">
+                                                  {material.material_type}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingMaterial(material)
+                                                    setEditingLessonId(lesson.lesson_id)
+                                                    setShowMaterialModal(true)
+                                                  }}
+                                                  className="p-1.5 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors"
+                                                  title="Editar material"
+                                                >
+                                                  <Pencil className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                                </button>
+                                                <button
+                                                  onClick={async () => {
+                                                    if (confirm('¿Estás seguro de eliminar este material?')) {
+                                                      await deleteMaterial(material.material_id)
+                                                      await fetchMaterials(lesson.lesson_id)
+                                                    }
+                                                  }}
+                                                  className="p-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                                                  title="Eliminar material"
+                                                >
+                                                  <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                                </button>
                                               </div>
                                             </div>
                                           ))}
@@ -444,10 +584,37 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                       ) : (
                                         <div className="space-y-2">
                                           {getLessonActivities(lesson.lesson_id).map(activity => (
-                                            <div key={activity.activity_id} className="text-xs p-3 bg-gradient-to-r from-purple-50 to-purple-50/50 dark:from-purple-900/20 dark:to-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800">
-                                              <div className="font-medium text-gray-900 dark:text-white">{activity.activity_title}</div>
-                                              <div className="text-gray-500 dark:text-gray-400 mt-1">
-                                                {activity.activity_type}
+                                            <div key={activity.activity_id} className="text-xs p-3 bg-gradient-to-r from-purple-50 to-purple-50/50 dark:from-purple-900/20 dark:to-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800 flex items-center justify-between group">
+                                              <div className="flex-1">
+                                                <div className="font-medium text-gray-900 dark:text-white">{activity.activity_title}</div>
+                                                <div className="text-gray-500 dark:text-gray-400 mt-1">
+                                                  {activity.activity_type}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingActivity(activity)
+                                                    setEditingLessonId(lesson.lesson_id)
+                                                    setShowActivityModal(true)
+                                                  }}
+                                                  className="p-1.5 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors"
+                                                  title="Editar actividad"
+                                                >
+                                                  <Pencil className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                                </button>
+                                                <button
+                                                  onClick={async () => {
+                                                    if (confirm('¿Estás seguro de eliminar esta actividad?')) {
+                                                      await deleteActivity(activity.activity_id)
+                                                      await fetchActivities(lesson.lesson_id)
+                                                    }
+                                                  }}
+                                                  className="p-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                                                  title="Eliminar actividad"
+                                                >
+                                                  <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                                </button>
                                               </div>
                                             </div>
                                           ))}
@@ -465,6 +632,296 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   )}
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Configuración */}
+        {activeTab === 'config' && (
+          <div className="space-y-6">
+            <form onSubmit={handleSaveConfig} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Título *</label>
+                  <input 
+                    name="title" 
+                    value={configData.title} 
+                    onChange={handleConfigChange} 
+                    className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2" 
+                  />
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción *</label>
+                  <textarea 
+                    name="description" 
+                    value={configData.description} 
+                    onChange={handleConfigChange} 
+                    rows={6} 
+                    className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2" 
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Categoría *</label>
+                    <select 
+                      name="category" 
+                      value={configData.category} 
+                      onChange={handleConfigChange} 
+                      className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2"
+                    >
+                      <option value="ia">Inteligencia Artificial</option>
+                      <option value="tecnologia">Tecnología</option>
+                      <option value="negocios">Negocios</option>
+                      <option value="diseño">Diseño</option>
+                      <option value="marketing">Marketing</option>
+                    </select>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nivel *</label>
+                    <select 
+                      name="level" 
+                      value={configData.level} 
+                      onChange={handleConfigChange} 
+                      className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2"
+                    >
+                      <option value="beginner">Principiante</option>
+                      <option value="intermediate">Intermedio</option>
+                      <option value="advanced">Avanzado</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Duración (minutos) *</label>
+                    <input 
+                      type="number" 
+                      name="duration_total_minutes" 
+                      value={configData.duration_total_minutes} 
+                      onChange={handleConfigChange} 
+                      className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2" 
+                    />
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Precio</label>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      name="price" 
+                      value={configData.price} 
+                      onChange={handleConfigChange} 
+                      className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2" 
+                    />
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagen del Curso</label>
+                  <ImageUploadCourse
+                    value={configData.thumbnail_url}
+                    onChange={(url) => setConfigData(prev => ({ ...prev, thumbnail_url: url }))}
+                    disabled={savingConfig}
+                  />
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Slug (URL)</label>
+                  <input 
+                    name="slug" 
+                    value={configData.slug} 
+                    onChange={handleConfigChange} 
+                    className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2" 
+                  />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <div className="text-gray-900 dark:text-white font-semibold mb-3">Acciones</div>
+                  <button 
+                    type="submit" 
+                    disabled={savingConfig} 
+                    className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white disabled:opacity-60 transition-all font-semibold"
+                  >
+                    {savingConfig ? 'Guardando...' : 'Guardar configuración'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Certificados */}
+        {activeTab === 'certificates' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                Configuración de Certificados
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Configura los certificados que se emitirán automáticamente cuando los estudiantes completen este curso.
+              </p>
+
+              <div className="space-y-6">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Certificado de Finalización</h3>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Emite un certificado automáticamente cuando un estudiante complete el 100% del curso.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vista Previa de Plantilla</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowTemplatePreview(true)}
+                        className="w-full px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+                      >
+                        Ver Plantilla
+                      </button>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Porcentaje de Completación Requerido</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        max="100" 
+                        defaultValue="100" 
+                        className="w-full rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información del Certificado</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Firma del Instructor</label>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                        Sube una imagen de la firma escaneada o escribe el nombre completo del instructor para aparecer en los certificados
+                      </p>
+                      <InstructorSignatureUpload
+                        currentSignatureUrl={instructorSignatureUrl}
+                        currentSignatureName={instructorSignatureName}
+                        onUpload={async (url, signatureName) => {
+                          console.log('Firma subida:', { url, signatureName })
+                          // Actualizar estado inmediatamente
+                          setInstructorSignatureUrl(url)
+                          setInstructorSignatureName(signatureName)
+                          console.log('CourseManagementPage - State updated:', { 
+                            newUrl: url, 
+                            newName: signatureName 
+                          })
+                          // Recargar la firma desde la base de datos después de un pequeño delay
+                          // para asegurar que la BD se haya actualizado
+                          setTimeout(async () => {
+                            try {
+                              const res = await fetch(`/api/auth/me`)
+                              const data = await res.json()
+                              if (res.ok && data?.user) {
+                                console.log('CourseManagementPage - Reloaded from DB:', {
+                                  signature_url: data.user.signature_url,
+                                  signature_name: data.user.signature_name
+                                })
+                                if (data.user.signature_url) {
+                                  setInstructorSignatureUrl(data.user.signature_url)
+                                } else {
+                                  setInstructorSignatureUrl(null)
+                                }
+                                if (data.user.signature_name) {
+                                  setInstructorSignatureName(data.user.signature_name)
+                                } else {
+                                  setInstructorSignatureName(null)
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error reloading signature:', error)
+                            }
+                          }, 500)
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Estadísticas de Certificados */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
+                <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                Certificados Emitidos
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Total Emitidos</div>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{userStats?.total_certificates ?? 0}</div>
+                </div>
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Este Mes</div>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">0</div>
+                </div>
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Tasa de Emisión</div>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {userStats?.total_enrolled > 0 
+                      ? `${Math.round((userStats?.total_certificates / userStats?.total_enrolled) * 100)}%`
+                      : '0%'
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Vista Previa */}
+        {activeTab === 'preview' && (
+          <div className="space-y-6">
+            {previewLoading ? (
+              <div className="text-center py-20 text-gray-500 dark:text-gray-400">Cargando vista previa...</div>
+            ) : workshopPreview ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                    {workshopPreview.thumbnail_url ? (
+                      <img src={workshopPreview.thumbnail_url} alt={workshopPreview.title} className="w-full h-64 object-cover" />
+                    ) : (
+                      <div className="w-full h-64 bg-gradient-to-br from-blue-900/40 to-indigo-900/40" />
+                    )}
+                    <div className="p-6">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{workshopPreview.title}</h2>
+                      <p className="mt-2 text-gray-600 dark:text-gray-400">{workshopPreview.description}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-4">
+                    <div className="text-gray-900 dark:text-white font-semibold">Detalles</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Nivel: {workshopPreview.level}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Duración: {workshopPreview.duration_total_minutes} min</div>
+                    {workshopPreview.price > 0 && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Precio: ${workshopPreview.price}</div>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (workshopPreview.slug) window.open(`/courses/${workshopPreview.slug}`, '_blank')
+                      }}
+                      className="w-full mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white transition-all font-semibold"
+                    >
+                      Abrir página pública
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-20 text-gray-500 dark:text-gray-400">No se encontró el curso.</div>
             )}
           </div>
         )}
@@ -826,7 +1283,14 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
               setEditingModuleId(null)
             }}
             onSave={async (data) => {
-              await handleCreateLesson(data)
+              if (selectedLesson) {
+                // Editar lección existente
+                await updateLesson(selectedLesson.lesson_id, data, courseId)
+                await fetchLessons(editingModuleId, courseId)
+              } else {
+                // Crear nueva lección
+                await handleCreateLesson(data)
+              }
               setShowLessonModal(false)
               setSelectedLesson(null)
               setEditingModuleId(null)
@@ -837,35 +1301,72 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
         {showMaterialModal && editingLessonId && (
           <MaterialModal
-            material={null}
+            material={editingMaterial}
             lessonId={editingLessonId}
             onClose={() => {
               setShowMaterialModal(false)
               setEditingLessonId(null)
+              setEditingMaterial(null)
             }}
             onSave={async (data) => {
-              await createMaterial(editingLessonId, data)
+              if (editingMaterial) {
+                // Editar material existente
+                await updateMaterial(editingMaterial.material_id, data)
+                await fetchMaterials(editingLessonId)
+              } else {
+                // Crear nuevo material
+                await createMaterial(editingLessonId, data)
+                await fetchMaterials(editingLessonId)
+              }
               setShowMaterialModal(false)
               setEditingLessonId(null)
+              setEditingMaterial(null)
             }}
           />
         )}
 
         {showActivityModal && editingLessonId && (
           <ActivityModal
-            activity={null}
+            activity={editingActivity}
             lessonId={editingLessonId}
             onClose={() => {
               setShowActivityModal(false)
               setEditingLessonId(null)
+              setEditingActivity(null)
             }}
             onSave={async (data) => {
-              await createActivity(editingLessonId, data)
+              if (editingActivity) {
+                // Editar actividad existente
+                await updateActivity(editingActivity.activity_id, data)
+                await fetchActivities(editingLessonId)
+              } else {
+                // Crear nueva actividad
+                await createActivity(editingLessonId, data)
+                await fetchActivities(editingLessonId)
+              }
               setShowActivityModal(false)
               setEditingLessonId(null)
+              setEditingActivity(null)
             }}
           />
         )}
+
+        {/* Modal de Preview de Plantillas de Certificados */}
+        <CertificateTemplatePreview
+          key={`cert-preview-${instructorSignatureName || 'no-name'}-${instructorSignatureUrl || 'no-url'}`}
+          isOpen={showTemplatePreview}
+          onClose={() => setShowTemplatePreview(false)}
+          selectedTemplate={selectedCertificateTemplate}
+          onSelectTemplate={(templateId) => {
+            setSelectedCertificateTemplate(templateId)
+          }}
+          instructorSignatureUrl={instructorSignatureUrl}
+          instructorSignatureName={instructorSignatureName}
+          instructorDisplayName={workshopPreview?.instructor_name || undefined}
+          studentName={workshopPreview?.title ? 'Estudiante Ejemplo' : undefined}
+          courseName={workshopPreview?.title || undefined}
+          issueDate={new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+        />
       </div>
     </div>
   )
