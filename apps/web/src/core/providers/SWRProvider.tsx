@@ -23,12 +23,21 @@ interface SWRProviderProps {
 
 // Fetcher por defecto para todas las requests
 const fetcher = async (url: string) => {
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    credentials: 'include', // Incluir cookies para autenticación
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   
   // Si la respuesta no es ok, lanzar error con info
   if (!res.ok) {
     const error: any = new Error('An error occurred while fetching the data.');
-    error.info = await res.json();
+    try {
+      error.info = await res.json();
+    } catch {
+      error.info = { error: res.statusText };
+    }
     error.status = res.status;
     throw error;
   }

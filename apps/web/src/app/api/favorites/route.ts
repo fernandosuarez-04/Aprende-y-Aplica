@@ -48,8 +48,14 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     logError('POST /api/favorites', error)
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    console.error('Error detallado en POST /api/favorites:', error)
     return NextResponse.json(
-      formatApiError(error, 'Error al gestionar favoritos'),
+      {
+        error: 'Error al gestionar favoritos',
+        message: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     )
   }

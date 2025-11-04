@@ -235,6 +235,17 @@ export class ProfileService {
         console.error('Error updating password:', updateError)
         throw new Error(`Error al cambiar contraseña: ${updateError.message}`)
       }
+
+      // Crear notificación de cambio de contraseña
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        await AutoNotificationsService.notifyPasswordChanged(userId, {
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        console.error('Error creando notificación de cambio de contraseña:', notificationError)
+      }
     } catch (error) {
       console.error('Error in ProfileService.changePassword:', error)
       throw error

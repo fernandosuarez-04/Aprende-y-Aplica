@@ -53,6 +53,18 @@ export class SessionService {
         refreshExpiresAt: sessionInfo.refreshExpiresAt
       });
 
+      // Crear notificación de inicio de sesión exitoso
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        await AutoNotificationsService.notifyLoginSuccess(userId, ip, userAgent, {
+          rememberMe,
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        logger.error('Error creando notificación de inicio de sesión:', notificationError)
+      }
+
       // Mantener compatibilidad con sistema legacy (user_session)
       // Esto permite una migración gradual y rollback si es necesario
       logger.debug('Creando sesión legacy para compatibilidad');

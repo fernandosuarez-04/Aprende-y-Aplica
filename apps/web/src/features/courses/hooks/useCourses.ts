@@ -32,10 +32,16 @@ export function useCourses(): UseCoursesReturn {
         ? `/api/courses?userId=${user.id}`
         : '/api/courses'
       
-      const response = await fetch(url)
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`)
       }
       
       const data = await response.json()
@@ -102,10 +108,16 @@ export function useCoursesByCategory(category: string): UseCoursesByCategoryRetu
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/courses?category=${encodeURIComponent(category)}`)
+      const response = await fetch(`/api/courses?category=${encodeURIComponent(category)}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`)
       }
       
       const data = await response.json()

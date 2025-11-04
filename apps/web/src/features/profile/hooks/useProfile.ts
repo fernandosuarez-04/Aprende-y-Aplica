@@ -138,53 +138,30 @@ export function useProfile(): UseProfileReturn {
       setSaving(true)
       setError(null)
       
-      // Actualizar directamente en la base de datos
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      
-      const { data, error: updateError } = await supabase
-        .from('users')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-        .select('*')
-        .single()
+      // Usar el endpoint de la API para que se creen las notificaciones automáticamente
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+      })
 
-      if (updateError || !data) {
-        console.error('Error updating profile:', updateError)
-        throw new Error(`Error al actualizar perfil: ${updateError?.message || 'No data found'}`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.error || 'Error al actualizar perfil')
       }
 
-      // Convertir los datos actualizados al formato esperado
-      const updatedProfileData: UserProfile = {
-        id: (data as any).id,
-        username: (data as any).username || 'usuario',
-        email: (data as any).email || 'usuario@ejemplo.com',
-        first_name: (data as any).first_name || '',
-        last_name: (data as any).last_name || '',
-        display_name: (data as any).display_name || (data as any).first_name || 'Usuario',
-        phone: (data as any).phone || (data as any).phone_number || '',
-        bio: (data as any).bio || '',
-        location: (data as any).location || '',
-        cargo_rol: (data as any).cargo_rol || '',
-        type_rol: (data as any).type_rol || '',
-        profile_picture_url: (data as any).profile_picture_url || '',
-        curriculum_url: (data as any).curriculum_url || '',
-        linkedin_url: (data as any).linkedin_url || '',
-        github_url: (data as any).github_url || '',
-        website_url: (data as any).website_url || '',
-        country_code: (data as any).country_code || '',
-        points: (data as any).points || 0,
-        created_at: (data as any).created_at,
-        last_login_at: (data as any).last_login_at || '',
-        email_verified: (data as any).email_verified || false
-      }
+      const updatedProfileData: UserProfile = await response.json()
       
       setProfile(updatedProfileData)
+
+      // Refrescar notificaciones inmediatamente para mostrar la nueva notificación
+      // Disparamos un evento que el contexto de notificaciones escucha
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refresh-notifications'))
+      }
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'

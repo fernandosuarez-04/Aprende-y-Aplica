@@ -7,7 +7,6 @@ import {
   Brain, 
   Users, 
   Newspaper,
-  Bell,
   ChevronDown,
   Sparkles,
   Grid3X3
@@ -15,6 +14,7 @@ import {
 import { UserDropdown } from '../UserDropdown'
 import { ShoppingCart } from '../ShoppingCart'
 import { HiddenAdminButton } from '../HiddenAdminButton'
+import { NotificationBell } from '../NotificationBell'
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg'
 import { useRouter } from 'next/navigation'
 import { usePrefetchOnHover } from '../../hooks/usePrefetch'
@@ -303,28 +303,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             {/* Notificaciones */}
-            <motion.button 
-              className="relative p-3 text-text-secondary dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50 dark:hover:bg-carbon-700/50"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Bell className="w-5 h-5 text-text-secondary dark:text-text-secondary" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-bold">
-                3
-              </span>
-              <motion.div
-                className="absolute inset-0 bg-primary/20 rounded-full"
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{ 
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            </motion.button>
+            <NotificationBell />
 
             {/* Carrito de compras */}
             <ShoppingCart />

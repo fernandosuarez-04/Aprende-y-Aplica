@@ -203,7 +203,7 @@ export default function DashboardPage() {
                 {workshops.map((workshop) => (
                 <motion.div
                   key={workshop.id}
-                  className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 transition-colors shadow-lg dark:shadow-none"
+                  className="flex flex-col bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 transition-colors shadow-lg dark:shadow-none h-full"
                   whileHover={{ y: -2 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -251,83 +251,87 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Workshop Info */}
-                  <div className="p-6 bg-white dark:bg-slate-800">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      {workshop.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
-                      {workshop.instructor}
-                    </p>
-                    
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">{workshop.rating}</span>
+                  <div className="flex flex-col flex-1 p-6 bg-white dark:bg-slate-800">
+                    <div className="flex-1 flex flex-col">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 min-h-[3.5rem] line-clamp-2">
+                        {workshop.title}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 min-h-[1.5rem]">
+                        {workshop.instructor}
+                      </p>
+                      
+                      <div className="flex items-center justify-between mb-4 h-6">
+                        <div className="flex items-center space-x-1">
+                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">{workshop.rating}</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary">{workshop.price}</span>
                       </div>
-                      <span className="text-lg font-bold text-primary">{workshop.price}</span>
                     </div>
 
                     {/* Botones de acción */}
-                    {workshop.status === 'Adquirido' ? (
-                      // Si el curso está comprado: solo mostrar botón "Ir al curso"
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => {
-                          const course = courses.find(c => c.id === workshop.id);
-                          if (course?.slug) {
-                            router.push(`/courses/${course.slug}/learn`);
-                          }
-                        }}
-                      >
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Ir al curso
-                      </Button>
-                    ) : (
-                      // Si el curso NO está comprado: mostrar "Ver detalles" y "Agregar al carrito"
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => {
-                            const course = courses.find(c => c.id === workshop.id);
-                            if (course?.slug) {
-                              router.push(`/courses/${course.slug}`);
-                            }
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Ver detalles
-                        </Button>
+                    <div className="mt-auto">
+                      {workshop.status === 'Adquirido' ? (
+                        // Si el curso está comprado: solo mostrar botón "Ir al curso"
                         <Button
                           variant="primary"
                           size="sm"
-                          className="flex-1"
+                          className="w-full"
                           onClick={() => {
                             const course = courses.find(c => c.id === workshop.id);
-                            if (course) {
-                              // Extraer precio numérico del string (ej: "MX$1500" -> 1500)
-                              const priceString = workshop.price?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
-                              const price = parseFloat(priceString);
-                              
-                              addItem({
-                                id: `course-${course.id}`,
-                                itemType: 'course',
-                                itemId: course.id,
-                                title: workshop.title,
-                                price: price || 0,
-                                thumbnail: workshop.image || course.thumbnail || undefined,
-                              });
+                            if (course?.slug) {
+                              router.push(`/courses/${course.slug}/learn`);
                             }
                           }}
                         >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Agregar al carrito
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          Ir al curso
                         </Button>
-                      </div>
-                    )}
+                      ) : (
+                        // Si el curso NO está comprado: mostrar "Ver detalles" y "Agregar al carrito"
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              const course = courses.find(c => c.id === workshop.id);
+                              if (course?.slug) {
+                                router.push(`/courses/${course.slug}`);
+                              }
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver detalles
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              const course = courses.find(c => c.id === workshop.id);
+                              if (course) {
+                                // Extraer precio numérico del string (ej: "MX$1500" -> 1500)
+                                const priceString = workshop.price?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
+                                const price = parseFloat(priceString);
+                                
+                                addItem({
+                                  id: `course-${course.id}`,
+                                  itemType: 'course',
+                                  itemId: course.id,
+                                  title: workshop.title,
+                                  price: price || 0,
+                                  thumbnail: workshop.image || course.thumbnail || undefined,
+                                });
+                              }
+                            }}
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            Agregar al carrito
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
                 ))}

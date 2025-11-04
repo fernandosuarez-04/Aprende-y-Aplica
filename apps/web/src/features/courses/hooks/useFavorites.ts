@@ -29,16 +29,23 @@ export function useFavorites(): UseFavoritesReturn {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/favorites?userId=${user.id}`)
+      const response = await fetch(`/api/favorites?userId=${user.id}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       
       if (!response.ok) {
         // Si es un error 500, probablemente es un problema de configuración
         if (response.status === 500) {
-          console.warn('Error 500 en favoritos - probablemente Supabase no configurado')
+          const errorData = await response.json().catch(() => ({ error: response.statusText }))
+          console.warn('Error 500 en favoritos:', errorData.message || errorData.error)
           setFavorites([]) // Devolver array vacío en lugar de error
           return
         }
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.message || errorData.error || `Error ${response.status}: ${response.statusText}`)
       }
       
       const data = await response.json()
@@ -71,6 +78,7 @@ export function useFavorites(): UseFavoritesReturn {
       
       const response = await fetch('/api/favorites', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -81,7 +89,8 @@ export function useFavorites(): UseFavoritesReturn {
       })
       
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.message || errorData.error || `Error ${response.status}: ${response.statusText}`)
       }
       
       const { isFavorite: newFavoriteStatus } = await response.json()

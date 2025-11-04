@@ -6,6 +6,7 @@ import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
 import { PWAPrompt } from '../core/components/PWAPrompt';
+import { NotificationProvider } from '../features/notifications/context/NotificationContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -130,13 +131,15 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased bg-carbon text-contrast transition-colors duration-300`}>
         <SWRProvider>
           <ThemeProvider>
-            <PrefetchManager />
-            <PWAPrompt />
-            <div className="min-h-screen bg-carbon transition-colors duration-300">
-              <ConditionalNavbar>
-                {children}
-              </ConditionalNavbar>
-            </div>
+            <NotificationProvider pollingInterval={30000}>
+              <PrefetchManager />
+              <PWAPrompt />
+              <div className="min-h-screen bg-carbon transition-colors duration-300">
+                <ConditionalNavbar>
+                  {children}
+                </ConditionalNavbar>
+              </div>
+            </NotificationProvider>
           </ThemeProvider>
         </SWRProvider>
       </body>

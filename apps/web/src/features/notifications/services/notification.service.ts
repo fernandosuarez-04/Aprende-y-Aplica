@@ -157,9 +157,6 @@ export class NotificationService {
         query = query.eq('priority', priority)
       }
 
-      // Filtrar notificaciones expiradas (solo las que no han expirado)
-      query = query.or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
-
       // Ordenamiento
       if (orderBy === 'priority') {
         // Ordenamiento por prioridad requiere lógica especial
@@ -169,8 +166,9 @@ export class NotificationService {
         query = query.order(orderBy, { ascending: orderDirection === 'asc' })
       }
 
-      // Paginación
-      query = query.range(offset, offset + limit - 1)
+      // Paginación - obtener más de lo necesario para filtrar expiradas después
+      const fetchLimit = limit * 2 // Obtener más para compensar las expiradas
+      query = query.range(offset, offset + fetchLimit - 1)
 
       const { data: notifications, error, count } = await query
 
@@ -179,8 +177,20 @@ export class NotificationService {
         throw new Error(`Error al obtener notificaciones: ${error.message}`)
       }
 
+      // Filtrar notificaciones expiradas (solo las que no han expirado)
+      const now = new Date()
+      let filteredNotifications = (notifications || []).filter(notif => {
+        // Si no tiene expires_at, está vigente
+        if (!notif.expires_at) return true
+        // Si tiene expires_at, verificar que no haya expirado
+        return new Date(notif.expires_at) > now
+      })
+
+      // Aplicar paginación después de filtrar expiradas
+      filteredNotifications = filteredNotifications.slice(0, limit)
+
       // Ordenar por prioridad si es necesario (en memoria)
-      let sortedNotifications = notifications || []
+      let sortedNotifications = filteredNotifications
       if (orderBy === 'priority') {
         const priorityOrder: Record<string, number> = {
           critical: 1,
@@ -199,9 +209,11 @@ export class NotificationService {
         }
       }
 
+      // El total puede ser diferente después de filtrar expiradas
+      // Por ahora usamos el count original, pero idealmente deberíamos contar solo las válidas
       return {
         notifications: sortedNotifications as Notification[],
-        total: count || 0
+        total: sortedNotifications.length // Usar el count real después de filtrar
       }
     } catch (error) {
       logger.error('❌ Error en getUserNotifications:', error)
@@ -220,23 +232,39 @@ export class NotificationService {
     try {
       const supabase = await createClient()
 
-      // Obtener conteo usando la vista optimizada
-      const { data, error } = await supabase
-        .from('user_unread_notifications_count')
-        .select('unread_count, critical_count, high_count')
+      // Obtener conteo directamente de la tabla user_notifications
+      // Filtrar solo notificaciones no leídas y no expiradas
+      const now = new Date().toISOString()
+      
+      // Obtener todas las notificaciones no leídas del usuario
+      const { data: notifications, error } = await supabase
+        .from('user_notifications')
+        .select('notification_id, priority, expires_at')
         .eq('user_id', userId)
-        .single()
+        .eq('status', 'unread')
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = no rows found, es válido (significa 0)
+      if (error) {
         logger.error('Error obteniendo conteo de no leídas:', error)
         throw new Error(`Error al obtener conteo: ${error.message}`)
       }
 
+      // Filtrar notificaciones expiradas
+      const validNotifications = (notifications || []).filter(notif => {
+        // Si no tiene expires_at, está vigente
+        if (!notif.expires_at) return true
+        // Si tiene expires_at, verificar que no haya expirado
+        return new Date(notif.expires_at) > new Date(now)
+      })
+
+      // Calcular conteos por prioridad
+      const total = validNotifications.length
+      const critical = validNotifications.filter(n => n.priority === 'critical').length
+      const high = validNotifications.filter(n => n.priority === 'high').length
+
       return {
-        total: data?.unread_count || 0,
-        critical: data?.critical_count || 0,
-        high: data?.high_count || 0
+        total,
+        critical,
+        high
       }
     } catch (error) {
       logger.error('❌ Error en getUnreadCount:', error)

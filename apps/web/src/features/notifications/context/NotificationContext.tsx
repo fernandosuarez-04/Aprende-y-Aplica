@@ -196,6 +196,19 @@ export function NotificationProvider({
     ])
   }
 
+  // Escuchar evento personalizado para refrescar notificaciones
+  useEffect(() => {
+    const handleRefresh = () => {
+      refreshNotifications()
+    }
+
+    window.addEventListener('refresh-notifications', handleRefresh)
+    
+    return () => {
+      window.removeEventListener('refresh-notifications', handleRefresh)
+    }
+  }, [mutateNotifications, mutateCount])
+
   // Determinar si hay error
   const error = notificationsError || countError || null
 

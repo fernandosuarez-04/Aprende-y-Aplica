@@ -25,10 +25,16 @@ export function useCategories(): UseCategoriesReturn {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/categories')
+      const response = await fetch('/api/categories', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`)
       }
       
       const data: string[] = await response.json()

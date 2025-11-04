@@ -76,6 +76,24 @@ export async function loginAction(formData: FormData) {
     
     if (!passwordValid) {
       console.log('❌ Invalid password');
+      
+      // Crear notificación de intento de inicio de sesión fallido
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        const headersList = await import('next/headers').then(m => m.headers())
+        const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                   headersList.get('x-real-ip') || 
+                   'unknown'
+        const userAgent = headersList.get('user-agent') || 'unknown'
+        
+        await AutoNotificationsService.notifyLoginFailed(user.id, ip, userAgent, {
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        console.error('Error creando notificación de inicio de sesión fallido:', notificationError)
+      }
+      
       return { error: 'Credenciales inválidas' }
     }
 
@@ -177,6 +195,24 @@ export async function loginAction(formData: FormData) {
     try {
       await SessionService.createSession(user.id, parsed.rememberMe)
       console.log('✅ Sesión creada exitosamente');
+      
+      // Crear notificación de inicio de sesión exitoso
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        const headersList = await import('next/headers').then(m => m.headers())
+        const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                   headersList.get('x-real-ip') || 
+                   'unknown'
+        const userAgent = headersList.get('user-agent') || 'unknown'
+        
+        await AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
+          rememberMe: parsed.rememberMe,
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        console.error('Error creando notificación de inicio de sesión:', notificationError)
+      }
     } catch (sessionError) {
       console.error('❌ Error creando sesión:', sessionError);
       return { error: 'Error al crear la sesión. Por favor, intenta nuevamente.' }

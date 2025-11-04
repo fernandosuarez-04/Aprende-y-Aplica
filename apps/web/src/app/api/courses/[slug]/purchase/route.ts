@@ -206,7 +206,27 @@ export async function POST(
         .eq('purchase_id', purchase.purchase_id);
     }
 
-    // 5. Retornar respuesta exitosa
+    // 5. Crear notificación de inscripción en curso
+    if (enrollment) {
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        await AutoNotificationsService.notifyCourseEnrolled(
+          currentUser.id,
+          course.id,
+          course.title,
+          {
+            purchase_id: purchase.purchase_id,
+            enrollment_id: enrollment.enrollment_id,
+            timestamp: new Date().toISOString()
+          }
+        )
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        console.error('Error creando notificación de inscripción en curso:', notificationError)
+      }
+    }
+
+    // 6. Retornar respuesta exitosa
     return NextResponse.json({
       success: true,
       message: 'Curso adquirido exitosamente',

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
-import { createClient } from '../../../lib/supabase/server'
 import { ProfileServerService } from '../../../features/profile/services/profile-server.service'
+import { SessionService } from '../../../features/auth/services/session.service'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Usar SessionService para obtener el usuario actual (sistema de autenticación personalizado)
+    const user = await SessionService.getCurrentUser()
 
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Usar SessionService para obtener el usuario actual (sistema de autenticación personalizado)
+    const user = await SessionService.getCurrentUser()
 
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

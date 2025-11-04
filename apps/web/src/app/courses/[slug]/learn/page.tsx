@@ -2499,16 +2499,16 @@ function QuizRenderer({ quizData, totalPoints }: {
   return (
     <div className="space-y-6">
       {/* Instrucciones */}
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
-        <p className="text-slate-200 text-sm mb-2">
+      <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4 mb-4">
+        <p className="text-gray-800 dark:text-slate-200 text-sm mb-2">
           <strong>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
         </p>
         {totalPoints !== undefined && (
-          <p className="text-slate-200 text-sm mb-2">
+          <p className="text-gray-800 dark:text-slate-200 text-sm mb-2">
             <strong>Puntos totales:</strong> {totalPoints}
           </p>
         )}
-        <p className="text-slate-300 text-sm">
+        <p className="text-gray-700 dark:text-slate-300 text-sm">
           Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas).
           <span className="block mt-1"><strong>Umbral de aprobación:</strong> {passingThreshold}%</span>
         </p>
@@ -2524,12 +2524,12 @@ function QuizRenderer({ quizData, totalPoints }: {
           return (
             <div
               key={question.id}
-              className={`bg-carbon-800/70 rounded-lg p-5 border-2 ${
+              className={`bg-gray-50 dark:bg-carbon-800/70 rounded-lg p-5 border-2 ${
                 showResults
                   ? isCorrect
-                    ? 'border-green-500/50 bg-green-500/5'
-                    : 'border-red-500/50 bg-red-500/5'
-                  : 'border-carbon-600/50'
+                    ? 'border-green-500/50 bg-green-50 dark:bg-green-500/5'
+                    : 'border-red-500/50 bg-red-50 dark:bg-red-500/5'
+                  : 'border-gray-200 dark:border-carbon-600/50'
               }`}
             >
               <div className="flex items-start gap-3 mb-4">
@@ -2544,11 +2544,11 @@ function QuizRenderer({ quizData, totalPoints }: {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-3 mb-4">
-                    <h4 className="text-white font-semibold leading-relaxed flex-1">
+                    <h4 className="text-gray-900 dark:text-white font-semibold leading-relaxed flex-1">
                       {question.question}
                     </h4>
                     {question.points && (
-                      <span className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full border border-purple-500/30 shrink-0">
+                      <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-xs rounded-full border border-purple-300 dark:border-purple-500/30 shrink-0">
                         {question.points} {question.points === 1 ? 'punto' : 'puntos'}
                       </span>
                     )}
@@ -2574,13 +2574,13 @@ function QuizRenderer({ quizData, totalPoints }: {
                           className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                             showResults
                               ? isCorrectOption
-                                ? 'bg-green-500/10 border-green-500/50'
+                                ? 'bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/50'
                                 : isSelected && !isCorrectOption
-                                ? 'bg-red-500/10 border-red-500/50'
-                                : 'bg-carbon-700/50 border-carbon-600/50'
+                                ? 'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/50'
+                                : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-200 dark:border-carbon-600/50'
                               : isSelected
-                              ? 'bg-blue-500/10 border-blue-500/50'
-                              : 'bg-carbon-700/50 border-carbon-600/50 hover:border-carbon-500/50'
+                              ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/50'
+                              : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-200 dark:border-carbon-600/50 hover:border-gray-300 dark:hover:border-carbon-500/50'
                           }`}
                         >
                           <input
@@ -2590,13 +2590,13 @@ function QuizRenderer({ quizData, totalPoints }: {
                             checked={isSelected}
                             onChange={() => handleAnswerSelect(question.id, optIndex)}
                             disabled={showResults}
-                            className="mt-1 w-4 h-4 text-blue-500 border-carbon-600 focus:ring-blue-500 focus:ring-2"
+                            className="mt-1 w-4 h-4 text-blue-500 border-gray-300 dark:border-carbon-600 focus:ring-blue-500 focus:ring-2"
                           />
                           <div className="flex-1">
-                            <span className="font-semibold text-slate-300 mr-2">
+                            <span className="font-semibold text-gray-700 dark:text-slate-300 mr-2">
                               ({optionLetter})
                             </span>
-                            <span className="text-slate-200">{option}</span>
+                            <span className="text-gray-900 dark:text-slate-200">{option}</span>
                           </div>
                           {showResults && isCorrectOption && (
                             <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
@@ -2613,13 +2613,13 @@ function QuizRenderer({ quizData, totalPoints }: {
                   {showExplanation && question.explanation && (
                     <div className={`mt-4 p-4 rounded-lg ${
                       isCorrect
-                        ? 'bg-green-500/10 border border-green-500/30'
-                        : 'bg-red-500/10 border border-red-500/30'
+                        ? 'bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30'
+                        : 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30'
                     }`}>
-                      <p className="text-sm font-semibold text-slate-300 mb-1">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-300 mb-1">
                         {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
                       </p>
-                      <p className="text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
+                      <p className="text-gray-700 dark:text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
                         {parseExplanation(question, selectedAnswer)}
                       </p>
                     </div>
@@ -2633,7 +2633,7 @@ function QuizRenderer({ quizData, totalPoints }: {
 
       {/* Botón de envío */}
       {!showResults && (
-        <div className="flex justify-end pt-4 border-t border-carbon-600/50">
+        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-carbon-600/50">
           <button
             onClick={handleSubmit}
             disabled={Object.keys(selectedAnswers).length < totalQuestions}
@@ -2648,22 +2648,22 @@ function QuizRenderer({ quizData, totalPoints }: {
       {showResults && (
         <div className={`mt-6 p-6 rounded-lg border-2 ${
           passed
-            ? 'bg-green-500/10 border-green-500/50'
-            : 'bg-red-500/10 border-red-500/50'
+            ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/50'
+            : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/50'
         }`}>
           <div className="text-center">
-            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-400' : 'text-red-400'}`}>
+            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
             </h3>
-            <p className="text-slate-200 text-lg mb-1">
+            <p className="text-gray-800 dark:text-slate-200 text-lg mb-1">
               Obtuviste {score} de {totalQuestions} correctas
             </p>
             {totalPoints !== undefined && (
-              <p className="text-slate-200 text-lg mb-1">
+              <p className="text-gray-800 dark:text-slate-200 text-lg mb-1">
                 Puntos: {pointsEarned} de {totalPoints}
               </p>
             )}
-            <p className="text-slate-300 text-sm">
+            <p className="text-gray-700 dark:text-slate-300 text-sm">
               Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
             </p>
           </div>
@@ -2718,7 +2718,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
   }
 
   return (
-    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+    <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-lg p-4">
       <div className="space-y-2">
         {promptsList.map((prompt, index) => {
           // Limpiar el prompt (remover comillas si las tiene)
@@ -2736,16 +2736,16 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
                   console.log('Prompt:', cleanPrompt);
                 });
               }}
-              className="w-full text-left px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 rounded-lg transition-all hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 group"
+              className="w-full text-left px-4 py-3 bg-white dark:bg-purple-500/20 hover:bg-purple-100 dark:hover:bg-purple-500/30 border border-purple-200 dark:border-purple-500/40 rounded-lg transition-all hover:border-purple-300 dark:hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 group"
             >
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-500/50 transition-colors">
-                  <span className="text-purple-300 text-xs font-bold">{index + 1}</span>
+                <div className="w-6 h-6 rounded-full bg-purple-200 dark:bg-purple-500/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-300 dark:group-hover:bg-purple-500/50 transition-colors">
+                  <span className="text-purple-700 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
                 </div>
-                <p className="text-slate-200 text-sm leading-relaxed flex-1 group-hover:text-white transition-colors">
+                <p className="text-gray-900 dark:text-slate-200 text-sm leading-relaxed flex-1 group-hover:text-purple-900 dark:group-hover:text-white transition-colors">
                   {cleanPrompt}
                 </p>
-                <Copy className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                <Copy className="w-4 h-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
               </div>
             </button>
           );
@@ -2847,15 +2847,15 @@ function FormattedContentRenderer({ content }: { content: any }) {
   });
 
   return (
-    <div className="bg-carbon-800/50 rounded-lg p-8 md:p-10 border border-carbon-600/50 shadow-lg">
-      <article className="prose prose-invert max-w-none">
-        <div className="text-slate-200 leading-relaxed space-y-6">
+    <div className="bg-gray-100 dark:bg-carbon-800/50 rounded-lg p-8 md:p-10 border border-gray-200 dark:border-carbon-600/50 shadow-lg">
+      <article className="prose dark:prose-invert max-w-none">
+        <div className="text-gray-800 dark:text-slate-200 leading-relaxed space-y-6">
           {formattedContent.map((item, index) => {
             // Título principal (Introducción, Cuerpo, Cierre)
             if (item.type === 'main-title') {
               return (
                 <div key={`item-${index}`} className="mt-10 mb-6 first:mt-0">
-                  <h1 className="text-white font-bold text-3xl mb-2 border-b-2 border-purple-500/40 pb-3">
+                  <h1 className="text-gray-900 dark:text-white font-bold text-3xl mb-2 border-b-2 border-purple-500/40 pb-3">
                     {item.content}
                   </h1>
                 </div>
@@ -2867,7 +2867,7 @@ function FormattedContentRenderer({ content }: { content: any }) {
               return (
                 <h2 
                   key={`item-${index}`} 
-                  className="text-white font-bold text-2xl mb-4 mt-8 border-b border-purple-500/20 pb-2"
+                  className="text-gray-900 dark:text-white font-bold text-2xl mb-4 mt-8 border-b border-purple-500/20 pb-2"
                 >
                   {item.content}
                 </h2>
@@ -2928,7 +2928,7 @@ function FormattedContentRenderer({ content }: { content: any }) {
               return (
                 <div key={`item-${index}`} className="flex items-start gap-3 my-3 pl-2">
                   <span className="text-purple-400 mt-1.5 text-lg font-bold">•</span>
-                  <p className="text-slate-200 leading-relaxed flex-1 text-base">{cleanedContent}</p>
+                  <p className="text-gray-800 dark:text-slate-200 leading-relaxed flex-1 text-base">{cleanedContent}</p>
                 </div>
               );
             }
@@ -2942,11 +2942,11 @@ function FormattedContentRenderer({ content }: { content: any }) {
               // Párrafo con ejemplos entre comillas
               const parts = item.content.split(/(["'][^"']+["'])/g);
               return (
-                <p key={`item-${index}`} className="text-slate-200 leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9' }}>
+                <p key={`item-${index}`} className="text-gray-800 dark:text-slate-200 leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9' }}>
                   {parts.map((part, partIndex) => {
                     if (part.match(/^["']/)) {
                       return (
-                        <span key={partIndex} className="bg-blue-500/10 px-2 py-1 rounded text-blue-200 font-medium">
+                        <span key={partIndex} className="bg-blue-500/10 px-2 py-1 rounded text-blue-600 dark:text-blue-200 font-medium">
                           {part.replace(/^["']|["']$/g, '')}
                         </span>
                       );
@@ -2960,7 +2960,7 @@ function FormattedContentRenderer({ content }: { content: any }) {
             return (
               <p 
                 key={`item-${index}`} 
-                className="text-slate-200 leading-relaxed mb-6 text-base"
+                className="text-gray-800 dark:text-slate-200 leading-relaxed mb-6 text-base"
                 style={{ lineHeight: '1.9' }}
               >
                 {item.content}
@@ -3139,21 +3139,21 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
-        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
+        <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
 
       {/* Actividades */}
       {hasActivities && (
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
           {/* Header de actividades */}
-          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Activity className="w-5 h-5 text-blue-400" />
-                <h3 className="text-white font-semibold">Actividades</h3>
+                <h3 className="text-gray-900 dark:text-white font-semibold">Actividades</h3>
       </div>
-              <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
                 <span>{activities.length} actividad{activities.length !== 1 ? 'es' : ''}</span>
               </div>
             </div>
@@ -3164,12 +3164,12 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
             {activities.map((activity) => (
               <div
                 key={activity.activity_id}
-                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="text-white font-semibold text-lg">{activity.activity_title}</h4>
+                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
                       {activity.is_required && (
                         <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
                           Requerida
@@ -3180,12 +3180,12 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                       </span>
                     </div>
                     {activity.activity_description && (
-                      <p className="text-slate-300 text-sm mb-3">{activity.activity_description}</p>
+                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{activity.activity_description}</p>
                     )}
                   </div>
                 </div>
                 
-                <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
+                <div className="bg-gray-100 dark:bg-carbon-800/50 rounded-lg p-4 mb-3">
                   {activity.activity_type === 'quiz' && (() => {
                     try {
                       // Intentar parsear el contenido como JSON si es un quiz
@@ -3198,9 +3198,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                         } catch (e) {
                           console.warn('⚠️ Quiz content is not valid JSON:', e);
                           return (
-                            <div className="prose prose-invert max-w-none">
-                              <p className="text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
-                              <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                            <div className="prose dark:prose-invert max-w-none">
+                              <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
+                              <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
                                 {activity.activity_content}
                               </div>
                             </div>
@@ -3233,11 +3233,11 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
 
                       // Si llegamos aquí, mostrar como texto normal con mensaje de debug
                       return (
-                        <div className="prose prose-invert max-w-none">
-                          <p className="text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
+                        <div className="prose prose-invert dark:prose-invert max-w-none">
+                          <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
                           <details className="mb-4">
-                            <summary className="text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                            <pre className="text-xs text-slate-400 mt-2 p-2 bg-carbon-900 rounded overflow-auto">
+                            <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
+                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-900 rounded overflow-auto">
                               {typeof activity.activity_content === 'string'
                                 ? activity.activity_content
                                 : JSON.stringify(activity.activity_content, null, 2)}
@@ -3248,9 +3248,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                     } catch (e) {
                       console.error('❌ Error processing quiz:', e);
                       return (
-                        <div className="prose prose-invert max-w-none">
-                          <p className="text-red-400 mb-2">❌ Error al procesar el quiz</p>
-                          <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                        <div className="prose prose-invert dark:prose-invert max-w-none">
+                          <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
+                          <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
                             {activity.activity_content}
                           </div>
                         </div>
@@ -3263,7 +3263,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                 </div>
 
                 {activity.ai_prompts && (
-                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
                     <div className="flex items-center gap-2 mb-4">
                       <HelpCircle className="w-4 h-4 text-purple-400" />
                       <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
@@ -3279,15 +3279,15 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
 
       {/* Materiales */}
       {hasMaterials && (
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
           {/* Header de materiales */}
-          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5 text-green-400" />
-                <h3 className="text-white font-semibold">Materiales</h3>
+                <h3 className="text-gray-900 dark:text-white font-semibold">Materiales</h3>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
                 <span>{materials.length} material{materials.length !== 1 ? 'es' : ''}</span>
               </div>
             </div>
@@ -3298,12 +3298,12 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
             {materials.map((material) => (
               <div
                 key={material.material_id}
-                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="text-white font-semibold text-lg">{material.material_title}</h4>
+                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{material.material_title}</h4>
                       <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 capitalize">
                         {material.material_type}
                       </span>
@@ -3314,7 +3314,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                       )}
                     </div>
                     {material.material_description && (
-                      <p className="text-slate-300 text-sm mb-3">{material.material_description}</p>
+                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{material.material_description}</p>
                     )}
                   </div>
                 </div>
@@ -3374,7 +3374,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
 
                 {/* Enlaces y acciones */}
                 {(material.external_url || material.file_url) && (
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-carbon-600/50">
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
                     {material.external_url && (
                       <a
                         href={material.external_url}
