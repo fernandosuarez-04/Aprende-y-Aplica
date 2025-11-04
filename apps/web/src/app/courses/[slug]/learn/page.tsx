@@ -299,7 +299,7 @@ export default function CourseLearnPage() {
 
     const message = liaMessage.trim();
     setLiaMessage(''); // Limpiar input inmediatamente
-    
+
     // Resetear altura del textarea después de enviar (igual al botón: 48px)
     if (liaTextareaRef.current) {
       liaTextareaRef.current.style.height = '48px';
@@ -311,6 +311,76 @@ export default function CourseLearnPage() {
 
     // Enviar mensaje con contexto
     await sendLiaMessage(message, lessonContext);
+  };
+
+  // Función para iniciar interacción con LIA desde una actividad
+  const handleStartActivityInteraction = async (activityContent: string, activityTitle: string) => {
+    // Abrir el panel de LIA si está cerrado
+    if (!isRightPanelOpen) {
+      setIsRightPanelOpen(true);
+    }
+
+    // Construir el prompt profesional para LIA
+    const initialMessage = `# SISTEMA: Inicio de Actividad Interactiva
+
+Vas a guiar al usuario a través de la actividad: "${activityTitle}"
+
+## TU ROL
+Eres LIA, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
+
+## CONTENIDO DE LA ACTIVIDAD
+A continuación te proporciono el guión completo de la actividad. Este guión contiene los mensajes que debes presentar y las preguntas que debes hacer:
+
+\`\`\`
+${activityContent}
+\`\`\`
+
+## INSTRUCCIONES CRÍTICAS
+
+1. **Flujo Conversacional**:
+   - Presenta SOLO el mensaje o pregunta actual
+   - ESPERA la respuesta del usuario antes de continuar
+   - NO anticipes ni muestres los siguientes pasos
+   - Mantén una conversación natural y fluida
+
+2. **Formato de Mensajes**:
+   - Cuando el guión dice "Lia (IA):" seguido de un mensaje, preséntalo como si fueras tú hablando directamente
+   - Elimina las etiquetas "Lia (IA):" del mensaje visible
+   - Usa un tono cálido, motivador y accesible
+   - Incluye emojis ocasionales para hacer la conversación más amigable (máximo 1-2 por mensaje)
+
+3. **Manejo de Respuestas del Usuario**:
+   - Lee y valida cada respuesta del usuario
+   - Proporciona feedback positivo y constructivo
+   - Si la respuesta es correcta: reconócelo con entusiasmo
+   - Si la respuesta necesita mejora: guía amablemente hacia la dirección correcta
+   - Personaliza tus respuestas según lo que el usuario escriba
+
+4. **Seguimiento del Progreso**:
+   - Menciona en qué paso está el usuario (ej: "Llevamos 1 de 3")
+   - Celebra cada logro pequeño
+   - Mantén al usuario motivado durante toda la actividad
+
+5. **Finalización**:
+   - Cuando llegues a la pregunta de reflexión final, preséntala claramente
+   - Después de recibir la respuesta final, felicita al usuario por completar la actividad
+   - Ofrece un resumen breve de lo aprendido
+
+## FORMATO DE INICIO
+Comienza la conversación con el PRIMER mensaje del guión de forma natural y amigable. No incluyas este prompt del sistema en tu respuesta, solo inicia la actividad directamente.
+
+**INICIA AHORA con el primer mensaje de la actividad:**`;
+
+    // Construir contexto de la lección
+    const lessonContext = getLessonContext();
+
+    // Enviar el mensaje inicial
+    await sendLiaMessage(initialMessage, lessonContext);
+
+    // Hacer scroll al chat
+    setTimeout(() => {
+      liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
   };
 
   // Auto-scroll al final cuando hay nuevos mensajes o cuando está cargando
@@ -1377,6 +1447,7 @@ export default function CourseLearnPage() {
                         lesson={currentLesson}
                         slug={slug}
                         onPromptsChange={setCurrentActivityPrompts}
+                        onStartInteraction={handleStartActivityInteraction}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -2973,10 +3044,11 @@ function FormattedContentRenderer({ content }: { content: any }) {
   );
 }
 
-function ActivitiesContent({ lesson, slug, onPromptsChange }: {
+function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }: {
   lesson: Lesson;
   slug: string;
   onPromptsChange?: (prompts: string[]) => void;
+  onStartInteraction?: (content: string, title: string) => void;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -3184,8 +3256,46 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                     )}
                   </div>
                 </div>
-                
-                <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
+
+                {/* Botón especial para actividades ai_chat */}
+                {activity.activity_type === 'ai_chat' ? (
+                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-2xl shadow-purple-500/50">
+                        <MessageSquare className="w-8 h-8 text-white" />
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-bold text-white mb-2">
+                          Actividad Interactiva con LIA
+                        </h3>
+                        <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
+                          Esta es una actividad guiada por LIA, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (onStartInteraction) {
+                            onStartInteraction(activity.activity_content, activity.activity_title);
+                          }
+                        }}
+                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 hover:scale-105"
+                      >
+                        <span className="flex items-center gap-3">
+                          <MessageSquare className="w-5 h-5 group-hover:animate-pulse" />
+                          <span>Interactuar con LIA</span>
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </button>
+
+                      <p className="text-xs text-slate-400 mt-2">
+                        LIA te guiará a través de {activity.activity_title.toLowerCase()}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
                   {activity.activity_type === 'quiz' && (() => {
                     try {
                       // Intentar parsear el contenido como JSON si es un quiz
@@ -3260,9 +3370,10 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                   {activity.activity_type !== 'quiz' && (
                     <FormattedContentRenderer content={activity.activity_content} />
                   )}
-                </div>
+                  </div>
+                )}
 
-                {activity.ai_prompts && (
+                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
                   <div className="mt-4 pt-4 border-t border-carbon-600/50">
                     <div className="flex items-center gap-2 mb-4">
                       <HelpCircle className="w-4 h-4 text-purple-400" />
