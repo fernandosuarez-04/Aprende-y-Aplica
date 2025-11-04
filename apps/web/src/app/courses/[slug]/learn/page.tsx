@@ -2317,11 +2317,53 @@ function QuizRenderer({ quizData, totalPoints }: {
     }));
   };
 
+  // Función para normalizar strings y comparar opciones
+  const normalizeOption = (text: string): string => {
+    return text
+      .trim()
+      .replace(/\s+/g, ' ') // Normalizar espacios múltiples
+      .toLowerCase();
+  };
+
+  // Función para verificar si una respuesta es correcta
+  const isAnswerCorrect = (question: any, selectedAnswer: string | number): boolean => {
+    const correctAnswer = question.correctAnswer;
+    const options = question.options;
+
+    // Si la respuesta seleccionada es un índice
+    if (typeof selectedAnswer === 'number') {
+      // Caso 1: correctAnswer es también un índice
+      if (typeof correctAnswer === 'number') {
+        return selectedAnswer === correctAnswer;
+      }
+
+      // Caso 2: correctAnswer es un string (texto de la opción)
+      if (typeof correctAnswer === 'string') {
+        const selectedOption = options[selectedAnswer];
+        // Comparación flexible ignorando espacios y mayúsculas
+        return normalizeOption(selectedOption) === normalizeOption(correctAnswer);
+      }
+    }
+
+    // Si la respuesta seleccionada es un string
+    if (typeof selectedAnswer === 'string') {
+      if (typeof correctAnswer === 'string') {
+        return normalizeOption(selectedAnswer) === normalizeOption(correctAnswer);
+      }
+      if (typeof correctAnswer === 'number') {
+        return normalizeOption(selectedAnswer) === normalizeOption(options[correctAnswer]);
+      }
+    }
+
+    return false;
+  };
+
   const handleSubmit = () => {
     let correct = 0;
     let points = 0;
     quizData.forEach(question => {
-      if (selectedAnswers[question.id] === question.correctAnswer) {
+      const selectedAnswer = selectedAnswers[question.id];
+      if (selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer)) {
         correct++;
         points += question.points || 1;
       }
@@ -2337,35 +2379,39 @@ function QuizRenderer({ quizData, totalPoints }: {
   const passed = percentage >= passingThreshold;
 
   // Función para parsear explicaciones con formato especial (separadas por ---)
-  const parseExplanation = (explanation: string, selectedOption: string | number, correctAnswer: string | number) => {
+  const parseExplanation = (question: any, selectedAnswer: string | number) => {
+    const explanation = question.explanation;
     if (!explanation) return null;
 
     // Verificar si la explicación tiene el formato con "---"
     if (explanation.includes('---')) {
       const parts = explanation.split('---').map(p => p.trim());
 
-      // Buscar el feedback para la opción seleccionada
-      let relevantFeedback = '';
+      // Obtener el texto de la opción seleccionada
+      let selectedOptionText = '';
+      if (typeof selectedAnswer === 'number' && question.options[selectedAnswer]) {
+        selectedOptionText = question.options[selectedAnswer];
+      } else if (typeof selectedAnswer === 'string') {
+        selectedOptionText = selectedAnswer;
+      }
 
-      for (const part of parts) {
-        // Extraer la letra de la opción del feedback (ej: "(A)", "(B)", etc.)
-        const optionMatch = part.match(/^\(([A-Z])\)\s+Feedback:/);
-        if (optionMatch) {
-          const optionLetter = optionMatch[1];
+      // Extraer la letra de la opción seleccionada (A, B, C, D)
+      const letterMatch = selectedOptionText.match(/\(([A-Z])\)/);
+      const selectedLetter = letterMatch ? letterMatch[1] : null;
 
-          // Determinar qué opción corresponde a esta letra
-          const optionText = typeof selectedOption === 'string' ? selectedOption : '';
-          const correctText = typeof correctAnswer === 'string' ? correctAnswer : '';
-
-          // Verificar si esta parte corresponde a la opción seleccionada
-          if (optionText.includes(`(${optionLetter})`)) {
-            relevantFeedback = part.replace(/^\([A-Z]\)\s+Feedback:\s*/, '');
-            break;
+      if (selectedLetter) {
+        // Buscar el feedback para esa letra
+        for (const part of parts) {
+          // Buscar feedback que empiece con (A), (B), etc.
+          const feedbackMatch = part.match(new RegExp(`^\\(${selectedLetter}\\)\\s+(Feedback|Comentarios):?\\s*(.*)`, 's'));
+          if (feedbackMatch) {
+            return feedbackMatch[2].trim();
           }
         }
       }
 
-      return relevantFeedback || explanation;
+      // Si no encontramos un feedback específico, mostrar toda la explicación
+      return explanation;
     }
 
     return explanation;
@@ -2392,8 +2438,9 @@ function QuizRenderer({ quizData, totalPoints }: {
       {/* Preguntas */}
       <div className="space-y-6">
         {quizData.map((question, index) => {
-          const isCorrect = selectedAnswers[question.id] === question.correctAnswer;
-          const showExplanation = showResults && selectedAnswers[question.id] !== undefined;
+          const selectedAnswer = selectedAnswers[question.id];
+          const isCorrect = selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer);
+          const showExplanation = showResults && selectedAnswer !== undefined;
 
           return (
             <div
@@ -2432,8 +2479,15 @@ function QuizRenderer({ quizData, totalPoints }: {
                   <div className="space-y-2">
                     {question.options.map((option, optIndex) => {
                       const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D...
-                      const isSelected = selectedAnswers[question.id] === optIndex || selectedAnswers[question.id] === option;
-                      const isCorrectOption = question.correctAnswer === optIndex || question.correctAnswer === option;
+                      const isSelected = selectedAnswer === optIndex || selectedAnswer === option;
+
+                      // Determinar si esta opción es la correcta
+                      let isCorrectOption = false;
+                      if (typeof question.correctAnswer === 'number') {
+                        isCorrectOption = optIndex === question.correctAnswer;
+                      } else if (typeof question.correctAnswer === 'string') {
+                        isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                      }
                       
                       return (
                         <label
@@ -2487,7 +2541,7 @@ function QuizRenderer({ quizData, totalPoints }: {
                         {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
                       </p>
                       <p className="text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
-                        {parseExplanation(question.explanation, selectedAnswers[question.id], question.correctAnswer)}
+                        {parseExplanation(question, selectedAnswer)}
                       </p>
                     </div>
                   )}
