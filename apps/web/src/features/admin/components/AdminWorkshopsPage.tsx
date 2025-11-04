@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAdminWorkshops } from '../hooks/useAdminWorkshops'
 import { AdminWorkshop } from '../services/adminWorkshops.service'
+import { EditWorkshopModal } from './EditWorkshopModal'
 
 export function AdminWorkshopsPage() {
   const router = useRouter()
@@ -25,6 +26,8 @@ export function AdminWorkshopsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [editingWorkshop, setEditingWorkshop] = useState<AdminWorkshop | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   const filteredWorkshops = workshops.filter(workshop => {
     const matchesSearch = workshop.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -294,10 +297,7 @@ export function AdminWorkshopsPage() {
                       <EyeIcon className="h-4 w-4" />
                     </button>
                     <button 
-                      onClick={() => {
-                        // TODO: Implementar modal de edición
-                        console.log('Editar taller:', workshop.id)
-                      }}
+                      onClick={() => setEditingWorkshop(workshop)}
                       className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                       title="Editar taller"
                     >
@@ -321,6 +321,37 @@ export function AdminWorkshopsPage() {
           ))}
         </div>
       </div>
+
+      {/* Modal de Edición */}
+      {editingWorkshop && (
+        <EditWorkshopModal
+          workshop={editingWorkshop}
+          onClose={() => setEditingWorkshop(null)}
+          onSave={async (data) => {
+            try {
+              setIsUpdating(true)
+              const response = await fetch(`/api/admin/workshops/${editingWorkshop.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              })
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.error || 'Error al actualizar el taller')
+              }
+
+              await refetch()
+              setEditingWorkshop(null)
+            } catch (error) {
+              console.error('Error updating workshop:', error)
+              alert(error instanceof Error ? error.message : 'Error al actualizar el taller')
+            } finally {
+              setIsUpdating(false)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

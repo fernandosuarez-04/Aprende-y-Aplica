@@ -30,8 +30,9 @@ export async function GET(
 
     const courseId = course.id;
 
-    // Obtener módulos del curso
-    const { data: modules, error: modulesError } = await supabase
+    // Obtener módulos del curso (incluir todos, no solo publicados, para el panel de admin/instructor)
+    // Si no hay módulos publicados, mostrar todos para que el instructor pueda ver su contenido
+    const { data: allModules, error: allModulesError } = await supabase
       .from('course_modules')
       .select(`
         module_id,
@@ -41,8 +42,19 @@ export async function GET(
         is_published
       `)
       .eq('course_id', courseId)
-      .eq('is_published', true)
       .order('module_order_index', { ascending: true });
+
+    // Filtrar solo los publicados si hay alguno publicado, sino mostrar todos
+    const publishedModules = (allModules || []).filter(m => m.is_published === true);
+    const modules = publishedModules.length > 0 ? publishedModules : (allModules || []);
+    
+    const modulesError = allModulesError;
+    
+    console.log(`📦 Módulos encontrados para curso ${courseId}:`, {
+      total: allModules?.length || 0,
+      publicados: publishedModules.length,
+      mostrando: modules.length
+    });
 
     if (modulesError) {
       console.error('Error fetching modules:', modulesError);
@@ -61,7 +73,8 @@ export async function GET(
         module_duration_minutes?: number;
         is_published: boolean;
       }) => {
-        const { data: lessons, error: lessonsError } = await supabase
+        // Obtener todas las lecciones primero
+        const { data: allLessons, error: allLessonsError } = await supabase
           .from('course_lessons')
           .select(`
             lesson_id,
@@ -74,13 +87,42 @@ export async function GET(
             is_published
           `)
           .eq('module_id', module.module_id)
-          .eq('is_published', true)
           .order('lesson_order_index', { ascending: true });
+
+        // Si hay lecciones publicadas, mostrar solo esas, sino mostrar todas
+        const publishedLessons = (allLessons || []).filter(l => l.is_published === true);
+        const lessons = publishedLessons.length > 0 ? publishedLessons : (allLessons || []);
+        const lessonsError = allLessonsError;
 
         if (lessonsError) {
           console.error('Error fetching lessons:', lessonsError);
           return { ...module, lessons: [] };
         }
+
+        // Reconstruir URLs completas de Supabase para videos directos
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const lessonsWithFullUrls = (lessons || []).map((lesson: any) => {
+          if (lesson.video_provider === 'direct' && lesson.video_provider_id && !lesson.video_provider_id.startsWith('http')) {
+            let videoUrl = lesson.video_provider_id;
+            if (supabaseUrl) {
+              // Si el path no incluye el bucket, asumir que está en 'course-videos/videos'
+              if (!videoUrl.includes('/')) {
+                videoUrl = `${supabaseUrl}/storage/v1/object/public/course-videos/videos/${videoUrl}`;
+              } else if (!videoUrl.startsWith('course-videos/')) {
+                // Si empieza con 'course-videos/' pero no tiene http, agregar la base
+                videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
+              } else {
+                // Ya tiene el bucket, solo agregar la base
+                videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
+              }
+            }
+            return {
+              ...lesson,
+              video_provider_id: videoUrl
+            };
+          }
+          return lesson;
+        });
 
         // Obtener progreso del usuario si está autenticado
         const currentUser = await SessionService.getCurrentUser();
@@ -116,7 +158,7 @@ export async function GET(
                 (progressData || []).map((p: { lesson_id: string; is_completed?: boolean; video_progress_percentage?: number }) => [p.lesson_id, p])
               );
 
-              lessonsWithProgress = lessons.map((lesson: {
+              lessonsWithProgress = lessonsWithFullUrls.map((lesson: {
                 lesson_id: string;
                 lesson_title: string;
                 lesson_description?: string;
@@ -140,7 +182,7 @@ export async function GET(
               });
             } else {
               // Usuario autenticado pero sin enrollment
-              lessonsWithProgress = lessons.map((lesson: {
+              lessonsWithProgress = lessonsWithFullUrls.map((lesson: {
                 lesson_id: string;
                 lesson_title: string;
                 lesson_description?: string;

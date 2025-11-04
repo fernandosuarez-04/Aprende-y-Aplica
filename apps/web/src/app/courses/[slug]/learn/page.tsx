@@ -2292,6 +2292,384 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   );
 }
 
+// Componente para renderizar quizzes
+function QuizRenderer({ quizData }: { quizData: Array<{
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: string | number;
+  explanation?: string;
+  points?: number;
+  questionType?: string;
+}> }) {
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
+  const [showResults, setShowResults] = useState(false);
+  const [score, setScore] = useState(0);
+
+  const handleAnswerSelect = (questionId: string, answer: string | number) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  const handleSubmit = () => {
+    let correct = 0;
+    quizData.forEach(question => {
+      if (selectedAnswers[question.id] === question.correctAnswer) {
+        correct++;
+      }
+    });
+    setScore(correct);
+    setShowResults(true);
+  };
+
+  const totalQuestions = quizData.length;
+  const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+  const passingThreshold = 80;
+  const passed = percentage >= passingThreshold;
+
+  return (
+    <div className="space-y-6">
+      {/* Instrucciones */}
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+        <p className="text-slate-200 text-sm mb-2">
+          <strong>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
+        </p>
+        <p className="text-slate-300 text-sm">
+          Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas). 
+          <span className="block mt-1"><strong>Umbral de aprobación:</strong> {passingThreshold}%</span>
+        </p>
+      </div>
+
+      {/* Preguntas */}
+      <div className="space-y-6">
+        {quizData.map((question, index) => {
+          const isCorrect = selectedAnswers[question.id] === question.correctAnswer;
+          const showExplanation = showResults && selectedAnswers[question.id] !== undefined;
+
+          return (
+            <div
+              key={question.id}
+              className={`bg-carbon-800/70 rounded-lg p-5 border-2 ${
+                showResults
+                  ? isCorrect
+                    ? 'border-green-500/50 bg-green-500/5'
+                    : 'border-red-500/50 bg-red-500/5'
+                  : 'border-carbon-600/50'
+              }`}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${
+                  showResults
+                    ? isCorrect
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                }`}>
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-4 leading-relaxed">
+                    {question.question}
+                  </h4>
+                  
+                  {/* Opciones */}
+                  <div className="space-y-2">
+                    {question.options.map((option, optIndex) => {
+                      const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D...
+                      const isSelected = selectedAnswers[question.id] === optIndex || selectedAnswers[question.id] === option;
+                      const isCorrectOption = question.correctAnswer === optIndex || question.correctAnswer === option;
+                      
+                      return (
+                        <label
+                          key={optIndex}
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            showResults
+                              ? isCorrectOption
+                                ? 'bg-green-500/10 border-green-500/50'
+                                : isSelected && !isCorrectOption
+                                ? 'bg-red-500/10 border-red-500/50'
+                                : 'bg-carbon-700/50 border-carbon-600/50'
+                              : isSelected
+                              ? 'bg-blue-500/10 border-blue-500/50'
+                              : 'bg-carbon-700/50 border-carbon-600/50 hover:border-carbon-500/50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${question.id}`}
+                            value={optIndex}
+                            checked={isSelected}
+                            onChange={() => handleAnswerSelect(question.id, optIndex)}
+                            disabled={showResults}
+                            className="mt-1 w-4 h-4 text-blue-500 border-carbon-600 focus:ring-blue-500 focus:ring-2"
+                          />
+                          <div className="flex-1">
+                            <span className="font-semibold text-slate-300 mr-2">
+                              ({optionLetter})
+                            </span>
+                            <span className="text-slate-200">{option}</span>
+                          </div>
+                          {showResults && isCorrectOption && (
+                            <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                          )}
+                          {showResults && isSelected && !isCorrectOption && (
+                            <X className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/* Explicación */}
+                  {showExplanation && question.explanation && (
+                    <div className={`mt-4 p-4 rounded-lg ${
+                      isCorrect
+                        ? 'bg-green-500/10 border border-green-500/30'
+                        : 'bg-red-500/10 border border-red-500/30'
+                    }`}>
+                      <p className="text-sm font-semibold text-slate-300 mb-1">
+                        {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
+                      </p>
+                      <p className="text-slate-200 text-sm whitespace-pre-wrap">
+                        {question.explanation}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Botón de envío */}
+      {!showResults && (
+        <div className="flex justify-end pt-4 border-t border-carbon-600/50">
+          <button
+            onClick={handleSubmit}
+            disabled={Object.keys(selectedAnswers).length < totalQuestions}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            Enviar Respuestas
+          </button>
+        </div>
+      )}
+
+      {/* Resultados */}
+      {showResults && (
+        <div className={`mt-6 p-6 rounded-lg border-2 ${
+          passed
+            ? 'bg-green-500/10 border-green-500/50'
+            : 'bg-red-500/10 border-red-500/50'
+        }`}>
+          <div className="text-center">
+            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-400' : 'text-red-400'}`}>
+              {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
+            </h3>
+            <p className="text-slate-200 text-lg mb-1">
+              Obtuviste {score} de {totalQuestions} correctas
+            </p>
+            <p className="text-slate-300 text-sm">
+              Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Componente para renderizar prompts como botones en lista
+function PromptsRenderer({ prompts }: { prompts: string | any }) {
+  let promptsList: string[] = [];
+
+  try {
+    // Si es string, intentar parsearlo como JSON
+    if (typeof prompts === 'string') {
+      try {
+        const parsed = JSON.parse(prompts);
+        if (Array.isArray(parsed)) {
+          promptsList = parsed;
+        } else {
+          promptsList = [prompts];
+        }
+      } catch (e) {
+        // Si no es JSON, puede ser un string simple o un array como string
+        // Intentar detectar si parece un array
+        if (prompts.trim().startsWith('[') && prompts.trim().endsWith(']')) {
+          try {
+            const parsed = JSON.parse(prompts);
+            if (Array.isArray(parsed)) {
+              promptsList = parsed;
+            }
+          } catch (e2) {
+            promptsList = [prompts];
+          }
+        } else {
+          // Es un string simple, dividir por líneas si tiene saltos
+          promptsList = prompts.split('\n').filter(p => p.trim().length > 0);
+          if (promptsList.length === 0) {
+            promptsList = [prompts];
+          }
+        }
+      }
+    } else if (Array.isArray(prompts)) {
+      promptsList = prompts;
+    } else {
+      promptsList = [String(prompts)];
+    }
+  } catch (e) {
+    console.warn('Error parsing prompts:', e);
+    promptsList = [String(prompts)];
+  }
+
+  return (
+    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+      <div className="space-y-2">
+        {promptsList.map((prompt, index) => {
+          // Limpiar el prompt (remover comillas si las tiene)
+          const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+          
+          return (
+            <button
+              key={index}
+              onClick={() => {
+                // Aquí puedes agregar lógica para copiar el prompt o enviarlo a LIA
+                navigator.clipboard.writeText(cleanPrompt).then(() => {
+                  alert('Prompt copiado al portapapeles');
+                }).catch(() => {
+                  // Fallback: mostrar el prompt
+                  console.log('Prompt:', cleanPrompt);
+                });
+              }}
+              className="w-full text-left px-4 py-3 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 rounded-lg transition-all hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 group"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-500/50 transition-colors">
+                  <span className="text-purple-300 text-xs font-bold">{index + 1}</span>
+                </div>
+                <p className="text-slate-200 text-sm leading-relaxed flex-1 group-hover:text-white transition-colors">
+                  {cleanPrompt}
+                </p>
+                <Copy className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Componente para renderizar materiales de lectura
+function ReadingMaterialRenderer({ content }: { content: any }) {
+  let readingContent = content;
+  
+  // Si el contenido es un objeto con propiedades, intentar extraer el texto
+  if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+    // Buscar propiedades comunes que contengan el texto
+    readingContent = content.text || content.content || content.body || content.description || content.title || '';
+    
+    // Si no encontramos contenido, intentar convertir todo el objeto a string
+    if (!readingContent || readingContent === '') {
+      readingContent = JSON.stringify(content, null, 2);
+    }
+  }
+
+  // Si es un string, intentar parsearlo si parece JSON
+  if (typeof readingContent === 'string') {
+    try {
+      const parsed = JSON.parse(readingContent);
+      if (typeof parsed === 'object' && parsed !== null) {
+        readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
+      }
+    } catch (e) {
+      // No es JSON, usar directamente
+    }
+  }
+
+  // Asegurar que es string
+  if (typeof readingContent !== 'string') {
+    readingContent = String(readingContent);
+  }
+
+  // Mejorar el formato: detectar títulos, párrafos, listas, etc.
+  const lines = readingContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const formattedContent: Array<{ type: 'heading' | 'subheading' | 'paragraph' | 'list'; content: string; level?: number }> = [];
+
+  lines.forEach((line, index) => {
+    // Detectar títulos principales (líneas cortas sin punto, con mayúsculas o números)
+    if (line.length > 0 && line.length < 80 && 
+        (line.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) || 
+         line.match(/^\d+[\.\)]\s/) ||
+         line.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*:$/))) {
+      // Verificar si es un subtítulo (empieza con número o tiene dos puntos)
+      if (line.includes(':') || line.match(/^\d+[\.\)]/)) {
+        formattedContent.push({ type: 'subheading', content: line, level: 2 });
+      } else {
+        formattedContent.push({ type: 'heading', content: line, level: 1 });
+      }
+    } 
+    // Detectar listas (líneas que empiezan con - o • o números)
+    else if (line.match(/^[-•]\s/) || line.match(/^\d+[\.\)]\s/)) {
+      formattedContent.push({ type: 'list', content: line });
+    }
+    // Párrafos normales
+    else {
+      formattedContent.push({ type: 'paragraph', content: line });
+    }
+  });
+
+  return (
+    <div className="bg-carbon-800/50 rounded-lg p-8 border border-carbon-600/50">
+      <article className="prose prose-invert max-w-none">
+        <div className="text-slate-200 leading-relaxed space-y-6">
+          {formattedContent.map((item, index) => {
+            if (item.type === 'heading') {
+              return (
+                <h2 
+                  key={`item-${index}`} 
+                  className="text-white font-bold text-2xl mb-4 mt-8 first:mt-0 border-b-2 border-purple-500/30 pb-3"
+                >
+                  {item.content}
+                </h2>
+              );
+            } else if (item.type === 'subheading') {
+              return (
+                <h3 
+                  key={`item-${index}`} 
+                  className="text-purple-300 font-semibold text-xl mb-3 mt-6"
+                >
+                  {item.content}
+                </h3>
+              );
+            } else if (item.type === 'list') {
+              return (
+                <div key={`item-${index}`} className="flex items-start gap-3 mb-3">
+                  <span className="text-purple-400 mt-1">•</span>
+                  <p className="text-slate-200 leading-relaxed flex-1">{item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '')}</p>
+                </div>
+              );
+            } else {
+              return (
+                <p 
+                  key={`item-${index}`} 
+                  className="text-slate-200 leading-relaxed mb-4 text-base"
+                  style={{ lineHeight: '1.8' }}
+                >
+                  {item.content}
+                </p>
+              );
+            }
+          })}
+        </div>
+      </article>
+    </div>
+  );
+}
+
 function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -2455,26 +2833,107 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                 </div>
                 
                 <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-                      {activity.activity_content}
+                  {activity.activity_type === 'quiz' && (() => {
+                    try {
+                      // Intentar parsear el contenido como JSON si es un quiz
+                      let quizData = activity.activity_content;
+                      
+                      console.log('🔍 Processing quiz activity:', {
+                        type: typeof quizData,
+                        isString: typeof quizData === 'string',
+                        preview: typeof quizData === 'string' ? quizData.substring(0, 100) : 'Object'
+                      });
+                      
+                      // Si es string, intentar parsearlo
+                      if (typeof quizData === 'string') {
+                        // Intentar parsear como JSON
+                        try {
+                          quizData = JSON.parse(quizData);
+                          console.log('✅ Quiz parsed as JSON:', Array.isArray(quizData) ? `${quizData.length} questions` : 'Not an array');
+                        } catch (e) {
+                          // Si no es JSON válido, puede ser un string simple
+                          console.warn('⚠️ Quiz content is not valid JSON:', e);
+                          return (
+                            <div className="prose prose-invert max-w-none">
+                              <p className="text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
+                              <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                                {activity.activity_content}
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+                      
+                      // Verificar que es un array con preguntas
+                      if (Array.isArray(quizData) && quizData.length > 0) {
+                        console.log('📋 Quiz is array with', quizData.length, 'items');
+                        console.log('📋 First question preview:', quizData[0]);
+                        
+                        // Verificar que cada elemento tiene la estructura de pregunta
+                        const hasValidStructure = quizData.every((q: any) => {
+                          const isValid = q && typeof q === 'object' && (q.question || q.id);
+                          if (!isValid) {
+                            console.warn('⚠️ Invalid question structure:', q);
+                          }
+                          return isValid;
+                        });
+                        
+                        console.log('✅ Has valid structure:', hasValidStructure);
+                        
+                        if (hasValidStructure) {
+                          return <QuizRenderer quizData={quizData} />;
+                        } else {
+                          console.warn('⚠️ Quiz structure is invalid, showing raw content');
+                        }
+                      } else {
+                        console.warn('⚠️ Quiz is not an array or is empty:', {
+                          isArray: Array.isArray(quizData),
+                          length: Array.isArray(quizData) ? quizData.length : 'N/A'
+                        });
+                      }
+                      
+                      // Si llegamos aquí, mostrar como texto normal con mensaje de debug
+                      return (
+                        <div className="prose prose-invert max-w-none">
+                          <p className="text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
+                          <details className="mb-4">
+                            <summary className="text-slate-300 cursor-pointer">Ver contenido crudo</summary>
+                            <pre className="text-xs text-slate-400 mt-2 p-2 bg-carbon-900 rounded overflow-auto">
+                              {typeof activity.activity_content === 'string' 
+                                ? activity.activity_content 
+                                : JSON.stringify(activity.activity_content, null, 2)}
+                            </pre>
+                          </details>
+                        </div>
+                      );
+                    } catch (e) {
+                      console.error('❌ Error processing quiz:', e);
+                      return (
+                        <div className="prose prose-invert max-w-none">
+                          <p className="text-red-400 mb-2">❌ Error al procesar el quiz</p>
+                          <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                            {activity.activity_content}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
+                  {activity.activity_type !== 'quiz' && (
+                    <div className="prose prose-invert max-w-none">
+                      <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
+                        {activity.activity_content}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {activity.ai_prompts && (
                   <div className="mt-4 pt-4 border-t border-carbon-600/50">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-4">
                       <HelpCircle className="w-4 h-4 text-purple-400" />
                       <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
                     </div>
-                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                      <div className="prose prose-invert max-w-none">
-                        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap text-sm">
-                          {activity.ai_prompts}
-                        </div>
-                      </div>
-                    </div>
+                    <PromptsRenderer prompts={activity.ai_prompts} />
                   </div>
                 )}
               </div>
@@ -2525,38 +2984,81 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                   </div>
                 </div>
                 
+                {/* Contenido del material */}
+                {material.content_data && (
+                  <div className="w-full mt-4">
+                    {material.material_type === 'quiz' && (() => {
+                      try {
+                        let quizData = material.content_data;
+                        
+                        // Si es string, intentar parsearlo
+                        if (typeof quizData === 'string') {
+                          try {
+                            quizData = JSON.parse(quizData);
+                          } catch (e) {
+                            console.warn('Quiz content is not valid JSON:', e);
+                            return null;
+                          }
+                        }
+                        
+                        // Verificar que es un array con preguntas
+                        if (Array.isArray(quizData) && quizData.length > 0) {
+                          // Verificar que cada elemento tiene la estructura de pregunta
+                          const hasValidStructure = quizData.every((q: any) => 
+                            q && typeof q === 'object' && (q.question || q.id)
+                          );
+                          
+                          if (hasValidStructure) {
+                            return <QuizRenderer quizData={quizData} />;
+                          }
+                        }
+                      } catch (e) {
+                        console.warn('Error parsing quiz data:', e);
+                      }
+                      return null;
+                    })()}
+                    {material.material_type === 'reading' && (
+                      <ReadingMaterialRenderer content={material.content_data} />
+                    )}
+                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && typeof material.content_data === 'object' && (
+                      <div className="bg-carbon-800/50 rounded-lg p-4 border border-carbon-600/50">
+                        <p className="text-slate-300 text-sm whitespace-pre-wrap">
+                          {typeof material.content_data === 'string' 
+                            ? material.content_data 
+                            : JSON.stringify(material.content_data, null, 2)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Enlaces y acciones */}
-                <div className="flex items-center gap-3">
-                  {material.external_url && (
-                    <a
-                      href={material.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      <span className="text-sm">Abrir enlace</span>
-                    </a>
-                  )}
-                  {material.file_url && (
-                    <a
-                      href={material.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      <span className="text-sm">Ver archivo</span>
-                    </a>
-                  )}
-                  {material.content_data && typeof material.content_data === 'object' && (
-                    <div className="flex-1 bg-carbon-800/50 rounded-lg p-3 border border-carbon-600/50">
-                      <p className="text-slate-300 text-sm">
-                        {JSON.stringify(material.content_data, null, 2)}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {(material.external_url || material.file_url) && (
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-carbon-600/50">
+                    {material.external_url && (
+                      <a
+                        href={material.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Abrir enlace</span>
+                      </a>
+                    )}
+                    {material.file_url && (
+                      <a
+                        href={material.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Ver archivo</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
