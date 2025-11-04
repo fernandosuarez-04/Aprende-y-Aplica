@@ -14,7 +14,11 @@ import {
   LogOut,
   ChevronDown,
   ShieldCheck,
-  GraduationCap
+  GraduationCap,
+  CreditCard,
+  Wallet,
+  Settings,
+  Receipt
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
@@ -73,6 +77,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   }
 
   const menuItems = [
+    // Accesos rápidos
     {
       id: 'stats',
       label: 'Mis Estadísticas',
@@ -92,6 +97,10 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       }
     },
     {
+      id: 'separator1',
+      isSeparator: true
+    },
+    {
       id: 'profile',
       label: 'Editar perfil',
       icon: Edit3,
@@ -99,6 +108,64 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         router.push('/profile')
         setIsOpen(false)
       }
+    },
+    {
+      id: 'account-settings',
+      label: 'Configuración de la cuenta',
+      icon: Settings,
+      onClick: () => {
+        router.push('/account-settings')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'separator2',
+      isSeparator: true
+    },
+    // Sección: Suscripciones y Pagos
+    {
+      id: 'subscriptions',
+      label: 'Suscripciones',
+      icon: CreditCard,
+      onClick: () => {
+        router.push('/subscriptions')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'payment-methods',
+      label: 'Métodos de pago',
+      icon: Wallet,
+      onClick: () => {
+        router.push('/payment-methods')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'purchase-history',
+      label: 'Historial de compras',
+      icon: Receipt,
+      onClick: () => {
+        router.push('/purchase-history')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'separator3',
+      isSeparator: true
+    },
+    // Tema (submenu)
+    {
+      id: 'theme',
+      label: theme === 'light' ? 'Modo claro' : theme === 'dark' ? 'Modo oscuro' : 'Modo sistema',
+      icon: resolvedTheme === 'light' ? Sun : resolvedTheme === 'dark' ? Moon : Monitor,
+      onClick: () => {
+        setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
+      }
+    },
+    {
+      id: 'separator4',
+      isSeparator: true
     },
     // Botón de administración - Solo para administradores
     ...(user?.cargo_rol?.toLowerCase() === 'administrador' ? [{
@@ -122,15 +189,6 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       },
       isInstructor: true
     }] : []),
-    {
-      id: 'theme',
-      label: theme === 'light' ? 'Modo claro' : theme === 'dark' ? 'Modo oscuro' : 'Modo sistema',
-      icon: theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor,
-      onClick: () => {
-        setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
-      },
-      hasSubmenu: true
-    },
     {
       id: 'logout',
       label: 'Cerrar sesión',
@@ -178,10 +236,16 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         </motion.div>
         
         <div className="hidden sm:block text-left">
-          <p className="text-sm font-medium text-text-primary dark:text-text-primary">
+          <p 
+            className="text-sm font-medium"
+            style={{ color: 'var(--org-text-color, #f8fafc)' }}
+          >
             {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
           </p>
-          <p className="text-xs text-text-tertiary dark:text-text-tertiary">
+          <p 
+            className="text-xs"
+            style={{ color: 'var(--org-text-color, #94a3b8)' }}
+          >
             {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
           </p>
         </div>
@@ -204,7 +268,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm"
+              className="fixed inset-0 z-[9999] bg-black/20 backdrop-blur-sm"
               onClick={() => setIsOpen(false)}
             />
             
@@ -217,10 +281,10 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                 duration: 0.2,
                 ease: "easeOut"
               }}
-              className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-none border-2 border-gray-200 dark:border-gray-700 z-[9999]"
+              className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-8rem)] bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-none border-2 border-gray-200 dark:border-gray-700 z-[10000] flex flex-col"
             >
             {/* Header del usuario */}
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
               <div className="flex items-center space-x-5">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center dark:shadow-none overflow-hidden">
                   {userProfile?.profile_picture_url ? (
@@ -234,55 +298,72 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-text-primary truncate">
+                  <h3 
+                    className="text-lg font-semibold truncate"
+                    style={{ color: 'var(--org-text-color, #f8fafc)' }}
+                  >
                     {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
                   </h3>
-                  <p className="text-sm text-text-tertiary truncate">
+                  <p 
+                    className="text-sm truncate"
+                    style={{ color: 'var(--org-text-color, #cbd5e1)' }}
+                  >
                     {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Items del menú */}
-            <div className="py-3">
+            {/* Items del menú - Con scroll invisible */}
+            <div className="py-3 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
               {menuItems.map((item, index) => {
+                // Renderizar separador
+                if ((item as any).isSeparator) {
+                  return (
+                    <div
+                      key={item.id}
+                      className="h-px bg-gray-200 dark:bg-gray-700 my-2 mx-6"
+                    />
+                  )
+                }
+
                 const Icon = item.icon
                 return (
-                  <div key={item.id} className="relative">
+                  <React.Fragment key={item.id}>
                     <motion.button
                       onClick={item.onClick}
-                      className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
-                        item.isDestructive 
-                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300' 
-                          : item.isAdmin
-                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300'
-                          : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
-                      }`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ 
-                        duration: 0.2,
-                        delay: index * 0.05
-                      }}
+                    className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
+                      item.isDestructive 
+                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
+                        : item.isAdmin
+                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300'
+                        : 'hover:bg-gray-800'
+                    }`}
+                    style={!item.isDestructive && !item.isAdmin ? { color: 'var(--org-text-color, #94a3b8)' } : {}}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ 
+                      duration: 0.2,
+                      delay: index * 0.05
+                    }}
+                    whileHover={{ 
+                      x: 4,
+                      transition: { duration: 0.2 }
+                    }}
+                    whileTap={{ 
+                      scale: 0.98,
+                      transition: { duration: 0.1 }
+                    }}
+                  >
+                    <motion.div
                       whileHover={{ 
-                        x: 4,
-                        transition: { duration: 0.2 }
+                        scale: 1.1,
+                        rotate: item.id === 'theme' ? 15 : 0
                       }}
-                      whileTap={{ 
-                        scale: 0.98,
-                        transition: { duration: 0.1 }
-                      }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <motion.div
-                        whileHover={{ 
-                          scale: 1.1,
-                          rotate: item.id === 'theme' ? 15 : 0
-                        }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Icon className={`w-6 h-6 ${
-                        item.isDestructive || item.isAdmin ? 'text-red-600 dark:text-red-400' : 'text-primary dark:text-primary'
+                      <Icon className={`w-6 h-6 ${
+                        item.isDestructive || item.isAdmin ? 'text-red-400' : 'text-primary'
                       }`} />
                       </motion.div>
                       <span className="font-medium text-base flex-1">{item.label}</span>
@@ -346,7 +427,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                         })}
                       </div>
                     )}
-                  </div>
+                  </React.Fragment>
                 )
               })}
             </div>

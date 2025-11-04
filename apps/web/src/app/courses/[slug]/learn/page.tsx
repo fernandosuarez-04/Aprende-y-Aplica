@@ -33,11 +33,14 @@ import {
   Heart,
   Eye,
   CheckCircle,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
 import { VideoPlayer } from '../../../../core/components/VideoPlayer';
+import { useLiaChat } from '../../../../core/hooks';
+import type { CourseLessonContext } from '@/core/types/lia.types';
 
 interface Lesson {
   lesson_id: string;
@@ -93,20 +96,17 @@ export default function CourseLearnPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(6);
+  
+  // Hook de LIA con mensaje inicial personalizado
+  const {
+    messages: liaMessages,
+    isLoading: isLiaLoading,
+    sendMessage: sendLiaMessage,
+    clearHistory: clearLiaHistory
+  } = useLiaChat('¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?');
+  
+  // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
-  const [liaMessages, setLiaMessages] = useState<Array<{
-    id: string;
-    type: 'user' | 'lia';
-    content: string;
-    timestamp: Date;
-  }>>([
-    {
-      id: '1',
-      type: 'lia',
-      content: '¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?',
-      timestamp: new Date()
-    }
-  ]);
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -212,30 +212,39 @@ export default function CourseLearnPage() {
   };
 
 
-  // Función para enviar mensaje a LIA
-  const sendLiaMessage = () => {
-    if (!liaMessage.trim()) return;
+  // Función para construir el contexto de la lección actual
+  const getLessonContext = (): CourseLessonContext | undefined => {
+    if (!currentLesson || !course) return undefined;
 
-    const userMessage = {
-      id: Date.now().toString(),
-      type: 'user' as const,
-      content: liaMessage.trim(),
-      timestamp: new Date()
+    // Encontrar el módulo actual
+    const currentModule = modules.find(m => 
+      m.lessons.some(l => l.lesson_id === currentLesson.lesson_id)
+    );
+
+    return {
+      courseTitle: course.title || course.course_title,
+      courseDescription: course.description || course.course_description,
+      moduleTitle: currentModule?.module_title,
+      lessonTitle: currentLesson.lesson_title,
+      lessonDescription: currentLesson.lesson_description,
+      transcriptContent: currentLesson.transcript_content,
+      summaryContent: currentLesson.summary_content,
+      durationSeconds: currentLesson.duration_seconds
     };
+  };
 
-    setLiaMessages(prev => [...prev, userMessage]);
-    setLiaMessage('');
+  // Función para enviar mensaje a LIA con contexto de la lección
+  const handleSendLiaMessage = async () => {
+    if (!liaMessage.trim() || isLiaLoading) return;
 
-    // Simular respuesta de LIA (en una implementación real, esto sería una llamada a la API)
-    setTimeout(() => {
-      const liaResponse = {
-        id: (Date.now() + 1).toString(),
-        type: 'lia' as const,
-        content: `Entiendo tu pregunta sobre "${liaMessage.trim()}". Como tu tutora personalizada, te ayudo a comprender mejor los conceptos. ¿Te gustaría que profundice en algún aspecto específico?`,
-        timestamp: new Date()
-      };
-      setLiaMessages(prev => [...prev, liaResponse]);
-    }, 1000);
+    const message = liaMessage.trim();
+    setLiaMessage(''); // Limpiar input inmediatamente
+
+    // Construir contexto de la lección actual
+    const lessonContext = getLessonContext();
+
+    // Enviar mensaje con contexto
+    await sendLiaMessage(message, lessonContext);
   };
 
   // Función para abrir modal de nueva nota
@@ -1242,16 +1251,16 @@ export default function CourseLearnPage() {
                   {liaMessages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
                         className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                          message.type === 'user'
+                          message.role === 'user'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                             : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                         <p className="text-xs mt-1 opacity-70">
                           {message.timestamp.toLocaleTimeString('es-ES', { 
                             hour: '2-digit', 
@@ -1261,6 +1270,19 @@ export default function CourseLearnPage() {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Indicador de carga */}
+                  {isLiaLoading && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gray-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Área de entrada */}
@@ -1272,19 +1294,24 @@ export default function CourseLearnPage() {
                       value={liaMessage}
                       onChange={(e) => setLiaMessage(e.target.value)}
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === 'Enter' && !isLiaLoading) {
                           e.preventDefault();
-                          sendLiaMessage();
+                          handleSendLiaMessage();
                         }
                       }}
+                      disabled={isLiaLoading}
                       className="flex-1 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                     />
                     <button
-                      onClick={sendLiaMessage}
-                      disabled={!liaMessage.trim()}
+                      onClick={handleSendLiaMessage}
+                      disabled={!liaMessage.trim() || isLiaLoading}
                       className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25 shrink-0"
                     >
-                      <Send className="w-5 h-5" />
+                      {isLiaLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>

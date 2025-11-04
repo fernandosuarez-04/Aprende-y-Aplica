@@ -4,7 +4,7 @@ import { GoogleLoginButton } from '../GoogleLoginButton/GoogleLoginButton';
 
 export function SocialLoginButtons() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Divisor "O continuar con" */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

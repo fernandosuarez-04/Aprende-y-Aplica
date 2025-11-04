@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   Clock, 
@@ -15,9 +15,22 @@ import {
   CheckCircle,
   Award,
   Users,
-  Calendar
+  Calendar,
+  FileText,
+  Search,
+  FileCheck,
+  ArrowRight,
+  Settings,
+  TrendingUp,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  Video,
+  Loader2
 } from 'lucide-react';
+import Image from 'next/image';
 import { CourseService, CourseWithInstructor } from '../../../features/courses/services/course.service';
+import { createClient } from '@/lib/supabase/client';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -31,6 +44,11 @@ export default function CourseDetailPage() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isPurchased, setIsPurchased] = useState(false);
   const [checkingPurchase, setCheckingPurchase] = useState(false);
+  const [activeTab, setActiveTab] = useState<'info' | 'content' | 'reviews' | 'instructor'>('info');
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [modules, setModules] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [instructorData, setInstructorData] = useState<any>(null);
 
   useEffect(() => {
     async function loadCourse() {
@@ -74,6 +92,80 @@ export default function CourseDetailPage() {
       checkPurchase();
     }
   }, [slug]);
+
+  useEffect(() => {
+    async function loadModules() {
+      if (!slug) return;
+      try {
+        const response = await fetch(`/api/courses/${slug}/modules`);
+        if (response.ok) {
+          const data = await response.json();
+          // La API devuelve un array directo, no un objeto con modules
+          if (Array.isArray(data)) {
+            setModules(data);
+            if (data.length > 0) {
+              setExpandedModules(new Set([data[0].module_id || data[0].id]));
+            }
+          } else if (data.modules && Array.isArray(data.modules)) {
+            setModules(data.modules);
+            if (data.modules.length > 0) {
+              setExpandedModules(new Set([data.modules[0].module_id || data.modules[0].id]));
+            }
+          } else {
+            console.warn('Modules data format unexpected:', data);
+            setModules([]);
+          }
+        } else {
+          console.error('Error response from modules API:', response.status, response.statusText);
+          setModules([]);
+        }
+      } catch (err) {
+        console.error('Error loading modules:', err);
+        setModules([]);
+      }
+    }
+
+    async function loadReviews() {
+      if (!slug) return;
+      try {
+        const response = await fetch(`/api/courses/${slug}/reviews`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.reviews) {
+            setReviews(data.reviews);
+          } else if (Array.isArray(data)) {
+            setReviews(data);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading reviews:', err);
+      }
+    }
+
+    async function loadInstructor() {
+      if (!course?.instructor_id) return;
+      try {
+        const supabase = createClient();
+        const { data: instructorData, error } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, display_name, username, email, profile_picture_url, bio, linkedin_url, github_url, website_url, location, cargo_rol, type_rol')
+          .eq('id', course.instructor_id)
+          .single();
+
+        if (!error && instructorData) {
+          setInstructorData(instructorData);
+        }
+      } catch (err) {
+        console.error('Error loading instructor:', err);
+      }
+    }
+
+    if (course?.id) {
+      loadModules();
+      loadReviews();
+      loadInstructor();
+    }
+  }, [course?.id, course?.instructor_id, slug]);
 
   const handlePurchase = async () => {
     if (!course) return;
@@ -139,12 +231,55 @@ export default function CourseDetailPage() {
     }
   };
 
+  const getLevelColor = (level: string) => {
+    switch (level?.toLowerCase()) {
+      case 'beginner':
+      case 'principiante':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'intermediate':
+      case 'intermedio':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'advanced':
+      case 'avanzado':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default:
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    }
+  };
+
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatDurationSeconds = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const toggleModule = (moduleId: string) => {
+    setExpandedModules(prev => {
+      const next = new Set(prev);
+      if (next.has(moduleId)) {
+        next.delete(moduleId);
+      } else {
+        next.add(moduleId);
+      }
+      return next;
+    });
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-carbon-900 via-carbon-800 to-carbon-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando curso...</p>
+          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-carbon-300 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -152,13 +287,13 @@ export default function CourseDetailPage() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-carbon-900 via-carbon-800 to-carbon-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Error</h1>
-          <p className="text-gray-700 dark:text-white/70 mb-8">{error || 'No se pudo cargar el curso'}</p>
+          <h1 className="text-3xl font-bold text-white mb-4">Error</h1>
+          <p className="text-carbon-300 mb-8">{error || 'No se pudo cargar el curso'}</p>
           <button 
             onClick={() => router.back()} 
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors"
           >
             Volver
           </button>
@@ -167,219 +302,547 @@ export default function CourseDetailPage() {
     );
   }
 
+  // Calcular estadísticas del curso
+  const totalModules = modules.length;
+  const totalLessons = modules.reduce((sum, m) => sum + (m.lessons?.length || 0), 0);
+  const totalDuration = course.estimatedDuration || 0;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900">
-      {/* Header con navegación mejorado */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-40 bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 -mt-0"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="flex items-center gap-2 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white transition-colors p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Volver</span>
-              </button>
-              
-              {/* Icono de empresa y nombre del curso */}
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-                  <img 
-                    src="/icono.png" 
-                    alt="Aprende y Aplica" 
-                    className="w-6 h-6 rounded"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="w-6 h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900 dark:text-white">{course.title}</h1>
-                  <p className="text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full min-h-screen bg-gradient-to-br from-carbon-900 via-carbon-800 to-carbon-900"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header with Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 px-4 py-2 bg-carbon-800/50 hover:bg-carbon-700/50 text-carbon-300 hover:text-white rounded-lg border border-carbon-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Volver</span>
+          </button>
+        </div>
+
+        {/* Hero Section */}
+      <div className="relative rounded-2xl overflow-hidden border border-carbon-600 mb-8">
+        {course.thumbnail ? (
+          <div className="relative h-96 bg-carbon-600">
+            <Image
+              src={course.thumbnail}
+              alt={course.title}
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-carbon-900 via-carbon-900/50 to-transparent"></div>
+            
+            {/* Background Graphics */}
+            <div className="absolute inset-0 pointer-events-none opacity-20">
+              <div className="absolute top-20 left-1/4 w-16 h-16">
+                <Search className="w-full h-full text-cyan-400" strokeWidth={1.5} />
+              </div>
+              <div className="absolute top-32 right-1/4 w-14 h-14">
+                <FileCheck className="w-full h-full text-cyan-400" strokeWidth={1.5} />
+              </div>
+              <div className="absolute top-40 left-1/2 w-12 h-12">
+                <ArrowRight className="w-full h-full text-cyan-400" strokeWidth={1.5} />
+              </div>
+              <div className="absolute bottom-32 right-1/3 w-14 h-14">
+                <Settings className="w-full h-full text-cyan-400" strokeWidth={1.5} />
+              </div>
+              <div className="absolute bottom-24 right-1/4 w-12 h-12">
+                <ArrowRight className="w-full h-full text-cyan-400" strokeWidth={1.5} />
+              </div>
+              <div className="absolute bottom-32 left-1/3 w-16 h-16">
+                <TrendingUp className="w-full h-full text-cyan-400" strokeWidth={1.5} />
+              </div>
+              <div className="absolute top-1/2 left-1/2 w-20 h-20">
+                <BarChart3 className="w-full h-full text-cyan-400" strokeWidth={1.5} />
+              </div>
+            </div>
+
+            <div className="absolute bottom-0 left-0 right-0 p-8">
+              <div className="flex items-start gap-4 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-3 flex-wrap">
+                    {course.category && (
+                      <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-xs font-semibold border border-primary/30">
+                        {course.category}
+                      </span>
+                    )}
+                    {course.difficulty && (
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getLevelColor(course.difficulty)}`}>
+                        {getDifficultyText(course.difficulty)}
+                      </span>
+                    )}
+                    {totalModules > 0 && (
+                      <span className="px-3 py-1 bg-carbon-700/50 text-carbon-300 rounded-full text-xs font-semibold border border-carbon-600">
+                        {totalModules} módulos
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                    {course.title}
+                  </h1>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                        <span className="text-white font-bold text-lg">{course.rating?.toFixed(1) || '0.0'}</span>
+                      </div>
+                      {course.review_count && course.review_count > 0 && (
+                        <span className="text-carbon-300 text-sm">
+                          ({course.review_count} {course.review_count === 1 ? 'reseña' : 'reseñas'})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-carbon-300">
+                      <Users className="w-5 h-5" />
+                      <span>{course.student_count?.toLocaleString() || '0'} estudiantes</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-carbon-300">
+                      <Clock className="w-5 h-5" />
+                      <span>{formatDuration(course.estimatedDuration)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-carbon-300">
+                      <Calendar className="w-5 h-5" />
+                      <span>Actualizado {formatDate(course.updatedAt)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleToggleFavorite}
-                className={`p-2 rounded-lg transition-colors ${
-                  isFavorite 
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30' 
-                    : 'bg-gray-100 dark:bg-slate-700/50 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600/50 hover:text-gray-900 dark:hover:text-slate-300'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-              </button>
-              
-              <button className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600/50 hover:text-gray-900 dark:hover:text-slate-300 transition-colors">
-                <Share2 className="w-5 h-5" />
-              </button>
+          </div>
+        ) : (
+          <div className="h-96 bg-gradient-to-br from-primary/20 to-success/20 flex items-center justify-center">
+            <BookOpen className="w-32 h-32 text-primary/30" />
+          </div>
+        )}
+      </div>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Tabs */}
+          <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl border border-carbon-600 overflow-hidden">
+            <div className="flex border-b border-carbon-600">
+              {[
+                { id: 'info', label: 'Información', icon: BookOpen },
+                { id: 'content', label: 'Contenido', icon: FileText },
+                { id: 'reviews', label: 'Reseñas', icon: Star },
+                { id: 'instructor', label: 'Instructor', icon: User }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex-1 px-6 py-4 flex items-center justify-center gap-2 transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                        : 'text-carbon-300 hover:text-white hover:bg-carbon-700/50'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-semibold">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tab Content */}
+            <div className="p-6">
+              <AnimatePresence mode="wait">
+                {activeTab === 'info' && (
+                  <motion.div
+                    key="info"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <div className="space-y-6">
+                      {/* Learning Objectives */}
+                      {course.learning_objectives && course.learning_objectives.length > 0 && (
+                        <div>
+                          <h3 className="text-xl font-bold text-white mb-4">Lo que aprenderás</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {course.learning_objectives.map((objective: string, index: number) => (
+                              <div key={index} className="flex items-start gap-3">
+                                <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                                <span className="text-carbon-300">{objective}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Description */}
+                      {course.description && (
+                        <div>
+                          <h3 className="text-xl font-bold text-white mb-3">Descripción del Curso</h3>
+                          <p className="text-carbon-300 leading-relaxed whitespace-pre-line">
+                            {course.description}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Course Stats */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="w-5 h-5 text-primary" />
+                            <span className="text-carbon-400 text-sm">Módulos</span>
+                          </div>
+                          <p className="text-2xl font-bold text-white">{totalModules || '0'}</p>
+                        </div>
+                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Video className="w-5 h-5 text-primary" />
+                            <span className="text-carbon-400 text-sm">Lecciones</span>
+                          </div>
+                          <p className="text-2xl font-bold text-white">{totalLessons || '0'}</p>
+                        </div>
+                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Clock className="w-5 h-5 text-primary" />
+                            <span className="text-carbon-400 text-sm">Duración</span>
+                          </div>
+                          <p className="text-2xl font-bold text-white">{formatDuration(totalDuration)}</p>
+                        </div>
+                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Users className="w-5 h-5 text-primary" />
+                            <span className="text-carbon-400 text-sm">Estudiantes</span>
+                          </div>
+                          <p className="text-2xl font-bold text-white">{course.student_count?.toLocaleString() || '0'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'content' && (
+                  <motion.div
+                    key="content"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-white">
+                          Contenido del Curso
+                        </h3>
+                        <span className="text-carbon-400 text-sm">
+                          {totalModules} módulos • {totalLessons} lecciones • {formatDuration(totalDuration)}
+                        </span>
+                      </div>
+
+                      {modules.length === 0 ? (
+                        <div className="text-center py-12">
+                          <BookOpen className="w-16 h-16 text-carbon-500 mx-auto mb-4" />
+                          <p className="text-carbon-400">Este curso aún no tiene contenido disponible</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {modules.map((module, moduleIndex) => {
+                            const isExpanded = expandedModules.has(module.module_id || module.id);
+                            const moduleLessons = module.lessons || [];
+                            const moduleDuration = module.module_duration_minutes 
+                              ? module.module_duration_minutes * 60 
+                              : moduleLessons.reduce((sum: number, l: any) => sum + (l.duration_seconds || 0), 0);
+                            
+                            return (
+                              <div
+                                key={module.module_id || module.id}
+                                className="bg-carbon-800/50 rounded-xl border border-carbon-600 overflow-hidden"
+                              >
+                                <button
+                                  onClick={() => toggleModule(module.module_id || module.id)}
+                                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-carbon-700/50 transition-colors"
+                                >
+                                  <div className="flex items-center gap-4 flex-1 text-left">
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${
+                                      isExpanded ? 'bg-primary' : 'bg-carbon-600'
+                                    }`}>
+                                      {moduleIndex + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="text-white font-semibold mb-1">{module.module_title || module.title}</h4>
+                                      <div className="flex items-center gap-4 text-sm text-carbon-400">
+                                        <span>{moduleLessons.length} {moduleLessons.length === 1 ? 'lección' : 'lecciones'}</span>
+                                        <span>{formatDurationSeconds(moduleDuration)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-5 h-5 text-carbon-400" />
+                                  ) : (
+                                    <ChevronDown className="w-5 h-5 text-carbon-400" />
+                                  )}
+                                </button>
+
+                                <AnimatePresence>
+                                  {isExpanded && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                      className="overflow-hidden"
+                                    >
+                                      <div className="px-6 pb-4 space-y-2 border-t border-carbon-600 pt-4">
+                                        {module.module_description && (
+                                          <p className="text-carbon-400 text-sm mb-4">{module.module_description}</p>
+                                        )}
+                                        {moduleLessons.map((lesson: any, lessonIndex: number) => (
+                                          <div
+                                            key={lesson.lesson_id || lesson.id}
+                                            className="flex items-center gap-3 p-3 rounded-lg bg-carbon-700/30 hover:bg-carbon-700/50 transition-colors"
+                                          >
+                                            <Play className="w-4 h-4 text-carbon-400 flex-shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-white text-sm font-medium">
+                                                {lessonIndex + 1}. {lesson.lesson_title || lesson.title}
+                                              </p>
+                                              {lesson.lesson_description && (
+                                                <p className="text-carbon-400 text-xs mt-1 line-clamp-1">
+                                                  {lesson.lesson_description}
+                                                </p>
+                                              )}
+                                            </div>
+                                            <span className="text-carbon-500 text-xs flex-shrink-0">
+                                              {formatDurationSeconds(lesson.duration_seconds || 0)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'reviews' && (
+                  <motion.div
+                    key="reviews"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <div className="space-y-6">
+                      {reviews.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Star className="w-16 h-16 text-carbon-500 mx-auto mb-4" />
+                          <p className="text-carbon-400">Aún no hay reseñas para este curso</p>
+                        </div>
+                      ) : (
+                        reviews.map((review) => (
+                          <div
+                            key={review.id}
+                            className="bg-carbon-800/50 rounded-xl p-6 border border-carbon-600"
+                          >
+                            <div className="flex items-start gap-4 mb-4">
+                              <div className="w-12 h-12 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                                {review.user?.name?.[0]?.toUpperCase() || 'U'}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="text-white font-semibold">{review.user?.name || 'Usuario'}</h4>
+                                </div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      className={`w-4 h-4 ${
+                                        i < review.rating
+                                          ? 'text-yellow-400 fill-yellow-400'
+                                          : 'text-carbon-600'
+                                      }`}
+                                    />
+                                  ))}
+                                  <span className="text-carbon-400 text-xs ml-1">
+                                    {formatDate(review.created_at)}
+                                  </span>
+                                </div>
+                                {review.title && (
+                                  <h5 className="text-white font-medium mb-2">{review.title}</h5>
+                                )}
+                                <p className="text-carbon-300 text-sm leading-relaxed whitespace-pre-line">
+                                  {review.content}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'instructor' && (
+                  <motion.div
+                    key="instructor"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <div className="space-y-6">
+                      <div className="flex items-start gap-6">
+                        {instructorData?.profile_picture_url ? (
+                          <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-primary flex-shrink-0">
+                            <Image
+                              src={instructorData.profile_picture_url}
+                              alt={course.instructor_name || 'Instructor'}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-24 h-24 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 border-2 border-primary">
+                            {course.instructor_name?.[0]?.toUpperCase() || 'I'}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-2xl font-bold text-white mb-2">
+                            {instructorData?.display_name || 
+                             (instructorData?.first_name && instructorData?.last_name 
+                               ? `${instructorData.first_name} ${instructorData.last_name}` 
+                               : instructorData?.username) ||
+                             course.instructor_name || 
+                             'Instructor'}
+                          </h3>
+                          {(instructorData?.cargo_rol || instructorData?.type_rol) && (
+                            <p className="text-carbon-300 text-lg mb-3">
+                              {instructorData.cargo_rol || instructorData.type_rol}
+                            </p>
+                          )}
+                          {instructorData?.location && (
+                            <div className="flex items-center gap-2 text-carbon-400 mb-4">
+                              <span className="text-sm">{instructorData.location}</span>
+                            </div>
+                          )}
+                          {/* Social Links */}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {instructorData?.linkedin_url && (
+                              <a
+                                href={instructorData.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg border border-blue-600/30 transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                </svg>
+                                <span className="text-sm font-medium">LinkedIn</span>
+                              </a>
+                            )}
+                            {instructorData?.github_url && (
+                              <a
+                                href={instructorData.github_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-700/20 hover:bg-gray-700/30 text-gray-300 rounded-lg border border-gray-600/30 transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd"/>
+                                </svg>
+                                <span className="text-sm font-medium">GitHub</span>
+                              </a>
+                            )}
+                            {instructorData?.website_url && (
+                              <a
+                                href={instructorData.website_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg border border-primary/30 transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
+                                <span className="text-sm font-medium">Portafolio</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Email */}
+                      {course.instructor_email && (
+                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-carbon-400 text-sm mb-1">Correo electrónico</p>
+                              <a
+                                href={`mailto:${course.instructor_email}`}
+                                className="text-primary hover:text-primary/80 transition-colors font-medium break-all"
+                              >
+                                {course.instructor_email}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bio */}
+                      <div>
+                        <h4 className="text-lg font-bold text-white mb-3">Biografía</h4>
+                        {instructorData?.bio ? (
+                          <p className="text-carbon-300 leading-relaxed whitespace-pre-line">
+                            {instructorData.bio}
+                          </p>
+                        ) : (
+                          <p className="text-carbon-400 italic">No hay biografía disponible para este instructor.</p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
-      </motion.div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Contenido principal */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Hero Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="relative overflow-hidden rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 border border-gray-200 dark:border-slate-700/50 shadow-lg dark:shadow-xl"
-            >
-              <div className="aspect-video bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center">
-                {course.thumbnail ? (
-                  <img
-                    src={course.thumbnail}
-                    alt={course.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center">
-                    <Play className="w-16 h-16 text-gray-400 dark:text-white/50 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-white/50">Imagen del curso</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Overlay con información */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/60 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6 right-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getDifficultyColor(course.difficulty)}`}>
-                    {getDifficultyText(course.difficulty)}
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    {course.category}
-                  </span>
-                </div>
-                <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
-                  {course.title}
-                </h1>
-                <div className="flex items-center gap-4 text-white/70">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{formatDuration(course.estimatedDuration)}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-current text-yellow-400" />
-                    <span>{course.rating}</span>
-                  </div>
+        {/* Right Column - Sidebar */}
+        <div className="space-y-6">
+          {/* Course Info Card */}
+          <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600 sticky top-6">
+            <div className="space-y-6">
+              {/* Price */}
+              <div>
+                <div className="flex items-baseline gap-2 mb-2">
+                  {course.price && course.price !== 'MX$0' ? (
+                    <>
+                      <span className="text-3xl font-bold text-white">
+                        {course.price}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-3xl font-bold text-primary">Gratis</span>
+                  )}
                 </div>
               </div>
-            </motion.div>
 
-            {/* Descripción */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl"
-            >
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <BookOpen className="w-6 h-6 text-blue-400" />
-                Descripción del Curso
-              </h2>
-              <p className="text-gray-700 dark:text-slate-300 leading-relaxed text-lg">
-                {course.description}
-              </p>
-            </motion.div>
-
-            {/* Lo que aprenderás */}
-            {course.learning_objectives && course.learning_objectives.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl"
-              >
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                  <Award className="w-6 h-6 text-green-400" />
-                  Lo que aprenderás
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {course.learning_objectives.map((item, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 + index * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
-                      <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-slate-300">{item}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Instructor */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl"
-            >
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                <User className="w-6 h-6 text-purple-400" />
-                Instructor
-              </h2>
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                  <User className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{course.instructor_name}</h3>
-                  <p className="text-gray-600 dark:text-slate-400">{course.instructor_email}</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-slate-500">
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      <span>{course.student_count ? `${course.student_count.toLocaleString()}+ estudiantes` : '0 estudiantes'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-current text-yellow-400" />
-                      <span>{course.rating ? `${course.rating} (${course.review_count || 0} reseñas)` : 'Sin calificaciones'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-              className="sticky top-24"
-            >
-              {/* Card de compra */}
-              <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 mb-6 shadow-lg dark:shadow-xl">
-                <div className="text-center mb-6">
-                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{course.price}</div>
-                  <div className="text-gray-600 dark:text-slate-400">Precio único</div>
-                </div>
-                
+              {/* Action Buttons */}
+              <div className="space-y-3">
                 {isPurchased ? (
                   <button
                     onClick={() => router.push(`/courses/${slug}/learn`)}
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-primary to-success hover:from-primary/90 hover:to-success/90 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
                   >
                     <Play className="w-5 h-5" />
                     Ir a Taller
@@ -388,62 +851,81 @@ export default function CourseDetailPage() {
                   <button
                     onClick={handlePurchase}
                     disabled={isPurchasing || checkingPurchase}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    className="w-full bg-gradient-to-r from-primary to-success hover:from-primary/90 hover:to-success/90 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                   >
                     {isPurchasing ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
                         Procesando...
-                      </div>
+                      </>
                     ) : checkingPurchase ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
                         Verificando...
-                      </div>
+                      </>
                     ) : (
-                      'Adquirir Curso'
+                      <>
+                        <Play className="w-5 h-5" />
+                        Adquirir Curso
+                      </>
                     )}
                   </button>
                 )}
-                
-                <div className="mt-4 text-center text-sm text-gray-600 dark:text-slate-400">
-                  Garantía de 30 días
+              </div>
+
+              {/* Course Features */}
+              <div className="space-y-3 pt-4 border-t border-carbon-600">
+                <div className="flex items-center gap-3 text-carbon-300">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                  <span className="text-sm">Acceso de por vida</span>
+                </div>
+                <div className="flex items-center gap-3 text-carbon-300">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                  <span className="text-sm">{totalLessons || '0'} lecciones en video</span>
+                </div>
+                <div className="flex items-center gap-3 text-carbon-300">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                  <span className="text-sm">Certificado de finalización</span>
+                </div>
+                <div className="flex items-center gap-3 text-carbon-300">
+                  <CheckCircle className="w-5 h-5 text-primary" />
+                  <span className="text-sm">Actualizado {formatDate(course.updatedAt)}</span>
                 </div>
               </div>
 
-              {/* Información del curso */}
-              <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información del Curso</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-slate-400">Duración</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{formatDuration(course.estimatedDuration)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-slate-400">Nivel</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{getDifficultyText(course.difficulty)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-slate-400">Categoría</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{course.category}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-slate-400">Calificación</span>
+              {/* Rating Summary */}
+              {course.rating && course.rating > 0 && (
+                <div className="pt-4 border-t border-carbon-600">
+                  <div className="flex items-center gap-3 mb-2">
                     <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-current text-yellow-400" />
-                      <span className="text-gray-900 dark:text-white font-medium">{course.rating || 'N/A'}</span>
+                      <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+                      <span className="text-2xl font-bold text-white">{course.rating.toFixed(1)}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1 mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(course.rating || 0)
+                                ? 'text-yellow-400 fill-yellow-400'
+                                : 'text-carbon-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-carbon-400 text-xs">
+                        {course.review_count || 0} {course.review_count === 1 ? 'reseña' : 'reseñas'}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-slate-400">Estudiantes</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{course.student_count ? `${course.student_count.toLocaleString()}+` : '0'}</span>
-                  </div>
                 </div>
-              </div>
-            </motion.div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </motion.div>
   );
 }

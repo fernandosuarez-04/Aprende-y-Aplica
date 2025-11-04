@@ -1,16 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/utils/logger';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/core/lib/rate-limit';
-import { 
-  checkUsageLimit, 
-  logOpenAIUsage, 
-  calculateCost 
-} from '@/lib/openai/usage-monitor';
+import { logger } from '../../../lib/utils/logger';
+import { createClient } from '../../../lib/supabase/server';
+import type { CourseLessonContext } from '../../../core/types/lia.types';
+import { checkRateLimit } from '../../../core/lib/rate-limit';
+import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor';
+import type { Database } from '../../../lib/supabase/types';
 
 // Contextos específicos para diferentes secciones
-const getContextPrompt = (context: string, userName?: string) => {
+const getContextPrompt = (
+  context: string, 
+  userName?: string,
+  courseContext?: CourseLessonContext
+) => {
   const nameGreeting = userName ? `Te estás dirigiendo a ${userName}.` : '';
+  
+  // Si hay contexto de curso/lección, crear prompt especializado
+  if (courseContext && context === 'course') {
+    const transcriptInfo = courseContext.transcriptContent 
+      ? `\n\nTRANSCRIPCIÓN DEL VIDEO ACTUAL:\n${courseContext.transcriptContent.substring(0, 2000)}${courseContext.transcriptContent.length > 2000 ? '...' : ''}`
+      : '';
+    
+    const summaryInfo = courseContext.summaryContent
+      ? `\n\nRESUMEN DE LA LECCIÓN:\n${courseContext.summaryContent}`
+      : '';
+    
+    const lessonInfo = courseContext.lessonTitle 
+      ? `\n\nINFORMACIÓN DE LA LECCIÓN ACTUAL:\n- Título: ${courseContext.lessonTitle}${courseContext.lessonDescription ? `\n- Descripción: ${courseContext.lessonDescription}` : ''}`
+      : '';
+    
+    const moduleInfo = courseContext.moduleTitle
+      ? `\n\nMÓDULO ACTUAL: ${courseContext.moduleTitle}`
+      : '';
+    
+    const courseInfo = courseContext.courseTitle
+      ? `\n\nCURSO: ${courseContext.courseTitle}${courseContext.courseDescription ? `\n${courseContext.courseDescription}` : ''}`
+      : '';
+    
+    return `Eres LIA (Learning Intelligence Assistant), un asistente de inteligencia artificial especializado en educación que funciona como tutor personalizado.
+
+${nameGreeting}
+
+RESTRICCIONES CRÍTICAS DE CONTEXTO:
+- PRIORIDAD #1: Responde ÚNICAMENTE basándote en la TRANSCRIPCIÓN DEL VIDEO ACTUAL proporcionada en el contexto
+- Si la pregunta NO puede responderse con la transcripción del video, indica claramente que esa información no está en el video actual
+- NUNCA inventes información que no esté explícitamente en la transcripción
+- Usa el resumen de la lección como referencia adicional, pero prioriza la transcripción
+- Si necesitas información de otras lecciones o módulos, sugiere revisarlos pero no inventes su contenido
+
+Personalidad:
+- Amigable pero profesional
+- Educativo y motivador
+- Práctico con ejemplos concretos
+- Adaptativo al nivel del usuario
+
+Formato de respuestas:
+- Usa emojis estratégicamente
+- Estructura con viñetas y numeración usando guiones (-) o números (1, 2, 3)
+- NO uses formato markdown (NO uses ** para negritas, NO uses __ para cursivas, NO uses # para títulos)
+- NO uses asteriscos, guiones bajos, o símbolos especiales para formato
+- Escribe en texto plano, pero organizado con saltos de línea
+- Usa MAYÚSCULAS o repetición de palabras para enfatizar (ejemplo: "MUY importante" o "importante - muy importante")
+- Mantén un tono positivo y motivador
+- Cita específicamente el contenido de la transcripción cuando sea relevante
+
+CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${summaryInfo}${transcriptInfo}
+
+IMPORTANTE: Cuando respondas, siempre indica si la información proviene del video actual o si necesitarías revisar otra lección.`;
+  }
   
   const contexts: Record<string, string> = {
     workshops: `Eres Lia, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
@@ -63,21 +119,19 @@ export async function POST(request: NextRequest) {
     }
     */
 
-    // ✅ Verificar límites diarios de uso de OpenAI
-    const userId = user?.id || 'anonymous';
-    const usageCheck = checkUsageLimit(userId);
-
-    if (!usageCheck.allowed) {
-      return NextResponse.json(
-        { 
-          error: usageCheck.reason,
-          usage: usageCheck.usage
-        },
-        { status: 429 }
-      );
-    }
-
-    const { message, context = 'general', conversationHistory = [], userName } = await request.json();
+    const { 
+      message, 
+      context = 'general', 
+      conversationHistory = [], 
+      userName,
+      courseContext 
+    }: {
+      message: string;
+      context?: string;
+      conversationHistory?: Array<{ role: string; content: string }>;
+      userName?: string;
+      courseContext?: CourseLessonContext;
+    } = await request.json();
 
     // ✅ Validaciones básicas
     if (!message || typeof message !== 'string') {
@@ -104,7 +158,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener información del usuario desde la base de datos
-    let userInfo = null;
+    let userInfo: Database['public']['Tables']['users']['Row'] | null = null;
     if (user) {
       const { data: userData } = await supabase
         .from('users')
@@ -113,23 +167,24 @@ export async function POST(request: NextRequest) {
         .single();
       
       if (userData) {
-        userInfo = userData;
+        userInfo = userData as Database['public']['Tables']['users']['Row'];
       }
     }
 
     const displayName = userInfo?.display_name || userInfo?.username || userInfo?.first_name || userName || 'usuario';
     
-    // Obtener el prompt de contexto específico con el nombre del usuario
-    const contextPrompt = getContextPrompt(context, displayName);
+    // Obtener el prompt de contexto específico con el nombre del usuario y contexto de curso
+    const contextPrompt = getContextPrompt(context, displayName, courseContext);
 
     // Intentar usar OpenAI si está disponible
     const openaiApiKey = process.env.OPENAI_API_KEY;
     let response: string;
+    const hasCourseContext = context === 'course' && courseContext !== undefined;
+    const userId = user?.id || null; // Obtener userId para registro de uso
 
     if (openaiApiKey) {
       try {
-        // ✅ Pasar userId para logging de uso
-        response = await callOpenAI(message, contextPrompt, limitedHistory, userId);
+        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId);
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
         response = generateAIResponse(message, context, limitedHistory, contextPrompt);
@@ -141,17 +196,20 @@ export async function POST(request: NextRequest) {
 
     // Guardar la conversación en la base de datos (opcional)
     // Solo guardar si el usuario está autenticado
+    // Nota: La tabla ai_chat_history puede no estar en los tipos generados
     if (user) {
       try {
         const { error: dbError } = await supabase
-          .from('ai_chat_history')
+          .from('ai_chat_history' as any)
           .insert({
             user_id: user.id,
             context: context,
             user_message: message,
             assistant_response: response,
+            // Guardar contexto de curso si existe
+            lesson_id: courseContext?.lessonTitle ? courseContext.lessonTitle.substring(0, 100) : null,
             created_at: new Date().toISOString()
-          });
+          } as any);
 
         if (dbError) {
           logger.error('Error guardando historial de chat:', dbError);
@@ -176,7 +234,8 @@ async function callOpenAI(
   message: string,
   systemPrompt: string,
   conversationHistory: Array<{ role: string; content: string }>,
-  userId?: string
+  hasCourseContext: boolean = false,
+  userId: string | null = null
 ): Promise<string> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
@@ -188,7 +247,7 @@ async function callOpenAI(
   const messages = [
     {
       role: 'system' as const,
-      content: `${systemPrompt}\n\nEres Lia, un asistente virtual amigable y profesional. Responde siempre en español de manera natural y conversacional. Cuando te dirijas al usuario, usa su nombre de forma natural y amigable.`
+      content: `${systemPrompt}\n\nEres Lia, un asistente virtual amigable y profesional. Responde siempre en español de manera natural y conversacional. Cuando te dirijas al usuario, usa su nombre de forma natural y amigable.\n\nIMPORTANTE: NO uses formato markdown en tus respuestas. NO uses ** para negritas, __ para cursivas, # para títulos, ni ningún otro símbolo de formato. Escribe en texto plano simple y claro.`
     },
     ...conversationHistory.map(msg => ({
       role: msg.role as 'user' | 'assistant',
@@ -210,8 +269,8 @@ async function callOpenAI(
     body: JSON.stringify({
       model: process.env.CHATBOT_MODEL || 'gpt-4o-mini',
       messages: messages,
-      temperature: parseFloat(process.env.CHATBOT_TEMPERATURE || '0.6'),
-      max_tokens: parseInt(process.env.CHATBOT_MAX_TOKENS || '500'), // Reducido para respuestas más rápidas
+      temperature: parseFloat(process.env.CHATBOT_TEMPERATURE || (hasCourseContext ? '0.5' : '0.6')), // Más determinístico para contexto educativo
+      max_tokens: parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')), // Más tokens para respuestas educativas
       stream: false,
     }),
   });

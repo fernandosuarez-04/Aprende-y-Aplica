@@ -1,12 +1,53 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { AuthTabs } from '../../features/auth/components/AuthTabs';
 import Typewriter from 'typewriter-effect';
+import { getOrganizationLoginUrl } from '@/lib/organization-auth';
 
 export default function AuthPage() {
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    // Verificar si el usuario tiene organización y redirigir si es necesario
+    const checkOrganization = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user?.organization?.slug) {
+            // Redirigir a login personalizado si tiene slug
+            const customLoginUrl = `/auth/${data.user.organization.slug}`;
+            router.replace(customLoginUrl);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking organization:', error);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkOrganization();
+  }, [router]);
+
+  // Mostrar loading mientras se verifica la organización
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-page-enhanced">
       {/* Efectos de Gradiente Adicionales */}

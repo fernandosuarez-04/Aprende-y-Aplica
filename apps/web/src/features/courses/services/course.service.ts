@@ -94,12 +94,55 @@ export class CourseService {
         }
       }
 
+      // Obtener cursos comprados del usuario si se proporciona userId
+      let purchasedCourseIds: string[] = [];
+      if (userId) {
+        try {
+          // Primero intentar con access_status = 'active'
+          let { data: purchasesData, error: purchasesError } = await supabase
+            .from('course_purchases')
+            .select('course_id, access_status')
+            .eq('user_id', userId)
+            .eq('access_status', 'active');
+          
+          // Si no hay resultados, buscar cualquier compra (por si access_status tiene otro valor)
+          if ((!purchasesData || purchasesData.length === 0) && !purchasesError) {
+            const { data: allPurchases, error: allError } = await supabase
+              .from('course_purchases')
+              .select('course_id, access_status')
+              .eq('user_id', userId);
+            
+            if (!allError && allPurchases && allPurchases.length > 0) {
+              purchasesData = allPurchases;
+              console.log(`Found ${allPurchases.length} total purchases (not all active) for user ${userId}`);
+            }
+          }
+          
+          if (purchasesError) {
+            console.error('Error fetching purchased courses:', purchasesError);
+          } else {
+            purchasedCourseIds = purchasesData?.map(p => p.course_id) || [];
+            console.log(`Found ${purchasedCourseIds.length} purchased courses for user ${userId}:`, purchasedCourseIds);
+          }
+        } catch (purchasesError) {
+          console.error('Error fetching purchased courses:', purchasesError);
+        }
+      }
+
       // Transformar los datos de la base de datos al formato esperado por el frontend
       const courses: CourseWithInstructor[] = data.map(course => {
         const instructorInfo = instructorMap.get(course.instructor_id) || {
           name: 'Instructor',
           email: 'instructor@example.com'
         };
+
+        // Verificar si el curso está comprado
+        const isPurchased = purchasedCourseIds.includes(course.id);
+        
+        // Debug: Log para verificar el status
+        if (isPurchased) {
+          console.log(`Course ${course.id} (${course.title}) is marked as purchased`);
+        }
 
         return {
           id: course.id,
@@ -119,7 +162,8 @@ export class CourseService {
           // Datos reales de la base de datos
           rating: course.average_rating || 0,
           price: course.price ? `MX$${course.price.toFixed(0)}` : 'MX$0',
-          status: 'Disponible' as 'Disponible' | 'Adquirido', // TODO: Verificar si el usuario ya lo adquirió
+          // IMPORTANTE: El status debe ser 'Adquirido' o 'Disponible'
+          status: isPurchased ? ('Adquirido' as 'Adquirido' | 'Disponible') : ('Disponible' as 'Adquirido' | 'Disponible'),
           isFavorite: userFavorites.includes(course.id),
           instructor_name: instructorInfo.name,
           instructor_email: instructorInfo.email,
