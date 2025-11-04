@@ -2293,18 +2293,22 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 }
 
 // Componente para renderizar quizzes
-function QuizRenderer({ quizData }: { quizData: Array<{
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: string | number;
-  explanation?: string;
-  points?: number;
-  questionType?: string;
-}> }) {
+function QuizRenderer({ quizData, totalPoints }: {
+  quizData: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer: string | number;
+    explanation?: string;
+    points?: number;
+    questionType?: string;
+  }>;
+  totalPoints?: number;
+}) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const [pointsEarned, setPointsEarned] = useState(0);
 
   const handleAnswerSelect = (questionId: string, answer: string | number) => {
     setSelectedAnswers(prev => ({
@@ -2315,12 +2319,15 @@ function QuizRenderer({ quizData }: { quizData: Array<{
 
   const handleSubmit = () => {
     let correct = 0;
+    let points = 0;
     quizData.forEach(question => {
       if (selectedAnswers[question.id] === question.correctAnswer) {
         correct++;
+        points += question.points || 1;
       }
     });
     setScore(correct);
+    setPointsEarned(points);
     setShowResults(true);
   };
 
@@ -2329,6 +2336,41 @@ function QuizRenderer({ quizData }: { quizData: Array<{
   const passingThreshold = 80;
   const passed = percentage >= passingThreshold;
 
+  // Función para parsear explicaciones con formato especial (separadas por ---)
+  const parseExplanation = (explanation: string, selectedOption: string | number, correctAnswer: string | number) => {
+    if (!explanation) return null;
+
+    // Verificar si la explicación tiene el formato con "---"
+    if (explanation.includes('---')) {
+      const parts = explanation.split('---').map(p => p.trim());
+
+      // Buscar el feedback para la opción seleccionada
+      let relevantFeedback = '';
+
+      for (const part of parts) {
+        // Extraer la letra de la opción del feedback (ej: "(A)", "(B)", etc.)
+        const optionMatch = part.match(/^\(([A-Z])\)\s+Feedback:/);
+        if (optionMatch) {
+          const optionLetter = optionMatch[1];
+
+          // Determinar qué opción corresponde a esta letra
+          const optionText = typeof selectedOption === 'string' ? selectedOption : '';
+          const correctText = typeof correctAnswer === 'string' ? correctAnswer : '';
+
+          // Verificar si esta parte corresponde a la opción seleccionada
+          if (optionText.includes(`(${optionLetter})`)) {
+            relevantFeedback = part.replace(/^\([A-Z]\)\s+Feedback:\s*/, '');
+            break;
+          }
+        }
+      }
+
+      return relevantFeedback || explanation;
+    }
+
+    return explanation;
+  };
+
   return (
     <div className="space-y-6">
       {/* Instrucciones */}
@@ -2336,8 +2378,13 @@ function QuizRenderer({ quizData }: { quizData: Array<{
         <p className="text-slate-200 text-sm mb-2">
           <strong>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
         </p>
+        {totalPoints !== undefined && (
+          <p className="text-slate-200 text-sm mb-2">
+            <strong>Puntos totales:</strong> {totalPoints}
+          </p>
+        )}
         <p className="text-slate-300 text-sm">
-          Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas). 
+          Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas).
           <span className="block mt-1"><strong>Umbral de aprobación:</strong> {passingThreshold}%</span>
         </p>
       </div>
@@ -2370,9 +2417,16 @@ function QuizRenderer({ quizData }: { quizData: Array<{
                   {index + 1}
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-white font-semibold mb-4 leading-relaxed">
-                    {question.question}
-                  </h4>
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <h4 className="text-white font-semibold leading-relaxed flex-1">
+                      {question.question}
+                    </h4>
+                    {question.points && (
+                      <span className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full border border-purple-500/30 shrink-0">
+                        {question.points} {question.points === 1 ? 'punto' : 'puntos'}
+                      </span>
+                    )}
+                  </div>
                   
                   {/* Opciones */}
                   <div className="space-y-2">
@@ -2432,8 +2486,8 @@ function QuizRenderer({ quizData }: { quizData: Array<{
                       <p className="text-sm font-semibold text-slate-300 mb-1">
                         {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
                       </p>
-                      <p className="text-slate-200 text-sm whitespace-pre-wrap">
-                        {question.explanation}
+                      <p className="text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
+                        {parseExplanation(question.explanation, selectedAnswers[question.id], question.correctAnswer)}
                       </p>
                     </div>
                   )}
@@ -2471,6 +2525,11 @@ function QuizRenderer({ quizData }: { quizData: Array<{
             <p className="text-slate-200 text-lg mb-1">
               Obtuviste {score} de {totalQuestions} correctas
             </p>
+            {totalPoints !== undefined && (
+              <p className="text-slate-200 text-lg mb-1">
+                Puntos: {pointsEarned} de {totalPoints}
+              </p>
+            )}
             <p className="text-slate-300 text-sm">
               Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
             </p>
@@ -2563,8 +2622,8 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
   );
 }
 
-// Componente para renderizar materiales de lectura
-function ReadingMaterialRenderer({ content }: { content: any }) {
+// Componente para renderizar contenido formateado (actividades, materiales de lectura, etc.)
+function FormattedContentRenderer({ content }: { content: any }) {
   let readingContent = content;
   
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
@@ -2948,21 +3007,12 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                     try {
                       // Intentar parsear el contenido como JSON si es un quiz
                       let quizData = activity.activity_content;
-                      
-                      console.log('🔍 Processing quiz activity:', {
-                        type: typeof quizData,
-                        isString: typeof quizData === 'string',
-                        preview: typeof quizData === 'string' ? quizData.substring(0, 100) : 'Object'
-                      });
-                      
+
                       // Si es string, intentar parsearlo
                       if (typeof quizData === 'string') {
-                        // Intentar parsear como JSON
                         try {
                           quizData = JSON.parse(quizData);
-                          console.log('✅ Quiz parsed as JSON:', Array.isArray(quizData) ? `${quizData.length} questions` : 'Not an array');
                         } catch (e) {
-                          // Si no es JSON válido, puede ser un string simple
                           console.warn('⚠️ Quiz content is not valid JSON:', e);
                           return (
                             <div className="prose prose-invert max-w-none">
@@ -2974,35 +3024,30 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                           );
                         }
                       }
-                      
-                      // Verificar que es un array con preguntas
-                      if (Array.isArray(quizData) && quizData.length > 0) {
-                        console.log('📋 Quiz is array with', quizData.length, 'items');
-                        console.log('📋 First question preview:', quizData[0]);
-                        
-                        // Verificar que cada elemento tiene la estructura de pregunta
-                        const hasValidStructure = quizData.every((q: any) => {
-                          const isValid = q && typeof q === 'object' && (q.question || q.id);
-                          if (!isValid) {
-                            console.warn('⚠️ Invalid question structure:', q);
-                          }
-                          return isValid;
-                        });
-                        
-                        console.log('✅ Has valid structure:', hasValidStructure);
-                        
-                        if (hasValidStructure) {
-                          return <QuizRenderer quizData={quizData} />;
-                        } else {
-                          console.warn('⚠️ Quiz structure is invalid, showing raw content');
+
+                      // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                      let questionsArray = quizData;
+                      let totalPoints = undefined;
+
+                      if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                        if (quizData.questions && Array.isArray(quizData.questions)) {
+                          questionsArray = quizData.questions;
+                          totalPoints = quizData.totalPoints;
                         }
-                      } else {
-                        console.warn('⚠️ Quiz is not an array or is empty:', {
-                          isArray: Array.isArray(quizData),
-                          length: Array.isArray(quizData) ? quizData.length : 'N/A'
-                        });
                       }
-                      
+
+                      // Verificar que es un array con preguntas
+                      if (Array.isArray(questionsArray) && questionsArray.length > 0) {
+                        // Verificar que cada elemento tiene la estructura de pregunta
+                        const hasValidStructure = questionsArray.every((q: any) =>
+                          q && typeof q === 'object' && (q.question || q.id)
+                        );
+
+                        if (hasValidStructure) {
+                          return <QuizRenderer quizData={questionsArray} totalPoints={totalPoints} />;
+                        }
+                      }
+
                       // Si llegamos aquí, mostrar como texto normal con mensaje de debug
                       return (
                         <div className="prose prose-invert max-w-none">
@@ -3010,8 +3055,8 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                           <details className="mb-4">
                             <summary className="text-slate-300 cursor-pointer">Ver contenido crudo</summary>
                             <pre className="text-xs text-slate-400 mt-2 p-2 bg-carbon-900 rounded overflow-auto">
-                              {typeof activity.activity_content === 'string' 
-                                ? activity.activity_content 
+                              {typeof activity.activity_content === 'string'
+                                ? activity.activity_content
                                 : JSON.stringify(activity.activity_content, null, 2)}
                             </pre>
                           </details>
@@ -3030,11 +3075,7 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                     }
                   })()}
                   {activity.activity_type !== 'quiz' && (
-                    <div className="prose prose-invert max-w-none">
-                      <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-                        {activity.activity_content}
-                      </div>
-                    </div>
+                    <FormattedContentRenderer content={activity.activity_content} />
                   )}
                 </div>
 
@@ -3101,7 +3142,7 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                     {material.material_type === 'quiz' && (() => {
                       try {
                         let quizData = material.content_data;
-                        
+
                         // Si es string, intentar parsearlo
                         if (typeof quizData === 'string') {
                           try {
@@ -3111,16 +3152,27 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                             return null;
                           }
                         }
-                        
+
+                        // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                        let questionsArray = quizData;
+                        let totalPoints = undefined;
+
+                        if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                          if (quizData.questions && Array.isArray(quizData.questions)) {
+                            questionsArray = quizData.questions;
+                            totalPoints = quizData.totalPoints;
+                          }
+                        }
+
                         // Verificar que es un array con preguntas
-                        if (Array.isArray(quizData) && quizData.length > 0) {
+                        if (Array.isArray(questionsArray) && questionsArray.length > 0) {
                           // Verificar que cada elemento tiene la estructura de pregunta
-                          const hasValidStructure = quizData.every((q: any) => 
+                          const hasValidStructure = questionsArray.every((q: any) =>
                             q && typeof q === 'object' && (q.question || q.id)
                           );
-                          
+
                           if (hasValidStructure) {
-                            return <QuizRenderer quizData={quizData} />;
+                            return <QuizRenderer quizData={questionsArray} totalPoints={totalPoints} />;
                           }
                         }
                       } catch (e) {
@@ -3129,16 +3181,10 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                       return null;
                     })()}
                     {material.material_type === 'reading' && (
-                      <ReadingMaterialRenderer content={material.content_data} />
+                      <FormattedContentRenderer content={material.content_data} />
                     )}
-                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && typeof material.content_data === 'object' && (
-                      <div className="bg-carbon-800/50 rounded-lg p-4 border border-carbon-600/50">
-                        <p className="text-slate-300 text-sm whitespace-pre-wrap">
-                          {typeof material.content_data === 'string' 
-                            ? material.content_data 
-                            : JSON.stringify(material.content_data, null, 2)}
-                        </p>
-                      </div>
+                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
+                      <FormattedContentRenderer content={material.content_data} />
                     )}
                   </div>
                 )}
