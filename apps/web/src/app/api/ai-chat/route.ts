@@ -204,7 +204,9 @@ export async function POST(request: NextRequest) {
           
           logger.info('✅ Nueva conversación LIA creada exitosamente', { conversationId, userId: user.id, context });
         } else {
+          // Si hay conversationId existente, establecerlo en el logger
           logger.info('Continuando conversación LIA existente', { conversationId, userId: user.id });
+          liaLogger.setConversationId(conversationId);
         }
       } catch (error) {
         logger.error('❌ Error inicializando LIA Analytics:', error);
