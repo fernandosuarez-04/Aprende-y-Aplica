@@ -5,13 +5,36 @@ import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {
+    // Validar variables de entorno primero
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      logger.error('❌ Missing Supabase environment variables:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey
+      });
+      return NextResponse.json(
+        { 
+          error: 'Error de configuración del servidor',
+          message: 'Variables de entorno de Supabase no configuradas'
+        }, 
+        { status: 500 }
+      );
+    }
+
     const supabase = await createClient();
     
     logger.log('🔍 Fetching communities...');
     
     // Obtener el usuario actual usando el sistema de sesiones personalizado
     const { SessionService } = await import('../../../features/auth/services/session.service');
-    const user = await SessionService.getCurrentUser();
+    let user = null;
+    try {
+      user = await SessionService.getCurrentUser();
+    } catch (userError) {
+      logger.log('⚠️ Error getting user (continuing with public communities):', userError);
+    }
     
     if (!user) {
       logger.log('⚠️ User not authenticated, showing public communities only');
@@ -27,11 +50,41 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (communitiesError) {
-      logger.error('❌ Error fetching communities:', communitiesError);
-      return NextResponse.json({ error: 'Error al obtener comunidades' }, { status: 500 });
+      logger.error('❌ Error fetching communities:', {
+        message: communitiesError.message,
+        details: communitiesError.details,
+        hint: communitiesError.hint,
+        code: communitiesError.code
+      });
+      
+      // Si el error es que la tabla no existe, retornar array vacío en lugar de error
+      if (communitiesError.code === 'PGRST116' || communitiesError.message?.includes('does not exist')) {
+        logger.log('⚠️ Communities table does not exist, returning empty array');
+        return NextResponse.json({
+          communities: [],
+          total: 0
+        }, { status: 200 });
+      }
+      
+      return NextResponse.json(
+        { 
+          error: 'Error al obtener comunidades',
+          message: communitiesError.message || 'Error desconocido'
+        }, 
+        { status: 500 }
+      );
     }
 
     logger.log('📊 Found communities:', communities?.length || 0);
+    
+    // Si no hay comunidades, retornar array vacío (no es un error)
+    if (!communities || communities.length === 0) {
+      logger.log('⚠️ No communities found in database');
+      return NextResponse.json({
+        communities: [],
+        total: 0
+      }, { status: 200 });
+    }
 
     // Si no hay usuario autenticado, retornar comunidades sin enriquecimiento
     if (!user) {
@@ -109,8 +162,33 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     logger.error('❌ Error in communities API:', error);
+    
+    // Si es un error conocido, devolver información más específica
+    if (error instanceof Error) {
+      // Si el error es sobre variables de entorno faltantes, ya lo manejamos arriba
+      if (error.message.includes('Variables de entorno')) {
+        return NextResponse.json(
+          { 
+            error: 'Error de configuración',
+            message: error.message
+          },
+          { status: 500 }
+        );
+      }
+      
+      // Para otros errores, devolver mensaje genérico pero con logging detallado
+      logger.error('❌ Unexpected error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: 'Error interno del servidor',
+        message: 'Ocurrió un error inesperado al obtener las comunidades'
+      },
       { status: 500 }
     );
   }
