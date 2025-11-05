@@ -115,16 +115,22 @@ export async function GET(
       logger.error('Error fetching lesson progress:', progressError)
     }
 
-    // Obtener certificados
+    // Obtener certificados con información enriquecida
     const { data: certificates, error: certificatesError } = await supabase
       .from('user_course_certificates')
       .select(`
         certificate_id,
+        certificate_url,
+        certificate_hash,
         course_id,
         issued_at,
+        expires_at,
         courses (
           id,
-          title
+          title,
+          slug,
+          thumbnail_url,
+          instructor_id
         )
       `)
       .eq('user_id', userId)
@@ -133,6 +139,50 @@ export async function GET(
     if (certificatesError) {
       logger.error('Error fetching certificates:', certificatesError)
     }
+
+    // Obtener IDs de instructores únicos
+    const instructorIds = [...new Set((certificates || [])
+      .map((cert: any) => cert.courses?.instructor_id)
+      .filter(Boolean))]
+
+    // Obtener información de instructores
+    const instructorMap = new Map()
+    if (instructorIds.length > 0) {
+      const { data: instructors } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, username')
+        .in('id', instructorIds)
+
+      if (instructors) {
+        instructors.forEach(instructor => {
+          const fullName = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim()
+          instructorMap.set(instructor.id, {
+            name: fullName || instructor.username || 'Instructor',
+            username: instructor.username
+          })
+        })
+      }
+    }
+
+    // Enriquecer certificados con datos del instructor
+    const enrichedCertificates = (certificates || []).map((cert: any) => {
+      const course = cert.courses || {}
+      const instructor = course.instructor_id ? instructorMap.get(course.instructor_id) : null
+      
+      return {
+        certificate_id: cert.certificate_id,
+        certificate_url: cert.certificate_url,
+        certificate_hash: cert.certificate_hash,
+        course_id: cert.course_id,
+        issued_at: cert.issued_at,
+        expires_at: cert.expires_at,
+        course_title: course.title || 'Curso sin título',
+        course_slug: course.slug || '',
+        course_thumbnail: course.thumbnail_url || null,
+        instructor_name: instructor?.name || 'Instructor',
+        instructor_username: instructor?.username || null
+      }
+    })
 
     // Obtener notas
     const { data: notes, error: notesError } = await supabase
@@ -198,7 +248,7 @@ export async function GET(
       status: e.enrollment_status,
       enrolled_at: e.enrolled_at,
       completed_at: e.completed_at,
-      has_certificate: certificates?.some(c => c.course_id === e.course_id) || false
+      has_certificate: enrichedCertificates?.some(c => c.course_id === e.course_id) || false
     }))
 
     // Calcular tiempo por curso
@@ -262,7 +312,7 @@ export async function GET(
         total_lessons: totalLessons,
         
         // Certificados y notas
-        certificates_count: certificates?.length || 0,
+        certificates_count: enrichedCertificates?.length || 0,
         notes_count: notes?.length || 0,
         
         // Asignaciones
@@ -280,12 +330,7 @@ export async function GET(
         }
       },
       courses: coursesData,
-      certificates: (certificates || []).map(c => ({
-        certificate_id: c.certificate_id,
-        course_id: c.course_id,
-        course_title: c.courses?.title || 'Curso desconocido',
-        issued_at: c.issued_at
-      })),
+      certificates: enrichedCertificates || [],
       assignments: (assignments || []).map(a => ({
         assignment_id: a.id,
         course_id: a.course_id,

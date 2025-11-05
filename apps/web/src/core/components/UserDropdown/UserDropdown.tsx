@@ -18,7 +18,8 @@ import {
   CreditCard,
   Wallet,
   Settings,
-  Receipt
+  Receipt,
+  Award
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
@@ -93,6 +94,15 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       icon: BookOpen,
       onClick: () => {
         router.push('/my-courses')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'certificates',
+      label: 'Mis Certificados',
+      icon: Award,
+      onClick: () => {
+        router.push('/certificates')
         setIsOpen(false)
       }
     },

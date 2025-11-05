@@ -42,6 +42,7 @@ interface AssignedCourse {
   assigned_at: string
   due_date?: string
   completed_at?: string
+  has_certificate?: boolean
 }
 
 interface Organization {
@@ -164,8 +165,28 @@ export default function BusinessUserDashboardPage() {
   }
 
   const handleCourseClick = (course: AssignedCourse, action?: 'start' | 'continue' | 'certificate') => {
-    if (!course.slug) return
-    router.push(`/courses/${course.slug}/learn`)
+    if (action === 'certificate' && course.has_certificate) {
+      // Si tiene certificado, buscar el certificado y redirigir a la página de detalle
+      fetch('/api/certificates', { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.certificates) {
+            const certificate = data.certificates.find((cert: any) => cert.course_id === course.course_id)
+            if (certificate) {
+              router.push(`/certificates/${certificate.certificate_id}`)
+            } else {
+              router.push('/certificates')
+            }
+          } else {
+            router.push('/certificates')
+          }
+        })
+        .catch(() => router.push('/certificates'))
+    } else if (!course.slug) {
+      return
+    } else {
+      router.push(`/courses/${course.slug}/learn`)
+    }
   }
 
   const handleLogout = async () => {
@@ -438,6 +459,7 @@ export default function BusinessUserDashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
         {myStats.map((stat, index) => {
           const Icon = stat.icon
+          const isCertificates = stat.label === 'Certificados'
           return (
             <motion.div
               key={stat.label}
@@ -453,7 +475,8 @@ export default function BusinessUserDashboardPage() {
                 y: -8,
                 transition: { duration: 0.3 }
               }}
-              className="relative group overflow-hidden backdrop-blur-xl bg-gradient-to-br from-carbon-800/90 via-carbon-700/90 to-carbon-800/90 rounded-2xl p-7 border border-carbon-600/50 hover:border-primary/60 transition-all duration-500 shadow-2xl shadow-black/20 hover:shadow-2xl hover:shadow-primary/20"
+              onClick={isCertificates && stats.certificates > 0 ? () => router.push('/certificates') : undefined}
+              className={`relative group overflow-hidden backdrop-blur-xl bg-gradient-to-br from-carbon-800/90 via-carbon-700/90 to-carbon-800/90 rounded-2xl p-7 border border-carbon-600/50 hover:border-primary/60 transition-all duration-500 shadow-2xl shadow-black/20 hover:shadow-2xl hover:shadow-primary/20 ${isCertificates && stats.certificates > 0 ? 'cursor-pointer' : ''}`}
             >
               {/* Animated Gradient Background */}
               <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
@@ -474,6 +497,11 @@ export default function BusinessUserDashboardPage() {
                 </motion.div>
                 <p className="text-carbon-400 text-sm font-medium mb-2 uppercase tracking-wider">{stat.label}</p>
                 <p className="text-4xl font-extrabold text-white tracking-tight">{stat.value}</p>
+                {isCertificates && stats.certificates > 0 && (
+                  <p className="text-carbon-400 text-xs mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Click para ver →
+                  </p>
+                )}
               </div>
             </motion.div>
           )
@@ -590,7 +618,11 @@ export default function BusinessUserDashboardPage() {
                   <motion.button
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleCourseClick(course)
+                      if (course.progress === 100 && course.has_certificate) {
+                        handleCourseClick(course, 'certificate')
+                      } else {
+                        handleCourseClick(course)
+                      }
                     }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -598,10 +630,15 @@ export default function BusinessUserDashboardPage() {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-success/0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
                     <div className="relative z-10 flex items-center gap-3">
-                      {course.progress === 100 ? (
+                      {course.progress === 100 && course.has_certificate ? (
                         <>
                           <Award className="w-5 h-5" />
                           Ver Certificado
+                        </>
+                      ) : course.progress === 100 ? (
+                        <>
+                          <CheckCircle2 className="w-5 h-5" />
+                          Curso Completado
                         </>
                       ) : course.progress > 0 ? (
                         <>
