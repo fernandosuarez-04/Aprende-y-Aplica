@@ -210,6 +210,18 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         logger.error('❌ Error inicializando LIA Analytics:', error);
+        // Log detallado del error para debugging en producción
+        console.error('[LIA ERROR] Detalles completos del error:', JSON.stringify({
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          userId: user.id,
+          context,
+          hasConversationId: !!conversationId,
+          timestamp: new Date().toISOString()
+        }, null, 2));
         // Continuar sin analytics si hay error
         liaLogger = null;
         conversationId = null;
