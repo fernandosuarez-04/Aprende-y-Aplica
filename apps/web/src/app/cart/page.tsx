@@ -1,14 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, X, Plus, Minus, ArrowRight } from 'lucide-react';
+import { ShoppingCart, X, Plus, Minus, ArrowRight, Crown, Star, BookOpen, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
 import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, getTotal, clearCart } =
     useShoppingCartStore();
+  const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const total = getTotal();
   const itemCount = items.reduce(
@@ -16,9 +21,75 @@ export default function CartPage() {
     0
   );
 
-  const handleCheckout = () => {
-    // TODO: Implementar checkout
-    console.log('Procesando compra...', items);
+  const handleCheckout = async () => {
+    if (items.length === 0) {
+      setError('El carrito está vacío');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      const response = await fetch('/api/cart/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Error en respuesta del checkout:', data);
+        // Mostrar detalles si están disponibles
+        const errorMessage = data.details 
+          ? `${data.error}\n\nDetalles:\n${data.details.join('\n')}`
+          : data.error || 'Error al procesar el pago';
+        throw new Error(errorMessage);
+      }
+
+      if (data.success) {
+        setSuccess(true);
+        // Limpiar el carrito
+        clearCart();
+        // Redirigir después de 2 segundos
+        setTimeout(() => {
+          router.push('/my-courses');
+        }, 2000);
+      } else {
+        throw new Error(data.error || 'Error al procesar el pago');
+      }
+    } catch (err) {
+      console.error('Error en checkout:', err);
+      setError(err instanceof Error ? err.message : 'Error al procesar el pago');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getSubscriptionIcon = (title: string) => {
+    if (title.toLowerCase().includes('básico') || title.toLowerCase().includes('basic')) {
+      return <BookOpen className="w-8 h-8" />;
+    } else if (title.toLowerCase().includes('premium')) {
+      return <Star className="w-8 h-8" />;
+    } else if (title.toLowerCase().includes('pro')) {
+      return <Crown className="w-8 h-8" />;
+    }
+    return <Sparkles className="w-8 h-8" />;
+  };
+
+  const getSubscriptionGradient = (title: string) => {
+    if (title.toLowerCase().includes('básico') || title.toLowerCase().includes('basic')) {
+      return 'from-blue-500 to-blue-600';
+    } else if (title.toLowerCase().includes('premium')) {
+      return 'from-purple-500 to-purple-600';
+    } else if (title.toLowerCase().includes('pro')) {
+      return 'from-amber-500 to-amber-600';
+    }
+    return 'from-gray-500 to-gray-600';
   };
 
   return (
@@ -74,12 +145,20 @@ export default function CartPage() {
                     animate={{ opacity: 1, x: 0 }}
                     className="bg-white dark:bg-gray-800 rounded-xl p-6 flex items-start gap-4"
                   >
-                    {item.thumbnail && (
+                    {item.thumbnail ? (
                       <img
                         src={item.thumbnail}
                         alt={item.title}
                         className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
                       />
+                    ) : item.itemType === 'subscription' ? (
+                      <div className={`w-24 h-24 rounded-lg bg-gradient-to-br ${getSubscriptionGradient(item.title)} flex items-center justify-center text-white flex-shrink-0 shadow-lg`}>
+                        {getSubscriptionIcon(item.title)}
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-lg bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white flex-shrink-0">
+                        <BookOpen className="w-8 h-8" />
+                      </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-text-primary mb-2">
@@ -166,12 +245,55 @@ export default function CartPage() {
                     </div>
                   </div>
 
+                  {success && (
+                    <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                          ¡Compra procesada exitosamente!
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                          Redirigiendo a tus cursos...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                          Error al procesar el pago
+                        </p>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                          {error}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleCheckout}
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-colors mb-4 flex items-center justify-center gap-2"
+                    disabled={isProcessing || items.length === 0 || success}
+                    className="w-full bg-primary hover:bg-primary/90 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors mb-4 flex items-center justify-center gap-2"
                   >
-                    Proceder al pago
-                    <ArrowRight className="w-4 h-4" />
+                    {isProcessing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Procesando...
+                      </>
+                    ) : success ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        Procesado
+                      </>
+                    ) : (
+                      <>
+                        Proceder al pago
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
 
                   <button

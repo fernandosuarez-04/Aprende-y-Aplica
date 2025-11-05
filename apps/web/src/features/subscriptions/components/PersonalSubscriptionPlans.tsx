@@ -16,10 +16,12 @@ import {
   MessageCircle,
   Award,
   Zap,
+  ShoppingCart,
 } from 'lucide-react';
 import { PersonalSubscriptionService } from '../services/personal-subscription.service';
 import { PersonalPlan, BillingCycle } from '../types/subscription.types';
 import { Button } from '@aprende-y-aplica/ui';
+import { useShoppingCartStore } from '@/core/stores/shoppingCartStore';
 
 interface PersonalSubscriptionPlansProps {
   onSubscribe?: (planId: string, billingCycle: BillingCycle) => void;
@@ -34,6 +36,7 @@ export function PersonalSubscriptionPlans({
 }: PersonalSubscriptionPlansProps) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
   const plans = PersonalSubscriptionService.getPersonalPlans();
+  const { addItem } = useShoppingCartStore();
 
   const handleSubscribe = (plan: PersonalPlan) => {
     if (onSubscribe) {
@@ -42,6 +45,17 @@ export function PersonalSubscriptionPlans({
       // TODO: Implementar lógica de suscripción
       console.log(`Subscribing to ${plan.id} with ${billingCycle} billing`);
     }
+  };
+
+  const handleAddToCart = (plan: PersonalPlan, price: number) => {
+    const cartItemId = `subscription-${plan.id}-${billingCycle}`;
+    addItem({
+      id: cartItemId,
+      itemType: 'subscription',
+      itemId: plan.id,
+      title: `${plan.name} - ${billingCycle === 'monthly' ? 'Mensual' : 'Anual'}`,
+      price: price,
+    });
   };
 
   const getPlanIcon = (planId: string) => {
@@ -100,7 +114,7 @@ export function PersonalSubscriptionPlans({
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         {plans.map((plan, index) => {
           const price = PersonalSubscriptionService.calculatePrice(plan, billingCycle);
           const formattedPrice = PersonalSubscriptionService.formatPrice(price, plan.currency);
@@ -113,7 +127,7 @@ export function PersonalSubscriptionPlans({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`relative rounded-xl border-2 overflow-hidden transition-all ${
+              className={`relative rounded-xl border-2 overflow-hidden transition-all flex flex-col h-full ${
                 plan.isPopular
                   ? 'border-primary shadow-xl scale-105'
                   : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
@@ -154,8 +168,8 @@ export function PersonalSubscriptionPlans({
               </div>
 
               {/* Features */}
-              <div className="p-6 bg-white dark:bg-gray-800">
-                <ul className="space-y-3 mb-6">
+              <div className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1 min-h-0">
+                <ul className="space-y-3 flex-grow min-h-0">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -164,26 +178,39 @@ export function PersonalSubscriptionPlans({
                   ))}
                 </ul>
 
-                {/* CTA Button */}
-                <Button
-                  variant={plan.isPopular ? 'primary' : 'secondary'}
-                  size="lg"
-                  className="w-full"
-                  onClick={() => handleSubscribe(plan)}
-                  disabled={isCurrentPlan}
-                >
-                  {isCurrentPlan ? (
-                    <>
-                      <Check className="w-5 h-5 mr-2" />
-                      Plan Activo
-                    </>
-                  ) : (
-                    <>
-                      Suscribirse ahora
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </>
+                {/* CTA Buttons */}
+                <div className="flex gap-3 mt-auto flex-shrink-0">
+                  <Button
+                    variant={plan.isPopular ? 'primary' : 'secondary'}
+                    size="lg"
+                    className="flex-1"
+                    onClick={() => handleSubscribe(plan)}
+                    disabled={isCurrentPlan}
+                  >
+                    {isCurrentPlan ? (
+                      <>
+                        <Check className="w-5 h-5 mr-2" />
+                        Plan Activo
+                      </>
+                    ) : (
+                      <>
+                        Suscribirse ahora
+                        <ArrowRight className="w-5 h-5 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                  {!isCurrentPlan && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="px-4 flex items-center justify-center"
+                      onClick={() => handleAddToCart(plan, price)}
+                      title="Agregar al carrito"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             </motion.div>
           );
