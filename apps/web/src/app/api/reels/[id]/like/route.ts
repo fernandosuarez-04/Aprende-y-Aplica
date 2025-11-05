@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { SessionService } from '@/features/auth/services/session.service'
+import { logger } from '@/lib/utils/logger'
 
 export async function POST(
   request: NextRequest,
@@ -9,16 +11,24 @@ export async function POST(
     const supabase = await createClient()
     const { id } = await params
 
-    // Verificar autenticación (opcional para desarrollo)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      // Para desarrollo, usar un usuario por defecto
-      console.warn('No user authenticated, using default user for development')
-      // return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    // Verificar autenticación - OBLIGATORIA
+    let user = null
+    try {
+      user = await SessionService.getCurrentUser()
+    } catch (authError) {
+      logger.error('Error getting current user:', authError)
     }
 
-    // Usar usuario por defecto si no hay autenticación
-    const userId = user?.id || '8365d552-f342-4cd7-ae6b-dff8063a1377'
+    if (!user || !user.id) {
+      logger.warn('❌ Intento de dar like sin autenticación')
+      return NextResponse.json(
+        { error: 'Debes estar autenticado para dar like' },
+        { status: 401 }
+      )
+    }
+
+    const userId = user.id
+    logger.log(`✅ Usuario autenticado para like: ${userId} (${user.username || user.email})`)
 
     // Verificar si ya existe el like
     const { data: existingLike, error: checkError } = await supabase
@@ -29,7 +39,7 @@ export async function POST(
       .single()
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing like:', checkError)
+      logger.error('Error checking existing like:', checkError)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
@@ -42,7 +52,7 @@ export async function POST(
         .eq('user_id', userId)
 
       if (deleteError) {
-        console.error('Error removing like:', deleteError)
+        logger.error('Error removing like:', deleteError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
@@ -54,7 +64,7 @@ export async function POST(
         .single()
 
       if (fetchError) {
-        console.error('Error fetching current reel:', fetchError)
+        logger.error('Error fetching current reel:', fetchError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
@@ -68,10 +78,11 @@ export async function POST(
         .eq('id', id)
 
       if (decrementError) {
-        console.error('Error decrementing like count:', decrementError)
+        logger.error('Error decrementing like count:', decrementError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
+      logger.log(`✅ Like removido por usuario ${userId} del reel ${id}`)
       return NextResponse.json({ liked: false })
     } else {
       // Agregar el like
@@ -83,7 +94,7 @@ export async function POST(
         })
 
       if (insertError) {
-        console.error('Error adding like:', insertError)
+        logger.error('Error adding like:', insertError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
@@ -95,7 +106,7 @@ export async function POST(
         .single()
 
       if (fetchError) {
-        console.error('Error fetching current reel:', fetchError)
+        logger.error('Error fetching current reel:', fetchError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
@@ -109,14 +120,15 @@ export async function POST(
         .eq('id', id)
 
       if (incrementError) {
-        console.error('Error incrementing like count:', incrementError)
+        logger.error('Error incrementing like count:', incrementError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
+      logger.log(`✅ Like agregado por usuario ${userId} al reel ${id}`)
       return NextResponse.json({ liked: true })
     }
   } catch (error) {
-    console.error('Error in POST /api/reels/[id]/like:', error)
+    logger.error('Error in POST /api/reels/[id]/like:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
@@ -129,16 +141,23 @@ export async function GET(
     const supabase = await createClient()
     const { id } = await params
 
-    // Verificar autenticación (opcional para desarrollo)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      // Para desarrollo, usar un usuario por defecto
-      console.warn('No user authenticated, using default user for development')
-      // return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    // Verificar autenticación - OBLIGATORIA
+    let user = null
+    try {
+      user = await SessionService.getCurrentUser()
+    } catch (authError) {
+      logger.error('Error getting current user:', authError)
     }
 
-    // Usar usuario por defecto si no hay autenticación
-    const userId = user?.id || '8365d552-f342-4cd7-ae6b-dff8063a1377'
+    if (!user || !user.id) {
+      logger.warn('❌ Intento de verificar like sin autenticación')
+      return NextResponse.json(
+        { error: 'Debes estar autenticado para verificar likes' },
+        { status: 401 }
+      )
+    }
+
+    const userId = user.id
 
     // Verificar si el usuario ya le dio like
     const { data: like, error } = await supabase
@@ -149,13 +168,13 @@ export async function GET(
       .single()
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Error checking like status:', error)
+      logger.error('Error checking like status:', error)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
     return NextResponse.json({ liked: !!like })
   } catch (error) {
-    console.error('Error in GET /api/reels/[id]/like:', error)
+    logger.error('Error in GET /api/reels/[id]/like:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
