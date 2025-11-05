@@ -194,12 +194,25 @@ export async function POST(request: NextRequest) {
           const userAgent = request.headers.get('user-agent') || undefined;
           const truncatedBrowser = userAgent ? userAgent.substring(0, 100) : undefined;
           
+          // Obtener IP del usuario (solo la primera si hay múltiples)
+          const forwardedFor = request.headers.get('x-forwarded-for');
+          const realIp = request.headers.get('x-real-ip');
+          let clientIp: string | undefined;
+          
+          if (forwardedFor) {
+            // X-Forwarded-For puede tener múltiples IPs separadas por coma
+            // Tomamos solo la primera (IP del cliente real)
+            clientIp = forwardedFor.split(',')[0].trim();
+          } else if (realIp) {
+            clientIp = realIp.trim();
+          }
+          
           conversationId = await liaLogger.startConversation({
             contextType: context as ContextType,
             courseContext: courseContext,
             deviceType: request.headers.get('sec-ch-ua-platform') || undefined,
             browser: truncatedBrowser,
-            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
+            ipAddress: clientIp
           });
           
           logger.info('✅ Nueva conversación LIA creada exitosamente', { conversationId, userId: user.id, context });
