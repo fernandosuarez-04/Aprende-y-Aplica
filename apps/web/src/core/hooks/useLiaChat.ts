@@ -8,7 +8,7 @@ export interface UseLiaChatReturn {
   messages: LiaMessage[];
   isLoading: boolean;
   error: Error | null;
-  sendMessage: (message: string, courseContext?: CourseLessonContext) => Promise<void>;
+  sendMessage: (message: string, courseContext?: CourseLessonContext, isSystemMessage?: boolean) => Promise<void>;
   clearHistory: () => void;
 }
 
@@ -27,18 +27,23 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
 
   const sendMessage = useCallback(async (
     message: string,
-    courseContext?: CourseLessonContext
+    courseContext?: CourseLessonContext,
+    isSystemMessage: boolean = false
   ) => {
     if (!message.trim() || isLoading) return;
 
-    const userMessage: LiaMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: message.trim(),
-      timestamp: new Date()
-    };
+    // Si NO es un mensaje del sistema, agregarlo como mensaje de usuario visible
+    if (!isSystemMessage) {
+      const userMessage: LiaMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: message.trim(),
+        timestamp: new Date()
+      };
 
-    setMessages(prev => [...prev, userMessage]);
+      setMessages(prev => [...prev, userMessage]);
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -56,7 +61,8 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
             content: m.content
           })),
           userName: user?.username || user?.first_name || undefined,
-          courseContext: courseContext || undefined
+          courseContext: courseContext || undefined,
+          isSystemMessage: isSystemMessage
         }),
       });
 

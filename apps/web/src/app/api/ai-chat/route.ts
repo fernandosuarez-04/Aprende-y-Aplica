@@ -124,13 +124,15 @@ export async function POST(request: NextRequest) {
       context = 'general', 
       conversationHistory = [], 
       userName,
-      courseContext 
+      courseContext,
+      isSystemMessage = false
     }: {
       message: string;
       context?: string;
       conversationHistory?: Array<{ role: string; content: string }>;
       userName?: string;
       courseContext?: CourseLessonContext;
+      isSystemMessage?: boolean;
     } = await request.json();
 
     // ✅ Validaciones básicas
@@ -141,8 +143,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Límite de longitud del mensaje (2000 caracteres)
-    const MAX_MESSAGE_LENGTH = 2000;
+    // ✅ Límite de longitud del mensaje (ampliado para mensajes del sistema)
+    const MAX_MESSAGE_LENGTH = isSystemMessage ? 10000 : 2000;
     if (message.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json(
         { error: `El mensaje es muy largo. Máximo ${MAX_MESSAGE_LENGTH} caracteres.` },
@@ -184,7 +186,7 @@ export async function POST(request: NextRequest) {
 
     if (openaiApiKey) {
       try {
-        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId);
+        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage);
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
         response = generateAIResponse(message, context, limitedHistory, contextPrompt);
@@ -235,7 +237,8 @@ async function callOpenAI(
   systemPrompt: string,
   conversationHistory: Array<{ role: string; content: string }>,
   hasCourseContext: boolean = false,
-  userId: string | null = null
+  userId: string | null = null,
+  isSystemMessage: boolean = false
 ): Promise<string> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
@@ -253,8 +256,10 @@ async function callOpenAI(
       role: msg.role as 'user' | 'assistant',
       content: msg.content
     })),
+    // Si es un mensaje del sistema (prompt de actividad), agregarlo como mensaje del sistema
+    // Si no, agregarlo como mensaje de usuario normal
     {
-      role: 'user' as const,
+      role: isSystemMessage ? 'system' as const : 'user' as const,
       content: message
     }
   ];

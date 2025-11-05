@@ -321,7 +321,7 @@ export default function CourseLearnPage() {
     }
 
     // Construir el prompt profesional para LIA
-    const initialMessage = `# SISTEMA: Inicio de Actividad Interactiva
+    const systemPrompt = `# SISTEMA: Inicio de Actividad Interactiva
 
 Vas a guiar al usuario a través de la actividad: "${activityTitle}"
 
@@ -374,8 +374,8 @@ Comienza la conversación con el PRIMER mensaje del guión de forma natural y am
     // Construir contexto de la lección
     const lessonContext = getLessonContext();
 
-    // Enviar el mensaje inicial
-    await sendLiaMessage(initialMessage, lessonContext);
+    // Enviar el mensaje del sistema (no será visible en el chat)
+    await sendLiaMessage(systemPrompt, lessonContext, true);
 
     // Hacer scroll al chat
     setTimeout(() => {
