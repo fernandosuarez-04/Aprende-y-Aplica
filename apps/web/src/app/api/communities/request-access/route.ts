@@ -104,30 +104,50 @@ export async function POST(request: NextRequest) {
 
       const userIdsToNotify = await getUsersToNotifyForAccessRequest(communityId);
       
-      // Obtener información del solicitante para la notificación
-      const requesterName = user.display_name || user.first_name || user.username || 'Un usuario';
+      logger.info(`📬 Creando notificaciones para ${userIdsToNotify.length} usuarios autorizados`);
       
-      // Crear notificaciones para cada usuario autorizado
-      for (const userId of userIdsToNotify) {
-        await NotificationService.createNotification({
-          userId,
-          notificationType: 'community_access_request',
-          title: 'Nueva solicitud de acceso a comunidad',
-          message: `${requesterName} ha solicitado acceso a la comunidad "${community.name}"`,
-          metadata: {
-            community_id: communityId,
-            community_name: community.name,
-            request_id: newRequest.id,
-            requester_id: user.id,
-            requester_name: requesterName,
-            timestamp: new Date().toISOString()
-          },
-          priority: 'medium'
-        });
+      // Si no hay usuarios para notificar, registrar un warning pero continuar
+      if (userIdsToNotify.length === 0) {
+        logger.warn(`⚠️ No hay usuarios autorizados para notificar sobre la solicitud de acceso a la comunidad ${communityId}`);
+      } else {
+        // Obtener información del solicitante para la notificación
+        const requesterName = user.display_name || user.first_name || user.username || 'Un usuario';
+        
+        // Crear notificaciones para cada usuario autorizado
+        let notificationsCreated = 0;
+        for (const userId of userIdsToNotify) {
+          try {
+            await NotificationService.createNotification({
+              userId,
+              notificationType: 'community_access_request',
+              title: 'Nueva solicitud de acceso a comunidad',
+              message: `${requesterName} ha solicitado acceso a la comunidad "${community.name}"`,
+              metadata: {
+                community_id: communityId,
+                community_name: community.name,
+                request_id: newRequest.id,
+                requester_id: user.id,
+                requester_name: requesterName,
+                timestamp: new Date().toISOString()
+              },
+              priority: 'medium'
+            });
+            notificationsCreated++;
+          } catch (userNotificationError) {
+            logger.error(`Error creating notification for user ${userId}:`, userNotificationError);
+            // Continuar con el siguiente usuario aunque falle uno
+          }
+        }
+        
+        logger.info(`✅ Notificaciones creadas: ${notificationsCreated}/${userIdsToNotify.length}`);
       }
     } catch (notificationError) {
-      // No fallar la operación si hay error en notificaciones
+      // No fallar la operación si hay error en notificaciones, pero registrar el error
       logger.error('Error creating notifications for access request:', notificationError);
+      // Log del stack trace si está disponible
+      if (notificationError instanceof Error) {
+        logger.error('Notification error stack:', notificationError.stack);
+      }
     }
 
     return NextResponse.json({

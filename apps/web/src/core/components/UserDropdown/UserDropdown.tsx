@@ -237,14 +237,12 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
         
         <div className="hidden sm:block text-left">
           <p 
-            className="text-sm font-medium"
-            style={{ color: 'var(--org-text-color, #f8fafc)' }}
+            className="text-sm font-medium text-gray-900 dark:text-white"
           >
             {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
           </p>
           <p 
-            className="text-xs"
-            style={{ color: 'var(--org-text-color, #94a3b8)' }}
+            className="text-xs text-gray-700 dark:text-gray-300"
           >
             {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
           </p>
@@ -299,14 +297,12 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 
-                    className="text-lg font-semibold truncate"
-                    style={{ color: 'var(--org-text-color, #f8fafc)' }}
+                    className="text-lg font-semibold truncate text-gray-900 dark:text-white"
                   >
                     {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
                   </h3>
                   <p 
-                    className="text-sm truncate"
-                    style={{ color: 'var(--org-text-color, #cbd5e1)' }}
+                    className="text-sm truncate text-gray-700 dark:text-gray-300"
                   >
                     {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
                   </p>
@@ -334,12 +330,11 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
                       onClick={item.onClick}
                     className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
                       item.isDestructive 
-                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300' 
+                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300' 
                         : item.isAdmin
-                        ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300'
-                        : 'hover:bg-gray-800'
+                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300'
+                        : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
-                    style={!item.isDestructive && !item.isAdmin ? { color: 'var(--org-text-color, #94a3b8)' } : {}}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ 
