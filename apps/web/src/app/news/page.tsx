@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Newspaper, 
   Eye, 
-  MessageCircle, 
   Calendar,
   Grid3X3,
   List,
@@ -282,10 +281,6 @@ export default function NewsPage() {
                             <Eye className="w-4 h-4" />
                             <span>{item.view_count || 0}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <MessageCircle className="w-4 h-4" />
-                            <span>{item.comment_count || 0}</span>
-                          </div>
                         </div>
                         <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
                       </div>
@@ -431,10 +426,6 @@ export default function NewsPage() {
                             <div className="flex items-center gap-1">
                               <Eye className="w-4 h-4" />
                               <span>{item.view_count || 0}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MessageCircle className="w-4 h-4" />
-                              <span>{item.comment_count || 0}</span>
                             </div>
                           </div>
                           <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />

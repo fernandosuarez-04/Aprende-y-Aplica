@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { SessionService } from '@/features/auth/services/session.service'
+import { logger } from '@/lib/utils/logger'
 
 export async function GET(
   request: NextRequest,
@@ -27,13 +29,25 @@ export async function GET(
       .order('created_at', { ascending: true })
 
     if (error) {
-      console.error('Error fetching replies:', error)
+      logger.error('Error fetching replies:', error)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    }
+
+    // Verificar que el JOIN con users está funcionando correctamente
+    if (replies && replies.length > 0) {
+      logger.log(`📊 Respuestas obtenidas: ${replies.length}`)
+      replies.forEach((reply: any, index: number) => {
+        if (reply.users) {
+          logger.log(`  ${index + 1}. Usuario: ${reply.users.username || reply.users.id} (${reply.users.id})`)
+        } else {
+          logger.warn(`  ⚠️ Respuesta ${reply.id} sin información de usuario`)
+        }
+      })
     }
 
     return NextResponse.json(replies || [])
   } catch (error) {
-    console.error('Error in GET /api/reels/comments/[id]/replies:', error)
+    logger.error('Error in GET /api/reels/comments/[id]/replies:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
@@ -51,14 +65,24 @@ export async function POST(
       return NextResponse.json({ error: 'La respuesta no puede estar vacía' }, { status: 400 })
     }
 
-    // Verificar autenticación (opcional para desarrollo)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      console.warn('No user authenticated, using default user for development')
+    // Verificar autenticación - OBLIGATORIA
+    let user = null
+    try {
+      user = await SessionService.getCurrentUser()
+    } catch (authError) {
+      logger.error('Error getting current user:', authError)
     }
 
-    // Usar usuario por defecto si no hay autenticación
-    const userId = user?.id || '8365d552-f342-4cd7-ae6b-dff8063a1377'
+    if (!user || !user.id) {
+      logger.warn('❌ Intento de crear respuesta sin autenticación')
+      return NextResponse.json(
+        { error: 'Debes estar autenticado para responder' },
+        { status: 401 }
+      )
+    }
+
+    const userId = user.id
+    logger.log(`✅ Usuario autenticado para respuesta: ${userId} (${user.username || user.email})`)
 
     // Crear la respuesta
     const { data: newReply, error: insertError } = await supabase
@@ -81,8 +105,15 @@ export async function POST(
       .single()
 
     if (insertError) {
-      console.error('Error creating reply:', insertError)
+      logger.error('Error creating reply:', insertError)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    }
+
+    // Verificar que el JOIN con users está funcionando en la respuesta
+    if (newReply?.users) {
+      logger.log(`✅ Respuesta creada con usuario: ${newReply.users.username || newReply.users.id} (${newReply.users.id})`)
+    } else {
+      logger.warn('⚠️ Respuesta creada pero sin información de usuario en la respuesta')
     }
 
     // Obtener el reel_id del comentario para actualizar el contador
@@ -93,7 +124,7 @@ export async function POST(
       .single()
 
     if (commentError) {
-      console.error('Error fetching comment:', commentError)
+      logger.error('Error fetching comment:', commentError)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
@@ -105,7 +136,7 @@ export async function POST(
       .eq('is_active', true)
 
     if (commentsError) {
-      console.error('Error counting comments:', commentsError)
+      logger.error('Error counting comments:', commentsError)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
@@ -117,7 +148,7 @@ export async function POST(
       .eq('is_active', true)
 
     if (repliesError) {
-      console.error('Error counting replies:', repliesError)
+      logger.error('Error counting replies:', repliesError)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
@@ -131,13 +162,13 @@ export async function POST(
       .eq('id', comment.reel_id)
 
     if (updateError) {
-      console.error('Error updating comment count:', updateError)
+      logger.error('Error updating comment count:', updateError)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
     return NextResponse.json(newReply)
   } catch (error) {
-    console.error('Error in POST /api/reels/comments/[id]/replies:', error)
+    logger.error('Error in POST /api/reels/comments/[id]/replies:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
