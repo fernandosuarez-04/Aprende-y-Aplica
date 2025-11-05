@@ -74,7 +74,7 @@ export function Navbar() {
                 />
               )}
             </motion.div>
-            <span className="font-bold text-xl hidden sm:block navbar-logo-text">
+            <span className="font-bold text-xl hidden sm:block text-gray-900 dark:text-white navbar-logo-text">
               Aprende y Aplica
             </span>
             
@@ -90,7 +90,7 @@ export function Navbar() {
           <div className="hidden lg:flex items-center gap-8">
             {/* Navigation Links - Solo Inicio */}
             <div className="flex items-center gap-6">
-              <Link href="/" className="text-sm font-medium hover:text-blue-400 transition-colors">
+              <Link href="/" className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                 Inicio
               </Link>
             </div>
@@ -113,7 +113,7 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <motion.button
-            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300 navbar-mobile-button"
+            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300 navbar-mobile-button text-gray-900 dark:text-white"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             whileTap={{ scale: 0.95 }}
           >
@@ -143,7 +143,7 @@ export function Navbar() {
             <div className="space-y-3">
               <Link 
                 href="/" 
-                className="block text-sm font-medium hover:text-blue-400 transition-colors"
+                className="block text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Inicio

@@ -65,7 +65,7 @@ export default function NewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-carbon-950 via-carbon-900 to-carbon-800">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-carbon-950 dark:via-carbon-900 dark:to-carbon-800">
       {/* Header Section */}
       <motion.div 
         className="relative overflow-hidden"
@@ -86,7 +86,7 @@ export default function NewsPage() {
                 <h1 className="text-4xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70 mb-6">
                   Noticias y Actualizaciones
                 </h1>
-                <p className="text-xl text-text-secondary mb-8 leading-relaxed">
+                <p className="text-xl text-gray-600 dark:text-text-secondary mb-8 leading-relaxed">
                   Mantente al día con las últimas novedades en inteligencia artificial, 
                   tecnología educativa y todo lo relacionado con Chat-Bot-LIA
                 </p>
@@ -101,15 +101,15 @@ export default function NewsPage() {
                   >
                     <div className="text-center">
                       <div className="text-3xl font-bold text-primary mb-2">{stats.totalNews}</div>
-                      <div className="text-sm text-text-tertiary">NOTICIAS</div>
+                      <div className="text-sm text-gray-600 dark:text-text-tertiary">NOTICIAS</div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-primary mb-2">{stats.totalCategories}</div>
-                      <div className="text-sm text-text-tertiary">CATEGORÍAS</div>
+                      <div className="text-sm text-gray-600 dark:text-text-tertiary">CATEGORÍAS</div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-primary mb-2">{stats.totalViews}</div>
-                      <div className="text-sm text-text-tertiary">VISUALIZACIONES</div>
+                      <div className="text-sm text-gray-600 dark:text-text-tertiary">VISUALIZACIONES</div>
                     </div>
                   </motion.div>
                 )}
@@ -159,7 +159,7 @@ export default function NewsPage() {
 
       {/* Navigation Tabs */}
       <motion.div 
-        className="sticky top-0 z-40 bg-carbon-950/80 backdrop-blur-sm border-b border-carbon-700/50"
+        className="sticky top-0 z-40 bg-white/80 dark:bg-carbon-950/80 backdrop-blur-sm border-b border-gray-200 dark:border-carbon-700/50"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.3 }}
@@ -176,7 +176,7 @@ export default function NewsPage() {
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                   activeTab === tab.key
                     ? 'bg-primary text-white'
-                    : 'text-text-tertiary hover:text-text-primary hover:bg-carbon-800/50'
+                    : 'text-gray-600 dark:text-text-tertiary hover:text-gray-900 dark:hover:text-text-primary hover:bg-gray-100 dark:hover:bg-carbon-800/50'
                 }`}
               >
                 <tab.icon className="w-5 h-5" />
@@ -197,8 +197,8 @@ export default function NewsPage() {
         >
           <div className="mx-auto max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-text-primary mb-4">Reels</h2>
-              <p className="text-text-secondary">Videos cortos con las últimas noticias y tendencias</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-text-primary mb-4">Reels</h2>
+              <p className="text-gray-600 dark:text-text-secondary">Videos cortos con las últimas noticias y tendencias</p>
             </div>
             
             {/* Featured Reels */}
@@ -221,8 +221,8 @@ export default function NewsPage() {
         >
           <div className="mx-auto max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-text-primary mb-4">Noticias Destacadas</h2>
-              <p className="text-text-secondary">Las noticias más importantes y relevantes del momento</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-text-primary mb-4">Noticias Destacadas</h2>
+              <p className="text-gray-600 dark:text-text-secondary">Las noticias más importantes y relevantes del momento</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -235,7 +235,7 @@ export default function NewsPage() {
                   transition={{ duration: 0.6, delay: 0.1 * index }}
                   onClick={() => handleNewsClick(item.slug)}
                 >
-                  <div className="bg-carbon-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-carbon-700/50 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20">
+                  <div className="bg-white/80 dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-200 dark:border-carbon-700/50 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20">
                     {/* Hero Image */}
                     <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center overflow-hidden">
                       {item.hero_image_url ? (
@@ -260,17 +260,17 @@ export default function NewsPage() {
                         <span className="px-3 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full">
                           {item.language}
                         </span>
-                        <span className="text-text-tertiary text-sm">
+                        <span className="text-gray-600 dark:text-text-tertiary text-sm">
                           {formatDate(item.published_at || item.created_at)}
                         </span>
                       </div>
                       
-                      <h3 className="text-lg font-semibold text-text-primary mb-3 group-hover:text-primary transition-colors">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-text-primary mb-3 group-hover:text-primary transition-colors">
                         {truncateText(item.title, 80)}
                       </h3>
                       
                       {item.intro && (
-                        <p className="text-text-secondary text-sm mb-4 line-clamp-3">
+                        <p className="text-gray-600 dark:text-text-secondary text-sm mb-4 line-clamp-3">
                           {truncateText(item.intro, 120)}
                         </p>
                       )}
@@ -307,13 +307,13 @@ export default function NewsPage() {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-text-tertiary w-5 h-5" />
                 <input
                   type="text"
                   placeholder="Buscar noticias..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-carbon-800/50 border border-carbon-700/50 rounded-xl text-text-primary placeholder-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white/80 dark:bg-carbon-800/50 border border-gray-300 dark:border-carbon-700/50 rounded-xl text-gray-900 dark:text-text-primary placeholder-gray-500 dark:placeholder-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
             </div>
@@ -325,7 +325,7 @@ export default function NewsPage() {
                 className={`p-3 rounded-xl transition-all ${
                   viewMode === 'grid' 
                     ? 'bg-primary text-white' 
-                    : 'bg-carbon-800/50 text-text-tertiary hover:text-text-primary'
+                    : 'bg-white/80 dark:bg-carbon-800/50 text-gray-600 dark:text-text-tertiary hover:text-gray-900 dark:hover:text-text-primary'
                 }`}
               >
                 <Grid3X3 className="w-5 h-5" />
@@ -335,7 +335,7 @@ export default function NewsPage() {
                 className={`p-3 rounded-xl transition-all ${
                   viewMode === 'list' 
                     ? 'bg-primary text-white' 
-                    : 'bg-carbon-800/50 text-text-tertiary hover:text-text-primary'
+                    : 'bg-white/80 dark:bg-carbon-800/50 text-gray-600 dark:text-text-tertiary hover:text-gray-900 dark:hover:text-text-primary'
                 }`}
               >
                 <List className="w-5 h-5" />
@@ -350,12 +350,12 @@ export default function NewsPage() {
             </div>
           ) : error ? (
             <div className="text-center py-16">
-              <p className="text-text-secondary">Error al cargar las noticias: {error}</p>
+              <p className="text-gray-600 dark:text-text-secondary">Error al cargar las noticias: {error}</p>
             </div>
           ) : filteredNews.length === 0 ? (
             <div className="text-center py-16">
-              <Newspaper className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-              <p className="text-text-secondary">No se encontraron noticias</p>
+              <Newspaper className="w-16 h-16 text-gray-400 dark:text-text-tertiary mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-text-secondary">No se encontraron noticias</p>
             </div>
           ) : (
             <AnimatePresence mode="wait">
@@ -379,7 +379,7 @@ export default function NewsPage() {
                     transition={{ duration: 0.6, delay: 0.1 * index }}
                     onClick={() => handleNewsClick(item.slug)}
                   >
-                    <div className={`bg-carbon-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-carbon-700/50 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20 ${
+                    <div className={`bg-white/80 dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-200 dark:border-carbon-700/50 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20 ${
                       viewMode === 'list' ? 'flex' : ''
                     }`}>
                       {/* Hero Image */}
@@ -406,23 +406,23 @@ export default function NewsPage() {
                           <span className="px-3 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full">
                             {item.language}
                           </span>
-                          <span className="text-text-tertiary text-sm">
+                          <span className="text-gray-600 dark:text-text-tertiary text-sm">
                             {formatDate(item.published_at || item.created_at)}
                           </span>
                         </div>
                         
-                        <h3 className="text-lg font-semibold text-text-primary mb-3 group-hover:text-primary transition-colors">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-text-primary mb-3 group-hover:text-primary transition-colors">
                           {truncateText(item.title, viewMode === 'list' ? 100 : 80)}
                         </h3>
                         
                         {item.intro && (
-                          <p className="text-text-secondary text-sm mb-4 line-clamp-3">
+                          <p className="text-gray-600 dark:text-text-secondary text-sm mb-4 line-clamp-3">
                             {truncateText(item.intro, viewMode === 'list' ? 200 : 120)}
                           </p>
                         )}
                         
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 text-text-tertiary text-sm">
+                          <div className="flex items-center gap-4 text-gray-600 dark:text-text-tertiary text-sm">
                             <div className="flex items-center gap-1">
                               <Eye className="w-4 h-4" />
                               <span>{item.view_count || 0}</span>

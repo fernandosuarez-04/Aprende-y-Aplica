@@ -7,6 +7,7 @@ import { HeroSection } from '../features/landing/components/HeroSection';
 import { FeaturesSection } from '../features/landing/components/FeaturesSection';
 import { StatisticsSection } from '../features/landing/components/StatisticsSection';
 import { TestimonialsSection } from '../features/landing/components/TestimonialsSection';
+import { PWAPrompt } from '../core/components/PWAPrompt';
 import { CTASection } from '../features/landing/components/CTASection';
 
 export default function HomePage() {
@@ -91,6 +92,9 @@ export default function HomePage() {
         subtitle={content.cta.subtitle}
         buttonText={content.cta.buttonText}
       />
+      
+      {/* PWA Install Prompt - Solo en inicio */}
+      <PWAPrompt />
     </main>
   );
 }

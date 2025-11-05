@@ -239,7 +239,10 @@ export default function CommunitiesPage() {
               body: JSON.stringify({ communityId }),
             });
 
-            if (!response.ok) throw new Error('Failed to request access');
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+              throw new Error(errorData.error || errorData.message || 'Failed to request access');
+            }
 
             return {
               ...currentData,
