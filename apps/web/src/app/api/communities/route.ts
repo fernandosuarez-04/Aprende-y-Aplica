@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       logger.log('✅ User authenticated:', user.id);
     }
 
-    // Obtener todas las comunidades activas
+    // Obtener todas las comunidades activas (incluye creator_id automáticamente)
     const { data: communities, error: communitiesError } = await supabase
       .from('communities')
       .select('*')
@@ -86,14 +86,16 @@ export async function GET(request: NextRequest) {
       }, { status: 200 });
     }
 
-    // Si no hay usuario autenticado, retornar comunidades sin enriquecimiento
+    // Si no hay usuario autenticado, retornar solo comunidades públicas
     if (!user) {
-      const publicCommunities = communities?.map(community => ({
-        ...community,
-        is_member: false,
-        has_pending_request: false,
-        user_role: null
-      })) || [];
+      const publicCommunities = communities
+        ?.filter(community => community.visibility === 'public')
+        .map(community => ({
+          ...community,
+          is_member: false,
+          has_pending_request: false,
+          user_role: null
+        })) || [];
 
       logger.log('🌐 Returning public communities:', publicCommunities.length);
       
@@ -109,7 +111,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener membresías del usuario
+    // Obtener el rol del usuario
+    const userRole = user.cargo_rol;
+    const isAdmin = userRole === 'Administrador';
+    const isInstructor = userRole === 'Instructor';
+
+    logger.log('👤 User role:', userRole, { isAdmin, isInstructor });
+
+    // Obtener membresías del usuario (para comunidades donde es miembro/admin/moderator)
     const { data: memberships, error: membershipsError } = await supabase
       .from('community_members')
       .select('community_id, role')
@@ -139,15 +148,51 @@ export async function GET(request: NextRequest) {
       pendingRequests?.map(r => r.community_id) || []
     );
 
+    // Filtrar comunidades según el rol del usuario
+    let filteredCommunities = communities;
+
+    if (isAdmin) {
+      // Administradores ven TODAS las comunidades activas
+      logger.log('✅ Admin user - showing all communities');
+      filteredCommunities = communities;
+    } else if (isInstructor) {
+      // Instructores ven solo:
+      // 1. Comunidades que crearon (creator_id = user.id)
+      // 2. Comunidades donde son admin o moderator en community_members
+      logger.log('📚 Instructor user - filtering by creator/admin/moderator role');
+      
+      const adminOrModeratorCommunityIds = new Set(
+        memberships
+          ?.filter(m => m.role === 'admin' || m.role === 'moderator')
+          .map(m => m.community_id) || []
+      );
+
+      filteredCommunities = communities.filter(community => {
+        // Verificar si es el creador (puede ser null si no hay creador asignado)
+        const isCreator = community.creator_id && community.creator_id === user.id;
+        // Verificar si es admin o moderator en la comunidad
+        const isAdminOrModerator = adminOrModeratorCommunityIds.has(community.id);
+        return isCreator || isAdminOrModerator;
+      });
+
+      logger.log(`📊 Instructor can see ${filteredCommunities.length} of ${communities.length} communities`);
+    } else {
+      // Usuarios normales ven solo comunidades públicas
+      logger.log('👤 Regular user - showing public communities only');
+      filteredCommunities = communities.filter(
+        community => community.visibility === 'public'
+      );
+    }
+
     // Enriquecer comunidades con información del usuario
-    const enrichedCommunities = communities?.map(community => ({
+    const enrichedCommunities = filteredCommunities.map(community => ({
       ...community,
       is_member: membershipMap.has(community.id),
       has_pending_request: pendingRequestsMap.has(community.id),
       user_role: membershipMap.get(community.id) || null
-    })) || [];
+    }));
 
-    logger.log('✅ Returning enriched communities:', enrichedCommunities.length);
+    logger.log(`✅ Returning ${enrichedCommunities.length} enriched communities for ${userRole}`);
 
     // Importar utilidades de cache
     const { withCache, privateCache } = await import('../../../core/utils/cache-headers');

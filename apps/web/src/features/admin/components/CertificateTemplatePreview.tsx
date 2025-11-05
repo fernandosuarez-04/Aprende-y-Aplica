@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { QRCodeSVG } from 'qrcode.react'
+import QRCode from 'react-qr-code'
 import { X, Check, Maximize2, ArrowLeft } from 'lucide-react'
 
 interface CertificateTemplate {
@@ -223,14 +223,13 @@ export function CertificateTemplatePreview({
                       {/* QR Code - Centro */}
                       <div className="flex-shrink-0 mx-8 flex flex-col items-center justify-center">
                         <div className="bg-white p-3 rounded-lg border-2 shadow-lg" style={{ borderColor: primaryColor }}>
-                          <QRCodeSVG
+                          <QRCode
                             value={certificateHash 
                               ? `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/${certificateHash}`
                               : `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/[hash]`
                             }
                             size={110}
-                            level="H"
-                            includeMargin={true}
+                            style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                             fgColor={primaryColor}
                             bgColor="#ffffff"
                           />
