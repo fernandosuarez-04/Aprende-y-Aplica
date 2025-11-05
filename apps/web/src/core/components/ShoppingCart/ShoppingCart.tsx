@@ -12,12 +12,18 @@ interface ShoppingCartProps {
 
 export function ShoppingCart({ className = '' }: ShoppingCartProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { items, removeItem, getTotal, getItemCount } = useShoppingCartStore();
 
   const itemCount = getItemCount();
   const total = getTotal();
+
+  // Detectar cuando el componente está montado en el cliente
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -62,7 +68,7 @@ export function ShoppingCart({ className = '' }: ShoppingCartProps) {
         whileTap={{ scale: 0.95 }}
       >
         <ShoppingCartIcon className="w-5 h-5 text-text-secondary dark:text-text-secondary" />
-        {itemCount > 0 && (
+        {mounted && itemCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full text-xs flex items-center justify-center text-white font-bold">
             {itemCount > 99 ? '99+' : itemCount}
           </span>

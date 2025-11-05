@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Heart,
   MessageCircle,
   User,
   ChevronDown,
   ChevronUp,
   Send,
-  MoreHorizontal
+  MoreHorizontal,
+  Edit3,
+  Trash2,
+  Flag
 } from 'lucide-react';
 import { sanitizeComment } from '../../../lib/sanitize/html-sanitizer';
 
@@ -47,6 +50,56 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [newReply, setNewReply] = useState('');
   const [showReplyInput, setShowReplyInput] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowOptionsMenu(false);
+      }
+    };
+
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showOptionsMenu]);
+
+  // Handlers para opciones del menú
+  const handleEdit = () => {
+    setShowOptionsMenu(false);
+    // TODO: Implementar lógica de edición
+    alert('Función de editar en desarrollo');
+  };
+
+  const handleDelete = async () => {
+    setShowOptionsMenu(false);
+    if (!confirm('¿Estás seguro de que quieres eliminar este comentario?')) return;
+
+    try {
+      const response = await fetch(`/api/reels/comments/${comment.id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        // TODO: Actualizar UI o notificar al componente padre
+        alert('Comentario eliminado exitosamente');
+      } else {
+        alert('Error al eliminar comentario');
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      alert('Error al eliminar comentario');
+    }
+  };
+
+  const handleReport = () => {
+    setShowOptionsMenu(false);
+    // TODO: Implementar lógica de reporte
+    alert('Función de reportar en desarrollo');
+  };
 
   // Cargar respuestas
   const loadReplies = async () => {
@@ -149,9 +202,51 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {formatDate(comment.created_at)}
             </span>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
-              <MoreHorizontal className="w-4 h-4 text-gray-500" />
-            </button>
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+              >
+                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+              </button>
+
+              {/* Menú de opciones */}
+              <AnimatePresence>
+                {showOptionsMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+                  >
+                    <div className="py-1">
+                      <button
+                        onClick={handleEdit}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Edit3 className="w-4 h-4 mr-3" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 mr-3" />
+                        Eliminar
+                      </button>
+                      <button
+                        onClick={handleReport}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Flag className="w-4 h-4 mr-3" />
+                        Reportar
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
           
           <p 

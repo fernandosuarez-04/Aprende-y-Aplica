@@ -507,6 +507,55 @@ export class NotificationService {
       throw error
     }
   }
+
+  /**
+   * Obtiene la actividad reciente del sistema (para panel de administrador)
+   * Retorna las notificaciones más recientes de todos los usuarios
+   */
+  static async getRecentActivity(
+    limit: number = 10
+  ): Promise<any[]> {
+    try {
+      const supabase = await createClient()
+
+      // Obtener las notificaciones más recientes del sistema
+      const { data: notifications, error } = await supabase
+        .from('user_notifications')
+        .select(`
+          *,
+          users:users!user_notifications_user_id_fkey (
+            id,
+            first_name,
+            last_name,
+            display_name,
+            username
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error) {
+        logger.error('Error obteniendo actividad reciente:', error)
+        throw new Error(`Error al obtener actividad reciente: ${error.message}`)
+      }
+
+      // Filtrar notificaciones expiradas
+      const now = new Date()
+      const validNotifications = (notifications || []).filter(notif => {
+        if (!notif.expires_at) return true
+        return new Date(notif.expires_at) > now
+      })
+
+      logger.info('✅ Actividad reciente obtenida', {
+        count: validNotifications.length
+      })
+
+      return validNotifications || []
+    } catch (error) {
+      logger.error('❌ Error en getRecentActivity:', error)
+      throw error
+    }
+  }
 }
 
 

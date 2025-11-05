@@ -673,7 +673,7 @@ export default function CommunitiesPage() {
 
       {/* Community Rules Button */}
       <motion.div
-        className="fixed bottom-6 right-6"
+        className="fixed bottom-24 right-6 z-[9990]"
         variants={itemVariants}
         initial="hidden"
         animate="visible"

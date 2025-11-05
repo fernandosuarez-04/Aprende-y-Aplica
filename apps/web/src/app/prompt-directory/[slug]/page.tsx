@@ -94,6 +94,26 @@ export default function PromptDetailPage() {
     }
   };
 
+  const handleDownloadPrompt = () => {
+    if (!prompt || !prompt.content || !prompt.title) return;
+    
+    try {
+      const promptContent = `# ${prompt.title}\n\n${prompt.description ? `## Descripción\n${prompt.description}\n\n` : ''}## Contenido del Prompt\n\n${prompt.content}${prompt.tags && prompt.tags.length > 0 ? `\n\n## Tags\n${prompt.tags.join(', ')}` : ''}${prompt.use_cases && prompt.use_cases.length > 0 ? `\n\n## Casos de Uso\n${prompt.use_cases.map(uc => `- ${uc}`).join('\n')}` : ''}${prompt.tips && prompt.tips.length > 0 ? `\n\n## Consejos de Uso\n${prompt.tips.map(tip => `- ${tip}`).join('\n')}` : ''}\n\n---\nDescargado desde Aprende y Aplica IA\nFecha: ${new Date().toLocaleString('es-ES')}`;
+      
+      const blob = new Blob([promptContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${prompt.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error al descargar el prompt:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 flex items-center justify-center">
@@ -206,25 +226,6 @@ export default function PromptDetailPage() {
               </div>
             </div>
 
-            {/* Copy Button */}
-            <motion.button
-              onClick={handleCopyPrompt}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  ¡Copiado!
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  Copiar Prompt
-                </>
-              )}
-            </motion.button>
           </motion.div>
         </div>
       </motion.div>
@@ -236,7 +237,7 @@ export default function PromptDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
@@ -249,36 +250,6 @@ export default function PromptDetailPage() {
                   </pre>
                 </div>
               </div>
-
-              {/* Use Cases */}
-              {prompt.use_cases && prompt.use_cases.length > 0 && (
-                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Casos de Uso</h2>
-                  <ul className="space-y-3">
-                    {prompt.use_cases.map((useCase, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
-                        <span className="text-gray-700 dark:text-gray-300">{useCase}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Tips */}
-              {prompt.tips && prompt.tips.length > 0 && (
-                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Consejos de Uso</h2>
-                  <ul className="space-y-3">
-                    {prompt.tips.map((tip, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
-                        <span className="text-gray-700 dark:text-gray-300">{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
 
             {/* Sidebar */}
@@ -336,12 +307,46 @@ export default function PromptDetailPage() {
                     {copied ? '¡Copiado!' : 'Copiar Prompt'}
                   </Button>
                   
-                  <Button variant="ghost" className="w-full">
+                  <Button 
+                    onClick={handleDownloadPrompt}
+                    variant="secondary" 
+                    className="w-full"
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     Descargar
                   </Button>
                 </div>
               </div>
+
+              {/* Use Cases */}
+              {prompt.use_cases && prompt.use_cases.length > 0 && (
+                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Casos de Uso</h3>
+                  <ul className="space-y-2">
+                    {prompt.use_cases.map((useCase, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{useCase}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Tips */}
+              {prompt.tips && prompt.tips.length > 0 && (
+                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Consejos de Uso</h3>
+                  <ul className="space-y-2">
+                    {prompt.tips.map((tip, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>

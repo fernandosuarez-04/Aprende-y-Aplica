@@ -1065,6 +1065,16 @@ CREATE TABLE public.user_course_enrollments (
   CONSTRAINT user_course_enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_course_enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
 );
+CREATE TABLE public.user_favorites (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_favorites_pkey PRIMARY KEY (id),
+  CONSTRAINT user_favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_favorites_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
 CREATE TABLE public.user_group_members (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   group_id uuid NOT NULL,

@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Clock, Star, Eye, Download, Copy, Check, Sparkles } from 'lucide-react';
+import { Clock, Star, Eye, Download, Heart, Sparkles } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { usePromptFavorites } from '../context/PromptFavoritesContext';
+import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 interface Prompt {
   prompt_id: string;
@@ -54,16 +57,38 @@ const difficultyLabels = {
 };
 
 export function PromptCard({ prompt }: PromptCardProps) {
-  const [copied, setCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+  
+  // El hook debe usarse siempre, el provider debería estar disponible
+  const { toggleFavorite, isFavorite, loading: favoritesLoading, favorites } = usePromptFavorites();
 
-  const handleCopyPrompt = async () => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Usar el estado directamente del contexto en lugar de solo isFavorite
+  const favorite = mounted && favorites.includes(prompt.prompt_id);
+
+  const handleToggleFavorite = async (promptId: string) => {
+    // Verificar directamente con user?.id en lugar de isAuthenticated para evitar problemas de sincronización
+    if (!user?.id) {
+      // Usar window.location en lugar de router.push para evitar problemas con prefetch
+      window.location.href = '/auth';
+      return;
+    }
+
+    if (!toggleFavorite) {
+      console.error('toggleFavorite function is not available');
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(prompt.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy prompt:', err);
+      await toggleFavorite(promptId);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
     }
   };
 
@@ -169,7 +194,7 @@ export function PromptCard({ prompt }: PromptCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 relative z-10">
         <Link href={`/prompt-directory/${prompt.slug}`} className="flex-1">
           <Button 
             variant="primary" 
@@ -179,17 +204,26 @@ export function PromptCard({ prompt }: PromptCardProps) {
           </Button>
         </Link>
         
-        <motion.button
-          onClick={handleCopyPrompt}
-          className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-          whileTap={{ scale: 0.95 }}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleToggleFavorite(prompt.prompt_id);
+          }}
+          disabled={favoritesLoading || !user?.id}
+          className={`relative z-20 p-2 rounded-lg border transition-colors ${
+            favorite
+              ? 'border-red-500 bg-red-500/10 text-red-500 hover:bg-red-500/20'
+              : 'border-gray-300 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-500 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400'
+          } ${favoritesLoading || !user?.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          title={!user?.id ? 'Inicia sesión para agregar a favoritos' : favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
         >
-          {copied ? (
-            <Check className="w-4 h-4 text-green-400" />
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
-        </motion.button>
+          <Heart 
+            className={`w-4 h-4 transition-all ${
+              favorite ? 'text-red-500 fill-current' : 'text-gray-600 dark:text-text-secondary'
+            }`} 
+          />
+        </button>
       </div>
 
       {/* Hover Effect */}

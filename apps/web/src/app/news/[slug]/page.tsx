@@ -31,6 +31,55 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
   const router = useRouter()
   const resolvedParams = React.use(params)
   const { news, loading, error } = useNewsDetail(resolvedParams.slug)
+  const [isSaved, setIsSaved] = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [isCheckingSaved, setIsCheckingSaved] = React.useState(true)
+
+  // Verificar si la noticia está guardada al cargar
+  React.useEffect(() => {
+    const checkSaved = async () => {
+      if (!resolvedParams.slug) return
+
+      try {
+        const response = await fetch(`/api/news/${resolvedParams.slug}/save`)
+        if (response.ok) {
+          const data = await response.json()
+          setIsSaved(data.saved)
+        }
+      } catch (error) {
+        console.error('Error checking saved status:', error)
+      } finally {
+        setIsCheckingSaved(false)
+      }
+    }
+
+    checkSaved()
+  }, [resolvedParams.slug])
+
+  const handleSave = async () => {
+    if (isSaving) return
+
+    setIsSaving(true)
+    try {
+      const response = await fetch(`/api/news/${resolvedParams.slug}/save`, {
+        method: 'POST'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setIsSaved(data.saved)
+
+        // Mostrar notificación de éxito (opcional, puedes usar un toast library)
+        console.log(data.message)
+      } else {
+        console.error('Error saving news')
+      }
+    } catch (error) {
+      console.error('Error saving news:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -178,35 +227,86 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
     return <p className="text-text-primary leading-relaxed">{String(sections)}</p>
   }
 
+  const isValidUrl = (urlString: string) => {
+    try {
+      new URL(urlString)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const renderLinks = (links: any) => {
     if (!links) return null
 
     if (Array.isArray(links)) {
+      const validLinks = links.filter(link => {
+        const url = typeof link === 'string' ? link : link?.url
+        return url && isValidUrl(url)
+      })
+
+      if (validLinks.length === 0) {
+        return (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-sm text-yellow-400">
+              No hay enlaces válidos disponibles en este momento.
+            </p>
+          </div>
+        )
+      }
+
       return (
         <div className="space-y-3">
-          {links.map((link, index) => (
-            <a
-              key={index}
-              href={typeof link === 'string' ? link : link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
-            >
-              <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-text-primary group-hover:text-primary transition-colors">
-                {typeof link === 'string' ? link : link.title || link.url}
-              </span>
-              <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto" />
-            </a>
-          ))}
+          {validLinks.map((link, index) => {
+            const url = typeof link === 'string' ? link : link.url
+            const title = typeof link === 'string' ? link : link.title || link.url
+
+            return (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
+                onClick={(e) => {
+                  // Verificar que el enlace funcione antes de abrirlo
+                  if (!isValidUrl(url)) {
+                    e.preventDefault()
+                    alert('Este enlace no es válido o está roto')
+                  }
+                }}
+              >
+                <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-text-primary group-hover:text-primary transition-colors truncate">
+                  {title}
+                </span>
+                <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto flex-shrink-0" />
+              </a>
+            )
+          })}
         </div>
       )
     }
 
     if (typeof links === 'object') {
+      const validEntries = Object.entries(links).filter(([_, value]) => {
+        const url = String(value)
+        return isValidUrl(url)
+      })
+
+      if (validEntries.length === 0) {
+        return (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-sm text-yellow-400">
+              No hay enlaces válidos disponibles en este momento.
+            </p>
+          </div>
+        )
+      }
+
       return (
         <div className="space-y-3">
-          {Object.entries(links).map(([key, value]) => (
+          {validEntries.map(([key, value]) => (
             <a
               key={key}
               href={String(value)}
@@ -215,17 +315,28 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
               className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
             >
               <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-text-primary group-hover:text-primary transition-colors">{key}</span>
-              <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto" />
+              <span className="text-text-primary group-hover:text-primary transition-colors truncate">{key}</span>
+              <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto flex-shrink-0" />
             </a>
           ))}
         </div>
       )
     }
 
+    const linkUrl = String(links)
+    if (!isValidUrl(linkUrl)) {
+      return (
+        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+          <p className="text-sm text-yellow-400">
+            El enlace proporcionado no es válido.
+          </p>
+        </div>
+      )
+    }
+
     return (
       <a
-        href={String(links)}
+        href={linkUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
@@ -291,8 +402,21 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
               >
                 <Share2 className="w-5 h-5" />
               </button>
-              <button className="p-2 text-text-secondary hover:text-text-primary transition-colors">
-                <Bookmark className="w-5 h-5" />
+              <button
+                onClick={handleSave}
+                disabled={isSaving || isCheckingSaved}
+                className={`p-2 transition-colors ${
+                  isSaved
+                    ? 'text-primary hover:text-primary/80'
+                    : 'text-text-secondary hover:text-text-primary'
+                } disabled:opacity-50`}
+                title={isSaved ? 'Quitar de guardados' : 'Guardar noticia'}
+              >
+                {isSaving ? (
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+                )}
               </button>
             </div>
           </div>
