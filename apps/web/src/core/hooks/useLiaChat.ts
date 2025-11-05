@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import type { CourseLessonContext, LiaMessage } from '../types/lia.types';
 
@@ -8,7 +8,7 @@ export interface UseLiaChatReturn {
   messages: LiaMessage[];
   isLoading: boolean;
   error: Error | null;
-  sendMessage: (message: string, courseContext?: CourseLessonContext) => Promise<void>;
+  sendMessage: (message: string, courseContext?: CourseLessonContext, isSystemMessage?: boolean) => Promise<void>;
   clearHistory: () => void;
 }
 
@@ -24,21 +24,29 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  
+  // ✅ ANALYTICS: Mantener conversationId en referencia para persistencia
+  const conversationIdRef = useRef<string | null>(null);
 
   const sendMessage = useCallback(async (
     message: string,
-    courseContext?: CourseLessonContext
+    courseContext?: CourseLessonContext,
+    isSystemMessage: boolean = false
   ) => {
     if (!message.trim() || isLoading) return;
 
-    const userMessage: LiaMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: message.trim(),
-      timestamp: new Date()
-    };
+    // Si NO es un mensaje del sistema, agregarlo como mensaje de usuario visible
+    if (!isSystemMessage) {
+      const userMessage: LiaMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: message.trim(),
+        timestamp: new Date()
+      };
 
-    setMessages(prev => [...prev, userMessage]);
+      setMessages(prev => [...prev, userMessage]);
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -56,7 +64,10 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
             content: m.content
           })),
           userName: user?.username || user?.first_name || undefined,
-          courseContext: courseContext || undefined
+          courseContext: courseContext || undefined,
+          isSystemMessage: isSystemMessage,
+          // ✅ ANALYTICS: Enviar conversationId existente si lo hay
+          conversationId: conversationIdRef.current || undefined
         }),
       });
 
@@ -66,6 +77,12 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
       }
 
       const data = await response.json();
+      
+      // ✅ ANALYTICS: Guardar conversationId que viene del backend
+      if (data.conversationId && !conversationIdRef.current) {
+        conversationIdRef.current = data.conversationId;
+        console.log('[LIA Analytics] Nueva conversación iniciada:', data.conversationId);
+      }
       
       const assistantMessage: LiaMessage = {
         id: (Date.now() + 1).toString(),
@@ -92,7 +109,28 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
     }
   }, [isLoading, messages, user]);
 
-  const clearHistory = useCallback(() => {
+  const clearHistory = useCallback(async () => {
+    // ✅ ANALYTICS: Cerrar conversación actual antes de limpiar
+    if (conversationIdRef.current && user) {
+      try {
+        await fetch('/api/lia/end-conversation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationId: conversationIdRef.current,
+            completed: true
+          }),
+        });
+        console.log('[LIA Analytics] Conversación cerrada:', conversationIdRef.current);
+      } catch (error) {
+        console.error('[LIA Analytics] Error cerrando conversación:', error);
+      }
+      
+      conversationIdRef.current = null;
+    }
+    
     setMessages([
       {
         id: 'initial',
@@ -102,7 +140,26 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
       }
     ]);
     setError(null);
-  }, [initialMessage]);
+  }, [initialMessage, user]);
+
+  // ✅ ANALYTICS: Cerrar conversación cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      // Cleanup: cerrar conversación al desmontar (si el usuario cierra la página/pestaña)
+      if (conversationIdRef.current && user) {
+        // Usar sendBeacon para enviar datos antes de que se cierre la página
+        const data = JSON.stringify({
+          conversationId: conversationIdRef.current,
+          completed: false // Marcado como no completado ya que se cerró inesperadamente
+        });
+        
+        // sendBeacon es más confiable que fetch cuando se cierra la página
+        if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+          navigator.sendBeacon('/api/lia/end-conversation', data);
+        }
+      }
+    };
+  }, [user]);
 
   return {
     messages,
