@@ -5,6 +5,8 @@ import type { CourseLessonContext } from '../../../core/types/lia.types';
 import { checkRateLimit } from '../../../core/lib/rate-limit';
 import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor';
 import type { Database } from '../../../lib/supabase/types';
+import { LiaLogger, type ContextType } from '../../../lib/analytics/lia-logger';
+import { SessionService } from '../../../features/auth/services/session.service';
 
 // Contextos específicos para diferentes secciones
 const getContextPrompt = (
@@ -105,19 +107,15 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
     
-    // Verificar autenticación (hacer opcional para pruebas)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // ✅ CORRECCIÓN: Usar SessionService para obtener usuario autenticado (compatible con refresh tokens)
+    const user = await SessionService.getCurrentUser();
     
-    // Por ahora permitimos el acceso sin autenticación para pruebas
-    // Descomentar las siguientes líneas si quieres requerir autenticación:
-    /*
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
+    // Permitir acceso sin autenticación para usuarios no loggeados (sin analytics)
+    if (user) {
+      logger.info('Usuario autenticado en /api/ai-chat', { userId: user.id, username: user.username });
+    } else {
+      logger.info('Usuario no autenticado - chat sin analytics');
     }
-    */
 
     const { 
       message, 
@@ -125,7 +123,8 @@ export async function POST(request: NextRequest) {
       conversationHistory = [], 
       userName,
       courseContext,
-      isSystemMessage = false
+      isSystemMessage = false,
+      conversationId: existingConversationId
     }: {
       message: string;
       context?: string;
@@ -133,6 +132,7 @@ export async function POST(request: NextRequest) {
       userName?: string;
       courseContext?: CourseLessonContext;
       isSystemMessage?: boolean;
+      conversationId?: string;
     } = await request.json();
 
     // ✅ Validaciones básicas
@@ -178,15 +178,80 @@ export async function POST(request: NextRequest) {
     // Obtener el prompt de contexto específico con el nombre del usuario y contexto de curso
     const contextPrompt = getContextPrompt(context, displayName, courseContext);
 
+    // ✅ ANALYTICS: Inicializar logger de LIA si el usuario está autenticado
+    let liaLogger: LiaLogger | null = null;
+    let conversationId: string | null = existingConversationId || null;
+    
+    if (user) {
+      try {
+        liaLogger = new LiaLogger(user.id);
+        
+        // Si no hay conversationId existente, iniciar nueva conversación
+        if (!conversationId) {
+          logger.info('Iniciando nueva conversación LIA', { userId: user.id, context });
+          
+          // Truncar browser para que no exceda el límite de 100 caracteres
+          const userAgent = request.headers.get('user-agent') || undefined;
+          const truncatedBrowser = userAgent ? userAgent.substring(0, 100) : undefined;
+          
+          conversationId = await liaLogger.startConversation({
+            contextType: context as ContextType,
+            courseContext: courseContext,
+            deviceType: request.headers.get('sec-ch-ua-platform') || undefined,
+            browser: truncatedBrowser,
+            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
+          });
+          
+          logger.info('✅ Nueva conversación LIA creada exitosamente', { conversationId, userId: user.id, context });
+        } else {
+          logger.info('Continuando conversación LIA existente', { conversationId, userId: user.id });
+        }
+      } catch (error) {
+        logger.error('❌ Error inicializando LIA Analytics:', error);
+        // Continuar sin analytics si hay error
+        liaLogger = null;
+        conversationId = null;
+      }
+    } else {
+      logger.info('Usuario no autenticado - LIA Analytics deshabilitado');
+    }
+
     // Intentar usar OpenAI si está disponible
     const openaiApiKey = process.env.OPENAI_API_KEY;
     let response: string;
     const hasCourseContext = context === 'course' && courseContext !== undefined;
     const userId = user?.id || null; // Obtener userId para registro de uso
+    
+    // ✅ ANALYTICS: Registrar mensaje del usuario (solo si no es mensaje del sistema invisible)
+    const startTime = Date.now();
+    if (liaLogger && conversationId && !isSystemMessage) {
+      try {
+        logger.info('Registrando mensaje de usuario', { conversationId, messageLength: message.length });
+        
+        await liaLogger.logMessage(
+          'user',
+          message,
+          false // no es mensaje del sistema
+          // metadata es opcional, no se envía para mensajes de usuario
+        );
+        
+        logger.info('✅ Mensaje de usuario registrado exitosamente', { conversationId });
+      } catch (error) {
+        logger.error('❌ Error registrando mensaje de usuario:', error);
+      }
+    } else {
+      if (!liaLogger) logger.info('No hay logger - saltando registro de mensaje usuario');
+      if (!conversationId) logger.info('No hay conversationId - saltando registro de mensaje usuario');
+      if (isSystemMessage) logger.info('Es mensaje del sistema - saltando registro visible');
+    }
 
+    let responseMetadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string } = {};
+    
     if (openaiApiKey) {
       try {
-        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage);
+        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage);
+        response = result.response;
+        responseMetadata = result.metadata;
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
         response = generateAIResponse(message, context, limitedHistory, contextPrompt);
@@ -195,10 +260,43 @@ export async function POST(request: NextRequest) {
       // Usar respuestas predeterminadas si no hay API key
       response = generateAIResponse(message, context, limitedHistory, contextPrompt);
     }
+    
+    // ✅ ANALYTICS: Registrar mensaje del asistente
+    const responseTime = Date.now() - startTime;
+    if (liaLogger && conversationId) {
+      try {
+        logger.info('Registrando mensaje del asistente', { 
+          conversationId, 
+          responseTime,
+          responseLength: response.length 
+        });
+        
+        await liaLogger.logMessage(
+          'assistant',
+          response,
+          false,
+          {
+            modelUsed: responseMetadata.modelUsed,
+            tokensUsed: responseMetadata.tokensUsed,
+            costUsd: responseMetadata.costUsd,
+            responseTimeMs: responseTime
+          }
+        );
+        
+        logger.info('✅ Mensaje del asistente registrado exitosamente', { 
+          conversationId, 
+          responseTime, 
+          tokens: responseMetadata.tokensUsed,
+          cost: responseMetadata.costUsd 
+        });
+      } catch (error) {
+        logger.error('❌ Error registrando mensaje del asistente:', error);
+      }
+    }
 
-    // Guardar la conversación en la base de datos (opcional)
-    // Solo guardar si el usuario está autenticado
-    // Nota: La tabla ai_chat_history puede no estar en los tipos generados
+    // NOTA: Código legacy comentado - ahora usamos lia_conversations y lia_messages
+    // La tabla ai_chat_history ya no se usa, reemplazada por el sistema de analytics completo
+    /*
     if (user) {
       try {
         const { error: dbError } = await supabase
@@ -208,7 +306,6 @@ export async function POST(request: NextRequest) {
             context: context,
             user_message: message,
             assistant_response: response,
-            // Guardar contexto de curso si existe
             lesson_id: courseContext?.lessonTitle ? courseContext.lessonTitle.substring(0, 100) : null,
             created_at: new Date().toISOString()
           } as any);
@@ -220,8 +317,12 @@ export async function POST(request: NextRequest) {
         logger.error('Error guardando historial:', dbError);
       }
     }
+    */
 
-    return NextResponse.json({ response });
+    return NextResponse.json({ 
+      response,
+      conversationId: conversationId || undefined // Devolver conversationId para el frontend
+    });
   } catch (error) {
     logger.error('Error en API de chat:', error);
     return NextResponse.json(
@@ -239,7 +340,7 @@ async function callOpenAI(
   hasCourseContext: boolean = false,
   userId: string | null = null,
   isSystemMessage: boolean = false
-): Promise<string> {
+): Promise<{ response: string; metadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string } }> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
@@ -288,12 +389,14 @@ async function callOpenAI(
   const data = await response.json();
   
   // ✅ CORRECCIÓN 6: Registrar uso de OpenAI
+  const model = data.model || process.env.CHATBOT_MODEL || 'gpt-4o-mini';
+  const totalTokens = data.usage?.total_tokens || 0;
+  let estimatedCost = 0;
+  
   if (userId && data.usage) {
-    const model = data.model || process.env.CHATBOT_MODEL || 'gpt-4o-mini';
     const promptTokens = data.usage.prompt_tokens || 0;
     const completionTokens = data.usage.completion_tokens || 0;
-    const totalTokens = data.usage.total_tokens || 0;
-    const estimatedCost = calculateCost(promptTokens, completionTokens, model);
+    estimatedCost = calculateCost(promptTokens, completionTokens, model);
 
     logOpenAIUsage({
       userId,
@@ -313,7 +416,16 @@ async function callOpenAI(
     });
   }
   
-  return data.choices[0]?.message?.content || 'Lo siento, no pude procesar tu mensaje.';
+  const responseContent = data.choices[0]?.message?.content || 'Lo siento, no pude procesar tu mensaje.';
+  
+  return {
+    response: responseContent,
+    metadata: {
+      tokensUsed: totalTokens,
+      costUsd: estimatedCost,
+      modelUsed: model
+    }
+  };
 }
 
 // Función para generar respuestas (simular IA)

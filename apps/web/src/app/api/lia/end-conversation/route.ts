@@ -9,7 +9,7 @@ import { LiaLogger } from '../../../../lib/analytics/lia-logger';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Verificar autenticación
     const {
@@ -24,8 +24,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener datos del body
-    const { conversationId, completed = true } = await request.json();
+    // Obtener datos del body (puede venir de fetch o sendBeacon)
+    let conversationId: string;
+    let completed = true;
+    
+    try {
+      const body = await request.json();
+      conversationId = body.conversationId;
+      completed = body.completed !== undefined ? body.completed : true;
+    } catch {
+      // Si falla el parsing JSON (por sendBeacon), intentar leer como texto
+      const text = await request.text();
+      const data = JSON.parse(text);
+      conversationId = data.conversationId;
+      completed = data.completed !== undefined ? data.completed : true;
+    }
 
     if (!conversationId) {
       return NextResponse.json(
