@@ -8,13 +8,26 @@ import type { Database } from '../../../lib/supabase/types';
 import { LiaLogger, type ContextType } from '../../../lib/analytics/lia-logger';
 import { SessionService } from '../../../features/auth/services/session.service';
 
+// Interface para contexto de página
+interface PageContext {
+  pathname: string;
+  description: string;
+  detectedArea: string;
+}
+
 // Contextos específicos para diferentes secciones
 const getContextPrompt = (
   context: string, 
   userName?: string,
-  courseContext?: CourseLessonContext
+  courseContext?: CourseLessonContext,
+  pageContext?: PageContext
 ) => {
   const nameGreeting = userName ? `Te estás dirigiendo a ${userName}.` : '';
+  
+  // Información contextual de la página actual
+  const pageInfo = pageContext 
+    ? `\n\nCONTEXTO DE LA PÁGINA ACTUAL:\n- URL: ${pageContext.pathname}\n- Área: ${pageContext.detectedArea}\n- Descripción: ${pageContext.description}\n\nIMPORTANTE: El usuario está navegando en esta sección específica, por lo que debes priorizar información relevante a ${pageContext.description}.` 
+    : '';
   
   // Si hay contexto de curso/lección, crear prompt especializado
   if (courseContext && context === 'course') {
@@ -73,19 +86,39 @@ IMPORTANTE: Cuando respondas, siempre indica si la información proviene del vid
   const contexts: Record<string, string> = {
     workshops: `Eres Lia, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
     ${nameGreeting}
-    Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.`,
+    Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.${pageInfo}`,
     
     communities: `Eres Lia, un asistente especializado en comunidades y networking. 
     ${nameGreeting}
-    Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.`,
+    Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.${pageInfo}`,
     
     news: `Eres Lia, un asistente especializado en noticias y actualidades sobre inteligencia artificial, tecnología y educación. 
     ${nameGreeting}
-    Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.`,
+    Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.${pageInfo}`,
+    
+    courses: `Eres Lia, un asistente especializado en cursos y aprendizaje en línea.
+    ${nameGreeting}
+    Proporciona información sobre los cursos disponibles, cómo inscribirse, contenido de aprendizaje, progreso y certificaciones.${pageInfo}`,
+    
+    dashboard: `Eres Lia, un asistente personal para el panel de usuario.
+    ${nameGreeting}
+    Ayuda al usuario a navegar su panel, entender su progreso, acceder a sus cursos, comunidades y actividades recientes.${pageInfo}`,
+    
+    prompts: `Eres Lia, un asistente especializado en el directorio de prompts de IA.
+    ${nameGreeting}
+    Ayuda al usuario a crear, buscar y utilizar plantillas de prompts efectivos para diferentes casos de uso de inteligencia artificial.${pageInfo}`,
+    
+    business: `Eres Lia, un asistente especializado en herramientas empresariales y panel de negocios.
+    ${nameGreeting}
+    Proporciona información sobre herramientas de gestión, análisis, automatización y adopción de IA en entornos empresariales.${pageInfo}`,
+    
+    profile: `Eres Lia, un asistente personal para gestión de perfil de usuario.
+    ${nameGreeting}
+    Ayuda al usuario con la configuración de su perfil, preferencias, privacidad y personalización de la plataforma.${pageInfo}`,
     
     general: `Eres Lia, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
     ${nameGreeting}
-    Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.`
+    Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.${pageInfo}`
   };
   
   return contexts[context] || contexts.general;
@@ -123,6 +156,7 @@ export async function POST(request: NextRequest) {
       conversationHistory = [], 
       userName,
       courseContext,
+      pageContext,
       isSystemMessage = false,
       conversationId: existingConversationId
     }: {
@@ -131,6 +165,7 @@ export async function POST(request: NextRequest) {
       conversationHistory?: Array<{ role: string; content: string }>;
       userName?: string;
       courseContext?: CourseLessonContext;
+      pageContext?: PageContext;
       isSystemMessage?: boolean;
       conversationId?: string;
     } = await request.json();
@@ -175,8 +210,8 @@ export async function POST(request: NextRequest) {
 
     const displayName = userInfo?.display_name || userInfo?.username || userInfo?.first_name || userName || 'usuario';
     
-    // Obtener el prompt de contexto específico con el nombre del usuario y contexto de curso
-    const contextPrompt = getContextPrompt(context, displayName, courseContext);
+    // Obtener el prompt de contexto específico con el nombre del usuario, contexto de curso y contexto de página
+    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext);
 
     // ✅ ANALYTICS: Inicializar logger de LIA si el usuario está autenticado
     let liaLogger: LiaLogger | null = null;

@@ -12,6 +12,7 @@ import {
   User
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { usePathname } from 'next/navigation';
 
 interface Message {
   id: string;
@@ -28,6 +29,47 @@ interface AIChatAgentProps {
   context?: string; // Contexto específico para el agente (workshops, communities, news)
 }
 
+// Función para detectar automáticamente el contexto basado en la URL
+function detectContextFromURL(pathname: string): string {
+  if (pathname.includes('/communities')) return 'communities';
+  if (pathname.includes('/courses')) return 'courses';
+  if (pathname.includes('/workshops')) return 'workshops';
+  if (pathname.includes('/news')) return 'news';
+  if (pathname.includes('/dashboard')) return 'dashboard';
+  if (pathname.includes('/prompt-directory')) return 'prompts';
+  if (pathname.includes('/business-panel')) return 'business';
+  if (pathname.includes('/profile')) return 'profile';
+  return 'general';
+}
+
+// Función para obtener información contextual detallada de la página actual
+function getPageContextInfo(pathname: string): string {
+  const contextMap: Record<string, string> = {
+    '/communities': 'página de comunidades - donde los usuarios pueden unirse y participar en grupos',
+    '/courses': 'página de cursos - catálogo de cursos disponibles para aprendizaje',
+    '/workshops': 'página de talleres - eventos y sesiones de formación',
+    '/news': 'página de noticias - últimas actualizaciones y anuncios',
+    '/dashboard': 'panel principal del usuario - vista general de su actividad',
+    '/prompt-directory': 'directorio de prompts - colección de plantillas de prompts de IA',
+    '/business-panel': 'panel de negocios - herramientas para empresas',
+    '/profile': 'página de perfil de usuario',
+  };
+
+  // Buscar coincidencia exacta primero
+  if (contextMap[pathname]) {
+    return contextMap[pathname];
+  }
+
+  // Buscar coincidencia parcial
+  for (const [path, description] of Object.entries(contextMap)) {
+    if (pathname.includes(path)) {
+      return description;
+    }
+  }
+
+  return 'página principal de la plataforma';
+}
+
 export function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
@@ -35,6 +77,13 @@ export function AIChatAgent({
   promptPlaceholder = 'Escribe tu pregunta...',
   context = 'general'
 }: AIChatAgentProps) {
+  const pathname = usePathname();
+  
+  // Detectar automáticamente el contexto basado en la URL
+  const detectedContext = detectContextFromURL(pathname);
+  const activeContext = context === 'general' ? detectedContext : context;
+  const pageContextInfo = getPageContextInfo(pathname);
+  
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -57,6 +106,17 @@ export function AIChatAgent({
   useEffect(() => {
     console.log('📝 Mensajes actualizados:', messages.length, messages);
   }, [messages]);
+  
+  // Debug y log: Contexto detectado automáticamente
+  useEffect(() => {
+    console.log('🌐 Contexto detectado automáticamente:', {
+      pathname,
+      detectedContext,
+      activeContext,
+      pageContextInfo
+    });
+  }, [pathname, detectedContext, activeContext, pageContextInfo]);
+  
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -285,7 +345,9 @@ export function AIChatAgent({
     try {
       console.log('🔄 Enviando mensaje a la API...', {
         message: userMessage.content,
-        context: context,
+        context: activeContext,
+        pageInfo: pageContextInfo,
+        pathname: pathname,
         historyLength: messages.length
       });
       
@@ -296,7 +358,12 @@ export function AIChatAgent({
         },
         body: JSON.stringify({
           message: userMessage.content,
-          context: context,
+          context: activeContext,
+          pageContext: {
+            pathname: pathname,
+            description: pageContextInfo,
+            detectedArea: detectedContext
+          },
           conversationHistory: messages.map(m => ({
             role: m.role,
             content: m.content
