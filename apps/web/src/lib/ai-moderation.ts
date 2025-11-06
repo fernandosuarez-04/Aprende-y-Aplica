@@ -91,8 +91,34 @@ export async function analyzeContentWithAI(
     });
 
     // Si hay categorías flaggeadas, usar el score más alto
-    const confidence = flaggedCategories.length > 0 ? maxScore : 0;
-    const isInappropriate = result.flagged && confidence >= CONFIDENCE_THRESHOLD;
+    let confidence = flaggedCategories.length > 0 ? maxScore : 0;
+    let isInappropriate = result.flagged && confidence >= CONFIDENCE_THRESHOLD;
+
+    // 🔍 ANÁLISIS ADICIONAL CON GPT si OpenAI detectó algo pero con baja confianza
+    // Esto captura casos con leetspeak, contexto implícito, amenazas veladas, etc.
+    if (result.flagged && confidence < CONFIDENCE_THRESHOLD && confidence > 0.3) {
+      console.log('⚠️ Low confidence detection, running GPT contextual analysis...');
+      
+      try {
+        const gptAnalysis = await analyzeContentWithGPT(content, context);
+        
+        // Si GPT confirma que es inapropiado, usamos su confianza
+        if (gptAnalysis.isInappropriate) {
+          console.log('🎯 GPT confirmed inappropriate content:', {
+            gptConfidence: (gptAnalysis.confidence * 100).toFixed(1) + '%',
+            openAIConfidence: (confidence * 100).toFixed(1) + '%',
+            categories: gptAnalysis.categories,
+          });
+          
+          // Usar la confianza más alta entre OpenAI y GPT
+          confidence = Math.max(confidence, gptAnalysis.confidence);
+          isInappropriate = true;
+          flaggedCategories.push(...gptAnalysis.categories);
+        }
+      } catch (gptError) {
+        console.error('Error in GPT analysis:', gptError);
+      }
+    }
 
     // Generar razonamiento basado en categorías
     let reasoning = '';
@@ -167,16 +193,27 @@ export async function analyzeContentWithGPT(
   }
 
   try {
-    const systemPrompt = `Eres un moderador de contenido experto para una comunidad educativa de IA. 
-Tu tarea es analizar contenido y determinar si es apropiado.
+    const systemPrompt = `Eres un moderador de contenido ESTRICTO para una comunidad educativa profesional. 
+Tu tarea es analizar contenido y determinar si es apropiado. Debes ser MUY SENSIBLE a cualquier contenido inapropiado.
 
-Debes detectar:
-- Lenguaje ofensivo o insultos (directos o indirectos)
-- Acoso o bullying
-- Discurso de odio (racismo, sexismo, homofobia, etc.)
-- Spam o contenido promocional no deseado
-- Amenazas o violencia
+⚠️ DETECCIÓN CRÍTICA (ALTA PRIORIDAD):
+- Amenazas terroristas o violencia extrema (ej: explotar, bomba, atentado)
+- Referencias a drogas ilegales (aunque estén escritas con números como dr0gas, c0ca1na)
+- Amenazas de muerte o violencia (aunque estén escritas con números como mu3rt3, m4t4r)
+- Insultos con groserías (csm, ctm, hdp, etc.)
+
+TAMBIÉN DETECTAR:
+- Lenguaje ofensivo o insultos (directos, indirectos, o con leetspeak/números)
+- Acoso, bullying o intimidación
+- Discurso de odio (racismo, sexismo, homofobia)
 - Contenido sexual inapropiado
+- Spam o promoción no deseada
+
+IMPORTANTE: El leetspeak (reemplazar letras por números) NO evita la detección.
+Ejemplos: mu3rt3 = muerte, 1d10t4 = idiota, dr0gas = drogas, 3xpl0t4r = explotar
+
+Si detectas CUALQUIER palabra ofensiva escrita con números o leetspeak, considéralo INAPROPIADO.
+Si detectas amenazas terroristas o de violencia extrema, da confianza de 0.95 o más.
 
 Responde SOLO con un objeto JSON válido con este formato:
 {
