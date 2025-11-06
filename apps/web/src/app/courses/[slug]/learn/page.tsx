@@ -140,6 +140,99 @@ export default function CourseLearnPage() {
   const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
 
+  // Función para convertir HTML a texto plano con formato mejorado
+  const htmlToPlainText = (html: string, addLineBreaks: boolean = true): string => {
+    if (!html) return '';
+    
+    // Verificar que estamos en el cliente
+    if (typeof document === 'undefined') {
+      // Fallback simple para SSR: eliminar etiquetas HTML básicas
+      return html
+        .replace(/<[^>]*>/g, '') // Eliminar todas las etiquetas HTML
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .trim();
+    }
+    
+    // Crear un elemento temporal para parsear el HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Convertir listas a texto legible con saltos de línea
+    const lists = tempDiv.querySelectorAll('ul, ol');
+    lists.forEach(list => {
+      const items = list.querySelectorAll('li');
+      items.forEach((li, index) => {
+        const listType = list.tagName.toLowerCase();
+        const prefix = listType === 'ol' ? `${index + 1}. ` : '• ';
+        const text = li.textContent?.trim() || '';
+        // Agregar prefijo y salto de línea si está habilitado
+        if (addLineBreaks) {
+          li.textContent = prefix + text + '\n';
+        } else {
+          li.textContent = prefix + text;
+        }
+      });
+    });
+    
+    // Convertir <p> y <div> a saltos de línea si está habilitado
+    if (addLineBreaks) {
+      const paragraphs = tempDiv.querySelectorAll('p, div');
+      paragraphs.forEach(p => {
+        if (p.textContent && !p.textContent.trim().endsWith('\n')) {
+          p.textContent = (p.textContent || '') + '\n';
+        }
+      });
+    }
+    
+    // Obtener el texto plano
+    let text = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Limpiar espacios múltiples y saltos de línea excesivos
+    if (addLineBreaks) {
+      text = text.replace(/\n{3,}/g, '\n\n'); // Máximo 2 saltos de línea consecutivos
+    }
+    
+    return text.trim();
+  };
+
+  // Función para generar vista previa inteligente
+  const generateNotePreview = (html: string, maxLength: number = 50): string => {
+    if (!html) return '';
+    
+    // Verificar que estamos en el cliente
+    if (typeof document === 'undefined') {
+      const plainText = htmlToPlainText(html, false);
+      return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
+    }
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Verificar si el primer elemento es una lista
+    const firstChild = tempDiv.firstElementChild;
+    if (firstChild && (firstChild.tagName === 'UL' || firstChild.tagName === 'OL')) {
+      // Si es una lista, obtener solo el primer elemento
+      const firstItem = firstChild.querySelector('li');
+      if (firstItem) {
+        const listType = firstChild.tagName.toLowerCase();
+        const prefix = listType === 'ol' ? '1. ' : '• ';
+        const text = firstItem.textContent?.trim() || '';
+        const preview = prefix + text;
+        return preview.length > maxLength 
+          ? preview.substring(0, maxLength) + '...' 
+          : preview + '...';
+      }
+    }
+    
+    // Si no es una lista o no tiene elementos, usar el método normal
+    const plainText = htmlToPlainText(html, false);
+    return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
+  };
+
   // Función para formatear timestamp
   const formatTimestamp = (dateString: string): string => {
     const date = new Date(dateString);
@@ -165,15 +258,19 @@ export default function CourseLearnPage() {
       if (response.ok) {
         const notes = await response.json();
         // Mapear notas de BD al formato del frontend
-        const mappedNotes = notes.map((note: any) => ({
-          id: note.note_id,
-          title: note.note_title,
-          content: note.note_content.substring(0, 50) + (note.note_content.length > 50 ? '...' : ''),
-          timestamp: formatTimestamp(note.updated_at || note.created_at),
-          lessonId: note.lesson_id,
-          fullContent: note.note_content, // Guardar contenido completo
-          tags: note.note_tags || []
-        }));
+        const mappedNotes = notes.map((note: any) => {
+          const preview = generateNotePreview(note.note_content, 50);
+          
+          return {
+            id: note.note_id,
+            title: note.note_title,
+            content: preview,
+            timestamp: formatTimestamp(note.updated_at || note.created_at),
+            lessonId: note.lesson_id,
+            fullContent: note.note_content, // Guardar contenido completo
+            tags: note.note_tags || []
+          };
+        });
         setSavedNotes(mappedNotes);
       } else if (response.status === 401) {
         // Usuario no autenticado, dejar notas vacías
@@ -1236,8 +1333,8 @@ Antes de cada respuesta, pregúntate:
                                 </div>
                               </div>
                       </div>
-                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2">
-                        {note.content}
+                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2 whitespace-pre-line">
+                        {note.content || generateNotePreview(note.fullContent || '', 50)}
                       </p>
                       {note.tags && note.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">

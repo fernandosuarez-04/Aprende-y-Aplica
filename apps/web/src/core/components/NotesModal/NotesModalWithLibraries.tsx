@@ -210,12 +210,12 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
   };
 
   // Función auxiliar para extraer texto y links del HTML
-  const parseHTMLToText = (html: string): Array<{ type: 'text' | 'link' | 'break'; content?: string; url?: string; style?: string }> => {
+  const parseHTMLToText = (html: string): Array<{ type: 'text' | 'link' | 'break'; content?: string; url?: string; style?: string; isListItem?: boolean; listType?: 'ul' | 'ol'; listIndex?: number }> => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    const result: Array<{ type: 'text' | 'link' | 'break'; content?: string; url?: string; style?: string }> = [];
+    const result: Array<{ type: 'text' | 'link' | 'break'; content?: string; url?: string; style?: string; isListItem?: boolean; listType?: 'ul' | 'ol'; listIndex?: number }> = [];
 
-    const processNode = (node: Node, inheritedStyle?: string) => {
+    const processNode = (node: Node, inheritedStyle?: string, parentListType?: 'ul' | 'ol', listIndex?: number) => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent?.trim();
         if (text) {
@@ -248,11 +248,16 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
         } else if (tagName === 'br') {
           result.push({ type: 'break' });
         } else if (tagName === 'p' || tagName === 'div') {
-          if (result.length > 0 && result[result.length - 1].type !== 'break') {
+          // Si estamos dentro de un li, no agregar breaks adicionales
+          const isInsideLi = parentListType !== undefined;
+          
+          if (!isInsideLi && result.length > 0 && result[result.length - 1].type !== 'break') {
             result.push({ type: 'break' });
           }
-          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle));
-          if (tagName === 'p' || tagName === 'div') {
+          
+          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle, parentListType));
+          
+          if (!isInsideLi && (tagName === 'p' || tagName === 'div')) {
             result.push({ type: 'break' });
           }
         } else if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3') {
@@ -262,18 +267,97 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
             result.push({ type: 'text', content: text, style: tagName });
           }
           result.push({ type: 'break' });
-        } else if (tagName === 'ul' || tagName === 'ol') {
+        } else if (tagName === 'ul') {
           if (result.length > 0 && result[result.length - 1].type !== 'break') {
             result.push({ type: 'break' });
           }
-          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle));
+          const listItems = Array.from(element.querySelectorAll(':scope > li'));
+          listItems.forEach((li, index) => {
+            processNode(li, currentStyle, 'ul', index + 1);
+          });
+          result.push({ type: 'break' });
+        } else if (tagName === 'ol') {
+          if (result.length > 0 && result[result.length - 1].type !== 'break') {
+            result.push({ type: 'break' });
+          }
+          const listItems = Array.from(element.querySelectorAll(':scope > li'));
+          listItems.forEach((li, index) => {
+            processNode(li, currentStyle, 'ol', index + 1);
+          });
           result.push({ type: 'break' });
         } else if (tagName === 'li') {
-          result.push({ type: 'text', content: '• ', style: currentStyle });
-          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle));
+          // Determinar el prefijo según el tipo de lista padre
+          let prefix = '';
+          if (parentListType === 'ol' && listIndex !== undefined) {
+            prefix = `${listIndex}. `;
+          } else if (parentListType === 'ul') {
+            prefix = '• ';
+          }
+          
+          // Separar el contenido del li en texto directo y listas anidadas
+          const directTextNodes: Node[] = [];
+          const nestedLists: Node[] = [];
+          
+          Array.from(element.childNodes).forEach(child => {
+            if (child.nodeType === Node.ELEMENT_NODE) {
+              const childElement = child as HTMLElement;
+              const childTagName = childElement.tagName.toLowerCase();
+              if (childTagName === 'ul' || childTagName === 'ol') {
+                nestedLists.push(child);
+              } else {
+                directTextNodes.push(child);
+              }
+            } else {
+              directTextNodes.push(child);
+            }
+          });
+          
+          // Verificar si hay contenido de texto real (no solo espacios en blanco)
+          const hasRealContent = directTextNodes.some(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              return node.textContent?.trim().length > 0;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              // Verificar si el elemento tiene texto
+              const elem = node as HTMLElement;
+              return elem.textContent?.trim().length > 0;
+            }
+            return false;
+          });
+          
+          // Si hay contenido real, agregar el prefijo y procesar
+          if (hasRealContent) {
+            if (prefix) {
+              result.push({ type: 'text', content: prefix, style: currentStyle });
+            }
+            // Procesar el contenido directo
+            directTextNodes.forEach(child => processNode(child, currentStyle, parentListType));
+          } else if (directTextNodes.length === 0 && nestedLists.length === 0) {
+            // Si el li está vacío, agregar solo el prefijo
+            if (prefix) {
+              result.push({ type: 'text', content: prefix, style: currentStyle });
+            }
+          }
+          
+          // Procesar las listas anidadas
+          nestedLists.forEach(nestedList => {
+            const nestedListElement = nestedList as HTMLElement;
+            const nestedTagName = nestedListElement.tagName.toLowerCase();
+            if (nestedTagName === 'ul') {
+              const nestedItems = Array.from(nestedListElement.querySelectorAll(':scope > li'));
+              nestedItems.forEach((li, index) => {
+                processNode(li, currentStyle, 'ul', index + 1);
+              });
+            } else if (nestedTagName === 'ol') {
+              const nestedItems = Array.from(nestedListElement.querySelectorAll(':scope > li'));
+              nestedItems.forEach((li, index) => {
+                processNode(li, currentStyle, 'ol', index + 1);
+              });
+            }
+          });
+          
           result.push({ type: 'break' });
         } else {
-          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle));
+          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle, parentListType));
         }
       }
     };
@@ -335,7 +419,29 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
       
       const parsedContent = parseHTMLToText(content);
       
-      parsedContent.forEach((item) => {
+      // Procesar y combinar elementos de texto consecutivos (prefijos de lista + texto)
+      const processedContent: typeof parsedContent = [];
+      for (let i = 0; i < parsedContent.length; i++) {
+        const item = parsedContent[i];
+        const nextItem = parsedContent[i + 1];
+        
+        // Si el elemento actual es un prefijo de lista y el siguiente es texto, combinarlos
+        if (item.type === 'text' && item.content && 
+            (item.content.endsWith('. ') || item.content.endsWith('• ')) &&
+            nextItem && nextItem.type === 'text' && nextItem.content) {
+          // Combinar prefijo con texto
+          processedContent.push({
+            type: 'text',
+            content: item.content + nextItem.content,
+            style: item.style || nextItem.style
+          });
+          i++; // Saltar el siguiente elemento ya que lo combinamos
+        } else {
+          processedContent.push(item);
+        }
+      }
+      
+      processedContent.forEach((item) => {
         if (item.type === 'break') {
           y += lineHeight / 2;
           checkPageBreak(lineHeight);
@@ -416,6 +522,11 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
             // jsPDF no tiene soporte directo para underline, pero podemos simularlo
             // o simplemente usar el estilo normal
             pdf.setFont('helvetica', fontStyle);
+          }
+          
+          // Si el contenido es solo espacios en blanco, saltarlo
+          if (item.content.trim().length === 0) {
+            return;
           }
           
           const textLines = pdf.splitTextToSize(item.content, maxWidth);

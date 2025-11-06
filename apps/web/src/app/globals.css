@@ -1399,3 +1399,43 @@ input[type="range"]::-moz-range-thumb {
   background-color: rgb(51, 65, 85) !important;
   color: rgb(255, 255, 255) !important;
 }
+
+/* Estilos para el editor de notas - Listas */
+.notes-editor ul,
+.notes-editor ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style-position: outside;
+}
+
+.notes-editor ul {
+  list-style-type: disc;
+}
+
+.notes-editor ol {
+  list-style-type: decimal;
+}
+
+.notes-editor li {
+  margin: 0.25rem 0;
+  padding-left: 0.25rem;
+  display: list-item;
+}
+
+.notes-editor ul ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.notes-editor ul ul ul {
+  list-style-type: square;
+}
+
+.notes-editor ol ol {
+  list-style-type: lower-alpha;
+}
+
+.notes-editor ol ol ol {
+  list-style-type: lower-roman;
+}
