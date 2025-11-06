@@ -485,26 +485,11 @@ Antes de cada respuesta, pregúntate:
           return;
         }
         
-        const updatedNote = await response.json();
+        // Recargar notas desde el servidor para asegurar consistencia
+        await loadLessonNotes(currentLesson.lesson_id, slug);
         
-        // Actualizar la nota en la lista local
-        setSavedNotes(prev => prev.map(note => 
-          note.id === editingNote.id 
-            ? {
-                id: updatedNote.note_id || updatedNote.id,
-                title: noteData.title,
-                content: noteData.content.substring(0, 50) + (noteData.content.length > 50 ? '...' : ''),
-                fullContent: noteData.content,
-                tags: noteData.tags,
-                timestamp: formatTimestamp(updatedNote.updated_at || updatedNote.created_at || new Date().toISOString()),
-                lessonId: currentLesson.lesson_id
-              }
-            : note
-        ));
-        
-        // Actualizar estadísticas y recargar notas
-        updateNotesStats();
-        loadLessonNotes(currentLesson.lesson_id, slug);
+        // Actualizar estadísticas desde el servidor
+        await updateNotesStats();
       } else {
         // Crear nueva nota
         const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
@@ -519,24 +504,11 @@ Antes de cada respuesta, pregúntate:
           return;
         }
         
-        const newNote = await response.json();
+        // Recargar notas desde el servidor para asegurar consistencia
+        await loadLessonNotes(currentLesson.lesson_id, slug);
         
-        // Formatear la nota según la estructura esperada
-        const formattedNote = {
-          id: newNote.note_id || newNote.id,
-          title: noteData.title,
-          content: noteData.content.substring(0, 50) + (noteData.content.length > 50 ? '...' : ''),
-          fullContent: noteData.content,
-          tags: noteData.tags,
-          timestamp: formatTimestamp(newNote.created_at || new Date().toISOString()),
-          lessonId: currentLesson.lesson_id
-        };
-        
-        setSavedNotes(prev => [formattedNote, ...prev]);
-        
-        // Actualizar estadísticas y recargar notas
-        updateNotesStats();
-        loadLessonNotes(currentLesson.lesson_id, slug);
+        // Actualizar estadísticas desde el servidor
+        await updateNotesStats();
       }
       
       setIsNotesModalOpen(false);
@@ -551,31 +523,35 @@ Antes de cada respuesta, pregúntate:
     if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) return;
     
     try {
-      const response = await fetch(`/api/courses/${params.slug}/lessons/${currentLesson?.lesson_id}/notes/${noteId}`, {
+      if (!currentLesson?.lesson_id || !slug) {
+        alert('No se puede eliminar la nota: lección no seleccionada');
+        return;
+      }
+
+      const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`, {
         method: 'DELETE'
       });
       
       if (response.ok) {
-        setSavedNotes(prev => prev.filter(note => note.id !== noteId));
-        // Actualizar estadísticas
-        updateNotesStats();
+        // Recargar notas desde el servidor para asegurar consistencia
+        await loadLessonNotes(currentLesson.lesson_id, slug);
+        
+        // Actualizar estadísticas desde el servidor
+        await updateNotesStats();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        alert(`Error al eliminar la nota: ${errorData.error || 'Error desconocido'}`);
       }
     } catch (error) {
       console.error('Error al eliminar nota:', error);
+      alert('Error al eliminar la nota. Por favor, intenta de nuevo.');
     }
   };
 
-  // Función para actualizar estadísticas de notas
-  const updateNotesStats = () => {
-    const totalNotes = savedNotes.length;
-    const uniqueLessons = new Set(savedNotes.map(note => note.lessonId)).size;
-    const totalLessons = modules.reduce((acc, module) => acc + module.lessons.length, 0);
-    
-    setNotesStats({
-      totalNotes,
-      lessonsWithNotes: `${uniqueLessons}/${totalLessons}`,
-      lastUpdate: new Date().toLocaleString()
-    });
+  // Función para actualizar estadísticas de notas desde el servidor
+  const updateNotesStats = async () => {
+    if (!slug) return;
+    await loadNotesStats(slug);
   };
 
 
