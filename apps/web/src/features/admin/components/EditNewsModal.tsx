@@ -256,13 +256,13 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">Editar Noticia</h2>
+    <div className="fixed inset-0 bg-gray-900/50 dark:bg-gray-600/75 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Editar Noticia</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -271,7 +271,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Título *
               </label>
               <input
@@ -279,13 +279,13 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                 required
                 value={formData.title}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Título de la noticia"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Slug *
               </label>
               <input
@@ -293,21 +293,21 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                 required
                 value={formData.slug}
                 onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="url-amigable"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Introducción
             </label>
             <textarea
               value={formData.intro}
               onChange={(e) => setFormData(prev => ({ ...prev, intro: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Breve introducción de la noticia"
             />
           </div>
@@ -315,7 +315,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
           {/* Secciones */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-lg font-semibold text-white">Secciones del Contenido</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Secciones del Contenido</h4>
               <button
                 type="button"
                 onClick={addSection}
@@ -326,16 +326,16 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
             </div>
             
             {formData.sections.map((section, index) => (
-              <div key={index} className="mb-6 p-4 bg-gray-800 rounded-lg">
+              <div key={index} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Tipo de Sección
                     </label>
                     <select
                       value={section.type}
                       onChange={(e) => updateSection(index, 'type', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="text">Texto</option>
                       <option value="steps">Pasos</option>
@@ -349,7 +349,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                       type="button"
                       onClick={() => removeSection(index)}
                       disabled={formData.sections.length === 1}
-                      className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
+                      className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
                     >
                       Eliminar Sección
                     </button>
@@ -357,14 +357,14 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Contenido Principal
                   </label>
                   <textarea
                     value={section.content}
                     onChange={(e) => updateSection(index, 'content', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Escribe el contenido principal de esta sección..."
                   />
                 </div>
@@ -372,7 +372,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                 {(section.type === 'steps' || section.type === 'list' || section.type === 'tools' || section.type === 'examples') && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-300">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         {section.type === 'steps' ? 'Pasos' : 
                          section.type === 'list' ? 'Elementos de la Lista' :
                          section.type === 'tools' ? 'Herramientas' : 'Ejemplos'}
@@ -392,7 +392,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                           type="text"
                           value={item}
                           onChange={(e) => updateSectionItem(index, itemIndex, e.target.value)}
-                          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder={`${section.type === 'steps' ? 'Paso' : 'Elemento'} ${itemIndex + 1}...`}
                         />
                         <button
@@ -412,7 +412,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Imagen Hero
               </label>
               <ImageUpload
@@ -425,13 +425,13 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Idioma
               </label>
               <select
                 value={formData.language}
                 onChange={(e) => setFormData(prev => ({ ...prev, language: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="es">Español</option>
                 <option value="en">Inglés</option>
@@ -441,13 +441,13 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Estado
               </label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="draft">Borrador</option>
                 <option value="published">Publicada</option>
@@ -459,14 +459,14 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
 
           {/* Resumen TLDR */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Resumen TLDR
             </label>
             <textarea
               value={formData.tldrSummary}
               onChange={(e) => setFormData(prev => ({ ...prev, tldrSummary: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Resumen breve de la noticia en pocas palabras"
             />
           </div>
@@ -474,7 +474,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
           {/* Enlaces */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-lg font-semibold text-white">Enlaces</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Enlaces</h4>
               <button
                 type="button"
                 onClick={addLink}
@@ -485,28 +485,28 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
             </div>
             
             {formData.links.map((link, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-800 rounded-lg">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Título del Enlace
                   </label>
                   <input
                     type="text"
                     value={link.title}
                     onChange={(e) => updateLink(index, 'title', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ej: Más información"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     URL del Enlace
                   </label>
                   <input
                     type="url"
                     value={link.url}
                     onChange={(e) => updateLink(index, 'url', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="https://ejemplo.com"
                   />
                 </div>
@@ -515,7 +515,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                     type="button"
                     onClick={() => removeLink(index)}
                     disabled={formData.links.length === 1}
-                    className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
+                    className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
                   >
                     Eliminar
                   </button>
@@ -526,29 +526,29 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
 
           {/* Call to Action */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-3">Call to Action</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Call to Action</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Texto del Botón
                 </label>
                 <input
                   type="text"
                   value={formData.ctaText}
                   onChange={(e) => setFormData(prev => ({ ...prev, ctaText: e.target.value }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ej: Leer más"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   URL del Botón
                 </label>
                 <input
                   type="url"
                   value={formData.ctaUrl}
                   onChange={(e) => setFormData(prev => ({ ...prev, ctaUrl: e.target.value }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="https://ejemplo.com/leer-mas"
                 />
               </div>
@@ -558,7 +558,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
           {/* Métricas */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-lg font-semibold text-white">Métricas</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Métricas</h4>
               <button
                 type="button"
                 onClick={addMetric}
@@ -569,40 +569,40 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
             </div>
             
             {formData.metrics.map((metric, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 bg-gray-800 rounded-lg">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Nombre de la Métrica
                   </label>
                   <input
                     type="text"
                     value={metric.name}
                     onChange={(e) => updateMetric(index, 'name', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ej: Vistas"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Valor
                   </label>
                   <input
                     type="text"
                     value={metric.value}
                     onChange={(e) => updateMetric(index, 'value', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ej: 1250"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Unidad
                   </label>
                   <input
                     type="text"
                     value={metric.unit}
                     onChange={(e) => updateMetric(index, 'unit', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ej: %, views, etc."
                   />
                 </div>
@@ -611,7 +611,7 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
                     type="button"
                     onClick={() => removeMetric(index)}
                     disabled={formData.metrics.length === 1}
-                    className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
+                    className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
                   >
                     Eliminar
                   </button>
@@ -620,11 +620,11 @@ export function EditNewsModal({ isOpen, onClose, news, onSave }: EditNewsModalPr
             ))}
           </div>
 
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-700">
+          <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="px-6 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
             >
               Cancelar
             </button>
