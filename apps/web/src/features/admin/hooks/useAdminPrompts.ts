@@ -55,7 +55,7 @@ export function useAdminPrompts() {
 
   const createPrompt = async (promptData: Partial<AdminPrompt>) => {
     try {
-      console.log('🔄 useAdminPrompts: Creando prompt...')
+      console.log('🔄 useAdminPrompts: Creando prompt...', promptData)
       
       const response = await fetch('/api/admin/prompts', {
         method: 'POST',
@@ -66,13 +66,35 @@ export function useAdminPrompts() {
       })
       
       const data = await response.json()
+      console.log('📡 Respuesta de API crear prompt:', data)
+      
+      if (!response.ok) {
+        // Si la respuesta no es OK, hay un error
+        const errorMessage = data.message || data.error || `Error al crear prompt (${response.status})`
+        
+        // Si hay errores de validación, formatearlos
+        if (data.errors && Array.isArray(data.errors)) {
+          const validationErrors = data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', ')
+          throw new Error(`${errorMessage}: ${validationErrors}`)
+        }
+        
+        throw new Error(errorMessage)
+      }
       
       if (data.success) {
         await fetchPrompts() // Recargar la lista
         console.log('✅ Prompt creado exitosamente')
         return { success: true, prompt: data.prompt }
       } else {
-        throw new Error(data.error || 'Error al crear prompt')
+        const errorMessage = data.message || data.error || 'Error al crear prompt'
+        
+        // Si hay errores de validación, formatearlos
+        if (data.errors && Array.isArray(data.errors)) {
+          const validationErrors = data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', ')
+          throw new Error(`${errorMessage}: ${validationErrors}`)
+        }
+        
+        throw new Error(errorMessage)
       }
     } catch (err) {
       console.error('💥 Error creating prompt:', err)
@@ -82,7 +104,7 @@ export function useAdminPrompts() {
 
   const updatePrompt = async (promptId: string, promptData: Partial<AdminPrompt>) => {
     try {
-      console.log('🔄 useAdminPrompts: Actualizando prompt...')
+      console.log('🔄 useAdminPrompts: Actualizando prompt...', promptData)
       
       const response = await fetch(`/api/admin/prompts/${promptId}`, {
         method: 'PUT',
@@ -93,13 +115,35 @@ export function useAdminPrompts() {
       })
       
       const data = await response.json()
+      console.log('📡 Respuesta de API actualizar prompt:', data)
+      
+      if (!response.ok) {
+        // Si la respuesta no es OK, hay un error
+        const errorMessage = data.message || data.error || `Error al actualizar prompt (${response.status})`
+        
+        // Si hay errores de validación, formatearlos
+        if (data.errors && Array.isArray(data.errors)) {
+          const validationErrors = data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', ')
+          throw new Error(`${errorMessage}: ${validationErrors}`)
+        }
+        
+        throw new Error(errorMessage)
+      }
       
       if (data.success) {
         await fetchPrompts() // Recargar la lista
         console.log('✅ Prompt actualizado exitosamente')
         return { success: true, prompt: data.prompt }
       } else {
-        throw new Error(data.error || 'Error al actualizar prompt')
+        const errorMessage = data.message || data.error || 'Error al actualizar prompt'
+        
+        // Si hay errores de validación, formatearlos
+        if (data.errors && Array.isArray(data.errors)) {
+          const validationErrors = data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', ')
+          throw new Error(`${errorMessage}: ${validationErrors}`)
+        }
+        
+        throw new Error(errorMessage)
       }
     } catch (err) {
       console.error('💥 Error updating prompt:', err)

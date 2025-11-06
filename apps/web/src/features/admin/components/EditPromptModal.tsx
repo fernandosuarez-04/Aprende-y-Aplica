@@ -178,20 +178,20 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-gray-900 border border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <Dialog.Title as="h3" className="text-xl font-bold text-white">
+                    <Dialog.Title as="h3" className="text-xl font-bold text-gray-900 dark:text-white">
                       Editar Prompt
                     </Dialog.Title>
-                    <p className="text-gray-400 mt-1">
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
                       Modifica la información del prompt "{prompt.title}"
                     </p>
                   </div>
                   <button
                     onClick={handleClose}
                     disabled={isLoading}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <XMarkIcon className="h-5 w-5" />
                   </button>
@@ -201,33 +201,33 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
                   {/* Información Básica */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Título *
                       </label>
                       <input
                         type="text"
                         value={formData.title}
                         onChange={(e) => handleInputChange('title', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.title ? 'border-red-500' : 'border-gray-600'
+                        className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                         }`}
                         placeholder="Ej: Generador de Contenido para Redes Sociales"
                         disabled={isLoading}
                       />
                       {errors.title && (
-                        <p className="text-red-400 text-sm mt-1">{errors.title}</p>
+                        <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.title}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Categoría *
                       </label>
                       <select
                         value={formData.category_id}
                         onChange={(e) => handleInputChange('category_id', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.category_id ? 'border-red-500' : 'border-gray-600'
+                        className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.category_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                         }`}
                         disabled={isLoading}
                       >
@@ -239,53 +239,53 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
                         ))}
                       </select>
                       {errors.category_id && (
-                        <p className="text-red-400 text-sm mt-1">{errors.category_id}</p>
+                        <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.category_id}</p>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Descripción *
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       rows={3}
-                      className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.description ? 'border-red-500' : 'border-gray-600'
+                      className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="Breve descripción del prompt y su propósito"
                       disabled={isLoading}
                     />
                     {errors.description && (
-                      <p className="text-red-400 text-sm mt-1">{errors.description}</p>
+                      <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.description}</p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Contenido del Prompt *
                     </label>
                     <textarea
                       value={formData.content}
                       onChange={(e) => handleInputChange('content', e.target.value)}
                       rows={8}
-                      className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm ${
-                        errors.content ? 'border-red-500' : 'border-gray-600'
+                      className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm ${
+                        errors.content ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="Escribe aquí el contenido completo del prompt..."
                       disabled={isLoading}
                     />
                     {errors.content && (
-                      <p className="text-red-400 text-sm mt-1">{errors.content}</p>
+                      <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.content}</p>
                     )}
                   </div>
 
                   {/* Configuración Avanzada */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <TagIcon className="h-4 w-4 inline mr-1" />
                         Tags
                       </label>
@@ -293,23 +293,23 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
                         type="text"
                         value={formData.tags}
                         onChange={(e) => handleInputChange('tags', e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="marketing, redes sociales, contenido"
                         disabled={isLoading}
                       />
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                         Separa los tags con comas
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Nivel de Dificultad
                       </label>
                       <select
                         value={formData.difficulty_level}
                         onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         disabled={isLoading}
                       >
                         <option value="beginner">Principiante</option>
@@ -326,10 +326,10 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
                         type="checkbox"
                         checked={formData.is_featured}
                         onChange={(e) => handleInputChange('is_featured', e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-800"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                         disabled={isLoading}
                       />
-                      <span className="ml-2 text-sm text-gray-300">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         <StarIcon className="h-4 w-4 inline mr-1" />
                         Destacado
                       </span>
@@ -340,10 +340,10 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
                         type="checkbox"
                         checked={formData.is_verified}
                         onChange={(e) => handleInputChange('is_verified', e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-800"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                         disabled={isLoading}
                       />
-                      <span className="ml-2 text-sm text-gray-300">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         Verificado
                       </span>
                     </label>
@@ -353,45 +353,45 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
                         type="checkbox"
                         checked={formData.is_active}
                         onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-800"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                         disabled={isLoading}
                       />
-                      <span className="ml-2 text-sm text-gray-300">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         Activo
                       </span>
                     </label>
                   </div>
 
                   {/* Estadísticas del Prompt */}
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-gray-300 mb-3">Estadísticas Actuales</h4>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Estadísticas Actuales</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-400">Vistas:</span>
-                        <span className="text-white ml-2">{prompt.view_count}</span>
+                        <span className="text-gray-600 dark:text-gray-400">Vistas:</span>
+                        <span className="text-gray-900 dark:text-white ml-2">{prompt.view_count}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Likes:</span>
-                        <span className="text-white ml-2">{prompt.like_count}</span>
+                        <span className="text-gray-600 dark:text-gray-400">Likes:</span>
+                        <span className="text-gray-900 dark:text-white ml-2">{prompt.like_count}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Descargas:</span>
-                        <span className="text-white ml-2">{prompt.download_count}</span>
+                        <span className="text-gray-600 dark:text-gray-400">Descargas:</span>
+                        <span className="text-gray-900 dark:text-white ml-2">{prompt.download_count}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Calificación:</span>
-                        <span className="text-white ml-2">{prompt.rating.toFixed(1)} ({prompt.rating_count})</span>
+                        <span className="text-gray-600 dark:text-gray-400">Calificación:</span>
+                        <span className="text-gray-900 dark:text-white ml-2">{prompt.rating.toFixed(1)} ({prompt.rating_count})</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Botones */}
-                  <div className="flex justify-end space-x-4 pt-6 border-t border-gray-700">
+                  <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <button
                       type="button"
                       onClick={handleClose}
                       disabled={isLoading}
-                      className="px-6 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                      className="px-6 py-3 text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
                     >
                       Cancelar
                     </button>

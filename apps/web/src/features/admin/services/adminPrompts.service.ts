@@ -1,4 +1,6 @@
 import { createClient } from '../../../lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import type { Database } from '../../../lib/supabase/types'
 import { sanitizeSlug, generateUniqueSlugAsync } from '../../../lib/slug'
 
 export interface AdminPrompt {
@@ -62,6 +64,23 @@ export interface PromptStats {
   totalViews: number
   totalDownloads: number
   averageRating: number
+}
+
+// Función helper para crear cliente con service role key (bypass RLS)
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada')
+  }
+
+  return createServiceClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
 }
 
 export class AdminPromptsService {
@@ -278,16 +297,42 @@ export class AdminPromptsService {
         return !!data;
       });
       
-      const { data, error } = await supabase
+      // ✅ SEGURIDAD: Siempre usar el adminUserId autenticado, no confiar en promptData.author_id
+      // Verificar que el adminUserId existe en la base de datos
+      const { data: userCheck, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', adminUserId)
+        .single()
+
+      if (userCheckError || !userCheck) {
+        console.error('❌ Error: adminUserId no existe en la base de datos:', adminUserId)
+        throw new Error(`El usuario autenticado no existe en la base de datos: ${adminUserId}`)
+      }
+
+      console.log('✅ Usuario verificado:', adminUserId)
+
+      // Procesar tags correctamente
+      let processedTags: string[] = []
+      if (promptData.tags) {
+        if (typeof promptData.tags === 'string') {
+          processedTags = promptData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+        } else if (Array.isArray(promptData.tags)) {
+          processedTags = promptData.tags.filter(tag => tag && typeof tag === 'string' && tag.trim().length > 0)
+        }
+      }
+
+      // ✅ SEGURIDAD: Usar cliente admin con service role key para bypass RLS en la inserción
+      const adminSupabase = createAdminClient()
+
+      const { data, error } = await adminSupabase
         .from('ai_prompts')
         .insert({
           title: promptData.title,
           slug,
-          description: promptData.description,
+          description: promptData.description || null,
           content: promptData.content,
-          tags: promptData.tags && typeof promptData.tags === 'string' && promptData.tags.trim() 
-            ? promptData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
-            : [],
+          tags: processedTags.length > 0 ? processedTags : [],
           difficulty_level: promptData.difficulty_level || 'beginner',
           is_featured: promptData.is_featured || false,
           is_verified: promptData.is_verified || false,
@@ -296,9 +341,9 @@ export class AdminPromptsService {
           download_count: 0,
           rating: 0,
           rating_count: 0,
-          is_active: promptData.is_active || true,
-          category_id: promptData.category_id,
-          author_id: promptData.author_id || adminUserId,
+          is_active: promptData.is_active !== undefined ? promptData.is_active : true,
+          category_id: promptData.category_id || null,
+          author_id: adminUserId, // ✅ SIEMPRE usar el adminUserId autenticado
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

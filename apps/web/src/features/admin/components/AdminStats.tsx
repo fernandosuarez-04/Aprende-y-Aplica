@@ -122,14 +122,14 @@ export function AdminStats() {
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6 animate-pulse">
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="h-12 w-12 bg-gray-700 rounded-lg"></div>
+                <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
               </div>
               <div className="ml-4 flex-1">
-                <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
-                <div className="h-6 bg-gray-700 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
               </div>
             </div>
           </div>
@@ -140,10 +140,10 @@ export function AdminStats() {
 
   if (error) {
     return (
-      <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="text-center">
-          <p className="text-red-400 mb-2">Error al cargar estadísticas</p>
-          <p className="text-gray-400 text-sm">{error}</p>
+          <p className="text-red-600 dark:text-red-400 mb-2">Error al cargar estadísticas</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">{error}</p>
         </div>
       </div>
     )
@@ -156,18 +156,18 @@ export function AdminStats() {
         return (
           <div 
             key={stat.id}
-            className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6 hover:shadow-md transition-all duration-300 hover:scale-105"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-all duration-300 hover:scale-105"
           >
             <div className="flex items-center">
               <div className={`flex-shrink-0 p-3 rounded-lg ${colors.bg}`}>
                 <stat.icon className={`h-6 w-6 ${colors.icon}`} />
               </div>
               <div className="ml-4 flex-1">
-                <p className="text-sm font-medium text-gray-400">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   {stat.name}
                 </p>
                 <div className="flex items-baseline">
-                  <p className="text-2xl font-semibold text-white">
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                     {stat.value}
                   </p>
                   <p className={`ml-2 text-sm font-medium ${colors.change}`}>
