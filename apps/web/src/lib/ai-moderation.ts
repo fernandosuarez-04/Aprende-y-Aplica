@@ -77,7 +77,7 @@ export async function analyzeContentWithAI(
     const processingTimeMs = Date.now() - startTime;
 
     // Extraer categorías flaggeadas
-    const flaggedCategories: string[] = [];
+    let flaggedCategories: string[] = [];
     let maxScore = 0;
 
     Object.entries(result.categories).forEach(([category, isFlagged]) => {
@@ -94,30 +94,36 @@ export async function analyzeContentWithAI(
     let confidence = flaggedCategories.length > 0 ? maxScore : 0;
     let isInappropriate = result.flagged && confidence >= CONFIDENCE_THRESHOLD;
 
-    // 🔍 ANÁLISIS ADICIONAL CON GPT si OpenAI detectó algo pero con baja confianza
-    // Esto captura casos con leetspeak, contexto implícito, amenazas veladas, etc.
-    if (result.flagged && confidence < CONFIDENCE_THRESHOLD && confidence > 0.3) {
-      console.log('⚠️ Low confidence detection, running GPT contextual analysis...');
+    // 🔍 ANÁLISIS DUAL: SIEMPRE ejecutar GPT en paralelo para máxima precisión
+    // GPT detecta leetspeak, contexto, amenazas veladas que OpenAI puede perder
+    console.log('🎯 Running GPT contextual analysis in parallel...');
+    
+    try {
+      const gptAnalysis = await analyzeContentWithGPT(content, context);
       
-      try {
-        const gptAnalysis = await analyzeContentWithGPT(content, context);
-        
-        // Si GPT confirma que es inapropiado, usamos su confianza
-        if (gptAnalysis.isInappropriate) {
-          console.log('🎯 GPT confirmed inappropriate content:', {
-            gptConfidence: (gptAnalysis.confidence * 100).toFixed(1) + '%',
-            openAIConfidence: (confidence * 100).toFixed(1) + '%',
-            categories: gptAnalysis.categories,
-          });
-          
-          // Usar la confianza más alta entre OpenAI y GPT
-          confidence = Math.max(confidence, gptAnalysis.confidence);
-          isInappropriate = true;
-          flaggedCategories.push(...gptAnalysis.categories);
-        }
-      } catch (gptError) {
-        console.error('Error in GPT analysis:', gptError);
+      console.log('🤖 GPT Analysis Result:', {
+        gptConfidence: (gptAnalysis.confidence * 100).toFixed(1) + '%',
+        openAIConfidence: (confidence * 100).toFixed(1) + '%',
+        gptCategories: gptAnalysis.categories,
+        openAICategories: flaggedCategories,
+      });
+      
+      // Usar el análisis más estricto (mayor confianza)
+      if (gptAnalysis.confidence > confidence) {
+        console.log('✅ Using GPT result (higher confidence)');
+        confidence = gptAnalysis.confidence;
+        isInappropriate = gptAnalysis.isInappropriate;
+        flaggedCategories = [...flaggedCategories, ...gptAnalysis.categories];
+      } else if (gptAnalysis.isInappropriate && !isInappropriate) {
+        // Si GPT dice que es inapropiado pero OpenAI no, confiar en GPT
+        console.log('✅ GPT detected inappropriate content that OpenAI missed');
+        isInappropriate = true;
+        flaggedCategories.push(...gptAnalysis.categories);
       }
+      
+    } catch (gptError) {
+      console.error('❌ Error in GPT analysis:', gptError);
+      // Si GPT falla, seguir solo con OpenAI
     }
 
     // Generar razonamiento basado en categorías
@@ -193,41 +199,75 @@ export async function analyzeContentWithGPT(
   }
 
   try {
-    const systemPrompt = `Eres un moderador de contenido ESTRICTO para una comunidad educativa profesional. 
-Tu tarea es analizar contenido y determinar si es apropiado. Debes ser MUY SENSIBLE a cualquier contenido inapropiado.
+    const systemPrompt = `Eres un moderador de contenido ULTRA-ESTRICTO para una comunidad educativa profesional. 
+Tu objetivo es PROTEGER la comunidad detectando TODO contenido inapropiado, sin importar cómo esté escrito.
 
-⚠️ DETECCIÓN CRÍTICA (ALTA PRIORIDAD):
-- Amenazas terroristas o violencia extrema (ej: explotar, bomba, atentado)
-- Referencias a drogas ilegales (aunque estén escritas con números como dr0gas, c0ca1na)
-- Amenazas de muerte o violencia (aunque estén escritas con números como mu3rt3, m4t4r)
-- Insultos con groserías (csm, ctm, hdp, etc.)
+🚨 REGLAS DE DETECCIÓN CRÍTICA:
 
-TAMBIÉN DETECTAR:
-- Lenguaje ofensivo o insultos (directos, indirectos, o con leetspeak/números)
-- Acoso, bullying o intimidación
-- Discurso de odio (racismo, sexismo, homofobia)
-- Contenido sexual inapropiado
-- Spam o promoción no deseada
+1. LEETSPEAK Y EVASIÓN:
+   - mu3rt3, mue3te, mvrte = MUERTE (confianza: 0.95)
+   - 1d10t4, idi0ta, 1d1ot4 = IDIOTA (confianza: 0.80)
+   - dr0gas, dr0g4s, dr0gs = DROGAS (confianza: 0.95)
+   - 3xpl0t4r, expl0tar = EXPLOTAR (confianza: 0.98)
+   - m4t4r, m4tar, mvtar = MATAR (confianza: 0.95)
+   - Cualquier letra reemplazada por número o símbolo similar
 
-IMPORTANTE: El leetspeak (reemplazar letras por números) NO evita la detección.
-Ejemplos: mu3rt3 = muerte, 1d10t4 = idiota, dr0gas = drogas, 3xpl0t4r = explotar
+2. ABREVIATURAS Y SLANG:
+   - csm, ctm, ptm = Groserías (confianza: 0.90)
+   - hdp, hpt, hp = Insultos graves (confianza: 0.90)
+   - wtf, stfu = Lenguaje ofensivo (confianza: 0.70)
 
-Si detectas CUALQUIER palabra ofensiva escrita con números o leetspeak, considéralo INAPROPIADO.
-Si detectas amenazas terroristas o de violencia extrema, da confianza de 0.95 o más.
+3. AMENAZAS Y VIOLENCIA:
+   - Torres gemelas, bomba, atentado = Terrorismo (confianza: 0.99)
+   - Voy a + verbo violento = Amenaza (confianza: 0.95)
+   - Referencias a armas + intención = Peligro (confianza: 0.95)
 
-Responde SOLO con un objeto JSON válido con este formato:
+4. DROGAS E ILEGALIDADES:
+   - Cualquier referencia a drogas ilegales (confianza: 0.90)
+   - "Arriba las drogas" = Apología (confianza: 0.95)
+   - Referencias a consumo o venta (confianza: 0.90)
+
+5. INSULTOS Y ACOSO:
+   - Insultos directos o indirectos (confianza: 0.75-0.90)
+   - Lenguaje despectivo hacia personas (confianza: 0.80)
+   - Burlas o humillaciones (confianza: 0.70)
+
+6. DISCURSO DE ODIO:
+   - Racismo, sexismo, homofobia (confianza: 0.90)
+   - Lenguaje despectivo hacia grupos (confianza: 0.85)
+
+⚡ INSTRUCCIONES ESPECIALES:
+- Si detectas MÚLTIPLES categorías en un mensaje, suma +0.10 a la confianza
+- Si encuentras amenazas + insultos + violencia = confianza mínima 0.95
+- NUNCA consideres el contexto como excusa para lenguaje violento
+- SIEMPRE detecta leetspeak como si fuera la palabra real
+
+📊 FORMATO DE RESPUESTA:
+Responde SOLO con JSON válido:
 {
   "isInappropriate": boolean,
   "confidence": number (0.0 a 1.0),
-  "categories": string[],
-  "reasoning": string
+  "categories": ["violence", "threats", "drugs", "harassment", "hate", etc.],
+  "reasoning": "Explicación clara de por qué es inapropiado"
 }`;
 
-    const userPrompt = `Analiza este ${context?.contentType || 'contenido'}:
+    const userPrompt = `Analiza este ${context?.contentType || 'contenido'} y determina si es apropiado:
 
+━━━━━━━━━━━━━━━━━━━━━
+CONTENIDO A ANALIZAR:
 "${content}"
+━━━━━━━━━━━━━━━━━━━━━
 
-${context?.previousWarnings ? `Nota: Este usuario tiene ${context.previousWarnings} advertencias previas.` : ''}`;
+${context?.previousWarnings ? `⚠️ CONTEXTO: Este usuario tiene ${context.previousWarnings} advertencias previas por contenido inapropiado.\n` : ''}
+
+INSTRUCCIONES:
+1. Lee el contenido completo
+2. Identifica TODAS las palabras ofensivas (incluso con números)
+3. Detecta amenazas explícitas o implícitas
+4. Evalúa el tono y la intención
+5. Asigna confianza alta si encuentras múltiples problemas
+
+Recuerda: Leetspeak y números NO son excusa. "mu3rt3" = "muerte"`;
 
     const completion = await openai.chat.completions.create({
       model: OPENAI_MODEL,
@@ -235,8 +275,8 @@ ${context?.previousWarnings ? `Nota: Este usuario tiene ${context.previousWarnin
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0.3,
-      max_tokens: 300,
+      temperature: 0.1, // Muy bajo para respuestas más consistentes y estrictas
+      max_tokens: 400,
       response_format: { type: 'json_object' },
     });
 
