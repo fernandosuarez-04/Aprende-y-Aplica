@@ -86,13 +86,13 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-600">
-          <h2 className="text-xl font-semibold text-white">Agregar Nuevo Reel</h2>
+    <div className="fixed inset-0 bg-gray-900/50 dark:bg-gray-600/75 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Agregar Nuevo Reel</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -101,7 +101,7 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Título */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Título *
             </label>
             <input
@@ -109,14 +109,14 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
               required
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Título del reel"
             />
           </div>
 
           {/* Descripción */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Descripción *
             </label>
             <textarea
@@ -124,7 +124,7 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
               rows={3}
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Descripción del reel"
             />
           </div>
@@ -143,11 +143,11 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
 
           {/* Duración */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Duración (mm:ss) *
             </label>
             <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 required
@@ -158,7 +158,7 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
                     handleInputChange('duration_seconds', duration)
                   }
                 }}
-                className="w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="2:30"
               />
             </div>
@@ -167,16 +167,16 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
           {/* Categoría y Idioma */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Categoría *
               </label>
               <div className="relative">
-                <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
                 <select
                   required
                   value={formData.category}
                   onChange={(e) => handleInputChange('category', e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccionar categoría</option>
                   {categories.map(category => (
@@ -187,16 +187,16 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Idioma *
               </label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
                 <select
                   required
                   value={formData.language}
                   onChange={(e) => handleInputChange('language', e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {languages.map(lang => (
                     <option key={lang.code} value={lang.code}>{lang.name}</option>
@@ -214,9 +214,9 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
                   type="checkbox"
                   checked={formData.is_featured}
                   onChange={(e) => handleInputChange('is_featured', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-gray-300">Destacado</span>
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Destacado</span>
               </label>
 
               <label className="flex items-center">
@@ -224,19 +224,19 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-gray-300">Activo</span>
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Activo</span>
               </label>
             </div>
           </div>
 
           {/* Botones */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-600">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
             >
               Cancelar
             </button>

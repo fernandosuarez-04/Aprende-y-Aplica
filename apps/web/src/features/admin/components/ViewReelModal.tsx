@@ -26,13 +26,13 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-600">
-          <h2 className="text-xl font-semibold text-white">Detalles del Reel</h2>
+    <div className="fixed inset-0 bg-gray-900/50 dark:bg-gray-600/75 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Detalles del Reel</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -40,7 +40,7 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
 
         <div className="p-6 space-y-6">
           {/* Video Preview */}
-          <div className="bg-gray-700 rounded-lg p-4">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <img
@@ -53,10 +53,10 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-white mb-2">{reel.title}</h3>
-                <p className="text-gray-400 mb-4">{reel.description}</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{reel.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">{reel.description}</p>
                 
-                <div className="flex items-center space-x-4 text-sm text-gray-300">
+                <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 mr-1" />
                     {formatDuration(reel.duration_seconds)}
@@ -76,52 +76,52 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
 
           {/* Estadísticas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-700 rounded-lg p-4 text-center">
-              <Eye className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{reel.view_count.toLocaleString()}</p>
-              <p className="text-sm text-gray-400">Vistas</p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+              <Eye className="w-6 h-6 text-blue-600 dark:text-blue-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{reel.view_count.toLocaleString()}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Vistas</p>
             </div>
             
-            <div className="bg-gray-700 rounded-lg p-4 text-center">
-              <Heart className="w-6 h-6 text-red-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{reel.like_count.toLocaleString()}</p>
-              <p className="text-sm text-gray-400">Likes</p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+              <Heart className="w-6 h-6 text-red-600 dark:text-red-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{reel.like_count.toLocaleString()}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Likes</p>
             </div>
             
-            <div className="bg-gray-700 rounded-lg p-4 text-center">
-              <Share2 className="w-6 h-6 text-green-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{reel.share_count.toLocaleString()}</p>
-              <p className="text-sm text-gray-400">Compartidos</p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+              <Share2 className="w-6 h-6 text-green-600 dark:text-green-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{reel.share_count.toLocaleString()}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Compartidos</p>
             </div>
             
-            <div className="bg-gray-700 rounded-lg p-4 text-center">
-              <MessageCircle className="w-6 h-6 text-purple-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{reel.comment_count.toLocaleString()}</p>
-              <p className="text-sm text-gray-400">Comentarios</p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+              <MessageCircle className="w-6 h-6 text-purple-600 dark:text-purple-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{reel.comment_count.toLocaleString()}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Comentarios</p>
             </div>
           </div>
 
           {/* Estado y Configuración */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h4 className="text-lg font-semibold text-white mb-4">Estado</h4>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estado</h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Estado:</span>
+                  <span className="text-gray-700 dark:text-gray-300">Estado:</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     reel.is_active 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' 
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
                   }`}>
                     {reel.is_active ? 'Activo' : 'Inactivo'}
                   </span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Destacado:</span>
+                  <span className="text-gray-700 dark:text-gray-300">Destacado:</span>
                   <div className="flex items-center">
-                    <Star className={`w-4 h-4 mr-1 ${reel.is_featured ? 'text-yellow-500' : 'text-gray-400'}`} />
-                    <span className="text-gray-300">
+                    <Star className={`w-4 h-4 mr-1 ${reel.is_featured ? 'text-yellow-600 dark:text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`} />
+                    <span className="text-gray-700 dark:text-gray-300">
                       {reel.is_featured ? 'Sí' : 'No'}
                     </span>
                   </div>
@@ -129,23 +129,23 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
               </div>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h4 className="text-lg font-semibold text-white mb-4">Información</h4>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información</h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Creado:</span>
-                  <span className="text-gray-300">{formatDate(reel.created_at)}</span>
+                  <span className="text-gray-700 dark:text-gray-300">Creado:</span>
+                  <span className="text-gray-700 dark:text-gray-300">{formatDate(reel.created_at)}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Actualizado:</span>
-                  <span className="text-gray-300">{formatDate(reel.updated_at)}</span>
+                  <span className="text-gray-700 dark:text-gray-300">Actualizado:</span>
+                  <span className="text-gray-700 dark:text-gray-300">{formatDate(reel.updated_at)}</span>
                 </div>
                 
                 {reel.published_at && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Publicado:</span>
-                    <span className="text-gray-300">{formatDate(reel.published_at)}</span>
+                    <span className="text-gray-700 dark:text-gray-300">Publicado:</span>
+                    <span className="text-gray-700 dark:text-gray-300">{formatDate(reel.published_at)}</span>
                   </div>
                 )}
               </div>
@@ -153,11 +153,11 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
           </div>
 
           {/* URLs */}
-          <div className="bg-gray-700 rounded-lg p-4">
-            <h4 className="text-lg font-semibold text-white mb-4">Enlaces</h4>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Enlaces</h4>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   URL del Video:
                 </label>
                 <div className="flex items-center space-x-2">
@@ -165,13 +165,13 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
                     type="text"
                     value={reel.video_url}
                     readOnly
-                    className="flex-1 px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-900 dark:text-white text-sm"
                   />
                   <a
                     href={reel.video_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
@@ -179,7 +179,7 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   URL del Thumbnail:
                 </label>
                 <div className="flex items-center space-x-2">
@@ -187,13 +187,13 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
                     type="text"
                     value={reel.thumbnail_url}
                     readOnly
-                    className="flex-1 px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-900 dark:text-white text-sm"
                   />
                   <a
                     href={reel.thumbnail_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
@@ -203,10 +203,10 @@ export function ViewReelModal({ reel, onClose }: ViewReelModalProps) {
           </div>
 
           {/* Botón de cerrar */}
-          <div className="flex justify-end pt-4 border-t border-gray-600">
+          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-600">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
             >
               Cerrar
             </button>
