@@ -49,19 +49,26 @@ interface NotificationProviderProps {
 
 /**
  * Provider de notificaciones global
- * 
+ *
+ * ✅ OPTIMIZACIÓN: Polling reducido de 30s a 60s
+ * ✅ OPTIMIZACIÓN: Deduping aumentado de 2s a 5s
+ * ✅ OPTIMIZACIÓN: Solo revalidar en focus si dropdown está abierto
+ *
  * Proporciona acceso a notificaciones en toda la aplicación
  * Usa SWR para cache y revalidación automática
  */
-export function NotificationProvider({ 
-  children, 
-  pollingInterval = 30000 
+export function NotificationProvider({
+  children,
+  pollingInterval = 60000  // ✅ OPTIMIZACIÓN: De 30s a 60s (50% menos requests)
 }: NotificationProviderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
+  // ✅ OPTIMIZACIÓN: Solo revalidar en focus si dropdown está abierto
+  const shouldRevalidateOnFocus = isDropdownOpen
+
   // Obtener notificaciones no leídas
-  const { 
-    data: notificationsData, 
+  const {
+    data: notificationsData,
     error: notificationsError,
     mutate: mutateNotifications,
     isLoading: isLoadingNotifications
@@ -69,24 +76,26 @@ export function NotificationProvider({
     '/api/notifications?status=unread&limit=10&orderBy=priority',
     {
       refreshInterval: pollingInterval,
-      revalidateOnFocus: true,
+      revalidateOnFocus: shouldRevalidateOnFocus,  // ✅ Condicional
       revalidateOnReconnect: true,
-      dedupingInterval: 2000,
+      dedupingInterval: 5000,  // ✅ De 2s a 5s para evitar requests duplicados
+      revalidateIfStale: false,  // ✅ No revalidar si data es reciente
     }
   )
 
   // Obtener conteo de no leídas
-  const { 
-    data: countData, 
+  const {
+    data: countData,
     error: countError,
     mutate: mutateCount
   } = useSWR<{ success: boolean; data: { total: number; critical: number; high: number } }>(
     '/api/notifications/unread-count',
     {
       refreshInterval: pollingInterval,
-      revalidateOnFocus: true,
+      revalidateOnFocus: shouldRevalidateOnFocus,  // ✅ Condicional
       revalidateOnReconnect: true,
-      dedupingInterval: 2000,
+      dedupingInterval: 5000,  // ✅ De 2s a 5s
+      revalidateIfStale: false,  // ✅ No revalidar si data es reciente
     }
   )
 

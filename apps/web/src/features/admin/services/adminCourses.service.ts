@@ -29,7 +29,10 @@ export class AdminCoursesService {
 
     try {
       console.log('🔄 Cargando cursos desde la tabla courses...')
-      
+
+      // ✅ OPTIMIZACIÓN: Usar JOIN para obtener instructor en la misma query
+      // ANTES: 1 + N queries (100 cursos = 101 queries)
+      // DESPUÉS: 1 query total (99% menos queries)
       const { data, error } = await supabase
         .from('courses')
         .select(`
@@ -49,7 +52,13 @@ export class AdminCoursesService {
           average_rating,
           student_count,
           review_count,
-          learning_objectives
+          learning_objectives,
+          instructor:users!instructor_id (
+            id,
+            first_name,
+            last_name,
+            display_name
+          )
         `)
         .order('title', { ascending: true })
 
@@ -58,37 +67,42 @@ export class AdminCoursesService {
         return []
       }
 
-      console.log('✅ Cursos cargados:', data?.length || 0)
+      console.log('✅ Cursos cargados con instructores (1 query):', data?.length || 0)
 
-      // Obtener información de instructores
-      const coursesWithInstructors = await Promise.all(
-        (data || []).map(async (course) => {
-          let instructorName = 'Instructor no encontrado'
-          
-          if (course.instructor_id) {
-            const { data: instructor } = await supabase
-              .from('users')
-              .select('first_name, last_name, display_name')
-              .eq('id', course.instructor_id)
-              .single()
-            
-            if (instructor) {
-              instructorName = instructor.display_name || 
-                `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
-                'Instructor'
-            }
-          }
+      // Mapear datos con instructor ya incluido
+      const courses = (data || []).map((course: any) => {
+        const instructor = course.instructor
+        const instructorName = instructor
+          ? (instructor.display_name ||
+            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+            'Instructor')
+          : 'Instructor no encontrado'
 
-          return {
-            ...course,
-            instructor_name: instructorName,
-            duration_hours: Math.round(course.duration_total_minutes / 60 * 10) / 10 // Redondear a 1 decimal
-          }
-        })
-      )
+        return {
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          slug: course.slug,
+          category: course.category,
+          level: course.level,
+          instructor_id: course.instructor_id,
+          duration_total_minutes: course.duration_total_minutes,
+          thumbnail_url: course.thumbnail_url,
+          is_active: course.is_active,
+          created_at: course.created_at,
+          updated_at: course.updated_at,
+          price: course.price,
+          average_rating: course.average_rating,
+          student_count: course.student_count,
+          review_count: course.review_count,
+          learning_objectives: course.learning_objectives,
+          instructor_name: instructorName,
+          duration_hours: Math.round(course.duration_total_minutes / 60 * 10) / 10,
+        }
+      })
 
-      console.log('✅ Cursos con instructores procesados:', coursesWithInstructors.length)
-      return coursesWithInstructors
+      console.log('✅ Cursos procesados:', courses.length)
+      return courses
     } catch (error) {
       console.error('💥 Error in AdminCoursesService.getAllCourses:', error)
       return []
@@ -100,7 +114,10 @@ export class AdminCoursesService {
 
     try {
       console.log('🔄 Cargando cursos activos...')
-      
+
+      // ✅ OPTIMIZACIÓN: Usar JOIN para obtener instructor en la misma query
+      // ANTES: 1 + N queries (100 cursos = 101 queries)
+      // DESPUÉS: 1 query total (99% menos queries)
       const { data, error } = await supabase
         .from('courses')
         .select(`
@@ -120,7 +137,13 @@ export class AdminCoursesService {
           average_rating,
           student_count,
           review_count,
-          learning_objectives
+          learning_objectives,
+          instructor:users!instructor_id (
+            id,
+            first_name,
+            last_name,
+            display_name
+          )
         `)
         .eq('is_active', true)
         .order('title', { ascending: true })
@@ -130,37 +153,42 @@ export class AdminCoursesService {
         return []
       }
 
-      console.log('✅ Cursos activos cargados:', data?.length || 0)
+      console.log('✅ Cursos activos cargados con instructores (1 query):', data?.length || 0)
 
-      // Obtener información de instructores
-      const coursesWithInstructors = await Promise.all(
-        (data || []).map(async (course) => {
-          let instructorName = 'Instructor no encontrado'
-          
-          if (course.instructor_id) {
-            const { data: instructor } = await supabase
-              .from('users')
-              .select('first_name, last_name, display_name')
-              .eq('id', course.instructor_id)
-              .single()
-            
-            if (instructor) {
-              instructorName = instructor.display_name || 
-                `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
-                'Instructor'
-            }
-          }
+      // Mapear datos con instructor ya incluido
+      const courses = (data || []).map((course: any) => {
+        const instructor = course.instructor
+        const instructorName = instructor
+          ? (instructor.display_name ||
+            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+            'Instructor')
+          : 'Instructor no encontrado'
 
-          return {
-            ...course,
-            instructor_name: instructorName,
-            duration_hours: Math.round(course.duration_total_minutes / 60 * 10) / 10
-          }
-        })
-      )
+        return {
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          slug: course.slug,
+          category: course.category,
+          level: course.level,
+          instructor_id: course.instructor_id,
+          duration_total_minutes: course.duration_total_minutes,
+          thumbnail_url: course.thumbnail_url,
+          is_active: course.is_active,
+          created_at: course.created_at,
+          updated_at: course.updated_at,
+          price: course.price,
+          average_rating: course.average_rating,
+          student_count: course.student_count,
+          review_count: course.review_count,
+          learning_objectives: course.learning_objectives,
+          instructor_name: instructorName,
+          duration_hours: Math.round(course.duration_total_minutes / 60 * 10) / 10,
+        }
+      })
 
-      console.log('✅ Cursos activos con instructores procesados:', coursesWithInstructors.length)
-      return coursesWithInstructors
+      console.log('✅ Cursos activos procesados:', courses.length)
+      return courses
     } catch (error) {
       console.error('💥 Error in AdminCoursesService.getActiveCourses:', error)
       return []

@@ -30,7 +30,10 @@ export class PurchasedCoursesService {
   static async getUserPurchasedCourses(userId: string): Promise<PurchasedCourse[]> {
     try {
       const supabase = await createClient();
-      
+
+      // ✅ OPTIMIZACIÓN: Nested JOIN para incluir instructor en la misma query
+      // ANTES: 2 consultas (compras+cursos, instructores batch)
+      // DESPUÉS: 1 query total con nested JOIN
       const { data, error } = await supabase
         .from('course_purchases')
         .select(`
@@ -49,7 +52,13 @@ export class PurchasedCoursesService {
             category,
             duration_total_minutes,
             level,
-            instructor_id
+            instructor_id,
+            instructor:users!instructor_id (
+              id,
+              first_name,
+              last_name,
+              username
+            )
           ),
           user_course_enrollments (
             enrollment_status,
@@ -67,30 +76,16 @@ export class PurchasedCoursesService {
         throw error;
       }
 
-      // Obtener información de los instructores de forma separada
-      const instructorIds = [...new Set((data || []).map((p: any) => p.courses?.instructor_id).filter(Boolean))];
-      const instructorMap = new Map();
-      
-      if (instructorIds.length > 0) {
-        const { data: instructors } = await supabase
-          .from('users')
-          .select('id, first_name, last_name, username')
-          .in('id', instructorIds);
-        
-        if (instructors) {
-          instructors.forEach(instructor => {
-            instructorMap.set(instructor.id, {
-              name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || instructor.username || 'Instructor',
-            });
-          });
-        }
-      }
-
       // Transformar los datos al formato esperado
       const purchasedCourses: PurchasedCourse[] = (data || []).map((purchase: any) => {
         const course = purchase.courses;
         const enrollment = purchase.user_course_enrollments?.[0] || {};
-        const instructor = instructorMap.get(course.instructor_id) || { name: 'Instructor' };
+
+        // ✅ Instructor info ya viene del nested JOIN
+        const instructor = course.instructor;
+        const instructorName = instructor
+          ? `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || instructor.username || 'Instructor'
+          : 'Instructor';
 
         return {
           purchase_id: purchase.purchase_id,
@@ -100,7 +95,7 @@ export class PurchasedCoursesService {
           course_thumbnail: course.thumbnail_url || '',
           course_slug: course.slug,
           course_category: course.category,
-          instructor_name: instructor.name,
+          instructor_name: instructorName,
           access_status: purchase.access_status,
           purchased_at: purchase.purchased_at,
           access_granted_at: purchase.access_granted_at,

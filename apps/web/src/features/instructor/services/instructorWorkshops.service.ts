@@ -226,11 +226,15 @@ export class InstructorWorkshopsService {
 
   /**
    * Obtiene un taller por id (sin restricciones de instructor, para vista previa)
+   * ✅ OPTIMIZACIÓN: Eliminar N+1 query usando JOIN
+   * ANTES: 2 queries (taller + instructor separados)
+   * DESPUÉS: 1 query con JOIN (50% menos queries)
    */
   static async getWorkshopById(workshopId: string): Promise<(InstructorWorkshop & { instructor_name?: string }) | null> {
     const supabase = await createClient()
 
     try {
+      // ✅ OPTIMIZACIÓN: JOIN de instructor en la misma query
       const { data, error } = await supabase
         .from('courses')
         .select(`
@@ -254,7 +258,14 @@ export class InstructorWorkshopsService {
           approved_at,
           rejection_reason,
           created_at,
-          updated_at
+          updated_at,
+          instructor:users!instructor_id (
+            id,
+            display_name,
+            first_name,
+            last_name,
+            username
+          )
         `)
         .eq('id', workshopId)
         .single()
@@ -264,22 +275,14 @@ export class InstructorWorkshopsService {
         throw error
       }
 
-      // Obtener información del instructor
-      let instructorName: string | undefined = undefined
-      if (data?.instructor_id) {
-        const { data: instructor } = await supabase
-          .from('users')
-          .select('display_name, first_name, last_name, username')
-          .eq('id', data.instructor_id)
-          .single()
-        
-        if (instructor) {
-          instructorName = instructor.display_name || 
-            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
-            instructor.username ||
-            'Instructor'
-        }
-      }
+      // Extraer nombre de instructor del JOIN
+      const instructor = (data as any).instructor
+      const instructorName = instructor
+        ? (instructor.display_name ||
+          `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+          instructor.username ||
+          'Instructor')
+        : undefined
 
       return {
         ...(data as InstructorWorkshop),
