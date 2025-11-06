@@ -72,7 +72,7 @@ export default function AuthPage() {
             transition={{ delay: 0.2, duration: 0.7, ease: 'easeOut' }}
           >
             <motion.div
-              className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg"
+              className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg bg-gray-100/50 dark:bg-transparent"
               whileHover={{ scale: 1.1, rotate: 5 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >

@@ -56,36 +56,36 @@ export function DeletePromptModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-gray-900 border border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
                   <ExclamationTriangleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
 
-                <Dialog.Title as="h3" className="text-lg font-semibold text-white text-center mb-2">
+                <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2">
                   Eliminar Prompt
                 </Dialog.Title>
 
                 <div className="text-center mb-6">
-                  <p className="text-gray-400 mb-4">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
                     ¿Estás seguro de que quieres eliminar este prompt?
                   </p>
                   
-                  <div className="bg-gray-800 rounded-lg p-4 text-left">
-                    <h4 className="font-medium text-white mb-2">{prompt.title}</h4>
-                    <p className="text-sm text-gray-400 mb-3">{prompt.description}</p>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left">
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">{prompt.title}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{prompt.description}</p>
                     
-                    <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-500">
                       <span>Categoría: {prompt.category?.name || 'Sin categoría'}</span>
                       <span>Dificultad: {prompt.difficulty_level}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between text-sm text-gray-500 mt-2">
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-500 mt-2">
                       <span>Vistas: {prompt.view_count}</span>
                       <span>Likes: {prompt.like_count}</span>
                     </div>
                   </div>
 
-                  <p className="text-red-400 text-sm mt-4">
+                  <p className="text-red-600 dark:text-red-400 text-sm mt-4">
                     ⚠️ Esta acción no se puede deshacer. Se eliminarán también todas las calificaciones y favoritos asociados.
                   </p>
                 </div>
@@ -95,7 +95,7 @@ export function DeletePromptModal({
                     type="button"
                     onClick={onClose}
                     disabled={isDeleting}
-                    className="px-6 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                    className="px-6 py-3 text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
                   >
                     Cancelar
                   </button>

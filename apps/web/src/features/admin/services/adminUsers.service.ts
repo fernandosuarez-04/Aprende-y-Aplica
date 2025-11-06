@@ -1,5 +1,24 @@
 import { createClient } from '../../../lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import type { Database } from '../../../lib/supabase/types'
 import { AuditLogService } from './auditLog.service'
+
+// Función helper para crear cliente con service role key (bypass RLS)
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada')
+  }
+
+  return createServiceClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
 
 export interface AdminUser {
   id: string
@@ -309,6 +328,7 @@ export class AdminUsersService {
 
   static async deleteUser(userId: string, adminUserId: string, requestInfo?: { ip?: string, userAgent?: string }): Promise<void> {
     const supabase = await createClient()
+    const adminSupabase = createAdminClient() // Cliente con service role key para bypass RLS
 
     try {
       // Obtener datos del usuario antes de eliminarlo para el log de auditoría
@@ -318,20 +338,113 @@ export class AdminUsersService {
         .eq('id', userId)
         .single()
 
-      // Primero eliminar sesiones del usuario
-      await supabase
+      // Registrar en el log de auditoría ANTES de eliminar el usuario
+      // Esto evita problemas con las políticas RLS que requieren que el user_id exista
+      try {
+        await AuditLogService.logAction({
+          user_id: userId,
+          admin_user_id: adminUserId,
+          action: 'DELETE',
+          table_name: 'users',
+          record_id: userId,
+          old_values: userData,
+          new_values: null,
+          ip_address: requestInfo?.ip,
+          user_agent: requestInfo?.userAgent
+        })
+      } catch (auditError) {
+        // No fallar la eliminación si el log de auditoría falla
+        console.warn('Error logging audit action (non-critical):', auditError)
+      }
+
+      // Eliminar todas las referencias del usuario antes de eliminar el usuario
+      // Usar cliente admin para bypass RLS en todas las eliminaciones
+      // Orden importante: primero las tablas dependientes, luego el usuario
+
+      // 1. Obtener IDs de posts del usuario para eliminar comentarios y reacciones relacionados
+      const { data: userPosts } = await adminSupabase
+        .from('community_posts')
+        .select('id')
+        .eq('user_id', userId)
+
+      const postIds = userPosts?.map(post => post.id) || []
+
+      // 2. Eliminar comentarios en posts del usuario
+      if (postIds.length > 0) {
+        const { error: deleteCommentsError } = await adminSupabase
+          .from('community_comments')
+          .delete()
+          .in('post_id', postIds)
+
+        if (deleteCommentsError) {
+          console.warn('Warning deleting comments:', deleteCommentsError)
+        }
+      }
+
+      // 3. Eliminar reacciones en posts del usuario
+      if (postIds.length > 0) {
+        const { error: deleteReactionsError } = await adminSupabase
+          .from('community_reactions')
+          .delete()
+          .in('post_id', postIds)
+
+        if (deleteReactionsError) {
+          console.warn('Warning deleting reactions:', deleteReactionsError)
+        }
+      }
+
+      // 4. Eliminar posts de comunidades del usuario
+      const { error: deletePostsError } = await adminSupabase
+        .from('community_posts')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deletePostsError) {
+        console.warn('Warning deleting community posts:', deletePostsError)
+      }
+
+      // 5. Eliminar miembros de comunidades del usuario
+      const { error: deleteMembersError } = await adminSupabase
+        .from('community_members')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteMembersError) {
+        console.warn('Warning deleting community members:', deleteMembersError)
+      }
+
+      // 6. Eliminar usuarios de organizaciones
+      const { error: deleteOrgUsersError } = await adminSupabase
+        .from('organization_users')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteOrgUsersError) {
+        console.warn('Warning deleting organization users:', deleteOrgUsersError)
+      }
+
+      // 7. Eliminar sesiones del usuario
+      const { error: deleteSessionsError } = await adminSupabase
         .from('user_session')
         .delete()
         .eq('user_id', userId)
 
-      // Luego eliminar favoritos del usuario
-      await supabase
+      if (deleteSessionsError) {
+        console.warn('Warning deleting user sessions:', deleteSessionsError)
+      }
+
+      // 8. Eliminar favoritos del usuario
+      const { error: deleteFavoritesError } = await adminSupabase
         .from('app_favorites')
         .delete()
         .eq('user_id', userId)
 
-      // Finalmente eliminar el usuario
-      const { error } = await supabase
+      if (deleteFavoritesError) {
+        console.warn('Warning deleting app favorites:', deleteFavoritesError)
+      }
+
+      // 9. Finalmente eliminar el usuario
+      const { error } = await adminSupabase
         .from('users')
         .delete()
         .eq('id', userId)
@@ -340,19 +453,6 @@ export class AdminUsersService {
         console.error('Error deleting user:', error)
         throw error
       }
-
-      // Registrar en el log de auditoría
-      await AuditLogService.logAction({
-        user_id: userId,
-        admin_user_id: adminUserId,
-        action: 'DELETE',
-        table_name: 'users',
-        record_id: userId,
-        old_values: userData,
-        new_values: null,
-        ip_address: requestInfo?.ip,
-        user_agent: requestInfo?.userAgent
-      })
     } catch (error) {
       console.error('Error in AdminUsersService.deleteUser:', error)
       throw error

@@ -126,7 +126,7 @@ export function OrganizationAuthLayout({
               transition={{ delay: 0.2, duration: 0.7, ease: 'easeOut' }}
             >
               <motion.div
-                className="w-24 h-24"
+                className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg bg-gray-100/50 dark:bg-transparent"
                 whileHover={{ scale: 1.1 }}
                 transition={{ type: 'spring', stiffness: 300 }}
               >

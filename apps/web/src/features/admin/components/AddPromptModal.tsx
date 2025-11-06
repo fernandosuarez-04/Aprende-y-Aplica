@@ -180,20 +180,20 @@ export function AddPromptModal({ isOpen, onClose, onSave }: AddPromptModalProps)
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-gray-900 border border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <Dialog.Title as="h3" className="text-xl font-bold text-white">
+                    <Dialog.Title as="h3" className="text-xl font-bold text-gray-900 dark:text-white">
                       Agregar Nuevo Prompt
                     </Dialog.Title>
-                    <p className="text-gray-400 mt-1">
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
                       Crea un nuevo prompt para el directorio de IA
                     </p>
                   </div>
                   <button
                     onClick={handleClose}
                     disabled={isLoading}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <XMarkIcon className="h-5 w-5" />
                   </button>
@@ -203,33 +203,33 @@ export function AddPromptModal({ isOpen, onClose, onSave }: AddPromptModalProps)
                   {/* Información Básica */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Título *
                       </label>
                       <input
                         type="text"
                         value={formData.title}
                         onChange={(e) => handleInputChange('title', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.title ? 'border-red-500' : 'border-gray-600'
+                        className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                         }`}
                         placeholder="Ej: Generador de Contenido para Redes Sociales"
                         disabled={isLoading}
                       />
                       {errors.title && (
-                        <p className="text-red-400 text-sm mt-1">{errors.title}</p>
+                        <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.title}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Categoría *
                       </label>
                       <select
                         value={formData.category_id}
                         onChange={(e) => handleInputChange('category_id', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.category_id ? 'border-red-500' : 'border-gray-600'
+                        className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.category_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                         }`}
                         disabled={isLoading}
                       >
@@ -241,53 +241,53 @@ export function AddPromptModal({ isOpen, onClose, onSave }: AddPromptModalProps)
                         ))}
                       </select>
                       {errors.category_id && (
-                        <p className="text-red-400 text-sm mt-1">{errors.category_id}</p>
+                        <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.category_id}</p>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Descripción *
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       rows={3}
-                      className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.description ? 'border-red-500' : 'border-gray-600'
+                      className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="Breve descripción del prompt y su propósito"
                       disabled={isLoading}
                     />
                     {errors.description && (
-                      <p className="text-red-400 text-sm mt-1">{errors.description}</p>
+                      <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.description}</p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Contenido del Prompt *
                     </label>
                     <textarea
                       value={formData.content}
                       onChange={(e) => handleInputChange('content', e.target.value)}
                       rows={8}
-                      className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm ${
-                        errors.content ? 'border-red-500' : 'border-gray-600'
+                      className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm ${
+                        errors.content ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
                       placeholder="Escribe aquí el contenido completo del prompt..."
                       disabled={isLoading}
                     />
                     {errors.content && (
-                      <p className="text-red-400 text-sm mt-1">{errors.content}</p>
+                      <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.content}</p>
                     )}
                   </div>
 
                   {/* Configuración Avanzada */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <TagIcon className="h-4 w-4 inline mr-1" />
                         Tags
                       </label>
@@ -295,23 +295,23 @@ export function AddPromptModal({ isOpen, onClose, onSave }: AddPromptModalProps)
                         type="text"
                         value={formData.tags}
                         onChange={(e) => handleInputChange('tags', e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="marketing, redes sociales, contenido"
                         disabled={isLoading}
                       />
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                         Separa los tags con comas
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Nivel de Dificultad
                       </label>
                       <select
                         value={formData.difficulty_level}
                         onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         disabled={isLoading}
                       >
                         <option value="beginner">Principiante</option>
@@ -328,10 +328,10 @@ export function AddPromptModal({ isOpen, onClose, onSave }: AddPromptModalProps)
                         type="checkbox"
                         checked={formData.is_featured}
                         onChange={(e) => handleInputChange('is_featured', e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-800"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                         disabled={isLoading}
                       />
-                      <span className="ml-2 text-sm text-gray-300">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         <StarIcon className="h-4 w-4 inline mr-1" />
                         Destacado
                       </span>
@@ -342,10 +342,10 @@ export function AddPromptModal({ isOpen, onClose, onSave }: AddPromptModalProps)
                         type="checkbox"
                         checked={formData.is_verified}
                         onChange={(e) => handleInputChange('is_verified', e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-800"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                         disabled={isLoading}
                       />
-                      <span className="ml-2 text-sm text-gray-300">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         Verificado
                       </span>
                     </label>
@@ -355,22 +355,22 @@ export function AddPromptModal({ isOpen, onClose, onSave }: AddPromptModalProps)
                         type="checkbox"
                         checked={formData.is_active}
                         onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-800"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
                         disabled={isLoading}
                       />
-                      <span className="ml-2 text-sm text-gray-300">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         Activo
                       </span>
                     </label>
                   </div>
 
                   {/* Botones */}
-                  <div className="flex justify-end space-x-4 pt-6 border-t border-gray-700">
+                  <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <button
                       type="button"
                       onClick={handleClose}
                       disabled={isLoading}
-                      className="px-6 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                      className="px-6 py-3 text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
                     >
                       Cancelar
                     </button>

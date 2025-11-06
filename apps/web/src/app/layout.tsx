@@ -128,12 +128,12 @@ export default function RootLayout({
         {/* 🎨 Splash Screens iOS */}
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
-      <body className={`${inter.className} antialiased bg-carbon text-contrast transition-colors duration-300`}>
+      <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`}>
         <SWRProvider>
           <ThemeProvider>
             <NotificationProvider pollingInterval={30000}>
               <PrefetchManager />
-              <div className="min-h-screen bg-carbon transition-colors duration-300">
+              <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
                 <ConditionalNavbar>
                   {children}
                 </ConditionalNavbar>

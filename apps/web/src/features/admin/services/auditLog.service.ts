@@ -1,4 +1,6 @@
 import { createClient } from '../../../lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import type { Database } from '../../../lib/supabase/types'
 
 export interface AuditLogEntry {
   id?: string
@@ -14,11 +16,29 @@ export interface AuditLogEntry {
   created_at?: string
 }
 
+// Función helper para crear cliente con service role key (bypass RLS)
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada')
+  }
+
+  return createServiceClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
 export class AuditLogService {
   static async logAction(entry: Omit<AuditLogEntry, 'id' | 'created_at'>): Promise<void> {
-    const supabase = await createClient()
-
     try {
+      // Usar service role key para bypass de RLS en audit_logs
+      const supabase = createAdminClient()
+
       const { error } = await supabase
         .from('audit_logs')
         .insert({

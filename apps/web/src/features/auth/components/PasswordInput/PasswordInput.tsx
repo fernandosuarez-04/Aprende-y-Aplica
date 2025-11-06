@@ -26,11 +26,6 @@ export function PasswordInput({
         type={showPassword ? 'text' : 'password'}
         placeholder={placeholder}
         className={`auth-input pr-12 ${error ? 'border-error' : ''} ${className}`}
-        style={{
-          backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.8)',
-          color: 'var(--org-text-color, #ffffff)',
-          borderRadius: '12px'
-        } as React.CSSProperties}
         {...props}
       />
       <button

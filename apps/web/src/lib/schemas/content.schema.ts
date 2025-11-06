@@ -59,6 +59,12 @@ export const CreatePromptSchema = z.object({
     .max(100, 'El título no puede exceder 100 caracteres')
     .trim(),
   
+  description: z.string()
+    .min(10, 'La descripción debe tener al menos 10 caracteres')
+    .max(500, 'La descripción no puede exceder 500 caracteres')
+    .trim()
+    .optional(),
+  
   content: z.string()
     .min(20, 'El contenido debe tener al menos 20 caracteres')
     .max(5000, 'El contenido no puede exceder 5000 caracteres')
@@ -68,6 +74,11 @@ export const CreatePromptSchema = z.object({
     .uuid('ID de autor inválido')
     .optional(), // Opcional porque puede ser auto-asignado
   
+  category_id: z.string()
+    .uuid('ID de categoría inválido')
+    .optional(), // Opcional para permitir creación sin categoría inicialmente
+  
+  // Mantener category para compatibilidad con otros endpoints
   category: z.enum([
     'marketing',
     'ventas',
@@ -78,16 +89,43 @@ export const CreatePromptSchema = z.object({
     'otros'
   ], {
     errorMap: () => ({ message: 'Categoría inválida' })
-  }),
+  })
+    .optional(),
+  
+  difficulty_level: z.enum(['beginner', 'intermediate', 'advanced'], {
+    errorMap: () => ({ message: 'Nivel de dificultad inválido' })
+  })
+    .optional()
+    .default('beginner'),
+  
+  tags: z.union([
+    z.array(z.string()),
+    z.string() // Permite string separado por comas
+  ])
+    .optional()
+    .nullable()
+    .transform((val) => {
+      if (typeof val === 'string') {
+        return val.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+      }
+      return val
+    }),
+  
+  is_featured: z.boolean()
+    .optional()
+    .default(false),
+  
+  is_verified: z.boolean()
+    .optional()
+    .default(false),
+  
+  is_active: z.boolean()
+    .optional()
+    .default(true),
   
   ai_model: z.enum(['gpt-4', 'gpt-3.5', 'claude', 'gemini', 'other'], {
     errorMap: () => ({ message: 'Modelo de IA inválido' })
   })
-    .optional()
-    .nullable(),
-  
-  tags: z.array(z.string())
-    .max(10, 'No se pueden agregar más de 10 tags')
     .optional()
     .nullable(),
   
