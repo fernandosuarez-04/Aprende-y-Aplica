@@ -100,23 +100,27 @@ export default function CourseDetailPage() {
         const response = await fetch(`/api/courses/${slug}/modules`);
         if (response.ok) {
           const data = await response.json();
+          console.log('📦 Datos de módulos recibidos:', data);
           // La API devuelve un array directo, no un objeto con modules
           if (Array.isArray(data)) {
+            console.log(`✅ Se encontraron ${data.length} módulos`);
             setModules(data);
             if (data.length > 0) {
               setExpandedModules(new Set([data[0].module_id || data[0].id]));
             }
           } else if (data.modules && Array.isArray(data.modules)) {
+            console.log(`✅ Se encontraron ${data.modules.length} módulos en data.modules`);
             setModules(data.modules);
             if (data.modules.length > 0) {
               setExpandedModules(new Set([data.modules[0].module_id || data.modules[0].id]));
             }
           } else {
-            console.warn('Modules data format unexpected:', data);
+            console.warn('⚠️ Modules data format unexpected:', data);
             setModules([]);
           }
         } else {
-          console.error('Error response from modules API:', response.status, response.statusText);
+          const errorText = await response.text().catch(() => '');
+          console.error('❌ Error response from modules API:', response.status, response.statusText, errorText);
           setModules([]);
         }
       } catch (err) {

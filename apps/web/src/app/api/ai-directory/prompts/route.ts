@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
+import { SessionService } from '../../../../features/auth/services/session.service';
+import { PromptFavoritesService } from '../../../../features/ai-directory/services/prompt-favorites.service';
 
 // ✅ Función de sanitización para prevenir inyección PostgREST
 function sanitizeSearchInput(input: string): string {
@@ -23,10 +25,57 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const difficulty = searchParams.get('difficulty');
     const featured = searchParams.get('featured');
+    const favorites = searchParams.get('favorites');
     const sortBy = searchParams.get('sortBy') || 'created_at';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     const offset = (page - 1) * limit;
+
+    // Get favorite prompt IDs if favorites filter is enabled
+    let favoritePromptIds: string[] = [];
+    if (favorites === 'true') {
+      try {
+        const currentUser = await SessionService.getCurrentUser();
+        if (currentUser) {
+          favoritePromptIds = await PromptFavoritesService.getUserPromptFavorites(currentUser.id);
+          // If user has no favorites, return empty result
+          if (favoritePromptIds.length === 0) {
+            return NextResponse.json({
+              prompts: [],
+              pagination: {
+                page,
+                limit,
+                total: 0,
+                totalPages: 0
+              }
+            });
+          }
+        } else {
+          // If not authenticated and favorites is requested, return empty
+          return NextResponse.json({
+            prompts: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+              totalPages: 0
+            }
+          });
+        }
+      } catch (error) {
+        logger.error('Error fetching favorite prompts:', error);
+        // If error fetching favorites, return empty result
+        return NextResponse.json({
+          prompts: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0
+          }
+        });
+      }
+    }
 
     // Build query
     let query = supabase
@@ -70,6 +119,11 @@ export async function GET(request: NextRequest) {
       query = query.eq('is_featured', true);
     }
 
+    // Apply favorites filter
+    if (favorites === 'true' && favoritePromptIds.length > 0) {
+      query = query.in('prompt_id', favoritePromptIds);
+    }
+
     // Apply sorting
     query = query.order(sortBy, { ascending: sortOrder === 'asc' });
 
@@ -110,6 +164,11 @@ export async function GET(request: NextRequest) {
 
     if (featured === 'true') {
       countQuery = countQuery.eq('is_featured', true);
+    }
+
+    // Apply favorites filter to count query
+    if (favorites === 'true' && favoritePromptIds.length > 0) {
+      countQuery = countQuery.in('prompt_id', favoritePromptIds);
     }
 
     const { count, error: countError } = await countQuery;

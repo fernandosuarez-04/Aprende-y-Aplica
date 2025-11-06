@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Sparkles, Clock, Star, Eye, Download, ChevronDown, X, Plus, Wand2 } from 'lucide-react';
+import { Search, Filter, Sparkles, Clock, Star, Eye, Download, ChevronDown, X, Plus, Wand2, Heart } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { PromptCard } from '../../features/ai-directory/components/PromptCard';
 import { CategoryFilter } from '../../features/ai-directory/components/CategoryFilter';
@@ -12,6 +12,8 @@ import { LoadingSpinner } from '../../features/ai-directory/components/LoadingSp
 import { usePrompts } from '../../features/ai-directory/hooks/usePrompts';
 import { useCategories } from '../../features/ai-directory/hooks/useCategories';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../features/auth/hooks/useAuth';
+import { PromptFavoritesProvider } from '../../features/ai-directory/context/PromptFavoritesContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -38,19 +40,28 @@ const itemVariants = {
 
 export default function PromptDirectoryPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [showFeatured, setShowFeatured] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Asegurar que el componente esté montado antes de renderizar contenido dependiente del cliente
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { prompts, loading, error, pagination, refetch } = usePrompts({
     search: searchQuery,
     category: selectedCategory,
     difficulty: selectedDifficulty,
     featured: showFeatured,
+    favorites: showFavorites,
     sortBy,
     sortOrder
   });
@@ -73,17 +84,23 @@ export default function PromptDirectoryPage() {
     setShowFeatured(!showFeatured);
   };
 
+  const handleFavoritesToggle = () => {
+    setShowFavorites(!showFavorites);
+  };
+
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory(null);
     setSelectedDifficulty(null);
     setShowFeatured(false);
+    setShowFavorites(false);
   };
 
-  const hasActiveFilters = searchQuery || selectedCategory || selectedDifficulty || showFeatured;
+  const hasActiveFilters = searchQuery || selectedCategory || selectedDifficulty || showFeatured || showFavorites;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+    <PromptFavoritesProvider>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
       {/* Hero Section */}
       <motion.div
         className="relative pt-24 pb-16 overflow-hidden"
@@ -95,12 +112,13 @@ export default function PromptDirectoryPage() {
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl" />
         
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="container mx-auto px-4 relative z-10" suppressHydrationWarning>
           <motion.div
             className="text-center max-w-4xl mx-auto"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
+            suppressHydrationWarning
           >
             <motion.div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 dark:bg-purple-500/10 border border-purple-500/20 dark:border-purple-500/20 mb-6"
@@ -199,6 +217,25 @@ export default function PromptDirectoryPage() {
               <span className="text-sm">Destacados</span>
             </button>
 
+            {/* Favorites Toggle */}
+            {mounted && (
+              <button
+                onClick={handleFavoritesToggle}
+                disabled={!user}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                  !user
+                    ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-500'
+                    : showFavorites
+                    ? 'bg-red-500/20 dark:bg-red-500/20 border-red-500 dark:border-red-500 text-red-700 dark:text-red-300'
+                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                }`}
+                title={!user ? 'Inicia sesión para ver tus favoritos' : showFavorites ? 'Ocultar favoritos' : 'Mostrar favoritos'}
+              >
+                <Heart className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`} />
+                <span className="text-sm">Favoritos</span>
+              </button>
+            )}
+
             {/* Advanced Filters */}
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -262,6 +299,7 @@ export default function PromptDirectoryPage() {
                 {selectedCategory && ` • Categoría: ${categories.find(c => c.category_id === selectedCategory)?.name}`}
                 {selectedDifficulty && ` • Dificultad: ${selectedDifficulty}`}
                 {showFeatured && ' • Destacados'}
+                {showFavorites && ' • Favoritos'}
               </p>
             )}
           </div>
@@ -366,5 +404,6 @@ export default function PromptDirectoryPage() {
         )}
       </motion.div>
     </div>
+    </PromptFavoritesProvider>
   );
 }

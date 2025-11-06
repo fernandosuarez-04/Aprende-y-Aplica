@@ -15,7 +15,9 @@ import {
   Bell,
   Loader2,
   Eye,
-  ShoppingCart
+  ShoppingCart,
+  CheckCircle,
+  Play
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useAuth } from '../../features/auth/hooks/useAuth';
@@ -25,6 +27,7 @@ import { useCategories } from '../../features/courses/hooks/useCategories';
 import { UserDropdown } from '../../core/components/UserDropdown';
 import { useRouter } from 'next/navigation';
 import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
+import { formatRelativeTime } from '../../core/utils/date-utils';
 
 // 🚀 Lazy Loading - AIChatAgent pesado
 const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
@@ -56,11 +59,64 @@ export default function DashboardPage() {
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
   const { addItem } = useShoppingCartStore();
+  
+  // Estados para estadísticas y actividad reciente
+  const [stats, setStats] = useState({
+    completed: 0,
+    inProgress: 0,
+    favorites: 0,
+  });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   // Sincronizar favoritos entre hooks
   React.useEffect(() => {
     setFavorites(favorites);
   }, [favorites, setFavorites]);
+
+  // Obtener estadísticas y actividad reciente
+  React.useEffect(() => {
+    const fetchStatsAndActivity = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoadingStats(true);
+        
+        // Obtener estadísticas
+        const statsResponse = await fetch('/api/my-courses?stats_only=true');
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats({
+            completed: statsData.completed_courses || 0,
+            inProgress: statsData.in_progress_courses || 0,
+            favorites: favorites.length,
+          });
+        }
+
+        // Obtener cursos para actividad reciente
+        const coursesResponse = await fetch('/api/my-courses');
+        if (coursesResponse.ok) {
+          const coursesData = await coursesResponse.json();
+          // Ordenar por last_accessed_at o purchased_at (más reciente primero)
+          const sortedCourses = (coursesData || [])
+            .sort((a: any, b: any) => {
+              const dateA = new Date(a.last_accessed_at || a.purchased_at || 0);
+              const dateB = new Date(b.last_accessed_at || b.purchased_at || 0);
+              return dateB.getTime() - dateA.getTime();
+            })
+            .slice(0, 5); // Mostrar solo los 5 más recientes
+          
+          setRecentActivity(sortedCourses);
+        }
+      } catch (error) {
+        console.error('Error fetching stats and activity:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStatsAndActivity();
+  }, [user?.id, favorites.length]);
 
 
   const handleToggleFavorite = async (courseId: string) => {
@@ -203,7 +259,7 @@ export default function DashboardPage() {
                 {workshops.map((workshop) => (
                 <motion.div
                   key={workshop.id}
-                  className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 transition-colors shadow-lg dark:shadow-none"
+                  className="flex flex-col bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 transition-colors shadow-lg dark:shadow-none h-full"
                   whileHover={{ y: -2 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -251,83 +307,87 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Workshop Info */}
-                  <div className="p-6 bg-white dark:bg-slate-800">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      {workshop.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
-                      {workshop.instructor}
-                    </p>
-                    
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">{workshop.rating}</span>
+                  <div className="flex flex-col flex-1 p-6 bg-white dark:bg-slate-800">
+                    <div className="flex-1 flex flex-col">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 min-h-[3.5rem] line-clamp-2">
+                        {workshop.title}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 min-h-[1.5rem]">
+                        {workshop.instructor}
+                      </p>
+                      
+                      <div className="flex items-center justify-between mb-4 h-6">
+                        <div className="flex items-center space-x-1">
+                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">{workshop.rating}</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary">{workshop.price}</span>
                       </div>
-                      <span className="text-lg font-bold text-primary">{workshop.price}</span>
                     </div>
 
                     {/* Botones de acción */}
-                    {workshop.status === 'Adquirido' ? (
-                      // Si el curso está comprado: solo mostrar botón "Ir al curso"
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => {
-                          const course = courses.find(c => c.id === workshop.id);
-                          if (course?.slug) {
-                            router.push(`/courses/${course.slug}/learn`);
-                          }
-                        }}
-                      >
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Ir al curso
-                      </Button>
-                    ) : (
-                      // Si el curso NO está comprado: mostrar "Ver detalles" y "Agregar al carrito"
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => {
-                            const course = courses.find(c => c.id === workshop.id);
-                            if (course?.slug) {
-                              router.push(`/courses/${course.slug}`);
-                            }
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Ver detalles
-                        </Button>
+                    <div className="mt-auto">
+                      {workshop.status === 'Adquirido' ? (
+                        // Si el curso está comprado: solo mostrar botón "Ir al curso"
                         <Button
                           variant="primary"
                           size="sm"
-                          className="flex-1"
+                          className="w-full"
                           onClick={() => {
                             const course = courses.find(c => c.id === workshop.id);
-                            if (course) {
-                              // Extraer precio numérico del string (ej: "MX$1500" -> 1500)
-                              const priceString = workshop.price?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
-                              const price = parseFloat(priceString);
-                              
-                              addItem({
-                                id: `course-${course.id}`,
-                                itemType: 'course',
-                                itemId: course.id,
-                                title: workshop.title,
-                                price: price || 0,
-                                thumbnail: workshop.image || course.thumbnail || undefined,
-                              });
+                            if (course?.slug) {
+                              router.push(`/courses/${course.slug}/learn`);
                             }
                           }}
                         >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Agregar al carrito
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          Ir al curso
                         </Button>
-                      </div>
-                    )}
+                      ) : (
+                        // Si el curso NO está comprado: mostrar "Ver detalles" y "Agregar al carrito"
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              const course = courses.find(c => c.id === workshop.id);
+                              if (course?.slug) {
+                                router.push(`/courses/${course.slug}`);
+                              }
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver detalles
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              const course = courses.find(c => c.id === workshop.id);
+                              if (course) {
+                                // Extraer precio numérico del string (ej: "MX$1500" -> 1500)
+                                const priceString = workshop.price?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
+                                const price = parseFloat(priceString);
+                                
+                                addItem({
+                                  id: `course-${course.id}`,
+                                  itemType: 'course',
+                                  itemId: course.id,
+                                  title: workshop.title,
+                                  price: price || 0,
+                                  thumbnail: workshop.image || course.thumbnail || undefined,
+                                });
+                              }
+                            }}
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            Agregar al carrito
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
                 ))}
@@ -357,41 +417,48 @@ export default function DashboardPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Featured Workshops */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Talleres Destacados
-              </h3>
-              <Button variant="primary" className="w-full">
-                Ver talleres destacados
-              </Button>
-            </div>
-
             {/* Quick Stats */}
             <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Tu Progreso
               </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Talleres Completados</span>
-                  <span className="text-primary font-semibold">
-                    {courses.filter(course => course.status === 'Completado').length}
-                  </span>
+              {loadingStats ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Talleres Completados</span>
+                    <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">En Progreso</span>
+                    <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Favoritos</span>
+                    <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">En Progreso</span>
-                  <span className="text-primary font-semibold">
-                    {courses.filter(course => course.status === 'En Progreso').length}
-                  </span>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Talleres Completados</span>
+                    <span className="text-primary font-semibold">
+                      {stats.completed}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">En Progreso</span>
+                    <span className="text-primary font-semibold">
+                      {stats.inProgress}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Favoritos</span>
+                    <span className="text-primary font-semibold">
+                      {stats.favorites}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Favoritos</span>
-                  <span className="text-primary font-semibold">
-                    {favorites.length}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Recent Activity */}
@@ -399,24 +466,66 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Actividad Reciente
               </h3>
-              <div className="space-y-3">
-                {courses.filter(course => course.status === 'Completado').length > 0 ? (
-                  courses
-                    .filter(course => course.status === 'Completado')
-                    .slice(0, 2)
-                    .map((course) => (
-                      <div key={course.id} className="text-sm text-gray-600 dark:text-gray-300">
-                        <p>Completaste "{course.title}"</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Recientemente</p>
+              {loadingStats ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentActivity.length > 0 ? (
+                <div className="space-y-3">
+                  {recentActivity.map((activity) => {
+                    const activityDate = activity.last_accessed_at || activity.purchased_at;
+                    const date = activityDate ? new Date(activityDate) : new Date();
+                    const timeAgo = formatRelativeTime(activityDate || new Date().toISOString());
+                    
+                    return (
+                      <div 
+                        key={activity.purchase_id || activity.course_id} 
+                        className="flex items-start gap-3 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-lg transition-colors"
+                        onClick={() => {
+                          if (activity.course_slug) {
+                            router.push(`/courses/${activity.course_slug}`);
+                          }
+                        }}
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          {activity.progress_percentage >= 100 ? (
+                            <CheckCircle className="w-5 h-5 text-green-500" />
+                          ) : activity.progress_percentage > 0 ? (
+                            <Play className="w-5 h-5 text-blue-500" />
+                          ) : (
+                            <BookOpen className="w-5 h-5 text-purple-500" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-900 dark:text-white font-medium line-clamp-1">
+                            {activity.progress_percentage >= 100 
+                              ? `Completaste "${activity.course_title}"`
+                              : activity.progress_percentage > 0
+                              ? `Continuaste "${activity.course_title}"`
+                              : `Adquiriste "${activity.course_title}"`
+                            }
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {timeAgo}
+                          </p>
+                        </div>
                       </div>
-                    ))
-                ) : (
-                  <div className="text-sm text-gray-600 dark:text-gray-300">
-                    <p>No hay actividad reciente</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Comienza un curso para ver tu progreso</p>
-                  </div>
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  <p>No hay actividad reciente</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Comienza un curso para ver tu progreso
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

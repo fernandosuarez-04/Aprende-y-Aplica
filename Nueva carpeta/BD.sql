@@ -56,6 +56,36 @@ CREATE TABLE public.ai_categories (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT ai_categories_pkey PRIMARY KEY (category_id)
 );
+CREATE TABLE public.ai_moderation_config (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  config_key text NOT NULL UNIQUE,
+  config_value text NOT NULL,
+  description text,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  CONSTRAINT ai_moderation_config_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ai_moderation_logs (
+  log_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['post'::text, 'comment'::text, 'other'::text])),
+  content_id uuid,
+  content_text text NOT NULL,
+  is_flagged boolean NOT NULL DEFAULT false,
+  confidence_score numeric,
+  categories jsonb,
+  reasoning text,
+  model_used text,
+  api_response jsonb,
+  processing_time_ms integer,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'under_review'::text])),
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  review_notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT ai_moderation_logs_pkey PRIMARY KEY (log_id),
+  CONSTRAINT ai_moderation_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.ai_prompts (
   prompt_id uuid NOT NULL DEFAULT uuid_generate_v4(),
   title character varying NOT NULL,
@@ -311,7 +341,7 @@ CREATE TABLE public.course_lessons (
   lesson_title character varying NOT NULL,
   lesson_description text,
   lesson_order_index integer NOT NULL DEFAULT 1 CHECK (lesson_order_index > 0),
-  video_provider_id character varying NOT NULL,
+  video_provider_id text NOT NULL,
   video_provider character varying NOT NULL CHECK (video_provider::text = ANY (ARRAY['youtube'::character varying, 'vimeo'::character varying, 'direct'::character varying, 'custom'::character varying]::text[])),
   duration_seconds integer NOT NULL CHECK (duration_seconds > 0),
   transcript_content text,
@@ -488,6 +518,16 @@ CREATE TABLE public.dashboard_layouts (
   CONSTRAINT dashboard_layouts_pkey PRIMARY KEY (id),
   CONSTRAINT dashboard_layouts_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
+CREATE TABLE public.forbidden_words (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  word text NOT NULL UNIQUE,
+  severity text NOT NULL DEFAULT 'medium'::text CHECK (severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])),
+  category text NOT NULL DEFAULT 'general'::text CHECK (category = ANY (ARRAY['insult'::text, 'racism'::text, 'sexism'::text, 'violence'::text, 'scam'::text, 'spam'::text, 'general'::text])),
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT forbidden_words_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.lesson_activities (
   activity_id uuid NOT NULL DEFAULT gen_random_uuid(),
   activity_title character varying NOT NULL,
@@ -555,6 +595,36 @@ CREATE TABLE public.niveles (
   nombre text NOT NULL,
   CONSTRAINT niveles_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.notification_email_queue (
+  queue_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  notification_id uuid,
+  email_type character varying NOT NULL DEFAULT 'immediate'::character varying,
+  priority character varying DEFAULT 'medium'::character varying CHECK (priority::text = ANY (ARRAY['critical'::character varying, 'high'::character varying, 'medium'::character varying, 'low'::character varying]::text[])),
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'processing'::character varying, 'sent'::character varying, 'failed'::character varying]::text[])),
+  attempts integer DEFAULT 0,
+  scheduled_at timestamp with time zone DEFAULT now(),
+  sent_at timestamp with time zone,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notification_email_queue_pkey PRIMARY KEY (queue_id),
+  CONSTRAINT notification_email_queue_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT notification_email_queue_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.user_notifications(notification_id)
+);
+CREATE TABLE public.notification_push_subscriptions (
+  subscription_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  endpoint text NOT NULL,
+  keys jsonb NOT NULL,
+  user_agent text,
+  status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'expired'::character varying, 'invalid'::character varying]::text[])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  last_used_at timestamp with time zone,
+  CONSTRAINT notification_push_subscriptions_pkey PRIMARY KEY (subscription_id),
+  CONSTRAINT notification_push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.notification_settings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL,
@@ -566,6 +636,22 @@ CREATE TABLE public.notification_settings (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT notification_settings_pkey PRIMARY KEY (id),
   CONSTRAINT notification_settings_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.notification_stats (
+  stat_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  organization_id uuid,
+  notification_type character varying,
+  stat_date date NOT NULL DEFAULT CURRENT_DATE,
+  sent_count integer DEFAULT 0,
+  read_count integer DEFAULT 0,
+  action_taken_count integer DEFAULT 0,
+  avg_read_time_seconds integer,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notification_stats_pkey PRIMARY KEY (stat_id),
+  CONSTRAINT notification_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT notification_stats_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
 CREATE TABLE public.oauth_accounts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -615,8 +701,20 @@ CREATE TABLE public.organization_course_assignments (
   CONSTRAINT organization_course_assignments_pkey PRIMARY KEY (id),
   CONSTRAINT organization_course_assignments_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
   CONSTRAINT organization_course_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT organization_course_assignments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
-  CONSTRAINT organization_course_assignments_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id)
+  CONSTRAINT organization_course_assignments_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id),
+  CONSTRAINT organization_course_assignments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.organization_notification_preferences (
+  preference_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  event_type character varying NOT NULL,
+  enabled boolean DEFAULT true,
+  channels jsonb DEFAULT '["email"]'::jsonb,
+  template text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_notification_preferences_pkey PRIMARY KEY (preference_id),
+  CONSTRAINT organization_notification_preferences_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
 CREATE TABLE public.organization_users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -657,6 +755,10 @@ CREATE TABLE public.organizations (
   brand_logo_url text,
   brand_favicon_url text,
   slug character varying UNIQUE,
+  panel_styles jsonb,
+  user_dashboard_styles jsonb,
+  login_styles jsonb,
+  selected_theme character varying DEFAULT NULL::character varying,
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.password_reset_tokens (
@@ -963,6 +1065,16 @@ CREATE TABLE public.user_course_enrollments (
   CONSTRAINT user_course_enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_course_enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
 );
+CREATE TABLE public.user_favorites (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_favorites_pkey PRIMARY KEY (id),
+  CONSTRAINT user_favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_favorites_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
 CREATE TABLE public.user_group_members (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   group_id uuid NOT NULL,
@@ -1017,6 +1129,44 @@ CREATE TABLE public.user_lesson_progress (
   CONSTRAINT user_lesson_progress_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id),
   CONSTRAINT user_lesson_progress_enrollment_id_fkey FOREIGN KEY (enrollment_id) REFERENCES public.user_course_enrollments(enrollment_id)
 );
+CREATE TABLE public.user_notification_preferences (
+  preference_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  notification_type character varying NOT NULL,
+  in_app_enabled boolean DEFAULT true,
+  push_enabled boolean DEFAULT false,
+  email_enabled boolean DEFAULT true,
+  email_frequency character varying DEFAULT 'daily'::character varying CHECK (email_frequency::text = ANY (ARRAY['immediate'::character varying, 'daily'::character varying, 'weekly'::character varying, 'never'::character varying]::text[])),
+  do_not_disturb_start time without time zone,
+  do_not_disturb_end time without time zone,
+  do_not_disturb_days jsonb DEFAULT '[]'::jsonb,
+  timezone character varying DEFAULT 'UTC'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_notification_preferences_pkey PRIMARY KEY (preference_id),
+  CONSTRAINT user_notification_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_notifications (
+  notification_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  notification_type character varying NOT NULL,
+  title character varying NOT NULL,
+  message text NOT NULL,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  priority character varying DEFAULT 'medium'::character varying CHECK (priority::text = ANY (ARRAY['critical'::character varying, 'high'::character varying, 'medium'::character varying, 'low'::character varying]::text[])),
+  status character varying DEFAULT 'unread'::character varying CHECK (status::text = ANY (ARRAY['unread'::character varying, 'read'::character varying, 'archived'::character varying]::text[])),
+  channels_sent jsonb DEFAULT '[]'::jsonb,
+  channels_pending jsonb DEFAULT '[]'::jsonb,
+  read_at timestamp with time zone,
+  expires_at timestamp with time zone,
+  organization_id uuid,
+  group_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_notifications_pkey PRIMARY KEY (notification_id),
+  CONSTRAINT user_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_notifications_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
 CREATE TABLE public.user_perfil (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -1051,6 +1201,17 @@ CREATE TABLE public.user_session (
   CONSTRAINT user_session_pkey PRIMARY KEY (id),
   CONSTRAINT user_session_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.user_warnings (
+  warning_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  reason text NOT NULL,
+  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['post'::text, 'comment'::text, 'other'::text])),
+  content_id uuid,
+  blocked_content text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_warnings_pkey PRIMARY KEY (warning_id),
+  CONSTRAINT user_warnings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   username text NOT NULL UNIQUE,
@@ -1080,6 +1241,11 @@ CREATE TABLE public.users (
   oauth_provider character varying,
   oauth_provider_id character varying,
   organization_id uuid,
+  is_banned boolean NOT NULL DEFAULT false,
+  banned_at timestamp with time zone,
+  ban_reason text,
+  signature_url text,
+  signature_name text,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );

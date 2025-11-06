@@ -23,8 +23,14 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logError('GET /api/courses', error)
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    console.error('Error detallado en GET /api/courses:', error)
     return NextResponse.json(
-      formatApiError(error, 'Error al obtener cursos'),
+      {
+        error: 'Error al obtener cursos',
+        message: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     )
   }

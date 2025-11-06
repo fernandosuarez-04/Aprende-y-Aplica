@@ -64,7 +64,13 @@ export async function POST(
 
     // Convertir precio de string a centavos
     // El precio viene como "MX$3000" o "MX$0"
-    const priceInCents = extractPriceInCents(course.price);
+    let priceInCents = extractPriceInCents(course.price);
+    
+    // Si el curso es gratuito (price = 0), usar 1 centavo como mínimo
+    // para cumplir con el constraint CHECK (amount_cents > 0)
+    if (priceInCents === 0) {
+      priceInCents = 1; // 1 centavo para cursos gratuitos
+    }
 
     // 0. Crear método de pago temporal (si no existe ya)
     let paymentMethodId: string;
@@ -200,7 +206,27 @@ export async function POST(
         .eq('purchase_id', purchase.purchase_id);
     }
 
-    // 5. Retornar respuesta exitosa
+    // 5. Crear notificación de inscripción en curso
+    if (enrollment) {
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        await AutoNotificationsService.notifyCourseEnrolled(
+          currentUser.id,
+          course.id,
+          course.title,
+          {
+            purchase_id: purchase.purchase_id,
+            enrollment_id: enrollment.enrollment_id,
+            timestamp: new Date().toISOString()
+          }
+        )
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        console.error('Error creando notificación de inscripción en curso:', notificationError)
+      }
+    }
+
+    // 6. Retornar respuesta exitosa
     return NextResponse.json({
       success: true,
       message: 'Curso adquirido exitosamente',

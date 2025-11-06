@@ -5,7 +5,8 @@ import { ThemeProvider } from '../core/components/ThemeProvider';
 import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
-import { PWAPrompt } from '../core/components/PWAPrompt';
+import { NotificationProvider } from '../features/notifications/context/NotificationContext';
+import { AIChatAgent } from '../core/components/AIChatAgent/AIChatAgent';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -130,13 +131,19 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased bg-carbon text-contrast transition-colors duration-300`}>
         <SWRProvider>
           <ThemeProvider>
-            <PrefetchManager />
-            <PWAPrompt />
-            <div className="min-h-screen bg-carbon transition-colors duration-300">
-              <ConditionalNavbar>
-                {children}
-              </ConditionalNavbar>
-            </div>
+            <NotificationProvider pollingInterval={30000}>
+              <PrefetchManager />
+              <div className="min-h-screen bg-carbon transition-colors duration-300">
+                <ConditionalNavbar>
+                  {children}
+                </ConditionalNavbar>
+              </div>
+              {/* AI Chat Agent - Lia - Disponible en todas las páginas */}
+              <AIChatAgent
+                assistantName="Lia"
+                initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas."
+              />
+            </NotificationProvider>
           </ThemeProvider>
         </SWRProvider>
       </body>

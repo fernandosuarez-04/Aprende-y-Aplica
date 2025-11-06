@@ -88,6 +88,7 @@ export default function CourseLearnPage() {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isLiaExpanded, setIsLiaExpanded] = useState(false);
+  const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -114,6 +115,13 @@ export default function CourseLearnPage() {
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Limpiar prompts cuando se cambia de tab
+  useEffect(() => {
+    if (activeTab !== 'activities') {
+      setCurrentActivityPrompts([]);
+    }
+  }, [activeTab]);
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -291,7 +299,7 @@ export default function CourseLearnPage() {
 
     const message = liaMessage.trim();
     setLiaMessage(''); // Limpiar input inmediatamente
-    
+
     // Resetear altura del textarea después de enviar (igual al botón: 48px)
     if (liaTextareaRef.current) {
       liaTextareaRef.current.style.height = '48px';
@@ -303,6 +311,100 @@ export default function CourseLearnPage() {
 
     // Enviar mensaje con contexto
     await sendLiaMessage(message, lessonContext);
+  };
+
+  // Función para iniciar interacción con LIA desde una actividad
+  const handleStartActivityInteraction = async (activityContent: string, activityTitle: string) => {
+    // Abrir el panel de LIA si está cerrado
+    if (!isRightPanelOpen) {
+      setIsRightPanelOpen(true);
+    }
+
+    // Construir el prompt profesional para LIA con GUARDRAILS
+    const systemPrompt = `# SISTEMA: Inicio de Actividad Interactiva
+
+Vas a guiar al usuario a través de la actividad: "${activityTitle}"
+
+## TU ROL
+Eres LIA, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
+
+## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
+
+### 🚫 DESVÍOS NO PERMITIDOS:
+1. **NO te desvíes del guión**: Sigue ESTRICTAMENTE la estructura de la actividad
+2. **NO ofrezcas ayuda genérica**: Si el usuario pide sugerencias, responde SOLO dentro del contexto del paso actual
+3. **NO expliques conceptos no relacionados**: Mantente enfocado en completar el framework
+4. **NO cambies de tema**: Si el usuario intenta cambiar de tema, redirige amablemente al paso actual
+
+### ✅ MANEJO DE DESVÍOS:
+Si el usuario:
+- Se desvía del tema → Reconoce su mensaje y redirige: "Entiendo tu interés, pero primero completemos este paso del framework. [Repite la pregunta actual]"
+- Pide sugerencias genéricas → Proporciona 1-2 ejemplos específicos del paso actual y pide SU respuesta
+- Dice "no sé" o "ayúdame" → Ofrece 2-3 ejemplos concretos, pero insiste en que debe dar SU propia respuesta
+- Da respuestas muy cortas (ej: "sí", "no", "ok") → Pide más detalles específicos necesarios para el paso actual
+
+### 📊 SEGUIMIENTO DEL PROGRESO:
+- Cuenta internamente cuántas interacciones llevan en el MISMO paso
+- Si el usuario da más de 3 respuestas sin avanzar al siguiente paso del guión → Redirige firmemente: "Necesito que me des [información específica] para poder continuar con el siguiente paso"
+- Después de cada respuesta útil del usuario → Avanza inmediatamente al siguiente mensaje del guión
+
+## CONTENIDO DE LA ACTIVIDAD
+A continuación te proporciono el guión completo de la actividad. Los separadores "---" indican cambios de turno (tú hablas → esperas respuesta → continúas):
+
+\`\`\`
+${activityContent}
+\`\`\`
+
+## INSTRUCCIONES DE EJECUCIÓN
+
+1. **Flujo Estricto**:
+   - Identifica en qué paso del guión estás (contando los separadores "---")
+   - Presenta SOLO el mensaje actual del guión
+   - ESPERA la respuesta del usuario
+   - Valida la respuesta (¿es útil para el objetivo del paso?)
+   - Si es útil → AVANZA al siguiente mensaje del guión
+   - Si no es útil → Pide clarificación o ejemplos concretos, pero NO avances
+
+2. **Formato de Mensajes**:
+   - Elimina "Lia (IA):" y "[Usuario:]" del texto visible
+   - Usa un tono cálido pero directo
+   - Máximo 1-2 emojis por mensaje
+   - Sé concisa: 3-4 oraciones máximo por mensaje (excepto el inicial)
+
+3. **Recolección de Datos**:
+   - Guarda mentalmente las respuestas del usuario para el CSV final
+   - Si el framework requiere múltiples tareas → Pide UNA tarea a la vez
+   - Si requiere datos para cada tarea → Pregunta por los datos de UNA tarea a la vez
+   - NO te saltes pasos del guión
+
+4. **Señales de Progreso**:
+   - Cada 2-3 pasos, menciona el progreso: "¡Genial! Llevamos X de Y columnas completadas"
+   - Al completar una sección importante: "✅ Columna 1 completada. Ahora vamos con la Columna 2..."
+
+5. **Finalización**:
+   - SOLO cuando hayas completado TODOS los pasos del guión
+   - Genera el CSV con TODOS los datos recopilados
+   - Felicita y despide
+
+## ⚡ RECORDATORIO CONSTANTE
+Antes de cada respuesta, pregúntate:
+1. ¿Estoy siguiendo el guión paso a paso?
+2. ¿El usuario dio la información que necesito para este paso?
+3. ¿Debo avanzar al siguiente paso o pedir más detalles?
+4. ¿Me estoy desviando del objetivo de la actividad?
+
+**INICIA AHORA con el PRIMER mensaje del guión (después del primer "---"):**`;
+
+    // Construir contexto de la lección
+    const lessonContext = getLessonContext();
+
+    // Enviar el mensaje del sistema (no será visible en el chat)
+    await sendLiaMessage(systemPrompt, lessonContext, true);
+
+    // Hacer scroll al chat
+    setTimeout(() => {
+      liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
   };
 
   // Auto-scroll al final cuando hay nuevos mensajes o cuando está cargando
@@ -1364,7 +1466,14 @@ export default function CourseLearnPage() {
                     )}
                     {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
-                    {activeTab === 'activities' && <ActivitiesContent lesson={currentLesson} slug={slug} />}
+                    {activeTab === 'activities' && (
+                      <ActivitiesContent
+                        lesson={currentLesson}
+                        slug={slug}
+                        onPromptsChange={setCurrentActivityPrompts}
+                        onStartInteraction={handleStartActivityInteraction}
+                      />
+                    )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
                   </motion.div>
                 </AnimatePresence>
@@ -1472,8 +1581,73 @@ export default function CourseLearnPage() {
                   <div ref={liaMessagesEndRef} />
                 </div>
 
+                {/* Prompts Flotantes tipo NotebookLM */}
+                <AnimatePresence>
+                  {currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute bottom-20 left-4 right-4 z-10"
+                    >
+                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 p-4 max-h-[300px] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
+                              <HelpCircle className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
+                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a LIA</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setCurrentActivityPrompts([])}
+                            className="p-1.5 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
+                            title="Cerrar prompts"
+                          >
+                            <X className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {currentActivityPrompts.map((prompt, index) => (
+                            <motion.button
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              onClick={() => {
+                                setLiaMessage(prompt);
+                                setTimeout(() => {
+                                  handleSendLiaMessage();
+                                  setCurrentActivityPrompts([]);
+                                }, 100);
+                              }}
+                              className="w-full text-left px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-purple-200/50 dark:border-purple-500/30 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-200 dark:group-hover:bg-purple-500/30 transition-colors">
+                                  <span className="text-purple-600 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                    {prompt}
+                                  </p>
+                                </div>
+                                <Send className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Área de entrada */}
-                <div className="border-t border-gray-200 dark:border-slate-700/50 p-4">
+                <div className="border-t border-gray-200 dark:border-slate-700/50 p-4 relative">
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
@@ -2292,7 +2466,614 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   );
 }
 
-function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+// Componente para renderizar quizzes
+function QuizRenderer({ quizData, totalPoints }: {
+  quizData: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer: string | number;
+    explanation?: string;
+    points?: number;
+    questionType?: string;
+  }>;
+  totalPoints?: number;
+}) {
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
+  const [showResults, setShowResults] = useState(false);
+  const [score, setScore] = useState(0);
+  const [pointsEarned, setPointsEarned] = useState(0);
+
+  const handleAnswerSelect = (questionId: string, answer: string | number) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  // Función para normalizar strings y comparar opciones
+  const normalizeOption = (text: string): string => {
+    return text
+      .trim()
+      .replace(/\s+/g, ' ') // Normalizar espacios múltiples
+      .toLowerCase();
+  };
+
+  // Función para verificar si una respuesta es correcta
+  const isAnswerCorrect = (question: any, selectedAnswer: string | number): boolean => {
+    const correctAnswer = question.correctAnswer;
+    const options = question.options;
+
+    // Si la respuesta seleccionada es un índice
+    if (typeof selectedAnswer === 'number') {
+      // Caso 1: correctAnswer es también un índice
+      if (typeof correctAnswer === 'number') {
+        return selectedAnswer === correctAnswer;
+      }
+
+      // Caso 2: correctAnswer es un string (texto de la opción)
+      if (typeof correctAnswer === 'string') {
+        const selectedOption = options[selectedAnswer];
+        // Comparación flexible ignorando espacios y mayúsculas
+        return normalizeOption(selectedOption) === normalizeOption(correctAnswer);
+      }
+    }
+
+    // Si la respuesta seleccionada es un string
+    if (typeof selectedAnswer === 'string') {
+      if (typeof correctAnswer === 'string') {
+        return normalizeOption(selectedAnswer) === normalizeOption(correctAnswer);
+      }
+      if (typeof correctAnswer === 'number') {
+        return normalizeOption(selectedAnswer) === normalizeOption(options[correctAnswer]);
+      }
+    }
+
+    return false;
+  };
+
+  const handleSubmit = () => {
+    let correct = 0;
+    let points = 0;
+    quizData.forEach(question => {
+      const selectedAnswer = selectedAnswers[question.id];
+      if (selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer)) {
+        correct++;
+        points += question.points || 1;
+      }
+    });
+    setScore(correct);
+    setPointsEarned(points);
+    setShowResults(true);
+  };
+
+  const totalQuestions = quizData.length;
+  const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+  const passingThreshold = 80;
+  const passed = percentage >= passingThreshold;
+
+  // Función para parsear explicaciones con formato especial (separadas por ---)
+  const parseExplanation = (question: any, selectedAnswer: string | number) => {
+    const explanation = question.explanation;
+    if (!explanation) return null;
+
+    // Verificar si la explicación tiene el formato con "---"
+    if (explanation.includes('---')) {
+      const parts = explanation.split('---').map(p => p.trim());
+
+      // Obtener el texto de la opción seleccionada
+      let selectedOptionText = '';
+      if (typeof selectedAnswer === 'number' && question.options[selectedAnswer]) {
+        selectedOptionText = question.options[selectedAnswer];
+      } else if (typeof selectedAnswer === 'string') {
+        selectedOptionText = selectedAnswer;
+      }
+
+      // Extraer la letra de la opción seleccionada (A, B, C, D)
+      const letterMatch = selectedOptionText.match(/\(([A-Z])\)/);
+      const selectedLetter = letterMatch ? letterMatch[1] : null;
+
+      if (selectedLetter) {
+        // Buscar el feedback para esa letra
+        for (const part of parts) {
+          // Buscar feedback que empiece con (A), (B), etc.
+          const feedbackMatch = part.match(new RegExp(`^\\(${selectedLetter}\\)\\s+(Feedback|Comentarios):?\\s*(.*)`, 's'));
+          if (feedbackMatch) {
+            return feedbackMatch[2].trim();
+          }
+        }
+      }
+
+      // Si no encontramos un feedback específico, mostrar toda la explicación
+      return explanation;
+    }
+
+    return explanation;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Instrucciones */}
+      <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4 mb-4">
+        <p className="text-gray-800 dark:text-slate-200 text-sm mb-2">
+          <strong>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
+        </p>
+        {totalPoints !== undefined && (
+          <p className="text-gray-800 dark:text-slate-200 text-sm mb-2">
+            <strong>Puntos totales:</strong> {totalPoints}
+          </p>
+        )}
+        <p className="text-gray-700 dark:text-slate-300 text-sm">
+          Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas).
+          <span className="block mt-1"><strong>Umbral de aprobación:</strong> {passingThreshold}%</span>
+        </p>
+      </div>
+
+      {/* Preguntas */}
+      <div className="space-y-6">
+        {quizData.map((question, index) => {
+          const selectedAnswer = selectedAnswers[question.id];
+          const isCorrect = selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer);
+          const showExplanation = showResults && selectedAnswer !== undefined;
+
+          return (
+            <div
+              key={question.id}
+              className={`bg-gray-50 dark:bg-carbon-800/70 rounded-lg p-5 border-2 ${
+                showResults
+                  ? isCorrect
+                    ? 'border-green-500/50 bg-green-50 dark:bg-green-500/5'
+                    : 'border-red-500/50 bg-red-50 dark:bg-red-500/5'
+                  : 'border-gray-200 dark:border-carbon-600/50'
+              }`}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${
+                  showResults
+                    ? isCorrect
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                }`}>
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <h4 className="text-gray-900 dark:text-white font-semibold leading-relaxed flex-1">
+                      {question.question}
+                    </h4>
+                    {question.points && (
+                      <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-xs rounded-full border border-purple-300 dark:border-purple-500/30 shrink-0">
+                        {question.points} {question.points === 1 ? 'punto' : 'puntos'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Opciones */}
+                  <div className="space-y-2">
+                    {question.options.map((option, optIndex) => {
+                      const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D...
+                      const isSelected = selectedAnswer === optIndex || selectedAnswer === option;
+
+                      // Determinar si esta opción es la correcta
+                      let isCorrectOption = false;
+                      if (typeof question.correctAnswer === 'number') {
+                        isCorrectOption = optIndex === question.correctAnswer;
+                      } else if (typeof question.correctAnswer === 'string') {
+                        isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                      }
+                      
+                      return (
+                        <label
+                          key={optIndex}
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            showResults
+                              ? isCorrectOption
+                                ? 'bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/50'
+                                : isSelected && !isCorrectOption
+                                ? 'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/50'
+                                : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-200 dark:border-carbon-600/50'
+                              : isSelected
+                              ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/50'
+                              : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-200 dark:border-carbon-600/50 hover:border-gray-300 dark:hover:border-carbon-500/50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${question.id}`}
+                            value={optIndex}
+                            checked={isSelected}
+                            onChange={() => handleAnswerSelect(question.id, optIndex)}
+                            disabled={showResults}
+                            className="mt-1 w-4 h-4 text-blue-500 border-gray-300 dark:border-carbon-600 focus:ring-blue-500 focus:ring-2"
+                          />
+                          <div className="flex-1">
+                            <span className="font-semibold text-gray-700 dark:text-slate-300 mr-2">
+                              ({optionLetter})
+                            </span>
+                            <span className="text-gray-900 dark:text-slate-200">{option}</span>
+                          </div>
+                          {showResults && isCorrectOption && (
+                            <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                          )}
+                          {showResults && isSelected && !isCorrectOption && (
+                            <X className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/* Explicación */}
+                  {showExplanation && question.explanation && (
+                    <div className={`mt-4 p-4 rounded-lg ${
+                      isCorrect
+                        ? 'bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30'
+                        : 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30'
+                    }`}>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-300 mb-1">
+                        {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
+                      </p>
+                      <p className="text-gray-700 dark:text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
+                        {parseExplanation(question, selectedAnswer)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Botón de envío */}
+      {!showResults && (
+        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-carbon-600/50">
+          <button
+            onClick={handleSubmit}
+            disabled={Object.keys(selectedAnswers).length < totalQuestions}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            Enviar Respuestas
+          </button>
+        </div>
+      )}
+
+      {/* Resultados */}
+      {showResults && (
+        <div className={`mt-6 p-6 rounded-lg border-2 ${
+          passed
+            ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/50'
+            : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/50'
+        }`}>
+          <div className="text-center">
+            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
+            </h3>
+            <p className="text-gray-800 dark:text-slate-200 text-lg mb-1">
+              Obtuviste {score} de {totalQuestions} correctas
+            </p>
+            {totalPoints !== undefined && (
+              <p className="text-gray-800 dark:text-slate-200 text-lg mb-1">
+                Puntos: {pointsEarned} de {totalPoints}
+              </p>
+            )}
+            <p className="text-gray-700 dark:text-slate-300 text-sm">
+              Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Componente para renderizar prompts como botones en lista
+function PromptsRenderer({ prompts }: { prompts: string | any }) {
+  let promptsList: string[] = [];
+
+  try {
+    // Si es string, intentar parsearlo como JSON
+    if (typeof prompts === 'string') {
+      try {
+        const parsed = JSON.parse(prompts);
+        if (Array.isArray(parsed)) {
+          promptsList = parsed;
+        } else {
+          promptsList = [prompts];
+        }
+      } catch (e) {
+        // Si no es JSON, puede ser un string simple o un array como string
+        // Intentar detectar si parece un array
+        if (prompts.trim().startsWith('[') && prompts.trim().endsWith(']')) {
+          try {
+            const parsed = JSON.parse(prompts);
+            if (Array.isArray(parsed)) {
+              promptsList = parsed;
+            }
+          } catch (e2) {
+            promptsList = [prompts];
+          }
+        } else {
+          // Es un string simple, dividir por líneas si tiene saltos
+          promptsList = prompts.split('\n').filter(p => p.trim().length > 0);
+          if (promptsList.length === 0) {
+            promptsList = [prompts];
+          }
+        }
+      }
+    } else if (Array.isArray(prompts)) {
+      promptsList = prompts;
+    } else {
+      promptsList = [String(prompts)];
+    }
+  } catch (e) {
+    console.warn('Error parsing prompts:', e);
+    promptsList = [String(prompts)];
+  }
+
+  return (
+    <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-lg p-4">
+      <div className="space-y-2">
+        {promptsList.map((prompt, index) => {
+          // Limpiar el prompt (remover comillas si las tiene)
+          const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+          
+          return (
+            <button
+              key={index}
+              onClick={() => {
+                // Aquí puedes agregar lógica para copiar el prompt o enviarlo a LIA
+                navigator.clipboard.writeText(cleanPrompt).then(() => {
+                  alert('Prompt copiado al portapapeles');
+                }).catch(() => {
+                  // Fallback: mostrar el prompt
+                  console.log('Prompt:', cleanPrompt);
+                });
+              }}
+              className="w-full text-left px-4 py-3 bg-white dark:bg-purple-500/20 hover:bg-purple-100 dark:hover:bg-purple-500/30 border border-purple-200 dark:border-purple-500/40 rounded-lg transition-all hover:border-purple-300 dark:hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 group"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-purple-200 dark:bg-purple-500/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-300 dark:group-hover:bg-purple-500/50 transition-colors">
+                  <span className="text-purple-700 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
+                </div>
+                <p className="text-gray-900 dark:text-slate-200 text-sm leading-relaxed flex-1 group-hover:text-purple-900 dark:group-hover:text-white transition-colors">
+                  {cleanPrompt}
+                </p>
+                <Copy className="w-4 h-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Componente para renderizar contenido formateado (actividades, materiales de lectura, etc.)
+function FormattedContentRenderer({ content }: { content: any }) {
+  let readingContent = content;
+  
+  // Si el contenido es un objeto con propiedades, intentar extraer el texto
+  if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+    // Buscar propiedades comunes que contengan el texto
+    readingContent = content.text || content.content || content.body || content.description || content.title || '';
+    
+    // Si no encontramos contenido, intentar convertir todo el objeto a string
+    if (!readingContent || readingContent === '') {
+      readingContent = JSON.stringify(content, null, 2);
+    }
+  }
+
+  // Si es un string, intentar parsearlo si parece JSON
+  if (typeof readingContent === 'string') {
+    try {
+      const parsed = JSON.parse(readingContent);
+      if (typeof parsed === 'object' && parsed !== null) {
+        readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
+      }
+    } catch (e) {
+      // No es JSON, usar directamente
+    }
+  }
+
+  // Asegurar que es string
+  if (typeof readingContent !== 'string') {
+    readingContent = String(readingContent);
+  }
+
+  // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
+  const lines = readingContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const formattedContent: Array<{ 
+    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
+    content: string;
+    level?: number;
+  }> = [];
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+    
+    // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
+    const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
+    if (mainSections.test(trimmedLine)) {
+      formattedContent.push({ type: 'main-title', content: trimmedLine.replace(/[:]$/, ''), level: 1 });
+      return;
+    }
+    
+    // Detectar subtítulos numerados principales (1. Los Datos, 2. El Modelo, etc.)
+    const numberedSubsection = /^(\d+)[\.\)]\s+([A-ZÁÉÍÓÚÑ][^.!?]*)$/;
+    const numberedMatch = trimmedLine.match(numberedSubsection);
+    if (numberedMatch && trimmedLine.length < 100) {
+      formattedContent.push({ type: 'subsection-title', content: trimmedLine, level: 2 });
+      return;
+    }
+    
+    // Detectar títulos de sección (líneas cortas sin punto, con mayúsculas al inicio)
+    if (trimmedLine.length > 0 && trimmedLine.length < 80 && 
+        trimmedLine.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) && 
+        !trimmedLine.match(/^\d+[\.\)]/) &&
+        !trimmedLine.includes(':') &&
+        index < lines.length - 1 && // No es la última línea
+        lines[index + 1] && lines[index + 1].length > 50) { // La siguiente línea es un párrafo largo
+      formattedContent.push({ type: 'section-title', content: trimmedLine, level: 1 });
+      return;
+    }
+    
+    // Detectar ejemplos (líneas que contienen "Ejemplo:", "Ejemplos:", "Por ejemplo", etc.)
+    if (trimmedLine.match(/^Ejemplos?[:]?/i) || trimmedLine.match(/Por ejemplo/i)) {
+      formattedContent.push({ type: 'example', content: trimmedLine });
+      return;
+    }
+    
+    // Detectar texto destacado (líneas cortas con comillas o entre comillas)
+    if (trimmedLine.match(/^["']|["']$/) && trimmedLine.length < 100) {
+      formattedContent.push({ type: 'highlight', content: trimmedLine });
+      return;
+    }
+    
+    // Detectar listas (líneas que empiezan con - o • o números seguidos de guión)
+    if (trimmedLine.match(/^[-•]\s/) || trimmedLine.match(/^\d+[\.\)]\s+[-•]/)) {
+      formattedContent.push({ type: 'list', content: trimmedLine });
+      return;
+    }
+    
+    // Párrafos normales
+    formattedContent.push({ type: 'paragraph', content: trimmedLine });
+  });
+
+  return (
+    <div className="bg-gray-100 dark:bg-carbon-800/50 rounded-lg p-8 md:p-10 border border-gray-200 dark:border-carbon-600/50 shadow-lg">
+      <article className="prose dark:prose-invert max-w-none">
+        <div className="text-gray-800 dark:text-slate-200 leading-relaxed space-y-6">
+          {formattedContent.map((item, index) => {
+            // Título principal (Introducción, Cuerpo, Cierre)
+            if (item.type === 'main-title') {
+              return (
+                <div key={`item-${index}`} className="mt-10 mb-6 first:mt-0">
+                  <h1 className="text-gray-900 dark:text-white font-bold text-3xl mb-2 border-b-2 border-purple-500/40 pb-3">
+                    {item.content}
+                  </h1>
+                </div>
+              );
+            }
+            
+            // Título de sección
+            if (item.type === 'section-title') {
+              return (
+                <h2 
+                  key={`item-${index}`} 
+                  className="text-gray-900 dark:text-white font-bold text-2xl mb-4 mt-8 border-b border-purple-500/20 pb-2"
+                >
+                  {item.content}
+                </h2>
+              );
+            }
+            
+            // Subtítulo numerado (1. Los Datos, 2. El Modelo)
+            if (item.type === 'subsection-title') {
+              const numberMatch = item.content.match(/^(\d+)[\.\)]\s+(.+)$/);
+              if (numberMatch) {
+                const [, number, title] = numberMatch;
+                return (
+                  <div key={`item-${index}`} className="mt-8 mb-4">
+                    <h3 className="text-purple-300 font-semibold text-xl mb-3 flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500/40 flex items-center justify-center text-purple-300 font-bold text-lg">
+                        {number}
+                      </span>
+                      <span>{title}</span>
+                    </h3>
+                  </div>
+                );
+              }
+              return (
+                <h3 
+                  key={`item-${index}`} 
+                  className="text-purple-300 font-semibold text-xl mb-3 mt-6"
+                >
+                  {item.content}
+                </h3>
+              );
+            }
+            
+            // Ejemplos
+            if (item.type === 'example') {
+              return (
+                <div key={`item-${index}`} className="bg-blue-500/10 border-l-4 border-blue-500/50 rounded-r-lg p-4 my-4">
+                  <p className="text-blue-300 font-semibold mb-2 text-sm uppercase tracking-wide">
+                    {item.content.match(/^Ejemplos?[:]?/i) ? item.content : 'Ejemplo'}
+                  </p>
+                </div>
+              );
+            }
+            
+            // Texto destacado
+            if (item.type === 'highlight') {
+              return (
+                <div key={`item-${index}`} className="bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg p-4 my-4">
+                  <p className="text-yellow-200 italic text-lg leading-relaxed">
+                    {item.content.replace(/^["']|["']$/g, '')}
+                  </p>
+                </div>
+              );
+            }
+            
+            // Listas
+            if (item.type === 'list') {
+              const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
+              return (
+                <div key={`item-${index}`} className="flex items-start gap-3 my-3 pl-2">
+                  <span className="text-purple-400 mt-1.5 text-lg font-bold">•</span>
+                  <p className="text-gray-800 dark:text-slate-200 leading-relaxed flex-1 text-base">{cleanedContent}</p>
+                </div>
+              );
+            }
+            
+            // Párrafos normales
+            // Detectar si el párrafo contiene ejemplos o información destacada
+            const hasExamples = item.content.match(/Ejemplos?[:]?/i);
+            const hasQuotes = item.content.match(/["']/g);
+            
+            if (hasExamples && hasQuotes && hasQuotes.length >= 2) {
+              // Párrafo con ejemplos entre comillas
+              const parts = item.content.split(/(["'][^"']+["'])/g);
+              return (
+                <p key={`item-${index}`} className="text-gray-800 dark:text-slate-200 leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9' }}>
+                  {parts.map((part, partIndex) => {
+                    if (part.match(/^["']/)) {
+                      return (
+                        <span key={partIndex} className="bg-blue-500/10 px-2 py-1 rounded text-blue-600 dark:text-blue-200 font-medium">
+                          {part.replace(/^["']|["']$/g, '')}
+                        </span>
+                      );
+                    }
+                    return <span key={partIndex}>{part}</span>;
+                  })}
+                </p>
+              );
+            }
+            
+            return (
+              <p 
+                key={`item-${index}`} 
+                className="text-gray-800 dark:text-slate-200 leading-relaxed mb-6 text-base"
+                style={{ lineHeight: '1.9' }}
+              >
+                {item.content}
+              </p>
+            );
+          })}
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }: {
+  lesson: Lesson;
+  slug: string;
+  onPromptsChange?: (prompts: string[]) => void;
+  onStartInteraction?: (content: string, title: string) => void;
+}) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
     activity_title: string;
@@ -2359,6 +3140,52 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     loadActivitiesAndMaterials();
   }, [lesson?.lesson_id, slug]);
 
+  // Extraer y actualizar prompts cuando cambien las actividades
+  useEffect(() => {
+    const allPrompts: string[] = [];
+
+    activities.forEach(activity => {
+      if (activity.ai_prompts) {
+        try {
+          let promptsList: string[] = [];
+
+          // Si es string, intentar parsearlo como JSON
+          if (typeof activity.ai_prompts === 'string') {
+            try {
+              const parsed = JSON.parse(activity.ai_prompts);
+              if (Array.isArray(parsed)) {
+                promptsList = parsed;
+              } else {
+                promptsList = [activity.ai_prompts];
+              }
+            } catch {
+              promptsList = [activity.ai_prompts];
+            }
+          } else if (Array.isArray(activity.ai_prompts)) {
+            promptsList = activity.ai_prompts;
+          } else {
+            promptsList = [String(activity.ai_prompts)];
+          }
+
+          // Limpiar prompts (remover comillas si las tiene)
+          promptsList.forEach(prompt => {
+            const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+            if (cleanPrompt) {
+              allPrompts.push(cleanPrompt);
+            }
+          });
+        } catch (error) {
+          console.warn('Error parsing prompts:', error);
+        }
+      }
+    });
+
+    // Notificar cambios al componente padre
+    if (onPromptsChange) {
+      onPromptsChange(allPrompts);
+    }
+  }, [activities, onPromptsChange]);
+
   const hasActivities = activities.length > 0;
   const hasMaterials = materials.length > 0;
   const hasContent = hasActivities || hasMaterials;
@@ -2408,21 +3235,21 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Actividades</h2>
-        <p className="text-slate-300 text-sm">{lesson.lesson_title}</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
+        <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
 
       {/* Actividades */}
       {hasActivities && (
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
           {/* Header de actividades */}
-          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Activity className="w-5 h-5 text-blue-400" />
-                <h3 className="text-white font-semibold">Actividades</h3>
+                <h3 className="text-gray-900 dark:text-white font-semibold">Actividades</h3>
       </div>
-              <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
                 <span>{activities.length} actividad{activities.length !== 1 ? 'es' : ''}</span>
               </div>
             </div>
@@ -2433,12 +3260,12 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
             {activities.map((activity) => (
               <div
                 key={activity.activity_id}
-                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="text-white font-semibold text-lg">{activity.activity_title}</h4>
+                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
                       {activity.is_required && (
                         <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
                           Requerida
@@ -2449,32 +3276,134 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                       </span>
                     </div>
                     {activity.activity_description && (
-                      <p className="text-slate-300 text-sm mb-3">{activity.activity_description}</p>
+                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{activity.activity_description}</p>
                     )}
                   </div>
                 </div>
-                
-                <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">
-                      {activity.activity_content}
+
+                {/* Botón especial para actividades ai_chat */}
+                {activity.activity_type === 'ai_chat' ? (
+                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-2xl shadow-purple-500/50">
+                        <MessageSquare className="w-8 h-8 text-white" />
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-bold text-white mb-2">
+                          Actividad Interactiva con LIA
+                        </h3>
+                        <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
+                          Esta es una actividad guiada por LIA, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (onStartInteraction) {
+                            onStartInteraction(activity.activity_content, activity.activity_title);
+                          }
+                        }}
+                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 hover:scale-105"
+                      >
+                        <span className="flex items-center gap-3">
+                          <MessageSquare className="w-5 h-5 group-hover:animate-pulse" />
+                          <span>Interactuar con LIA</span>
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </button>
+
+                      <p className="text-xs text-slate-400 mt-2">
+                        LIA te guiará a través de {activity.activity_title.toLowerCase()}
+                      </p>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
+                  {activity.activity_type === 'quiz' && (() => {
+                    try {
+                      // Intentar parsear el contenido como JSON si es un quiz
+                      let quizData = activity.activity_content;
 
-                {activity.ai_prompts && (
+                      // Si es string, intentar parsearlo
+                      if (typeof quizData === 'string') {
+                        try {
+                          quizData = JSON.parse(quizData);
+                        } catch (e) {
+                          console.warn('⚠️ Quiz content is not valid JSON:', e);
+                          return (
+                            <div className="prose dark:prose-invert max-w-none">
+                              <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
+                              <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                                {activity.activity_content}
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+
+                      // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                      let questionsArray = quizData;
+                      let totalPoints = undefined;
+
+                      if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                        if (quizData.questions && Array.isArray(quizData.questions)) {
+                          questionsArray = quizData.questions;
+                          totalPoints = quizData.totalPoints;
+                        }
+                      }
+
+                      // Verificar que es un array con preguntas
+                      if (Array.isArray(questionsArray) && questionsArray.length > 0) {
+                        // Verificar que cada elemento tiene la estructura de pregunta
+                        const hasValidStructure = questionsArray.every((q: any) =>
+                          q && typeof q === 'object' && (q.question || q.id)
+                        );
+
+                        if (hasValidStructure) {
+                          return <QuizRenderer quizData={questionsArray} totalPoints={totalPoints} />;
+                        }
+                      }
+
+                      // Si llegamos aquí, mostrar como texto normal con mensaje de debug
+                      return (
+                        <div className="prose prose-invert dark:prose-invert max-w-none">
+                          <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
+                          <details className="mb-4">
+                            <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
+                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-900 rounded overflow-auto">
+                              {typeof activity.activity_content === 'string'
+                                ? activity.activity_content
+                                : JSON.stringify(activity.activity_content, null, 2)}
+                            </pre>
+                          </details>
+                        </div>
+                      );
+                    } catch (e) {
+                      console.error('❌ Error processing quiz:', e);
+                      return (
+                        <div className="prose prose-invert dark:prose-invert max-w-none">
+                          <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
+                          <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                            {activity.activity_content}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
+                  {activity.activity_type !== 'quiz' && (
+                    <FormattedContentRenderer content={activity.activity_content} />
+                  )}
+                  </div>
+                )}
+
+                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
                   <div className="mt-4 pt-4 border-t border-carbon-600/50">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-4">
                       <HelpCircle className="w-4 h-4 text-purple-400" />
                       <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
                     </div>
-                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                      <div className="prose prose-invert max-w-none">
-                        <div className="text-slate-200 leading-relaxed whitespace-pre-wrap text-sm">
-                          {activity.ai_prompts}
-                        </div>
-                      </div>
-                    </div>
+                    <PromptsRenderer prompts={activity.ai_prompts} />
                   </div>
                 )}
               </div>
@@ -2485,15 +3414,15 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
       {/* Materiales */}
       {hasMaterials && (
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
           {/* Header de materiales */}
-          <div className="bg-carbon-700 px-6 py-4 border-b border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5 text-green-400" />
-                <h3 className="text-white font-semibold">Materiales</h3>
+                <h3 className="text-gray-900 dark:text-white font-semibold">Materiales</h3>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
                 <span>{materials.length} material{materials.length !== 1 ? 'es' : ''}</span>
               </div>
             </div>
@@ -2504,12 +3433,12 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
             {materials.map((material) => (
               <div
                 key={material.material_id}
-                className="bg-carbon-700/50 rounded-lg p-5 border border-carbon-600/50"
+                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="text-white font-semibold text-lg">{material.material_title}</h4>
+                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{material.material_title}</h4>
                       <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 capitalize">
                         {material.material_type}
                       </span>
@@ -2520,43 +3449,91 @@ function ActivitiesContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                       )}
                     </div>
                     {material.material_description && (
-                      <p className="text-slate-300 text-sm mb-3">{material.material_description}</p>
+                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{material.material_description}</p>
                     )}
                   </div>
                 </div>
                 
+                {/* Contenido del material */}
+                {material.content_data && (
+                  <div className="w-full mt-4">
+                    {material.material_type === 'quiz' && (() => {
+                      try {
+                        let quizData = material.content_data;
+
+                        // Si es string, intentar parsearlo
+                        if (typeof quizData === 'string') {
+                          try {
+                            quizData = JSON.parse(quizData);
+                          } catch (e) {
+                            console.warn('Quiz content is not valid JSON:', e);
+                            return null;
+                          }
+                        }
+
+                        // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                        let questionsArray = quizData;
+                        let totalPoints = undefined;
+
+                        if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                          if (quizData.questions && Array.isArray(quizData.questions)) {
+                            questionsArray = quizData.questions;
+                            totalPoints = quizData.totalPoints;
+                          }
+                        }
+
+                        // Verificar que es un array con preguntas
+                        if (Array.isArray(questionsArray) && questionsArray.length > 0) {
+                          // Verificar que cada elemento tiene la estructura de pregunta
+                          const hasValidStructure = questionsArray.every((q: any) =>
+                            q && typeof q === 'object' && (q.question || q.id)
+                          );
+
+                          if (hasValidStructure) {
+                            return <QuizRenderer quizData={questionsArray} totalPoints={totalPoints} />;
+                          }
+                        }
+                      } catch (e) {
+                        console.warn('Error parsing quiz data:', e);
+                      }
+                      return null;
+                    })()}
+                    {material.material_type === 'reading' && (
+                      <FormattedContentRenderer content={material.content_data} />
+                    )}
+                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
+                      <FormattedContentRenderer content={material.content_data} />
+                    )}
+                  </div>
+                )}
+
                 {/* Enlaces y acciones */}
-                <div className="flex items-center gap-3">
-                  {material.external_url && (
-                    <a
-                      href={material.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      <span className="text-sm">Abrir enlace</span>
-                    </a>
-                  )}
-                  {material.file_url && (
-                    <a
-                      href={material.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      <span className="text-sm">Ver archivo</span>
-                    </a>
-                  )}
-                  {material.content_data && typeof material.content_data === 'object' && (
-                    <div className="flex-1 bg-carbon-800/50 rounded-lg p-3 border border-carbon-600/50">
-                      <p className="text-slate-300 text-sm">
-                        {JSON.stringify(material.content_data, null, 2)}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {(material.external_url || material.file_url) && (
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
+                    {material.external_url && (
+                      <a
+                        href={material.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Abrir enlace</span>
+                      </a>
+                    )}
+                    {material.file_url && (
+                      <a
+                        href={material.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Ver archivo</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

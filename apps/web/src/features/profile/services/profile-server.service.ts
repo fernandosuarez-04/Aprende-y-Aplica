@@ -96,6 +96,13 @@ export class ProfileServerService {
     try {
       const supabase = await createClient()
       
+      // Obtener datos anteriores para comparar
+      const { data: oldData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      
       const { data, error } = await supabase
         .from('users')
         .update({
@@ -113,6 +120,34 @@ export class ProfileServerService {
 
       if (!data) {
         throw new Error('Error al actualizar perfil')
+      }
+
+      // Crear notificación de actualización de perfil
+      // Solo incluir campos que realmente cambiaron (comparar valores anteriores vs nuevos)
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        
+        // Comparar valores anteriores vs nuevos para detectar cambios reales
+        const actualChanges: string[] = []
+        if (oldData) {
+          for (const [key, newValue] of Object.entries(updates)) {
+            const oldValue = oldData[key as keyof typeof oldData]
+            // Comparar valores (convertir a string para comparación segura)
+            if (String(oldValue || '') !== String(newValue || '')) {
+              actualChanges.push(key)
+            }
+          }
+        } else {
+          // Si no hay datos anteriores, usar todas las claves de updates
+          actualChanges.push(...Object.keys(updates))
+        }
+        
+        await AutoNotificationsService.notifyProfileUpdated(userId, actualChanges, {
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        console.error('Error creando notificación de actualización de perfil:', notificationError)
       }
 
       return {

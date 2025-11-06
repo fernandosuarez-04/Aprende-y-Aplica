@@ -236,6 +236,84 @@ export default function ReelsPage() {
     }
   };
 
+  // Función para compartir reel
+  const handleShare = async (reelId: string) => {
+    if (!reels || !Array.isArray(reels)) return;
+    
+    const reel = reels.find(r => r.id === reelId);
+    if (!reel) return;
+
+    const shareUrl = `${window.location.origin}/reels?reel=${reelId}`;
+    const shareData = {
+      title: reel.title,
+      text: reel.description || reel.title,
+      url: shareUrl
+    };
+
+    try {
+      // Intentar usar Web Share API si está disponible
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        
+        // Incrementar contador de shares localmente
+        setReels(prev => prev.map(r =>
+          r.id === reelId
+            ? { ...r, share_count: r.share_count + 1 }
+            : r
+        ));
+
+        // Registrar el share en el servidor (opcional)
+        try {
+          await fetch(`/api/reels/${reelId}/share`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        } catch (error) {
+          console.error('Error registering share:', error);
+        }
+      } else {
+        // Fallback: copiar al portapapeles
+        await navigator.clipboard.writeText(shareUrl);
+        
+        // Mostrar feedback visual (puedes agregar un toast aquí)
+        alert('¡Enlace copiado al portapapeles!');
+        
+        // Incrementar contador de shares localmente
+        setReels(prev => prev.map(r =>
+          r.id === reelId
+            ? { ...r, share_count: r.share_count + 1 }
+            : r
+        ));
+
+        // Registrar el share en el servidor
+        try {
+          await fetch(`/api/reels/${reelId}/share`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        } catch (error) {
+          console.error('Error registering share:', error);
+        }
+      }
+    } catch (error: any) {
+      // El usuario canceló el share o hubo un error
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing:', error);
+        // Fallback: copiar al portapapeles
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert('¡Enlace copiado al portapapeles!');
+        } catch (clipboardError) {
+          console.error('Error copying to clipboard:', clipboardError);
+        }
+      }
+    }
+  };
+
   const playVideo = (index: number) => {
     // Pausar todos los videos
     videoRefs.current.forEach((video) => {
@@ -642,7 +720,10 @@ export default function ReelsPage() {
 
                   {/* Compartir */}
                   <div className="flex flex-col items-center space-y-1">
-                    <button className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all">
+                    <button 
+                      onClick={() => handleShare(reels[currentReelIndex].id)}
+                      className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all"
+                    >
                         <Share2 className="w-6 h-6 text-white" />
                       </button>
                     <span className="text-white text-xs font-semibold">
@@ -732,7 +813,10 @@ export default function ReelsPage() {
 
             {/* Compartir */}
             <div className="flex flex-col items-center space-y-1">
-              <button className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all`}>
+              <button 
+                onClick={() => handleShare(reels[currentReelIndex].id)}
+                className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all`}
+              >
                 <Share2 className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-white`} />
               </button>
               <span className="text-white text-xs font-semibold">

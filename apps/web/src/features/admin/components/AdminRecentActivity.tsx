@@ -8,12 +8,17 @@ import {
   ChatBubbleLeftRightIcon,
   CpuChipIcon,
   NewspaperIcon,
-  ClockIcon
+  ClockIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline'
+import { formatRelativeTime } from '@/core/utils/date-utils'
+import type { Notification } from '@/features/notifications/services/notification.service'
 
 interface ActivityItem {
   id: string
-  type: 'user' | 'workshop' | 'community' | 'prompt' | 'ai-app' | 'news'
+  type: 'user' | 'workshop' | 'community' | 'prompt' | 'ai-app' | 'news' | 'system'
   action: string
   description: string
   user: string
@@ -22,81 +27,138 @@ interface ActivityItem {
   color: string
 }
 
-const mockActivities: ActivityItem[] = [
-  {
-    id: '1',
-    type: 'user',
-    action: 'Usuario registrado',
-    description: 'Nuevo usuario se registró en la plataforma',
-    user: 'Juan Pérez',
-    timestamp: 'Hace 5 minutos',
-    icon: UserCircleIcon,
-    color: 'blue'
-  },
-  {
-    id: '2',
-    type: 'workshop',
-    action: 'Taller creado',
-    description: 'Se creó el taller "Introducción a React"',
-    user: 'María García',
-    timestamp: 'Hace 15 minutos',
-    icon: BookOpenIcon,
-    color: 'green'
-  },
-  {
-    id: '3',
-    type: 'community',
-    action: 'Comunidad actualizada',
-    description: 'Se actualizó la comunidad "Desarrolladores Frontend"',
-    user: 'Carlos López',
-    timestamp: 'Hace 30 minutos',
-    icon: UserGroupIcon,
-    color: 'purple'
-  },
-  {
-    id: '4',
-    type: 'prompt',
-    action: 'Prompt agregado',
-    description: 'Se añadió un nuevo prompt de ChatGPT',
-    user: 'Ana Martínez',
-    timestamp: 'Hace 1 hora',
-    icon: ChatBubbleLeftRightIcon,
-    color: 'orange'
-  },
-  {
-    id: '5',
-    type: 'ai-app',
-    action: 'App de IA añadida',
-    description: 'Se agregó "Midjourney" al directorio',
-    user: 'Pedro Rodríguez',
-    timestamp: 'Hace 2 horas',
-    icon: CpuChipIcon,
-    color: 'red'
-  },
-  {
-    id: '6',
-    type: 'news',
-    action: 'Noticia publicada',
-    description: 'Se publicó "Tendencias en IA 2024"',
-    user: 'Laura Sánchez',
-    timestamp: 'Hace 3 horas',
-    icon: NewspaperIcon,
-    color: 'indigo'
+/**
+ * Mapea el tipo de notificación a un tipo de actividad
+ */
+function mapNotificationTypeToActivityType(notificationType: string): ActivityItem['type'] {
+  const typeMap: Record<string, ActivityItem['type']> = {
+    'user_registered': 'user',
+    'user_updated': 'user',
+    'course_created': 'workshop',
+    'course_updated': 'workshop',
+    'course_published': 'workshop',
+    'community_created': 'community',
+    'community_updated': 'community',
+    'community_request': 'community',
+    'prompt_created': 'prompt',
+    'prompt_updated': 'prompt',
+    'ai_app_added': 'ai-app',
+    'ai_app_updated': 'ai-app',
+    'news_published': 'news',
+    'news_created': 'news'
   }
-]
+  
+  return typeMap[notificationType] || 'system'
+}
+
+/**
+ * Obtiene el icono según el tipo de actividad
+ */
+function getActivityIcon(type: ActivityItem['type']): React.ComponentType<any> {
+  const iconMap: Record<ActivityItem['type'], React.ComponentType<any>> = {
+    'user': UserCircleIcon,
+    'workshop': BookOpenIcon,
+    'community': UserGroupIcon,
+    'prompt': ChatBubbleLeftRightIcon,
+    'ai-app': CpuChipIcon,
+    'news': NewspaperIcon,
+    'system': InformationCircleIcon
+  }
+  
+  return iconMap[type] || InformationCircleIcon
+}
+
+/**
+ * Obtiene el color según el tipo de actividad
+ */
+function getActivityColor(type: ActivityItem['type'], priority?: string): string {
+  // Si hay prioridad crítica o alta, usar colores más llamativos
+  if (priority === 'critical') return 'red'
+  if (priority === 'high') return 'orange'
+  
+  const colorMap: Record<ActivityItem['type'], string> = {
+    'user': 'blue',
+    'workshop': 'green',
+    'community': 'purple',
+    'prompt': 'orange',
+    'ai-app': 'red',
+    'news': 'indigo',
+    'system': 'blue'
+  }
+  
+  return colorMap[type] || 'blue'
+}
+
+/**
+ * Mapea una notificación de la BD a un ActivityItem
+ */
+function mapNotificationToActivityItem(notification: any): ActivityItem {
+  const activityType = mapNotificationTypeToActivityType(notification.notification_type)
+  const user = notification.users || {}
+  
+  // Obtener nombre del usuario
+  const userName = user.display_name || 
+    `${user.first_name || ''} ${user.last_name || ''}`.trim() || 
+    user.username || 
+    'Usuario'
+  
+  // Obtener título y descripción de la notificación
+  const action = notification.title || 'Actividad'
+  const description = notification.message || 'Sin descripción'
+  
+  return {
+    id: notification.notification_id,
+    type: activityType,
+    action,
+    description,
+    user: userName,
+    timestamp: formatRelativeTime(notification.created_at),
+    icon: getActivityIcon(activityType),
+    color: getActivityColor(activityType, notification.priority)
+  }
+}
 
 export function AdminRecentActivity() {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Simular carga de datos
-    const timer = setTimeout(() => {
-      setActivities(mockActivities)
-      setIsLoading(false)
-    }, 800)
+    const fetchRecentActivity = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
 
-    return () => clearTimeout(timer)
+        const response = await fetch('/api/admin/activity/recent?limit=10')
+        
+        if (!response.ok) {
+          throw new Error('Error al obtener actividad reciente')
+        }
+
+        const data = await response.json()
+        
+        if (data.success && data.activities) {
+          // Mapear notificaciones a ActivityItems
+          const mappedActivities = data.activities.map(mapNotificationToActivityItem)
+          setActivities(mappedActivities)
+        } else {
+          setActivities([])
+        }
+      } catch (err) {
+        console.error('Error fetching recent activity:', err)
+        setError('No se pudo cargar la actividad reciente')
+        setActivities([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchRecentActivity()
+    
+    // Refrescar cada 30 segundos
+    const interval = setInterval(fetchRecentActivity, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const getColorClasses = (color: string) => {
@@ -170,40 +232,55 @@ export function AdminRecentActivity() {
           </button>
         </div>
         
-        <div className="space-y-4">
-          {activities.map((activity, index) => {
-            const colors = getColorClasses(activity.color)
-            return (
-              <div 
-                key={activity.id}
-                className="flex items-start space-x-4 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className={`flex-shrink-0 p-2 rounded-full ${colors.bg} border ${colors.border}`}>
-                  <activity.icon className={`h-5 w-5 ${colors.icon}`} />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {activity.action}
-                    </p>
-                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <ClockIcon className="h-3 w-3 mr-1" />
-                      {activity.timestamp}
-                    </div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
+        {activities.length === 0 && !isLoading && !error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No hay actividad reciente
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {activities.map((activity, index) => {
+              const colors = getColorClasses(activity.color)
+              const Icon = activity.icon
+              return (
+                <div 
+                  key={activity.id}
+                  className="flex items-start space-x-4 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className={`flex-shrink-0 p-2 rounded-full ${colors.bg} border ${colors.border}`}>
+                    <Icon className={`h-5 w-5 ${colors.icon}`} />
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {activity.description}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    por {activity.user}
-                  </p>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {activity.action}
+                      </p>
+                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                        <ClockIcon className="h-3 w-3 mr-1" />
+                        {activity.timestamp}
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {activity.description}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      por {activity.user}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

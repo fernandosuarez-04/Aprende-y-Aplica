@@ -60,7 +60,7 @@ export class CourseService {
       if (userId) {
         try {
           const { data: favoritesData } = await supabase
-            .from('app_favorites')
+            .from('user_favorites')
             .select('course_id')
             .eq('user_id', userId)
           
@@ -247,7 +247,7 @@ export class CourseService {
       if (userId) {
         try {
           const { data: favoritesData } = await supabase
-            .from('app_favorites')
+            .from('user_favorites')
             .select('course_id')
             .eq('user_id', userId)
           

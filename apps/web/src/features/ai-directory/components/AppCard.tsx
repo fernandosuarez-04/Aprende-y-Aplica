@@ -206,28 +206,15 @@ export function AppCard({ app }: AppCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3">
-        <Link href={`/apps-directory/${app.slug}`} className="flex-1">
-          <Button 
-            variant="primary" 
+      <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+        <Link href={`/apps-directory/${app.slug}`} className="w-full">
+          <Button
+            variant="primary"
             className="w-full group-hover:bg-blue-600 transition-colors"
           >
             Descubrir
           </Button>
         </Link>
-        
-        {app.website_url && (
-          <motion.a
-            href={app.website_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-500 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ExternalLink className="w-4 h-4" />
-          </motion.a>
-        )}
       </div>
 
       {/* Hover Effect */}

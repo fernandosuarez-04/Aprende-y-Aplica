@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
+import { NotificationService } from '@/features/notifications/services/notification.service';
 
 /**
  * POST /api/courses/[slug]/lessons/[lessonId]/progress
@@ -231,6 +232,23 @@ export async function POST(
       ? Math.round((completedLessons / totalLessons) * 100 * 100) / 100 // Redondear a 2 decimales
       : 0;
 
+    // Obtener información del curso antes de actualizar el enrollment
+    const { data: courseInfo } = await supabase
+      .from('courses')
+      .select('id, title, slug')
+      .eq('id', courseId)
+      .single();
+
+    // Obtener el progreso anterior para detectar cambios significativos
+    const { data: previousEnrollment } = await supabase
+      .from('user_course_enrollments')
+      .select('overall_progress_percentage, enrollment_status')
+      .eq('enrollment_id', enrollmentId)
+      .single();
+
+    const previousProgress = previousEnrollment?.overall_progress_percentage || 0;
+    const wasCompleted = previousEnrollment?.enrollment_status === 'completed';
+
     // Actualizar enrollment con el progreso general
     const { error: updateEnrollmentError } = await supabase
       .from('user_course_enrollments')
@@ -247,6 +265,30 @@ export async function POST(
     if (updateEnrollmentError) {
       console.error('Error actualizando enrollment:', updateEnrollmentError);
       // No retornar error aquí, el progreso de la lección ya se guardó
+    }
+
+    // Crear notificación cuando se completa el curso
+    if (overallProgress === 100 && !wasCompleted && courseInfo) {
+      try {
+        await NotificationService.createNotification({
+          userId: currentUser.id,
+          notificationType: 'course_completed',
+          title: '¡Curso completado!',
+          message: `¡Felicidades! Has completado el curso "${courseInfo.title}".`,
+          priority: 'high',
+          metadata: {
+            courseId: courseInfo.id,
+            courseSlug: courseInfo.slug,
+            courseTitle: courseInfo.title,
+            actionUrl: `/courses/${courseInfo.slug}`,
+            progress: overallProgress,
+          },
+        });
+        console.log(`✅ Notificación creada para curso completado: ${courseInfo.title}`);
+      } catch (notifError) {
+        console.error('Error creando notificación de curso completado (no crítico):', notifError);
+        // No fallar si la notificación falla
+      }
     }
 
     return NextResponse.json({

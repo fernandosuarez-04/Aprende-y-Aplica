@@ -9,7 +9,7 @@ export class FavoritesService {
       const supabase = await createClient()
       
       const { data, error } = await supabase
-        .from('app_favorites')
+        .from('user_favorites')
         .select('course_id')
         .eq('user_id', userId)
 
@@ -39,14 +39,32 @@ export class FavoritesService {
     try {
       const supabase = await createClient()
       
+      // Verificar si ya existe antes de insertar
+      const { data: existing } = await supabase
+        .from('user_favorites')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('course_id', courseId)
+        .single()
+
+      if (existing) {
+        // Ya existe, no hacer nada
+        return
+      }
+
       const { error } = await supabase
-        .from('app_favorites')
+        .from('user_favorites')
         .insert({
           user_id: userId,
           course_id: courseId
         })
 
       if (error) {
+        // Si es un error de duplicado, ignorarlo
+        if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
+          console.warn('Favorito ya existe, ignorando inserción duplicada')
+          return
+        }
         console.error('Error adding to favorites:', error)
         throw new Error(`Error al agregar a favoritos: ${error.message}`)
       }
@@ -64,7 +82,7 @@ export class FavoritesService {
       const supabase = await createClient()
       
       const { error } = await supabase
-        .from('app_favorites')
+        .from('user_favorites')
         .delete()
         .eq('user_id', userId)
         .eq('course_id', courseId)
@@ -87,11 +105,11 @@ export class FavoritesService {
       const supabase = await createClient()
       
       const { data, error } = await supabase
-        .from('app_favorites')
+        .from('user_favorites')
         .select('id')
         .eq('user_id', userId)
         .eq('course_id', courseId)
-        .single()
+        .maybeSingle()
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Error checking favorite status:', error)

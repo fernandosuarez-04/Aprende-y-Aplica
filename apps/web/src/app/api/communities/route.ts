@@ -5,13 +5,36 @@ import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {
+    // Validar variables de entorno primero
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      logger.error('❌ Missing Supabase environment variables:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey
+      });
+      return NextResponse.json(
+        { 
+          error: 'Error de configuración del servidor',
+          message: 'Variables de entorno de Supabase no configuradas'
+        }, 
+        { status: 500 }
+      );
+    }
+
     const supabase = await createClient();
     
     logger.log('🔍 Fetching communities...');
     
     // Obtener el usuario actual usando el sistema de sesiones personalizado
     const { SessionService } = await import('../../../features/auth/services/session.service');
-    const user = await SessionService.getCurrentUser();
+    let user = null;
+    try {
+      user = await SessionService.getCurrentUser();
+    } catch (userError) {
+      logger.log('⚠️ Error getting user (continuing with public communities):', userError);
+    }
     
     if (!user) {
       logger.log('⚠️ User not authenticated, showing public communities only');
@@ -19,7 +42,7 @@ export async function GET(request: NextRequest) {
       logger.log('✅ User authenticated:', user.id);
     }
 
-    // Obtener todas las comunidades activas
+    // Obtener todas las comunidades activas (incluye creator_id automáticamente)
     const { data: communities, error: communitiesError } = await supabase
       .from('communities')
       .select('*')
@@ -27,20 +50,52 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (communitiesError) {
-      logger.error('❌ Error fetching communities:', communitiesError);
-      return NextResponse.json({ error: 'Error al obtener comunidades' }, { status: 500 });
+      logger.error('❌ Error fetching communities:', {
+        message: communitiesError.message,
+        details: communitiesError.details,
+        hint: communitiesError.hint,
+        code: communitiesError.code
+      });
+      
+      // Si el error es que la tabla no existe, retornar array vacío en lugar de error
+      if (communitiesError.code === 'PGRST116' || communitiesError.message?.includes('does not exist')) {
+        logger.log('⚠️ Communities table does not exist, returning empty array');
+        return NextResponse.json({
+          communities: [],
+          total: 0
+        }, { status: 200 });
+      }
+      
+      return NextResponse.json(
+        { 
+          error: 'Error al obtener comunidades',
+          message: communitiesError.message || 'Error desconocido'
+        }, 
+        { status: 500 }
+      );
     }
 
     logger.log('📊 Found communities:', communities?.length || 0);
+    
+    // Si no hay comunidades, retornar array vacío (no es un error)
+    if (!communities || communities.length === 0) {
+      logger.log('⚠️ No communities found in database');
+      return NextResponse.json({
+        communities: [],
+        total: 0
+      }, { status: 200 });
+    }
 
-    // Si no hay usuario autenticado, retornar comunidades sin enriquecimiento
+    // Si no hay usuario autenticado, retornar solo comunidades públicas
     if (!user) {
-      const publicCommunities = communities?.map(community => ({
-        ...community,
-        is_member: false,
-        has_pending_request: false,
-        user_role: null
-      })) || [];
+      const publicCommunities = communities
+        ?.filter(community => community.visibility === 'public')
+        .map(community => ({
+          ...community,
+          is_member: false,
+          has_pending_request: false,
+          user_role: null
+        })) || [];
 
       logger.log('🌐 Returning public communities:', publicCommunities.length);
       
@@ -56,7 +111,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener membresías del usuario
+    // Obtener el rol del usuario
+    const userRole = user.cargo_rol;
+    const isAdmin = userRole === 'Administrador';
+    const isInstructor = userRole === 'Instructor';
+
+    logger.log('👤 User role:', userRole, { isAdmin, isInstructor });
+
+    // Obtener membresías del usuario (para comunidades donde es miembro/admin/moderator)
     const { data: memberships, error: membershipsError } = await supabase
       .from('community_members')
       .select('community_id, role')
@@ -86,15 +148,51 @@ export async function GET(request: NextRequest) {
       pendingRequests?.map(r => r.community_id) || []
     );
 
+    // Filtrar comunidades según el rol del usuario
+    let filteredCommunities = communities;
+
+    if (isAdmin) {
+      // Administradores ven TODAS las comunidades activas
+      logger.log('✅ Admin user - showing all communities');
+      filteredCommunities = communities;
+    } else if (isInstructor) {
+      // Instructores ven solo:
+      // 1. Comunidades que crearon (creator_id = user.id)
+      // 2. Comunidades donde son admin o moderator en community_members
+      logger.log('📚 Instructor user - filtering by creator/admin/moderator role');
+      
+      const adminOrModeratorCommunityIds = new Set(
+        memberships
+          ?.filter(m => m.role === 'admin' || m.role === 'moderator')
+          .map(m => m.community_id) || []
+      );
+
+      filteredCommunities = communities.filter(community => {
+        // Verificar si es el creador (puede ser null si no hay creador asignado)
+        const isCreator = community.creator_id && community.creator_id === user.id;
+        // Verificar si es admin o moderator en la comunidad
+        const isAdminOrModerator = adminOrModeratorCommunityIds.has(community.id);
+        return isCreator || isAdminOrModerator;
+      });
+
+      logger.log(`📊 Instructor can see ${filteredCommunities.length} of ${communities.length} communities`);
+    } else {
+      // Usuarios normales ven solo comunidades públicas
+      logger.log('👤 Regular user - showing public communities only');
+      filteredCommunities = communities.filter(
+        community => community.visibility === 'public'
+      );
+    }
+
     // Enriquecer comunidades con información del usuario
-    const enrichedCommunities = communities?.map(community => ({
+    const enrichedCommunities = filteredCommunities.map(community => ({
       ...community,
       is_member: membershipMap.has(community.id),
       has_pending_request: pendingRequestsMap.has(community.id),
       user_role: membershipMap.get(community.id) || null
-    })) || [];
+    }));
 
-    logger.log('✅ Returning enriched communities:', enrichedCommunities.length);
+    logger.log(`✅ Returning ${enrichedCommunities.length} enriched communities for ${userRole}`);
 
     // Importar utilidades de cache
     const { withCache, privateCache } = await import('../../../core/utils/cache-headers');
@@ -109,8 +207,33 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     logger.error('❌ Error in communities API:', error);
+    
+    // Si es un error conocido, devolver información más específica
+    if (error instanceof Error) {
+      // Si el error es sobre variables de entorno faltantes, ya lo manejamos arriba
+      if (error.message.includes('Variables de entorno')) {
+        return NextResponse.json(
+          { 
+            error: 'Error de configuración',
+            message: error.message
+          },
+          { status: 500 }
+        );
+      }
+      
+      // Para otros errores, devolver mensaje genérico pero con logging detallado
+      logger.error('❌ Unexpected error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: 'Error interno del servidor',
+        message: 'Ocurrió un error inesperado al obtener las comunidades'
+      },
       { status: 500 }
     );
   }

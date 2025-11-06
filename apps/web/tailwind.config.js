@@ -12,7 +12,13 @@ module.exports = {
         primary: 'var(--color-primary)',
         secondary: 'var(--color-secondary)',
         accent: 'var(--color-accent)',
-        carbon: 'var(--color-bg-dark)', // Carbón Digital
+        carbon: {
+          DEFAULT: '#0f172a', // Carbón Digital base
+          700: '#334155',      // var(--color-gray-700)
+          800: '#1e293b',      // var(--color-gray-800)
+          900: '#0f172a',      // var(--color-bg-dark)
+          950: '#020617',      // var(--color-gray-950)
+        },
         surface: 'rgba(15, 20, 25, 0.8)', // Superficie con transparencia
         border: 'rgba(255, 255, 255, 0.1)',
         

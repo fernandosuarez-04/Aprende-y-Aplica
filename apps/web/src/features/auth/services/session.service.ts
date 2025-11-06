@@ -53,6 +53,18 @@ export class SessionService {
         refreshExpiresAt: sessionInfo.refreshExpiresAt
       });
 
+      // Crear notificación de inicio de sesión exitoso
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        await AutoNotificationsService.notifyLoginSuccess(userId, ip, userAgent, {
+          rememberMe,
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        logger.error('Error creando notificación de inicio de sesión:', notificationError)
+      }
+
       // Mantener compatibilidad con sistema legacy (user_session)
       // Esto permite una migración gradual y rollback si es necesario
       logger.debug('Creando sesión legacy para compatibilidad');
@@ -236,7 +248,7 @@ export class SessionService {
       const supabase = await createClient();
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned')
+        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name')
         .eq('id', userId)
         .single();
 

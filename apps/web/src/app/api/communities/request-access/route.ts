@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 
-    if (community.access_type === 'free') {
+    // Solo permitir solicitudes si el tipo de acceso requiere aprobación
+    // Los valores permitidos son: 'open', 'closed', 'invite_only', 'request'
+    // Solo 'request' requiere solicitud explícita, pero también aceptamos 'closed' e 'invite_only'
+    if (community.access_type === 'open') {
       return NextResponse.json({ 
         error: 'Esta comunidad permite unirse directamente' 
       }, { status: 400 });
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear solicitud de acceso
-    const { error: createRequestError } = await supabase
+    const { data: newRequest, error: createRequestError } = await supabase
       .from('community_access_requests')
       .insert({
         community_id: communityId,
@@ -85,11 +88,66 @@ export async function POST(request: NextRequest) {
         status: 'pending',
         note: note || null,
         created_at: new Date().toISOString()
-      });
+      })
+      .select()
+      .single();
 
-    if (createRequestError) {
+    if (createRequestError || !newRequest) {
       logger.error('Error creating access request:', createRequestError);
       return NextResponse.json({ error: 'Error al crear solicitud de acceso' }, { status: 500 });
+    }
+
+    // Crear notificaciones solo para usuarios autorizados (Administradores e Instructores que pueden gestionar)
+    try {
+      const { getUsersToNotifyForAccessRequest } = await import('../../../../lib/auth/communityPermissions');
+      const { NotificationService } = await import('../../../../features/notifications/services/notification.service');
+
+      const userIdsToNotify = await getUsersToNotifyForAccessRequest(communityId);
+      
+      logger.info(`📬 Creando notificaciones para ${userIdsToNotify.length} usuarios autorizados`);
+      
+      // Si no hay usuarios para notificar, registrar un warning pero continuar
+      if (userIdsToNotify.length === 0) {
+        logger.warn(`⚠️ No hay usuarios autorizados para notificar sobre la solicitud de acceso a la comunidad ${communityId}`);
+      } else {
+        // Obtener información del solicitante para la notificación
+        const requesterName = user.display_name || user.first_name || user.username || 'Un usuario';
+        
+        // Crear notificaciones para cada usuario autorizado
+        let notificationsCreated = 0;
+        for (const userId of userIdsToNotify) {
+          try {
+            await NotificationService.createNotification({
+              userId,
+              notificationType: 'community_access_request',
+              title: 'Nueva solicitud de acceso a comunidad',
+              message: `${requesterName} ha solicitado acceso a la comunidad "${community.name}"`,
+              metadata: {
+                community_id: communityId,
+                community_name: community.name,
+                request_id: newRequest.id,
+                requester_id: user.id,
+                requester_name: requesterName,
+                timestamp: new Date().toISOString()
+              },
+              priority: 'medium'
+            });
+            notificationsCreated++;
+          } catch (userNotificationError) {
+            logger.error(`Error creating notification for user ${userId}:`, userNotificationError);
+            // Continuar con el siguiente usuario aunque falle uno
+          }
+        }
+        
+        logger.info(`✅ Notificaciones creadas: ${notificationsCreated}/${userIdsToNotify.length}`);
+      }
+    } catch (notificationError) {
+      // No fallar la operación si hay error en notificaciones, pero registrar el error
+      logger.error('Error creating notifications for access request:', notificationError);
+      // Log del stack trace si está disponible
+      if (notificationError instanceof Error) {
+        logger.error('Notification error stack:', notificationError.stack);
+      }
     }
 
     return NextResponse.json({

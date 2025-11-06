@@ -103,7 +103,7 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
 
         {/* Pricing Tiers Grid */}
         <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
@@ -115,7 +115,7 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
               variants={staggerItem}
               whileHover={{ y: -8, scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 300 }}
-              className={`relative ${tier.isPopular ? 'lg:-mt-8 lg:mb-8' : ''}`}
+              className={`relative h-full flex flex-col ${tier.isPopular ? 'lg:-mt-8 lg:mb-8' : ''}`}
             >
               {tier.isPopular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30">
@@ -126,7 +126,7 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
               )}
               <Card 
                 variant={tier.isPopular ? 'default' : 'glassmorphism'}
-                className={`h-full relative overflow-visible transition-all duration-300 ${
+                className={`h-full relative overflow-visible transition-all duration-300 flex flex-col ${
                   tier.isPopular 
                     ? 'border-primary border-2 shadow-2xl shadow-primary/20' 
                     : 'hover:border-primary/50 hover:shadow-xl'
@@ -149,7 +149,7 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
                     </motion.div>
                   </>
                 )}
-                <CardContent className="p-8">
+                <CardContent className="p-8 flex flex-col flex-1 h-full min-h-0">
                   {/* Header */}
                   <div className="text-center mb-8">
                     <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
@@ -179,8 +179,8 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
                     </div>
                   </div>
 
-                  {/* Features */}
-                  <ul className="space-y-4 mb-8">
+                  {/* Features - con flex-grow para ocupar el espacio disponible */}
+                  <ul className="space-y-4 mb-8 flex-grow">
                     {tier.features.map((feature, idx) => (
                       <motion.li 
                         key={idx} 
@@ -198,8 +198,8 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
                     ))}
                   </ul>
 
-                  {/* CTA */}
-                  <Link href="/auth?type=business" className="block">
+                  {/* CTA - siempre al final gracias a flex-grow en features */}
+                  <Link href="/auth?type=business" className="block mt-auto">
                     <Button
                       variant={tier.isPopular ? 'gradient' : 'outline'}
                       className="w-full group"

@@ -6,9 +6,7 @@ import {
   ArrowLeft, 
   Calendar, 
   Eye, 
-  MessageCircle, 
   Share2, 
-  Bookmark,
   ExternalLink,
   TrendingUp,
   Users,
@@ -178,35 +176,86 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
     return <p className="text-text-primary leading-relaxed">{String(sections)}</p>
   }
 
+  const isValidUrl = (urlString: string) => {
+    try {
+      new URL(urlString)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const renderLinks = (links: any) => {
     if (!links) return null
 
     if (Array.isArray(links)) {
+      const validLinks = links.filter(link => {
+        const url = typeof link === 'string' ? link : link?.url
+        return url && isValidUrl(url)
+      })
+
+      if (validLinks.length === 0) {
+        return (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-sm text-yellow-400">
+              No hay enlaces válidos disponibles en este momento.
+            </p>
+          </div>
+        )
+      }
+
       return (
         <div className="space-y-3">
-          {links.map((link, index) => (
-            <a
-              key={index}
-              href={typeof link === 'string' ? link : link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
-            >
-              <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-text-primary group-hover:text-primary transition-colors">
-                {typeof link === 'string' ? link : link.title || link.url}
-              </span>
-              <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto" />
-            </a>
-          ))}
+          {validLinks.map((link, index) => {
+            const url = typeof link === 'string' ? link : link.url
+            const title = typeof link === 'string' ? link : link.title || link.url
+
+            return (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
+                onClick={(e) => {
+                  // Verificar que el enlace funcione antes de abrirlo
+                  if (!isValidUrl(url)) {
+                    e.preventDefault()
+                    alert('Este enlace no es válido o está roto')
+                  }
+                }}
+              >
+                <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-text-primary group-hover:text-primary transition-colors truncate">
+                  {title}
+                </span>
+                <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto flex-shrink-0" />
+              </a>
+            )
+          })}
         </div>
       )
     }
 
     if (typeof links === 'object') {
+      const validEntries = Object.entries(links).filter(([_, value]) => {
+        const url = String(value)
+        return isValidUrl(url)
+      })
+
+      if (validEntries.length === 0) {
+        return (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-sm text-yellow-400">
+              No hay enlaces válidos disponibles en este momento.
+            </p>
+          </div>
+        )
+      }
+
       return (
         <div className="space-y-3">
-          {Object.entries(links).map(([key, value]) => (
+          {validEntries.map(([key, value]) => (
             <a
               key={key}
               href={String(value)}
@@ -215,17 +264,28 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
               className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
             >
               <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-text-primary group-hover:text-primary transition-colors">{key}</span>
-              <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto" />
+              <span className="text-text-primary group-hover:text-primary transition-colors truncate">{key}</span>
+              <ExternalLink className="w-4 h-4 text-text-tertiary ml-auto flex-shrink-0" />
             </a>
           ))}
         </div>
       )
     }
 
+    const linkUrl = String(links)
+    if (!isValidUrl(linkUrl)) {
+      return (
+        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+          <p className="text-sm text-yellow-400">
+            El enlace proporcionado no es válido.
+          </p>
+        </div>
+      )
+    }
+
     return (
       <a
-        href={String(links)}
+        href={linkUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-3 p-3 bg-carbon-800/50 rounded-lg hover:bg-carbon-700/50 transition-colors group"
@@ -291,9 +351,6 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
               >
                 <Share2 className="w-5 h-5" />
               </button>
-              <button className="p-2 text-text-secondary hover:text-text-primary transition-colors">
-                <Bookmark className="w-5 h-5" />
-              </button>
             </div>
           </div>
         </div>
@@ -343,10 +400,6 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                 <div className="flex items-center gap-1">
                   <Eye className="w-4 h-4" />
                   <span>{news.view_count || 0} vistas</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{news.comment_count || 0} comentarios</span>
                 </div>
               </div>
 
