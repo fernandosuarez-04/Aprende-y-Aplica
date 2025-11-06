@@ -10,6 +10,61 @@ async function getJsPDF() {
   return jsPDF
 }
 
+/**
+ * Dibuja un círculo usando métodos básicos de jsPDF (compatible estándar)
+ */
+function drawCircle(doc: any, x: number, y: number, radius: number, style: 'F' | 'D' | 'FD' = 'FD') {
+  try {
+    // Intentar usar ellipse si está disponible (jsPDF 2.x+)
+    if (typeof doc.ellipse === 'function') {
+      doc.ellipse(x, y, radius, radius, style)
+      return
+    }
+  } catch (e) {
+    // Continuar con método alternativo
+  }
+  
+  // Método alternativo: dibujar círculo usando polígono (múltiples lados para simular círculo)
+  const sides = 64 // Más lados = más circular
+  const step = (2 * Math.PI) / sides
+  const points: Array<[number, number]> = []
+  
+  for (let i = 0; i <= sides; i++) {
+    const angle = i * step
+    points.push([x + radius * Math.cos(angle), y + radius * Math.sin(angle)])
+  }
+  
+  // Dibujar contorno del polígono
+  if (style.includes('D')) {
+    for (let i = 0; i < points.length - 1; i++) {
+      doc.line(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1])
+    }
+  }
+  
+  // Rellenar: dibujar círculos concéntricos más pequeños
+  if (style.includes('F')) {
+    const fillSteps = Math.ceil(radius)
+    for (let r = radius; r > 0; r -= 0.3) {
+      const currentPoints: Array<[number, number]> = []
+      for (let i = 0; i <= sides; i++) {
+        const angle = i * step
+        currentPoints.push([x + r * Math.cos(angle), y + r * Math.sin(angle)])
+      }
+      for (let i = 0; i < currentPoints.length - 1; i++) {
+        doc.line(currentPoints[i][0], currentPoints[i][1], currentPoints[i + 1][0], currentPoints[i + 1][1])
+      }
+    }
+  }
+}
+
+/**
+ * Versión simplificada: dibuja un círculo pequeño (punto decorativo)
+ */
+function drawCircleSimple(doc: any, x: number, y: number, radius: number) {
+  // Para círculos pequeños, usar un rectángulo pequeño como aproximación
+  doc.rect(x - radius, y - radius, radius * 2, radius * 2, 'F')
+}
+
 interface GenerateCertificateParams {
   userId: string
   courseId: string
@@ -146,68 +201,196 @@ export class CertificateService {
       format: [297, 210] // A4 landscape
     })
 
-    // Configuración de colores
-    const primaryColor = [59, 130, 246] // blue-500
-    const textColor = [31, 41, 55] // gray-800
-    const borderColor = [229, 231, 235] // gray-200
+    // Configuración de colores mejorados
+    const primaryColor = [37, 99, 235] // blue-600 - más vibrante
+    const secondaryColor = [59, 130, 246] // blue-500 - para acentos
+    const accentColor = [99, 102, 241] // indigo-500 - para decoraciones
+    const textColor = [30, 41, 59] // slate-800 - más oscuro para mejor contraste
+    const lightGray = [241, 245, 249] // slate-100 - para fondos sutiles
+    const borderColor = [203, 213, 225] // slate-300 - bordes
 
-    // Fondo con borde decorativo
+    // Fondo con gradiente simulado (usando rectángulos)
+    doc.setFillColor(...lightGray)
+    doc.rect(0, 0, 297, 210, 'F')
+
+    // Borde exterior decorativo (más grueso y elegante)
+    doc.setDrawColor(...primaryColor)
+    doc.setLineWidth(3)
+    doc.rect(8, 8, 281, 194)
+
+    // Borde medio con patrón decorativo
     doc.setDrawColor(...borderColor)
+    doc.setLineWidth(1.5)
+    doc.rect(12, 12, 273, 186)
+
+    // Borde interno fino
+    doc.setDrawColor(...accentColor)
+    doc.setLineWidth(0.5)
+    doc.rect(16, 16, 265, 178)
+
+    // Decoraciones en las esquinas (ornamentos simples)
+    const cornerSize = 15
+    const cornerOffset = 20
+    
+    // Esquina superior izquierda
+    doc.setDrawColor(...primaryColor)
     doc.setLineWidth(2)
-    doc.rect(10, 10, 277, 190)
+    doc.line(cornerOffset, cornerOffset, cornerOffset + cornerSize, cornerOffset)
+    doc.line(cornerOffset, cornerOffset, cornerOffset, cornerOffset + cornerSize)
+    
+    // Esquina superior derecha
+    doc.line(297 - cornerOffset - cornerSize, cornerOffset, 297 - cornerOffset, cornerOffset)
+    doc.line(297 - cornerOffset, cornerOffset, 297 - cornerOffset, cornerOffset + cornerSize)
+    
+    // Esquina inferior izquierda
+    doc.line(cornerOffset, 210 - cornerOffset, cornerOffset + cornerSize, 210 - cornerOffset)
+    doc.line(cornerOffset, 210 - cornerOffset - cornerSize, cornerOffset, 210 - cornerOffset)
+    
+    // Esquina inferior derecha
+    doc.line(297 - cornerOffset - cornerSize, 210 - cornerOffset, 297 - cornerOffset, 210 - cornerOffset)
+    doc.line(297 - cornerOffset, 210 - cornerOffset - cornerSize, 297 - cornerOffset, 210 - cornerOffset)
 
-    // Borde interno más fino
+    // Líneas decorativas horizontales superiores
+    doc.setDrawColor(...accentColor)
     doc.setLineWidth(0.5)
-    doc.rect(15, 15, 267, 180)
+    doc.line(50, 35, 247, 35)
+    doc.line(55, 38, 242, 38)
 
-    // Título principal
-    doc.setFontSize(48)
+    // Sello decorativo circular (simulado con círculo y texto)
+    const sealX = 148.5
+    const sealY = 180
+    const sealRadius = 12
+    
+    doc.setDrawColor(...primaryColor)
+    doc.setFillColor(...lightGray)
+    doc.setLineWidth(2)
+    // Dibujar círculo usando función auxiliar
+    drawCircle(doc, sealX, sealY, sealRadius, 'FD')
+    
+    doc.setFontSize(8)
     doc.setTextColor(...primaryColor)
     doc.setFont('helvetica', 'bold')
-    doc.text('CERTIFICADO', 148.5, 50, { align: 'center' })
+    doc.text('APRENDE', sealX, sealY - 3, { align: 'center' })
+    doc.text('Y APLICA', sealX, sealY + 1, { align: 'center' })
+    doc.text('✓', sealX, sealY + 5, { align: 'center' })
 
-    // Texto de certificación
-    doc.setFontSize(16)
-    doc.setTextColor(...textColor)
-    doc.setFont('helvetica', 'normal')
-    doc.text('Este certificado acredita que', 148.5, 70, { align: 'center' })
-
-    // Nombre del estudiante
-    doc.setFontSize(28)
+    // Título principal con sombra simulada
+    doc.setFontSize(52)
     doc.setTextColor(...primaryColor)
     doc.setFont('helvetica', 'bold')
-    doc.text(userName.toUpperCase(), 148.5, 95, { align: 'center', maxWidth: 250 })
+    doc.text('CERTIFICADO', 148.5, 52, { align: 'center' })
+    
+    // Sombra del título (texto duplicado con offset)
+    doc.setFontSize(52)
+    doc.setTextColor(200, 200, 200)
+    doc.text('CERTIFICADO', 149, 52.5, { align: 'center' })
 
-    // Texto intermedio
-    doc.setFontSize(16)
-    doc.setTextColor(...textColor)
-    doc.setFont('helvetica', 'normal')
-    doc.text('ha completado exitosamente el curso', 148.5, 115, { align: 'center' })
+    // Línea decorativa bajo el título
+    doc.setDrawColor(...secondaryColor)
+    doc.setLineWidth(1)
+    doc.line(60, 58, 237, 58)
+    
+    // Puntos decorativos
+    doc.setFillColor(...secondaryColor)
+    drawCircleSimple(doc, 65, 58, 1.5)
+    drawCircleSimple(doc, 232, 58, 1.5)
 
-    // Nombre del curso
-    doc.setFontSize(24)
-    doc.setTextColor(...primaryColor)
-    doc.setFont('helvetica', 'bold')
-    doc.text(courseTitle, 148.5, 135, { align: 'center', maxWidth: 250 })
-
-    // Línea de separación
-    doc.setDrawColor(...borderColor)
-    doc.setLineWidth(0.5)
-    doc.line(50, 150, 247, 150)
-
-    // Instructor
+    // Texto de certificación con mejor espaciado
     doc.setFontSize(14)
     doc.setTextColor(...textColor)
-    doc.setFont('helvetica', 'normal')
-    doc.text('Instructor:', 60, 165)
-    doc.setFont('helvetica', 'bold')
-    doc.text(instructorName, 60, 175)
+    doc.setFont('helvetica', 'italic')
+    doc.text('Este certificado acredita que', 148.5, 72, { align: 'center' })
 
-    // Fecha
-    doc.setFont('helvetica', 'normal')
-    doc.text('Fecha de emisión:', 180, 165)
+    // Nombre del estudiante con mejor presentación
+    doc.setFontSize(32)
+    doc.setTextColor(...primaryColor)
     doc.setFont('helvetica', 'bold')
-    doc.text(issueDate, 180, 175)
+    
+    // Líneas decorativas alrededor del nombre
+    doc.setDrawColor(...accentColor)
+    doc.setLineWidth(0.5)
+    doc.line(40, 85, 257, 85)
+    doc.line(40, 105, 257, 105)
+    
+    doc.text(userName.toUpperCase(), 148.5, 97, { align: 'center', maxWidth: 220 })
+
+    // Texto intermedio
+    doc.setFontSize(14)
+    doc.setTextColor(...textColor)
+    doc.setFont('helvetica', 'italic')
+    doc.text('ha completado exitosamente el curso', 148.5, 115, { align: 'center' })
+
+    // Nombre del curso con mejor formato
+    doc.setFontSize(22)
+    doc.setTextColor(...primaryColor)
+    doc.setFont('helvetica', 'bold')
+    
+    // Fondo sutil para el nombre del curso (rectángulo simple con bordes redondeados simulados)
+    doc.setFillColor(255, 255, 255)
+    doc.setDrawColor(...lightGray)
+    doc.setLineWidth(0.5)
+    doc.rect(40, 123, 217, 15, 'FD')
+    
+    doc.text(courseTitle, 148.5, 133, { align: 'center', maxWidth: 210 })
+
+    // Línea de separación decorativa
+    doc.setDrawColor(...secondaryColor)
+    doc.setLineWidth(1)
+    doc.line(50, 145, 100, 145)
+    doc.line(197, 145, 247, 145)
+    
+    // Ornamentos en los extremos
+    doc.setFillColor(...accentColor)
+    drawCircleSimple(doc, 52, 145, 1.5)
+    drawCircleSimple(doc, 98, 145, 1.5)
+    drawCircleSimple(doc, 199, 145, 1.5)
+    drawCircleSimple(doc, 245, 145, 1.5)
+
+    // Sección de información inferior con mejor diseño
+    const infoY = 160
+    
+    // Fondo para información del instructor
+    doc.setFillColor(255, 255, 255)
+    doc.setDrawColor(...borderColor)
+    doc.setLineWidth(0.5)
+    doc.rect(30, infoY, 110, 25, 'FD')
+    
+    // Fondo para información de fecha
+    doc.rect(157, infoY, 110, 25, 'FD')
+
+    // Instructor con mejor formato
+    doc.setFontSize(11)
+    doc.setTextColor(...textColor)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Instructor del Curso', 85, infoY + 6, { align: 'center' })
+    
+    doc.setFontSize(13)
+    doc.setTextColor(...primaryColor)
+    doc.setFont('helvetica', 'bold')
+    doc.text(instructorName, 85, infoY + 15, { align: 'center', maxWidth: 100 })
+
+    // Fecha con mejor formato
+    doc.setFontSize(11)
+    doc.setTextColor(...textColor)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Fecha de Emisión', 212, infoY + 6, { align: 'center' })
+    
+    doc.setFontSize(13)
+    doc.setTextColor(...primaryColor)
+    doc.setFont('helvetica', 'bold')
+    doc.text(issueDate, 212, infoY + 15, { align: 'center', maxWidth: 100 })
+
+    // Líneas decorativas inferiores
+    doc.setDrawColor(...accentColor)
+    doc.setLineWidth(0.5)
+    doc.line(50, 195, 247, 195)
+    doc.line(55, 198, 242, 198)
+
+    // Texto de autenticación en la parte inferior
+    doc.setFontSize(9)
+    doc.setTextColor(100, 100, 100)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Este certificado puede ser verificado mediante su código único', 148.5, 202, { align: 'center' })
 
     // Convertir a Buffer
     const pdfOutput = doc.output('arraybuffer')
