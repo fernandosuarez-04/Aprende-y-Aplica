@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { createClient } from './supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Tipos
 export interface AIModerationResult {
@@ -319,10 +319,10 @@ export async function logAIModerationAnalysis(
   contentType: 'post' | 'comment',
   contentId: string | null,
   content: string,
-  result: AIModerationResult
+  result: AIModerationResult,
+  supabase: SupabaseClient
 ): Promise<void> {
   try {
-    const supabase = await createClient();
     
     const { error } = await (supabase as any).rpc('register_ai_moderation_analysis', {
       p_user_id: userId,

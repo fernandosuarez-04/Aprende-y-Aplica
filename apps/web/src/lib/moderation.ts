@@ -1,4 +1,4 @@
-import { createClient } from './supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ForbiddenContentResult {
   contains: boolean;
@@ -14,8 +14,10 @@ export interface WarningResult {
 /**
  * Verifica si un texto contiene palabras prohibidas
  */
-export async function containsForbiddenContent(text: string): Promise<ForbiddenContentResult> {
-  const supabase = await createClient();
+export async function containsForbiddenContent(
+  text: string,
+  supabase: SupabaseClient
+): Promise<ForbiddenContentResult> {
   
   try {
     const { data, error } = await supabase.rpc('contains_forbidden_content', {
@@ -45,9 +47,9 @@ export async function registerWarning(
   userId: string,
   content: string,
   contentType: 'post' | 'comment',
+  supabase: SupabaseClient,
   contentId?: string
 ): Promise<WarningResult> {
-  const supabase = await createClient();
   
   try {
     const { data, error } = await supabase.rpc('register_user_warning', {
@@ -77,8 +79,10 @@ export async function registerWarning(
 /**
  * Verifica si un usuario está baneado
  */
-export async function isUserBanned(userId: string): Promise<boolean> {
-  const supabase = await createClient();
+export async function isUserBanned(
+  userId: string,
+  supabase: SupabaseClient
+): Promise<boolean> {
   
   try {
     const { data, error } = await supabase.rpc('is_user_banned', {
@@ -100,8 +104,10 @@ export async function isUserBanned(userId: string): Promise<boolean> {
 /**
  * Obtiene el historial de advertencias de un usuario
  */
-export async function getUserWarningHistory(userId: string) {
-  const supabase = await createClient();
+export async function getUserWarningHistory(
+  userId: string,
+  supabase: SupabaseClient
+) {
   
   try {
     const { data, error } = await supabase.rpc('get_user_warning_history', {
@@ -123,8 +129,10 @@ export async function getUserWarningHistory(userId: string) {
 /**
  * Obtiene el conteo de advertencias de un usuario
  */
-export async function getUserWarningsCount(userId: string): Promise<number> {
-  const supabase = await createClient();
+export async function getUserWarningsCount(
+  userId: string,
+  supabase: SupabaseClient
+): Promise<number> {
   
   try {
     const { data, error } = await supabase.rpc('get_user_warnings_count', {

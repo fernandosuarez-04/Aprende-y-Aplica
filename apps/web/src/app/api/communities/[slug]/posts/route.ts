@@ -200,14 +200,15 @@ export async function POST(
 
     // ⭐ MODERACIÓN CAPA 1: Verificar si contiene palabras prohibidas
     const { containsForbiddenContent, registerWarning, getUserWarningsCount } = await import('../../../../../lib/moderation');
-    const forbiddenCheck = await containsForbiddenContent(content);
+    const forbiddenCheck = await containsForbiddenContent(content, supabase);
 
     if (forbiddenCheck.contains) {
       try {
         const warningResult = await registerWarning(
           user.id,
           content,
-          'post'
+          'post',
+          supabase
         );
         
         // Si el usuario fue baneado
@@ -348,7 +349,7 @@ export async function POST(
         const aiResult = await analyzeContentWithAI(content, {
           contentType: 'post',
           userId: user.id,
-          previousWarnings: await getUserWarningsCount(user.id),
+          previousWarnings: await getUserWarningsCount(user.id, supabase),
         });
         
         logger.log('🤖 AI Analysis Result:', {
@@ -365,7 +366,8 @@ export async function POST(
           'post',
           newPost.id,
           content,
-          aiResult
+          aiResult,
+          supabase
         );
         
         // Si la IA detectó contenido inapropiado
@@ -388,7 +390,8 @@ export async function POST(
           const warningResult = await registerWarning(
             user.id,
             content,
-            'post'
+            'post',
+            supabase
           );
           
           logger.log('⚠️ Warning registered for user:', {

@@ -83,7 +83,7 @@ export default function AIModerationPanel() {
         // Registrar advertencia
         const { registerWarning } = await import('@/lib/moderation');
         try {
-          await registerWarning(item.user_id, item.content_preview, item.content_type as 'post' | 'comment');
+          await registerWarning(item.user_id, item.content_preview, item.content_type as 'post' | 'comment', supabase);
         } catch (error) {
           console.error('Error registering warning:', error);
         }
