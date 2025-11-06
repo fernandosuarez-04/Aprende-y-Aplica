@@ -2918,7 +2918,7 @@ function FormattedContentRenderer({ content }: { content: any }) {
   });
 
   return (
-    <div className="bg-gray-100 dark:bg-carbon-800/50 rounded-lg p-8 md:p-10 border border-gray-200 dark:border-carbon-600/50 shadow-lg">
+    <div className="bg-gray-100 dark:bg-carbon-800 rounded-lg p-8 md:p-10 border border-gray-200 dark:border-carbon-600 shadow-lg">
       <article className="prose dark:prose-invert max-w-none">
         <div className="text-gray-800 dark:text-slate-200 leading-relaxed space-y-6">
           {formattedContent.map((item, index) => {
@@ -3173,8 +3173,8 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border-2 border-gray-300 dark:border-carbon-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
           </div>
           <p className="text-gray-600 dark:text-slate-400">Cargando actividades...</p>
@@ -3191,8 +3191,8 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
         
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border-2 border-gray-300 dark:border-carbon-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400" />
       </div>
           <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Actividades no disponibles</h3>
@@ -3217,9 +3217,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
 
       {/* Actividades */}
       {hasActivities && (
-        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden">
           {/* Header de actividades */}
-          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-800 px-6 py-4 border-b border-gray-200 dark:border-carbon-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Activity className="w-5 h-5 text-blue-400" />
@@ -3236,7 +3236,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
             {activities.map((activity) => (
               <div
                 key={activity.activity_id}
-                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
+                className="bg-gray-50 dark:bg-carbon-800 rounded-lg p-5 border border-gray-200 dark:border-carbon-600"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -3295,7 +3295,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-carbon-800/50 rounded-lg p-4 mb-3">
+                  <div className="bg-carbon-800/50 dark:bg-carbon-800 rounded-lg p-4 mb-3">
                   {activity.activity_type === 'quiz' && (() => {
                     try {
                       // Intentar parsear el contenido como JSON si es un quiz
@@ -3347,7 +3347,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                           <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
                           <details className="mb-4">
                             <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-900 rounded overflow-auto">
+                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-800 rounded overflow-auto">
                               {typeof activity.activity_content === 'string'
                                 ? activity.activity_content
                                 : JSON.stringify(activity.activity_content, null, 2)}
@@ -3390,9 +3390,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
 
       {/* Materiales */}
       {hasMaterials && (
-        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden">
           {/* Header de materiales */}
-          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-800 px-6 py-4 border-b border-gray-200 dark:border-carbon-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5 text-green-400" />
