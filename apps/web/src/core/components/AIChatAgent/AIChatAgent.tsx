@@ -95,6 +95,11 @@ export function AIChatAgent({
     }
   ]);
 
+  // Debug: Log estado isOpen
+  useEffect(() => {
+    console.log('🔵 Estado isOpen cambió:', isOpen);
+  }, [isOpen]);
+
   // Estado para posición arrastrable
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -429,13 +434,19 @@ export function AIChatAgent({
   };
 
   const handleToggle = (e?: React.MouseEvent) => {
-    // Si se está arrastrando o se movió el mouse, no ejecutar el toggle
-    if (isDragging || hasMoved.current) {
-      return;
-    }
     if (e) {
       e.stopPropagation();
+      e.preventDefault();
     }
+    
+    // Si se está arrastrando o se movió el mouse, no ejecutar el toggle
+    if (isDragging || hasMoved.current) {
+      console.log('⚠️ Click ignorado - se detectó arrastre');
+      return;
+    }
+    
+    console.log('🖱️ Toggle ejecutado - isOpen:', isOpen, 'isMinimized:', isMinimized);
+    
     if (isOpen) {
       setIsMinimized(!isMinimized);
     } else {
@@ -450,103 +461,81 @@ export function AIChatAgent({
     setIsMinimized(false);
   };
 
-  // Botón flotante
-  if (!isOpen) {
-    return (
-      <motion.div
-        ref={containerRef}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ 
-          scale: 1, 
-          opacity: 1,
-          x: position.x || undefined,
-          y: position.y || undefined
-        }}
-        className={`fixed z-[9998] ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} ${position.x === 0 && position.y === 0 ? 'bottom-6 right-6' : ''}`}
-        style={{
-          ...(position.x === 0 && position.y === 0 && !isDragging
-            ? { right: '24px', bottom: '24px', left: 'auto', top: 'auto' }
-            : { left: `${position.x}px`, top: `${position.y}px`, right: 'auto', bottom: 'auto' })
-        }}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-      >
-        <motion.button
-          onClick={(e) => {
-            // Solo ejecutar toggle si no se arrastró
-            if (!hasMoved.current && !isDragging) {
-              handleToggle(e);
-            }
-          }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all pointer-events-auto"
-        >
-          {/* Efecto de pulso */}
-          <motion.div
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.7, 0, 0.7],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          
-          <div className="relative w-full h-full flex items-center justify-center">
-            <Bot className="w-8 h-8 text-white" />
-          </div>
-
-          {hasUnreadMessages && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full"
-            />
-          )}
-        </motion.button>
-      </motion.div>
-    );
-  }
-
-  // Widget del chat
+  // Renderizado del componente
+  console.log('🎨 AIChatAgent renderizando - isOpen:', isOpen, 'isMinimized:', isMinimized);
+  
   return (
-    <AnimatePresence>
-      <motion.div
-        ref={containerRef}
-        initial={{ scale: 0.8, opacity: 0, y: 20 }}
-        animate={{ 
-          scale: isMinimized ? 0.8 : 1, 
-          opacity: isMinimized ? 0 : 1,
-          x: position.x || undefined,
-          y: position.y || undefined,
-          height: isMinimized ? 80 : 600
-        }}
-        exit={{ scale: 0.8, opacity: 0, y: 20 }}
-        transition={{ duration: isDragging ? 0 : 0.3, ease: 'easeInOut' }}
-        className={`fixed w-96 max-w-[calc(100vw-3rem)] z-[9998] ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        style={{ 
-          height: isMinimized ? '80px' : '600px',
-          maxHeight: 'calc(100vh - 3rem)',
-          // Si nunca se ha arrastrado (posición inicial), usar right/bottom
-          // Si ya tiene posición personalizada o está arrastrando, usar left/top
-          ...(position.x === 0 && position.y === 0 && !isDragging
-            ? { right: '24px', bottom: '24px', left: 'auto', top: 'auto' }
-            : { left: `${position.x}px`, top: `${position.y}px`, right: 'auto', bottom: 'auto' })
-        }}
-      >
+    <>
+      {/* Botón flotante */}
+      {!isOpen && (
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+          className="fixed bottom-6 right-6 z-50"
+        >
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('🖱️ Botón flotante clickeado - abriendo chat');
+              setIsOpen(true);
+              setIsMinimized(false);
+              setHasUnreadMessages(false);
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer"
+          >
+            {/* Efecto de pulso */}
+            <motion.div
+              className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.7, 0, 0.7],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+            
+            <div className="relative w-full h-full flex items-center justify-center">
+              <Bot className="w-8 h-8 text-white" />
+            </div>
+
+            {hasUnreadMessages && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full"
+              />
+            )}
+          </motion.button>
+        </motion.div>
+      )}
+
+      {/* Widget del chat */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+            animate={{ 
+              scale: 1, 
+              opacity: 1,
+              y: 0
+            }}
+            exit={{ scale: 0.8, opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-3rem)] z-[99999]"
+          >
         <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
-          {/* Header con gradiente - Área de arrastre */}
+          {/* Header con gradiente */}
           <motion.div 
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden flex-shrink-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
           >
             {/* Efecto shimmer en el gradiente */}
             <motion.div
@@ -628,7 +617,7 @@ export function AIChatAgent({
           </motion.div>
 
           {/* Mensajes */}
-          {!isMinimized && (
+          {(
             <motion.div 
               className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain"
               initial={{ opacity: 0 }}
@@ -724,7 +713,7 @@ export function AIChatAgent({
           )}
 
           {/* Input */}
-          {!isMinimized && (
+          {(
             <motion.div 
               className="p-4 border-t border-gray-200 dark:border-carbon-700 bg-white dark:bg-[#0f0f0f] flex-shrink-0"
               initial={{ opacity: 0, y: 20 }}
@@ -787,7 +776,9 @@ export function AIChatAgent({
           )}
         </div>
       </motion.div>
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
