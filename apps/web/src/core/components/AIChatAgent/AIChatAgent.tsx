@@ -76,6 +76,16 @@ function extractPageContent(): {
   headings: string[];
   mainText: string;
 } {
+  // Verificar que estamos en el navegador (no SSR)
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return {
+      title: '',
+      metaDescription: '',
+      headings: [],
+      mainText: ''
+    };
+  }
+
   // Extraer el título de la página
   const title = document.title || '';
 
