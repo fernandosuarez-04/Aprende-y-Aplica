@@ -687,36 +687,36 @@ export const AIChatAgent = React.memo(function AIChatAgent({
                   className="flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border border-gray-300 dark:border-carbon-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner"
                 />
                 
-                {/* Botón de micrófono */}
+                {/* Botón dinámico: micrófono cuando está vacío, enviar cuando hay texto */}
                 <motion.button
-                  onClick={toggleRecording}
+                  onClick={() => {
+                    if (inputMessage.trim()) {
+                      // Si hay texto, enviar mensaje
+                      handleSendMessage();
+                    } else {
+                      // Si no hay texto, activar/desactivar grabación
+                      toggleRecording();
+                    }
+                  }}
+                  disabled={isTyping && inputMessage.trim()}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-                    isRecording
-                      ? 'bg-red-500 text-white'
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    inputMessage.trim()
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/50'
+                      : isRecording
+                      ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
                       : 'bg-gray-200 dark:bg-carbon-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-carbon-700'
-                  }`}
+                  } ${isTyping && inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {isRecording ? (
+                  {isTyping && inputMessage.trim() ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : inputMessage.trim() ? (
+                    <Send className="w-5 h-5" />
+                  ) : isRecording ? (
                     <MicOff className="w-5 h-5" />
                   ) : (
                     <Mic className="w-5 h-5" />
-                  )}
-                </motion.button>
-                
-                {/* Botón de enviar */}
-                <motion.button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isTyping}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isTyping ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
                   )}
                 </motion.button>
               </div>
@@ -725,7 +725,7 @@ export const AIChatAgent = React.memo(function AIChatAgent({
               <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 font-medium">
                 <span>Presiona Enter para enviar</span>
                 <span>•</span>
-                <span>Micrófono para dictar</span>
+                <span>{inputMessage.trim() ? 'Clic para enviar' : 'Clic para dictar'}</span>
               </div>
             </motion.div>
           )}

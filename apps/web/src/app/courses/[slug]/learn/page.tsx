@@ -38,11 +38,14 @@ import {
   Search,
   Maximize2,
   Minimize2,
-  Trash2
+  Trash2,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
 import { VideoPlayer } from '../../../../core/components/VideoPlayer';
+import { ExpandableText } from '../../../../core/components/ExpandableText';
 import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
 
@@ -85,8 +88,14 @@ export default function CourseLearnPage() {
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  
+  // Estado para detectar si estamos en móvil
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Inicializar paneles cerrados en móviles, abiertos en desktop
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+  
   const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
@@ -111,6 +120,7 @@ export default function CourseLearnPage() {
   
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
+  const [isLiaRecording, setIsLiaRecording] = useState(false);
   // Ref para hacer scroll automático al final de los mensajes de LIA
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
@@ -122,6 +132,38 @@ export default function CourseLearnPage() {
       setCurrentActivityPrompts([]);
     }
   }, [activeTab]);
+
+  // Detectar tamaño de pantalla y ajustar estado inicial de paneles
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768; // md breakpoint
+      setIsMobile(mobile);
+    };
+
+    // Verificar al montar
+    checkMobile();
+
+    // Escuchar cambios de tamaño de ventana
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []); // Solo ejecutar al montar
+
+  // Ajustar paneles cuando cambia isMobile
+  useEffect(() => {
+    if (isMobile) {
+      // En móvil, cerrar ambos paneles si están abiertos al iniciar
+      if (isLeftPanelOpen && isRightPanelOpen) {
+        setIsLeftPanelOpen(false);
+        setIsRightPanelOpen(false);
+      }
+    } else {
+      // En desktop, abrir ambos paneles si están cerrados
+      if (!isLeftPanelOpen && !isRightPanelOpen) {
+        setIsLeftPanelOpen(true);
+        setIsRightPanelOpen(true);
+      }
+    }
+  }, [isMobile]); // Solo cuando cambia isMobile
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -1030,104 +1072,130 @@ Antes de cada respuesta, pregúntate:
 
   return (
     <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
-      {/* Header superior con nueva estructura */}
+      {/* Header superior con nueva estructura - Responsive */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-2 shrink-0 relative z-40"
+        className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
       >
-        <div className="flex items-center justify-between w-full">
+        <div className="flex items-center justify-between w-full gap-2">
           {/* Sección izquierda: Botón regresar | Logo | Nombre del taller */}
-          <div className="flex items-center gap-3">
-        {/* Botón de regreso */}
-        <button
-          onClick={() => router.back()}
-              className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-        >
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            {/* Botón de regreso */}
+            <button
+              onClick={() => router.back()}
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+            >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
-        </button>
+            </button>
 
-            {/* Logo de la empresa */}
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-            <img 
-              src="/icono.png" 
-              alt="Aprende y Aplica" 
-              className="w-6 h-6 rounded"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  parent.innerHTML = '<div class="w-6 h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
-                }
-              }}
-            />
-          </div>
-
-            {/* Separador visual */}
-            <div className="w-px h-5 bg-gray-300 dark:bg-slate-600/50"></div>
-
-            {/* Nombre del taller */}
-          <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-white">{course.title || course.course_title}</h1>
-            <p className="text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
-          </div>
-        </div>
-
-          {/* Sección central: Progreso */}
-          <div className="flex items-center gap-3">
-            {/* Barra de progreso */}
-          <div className="flex items-center gap-2">
-              <div className="w-40 h-1.5 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${courseProgress}%` }}
-                transition={{ duration: 1 }}
-                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
+            {/* Logo de la empresa - Oculto en móviles muy pequeños */}
+            <div className="hidden sm:block w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
+              <img 
+                src="/icono.png" 
+                alt="Aprende y Aplica" 
+                className="w-5 h-5 md:w-6 md:h-6 rounded"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-5 h-5 md:w-6 md:h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
+                  }
+                }}
               />
             </div>
-              <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center">
+
+            {/* Separador visual - Oculto en móviles */}
+            <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-slate-600/50"></div>
+
+            {/* Nombre del taller */}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm md:text-base font-bold text-gray-900 dark:text-white truncate">
+                {course.title || course.course_title}
+              </h1>
+              <p className="hidden md:block text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
+            </div>
+          </div>
+
+          {/* Sección central: Progreso - Solo porcentaje compacto en móviles */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Barra de progreso - Oculto en móviles */}
+            <div className="hidden md:flex items-center gap-2">
+              <div className="w-32 lg:w-40 h-1.5 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${courseProgress}%` }}
+                  transition={{ duration: 1 }}
+                  className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
+                />
+              </div>
+            </div>
+            {/* Porcentaje compacto - Visible siempre */}
+            <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0">
               {courseProgress}%
             </span>
           </div>
-        </div>
 
-          {/* Sección derecha: Usuario */}
-        <div className="flex items-center gap-2">
-            {/* Menú de usuario */}
+          {/* Sección derecha: Usuario - Oculto en móviles */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <UserDropdown />
           </div>
         </div>
       </motion.div>
 
-      {/* Contenido principal - 3 paneles */}
-      <div className="flex-1 flex overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
-        {/* Panel Izquierdo - Material del Curso */}
+      {/* Contenido principal - 3 paneles - Responsive */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
+        {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
         <AnimatePresence>
           {isLeftPanelOpen && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 320, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col overflow-hidden shadow-xl my-2 ml-2 border border-gray-200 dark:border-slate-700/50"
-            >
-              {/* Header con línea separadora alineada con panel central */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-blue-400" />
+            <>
+              {/* Overlay oscuro en móvil */}
+              {isMobile && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsLeftPanelOpen(false)}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                />
+              )}
+              
+              <motion.div
+                initial={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
+                animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
+                exit={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className={`
+                  ${isMobile 
+                    ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none' 
+                    : 'relative'
+                  }
+                  bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col overflow-hidden shadow-xl 
+                  ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
+                  border border-gray-200 dark:border-slate-700/50
+                `}
+              >
+                {/* Header con línea separadora alineada con panel central */}
+                <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-blue-400" />
                     Material del Curso
                   </h2>
                   <button
                     onClick={() => setIsLeftPanelOpen(false)}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                   >
-                    <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    {isMobile ? (
+                      <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    ) : (
+                      <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    )}
                   </button>
                 </div>
 
               {/* Contenido con scroll */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
                 {/* Sección de Material del Curso */}
                 <div className="mb-8">
                   {/* Header de Contenido con botón de colapsar */}
@@ -1381,12 +1449,13 @@ Antes de cada respuesta, pregúntate:
                 </div>
               </div>
             </motion.div>
+            </>
           )}
         </AnimatePresence>
 
-        {/* Barra vertical para abrir panel izquierdo */}
+        {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
         {!isLeftPanelOpen && (
-          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
               <button
                 onClick={() => {
@@ -1463,7 +1532,7 @@ Antes de cada respuesta, pregúntate:
         )}
 
         {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-2 mx-2 border-2 border-gray-300 dark:border-slate-700/50">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-gray-300 dark:border-slate-700/50">
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -1476,21 +1545,21 @@ Antes de cada respuesta, pregúntate:
             </div>
           ) : currentLesson ? (
             <>
-              {/* Tabs mejorados */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-2 p-3 rounded-t-lg h-[56px] items-center">
+              {/* Tabs mejorados - Responsive */}
+              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-lg h-[56px] items-center overflow-x-auto scrollbar-hide">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
-                  const shouldHideText = isLiaExpanded && !isActive;
+                  const shouldHideText = isLiaExpanded && !isActive && !isMobile;
 
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center rounded-xl transition-all duration-200 relative group ${
+                      className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
                         shouldHideText
                           ? 'px-2 py-2 hover:px-3 hover:gap-2'
-                          : 'px-4 py-2 gap-2'
+                          : 'px-3 md:px-4 py-2 gap-1 md:gap-2'
                       } ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
@@ -1499,7 +1568,7 @@ Antes de cada respuesta, pregúntate:
                     >
                       <Icon className="w-4 h-4 shrink-0" />
                       <span 
-                        className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                        className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
                           shouldHideText
                             ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
                             : ''
@@ -1513,7 +1582,7 @@ Antes de cada respuesta, pregúntate:
               </div>
 
               {/* Contenido del tab activo */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -1521,7 +1590,7 @@ Antes de cada respuesta, pregúntate:
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="h-full p-6"
+                    className="h-full p-3 md:p-6"
                   >
                     {activeTab === 'video' && (
                       <VideoContent 
@@ -1561,65 +1630,94 @@ Antes de cada respuesta, pregúntate:
           )}
         </div>
 
-        {/* Panel Derecho - Solo LIA */}
+        {/* Panel Derecho - Solo LIA - Drawer en móvil */}
         <AnimatePresence>
           {isRightPanelOpen && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: isLiaExpanded ? 640 : 320, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2 border border-gray-200 dark:border-slate-700/50"
-            >
-              {/* Header Lia con línea separadora alineada con panel central */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                <div className="flex items-center gap-2">
-                  <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
-                    <Image
-                      src="/lia-avatar.png"
-                      alt="Lia"
-                      fill
-                      className="object-cover"
-                      sizes="32px"
-                    />
+            <>
+              {/* Overlay oscuro en móvil */}
+              {isMobile && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsRightPanelOpen(false)}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                />
+              )}
+              
+              <motion.div
+                initial={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
+                animate={isMobile 
+                  ? { x: 0 } 
+                  : { width: isLiaExpanded ? 640 : 320, opacity: 1 }
+                }
+                exit={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className={`
+                  ${isMobile 
+                    ? 'fixed inset-y-0 right-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
+                    : 'relative'
+                  }
+                  bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
+                  ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
+                  border border-gray-200 dark:border-slate-700/50
+                `}
+              >
+                {/* Header Lia con línea separadora alineada con panel central */}
+                <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
+                      <Image
+                        src="/lia-avatar.png"
+                        alt="Lia"
+                        fill
+                        className="object-cover"
+                        sizes="32px"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Lia</h3>
+                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Lia</h3>
-                    <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={handleOpenClearHistoryModal}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                    title="Reiniciar conversación con Lia"
-                  >
-                    <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                  </button>
-                  <button
-                    onClick={handleToggleLiaExpanded}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                    title={isLiaExpanded ? "Reducir tamaño de Lia" : "Expandir Lia"}
-                  >
-                    {isLiaExpanded ? (
-                      <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                    ) : (
-                      <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handleOpenClearHistoryModal}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                      title="Reiniciar conversación con Lia"
+                    >
+                      <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    </button>
+                    {!isMobile && (
+                      <button
+                        onClick={handleToggleLiaExpanded}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                        title={isLiaExpanded ? "Reducir tamaño de Lia" : "Expandir Lia"}
+                      >
+                        {isLiaExpanded ? (
+                          <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        ) : (
+                          <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        )}
+                      </button>
                     )}
-                  </button>
-                  <button
-                    onClick={() => setIsRightPanelOpen(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                  >
-                    <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                  </button>
+                    <button
+                      onClick={() => setIsRightPanelOpen(false)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                    >
+                      {isMobile ? (
+                        <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
               {/* Chat de Lia expandido */}
-              <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`}>
                   {liaMessages.map((message) => (
                     <div
                       key={message.id}
@@ -1726,7 +1824,7 @@ Antes de cada respuesta, pregúntate:
                 </AnimatePresence>
 
                 {/* Área de entrada */}
-                <div className="border-t border-gray-200 dark:border-slate-700/50 p-4 relative">
+                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'pb-20' : ''}`}>
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
@@ -1748,26 +1846,46 @@ Antes de cada respuesta, pregúntate:
                       style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
                     />
                     <button
-                      onClick={handleSendLiaMessage}
-                      disabled={!liaMessage.trim() || isLiaLoading}
-                      className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25 shrink-0"
+                      onClick={() => {
+                        if (liaMessage.trim()) {
+                          // Si hay texto, enviar mensaje
+                          handleSendLiaMessage();
+                        } else {
+                          // Si no hay texto, activar/desactivar grabación
+                          setIsLiaRecording(!isLiaRecording);
+                          // Aquí se implementaría la lógica de reconocimiento de voz
+                        }
+                      }}
+                      disabled={isLiaLoading && liaMessage.trim()}
+                      className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${
+                        liaMessage.trim()
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-blue-500/50'
+                          : isLiaRecording
+                          ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50'
+                          : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-slate-600'
+                      } ${isLiaLoading && liaMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      {isLiaLoading ? (
+                      {isLiaLoading && liaMessage.trim() ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
+                      ) : liaMessage.trim() ? (
                         <Send className="w-5 h-5" />
+                      ) : isLiaRecording ? (
+                        <MicOff className="w-5 h-5" />
+                      ) : (
+                        <Mic className="w-5 h-5" />
                       )}
                     </button>
                   </div>
                 </div>
               </div>
             </motion.div>
+            </>
           )}
         </AnimatePresence>
 
-        {/* Barra vertical para abrir panel derecho */}
+        {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
         {!isRightPanelOpen && (
-          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => {
@@ -1784,7 +1902,70 @@ Antes de cada respuesta, pregúntate:
         )}
       </div>
 
-      {/* Modal de Notas */}
+      {/* Barra de navegación inferior flotante para móviles */}
+      {isMobile && (
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+        >
+          <div className="flex items-center justify-around px-4 py-3">
+            {/* Botón Material del Curso */}
+            <button
+              onClick={() => {
+                setIsLeftPanelOpen(true);
+                setIsRightPanelOpen(false);
+              }}
+              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                isLeftPanelOpen
+                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <BookOpen className="w-5 h-5" />
+              <span className="text-xs font-medium">Material</span>
+            </button>
+
+            {/* Botón Lección Anterior */}
+            {getPreviousLesson() && (
+              <button
+                onClick={navigateToPreviousLesson}
+                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                <span className="text-xs font-medium">Anterior</span>
+              </button>
+            )}
+
+            {/* Botón Lección Siguiente */}
+            {getNextLesson() && (
+              <button
+                onClick={navigateToNextLesson}
+                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+                <span className="text-xs font-medium">Siguiente</span>
+              </button>
+            )}
+
+            {/* Botón Lia */}
+            <button
+              onClick={() => {
+                setIsRightPanelOpen(true);
+                setIsLeftPanelOpen(false);
+              }}
+              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                isRightPanelOpen
+                  ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span className="text-xs font-medium">Lia</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
       <NotesModal
         isOpen={isNotesModalOpen}
         onClose={() => {
@@ -2162,7 +2343,11 @@ function VideoContent({
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{lesson.lesson_title}</h2>
         {lesson.lesson_description && (
-          <p className="text-gray-600 dark:text-slate-300 mt-2">{lesson.lesson_description}</p>
+          <ExpandableText 
+            text={lesson.lesson_description} 
+            maxLines={2}
+            className="mt-2"
+          />
         )}
       </div>
     </div>

@@ -648,14 +648,14 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4"
           onClick={handleClose}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700/50 w-full max-w-3xl h-[70vh] flex flex-col overflow-hidden"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700/50 w-full max-w-3xl max-h-[calc(100vh-2rem)] md:max-h-[70vh] md:h-[70vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
           >
@@ -866,29 +866,29 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-slate-700/50 flex-shrink-0 bg-white dark:bg-slate-800/50">
-              <div className="text-sm text-gray-600 dark:text-slate-400">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-3 p-3 md:p-4 pb-4 md:pb-4 border-t border-gray-200 dark:border-slate-700/50 flex-shrink-0 bg-white dark:bg-slate-800/50">
+              <div className="hidden md:block text-sm text-gray-600 dark:text-slate-400">
                 <p>Ctrl+S para guardar • Ctrl+Z para deshacer • Ctrl+Y para rehacer</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 md:gap-3 flex-1 md:flex-initial">
                 <button
                   onClick={handleClose}
-                  className="px-6 py-3 bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-900 dark:text-white rounded-xl font-medium transition-colors"
+                  className="flex-1 md:flex-initial px-3 md:px-6 py-2 md:py-3 bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-700 text-gray-900 dark:text-white rounded-lg md:rounded-xl text-xs md:text-base font-medium transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !title.trim() || !content.trim()}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
+                  className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-lg md:rounded-xl text-xs md:text-base font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
                 >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? 'Guardando...' : 'Guardar Nota'}
+                  <Save className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
+                  <span className="truncate">{isSaving ? 'Guardando...' : 'Guardar Nota'}</span>
                 </button>
                 
                 <button
                   onClick={handleExportPDF}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                  className="hidden md:flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl text-base font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
                 >
                   <FileDown className="w-4 h-4" />
                   Convertir en PDF
