@@ -20,6 +20,28 @@ import { useAdminWorkshops } from '../hooks/useAdminWorkshops'
 import { AdminWorkshop } from '../services/adminWorkshops.service'
 import { EditWorkshopModal } from './EditWorkshopModal'
 
+// Componente interno para manejar la imagen del taller con fallback
+function WorkshopThumbnail({ thumbnailUrl, title }: { thumbnailUrl?: string; title: string }) {
+  const [imageError, setImageError] = useState(false)
+
+  if (!thumbnailUrl || imageError) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <BookOpenIcon className="h-16 w-16 text-gray-400" />
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={thumbnailUrl}
+      alt={title}
+      className="w-full h-full object-cover"
+      onError={() => setImageError(true)}
+    />
+  )
+}
+
 export function AdminWorkshopsPage() {
   const router = useRouter()
   const { workshops, stats, isLoading, error, refetch } = useAdminWorkshops()
@@ -239,11 +261,9 @@ export function AdminWorkshopsPage() {
           {filteredWorkshops.map((workshop) => (
             <div key={workshop.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow duration-300">
               {/* Thumbnail */}
-              <div className="h-48 bg-gray-200 dark:bg-gray-700 relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <BookOpenIcon className="h-16 w-16 text-gray-400" />
-                </div>
-                <div className="absolute top-4 right-4">
+              <div className="h-48 bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+                <WorkshopThumbnail thumbnailUrl={workshop.thumbnail_url} title={workshop.title} />
+                <div className="absolute top-4 right-4 z-10">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                     workshop.is_active
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
