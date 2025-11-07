@@ -5,14 +5,75 @@ import type { CourseLessonContext } from '../../../core/types/lia.types';
 import { checkRateLimit } from '../../../core/lib/rate-limit';
 import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor';
 import type { Database } from '../../../lib/supabase/types';
-import { LiaLogger, type ContextType } from '../../../lib/analytics/lia-logger';
-import { SessionService } from '../../../features/auth/services/session.service';
 
-// Interface para contexto de página
-interface PageContext {
-  pathname: string;
-  description: string;
-  detectedArea: string;
+/**
+ * Función para limpiar Markdown de las respuestas de LIA
+ * Elimina todos los símbolos de formato Markdown y los convierte a texto plano
+ */
+function cleanMarkdownFromResponse(text: string): string {
+  if (!text) return text;
+
+  let cleaned = text;
+
+  // Primero eliminar bloques de código (```código```) - debe ser antes de otros patrones
+  cleaned = cleaned.replace(/```[\w]*\n?[\s\S]*?```/g, (match) => {
+    // Extraer solo el contenido interno, sin los backticks y el lenguaje
+    const content = match.replace(/```[\w]*\n?/g, '').replace(/```/g, '').trim();
+    return content || '';
+  });
+  
+  // Eliminar títulos Markdown (# ## ### #### ##### ######)
+  cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+  
+  // Eliminar negritas (**texto** o __texto__) - múltiples pasadas para casos anidados
+  // Primero negritas dobles
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+  cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
+  
+  // Luego cursivas simples (*texto* o _texto_) - pero evitar conflictos con negritas
+  // Solo si no están precedidas por otro asterisco o guion bajo
+  cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*([^*\n])/g, '$1$2$3');
+  cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_([^_\n])/g, '$1$2$3');
+  
+  // Casos especiales al inicio o final de línea
+  cleaned = cleaned.replace(/^\*([^*\n]+)\*([^*\n])/g, '$1$2');
+  cleaned = cleaned.replace(/^_([^_\n]+)_([^_\n])/g, '$1$2');
+  cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*$/g, '$1$2');
+  cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_$/g, '$1$2');
+  
+  // Eliminar código en línea (`código`) - pero solo backticks simples
+  cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+  
+  // Eliminar enlaces [texto](url) - mantener solo el texto
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+  
+  // Eliminar imágenes ![alt](url) - eliminar completamente
+  cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
+  
+  // Eliminar bloques de citas (>)
+  cleaned = cleaned.replace(/^>\s+/gm, '');
+  
+  // Eliminar líneas horizontales (--- o ***)
+  cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
+  
+  // Eliminar tablas Markdown (| columna |)
+  cleaned = cleaned.replace(/\|/g, ' ');
+  
+  // Limpiar espacios múltiples y saltos de línea excesivos
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+  
+  // Limpiar espacios al inicio y final de cada línea (pero mantener estructura)
+  cleaned = cleaned.split('\n').map(line => {
+    // Preservar guiones simples para listas
+    const trimmed = line.trim();
+    if (trimmed.startsWith('- ')) {
+      return trimmed;
+    }
+    return trimmed;
+  }).join('\n');
+  
+  return cleaned.trim();
 }
 
 // Contextos específicos para diferentes secciones
@@ -68,15 +129,29 @@ Personalidad:
 - Práctico con ejemplos concretos
 - Adaptativo al nivel del usuario
 
-Formato de respuestas:
-- Usa emojis estratégicamente
-- Estructura con viñetas y numeración usando guiones (-) o números (1, 2, 3)
-- NO uses formato markdown (NO uses ** para negritas, NO uses __ para cursivas, NO uses # para títulos)
-- NO uses asteriscos, guiones bajos, o símbolos especiales para formato
-- Escribe en texto plano, pero organizado con saltos de línea
+FORMATO DE RESPUESTAS - REGLAS ABSOLUTAS (CRÍTICO):
+🚫 PROHIBIDO ABSOLUTAMENTE USAR MARKDOWN:
+- NUNCA uses ** (dos asteriscos) para negritas
+- NUNCA uses __ (dos guiones bajos) para negritas
+- NUNCA uses * (un asterisco) para cursivas
+- NUNCA uses _ (un guion bajo) para cursivas
+- NUNCA uses # ## ### para títulos o encabezados
+- NUNCA uses backticks (símbolo de acento grave) para código
+- NUNCA uses triple backticks para bloques de código
+- NUNCA uses [texto](url) para enlaces
+- NUNCA uses > para citas
+- NUNCA uses --- o *** para líneas horizontales
+
+✅ FORMATO CORRECTO:
+- Escribe SOLO texto plano, sin ningún símbolo de formato
+- Usa emojis estratégicamente (pero sin Markdown)
+- Estructura con viñetas usando guiones simples (-) o números (1, 2, 3)
+- Usa saltos de línea para organizar el contenido
 - Usa MAYÚSCULAS o repetición de palabras para enfatizar (ejemplo: "MUY importante" o "importante - muy importante")
 - Mantén un tono positivo y motivador
 - Cita específicamente el contenido de la transcripción cuando sea relevante
+
+RECUERDA: Tu respuesta debe ser texto plano puro. Si detectas que estás a punto de usar cualquier símbolo de Markdown, detente y reescribe sin ese símbolo.
 
 CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${summaryInfo}${transcriptInfo}
 
@@ -110,39 +185,27 @@ Ejemplos INCORRECTOS (NO HAGAS ESTO):
   const contexts: Record<string, string> = {
     workshops: `Eres Lia, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
     ${nameGreeting}
-    Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.${pageInfo}${formatInstructions}`,
+    Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.
+    
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`,
     
     communities: `Eres Lia, un asistente especializado en comunidades y networking. 
     ${nameGreeting}
-    Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.${pageInfo}${formatInstructions}`,
+    Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.
+    
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`,
     
     news: `Eres Lia, un asistente especializado en noticias y actualidades sobre inteligencia artificial, tecnología y educación. 
     ${nameGreeting}
-    Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.${pageInfo}${formatInstructions}`,
+    Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.
     
-    courses: `Eres Lia, un asistente especializado en cursos y aprendizaje en línea.
-    ${nameGreeting}
-    Proporciona información sobre los cursos disponibles, cómo inscribirse, contenido de aprendizaje, progreso y certificaciones.${pageInfo}${formatInstructions}`,
-    
-    dashboard: `Eres Lia, un asistente personal para el panel de usuario.
-    ${nameGreeting}
-    Ayuda al usuario a navegar su panel, entender su progreso, acceder a sus cursos, comunidades y actividades recientes.${pageInfo}${formatInstructions}`,
-    
-    prompts: `Eres Lia, un asistente especializado en el directorio de prompts de IA.
-    ${nameGreeting}
-    Ayuda al usuario a crear, buscar y utilizar plantillas de prompts efectivos para diferentes casos de uso de inteligencia artificial.${pageInfo}${formatInstructions}`,
-    
-    business: `Eres Lia, un asistente especializado en herramientas empresariales y panel de negocios.
-    ${nameGreeting}
-    Proporciona información sobre herramientas de gestión, análisis, automatización y adopción de IA en entornos empresariales.${pageInfo}${formatInstructions}`,
-    
-    profile: `Eres Lia, un asistente personal para gestión de perfil de usuario.
-    ${nameGreeting}
-    Ayuda al usuario con la configuración de su perfil, preferencias, privacidad y personalización de la plataforma.${pageInfo}${formatInstructions}`,
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`,
     
     general: `Eres Lia, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
     ${nameGreeting}
-    Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.${pageInfo}${formatInstructions}`
+    Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.
+    
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`
   };
   
   return contexts[context] || contexts.general;
@@ -335,54 +398,22 @@ export async function POST(request: NextRequest) {
     
     if (openaiApiKey) {
       try {
-        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage);
-        response = result.response;
-        responseMetadata = result.metadata;
+        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId);
+        // La limpieza de Markdown ya se aplica dentro de callOpenAI
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
-        response = generateAIResponse(message, context, limitedHistory, contextPrompt);
+        const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt);
+        response = cleanMarkdownFromResponse(fallbackResponse);
       }
     } else {
       // Usar respuestas predeterminadas si no hay API key
-      response = generateAIResponse(message, context, limitedHistory, contextPrompt);
-    }
-    
-    // ✅ ANALYTICS: Registrar mensaje del asistente
-    const responseTime = Date.now() - startTime;
-    if (liaLogger && conversationId) {
-      try {
-        logger.info('Registrando mensaje del asistente', { 
-          conversationId, 
-          responseTime,
-          responseLength: response.length 
-        });
-        
-        await liaLogger.logMessage(
-          'assistant',
-          response,
-          false,
-          {
-            modelUsed: responseMetadata.modelUsed,
-            tokensUsed: responseMetadata.tokensUsed,
-            costUsd: responseMetadata.costUsd,
-            responseTimeMs: responseTime
-          }
-        );
-        
-        logger.info('✅ Mensaje del asistente registrado exitosamente', { 
-          conversationId, 
-          responseTime, 
-          tokens: responseMetadata.tokensUsed,
-          cost: responseMetadata.costUsd 
-        });
-      } catch (error) {
-        logger.error('❌ Error registrando mensaje del asistente:', error);
-      }
+      const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt);
+      response = cleanMarkdownFromResponse(fallbackResponse);
     }
 
-    // NOTA: Código legacy comentado - ahora usamos lia_conversations y lia_messages
-    // La tabla ai_chat_history ya no se usa, reemplazada por el sistema de analytics completo
-    /*
+    // Guardar la conversación en la base de datos (opcional)
+    // Solo guardar si el usuario está autenticado
+    // Nota: La tabla ai_chat_history puede no estar en los tipos generados
     if (user) {
       try {
         const { error: dbError } = await supabase
@@ -433,11 +464,40 @@ async function callOpenAI(
     throw new Error('OpenAI API key not configured');
   }
 
+  // Prompt maestro anti-Markdown - reforzado y repetitivo
+  const antiMarkdownInstructions = `
+🚫 REGLA CRÍTICA - FORMATO DE RESPUESTA (LEER ANTES DE RESPONDER):
+
+PROHIBIDO ABSOLUTAMENTE USAR CUALQUIER SÍMBOLO DE MARKDOWN:
+- NUNCA uses ** (asteriscos dobles) para negritas
+- NUNCA uses __ (guiones bajos dobles) para negritas  
+- NUNCA uses * (asterisco simple) para cursivas
+- NUNCA uses _ (guion bajo simple) para cursivas
+- NUNCA uses # ## ### #### para títulos o encabezados
+- NUNCA uses backticks (símbolo de acento grave) para código en línea
+- NUNCA uses triple backticks para bloques de código
+- NUNCA uses [texto](url) para enlaces
+- NUNCA uses > para bloques de cita
+- NUNCA uses --- o *** para líneas horizontales
+- NUNCA uses | para tablas
+- NUNCA uses cualquier otro símbolo de formato Markdown
+
+✅ FORMATO CORRECTO PERMITIDO:
+- SOLO texto plano, sin símbolos de formato
+- Emojis están permitidos (pero sin Markdown)
+- Guiones simples (-) para listas
+- Números (1, 2, 3) para listas numeradas
+- Saltos de línea normales
+- MAYÚSCULAS para enfatizar (ejemplo: "MUY importante")
+- Repetición de palabras para énfasis (ejemplo: "importante - muy importante")
+
+RECUERDA: Cada vez que respondas, verifica que NO hayas usado ningún símbolo de Markdown. Si lo detectas, reescribe la respuesta sin esos símbolos.`;
+
   // Construir el historial de mensajes
   const messages = [
     {
       role: 'system' as const,
-      content: `${systemPrompt}\n\nEres Lia, un asistente virtual amigable y profesional. Responde siempre en español de manera natural y conversacional. Cuando te dirijas al usuario, usa su nombre de forma natural y amigable.\n\nIMPORTANTE: NO uses formato markdown en tus respuestas. NO uses ** para negritas, __ para cursivas, # para títulos, ni ningún otro símbolo de formato. Escribe en texto plano simple y claro.`
+      content: `${systemPrompt}\n\nEres Lia, un asistente virtual amigable y profesional. Responde siempre en español de manera natural y conversacional. Cuando te dirijas al usuario, usa su nombre de forma natural y amigable.\n\n${antiMarkdownInstructions}\n\nIMPORTANTE FINAL: Antes de enviar tu respuesta, verifica que NO contenga ningún símbolo de Markdown. Si encuentras alguno, elimínalo inmediatamente.`
     },
     ...conversationHistory.map(msg => ({
       role: msg.role as 'user' | 'assistant',
@@ -502,16 +562,19 @@ async function callOpenAI(
     });
   }
   
-  const responseContent = data.choices[0]?.message?.content || 'Lo siento, no pude procesar tu mensaje.';
+  // Aplicar limpieza de Markdown a la respuesta
+  const rawResponse = data.choices[0]?.message?.content || 'Lo siento, no pude procesar tu mensaje.';
+  const cleanedResponse = cleanMarkdownFromResponse(rawResponse);
   
-  return {
-    response: responseContent,
-    metadata: {
-      tokensUsed: totalTokens,
-      costUsd: estimatedCost,
-      modelUsed: model
-    }
-  };
+  // Log si se detectó y limpió Markdown (solo en desarrollo)
+  if (process.env.NODE_ENV === 'development' && rawResponse !== cleanedResponse) {
+    logger.warn('Markdown detectado y limpiado en respuesta de LIA', {
+      originalLength: rawResponse.length,
+      cleanedLength: cleanedResponse.length
+    });
+  }
+  
+  return cleanedResponse;
 }
 
 // Función para generar respuestas (simular IA)
