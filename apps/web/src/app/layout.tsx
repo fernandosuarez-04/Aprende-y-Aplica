@@ -6,7 +6,7 @@ import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
 import { NotificationProvider } from '../features/notifications/context/NotificationContext';
-import { AIChatAgent } from '../core/components/AIChatAgent/AIChatAgent';
+import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -138,11 +138,8 @@ export default function RootLayout({
                   {children}
                 </ConditionalNavbar>
               </div>
-              {/* AI Chat Agent - Lia - Disponible en todas las páginas */}
-              <AIChatAgent
-                assistantName="Lia"
-                initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas."
-              />
+              {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+              <ConditionalAIChatAgent />
             </NotificationProvider>
           </ThemeProvider>
         </SWRProvider>
