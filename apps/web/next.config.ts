@@ -1,39 +1,14 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-// Bundle Analyzer (opcional)
+// Bundle Analyzer (opcional - deshabilitado)
 let withBundleAnalyzer: (config: NextConfig) => NextConfig = (config) => config;
-try {
-  const bundleAnalyzer = require('@next/bundle-analyzer');
-  withBundleAnalyzer = bundleAnalyzer({
-    enabled: process.env.ANALYZE === 'true',
-  });
-} catch (e) {
-  // Bundle analyzer no disponible, usar función identidad
-  console.warn('@next/bundle-analyzer no disponible, continuando sin análisis de bundle');
-}
 
-// 🚀 PWA Configuration (opcional)
+// 🚀 PWA Configuration - DESHABILITADO (problema con generate())
+// TODO: Investigar error "generate is not a function" con @ducanh2912/next-pwa
+// import withPWAInit from '@ducanh2912/next-pwa';
+// const withPWA = withPWAInit({ ... });
 let withPWA: (config: NextConfig) => NextConfig = (config) => config;
-try {
-  const nextPWA = require('@ducanh2912/next-pwa').default;
-  withPWA = nextPWA({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  swcMinify: true,
-  workboxOptions: {
-    disableDevLogs: true,
-  }
-  });
-} catch (e) {
-  // next-pwa no disponible, usar función identidad
-  console.warn('next-pwa no disponible, continuando sin PWA');
-}
 
 const nextConfig: NextConfig = {
   // Deshabilitar checks durante builds de producción

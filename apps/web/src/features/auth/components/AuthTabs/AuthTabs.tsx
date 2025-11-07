@@ -2,19 +2,32 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthTab } from '../../types/auth.types';
 import { LoginForm } from '../LoginForm';
-import { RegisterForm } from '../RegisterForm';
+
+// ⚡ OPTIMIZACIÓN: Lazy load de RegisterForm (538 líneas, solo se carga si el usuario cambia de tab)
+const RegisterForm = dynamic(
+  () => import('../RegisterForm').then(mod => ({ default: mod.RegisterForm })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full py-12 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+);
 
 export function AuthTabs() {
   const [activeTab, setActiveTab] = useState<AuthTab>('login');
 
   return (
     <div className="space-y-6">
-      {/* Tabs con Animación */}
+      {/* Tabs - Animaciones reducidas */}
       <div className="flex gap-4 relative">
-        {/* Indicador de Tab Activo */}
+        {/* Indicador de Tab Activo - Simplificado */}
         <motion.div
           className="absolute inset-0 bg-primary rounded-lg"
           initial={false}
@@ -24,7 +37,7 @@ export function AuthTabs() {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           style={{ width: 'calc(50% - 0.5rem)' }}
         />
-        
+
         <button
           onClick={() => setActiveTab('login')}
           className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all relative z-10 ${
@@ -33,14 +46,12 @@ export function AuthTabs() {
               : 'text-text-secondary hover:text-color-contrast'
           }`}
         >
-          <motion.span
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          {/* ⚡ OPTIMIZACIÓN: Eliminadas animaciones whileHover/whileTap (CSS es más eficiente) */}
+          <span className="inline-block transition-transform hover:scale-105 active:scale-95">
             Ingresar
-          </motion.span>
+          </span>
         </button>
-        
+
         <button
           onClick={() => setActiveTab('register')}
           className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all relative z-10 ${
@@ -49,47 +60,37 @@ export function AuthTabs() {
               : 'text-text-secondary hover:text-color-contrast'
           }`}
         >
-          <motion.span
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          <span className="inline-block transition-transform hover:scale-105 active:scale-95">
             Crear cuenta
-          </motion.span>
+          </span>
         </button>
       </div>
 
-      {/* Form Content con Animación */}
+      {/* Form Content - Animación simplificada */}
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, x: 20, scale: 0.98 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, x: -20, scale: 0.98 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
           {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
         </motion.div>
       </AnimatePresence>
 
-      {/* Footer Link con Animación */}
-      <motion.div
-        className="text-center space-y-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
+      {/* Footer Link - Sin animaciones innecesarias */}
+      <div className="text-center space-y-2">
         {activeTab === 'login' ? (
           <>
             <p className="text-sm text-text-secondary">
               ¿No tienes cuenta?{' '}
-              <motion.button
+              <button
                 onClick={() => setActiveTab('register')}
                 className="text-primary hover:text-primary/80 font-medium transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
               >
                 Crear cuenta
-              </motion.button>
+              </button>
             </p>
             <p className="text-xs text-text-secondary">
               ¿Eres{' '}
@@ -107,14 +108,12 @@ export function AuthTabs() {
           <>
             <p className="text-sm text-text-secondary">
               ¿Ya tienes cuenta?{' '}
-              <motion.button
+              <button
                 onClick={() => setActiveTab('login')}
                 className="text-primary hover:text-primary/80 font-medium transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
               >
                 Iniciar sesión
-              </motion.button>
+              </button>
             </p>
             <p className="text-xs text-text-secondary">
               ¿Eres{' '}
@@ -129,7 +128,7 @@ export function AuthTabs() {
             </p>
           </>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

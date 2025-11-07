@@ -51,125 +51,88 @@ export default function CourseDetailPage() {
   const [instructorData, setInstructorData] = useState<any>(null);
 
   useEffect(() => {
-    async function loadCourse() {
+    async function loadCourseData() {
+      if (!slug) return;
+
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}`);
-        
-        if (!response.ok) {
+        setCheckingPurchase(true);
+
+        // ⚡ Paralelizar: Curso + Purchase Check + Modules + Reviews
+        const [courseResponse, purchaseResponse, modulesResponse, reviewsResponse] = await Promise.all([
+          fetch(`/api/courses/${slug}`),
+          fetch(`/api/courses/${slug}/check-purchase`),
+          fetch(`/api/courses/${slug}/modules`),
+          fetch(`/api/courses/${slug}/reviews`)
+        ]);
+
+        // Procesar curso
+        if (!courseResponse.ok) {
           throw new Error('Curso no encontrado');
         }
-        
-        const courseData = await response.json();
+        const courseData = await courseResponse.json();
         setCourse(courseData);
         setIsFavorite(courseData.isFavorite || false);
+
+        // Procesar purchase
+        if (purchaseResponse.ok) {
+          const purchaseData = await purchaseResponse.json();
+          setIsPurchased(purchaseData.isPurchased);
+        }
+
+        // Procesar módulos
+        if (modulesResponse.ok) {
+          const modulesData = await modulesResponse.json();
+          if (Array.isArray(modulesData)) {
+            setModules(modulesData);
+            if (modulesData.length > 0) {
+              setExpandedModules(new Set([modulesData[0].module_id || modulesData[0].id]));
+            }
+          } else if (modulesData.modules && Array.isArray(modulesData.modules)) {
+            setModules(modulesData.modules);
+            if (modulesData.modules.length > 0) {
+              setExpandedModules(new Set([modulesData.modules[0].module_id || modulesData.modules[0].id]));
+            }
+          } else {
+            setModules([]);
+          }
+        }
+
+        // Procesar reviews
+        if (reviewsResponse.ok) {
+          const reviewsData = await reviewsResponse.json();
+          if (reviewsData.reviews) {
+            setReviews(reviewsData.reviews);
+          } else if (Array.isArray(reviewsData)) {
+            setReviews(reviewsData);
+          }
+        }
+
+        // Cargar instructor después de tener courseData
+        if (courseData?.instructor_id) {
+          const supabase = createClient();
+          const { data: instructorData } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, display_name, username, profile_picture_url, bio, linkedin_url, cargo_rol')
+            .eq('id', courseData.instructor_id)
+            .single();
+
+          if (instructorData) {
+            setInstructorData(instructorData);
+          }
+        }
+
       } catch (err) {
         setError('Error al cargar el curso');
-        console.error('Error loading course:', err);
       } finally {
         setLoading(false);
-      }
-    }
-
-    async function checkPurchase() {
-      try {
-        setCheckingPurchase(true);
-        const response = await fetch(`/api/courses/${slug}/check-purchase`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setIsPurchased(data.isPurchased);
-        }
-      } catch (err) {
-        console.error('Error checking purchase:', err);
-      } finally {
         setCheckingPurchase(false);
       }
     }
 
-    if (slug) {
-      loadCourse();
-      checkPurchase();
-    }
+    loadCourseData();
   }, [slug]);
 
-  useEffect(() => {
-    async function loadModules() {
-      if (!slug) return;
-      try {
-        const response = await fetch(`/api/courses/${slug}/modules`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📦 Datos de módulos recibidos:', data);
-          // La API devuelve un array directo, no un objeto con modules
-          if (Array.isArray(data)) {
-            console.log(`✅ Se encontraron ${data.length} módulos`);
-            setModules(data);
-            if (data.length > 0) {
-              setExpandedModules(new Set([data[0].module_id || data[0].id]));
-            }
-          } else if (data.modules && Array.isArray(data.modules)) {
-            console.log(`✅ Se encontraron ${data.modules.length} módulos en data.modules`);
-            setModules(data.modules);
-            if (data.modules.length > 0) {
-              setExpandedModules(new Set([data.modules[0].module_id || data.modules[0].id]));
-            }
-          } else {
-            console.warn('⚠️ Modules data format unexpected:', data);
-            setModules([]);
-          }
-        } else {
-          const errorText = await response.text().catch(() => '');
-          console.error('❌ Error response from modules API:', response.status, response.statusText, errorText);
-          setModules([]);
-        }
-      } catch (err) {
-        console.error('Error loading modules:', err);
-        setModules([]);
-      }
-    }
-
-    async function loadReviews() {
-      if (!slug) return;
-      try {
-        const response = await fetch(`/api/courses/${slug}/reviews`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.reviews) {
-            setReviews(data.reviews);
-          } else if (Array.isArray(data)) {
-            setReviews(data);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading reviews:', err);
-      }
-    }
-
-    async function loadInstructor() {
-      if (!course?.instructor_id) return;
-      try {
-        const supabase = createClient();
-        const { data: instructorData, error } = await supabase
-          .from('users')
-          .select('id, first_name, last_name, display_name, username, email, profile_picture_url, bio, linkedin_url, github_url, website_url, location, cargo_rol, type_rol')
-          .eq('id', course.instructor_id)
-          .single();
-
-        if (!error && instructorData) {
-          setInstructorData(instructorData);
-        }
-      } catch (err) {
-        console.error('Error loading instructor:', err);
-      }
-    }
-
-    if (course?.id) {
-      loadModules();
-      loadReviews();
-      loadInstructor();
-    }
-  }, [course?.id, course?.instructor_id, slug]);
 
   const handlePurchase = async () => {
     if (!course) return;
@@ -339,6 +302,8 @@ export default function CourseDetailPage() {
               fill
               className="object-cover"
               priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
+              quality={85}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent dark:from-carbon-900 dark:via-carbon-900/50"></div>
             
@@ -709,6 +674,9 @@ export default function CourseDetailPage() {
                               alt={course.instructor_name || 'Instructor'}
                               fill
                               className="object-cover"
+                              loading="lazy"
+                              sizes="96px"
+                              quality={75}
                             />
                           </div>
                         ) : (

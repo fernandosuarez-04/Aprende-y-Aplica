@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+'use client'
+
+import useSWR from 'swr'
 
 interface Category {
   category_id: string;
@@ -16,43 +18,40 @@ interface UseCategoriesReturn {
   categories: Category[];
   loading: boolean;
   error: string | null;
-  refetch: () => void;
+  refetch: () => Promise<void>;
+}
+
+// ⚡ Fetcher optimizado para SWR
+const categoriesFetcher = async (url: string): Promise<Category[]> => {
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch categories')
+  }
+
+  const data = await response.json()
+  return data.categories || []
 }
 
 export function useCategories(): UseCategoriesReturn {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/ai-directory/categories');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch categories');
-      }
-
-      const data = await response.json();
-      setCategories(data.categories || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setCategories([]);
-    } finally {
-      setLoading(false);
+  // ⚡ SWR con cache y deduplicación de 60s - categorías cambian raramente
+  const { data: categories = [], error, isLoading, mutate } = useSWR<Category[]>(
+    '/api/ai-directory/categories',
+    categoriesFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000, // 60s deduplication - categorías son muy estables
+      refreshInterval: 0,
+      shouldRetryOnError: false,
+      fallbackData: [],
     }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  )
 
   return {
     categories,
-    loading,
-    error,
-    refetch: fetchCategories
-  };
+    loading: isLoading,
+    error: error?.message || null,
+    refetch: mutate
+  }
 }

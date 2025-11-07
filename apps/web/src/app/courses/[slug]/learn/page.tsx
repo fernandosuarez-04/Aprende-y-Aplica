@@ -4229,158 +4229,69 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     adjustTextareaHeight();
   }, []);
 
-  // OPTIMIZACIÓN: Carga separada - primero pregunta básica (rápido), luego respuestas y reacciones (lazy)
+  // OPTIMIZACIÓN CRÍTICA: Carga paralela de pregunta + respuestas (elimina waterfall de 9-14s)
   useEffect(() => {
     let cancelled = false;
 
-    // Cargar pregunta básica primero (sin bloquear UI)
-    async function loadQuestionBasic() {
+    async function loadQuestionData() {
       try {
         setLoading(true);
-        const questionRes = await fetch(`/api/courses/${slug}/questions/${questionId}`);
-        
+        setLoadingResponses(true);
+
+        // PARALELIZAR: Cargar pregunta y respuestas al mismo tiempo
+        const [questionRes, responsesRes] = await Promise.all([
+          fetch(`/api/courses/${slug}/questions/${questionId}`),
+          fetch(`/api/courses/${slug}/questions/${questionId}/responses`)
+        ]);
+
         if (cancelled) return;
 
+        // Procesar pregunta
         if (questionRes.ok) {
           const questionData = await questionRes.json();
           setQuestion(questionData);
         }
-      } catch (error) {
-        console.error('Error loading question:', error);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
 
-    loadQuestionBasic();
-
-    // Cargar respuestas de forma lazy (sin bloquear la UI)
-    async function loadResponsesLazy() {
-      try {
-        setLoadingResponses(true);
-        const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
-        
-        if (cancelled) return;
-
+        // Procesar respuestas
         if (responsesRes.ok) {
           const responsesData = await responsesRes.json();
           setResponses(responsesData || []);
-          
-          // Cargar reacciones solo si hay respuestas
-          if (responsesData && responsesData.length > 0) {
-            loadReactionsLazy(responsesData);
-          } else {
-            // Inicializar contadores vacíos si no hay respuestas
-            setResponseReactionCounts({});
-          }
+
+          // Inicializar contadores de reacciones desde los datos de respuesta
+          // (ya vienen con reaction_count del servidor)
+          const countsMap: Record<string, number> = {};
+          const reactionsMap: Record<string, string> = {};
+
+          const initCountsFromResponses = (responses: any[]) => {
+            responses.forEach((r: any) => {
+              if (r.id) {
+                countsMap[r.id] = r.reaction_count || 0;
+                // Si el usuario ya reaccionó, viene en user_reaction del servidor
+                if (r.user_reaction) {
+                  reactionsMap[r.id] = r.user_reaction;
+                }
+              }
+              if (r.replies && r.replies.length > 0) {
+                initCountsFromResponses(r.replies);
+              }
+            });
+          };
+
+          initCountsFromResponses(responsesData);
+          setResponseReactionCounts(countsMap);
+          setResponseReactions(reactionsMap);
         }
       } catch (error) {
-        console.error('Error loading responses:', error);
+        console.error('Error loading question data:', error);
       } finally {
         if (!cancelled) {
+          setLoading(false);
           setLoadingResponses(false);
         }
       }
     }
 
-    // Cargar reacciones de forma lazy y en background
-    async function loadReactionsLazy(responsesData: any[]) {
-      try {
-        setLoadingReactions(true);
-        
-        // Usar el sistema de autenticación personalizado
-        const userResponse = await fetch('/api/auth/me', {
-          credentials: 'include'
-        });
-        
-        if (cancelled) return;
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
-          
-          if (!userId) {
-            // Si no hay usuario, solo inicializar contadores
-            const countsMap: Record<string, number> = {};
-            const collectIds = (responses: any[]) => {
-              responses.forEach((r: any) => {
-                if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                if (r.replies && r.replies.length > 0) {
-                  collectIds(r.replies);
-                }
-              });
-            };
-            collectIds(responsesData);
-            setResponseReactionCounts(countsMap);
-            return;
-          }
-          
-          // Recopilar todos los IDs de respuestas (recursivamente)
-          const allResponseIds: string[] = [];
-          const collectIds = (responses: any[]) => {
-            responses.forEach((r: any) => {
-              if (r.id) allResponseIds.push(r.id);
-              if (r.replies && r.replies.length > 0) {
-                collectIds(r.replies);
-              }
-            });
-          };
-          collectIds(responsesData);
-          
-          if (allResponseIds.length > 0) {
-            const { createClient } = await import('@supabase/supabase-js');
-            const supabase = createClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!,
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            );
-            
-            const { data: userReactionsData } = await supabase
-              .from('course_question_reactions')
-              .select('response_id, reaction_type')
-              .eq('user_id', userId)
-              .in('response_id', allResponseIds);
-            
-            if (cancelled) return;
-            
-            const reactionsMap: Record<string, string> = {};
-            const countsMap: Record<string, number> = {};
-            
-            if (userReactionsData) {
-              userReactionsData.forEach((reaction: any) => {
-                if (reaction.response_id) {
-                  reactionsMap[reaction.response_id] = reaction.reaction_type;
-                }
-              });
-            }
-            
-            // Inicializar contadores con valores de las respuestas
-            const initCounts = (responses: any[]) => {
-              responses.forEach((r: any) => {
-                if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                if (r.replies && r.replies.length > 0) {
-                  initCounts(r.replies);
-                }
-              });
-            };
-            initCounts(responsesData);
-            
-            setResponseReactions(reactionsMap);
-            setResponseReactionCounts(countsMap);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading response reactions:', error);
-      } finally {
-        if (!cancelled) {
-          setLoadingReactions(false);
-        }
-      }
-    }
-
-    // Cargar respuestas en paralelo con la pregunta (pero sin bloquear)
-    loadResponsesLazy();
+    loadQuestionData();
 
     return () => {
       cancelled = true;
@@ -4418,16 +4329,15 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
   const handleResponseReaction = async (responseId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     const currentReaction = responseReactions[responseId];
     const isCurrentlyLiked = currentReaction === 'like';
     const currentCount = responseReactionCounts[responseId] ?? 0;
-    
-    // Actualización optimista - aplicar cambios inmediatamente
+
+    // OPTIMIZACIÓN: Actualización optimista inmediata (sin bloquear UI)
     const newCount = isCurrentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
     const newReactionState = isCurrentlyLiked ? null : 'like';
-    
-    // Actualizar estado optimista
+
     setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCount }));
     setResponseReactions(prev => {
       if (newReactionState) {
@@ -4438,17 +4348,17 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         return updated;
       }
     });
-    
+
     try {
       const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses/${responseId}/reactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           reaction_type: 'like',
           action: 'toggle'
         })
       });
-      
+
       if (!response.ok) {
         // Revertir en caso de error
         setResponseReactionCounts(prev => ({ ...prev, [responseId]: currentCount }));
@@ -4462,74 +4372,23 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
           }
         });
       } else {
-        // Sincronizar estado con el servidor
-        try {
-          const userResponse = await fetch('/api/auth/me', { credentials: 'include' });
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
-            
-            if (userId) {
-              const { createClient } = await import('@supabase/supabase-js');
-              const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-              );
-              
-              // Verificar estado actual de la reacción después de la actualización
-              const { data: currentReaction } = await supabase
-                .from('course_question_reactions')
-                .select('reaction_type')
-                .eq('user_id', userId)
-                .eq('response_id', responseId)
-                .eq('reaction_type', 'like')
-                .maybeSingle();
-              
-              // Actualizar estado de reacción según el servidor (estado real)
-              setResponseReactions(prev => {
-                if (currentReaction) {
-                  return { ...prev, [responseId]: 'like' };
-                } else {
-                  const updated = { ...prev };
-                  delete updated[responseId];
-                  return updated;
-                }
-              });
-              
-              // Recargar respuestas para obtener contadores actualizados desde el servidor
-              const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
-              if (responsesRes.ok) {
-                const responsesData = await responsesRes.json();
-                
-                // Función para actualizar contadores desde respuestas
-                const updateCountsFromResponses = (responses: any[], countsMap: Record<string, number>) => {
-                  responses.forEach((r: any) => {
-                    if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                    if (r.replies && r.replies.length > 0) {
-                      r.replies.forEach((reply: any) => {
-                        if (reply.id) countsMap[reply.id] = reply.reaction_count || 0;
-                        if (reply.replies && reply.replies.length > 0) {
-                          reply.replies.forEach((nestedReply: any) => {
-                            if (nestedReply.id) countsMap[nestedReply.id] = nestedReply.reaction_count || 0;
-                          });
-                        }
-                      });
-                    }
-                  });
-                };
-                
-                const newCountsMap: Record<string, number> = {};
-                updateCountsFromResponses(responsesData, newCountsMap);
-                
-                // Reemplazar contador con el valor real del servidor (sin sumar/restar)
-                if (newCountsMap[responseId] !== undefined) {
-                  setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCountsMap[responseId] }));
-                }
-              }
-            }
-          }
-        } catch (syncError) {
-          console.error('Error syncing response reaction state:', syncError);
+        // OPTIMIZACIÓN CRÍTICA: Usar datos del servidor sin queries adicionales
+        const data = await response.json();
+
+        // Sincronizar con el contador real del servidor
+        if (data.new_count !== undefined) {
+          setResponseReactionCounts(prev => ({ ...prev, [responseId]: data.new_count }));
+        }
+
+        // Sincronizar estado de reacción del usuario
+        if (data.user_reaction) {
+          setResponseReactions(prev => ({ ...prev, [responseId]: data.user_reaction }));
+        } else {
+          setResponseReactions(prev => {
+            const updated = { ...prev };
+            delete updated[responseId];
+            return updated;
+          });
         }
       }
     } catch (error) {
