@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { CourseService, CourseWithInstructor } from '../../../features/courses/services/course.service';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../../../lib/supabase/client';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -51,125 +51,88 @@ export default function CourseDetailPage() {
   const [instructorData, setInstructorData] = useState<any>(null);
 
   useEffect(() => {
-    async function loadCourse() {
+    async function loadCourseData() {
+      if (!slug) return;
+
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}`);
-        
-        if (!response.ok) {
+        setCheckingPurchase(true);
+
+        // ⚡ Paralelizar: Curso + Purchase Check + Modules + Reviews
+        const [courseResponse, purchaseResponse, modulesResponse, reviewsResponse] = await Promise.all([
+          fetch(`/api/courses/${slug}`),
+          fetch(`/api/courses/${slug}/check-purchase`),
+          fetch(`/api/courses/${slug}/modules`),
+          fetch(`/api/courses/${slug}/reviews`)
+        ]);
+
+        // Procesar curso
+        if (!courseResponse.ok) {
           throw new Error('Curso no encontrado');
         }
-        
-        const courseData = await response.json();
+        const courseData = await courseResponse.json();
         setCourse(courseData);
         setIsFavorite(courseData.isFavorite || false);
+
+        // Procesar purchase
+        if (purchaseResponse.ok) {
+          const purchaseData = await purchaseResponse.json();
+          setIsPurchased(purchaseData.isPurchased);
+        }
+
+        // Procesar módulos
+        if (modulesResponse.ok) {
+          const modulesData = await modulesResponse.json();
+          if (Array.isArray(modulesData)) {
+            setModules(modulesData);
+            if (modulesData.length > 0) {
+              setExpandedModules(new Set([modulesData[0].module_id || modulesData[0].id]));
+            }
+          } else if (modulesData.modules && Array.isArray(modulesData.modules)) {
+            setModules(modulesData.modules);
+            if (modulesData.modules.length > 0) {
+              setExpandedModules(new Set([modulesData.modules[0].module_id || modulesData.modules[0].id]));
+            }
+          } else {
+            setModules([]);
+          }
+        }
+
+        // Procesar reviews
+        if (reviewsResponse.ok) {
+          const reviewsData = await reviewsResponse.json();
+          if (reviewsData.reviews) {
+            setReviews(reviewsData.reviews);
+          } else if (Array.isArray(reviewsData)) {
+            setReviews(reviewsData);
+          }
+        }
+
+        // Cargar instructor después de tener courseData
+        if (courseData?.instructor_id) {
+          const supabase = createClient();
+          const { data: instructorData } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, display_name, username, profile_picture_url, bio, linkedin_url, cargo_rol')
+            .eq('id', courseData.instructor_id)
+            .single();
+
+          if (instructorData) {
+            setInstructorData(instructorData);
+          }
+        }
+
       } catch (err) {
         setError('Error al cargar el curso');
-        console.error('Error loading course:', err);
       } finally {
         setLoading(false);
-      }
-    }
-
-    async function checkPurchase() {
-      try {
-        setCheckingPurchase(true);
-        const response = await fetch(`/api/courses/${slug}/check-purchase`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setIsPurchased(data.isPurchased);
-        }
-      } catch (err) {
-        console.error('Error checking purchase:', err);
-      } finally {
         setCheckingPurchase(false);
       }
     }
 
-    if (slug) {
-      loadCourse();
-      checkPurchase();
-    }
+    loadCourseData();
   }, [slug]);
 
-  useEffect(() => {
-    async function loadModules() {
-      if (!slug) return;
-      try {
-        const response = await fetch(`/api/courses/${slug}/modules`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📦 Datos de módulos recibidos:', data);
-          // La API devuelve un array directo, no un objeto con modules
-          if (Array.isArray(data)) {
-            console.log(`✅ Se encontraron ${data.length} módulos`);
-            setModules(data);
-            if (data.length > 0) {
-              setExpandedModules(new Set([data[0].module_id || data[0].id]));
-            }
-          } else if (data.modules && Array.isArray(data.modules)) {
-            console.log(`✅ Se encontraron ${data.modules.length} módulos en data.modules`);
-            setModules(data.modules);
-            if (data.modules.length > 0) {
-              setExpandedModules(new Set([data.modules[0].module_id || data.modules[0].id]));
-            }
-          } else {
-            console.warn('⚠️ Modules data format unexpected:', data);
-            setModules([]);
-          }
-        } else {
-          const errorText = await response.text().catch(() => '');
-          console.error('❌ Error response from modules API:', response.status, response.statusText, errorText);
-          setModules([]);
-        }
-      } catch (err) {
-        console.error('Error loading modules:', err);
-        setModules([]);
-      }
-    }
-
-    async function loadReviews() {
-      if (!slug) return;
-      try {
-        const response = await fetch(`/api/courses/${slug}/reviews`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.reviews) {
-            setReviews(data.reviews);
-          } else if (Array.isArray(data)) {
-            setReviews(data);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading reviews:', err);
-      }
-    }
-
-    async function loadInstructor() {
-      if (!course?.instructor_id) return;
-      try {
-        const supabase = createClient();
-        const { data: instructorData, error } = await supabase
-          .from('users')
-          .select('id, first_name, last_name, display_name, username, email, profile_picture_url, bio, linkedin_url, github_url, website_url, location, cargo_rol, type_rol')
-          .eq('id', course.instructor_id)
-          .single();
-
-        if (!error && instructorData) {
-          setInstructorData(instructorData);
-        }
-      } catch (err) {
-        console.error('Error loading instructor:', err);
-      }
-    }
-
-    if (course?.id) {
-      loadModules();
-      loadReviews();
-      loadInstructor();
-    }
-  }, [course?.id, course?.instructor_id, slug]);
 
   const handlePurchase = async () => {
     if (!course) return;
@@ -280,10 +243,10 @@ export default function CourseDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-carbon-900 via-carbon-800 to-carbon-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-carbon-300 text-lg">Cargando curso...</p>
+          <p className="text-gray-700 dark:text-carbon-300 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -291,10 +254,10 @@ export default function CourseDetailPage() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-carbon-900 via-carbon-800 to-carbon-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-4">Error</h1>
-          <p className="text-carbon-300 mb-8">{error || 'No se pudo cargar el curso'}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Error</h1>
+          <p className="text-gray-600 dark:text-carbon-300 mb-8">{error || 'No se pudo cargar el curso'}</p>
           <button 
             onClick={() => router.back()} 
             className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors"
@@ -315,14 +278,14 @@ export default function CourseDetailPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full min-h-screen bg-gradient-to-br from-carbon-900 via-carbon-800 to-carbon-900"
+      className="w-full min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Back Button */}
         <div className="mb-6">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 px-4 py-2 bg-carbon-800/50 hover:bg-carbon-700/50 text-carbon-300 hover:text-white rounded-lg border border-carbon-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-carbon-800/50 hover:bg-gray-100 dark:hover:bg-carbon-700/50 text-gray-700 dark:text-carbon-300 dark:hover:text-white rounded-lg border border-gray-200 dark:border-carbon-600 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Volver</span>
@@ -330,17 +293,19 @@ export default function CourseDetailPage() {
         </div>
 
         {/* Hero Section */}
-      <div className="relative rounded-2xl overflow-hidden border border-carbon-600 mb-8">
+      <div className="relative rounded-2xl overflow-hidden border border-gray-200 dark:border-carbon-600 mb-8 bg-white dark:bg-carbon-800 shadow-lg">
         {course.thumbnail ? (
-          <div className="relative h-96 bg-carbon-600">
+          <div className="relative h-96 bg-gray-200 dark:bg-carbon-600">
             <Image
               src={course.thumbnail}
               alt={course.title}
               fill
               className="object-cover"
               priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
+              quality={85}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-carbon-900 via-carbon-900/50 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent dark:from-carbon-900 dark:via-carbon-900/50"></div>
             
             {/* Background Graphics */}
             <div className="absolute inset-0 pointer-events-none opacity-20">
@@ -382,7 +347,7 @@ export default function CourseDetailPage() {
                       </span>
                     )}
                     {totalModules > 0 && (
-                      <span className="px-3 py-1 bg-carbon-700/50 text-carbon-300 rounded-full text-xs font-semibold border border-carbon-600">
+                      <span className="px-3 py-1 bg-white/20 dark:bg-carbon-700/50 text-white dark:text-carbon-300 rounded-full text-xs font-semibold border border-white/30 dark:border-carbon-600">
                         {totalModules} módulos
                       </span>
                     )}
@@ -397,20 +362,20 @@ export default function CourseDetailPage() {
                         <span className="text-white font-bold text-lg">{course.rating?.toFixed(1) || '0.0'}</span>
                       </div>
                       {course.review_count && course.review_count > 0 && (
-                        <span className="text-carbon-300 text-sm">
+                        <span className="text-white/80 dark:text-carbon-300 text-sm">
                           ({course.review_count} {course.review_count === 1 ? 'reseña' : 'reseñas'})
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-carbon-300">
+                    <div className="flex items-center gap-2 text-white/80 dark:text-carbon-300">
                       <Users className="w-5 h-5" />
                       <span>{course.student_count?.toLocaleString() || '0'} estudiantes</span>
                     </div>
-                    <div className="flex items-center gap-2 text-carbon-300">
+                    <div className="flex items-center gap-2 text-white/80 dark:text-carbon-300">
                       <Clock className="w-5 h-5" />
                       <span>{formatDuration(course.estimatedDuration)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-carbon-300">
+                    <div className="flex items-center gap-2 text-white/80 dark:text-carbon-300">
                       <Calendar className="w-5 h-5" />
                       <span>Actualizado {formatDate(course.updatedAt)}</span>
                     </div>
@@ -431,8 +396,8 @@ export default function CourseDetailPage() {
         {/* Left Column - Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Tabs */}
-          <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl border border-carbon-600 overflow-hidden">
-            <div className="flex border-b border-carbon-600">
+          <div className="bg-white dark:bg-gradient-to-br dark:from-carbon-700 dark:to-carbon-800 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden shadow-sm dark:shadow-none">
+            <div className="flex border-b border-gray-200 dark:border-carbon-600">
               {[
                 { id: 'info', label: 'Información', icon: BookOpen },
                 { id: 'content', label: 'Contenido', icon: FileText },
@@ -447,7 +412,7 @@ export default function CourseDetailPage() {
                     className={`flex-1 px-6 py-4 flex items-center justify-center gap-2 transition-colors ${
                       activeTab === tab.id
                         ? 'bg-primary/20 text-primary border-b-2 border-primary'
-                        : 'text-carbon-300 hover:text-white hover:bg-carbon-700/50'
+                        : 'text-gray-600 dark:text-carbon-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-carbon-700/50'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -471,12 +436,12 @@ export default function CourseDetailPage() {
                       {/* Learning Objectives */}
                       {course.learning_objectives && course.learning_objectives.length > 0 && (
                         <div>
-                          <h3 className="text-xl font-bold text-white mb-4">Lo que aprenderás</h3>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Lo que aprenderás</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {course.learning_objectives.map((objective: string, index: number) => (
                               <div key={index} className="flex items-start gap-3">
                                 <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                                <span className="text-carbon-300">{objective}</span>
+                                <span className="text-gray-700 dark:text-carbon-100">{objective}</span>
                               </div>
                             ))}
                           </div>
@@ -486,8 +451,8 @@ export default function CourseDetailPage() {
                       {/* Description */}
                       {course.description && (
                         <div>
-                          <h3 className="text-xl font-bold text-white mb-3">Descripción del Curso</h3>
-                          <p className="text-carbon-300 leading-relaxed whitespace-pre-line">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Descripción del Curso</h3>
+                          <p className="text-gray-700 dark:text-carbon-100 leading-relaxed whitespace-pre-line">
                             {course.description}
                           </p>
                         </div>
@@ -495,33 +460,33 @@ export default function CourseDetailPage() {
 
                       {/* Course Stats */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <FileText className="w-5 h-5 text-primary" />
-                            <span className="text-carbon-400 text-sm">Módulos</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Módulos</span>
                           </div>
-                          <p className="text-2xl font-bold text-white">{totalModules || '0'}</p>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalModules || '0'}</p>
                         </div>
-                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <Video className="w-5 h-5 text-primary" />
-                            <span className="text-carbon-400 text-sm">Lecciones</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Lecciones</span>
                           </div>
-                          <p className="text-2xl font-bold text-white">{totalLessons || '0'}</p>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalLessons || '0'}</p>
                         </div>
-                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <Clock className="w-5 h-5 text-primary" />
-                            <span className="text-carbon-400 text-sm">Duración</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Duración</span>
                           </div>
-                          <p className="text-2xl font-bold text-white">{formatDuration(totalDuration)}</p>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatDuration(totalDuration)}</p>
                         </div>
-                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <Users className="w-5 h-5 text-primary" />
-                            <span className="text-carbon-400 text-sm">Estudiantes</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Estudiantes</span>
                           </div>
-                          <p className="text-2xl font-bold text-white">{course.student_count?.toLocaleString() || '0'}</p>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{course.student_count?.toLocaleString() || '0'}</p>
                         </div>
                       </div>
                     </div>
@@ -537,18 +502,18 @@ export default function CourseDetailPage() {
                   >
                     <div className="space-y-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold text-white">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                           Contenido del Curso
                         </h3>
-                        <span className="text-carbon-400 text-sm">
+                        <span className="text-gray-600 dark:text-carbon-200 text-sm">
                           {totalModules} módulos • {totalLessons} lecciones • {formatDuration(totalDuration)}
                         </span>
                       </div>
 
                       {modules.length === 0 ? (
                         <div className="text-center py-12">
-                          <BookOpen className="w-16 h-16 text-carbon-500 mx-auto mb-4" />
-                          <p className="text-carbon-400">Este curso aún no tiene contenido disponible</p>
+                          <BookOpen className="w-16 h-16 text-gray-400 dark:text-carbon-500 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-carbon-200">Este curso aún no tiene contenido disponible</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -562,30 +527,30 @@ export default function CourseDetailPage() {
                             return (
                               <div
                                 key={module.module_id || module.id}
-                                className="bg-carbon-800/50 rounded-xl border border-carbon-600 overflow-hidden"
+                                className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden"
                               >
                                 <button
                                   onClick={() => toggleModule(module.module_id || module.id)}
-                                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-carbon-700/50 transition-colors"
+                                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-carbon-700/50 transition-colors"
                                 >
                                   <div className="flex items-center gap-4 flex-1 text-left">
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${
-                                      isExpanded ? 'bg-primary' : 'bg-carbon-600'
+                                      isExpanded ? 'bg-primary' : 'bg-gray-400 dark:bg-carbon-600'
                                     }`}>
                                       {moduleIndex + 1}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <h4 className="text-white font-semibold mb-1">{module.module_title || module.title}</h4>
-                                      <div className="flex items-center gap-4 text-sm text-carbon-400">
+                                      <h4 className="text-gray-900 dark:text-white font-semibold mb-1">{module.module_title || module.title}</h4>
+                                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-carbon-200">
                                         <span>{moduleLessons.length} {moduleLessons.length === 1 ? 'lección' : 'lecciones'}</span>
                                         <span>{formatDurationSeconds(moduleDuration)}</span>
                                       </div>
                                     </div>
                                   </div>
                                   {isExpanded ? (
-                                    <ChevronUp className="w-5 h-5 text-carbon-400" />
+                                    <ChevronUp className="w-5 h-5 text-gray-600 dark:text-carbon-200" />
                                   ) : (
-                                    <ChevronDown className="w-5 h-5 text-carbon-400" />
+                                    <ChevronDown className="w-5 h-5 text-gray-600 dark:text-carbon-200" />
                                   )}
                                 </button>
 
@@ -598,27 +563,27 @@ export default function CourseDetailPage() {
                                       transition={{ duration: 0.2 }}
                                       className="overflow-hidden"
                                     >
-                                      <div className="px-6 pb-4 space-y-2 border-t border-carbon-600 pt-4">
+                                      <div className="px-6 pb-4 space-y-2 border-t border-gray-200 dark:border-carbon-600 pt-4">
                                         {module.module_description && (
-                                          <p className="text-carbon-400 text-sm mb-4">{module.module_description}</p>
+                                          <p className="text-gray-600 dark:text-carbon-200 text-sm mb-4">{module.module_description}</p>
                                         )}
                                         {moduleLessons.map((lesson: any, lessonIndex: number) => (
                                           <div
                                             key={lesson.lesson_id || lesson.id}
-                                            className="flex items-center gap-3 p-3 rounded-lg bg-carbon-700/30 hover:bg-carbon-700/50 transition-colors"
+                                            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-carbon-700/30 hover:bg-gray-50 dark:hover:bg-carbon-700/50 transition-colors border border-gray-200 dark:border-carbon-600"
                                           >
-                                            <Play className="w-4 h-4 text-carbon-400 flex-shrink-0" />
+                                            <Play className="w-4 h-4 text-gray-600 dark:text-carbon-200 flex-shrink-0" />
                                             <div className="flex-1 min-w-0">
-                                              <p className="text-white text-sm font-medium">
+                                              <p className="text-gray-900 dark:text-white text-sm font-medium">
                                                 {lessonIndex + 1}. {lesson.lesson_title || lesson.title}
                                               </p>
                                               {lesson.lesson_description && (
-                                                <p className="text-carbon-400 text-xs mt-1 line-clamp-1">
+                                                <p className="text-gray-600 dark:text-carbon-200 text-xs mt-1 line-clamp-1">
                                                   {lesson.lesson_description}
                                                 </p>
                                               )}
                                             </div>
-                                            <span className="text-carbon-500 text-xs flex-shrink-0">
+                                            <span className="text-gray-500 dark:text-carbon-300 text-xs flex-shrink-0">
                                               {formatDurationSeconds(lesson.duration_seconds || 0)}
                                             </span>
                                           </div>
@@ -646,14 +611,14 @@ export default function CourseDetailPage() {
                     <div className="space-y-6">
                       {reviews.length === 0 ? (
                         <div className="text-center py-12">
-                          <Star className="w-16 h-16 text-carbon-500 mx-auto mb-4" />
-                          <p className="text-carbon-400">Aún no hay reseñas para este curso</p>
+                          <Star className="w-16 h-16 text-gray-400 dark:text-carbon-500 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-carbon-200">Aún no hay reseñas para este curso</p>
                         </div>
                       ) : (
                         reviews.map((review) => (
                           <div
                             key={review.id}
-                            className="bg-carbon-800/50 rounded-xl p-6 border border-carbon-600"
+                            className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-6 border border-gray-200 dark:border-carbon-600"
                           >
                             <div className="flex items-start gap-4 mb-4">
                               <div className="w-12 h-12 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -661,7 +626,7 @@ export default function CourseDetailPage() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <h4 className="text-white font-semibold">{review.user?.name || 'Usuario'}</h4>
+                                  <h4 className="text-gray-900 dark:text-white font-semibold">{review.user?.name || 'Usuario'}</h4>
                                 </div>
                                 <div className="flex items-center gap-2 mb-2">
                                   {[...Array(5)].map((_, i) => (
@@ -670,18 +635,18 @@ export default function CourseDetailPage() {
                                       className={`w-4 h-4 ${
                                         i < review.rating
                                           ? 'text-yellow-400 fill-yellow-400'
-                                          : 'text-carbon-600'
+                                          : 'text-gray-300 dark:text-carbon-600'
                                       }`}
                                     />
                                   ))}
-                                  <span className="text-carbon-400 text-xs ml-1">
+                                  <span className="text-gray-600 dark:text-carbon-400 text-xs ml-1">
                                     {formatDate(review.created_at)}
                                   </span>
                                 </div>
                                 {review.title && (
-                                  <h5 className="text-white font-medium mb-2">{review.title}</h5>
+                                  <h5 className="text-gray-900 dark:text-white font-medium mb-2">{review.title}</h5>
                                 )}
-                                <p className="text-carbon-300 text-sm leading-relaxed whitespace-pre-line">
+                                <p className="text-gray-700 dark:text-carbon-100 text-sm leading-relaxed whitespace-pre-line">
                                   {review.content}
                                 </p>
                               </div>
@@ -709,6 +674,9 @@ export default function CourseDetailPage() {
                               alt={course.instructor_name || 'Instructor'}
                               fill
                               className="object-cover"
+                              loading="lazy"
+                              sizes="96px"
+                              quality={75}
                             />
                           </div>
                         ) : (
@@ -717,7 +685,7 @@ export default function CourseDetailPage() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-2xl font-bold text-white mb-2">
+                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                             {instructorData?.display_name || 
                              (instructorData?.first_name && instructorData?.last_name 
                                ? `${instructorData.first_name} ${instructorData.last_name}` 
@@ -726,12 +694,12 @@ export default function CourseDetailPage() {
                              'Instructor'}
                           </h3>
                           {(instructorData?.cargo_rol || instructorData?.type_rol) && (
-                            <p className="text-carbon-300 text-lg mb-3">
+                            <p className="text-gray-600 dark:text-carbon-200 text-lg mb-3">
                               {instructorData.cargo_rol || instructorData.type_rol}
                             </p>
                           )}
                           {instructorData?.location && (
-                            <div className="flex items-center gap-2 text-carbon-400 mb-4">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-carbon-200 mb-4">
                               <span className="text-sm">{instructorData.location}</span>
                             </div>
                           )}
@@ -782,7 +750,7 @@ export default function CourseDetailPage() {
 
                       {/* Email */}
                       {course.instructor_email && (
-                        <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
+                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
                               <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -790,7 +758,7 @@ export default function CourseDetailPage() {
                               </svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-carbon-400 text-sm mb-1">Correo electrónico</p>
+                              <p className="text-gray-600 dark:text-carbon-200 text-sm mb-1">Correo electrónico</p>
                               <a
                                 href={`mailto:${course.instructor_email}`}
                                 className="text-primary hover:text-primary/80 transition-colors font-medium break-all"
@@ -804,13 +772,13 @@ export default function CourseDetailPage() {
 
                       {/* Bio */}
                       <div>
-                        <h4 className="text-lg font-bold text-white mb-3">Biografía</h4>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Biografía</h4>
                         {instructorData?.bio ? (
-                          <p className="text-carbon-300 leading-relaxed whitespace-pre-line">
+                          <p className="text-gray-700 dark:text-carbon-100 leading-relaxed whitespace-pre-line">
                             {instructorData.bio}
                           </p>
                         ) : (
-                          <p className="text-carbon-400 italic">No hay biografía disponible para este instructor.</p>
+                          <p className="text-gray-500 dark:text-carbon-300 italic">No hay biografía disponible para este instructor.</p>
                         )}
                       </div>
                     </div>
@@ -824,14 +792,14 @@ export default function CourseDetailPage() {
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
           {/* Course Info Card */}
-          <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600 sticky top-6">
+          <div className="bg-white dark:bg-gradient-to-br dark:from-carbon-700 dark:to-carbon-800 rounded-xl p-6 border border-gray-200 dark:border-carbon-600 sticky top-6 shadow-sm dark:shadow-none">
             <div className="space-y-6">
               {/* Price */}
               <div>
                 <div className="flex items-baseline gap-2 mb-2">
                   {course.price && course.price !== 'MX$0' ? (
                     <>
-                      <span className="text-3xl font-bold text-white">
+                      <span className="text-3xl font-bold text-gray-900 dark:text-white">
                         {course.price}
                       </span>
                     </>
@@ -878,20 +846,20 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Course Features */}
-              <div className="space-y-3 pt-4 border-t border-carbon-600">
-                <div className="flex items-center gap-3 text-carbon-300">
+              <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-carbon-600">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Acceso de por vida</span>
                 </div>
-                <div className="flex items-center gap-3 text-carbon-300">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">{totalLessons || '0'} lecciones en video</span>
                 </div>
-                <div className="flex items-center gap-3 text-carbon-300">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Certificado de finalización</span>
                 </div>
-                <div className="flex items-center gap-3 text-carbon-300">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Actualizado {formatDate(course.updatedAt)}</span>
                 </div>
@@ -899,11 +867,11 @@ export default function CourseDetailPage() {
 
               {/* Rating Summary */}
               {course.rating && course.rating > 0 && (
-                <div className="pt-4 border-t border-carbon-600">
+                <div className="pt-4 border-t border-gray-200 dark:border-carbon-600">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex items-center gap-1">
                       <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-                      <span className="text-2xl font-bold text-white">{course.rating.toFixed(1)}</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">{course.rating.toFixed(1)}</span>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-1 mb-1">
@@ -913,12 +881,12 @@ export default function CourseDetailPage() {
                             className={`w-4 h-4 ${
                               i < Math.floor(course.rating || 0)
                                 ? 'text-yellow-400 fill-yellow-400'
-                                : 'text-carbon-600'
+                                : 'text-gray-300 dark:text-carbon-600'
                             }`}
                           />
                         ))}
                       </div>
-                      <p className="text-carbon-400 text-xs">
+                      <p className="text-gray-600 dark:text-carbon-200 text-xs">
                         {course.review_count || 0} {course.review_count === 1 ? 'reseña' : 'reseñas'}
                       </p>
                     </div>

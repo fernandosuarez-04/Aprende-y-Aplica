@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { 
@@ -29,7 +29,7 @@ interface UserDropdownProps {
   className?: string
 }
 
-export function UserDropdown({ className = '' }: UserDropdownProps) {
+export const UserDropdown = React.memo(function UserDropdown({ className = '' }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -43,11 +43,6 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
   useEffect(() => {
     initializeTheme()
   }, [initializeTheme])
-
-  console.log('🔍 UserDropdown renderizado, user:', user)
-  console.log('🔍 UserProfile:', userProfile)
-  console.log('🎭 Rol del usuario:', user?.cargo_rol)
-  console.log('✅ Es administrador:', user?.cargo_rol?.toLowerCase() === 'administrador')
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -67,15 +62,26 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
     }
   }, [])
 
-  const handleLogout = async () => {
+  // Memoizar verificación de admin para evitar recálculos innecesarios
+  const isAdmin = useMemo(
+    () => user?.cargo_rol?.toLowerCase() === 'administrador',
+    [user?.cargo_rol]
+  )
+
+  const isInstructor = useMemo(
+    () => user?.cargo_rol?.toLowerCase() === 'instructor',
+    [user?.cargo_rol]
+  )
+
+  const handleLogout = useCallback(async () => {
     await logout()
     setIsOpen(false)
-  }
+  }, [logout])
 
-  const truncateEmail = (email: string, maxLength: number = 20) => {
+  const truncateEmail = useCallback((email: string, maxLength: number = 20) => {
     if (email.length <= maxLength) return email
     return email.substring(0, maxLength) + '...'
-  }
+  }, [])
 
   const menuItems = [
     // Accesos rápidos
@@ -178,7 +184,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       isSeparator: true
     },
     // Botón de administración - Solo para administradores
-    ...(user?.cargo_rol?.toLowerCase() === 'administrador' ? [{
+    ...(isAdmin ? [{
       id: 'admin',
       label: 'Panel de Administración',
       icon: ShieldCheck,
@@ -189,7 +195,7 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       isAdmin: true
     }] : []),
     // Botón de instructor - Solo para instructores
-    ...(user?.cargo_rol?.toLowerCase() === 'instructor' ? [{
+    ...(isInstructor ? [{
       id: 'instructor',
       label: 'Panel de Instructor',
       icon: GraduationCap,
@@ -442,4 +448,4 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
       </AnimatePresence>
     </div>
   )
-}
+})

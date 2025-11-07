@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
+import useSWR from 'swr'
 import { CourseWithInstructor } from '../services/course.service'
 import { useAuth } from '../../auth/hooks/useAuth'
 
@@ -15,62 +16,51 @@ interface UseCoursesReturn {
   setFavorites: (favorites: string[]) => void
 }
 
+// ⚡ Fetcher optimizado para SWR
+const coursesFetcher = async (url: string): Promise<CourseWithInstructor[]> => {
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
 export function useCourses(): UseCoursesReturn {
-  const [courses, setCourses] = useState<CourseWithInstructor[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState('all')
   const [userFavorites, setUserFavorites] = useState<string[]>([])
   const { user } = useAuth()
 
-  const fetchCourses = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const url = user?.id 
-        ? `/api/courses?userId=${user.id}`
-        : '/api/courses'
-      
-      const response = await fetch(url, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      setCourses(data)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      console.error('Error fetching courses:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // ⚡ SWR con cache y deduplicación
+  const url = user?.id ? `/api/courses?userId=${user.id}` : '/api/courses'
 
-  useEffect(() => {
-    fetchCourses()
-  }, [user?.id])
+  const { data: courses = [], error, isLoading, mutate } = useSWR<CourseWithInstructor[]>(
+    url,
+    coursesFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 10000, // 10s deduplication
+      refreshInterval: 0,
+      shouldRetryOnError: false,
+    }
+  )
 
   // Filtrar cursos basado en el filtro activo
-  const filteredCourses = React.useMemo(() => {
+  const filteredCourses = useMemo(() => {
     if (activeFilter === 'all') {
       return courses
     }
-    
+
     if (activeFilter === 'favorites') {
-      // Filtrar por favoritos del usuario
       return courses.filter(course => userFavorites.includes(course.id))
     }
-    
-    return courses.filter(course => 
+
+    return courses.filter(course =>
       course.category?.toLowerCase() === activeFilter.toLowerCase()
     )
   }, [courses, activeFilter, userFavorites])
@@ -81,9 +71,9 @@ export function useCourses(): UseCoursesReturn {
 
   return {
     courses,
-    loading,
-    error,
-    refetch: fetchCourses,
+    loading: isLoading,
+    error: error?.message || null,
+    refetch: mutate,
     filteredCourses,
     setFilter,
     activeFilter,
@@ -99,48 +89,25 @@ interface UseCoursesByCategoryReturn {
 }
 
 export function useCoursesByCategory(category: string): UseCoursesByCategoryReturn {
-  const [courses, setCourses] = useState<CourseWithInstructor[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // ⚡ SWR con cache y deduplicación
+  const url = category ? `/api/courses?category=${encodeURIComponent(category)}` : null
 
-  const fetchCourses = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch(`/api/courses?category=${encodeURIComponent(category)}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      setCourses(data)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      console.error('Error fetching courses by category:', err)
-    } finally {
-      setLoading(false)
+  const { data: courses = [], error, isLoading, mutate } = useSWR<CourseWithInstructor[]>(
+    url,
+    coursesFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 10000,
+      refreshInterval: 0,
+      shouldRetryOnError: false,
     }
-  }
-
-  useEffect(() => {
-    if (category) {
-      fetchCourses()
-    }
-  }, [category])
+  )
 
   return {
     courses,
-    loading,
-    error,
-    refetch: fetchCourses
+    loading: isLoading,
+    error: error?.message || null,
+    refetch: mutate
   }
 }

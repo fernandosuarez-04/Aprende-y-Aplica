@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import useSWR from 'swr'
 import { useAuth } from '../../auth/hooks/useAuth'
 
 interface UseFavoritesReturn {
@@ -12,101 +12,80 @@ interface UseFavoritesReturn {
   refetch: () => Promise<void>
 }
 
+// ⚡ Fetcher optimizado para SWR
+const favoritesFetcher = async (url: string): Promise<string[]> => {
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  if (!response.ok) {
+    // Si es un error 500, devolver array vacío (problema de configuración)
+    if (response.status === 500) {
+      return []
+    }
+    throw new Error(`Error ${response.status}: ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
 export function useFavorites(): UseFavoritesReturn {
-  const [favorites, setFavorites] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const { user } = useAuth()
 
-  const fetchFavorites = async () => {
-    if (!user?.id) {
-      setFavorites([])
-      setLoading(false)
-      return
-    }
+  // ⚡ SWR con cache y deduplicación
+  const url = user?.id ? `/api/favorites?userId=${user.id}` : null
 
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch(`/api/favorites?userId=${user.id}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      if (!response.ok) {
-        // Si es un error 500, probablemente es un problema de configuración
-        if (response.status === 500) {
-          const errorData = await response.json().catch(() => ({ error: response.statusText }))
-          console.warn('Error 500 en favoritos:', errorData.message || errorData.error)
-          setFavorites([]) // Devolver array vacío en lugar de error
-          return
-        }
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
-        throw new Error(errorData.message || errorData.error || `Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      setFavorites(data)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      
-      // Si es un error de configuración, no mostrar error al usuario
-      if (errorMessage.includes('Variables de entorno') || errorMessage.includes('500')) {
-        console.warn('Supabase no configurado, usando favoritos vacíos')
-        setFavorites([])
-        setError(null)
-      } else {
-        setError(errorMessage)
-        console.error('Error fetching favorites:', err)
-      }
-    } finally {
-      setLoading(false)
+  const { data: favorites = [], error, isLoading, mutate } = useSWR<string[]>(
+    url,
+    favoritesFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 10000, // 10s deduplication
+      refreshInterval: 0,
+      shouldRetryOnError: false,
+      fallbackData: [],
     }
-  }
+  )
 
   const toggleFavorite = async (courseId: string): Promise<boolean> => {
     if (!user?.id) {
-      setError('Debes estar autenticado para usar favoritos')
       return false
     }
 
     try {
-      setError(null)
-      
+      // ⚡ Optimistic update
+      const isCurrentlyFavorite = favorites.includes(courseId)
+      const optimisticFavorites = isCurrentlyFavorite
+        ? favorites.filter(id => id !== courseId)
+        : [...favorites, courseId]
+
+      // Update UI immediately
+      mutate(optimisticFavorites, false)
+
       const response = await fetch('/api/favorites', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          courseId
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, courseId })
       })
-      
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
-        throw new Error(errorData.message || errorData.error || `Error ${response.status}: ${response.statusText}`)
+        // Rollback on error
+        mutate(favorites, false)
+        throw new Error(`Error ${response.status}`)
       }
-      
+
       const { isFavorite: newFavoriteStatus } = await response.json()
-      
-      // Actualizar el estado local
-      if (newFavoriteStatus) {
-        setFavorites(prev => [...prev, courseId])
-      } else {
-        setFavorites(prev => prev.filter(id => id !== courseId))
-      }
-      
+
+      // Revalidate to ensure consistency
+      await mutate()
+
       return newFavoriteStatus
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      console.error('Error toggling favorite:', err)
+      // Rollback on error
+      mutate(favorites, false)
       return false
     }
   }
@@ -115,16 +94,12 @@ export function useFavorites(): UseFavoritesReturn {
     return favorites.includes(courseId)
   }
 
-  useEffect(() => {
-    fetchFavorites()
-  }, [user?.id])
-
   return {
     favorites,
-    loading,
-    error,
+    loading: isLoading,
+    error: error?.message || null,
     toggleFavorite,
     isFavorite,
-    refetch: fetchFavorites
+    refetch: mutate
   }
 }
