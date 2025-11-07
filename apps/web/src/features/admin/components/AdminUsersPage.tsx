@@ -92,16 +92,24 @@ export function AdminUsersPage() {
   const handleConfirmDelete = async () => {
     if (!deletingUser) return
 
-    const response = await fetch(`/api/admin/users/${deletingUser.id}`, {
-      method: 'DELETE',
-    })
+    try {
+      const response = await fetch(`/api/admin/users/${deletingUser.id}`, {
+        method: 'DELETE',
+      })
 
-    if (!response.ok) {
-      throw new Error('Error al eliminar usuario')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al eliminar usuario')
+      }
+
+      // Refrescar la lista de usuarios
+      refetch()
+      setIsDeleteModalOpen(false)
+      setDeletingUser(null)
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      alert(error instanceof Error ? error.message : 'Error al eliminar usuario')
     }
-
-    // Refrescar la lista de usuarios
-    refetch()
   }
 
   const closeEditModal = () => {

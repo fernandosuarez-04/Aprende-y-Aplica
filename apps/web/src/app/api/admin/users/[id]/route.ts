@@ -84,6 +84,18 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error in DELETE /api/admin/users/[id]:', error)
+    
+    // Proporcionar mensaje más específico para errores de clave foránea
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23503') {
+      return NextResponse.json(
+        { 
+          error: 'No se puede eliminar el usuario porque tiene referencias activas en otras tablas. Por favor, elimine primero las referencias relacionadas.',
+          details: (error as any).details || 'Restricción de clave foránea'
+        },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Error al eliminar usuario' },
       { status: 500 }

@@ -393,6 +393,16 @@ export class AdminUsersService {
         }
       }
 
+      // 3.5. Eliminar TODAS las reacciones creadas por el usuario (no solo en sus posts)
+      const { error: deleteUserReactionsError } = await adminSupabase
+        .from('community_reactions')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteUserReactionsError) {
+        console.warn('Warning deleting user reactions:', deleteUserReactionsError)
+      }
+
       // 4. Eliminar posts de comunidades del usuario
       const { error: deletePostsError } = await adminSupabase
         .from('community_posts')
@@ -413,6 +423,26 @@ export class AdminUsersService {
         console.warn('Warning deleting community members:', deleteMembersError)
       }
 
+      // 5.5. Eliminar solicitudes de acceso a comunidades donde el usuario es el solicitante
+      const { error: deleteAccessRequestsError } = await adminSupabase
+        .from('community_access_requests')
+        .delete()
+        .eq('requester_id', userId)
+
+      if (deleteAccessRequestsError) {
+        console.warn('Warning deleting community access requests:', deleteAccessRequestsError)
+      }
+
+      // 5.6. Eliminar solicitudes de acceso a comunidades donde el usuario es el revisor (opcional pero recomendado)
+      const { error: deleteReviewedRequestsError } = await adminSupabase
+        .from('community_access_requests')
+        .delete()
+        .eq('reviewed_by', userId)
+
+      if (deleteReviewedRequestsError) {
+        console.warn('Warning deleting reviewed access requests:', deleteReviewedRequestsError)
+      }
+
       // 6. Eliminar usuarios de organizaciones
       const { error: deleteOrgUsersError } = await adminSupabase
         .from('organization_users')
@@ -421,6 +451,16 @@ export class AdminUsersService {
 
       if (deleteOrgUsersError) {
         console.warn('Warning deleting organization users:', deleteOrgUsersError)
+      }
+
+      // 6.5. Eliminar inscripciones a cursos del usuario
+      const { error: deleteEnrollmentsError } = await adminSupabase
+        .from('user_course_enrollments')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteEnrollmentsError) {
+        console.warn('Warning deleting user course enrollments:', deleteEnrollmentsError)
       }
 
       // 7. Eliminar sesiones del usuario
@@ -441,6 +481,95 @@ export class AdminUsersService {
 
       if (deleteFavoritesError) {
         console.warn('Warning deleting app favorites:', deleteFavoritesError)
+      }
+
+      // 8.5. Manejar referencias del usuario como instructor
+      // Obtener todas las lecciones del instructor
+      const { data: userLessons } = await adminSupabase
+        .from('course_lessons')
+        .select('lesson_id')
+        .eq('instructor_id', userId)
+
+      const lessonIds = userLessons?.map(lesson => lesson.lesson_id) || []
+
+      // Eliminar actividades de las lecciones antes de eliminar las lecciones
+      if (lessonIds.length > 0) {
+        const { error: deleteActivitiesError } = await adminSupabase
+          .from('lesson_activities')
+          .delete()
+          .in('lesson_id', lessonIds)
+
+        if (deleteActivitiesError) {
+          console.warn('Warning deleting lesson activities:', deleteActivitiesError)
+        }
+
+        // Eliminar materiales de las lecciones antes de eliminar las lecciones
+        const { error: deleteMaterialsError } = await adminSupabase
+          .from('lesson_materials')
+          .delete()
+          .in('lesson_id', lessonIds)
+
+        if (deleteMaterialsError) {
+          console.warn('Warning deleting lesson materials:', deleteMaterialsError)
+        }
+
+        // Eliminar progreso de lecciones antes de eliminar las lecciones
+        const { error: deleteProgressError } = await adminSupabase
+          .from('user_lesson_progress')
+          .delete()
+          .in('lesson_id', lessonIds)
+
+        if (deleteProgressError) {
+          console.warn('Warning deleting user lesson progress:', deleteProgressError)
+        }
+      }
+
+      // Eliminar las lecciones del instructor
+      const { error: deleteLessonsError } = await adminSupabase
+        .from('course_lessons')
+        .delete()
+        .eq('instructor_id', userId)
+
+      if (deleteLessonsError) {
+        console.warn('Warning deleting course lessons:', deleteLessonsError)
+      }
+
+      // Cambiar instructor_id a NULL en courses (o eliminar si no permite NULL)
+      const { error: updateCoursesError } = await adminSupabase
+        .from('courses')
+        .update({ instructor_id: null })
+        .eq('instructor_id', userId)
+
+      if (updateCoursesError) {
+        console.warn('Warning updating courses instructor:', updateCoursesError)
+        // Si falla porque instructor_id no puede ser NULL, intentar eliminar los cursos
+        const { error: deleteCoursesError } = await adminSupabase
+          .from('courses')
+          .delete()
+          .eq('instructor_id', userId)
+        
+        if (deleteCoursesError) {
+          console.warn('Warning deleting courses:', deleteCoursesError)
+        }
+      }
+
+      // Cambiar created_by a NULL en news
+      const { error: updateNewsError } = await adminSupabase
+        .from('news')
+        .update({ created_by: null })
+        .eq('created_by', userId)
+
+      if (updateNewsError) {
+        console.warn('Warning updating news created_by:', updateNewsError)
+        // Si falla porque created_by no puede ser NULL, intentar eliminar las noticias
+        const { error: deleteNewsError } = await adminSupabase
+          .from('news')
+          .delete()
+          .eq('created_by', userId)
+        
+        if (deleteNewsError) {
+          console.warn('Warning deleting news:', deleteNewsError)
+        }
       }
 
       // 9. Finalmente eliminar el usuario
