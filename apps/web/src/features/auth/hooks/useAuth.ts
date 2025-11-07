@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import useSWR from 'swr'
 
 interface User {
   id: string
@@ -15,59 +15,49 @@ interface User {
   profile_picture_url?: string
 }
 
+// Fetcher optimizado para autenticación
+const authFetcher = async (url: string): Promise<User | null> => {
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    // Si no está autenticado, no es un error - simplemente no hay usuario
+    if (response.status === 401 || response.status === 403) {
+      return null
+    }
+    throw new Error('Error fetching user')
+  }
+
+  const data = await response.json()
+  return data.success && data.user ? data.user : null
+}
+
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
-    // Obtener sesión inicial
-    const getInitialSession = async () => {
-      try {
-        console.log('🔄 useAuth: Obteniendo sesión inicial...')
-        
-        // Hacer una llamada al servidor para obtener el usuario actual
-        const response = await fetch('/api/auth/me', {
-          method: 'GET',
-          credentials: 'include', // Importante para incluir cookies
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-        
-        console.log('📡 Respuesta de /api/auth/me:', response.status, response.ok)
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log('📋 Datos recibidos:', data)
-          
-          if (data.success && data.user) {
-            console.log('✅ Usuario encontrado:', data.user)
-            setUser(data.user)
-          } else {
-            console.log('❌ Usuario no encontrado en respuesta')
-            setUser(null)
-          }
-        } else {
-          console.log('❌ Respuesta no OK:', response.status)
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('💥 Error getting session:', error)
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
+  // SWR maneja el estado global, deduplicación y caché automáticamente
+  const { data: user, error, isLoading, mutate } = useSWR<User | null>(
+    '/api/auth/me',
+    authFetcher,
+    {
+      // Configuración optimizada para autenticación
+      revalidateOnFocus: false, // No revalidar al cambiar de pestaña (el usuario no cambia constantemente)
+      revalidateOnReconnect: true, // Sí revalidar al reconectar (podría haber cambiado la sesión)
+      dedupingInterval: 5000, // Deduplicar solicitudes dentro de 5 segundos - CLAVE para evitar múltiples llamadas
+      refreshInterval: 0, // No hacer polling automático
+      shouldRetryOnError: false, // No reintentar en errores (si no está autenticado, no hay que reintentar)
+      errorRetryCount: 0, // No reintentar
+      fallbackData: null, // Valor por defecto mientras carga
     }
-
-    getInitialSession()
-  }, [])
+  )
 
   const logout = async () => {
     try {
-      console.log('🚪 useAuth: Iniciando logout...')
-      setLoading(true)
-      
       // Llamar a la API de logout
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
@@ -76,59 +66,41 @@ export function useAuth() {
           'Content-Type': 'application/json',
         },
       })
-      
-      console.log('📡 Respuesta de logout:', response.status)
-      
-      // Limpiar estado local
-      setUser(null)
-      
+
+      // Limpiar caché de SWR inmediatamente
+      await mutate(null, false)
+
       // Redirigir a login
       router.push('/auth')
     } catch (error) {
-      console.error('💥 Error during logout:', error)
-      // Fallback: limpiar estado local y redirigir
-      setUser(null)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error during logout:', error)
+      }
+      // Fallback: limpiar caché y redirigir
+      await mutate(null, false)
       router.push('/auth')
-    } finally {
-      setLoading(false)
     }
   }
 
   const refreshUser = async () => {
     try {
-      console.log('🔄 useAuth: Refrescando usuario...')
-      
-      const response = await fetch('/api/auth/me', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.user) {
-          setUser(data.user)
-          return data.user
-        }
-      }
-      
-      setUser(null)
-      return null
+      // mutate() revalida y devuelve los nuevos datos
+      const updatedUser = await mutate()
+      return updatedUser ?? null
     } catch (error) {
-      console.error('💥 Error refreshing user:', error)
-      setUser(null)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error refreshing user:', error)
+      }
       return null
     }
   }
 
   return {
-    user,
-    loading,
-    isLoading: loading, // Alias para compatibilidad
+    user: user ?? null,
+    loading: isLoading,
+    isLoading, // Alias para compatibilidad
     logout,
     refreshUser,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !error,
   }
 }

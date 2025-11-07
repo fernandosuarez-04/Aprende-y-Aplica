@@ -26,13 +26,23 @@ export async function GET(request: NextRequest) {
     if (statsOnly) {
       // Retornar solo estadísticas
       const stats = await PurchasedCoursesService.getUserLearningStats(currentUser.id);
-      return NextResponse.json(stats);
+      return NextResponse.json(stats, {
+        headers: {
+          // Cache privado de 60 segundos, permite stale de 30s adicionales
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=30',
+        },
+      });
     }
 
     // Obtener cursos comprados
     const courses = await PurchasedCoursesService.getUserPurchasedCourses(currentUser.id);
 
-    return NextResponse.json(courses);
+    return NextResponse.json(courses, {
+      headers: {
+        // Cache privado de 60 segundos, permite stale de 30s adicionales
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=30',
+      },
+    });
   } catch (error) {
     logger.error('Error in my-courses API:', error);
     return NextResponse.json(

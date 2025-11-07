@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Send, 
-  Mic, 
-  MicOff, 
+import Image from 'next/image';
+import {
+  X,
+  Send,
+  Mic,
+  MicOff,
   Loader2,
   User
 } from 'lucide-react';
@@ -69,7 +70,7 @@ function getPageContextInfo(pathname: string): string {
   return 'página principal de la plataforma';
 }
 
-export function AIChatAgent({
+export const AIChatAgent = React.memo(function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
   initialMessage = '¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.',
@@ -94,11 +95,6 @@ export function AIChatAgent({
     }
   ]);
 
-  // Debug: Log estado isOpen
-  useEffect(() => {
-    console.log('🔵 Estado isOpen cambió:', isOpen);
-  }, [isOpen]);
-
   // Estado para posición arrastrable
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -106,21 +102,6 @@ export function AIChatAgent({
   const containerRef = useRef<HTMLDivElement>(null);
   const initialPositionRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Debug: Log cuando los mensajes cambian
-  useEffect(() => {
-    console.log('📝 Mensajes actualizados:', messages.length, messages);
-  }, [messages]);
-  
-  // Debug y log: Contexto detectado automáticamente
-  useEffect(() => {
-    console.log('🌐 Contexto detectado automáticamente:', {
-      pathname,
-      detectedContext,
-      activeContext,
-      pageContextInfo
-    });
-  }, [pathname, detectedContext, activeContext, pageContextInfo]);
-  
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -332,7 +313,7 @@ export function AIChatAgent({
     }
   }, [isOpen]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
 
     const userMessage: Message = {
@@ -347,14 +328,6 @@ export function AIChatAgent({
     setIsTyping(true);
 
     try {
-      console.log('🔄 Enviando mensaje a la API...', {
-        message: userMessage.content,
-        context: activeContext,
-        pageInfo: pageContextInfo,
-        pathname: pathname,
-        historyLength: messages.length
-      });
-      
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -375,25 +348,20 @@ export function AIChatAgent({
           userName: user?.display_name || user?.username || user?.first_name
         }),
       });
-      
-      console.log('📡 Respuesta recibida:', {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText
-      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        console.error('❌ Error de API:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error de API:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
+        }
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('✅ Datos recibidos:', data);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -402,10 +370,11 @@ export function AIChatAgent({
         timestamp: new Date()
       };
 
-      console.log('💬 Mensaje del asistente:', assistantMessage);
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('❌ Error en el chat:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error en el chat:', error);
+      }
       const errorContent = error instanceof Error ? error.message : 'Lo siento, ocurrió un error. Por favor intenta de nuevo.';
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -417,20 +386,19 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
 
-  const toggleRecording = () => {
+  const toggleRecording = useCallback(() => {
     setIsRecording(!isRecording);
     // Aquí se implementaría la lógica de reconocimiento de voz
-    console.log('Recording toggled:', !isRecording);
-  };
+  }, [isRecording]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
@@ -440,12 +408,9 @@ export function AIChatAgent({
     
     // Si se está arrastrando o se movió el mouse, no ejecutar el toggle
     if (isDragging || hasMoved.current) {
-      console.log('⚠️ Click ignorado - se detectó arrastre');
       return;
     }
-    
-    console.log('🖱️ Toggle ejecutado - isOpen:', isOpen, 'isMinimized:', isMinimized);
-    
+
     if (isOpen) {
       setIsMinimized(!isMinimized);
     } else {
@@ -460,9 +425,6 @@ export function AIChatAgent({
     setIsMinimized(false);
   };
 
-  // Renderizado del componente
-  console.log('🎨 AIChatAgent renderizando - isOpen:', isOpen, 'isMinimized:', isMinimized);
-  
   return (
     <>
       {/* Botón flotante */}
@@ -476,7 +438,6 @@ export function AIChatAgent({
           <motion.button
             onClick={(e) => {
               e.stopPropagation();
-              console.log('🖱️ Botón flotante clickeado - abriendo chat');
               setIsOpen(true);
               setIsMinimized(false);
               setHasUnreadMessages(false);
@@ -500,10 +461,12 @@ export function AIChatAgent({
             />
             
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-full">
-              <img 
+              <Image
                 src={assistantAvatar}
                 alt={assistantName}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="64px"
               />
             </div>
 
@@ -556,11 +519,13 @@ export function AIChatAgent({
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* Avatar */}
-                <div className="relative">
-                  <img 
-                    src={assistantAvatar} 
+                <div className="relative w-10 h-10">
+                  <Image
+                    src={assistantAvatar}
                     alt={assistantName}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-white/50"
+                    fill
+                    className="rounded-full object-cover border-2 border-white/50"
+                    sizes="40px"
                   />
                   {/* Indicador de estado en línea */}
                   <motion.div
@@ -622,12 +587,14 @@ export function AIChatAgent({
                 >
                   {/* Avatar del mensaje */}
                   {message.role === 'user' ? (
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
                       {user?.profile_picture_url ? (
-                        <img 
-                          src={user.profile_picture_url} 
+                        <Image
+                          src={user.profile_picture_url}
                           alt={user.display_name || user.username || 'Usuario'}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="40px"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
@@ -636,11 +603,13 @@ export function AIChatAgent({
                       )}
                     </div>
                   ) : (
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500">
-                      <img 
-                        src={assistantAvatar} 
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
+                      <Image
+                        src={assistantAvatar}
                         alt={assistantName}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="40px"
                       />
                     </div>
                   )}
@@ -663,11 +632,13 @@ export function AIChatAgent({
                   animate={{ opacity: 1 }}
                   className="flex gap-2 items-center"
                 >
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500">
-                    <img 
-                      src={assistantAvatar} 
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
+                    <Image
+                      src={assistantAvatar}
                       alt={assistantName}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="40px"
                     />
                   </div>
                   <div className="bg-white dark:bg-carbon-800 border border-gray-200 dark:border-carbon-600 rounded-2xl px-4 py-3">
@@ -764,5 +735,5 @@ export function AIChatAgent({
       </AnimatePresence>
     </>
   );
-}
+})
 
