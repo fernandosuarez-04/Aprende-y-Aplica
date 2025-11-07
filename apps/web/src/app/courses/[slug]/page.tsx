@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { CourseService, CourseWithInstructor } from '../../../features/courses/services/course.service';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../../../lib/supabase/client';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -447,7 +447,7 @@ export default function CourseDetailPage() {
                     className={`flex-1 px-6 py-4 flex items-center justify-center gap-2 transition-colors ${
                       activeTab === tab.id
                         ? 'bg-primary/20 text-primary border-b-2 border-primary'
-                        : 'text-gray-600 dark:text-carbon-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-carbon-700/50'
+                        : 'text-gray-600 dark:text-carbon-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-carbon-700/50'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -476,7 +476,7 @@ export default function CourseDetailPage() {
                             {course.learning_objectives.map((objective: string, index: number) => (
                               <div key={index} className="flex items-start gap-3">
                                 <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                                <span className="text-gray-700 dark:text-carbon-300">{objective}</span>
+                                <span className="text-gray-700 dark:text-carbon-100">{objective}</span>
                               </div>
                             ))}
                           </div>
@@ -487,7 +487,7 @@ export default function CourseDetailPage() {
                       {course.description && (
                         <div>
                           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Descripción del Curso</h3>
-                          <p className="text-gray-700 dark:text-carbon-300 leading-relaxed whitespace-pre-line">
+                          <p className="text-gray-700 dark:text-carbon-100 leading-relaxed whitespace-pre-line">
                             {course.description}
                           </p>
                         </div>
@@ -498,28 +498,28 @@ export default function CourseDetailPage() {
                         <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <FileText className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-400 text-sm">Módulos</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Módulos</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalModules || '0'}</p>
                         </div>
                         <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <Video className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-400 text-sm">Lecciones</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Lecciones</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalLessons || '0'}</p>
                         </div>
                         <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <Clock className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-400 text-sm">Duración</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Duración</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatDuration(totalDuration)}</p>
                         </div>
                         <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
                           <div className="flex items-center gap-2 mb-2">
                             <Users className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-400 text-sm">Estudiantes</span>
+                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Estudiantes</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{course.student_count?.toLocaleString() || '0'}</p>
                         </div>
@@ -540,7 +540,7 @@ export default function CourseDetailPage() {
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                           Contenido del Curso
                         </h3>
-                        <span className="text-gray-600 dark:text-carbon-400 text-sm">
+                        <span className="text-gray-600 dark:text-carbon-200 text-sm">
                           {totalModules} módulos • {totalLessons} lecciones • {formatDuration(totalDuration)}
                         </span>
                       </div>
@@ -548,7 +548,7 @@ export default function CourseDetailPage() {
                       {modules.length === 0 ? (
                         <div className="text-center py-12">
                           <BookOpen className="w-16 h-16 text-gray-400 dark:text-carbon-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-carbon-400">Este curso aún no tiene contenido disponible</p>
+                          <p className="text-gray-600 dark:text-carbon-200">Este curso aún no tiene contenido disponible</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -576,16 +576,16 @@ export default function CourseDetailPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <h4 className="text-gray-900 dark:text-white font-semibold mb-1">{module.module_title || module.title}</h4>
-                                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-carbon-400">
+                                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-carbon-200">
                                         <span>{moduleLessons.length} {moduleLessons.length === 1 ? 'lección' : 'lecciones'}</span>
                                         <span>{formatDurationSeconds(moduleDuration)}</span>
                                       </div>
                                     </div>
                                   </div>
                                   {isExpanded ? (
-                                    <ChevronUp className="w-5 h-5 text-gray-600 dark:text-carbon-400" />
+                                    <ChevronUp className="w-5 h-5 text-gray-600 dark:text-carbon-200" />
                                   ) : (
-                                    <ChevronDown className="w-5 h-5 text-gray-600 dark:text-carbon-400" />
+                                    <ChevronDown className="w-5 h-5 text-gray-600 dark:text-carbon-200" />
                                   )}
                                 </button>
 
@@ -600,25 +600,25 @@ export default function CourseDetailPage() {
                                     >
                                       <div className="px-6 pb-4 space-y-2 border-t border-gray-200 dark:border-carbon-600 pt-4">
                                         {module.module_description && (
-                                          <p className="text-gray-600 dark:text-carbon-400 text-sm mb-4">{module.module_description}</p>
+                                          <p className="text-gray-600 dark:text-carbon-200 text-sm mb-4">{module.module_description}</p>
                                         )}
                                         {moduleLessons.map((lesson: any, lessonIndex: number) => (
                                           <div
                                             key={lesson.lesson_id || lesson.id}
                                             className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-carbon-700/30 hover:bg-gray-50 dark:hover:bg-carbon-700/50 transition-colors border border-gray-200 dark:border-carbon-600"
                                           >
-                                            <Play className="w-4 h-4 text-gray-600 dark:text-carbon-400 flex-shrink-0" />
+                                            <Play className="w-4 h-4 text-gray-600 dark:text-carbon-200 flex-shrink-0" />
                                             <div className="flex-1 min-w-0">
                                               <p className="text-gray-900 dark:text-white text-sm font-medium">
                                                 {lessonIndex + 1}. {lesson.lesson_title || lesson.title}
                                               </p>
                                               {lesson.lesson_description && (
-                                                <p className="text-gray-600 dark:text-carbon-400 text-xs mt-1 line-clamp-1">
+                                                <p className="text-gray-600 dark:text-carbon-200 text-xs mt-1 line-clamp-1">
                                                   {lesson.lesson_description}
                                                 </p>
                                               )}
                                             </div>
-                                            <span className="text-gray-500 dark:text-carbon-500 text-xs flex-shrink-0">
+                                            <span className="text-gray-500 dark:text-carbon-300 text-xs flex-shrink-0">
                                               {formatDurationSeconds(lesson.duration_seconds || 0)}
                                             </span>
                                           </div>
@@ -647,7 +647,7 @@ export default function CourseDetailPage() {
                       {reviews.length === 0 ? (
                         <div className="text-center py-12">
                           <Star className="w-16 h-16 text-gray-400 dark:text-carbon-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-carbon-400">Aún no hay reseñas para este curso</p>
+                          <p className="text-gray-600 dark:text-carbon-200">Aún no hay reseñas para este curso</p>
                         </div>
                       ) : (
                         reviews.map((review) => (
@@ -681,7 +681,7 @@ export default function CourseDetailPage() {
                                 {review.title && (
                                   <h5 className="text-gray-900 dark:text-white font-medium mb-2">{review.title}</h5>
                                 )}
-                                <p className="text-gray-700 dark:text-carbon-300 text-sm leading-relaxed whitespace-pre-line">
+                                <p className="text-gray-700 dark:text-carbon-100 text-sm leading-relaxed whitespace-pre-line">
                                   {review.content}
                                 </p>
                               </div>
@@ -726,12 +726,12 @@ export default function CourseDetailPage() {
                              'Instructor'}
                           </h3>
                           {(instructorData?.cargo_rol || instructorData?.type_rol) && (
-                            <p className="text-gray-600 dark:text-carbon-300 text-lg mb-3">
+                            <p className="text-gray-600 dark:text-carbon-200 text-lg mb-3">
                               {instructorData.cargo_rol || instructorData.type_rol}
                             </p>
                           )}
                           {instructorData?.location && (
-                            <div className="flex items-center gap-2 text-gray-600 dark:text-carbon-400 mb-4">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-carbon-200 mb-4">
                               <span className="text-sm">{instructorData.location}</span>
                             </div>
                           )}
@@ -790,7 +790,7 @@ export default function CourseDetailPage() {
                               </svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-gray-600 dark:text-carbon-400 text-sm mb-1">Correo electrónico</p>
+                              <p className="text-gray-600 dark:text-carbon-200 text-sm mb-1">Correo electrónico</p>
                               <a
                                 href={`mailto:${course.instructor_email}`}
                                 className="text-primary hover:text-primary/80 transition-colors font-medium break-all"
@@ -806,11 +806,11 @@ export default function CourseDetailPage() {
                       <div>
                         <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Biografía</h4>
                         {instructorData?.bio ? (
-                          <p className="text-gray-700 dark:text-carbon-300 leading-relaxed whitespace-pre-line">
+                          <p className="text-gray-700 dark:text-carbon-100 leading-relaxed whitespace-pre-line">
                             {instructorData.bio}
                           </p>
                         ) : (
-                          <p className="text-gray-500 dark:text-carbon-400 italic">No hay biografía disponible para este instructor.</p>
+                          <p className="text-gray-500 dark:text-carbon-300 italic">No hay biografía disponible para este instructor.</p>
                         )}
                       </div>
                     </div>
@@ -879,19 +879,19 @@ export default function CourseDetailPage() {
 
               {/* Course Features */}
               <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-carbon-600">
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-300">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Acceso de por vida</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-300">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">{totalLessons || '0'} lecciones en video</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-300">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Certificado de finalización</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-300">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Actualizado {formatDate(course.updatedAt)}</span>
                 </div>
@@ -918,7 +918,7 @@ export default function CourseDetailPage() {
                           />
                         ))}
                       </div>
-                      <p className="text-gray-600 dark:text-carbon-400 text-xs">
+                      <p className="text-gray-600 dark:text-carbon-200 text-xs">
                         {course.review_count || 0} {course.review_count === 1 ? 'reseña' : 'reseñas'}
                       </p>
                     </div>
