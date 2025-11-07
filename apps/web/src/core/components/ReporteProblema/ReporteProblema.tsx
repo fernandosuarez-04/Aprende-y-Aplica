@@ -150,8 +150,11 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         body: JSON.stringify(reportData),
       });
 
+      console.log('📊 Response status:', response.status, response.statusText);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error del servidor:', errorData);
         throw new Error(errorData.error || 'Error al enviar el reporte');
       }
 

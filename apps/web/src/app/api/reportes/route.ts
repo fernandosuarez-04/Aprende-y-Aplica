@@ -7,19 +7,31 @@ import { createClient } from '../../../lib/supabase/server';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    console.log('🔍 POST /api/reportes - Iniciando...');
     
-    // Verificar autenticación
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
     
-    if (authError || !session) {
+    console.log('👤 Usuario obtenido:', user ? { id: user.id, email: user.email } : 'null');
+    
+    if (!user) {
+      console.warn('⚠️ No autenticado');
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       );
     }
 
+    const supabase = await createClient();
     const body = await request.json();
+    
+    console.log('📦 Body recibido:', {
+      titulo: body.titulo?.substring(0, 30),
+      categoria: body.categoria,
+      prioridad: body.prioridad,
+      hasScreenshot: !!body.screenshot_data
+    });
     
     const {
       titulo,
@@ -64,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('📝 Creando reporte de problema:', {
-      user_id: session.user.id,
+      user_id: user.id,
       categoria,
       prioridad,
       titulo: titulo.substring(0, 50)
@@ -79,7 +91,7 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(base64Data, 'base64');
         
         // Generar nombre único
-        const fileName = `reporte-${session.user.id}-${Date.now()}.jpg`;
+        const fileName = `reporte-${user.id}-${Date.now()}.jpg`;
         
         // Subir a Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -110,7 +122,7 @@ export async function POST(request: NextRequest) {
     const { data: reporte, error: insertError } = await supabase
       .from('reportes_problemas')
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         titulo: titulo.trim().substring(0, 200),
         descripcion: descripcion.trim(),
         categoria,
@@ -171,18 +183,19 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Obtener el usuario actual usando el sistema de sesiones personalizado
+    const { SessionService } = await import('../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
     
-    // Verificar autenticación
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-    
-    if (authError || !session) {
+    if (!user) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       );
     }
 
+    const supabase = await createClient();
+    
     // Obtener parámetros de consulta
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado');
@@ -191,13 +204,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Verificar si el usuario es admin
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('cargo_rol')
-      .eq('id', session.user.id)
-      .single();
-
-    const isAdmin = (userProfile as any)?.cargo_rol === 'Administrador';
+    const isAdmin = user.cargo_rol === 'Administrador';
 
     // Construir query
     let query = supabase
@@ -207,7 +214,7 @@ export async function GET(request: NextRequest) {
 
     // Si no es admin, solo ver sus propios reportes
     if (!isAdmin) {
-      query = query.eq('user_id', session.user.id);
+      query = query.eq('user_id', user.id);
     }
 
     // Aplicar filtros
