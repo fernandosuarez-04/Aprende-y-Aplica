@@ -45,6 +45,7 @@
   "license": "MIT",
   "dependencies": {
     "openai": "^6.8.0",
+    "react-qr-code": "^2.0.18",
     "zod": "^4.1.12"
   }
 }
