@@ -624,14 +624,14 @@ export default function StatisticsResultsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-700 dark:text-white text-lg">Analizando tus resultados...</p>
+          <div className="w-16 h-16 border-4 border-primary dark:border-primary/50 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">Analizando tus resultados...</p>
         </motion.div>
       </div>
     );
@@ -639,15 +639,15 @@ export default function StatisticsResultsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-md mx-auto p-6"
         >
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <AlertCircle className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error</h2>
-          <p className="text-gray-700 dark:text-white/70 mb-6">{error}</p>
+          <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
           <button
             onClick={() => router.push('/statistics')}
             className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"

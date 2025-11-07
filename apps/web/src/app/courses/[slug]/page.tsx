@@ -243,10 +243,10 @@ export default function CourseDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-carbon-300 text-lg">Cargando curso...</p>
+          <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-700 dark:text-gray-300 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -254,10 +254,10 @@ export default function CourseDetailPage() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Error</h1>
-          <p className="text-gray-600 dark:text-carbon-300 mb-8">{error || 'No se pudo cargar el curso'}</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">{error || 'No se pudo cargar el curso'}</p>
           <button 
             onClick={() => router.back()} 
             className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors"
@@ -278,7 +278,7 @@ export default function CourseDetailPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900"
+      className="w-full min-h-screen bg-white dark:bg-gray-900"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Back Button */}

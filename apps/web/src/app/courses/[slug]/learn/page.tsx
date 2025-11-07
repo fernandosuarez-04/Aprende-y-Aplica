@@ -107,7 +107,7 @@ export default function CourseLearnPage() {
     isLoading: isLiaLoading,
     sendMessage: sendLiaMessage,
     clearHistory: clearLiaHistory
-  } = useLiaChat('¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?');
+  } = useLiaChat('¡Hola! Soy Lia, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?');
   
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
@@ -423,7 +423,7 @@ export default function CourseLearnPage() {
 Vas a guiar al usuario a través de la actividad: "${activityTitle}"
 
 ## TU ROL
-Eres LIA, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
+Eres Lia, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
 
 ## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
 
@@ -1002,10 +1002,10 @@ Antes de cada respuesta, pregúntate:
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando curso...</p>
+          <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-700 dark:text-gray-300 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -1013,10 +1013,10 @@ Antes de cada respuesta, pregúntate:
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Curso no encontrado</h1>
-          <p className="text-gray-700 dark:text-white/70 mb-8">El curso que buscas no existe</p>
+          <p className="text-gray-700 dark:text-gray-300 mb-8">El curso que buscas no existe</p>
           <button 
             onClick={() => router.push('/my-courses')} 
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -1571,14 +1571,20 @@ Antes de cada respuesta, pregúntate:
               transition={{ duration: 0.3 }}
               className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2 border border-gray-200 dark:border-slate-700/50"
             >
-              {/* Header LIA con línea separadora alineada con panel central */}
+              {/* Header Lia con línea separadora alineada con panel central */}
               <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
-                    <MessageSquare className="w-4 h-4 text-white" />
+                  <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
+                    <Image
+                      src="/lia-avatar.png"
+                      alt="Lia"
+                      fill
+                      className="object-cover"
+                      sizes="32px"
+                    />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">LIA</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Lia</h3>
                     <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
                   </div>
                 </div>
@@ -1586,14 +1592,14 @@ Antes de cada respuesta, pregúntate:
                   <button
                     onClick={handleOpenClearHistoryModal}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                    title="Reiniciar conversación con LIA"
+                    title="Reiniciar conversación con Lia"
                   >
                     <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
                   </button>
                   <button
                     onClick={handleToggleLiaExpanded}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                    title={isLiaExpanded ? "Reducir tamaño de LIA" : "Expandir LIA"}
+                    title={isLiaExpanded ? "Reducir tamaño de Lia" : "Expandir Lia"}
                   >
                     {isLiaExpanded ? (
                       <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -1610,7 +1616,7 @@ Antes de cada respuesta, pregúntate:
                 </div>
               </div>
 
-              {/* Chat de LIA expandido */}
+              {/* Chat de Lia expandido */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Área de mensajes */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -1672,7 +1678,7 @@ Antes de cada respuesta, pregúntate:
                             </div>
                             <div>
                               <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
-                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a LIA</p>
+                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
                             </div>
                           </div>
                           <button
@@ -1724,7 +1730,7 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
-                      placeholder="Escribe tu pregunta a LIA..."
+                      placeholder="Escribe tu pregunta a Lia..."
                       value={liaMessage}
                       onChange={(e) => {
                         setLiaMessage(e.target.value);
@@ -1769,7 +1775,7 @@ Antes de cada respuesta, pregúntate:
                 setIsLiaExpanded(false);
               }}
               className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
-              title="Mostrar LIA"
+              title="Mostrar Lia"
             >
               <ChevronLeft className="w-5 h-5 text-gray-900 dark:text-white" />
             </button>
@@ -1900,7 +1906,7 @@ Antes de cada respuesta, pregúntate:
         )}
       </AnimatePresence>
 
-      {/* Modal de Confirmación para Limpiar Historial de LIA */}
+      {/* Modal de Confirmación para Limpiar Historial de Lia */}
       <AnimatePresence>
         {isClearHistoryModalOpen && (
           <motion.div
@@ -1926,21 +1932,27 @@ Antes de cada respuesta, pregúntate:
               onClick={(e) => e.stopPropagation()}
               className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700/50 shadow-2xl max-w-md w-full p-6"
             >
-              {/* Icono */}
+              {/* Avatar */}
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <MessageSquare className="w-8 h-8 text-white" />
+                <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-lg shadow-blue-500/25">
+                  <Image
+                    src="/lia-avatar.png"
+                    alt="Lia"
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
                 </div>
               </div>
 
               {/* Título */}
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                ¿Reiniciar conversación con LIA?
+                ¿Reiniciar conversación con Lia?
               </h3>
 
               {/* Mensaje */}
               <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
-                ¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con LIA.
+                ¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con Lia.
               </p>
 
               {/* Botones */}
@@ -2325,11 +2337,11 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando transcripción...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando transcripción...</p>
         </div>
       </div>
     );
@@ -2468,11 +2480,11 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando resumen...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando resumen...</p>
         </div>
       </div>
     );
@@ -2923,6 +2935,124 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
   );
 }
 
+// Componente específico para renderizar lecturas preservando formato original
+function ReadingContentRenderer({ content }: { content: any }) {
+  let readingContent = content;
+  
+  // Si el contenido es un objeto con propiedades, intentar extraer el texto
+  if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+    // Buscar propiedades comunes que contengan el texto
+    readingContent = content.text || content.content || content.body || content.description || content.title || '';
+    
+    // Si no encontramos contenido, intentar convertir todo el objeto a string
+    if (!readingContent || readingContent === '') {
+      readingContent = JSON.stringify(content, null, 2);
+    }
+  }
+
+  // Si es un string, intentar parsearlo si parece JSON
+  if (typeof readingContent === 'string') {
+    try {
+      const parsed = JSON.parse(readingContent);
+      if (typeof parsed === 'object' && parsed !== null) {
+        readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
+      }
+    } catch (e) {
+      // No es JSON, usar directamente
+    }
+  }
+
+  // Asegurar que es string
+  if (typeof readingContent !== 'string') {
+    readingContent = String(readingContent);
+  }
+
+  // Preservar saltos de línea y formato original
+  // Dividir por saltos de línea pero mantener líneas vacías para preservar párrafos
+  const lines = readingContent.split('\n');
+  
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700">
+      <div className="prose prose-lg dark:prose-invert max-w-none">
+        <div className="text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
+          {lines.map((line, index) => {
+            const trimmedLine = line.trim();
+            
+            // Si la línea está vacía, renderizar un espacio para separar párrafos
+            if (trimmedLine === '') {
+              return <div key={`line-${index}`} className="h-4" />;
+            }
+            
+            // Detectar títulos principales (Introducción:, Cuerpo:, etc.)
+            const mainSectionMatch = trimmedLine.match(/^(Introducción|Cuerpo|Cierre|Conclusión|Resumen):?\s*$/i);
+            if (mainSectionMatch) {
+              return (
+                <h1 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-bold text-3xl mb-4 mt-8 first:mt-0 border-b-2 border-purple-500/40 dark:border-purple-400/40 pb-3"
+                >
+                  {mainSectionMatch[1]}
+                </h1>
+              );
+            }
+            
+            // Detectar subtítulos numerados (1. Título, 2. Título, etc.)
+            const numberedMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
+            if (numberedMatch && trimmedLine.length < 150) {
+              const [, number, title] = numberedMatch;
+              return (
+                <h2 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-semibold text-2xl mb-3 mt-6 border-b border-purple-500/20 dark:border-purple-400/30 pb-2"
+                >
+                  <span className="text-purple-600 dark:text-purple-400">{number}.</span> {title}
+                </h2>
+              );
+            }
+            
+            // Detectar subtítulos con formato "1.1 - Título" o "1.1 - Título:"
+            const subsectionMatch = trimmedLine.match(/^(\d+\.\d+)\s*[-–]\s*(.+?):?\s*$/);
+            if (subsectionMatch && trimmedLine.length < 150) {
+              const [, number, title] = subsectionMatch;
+              return (
+                <h3 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-semibold text-xl mb-3 mt-5"
+                >
+                  <span className="text-purple-600 dark:text-purple-400">{number}</span> - {title}
+                </h3>
+              );
+            }
+            
+            // Detectar títulos sin numeración (líneas cortas que terminan con dos puntos)
+            if (trimmedLine.endsWith(':') && trimmedLine.length < 100 && trimmedLine.length > 5) {
+              return (
+                <h3 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-semibold text-xl mb-3 mt-5"
+                >
+                  {trimmedLine}
+                </h3>
+              );
+            }
+            
+            // Párrafos normales
+            return (
+              <p 
+                key={`line-${index}`} 
+                className="text-gray-800 dark:text-gray-200 leading-relaxed mb-4 text-base"
+                style={{ lineHeight: '1.8' }}
+              >
+                {line}
+              </p>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Componente para renderizar contenido formateado (actividades, materiales de lectura, etc.)
 function FormattedContentRenderer({ content }: { content: any }) {
   let readingContent = content;
@@ -3270,11 +3400,11 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-carbon-700 rounded-xl border-2 border-gray-300 dark:border-carbon-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando actividades...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando actividades...</p>
         </div>
       </div>
     );
@@ -3358,16 +3488,22 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                 {activity.activity_type === 'ai_chat' ? (
                   <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-2xl shadow-purple-500/50">
-                        <MessageSquare className="w-8 h-8 text-white" />
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/50">
+                        <Image
+                          src="/lia-avatar.png"
+                          alt="Lia"
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
                       </div>
 
                       <div>
                         <h3 className="text-xl font-bold text-white mb-2">
-                          Actividad Interactiva con LIA
+                          Actividad Interactiva con Lia
                         </h3>
                         <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
-                          Esta es una actividad guiada por LIA, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
+                          Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
                         </p>
                       </div>
 
@@ -3380,14 +3516,22 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 hover:scale-105"
                       >
                         <span className="flex items-center gap-3">
-                          <MessageSquare className="w-5 h-5 group-hover:animate-pulse" />
-                          <span>Interactuar con LIA</span>
+                          <div className="relative w-5 h-5">
+                            <Image
+                              src="/lia-avatar.png"
+                              alt="Lia"
+                              fill
+                              className="object-cover rounded-full group-hover:animate-pulse"
+                              sizes="20px"
+                            />
+                          </div>
+                          <span>Interactuar con Lia</span>
                           <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </span>
                       </button>
 
                       <p className="text-xs text-slate-400 mt-2">
-                        LIA te guiará a través de {activity.activity_title.toLowerCase()}
+                        Lia te guiará a través de {activity.activity_title.toLowerCase()}
                       </p>
                     </div>
                   </div>
@@ -3506,7 +3650,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
             {materials.map((material) => (
               <div
                 key={material.material_id}
-                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
+                className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -3521,14 +3665,14 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         </span>
                       )}
                     </div>
-                    {material.material_description && (
+                    {material.material_description && material.material_type !== 'reading' && (
                       <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{material.material_description}</p>
                     )}
                   </div>
                 </div>
                 
                 {/* Contenido del material */}
-                {material.content_data && (
+                {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
                   <div className="w-full mt-4">
                     {material.material_type === 'quiz' && (() => {
                       try {
@@ -3572,7 +3716,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                       return null;
                     })()}
                     {material.material_type === 'reading' && (
-                      <FormattedContentRenderer content={material.content_data} />
+                      <ReadingContentRenderer 
+                        content={material.content_data || material.material_description} 
+                      />
                     )}
                     {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
                       <FormattedContentRenderer content={material.content_data} />
@@ -3942,11 +4088,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando preguntas...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando preguntas...</p>
         </div>
       </div>
     );
