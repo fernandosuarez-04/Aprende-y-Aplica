@@ -626,8 +626,9 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
           }
           
           // Dibujar fondo azul para la etiqueta
+          // Rectángulo movido hacia abajo para alinearse con el texto
           pdf.setFillColor(59, 130, 246); // #3b82f6
-          pdf.roundedRect(tagX, y - 5, tagWidth, 6, 2, 2, 'F');
+          pdf.roundedRect(tagX, y - 4, tagWidth, 6, 2, 2, 'F');
           
           // Texto de la etiqueta
           pdf.text(tag, tagX + 3, y);
