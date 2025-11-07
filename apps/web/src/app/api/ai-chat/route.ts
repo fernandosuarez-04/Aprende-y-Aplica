@@ -5,6 +5,15 @@ import type { CourseLessonContext } from '../../../core/types/lia.types';
 import { checkRateLimit } from '../../../core/lib/rate-limit';
 import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor';
 import type { Database } from '../../../lib/supabase/types';
+import { SessionService } from '../../../features/auth/services/session.service';
+import { LiaLogger, type ContextType } from '../../../lib/analytics/lia-logger';
+
+// Tipo para el contexto de la página
+interface PageContext {
+  pathname: string;
+  detectedArea: string;
+  description: string;
+}
 
 /**
  * Función para limpiar Markdown de las respuestas de LIA
@@ -394,12 +403,15 @@ export async function POST(request: NextRequest) {
       if (isSystemMessage) logger.info('Es mensaje del sistema - saltando registro visible');
     }
 
-    let responseMetadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string } = {};
+    let responseMetadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
     
     if (openaiApiKey) {
       try {
-        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId);
-        // La limpieza de Markdown ya se aplica dentro de callOpenAI
+        const startTime = Date.now();
+        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage);
+        const responseTime = Date.now() - startTime;
+        response = result.response;
+        responseMetadata = result.metadata ? { ...result.metadata, responseTimeMs: responseTime } : { responseTimeMs: responseTime };
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
         const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt);
@@ -409,6 +421,24 @@ export async function POST(request: NextRequest) {
       // Usar respuestas predeterminadas si no hay API key
       const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt);
       response = cleanMarkdownFromResponse(fallbackResponse);
+    }
+
+    // ✅ ANALYTICS: Registrar respuesta del asistente (solo si no es mensaje del sistema invisible)
+    if (liaLogger && conversationId && !isSystemMessage) {
+      try {
+        logger.info('Registrando respuesta del asistente', { conversationId, responseLength: response.length });
+        
+        await liaLogger.logMessage(
+          'assistant',
+          response,
+          false, // no es mensaje del sistema
+          responseMetadata // incluir metadatos si están disponibles
+        );
+        
+        logger.info('✅ Respuesta del asistente registrada exitosamente', { conversationId });
+      } catch (error) {
+        logger.error('❌ Error registrando respuesta del asistente:', error);
+      }
     }
 
     // Guardar la conversación en la base de datos (opcional)
@@ -434,7 +464,6 @@ export async function POST(request: NextRequest) {
         logger.error('Error guardando historial:', dbError);
       }
     }
-    */
 
     return NextResponse.json({ 
       response,
@@ -457,7 +486,7 @@ async function callOpenAI(
   hasCourseContext: boolean = false,
   userId: string | null = null,
   isSystemMessage: boolean = false
-): Promise<{ response: string; metadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string } }> {
+): Promise<{ response: string; metadata?: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
@@ -574,7 +603,17 @@ RECUERDA: Cada vez que respondas, verifica que NO hayas usado ningún símbolo d
     });
   }
   
-  return cleanedResponse;
+  // Preparar metadatos para retornar
+  const metadata = data.usage ? {
+    tokensUsed: data.usage.total_tokens,
+    costUsd: estimatedCost,
+    modelUsed: model
+  } : undefined;
+  
+  return {
+    response: cleanedResponse,
+    metadata
+  };
 }
 
 // Función para generar respuestas (simular IA)
