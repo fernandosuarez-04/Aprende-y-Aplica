@@ -192,12 +192,12 @@ export async function GET(request: NextRequest) {
 
     // Verificar si el usuario es admin
     const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('role')
+      .from('users')
+      .select('cargo_rol')
       .eq('id', session.user.id)
       .single();
 
-    const isAdmin = (userProfile as any)?.role === 'Administrador';
+    const isAdmin = (userProfile as any)?.cargo_rol === 'Administrador';
 
     // Construir query
     let query = supabase

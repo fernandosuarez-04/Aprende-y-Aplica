@@ -20,7 +20,7 @@ export function ReportButton() {
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 1, type: 'spring' }}
-        className="fixed bottom-24 right-6 z-[9998]"
+        className="fixed bottom-[180px] right-6 z-[9998]"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
@@ -46,7 +46,7 @@ export function ReportButton() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsReportOpen(true)}
-          className="relative w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-2xl hover:shadow-red-500/50 transition-all duration-300 flex items-center justify-center group overflow-hidden"
+          className="relative w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-2xl hover:shadow-red-500/50 transition-all duration-300 flex items-center justify-center group overflow-hidden"
           aria-label="Reportar problema"
         >
           {/* Efecto de pulso */}
@@ -81,16 +81,6 @@ export function ReportButton() {
           {/* Badge de alerta (opcional - mostrar si hay algo importante) */}
           {/* <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white animate-pulse" /> */}
         </motion.button>
-
-        {/* Texto secundario debajo del botón */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-[var(--color-text-secondary)] whitespace-nowrap pointer-events-none"
-        >
-          Reportar
-        </motion.div>
       </motion.div>
 
       {/* Modal de Reporte */}
