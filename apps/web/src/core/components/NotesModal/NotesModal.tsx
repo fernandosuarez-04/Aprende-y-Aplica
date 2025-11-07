@@ -74,6 +74,64 @@ export const NotesModal: React.FC<NotesModalProps> = ({
     }
   }, [initialNote]);
 
+  // Inyectar estilos CSS para el editor
+  useEffect(() => {
+    const styleId = 'notes-editor-styles';
+    // Verificar si los estilos ya existen
+    if (document.getElementById(styleId)) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .notes-editor h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+        color: inherit;
+      }
+      .notes-editor h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0.875rem 0 0.5rem 0;
+        color: inherit;
+      }
+      .notes-editor h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0.75rem 0 0.5rem 0;
+        color: inherit;
+      }
+      .notes-editor p {
+        margin: 0.5rem 0;
+      }
+      .notes-editor ul,
+      .notes-editor ol {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+      }
+      .notes-editor strong {
+        font-weight: 700;
+      }
+      .notes-editor em {
+        font-style: italic;
+      }
+      .notes-editor u {
+        text-decoration: underline;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Limpiar al desmontar
+    return () => {
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
   // Guardar estado en el historial
   const saveToHistory = (newContent: string) => {
     const currentContent = editorRef.current?.innerHTML || '';
