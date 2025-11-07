@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
-import { NotificationService } from '@/features/notifications/services/notification.service';
+import { CertificateService } from '@/core/services/certificate.service';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * POST /api/courses/[slug]/lessons/[lessonId]/progress
@@ -24,10 +25,10 @@ export async function POST(
       );
     }
 
-    // Obtener el curso por slug
+    // Obtener el curso por slug con información del instructor
     const { data: course, error: courseError } = await supabase
       .from('courses')
-      .select('id')
+      .select('id, title, instructor_id')
       .eq('slug', slug)
       .single();
 
@@ -267,27 +268,69 @@ export async function POST(
       // No retornar error aquí, el progreso de la lección ya se guardó
     }
 
-    // Crear notificación cuando se completa el curso
-    if (overallProgress === 100 && !wasCompleted && courseInfo) {
+    // Si el curso está completado al 100%, generar certificado automáticamente
+    if (overallProgress === 100) {
       try {
-        await NotificationService.createNotification({
+        // Obtener información completa del curso e instructor
+        const { data: courseInfo } = await supabase
+          .from('courses')
+          .select('id, title, instructor_id')
+          .eq('id', courseId)
+          .single();
+
+        // Obtener información del instructor
+        let instructorName = 'Instructor'
+        if (courseInfo?.instructor_id) {
+          const { data: instructor } = await supabase
+            .from('users')
+            .select('first_name, last_name, username')
+            .eq('id', courseInfo.instructor_id)
+            .single();
+
+          if (instructor) {
+            const fullName = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim()
+            instructorName = fullName || instructor.username || 'Instructor'
+          }
+        }
+
+        // Obtener información del usuario
+        const { data: userInfo } = await supabase
+          .from('users')
+          .select('first_name, last_name, username, display_name')
+          .eq('id', currentUser.id)
+          .single();
+
+        const userName = userInfo?.display_name || 
+          `${userInfo?.first_name || ''} ${userInfo?.last_name || ''}`.trim() || 
+          userInfo?.username || 
+          'Usuario'
+
+        // Generar certificado
+        const certificateUrl = await CertificateService.generateCertificate({
           userId: currentUser.id,
-          notificationType: 'course_completed',
-          title: '¡Curso completado!',
-          message: `¡Felicidades! Has completado el curso "${courseInfo.title}".`,
-          priority: 'high',
-          metadata: {
-            courseId: courseInfo.id,
-            courseSlug: courseInfo.slug,
-            courseTitle: courseInfo.title,
-            actionUrl: `/courses/${courseInfo.slug}`,
-            progress: overallProgress,
-          },
-        });
-        console.log(`✅ Notificación creada para curso completado: ${courseInfo.title}`);
-      } catch (notifError) {
-        console.error('Error creando notificación de curso completado (no crítico):', notifError);
-        // No fallar si la notificación falla
+          courseId: courseId,
+          enrollmentId: enrollmentId,
+          courseTitle: courseInfo?.title || 'Curso',
+          instructorName: instructorName,
+          userName: userName
+        })
+
+        if (certificateUrl) {
+          // Crear registro del certificado en la BD
+          await CertificateService.createCertificateRecord(
+            currentUser.id,
+            courseId,
+            enrollmentId,
+            certificateUrl
+          )
+          logger.log('✅ Certificado generado automáticamente para curso completado')
+        } else {
+          logger.warn('⚠️ No se pudo generar el certificado automáticamente')
+        }
+      } catch (certError) {
+        logger.error('Error generando certificado automáticamente:', certError)
+        // No fallar la respuesta si el certificado no se genera
+        // El usuario puede generar el certificado manualmente después
       }
     }
 

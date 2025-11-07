@@ -209,6 +209,163 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
     }
   };
 
+  // Función auxiliar para extraer texto y links del HTML
+  const parseHTMLToText = (html: string): Array<{ type: 'text' | 'link' | 'break'; content?: string; url?: string; style?: string; isListItem?: boolean; listType?: 'ul' | 'ol'; listIndex?: number }> => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const result: Array<{ type: 'text' | 'link' | 'break'; content?: string; url?: string; style?: string; isListItem?: boolean; listType?: 'ul' | 'ol'; listIndex?: number }> = [];
+
+    const processNode = (node: Node, inheritedStyle?: string, parentListType?: 'ul' | 'ol', listIndex?: number) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text) {
+          result.push({ type: 'text', content: text, style: inheritedStyle });
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        const tagName = element.tagName.toLowerCase();
+
+        // Determinar el estilo heredado
+        let currentStyle = inheritedStyle;
+        if (tagName === 'strong' || tagName === 'b') {
+          currentStyle = inheritedStyle ? `${inheritedStyle},bold` : 'bold';
+        } else if (tagName === 'em' || tagName === 'i') {
+          currentStyle = inheritedStyle ? `${inheritedStyle},italic` : 'italic';
+        } else if (tagName === 'u') {
+          currentStyle = inheritedStyle ? `${inheritedStyle},underline` : 'underline';
+        } else if (tagName === 'h1') {
+          currentStyle = 'h1';
+        } else if (tagName === 'h2') {
+          currentStyle = 'h2';
+        } else if (tagName === 'h3') {
+          currentStyle = 'h3';
+        }
+
+        if (tagName === 'a') {
+          const url = element.getAttribute('href') || '';
+          const linkText = element.textContent?.trim() || url;
+          result.push({ type: 'link', content: linkText, url, style: inheritedStyle });
+        } else if (tagName === 'br') {
+          result.push({ type: 'break' });
+        } else if (tagName === 'p' || tagName === 'div') {
+          // Si estamos dentro de un li, no agregar breaks adicionales
+          const isInsideLi = parentListType !== undefined;
+          
+          if (!isInsideLi && result.length > 0 && result[result.length - 1].type !== 'break') {
+            result.push({ type: 'break' });
+          }
+          
+          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle, parentListType));
+          
+          if (!isInsideLi && (tagName === 'p' || tagName === 'div')) {
+            result.push({ type: 'break' });
+          }
+        } else if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3') {
+          result.push({ type: 'break' });
+          const text = element.textContent?.trim() || '';
+          if (text) {
+            result.push({ type: 'text', content: text, style: tagName });
+          }
+          result.push({ type: 'break' });
+        } else if (tagName === 'ul') {
+          if (result.length > 0 && result[result.length - 1].type !== 'break') {
+            result.push({ type: 'break' });
+          }
+          const listItems = Array.from(element.querySelectorAll(':scope > li'));
+          listItems.forEach((li, index) => {
+            processNode(li, currentStyle, 'ul', index + 1);
+          });
+          result.push({ type: 'break' });
+        } else if (tagName === 'ol') {
+          if (result.length > 0 && result[result.length - 1].type !== 'break') {
+            result.push({ type: 'break' });
+          }
+          const listItems = Array.from(element.querySelectorAll(':scope > li'));
+          listItems.forEach((li, index) => {
+            processNode(li, currentStyle, 'ol', index + 1);
+          });
+          result.push({ type: 'break' });
+        } else if (tagName === 'li') {
+          // Determinar el prefijo según el tipo de lista padre
+          let prefix = '';
+          if (parentListType === 'ol' && listIndex !== undefined) {
+            prefix = `${listIndex}. `;
+          } else if (parentListType === 'ul') {
+            prefix = '• ';
+          }
+          
+          // Separar el contenido del li en texto directo y listas anidadas
+          const directTextNodes: Node[] = [];
+          const nestedLists: Node[] = [];
+          
+          Array.from(element.childNodes).forEach(child => {
+            if (child.nodeType === Node.ELEMENT_NODE) {
+              const childElement = child as HTMLElement;
+              const childTagName = childElement.tagName.toLowerCase();
+              if (childTagName === 'ul' || childTagName === 'ol') {
+                nestedLists.push(child);
+              } else {
+                directTextNodes.push(child);
+              }
+            } else {
+              directTextNodes.push(child);
+            }
+          });
+          
+          // Verificar si hay contenido de texto real (no solo espacios en blanco)
+          const hasRealContent = directTextNodes.some(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              return node.textContent?.trim().length > 0;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              // Verificar si el elemento tiene texto
+              const elem = node as HTMLElement;
+              return elem.textContent?.trim().length > 0;
+            }
+            return false;
+          });
+          
+          // Si hay contenido real, agregar el prefijo y procesar
+          if (hasRealContent) {
+            if (prefix) {
+              result.push({ type: 'text', content: prefix, style: currentStyle });
+            }
+            // Procesar el contenido directo
+            directTextNodes.forEach(child => processNode(child, currentStyle, parentListType));
+          } else if (directTextNodes.length === 0 && nestedLists.length === 0) {
+            // Si el li está vacío, agregar solo el prefijo
+            if (prefix) {
+              result.push({ type: 'text', content: prefix, style: currentStyle });
+            }
+          }
+          
+          // Procesar las listas anidadas
+          nestedLists.forEach(nestedList => {
+            const nestedListElement = nestedList as HTMLElement;
+            const nestedTagName = nestedListElement.tagName.toLowerCase();
+            if (nestedTagName === 'ul') {
+              const nestedItems = Array.from(nestedListElement.querySelectorAll(':scope > li'));
+              nestedItems.forEach((li, index) => {
+                processNode(li, currentStyle, 'ul', index + 1);
+              });
+            } else if (nestedTagName === 'ol') {
+              const nestedItems = Array.from(nestedListElement.querySelectorAll(':scope > li'));
+              nestedItems.forEach((li, index) => {
+                processNode(li, currentStyle, 'ol', index + 1);
+              });
+            }
+          });
+          
+          result.push({ type: 'break' });
+        } else {
+          Array.from(element.childNodes).forEach(child => processNode(child, currentStyle, parentListType));
+        }
+      }
+    };
+
+    Array.from(doc.body.childNodes).forEach(node => processNode(node));
+    return result;
+  };
+
   // Exportar a PDF usando librerías
   const handleExportPDF = async () => {
     if (!title.trim() || !content.trim()) {
@@ -217,129 +374,225 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
     }
 
     try {
-      // Importación dinámica de las librerías
-      const [{ default: jsPDF }, html2canvas] = await Promise.all([
-        import('jspdf'),
-        import('html2canvas')
-      ]);
-
-      // Crear un elemento temporal para renderizar el contenido
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = `
-        <div style="
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 40px;
-          background: white;
-          color: #1f2937;
-          line-height: 1.6;
-        ">
-          <h1 style="
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0 0 1rem 0;
-            color: #1f2937;
-            border-bottom: 2px solid #3b82f6;
-            padding-bottom: 0.5rem;
-          ">${title}</h1>
-          
-          <div style="margin-bottom: 2rem;">
-            ${content}
-          </div>
-          
-          ${tags.length > 0 ? `
-            <div style="
-              margin-top: 2rem;
-              padding-top: 1rem;
-              border-top: 1px solid #e5e7eb;
-            ">
-              <p style="margin: 0 0 0.5rem 0; font-weight: 600; color: #6b7280;">Etiquetas:</p>
-              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                ${tags.map(tag => `
-                  <span style="
-                    background: #3b82f6;
-                    color: white;
-                    padding: 0.25rem 0.75rem;
-                    border-radius: 1rem;
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                  ">${tag}</span>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-          
-          <div style="
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            color: #6b7280;
-            font-size: 0.875rem;
-          ">
-            Generado el ${new Date().toLocaleDateString('es-ES', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </div>
-        </div>
-      `;
-
-      // Aplicar estilos para los elementos HTML
-      const style = document.createElement('style');
-      style.textContent = `
-        h1 { font-size: 1.875rem; font-weight: 700; margin: 1rem 0 0.5rem 0; color: #1f2937; }
-        h2 { font-size: 1.5rem; font-weight: 600; margin: 0.875rem 0 0.5rem 0; color: #1f2937; }
-        h3 { font-size: 1.25rem; font-weight: 600; margin: 0.75rem 0 0.5rem 0; color: #1f2937; }
-        ul, ol { margin: 0.5rem 0; padding-left: 1.5rem; }
-        ul { list-style-type: disc; }
-        ol { list-style-type: decimal; }
-        li { margin: 0.25rem 0; }
-        p { margin: 0.5rem 0; }
-        strong { font-weight: 700; }
-        em { font-style: italic; }
-        u { text-decoration: underline; }
-        a { color: #3b82f6; text-decoration: underline; }
-      `;
-      tempDiv.appendChild(style);
-
-      // Agregar al DOM temporalmente
-      document.body.appendChild(tempDiv);
-
-      // Convertir a canvas
-      const canvas = await html2canvas.default(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
+      // Importación dinámica de jsPDF
+      const jsPDF = (await import('jspdf')).default;
 
       // Crear PDF
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 20;
+      const maxWidth = pageWidth - (margin * 2);
+      let y = margin;
+      const lineHeight = 7;
+      const titleLineHeight = 10;
 
-      let position = 0;
+      // Función para agregar nueva página si es necesario
+      const checkPageBreak = (requiredHeight: number) => {
+        if (y + requiredHeight > pageHeight - margin) {
+          pdf.addPage();
+          y = margin;
+          return true;
+        }
+        return false;
+      };
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      // Título
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      const titleLines = pdf.splitTextToSize(title, maxWidth);
+      titleLines.forEach((line: string) => {
+        checkPageBreak(titleLineHeight);
+        pdf.text(line, margin, y);
+        y += titleLineHeight;
+      });
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // Línea debajo del título
+      y += 2;
+      pdf.setDrawColor(59, 130, 246); // #3b82f6
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      // Contenido
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      
+      const parsedContent = parseHTMLToText(content);
+      
+      // Procesar y combinar elementos de texto consecutivos (prefijos de lista + texto)
+      const processedContent: typeof parsedContent = [];
+      for (let i = 0; i < parsedContent.length; i++) {
+        const item = parsedContent[i];
+        const nextItem = parsedContent[i + 1];
+        
+        // Si el elemento actual es un prefijo de lista y el siguiente es texto, combinarlos
+        if (item.type === 'text' && item.content && 
+            (item.content.endsWith('. ') || item.content.endsWith('• ')) &&
+            nextItem && nextItem.type === 'text' && nextItem.content) {
+          // Combinar prefijo con texto
+          processedContent.push({
+            type: 'text',
+            content: item.content + nextItem.content,
+            style: item.style || nextItem.style
+          });
+          i++; // Saltar el siguiente elemento ya que lo combinamos
+        } else {
+          processedContent.push(item);
+        }
+      }
+      
+      processedContent.forEach((item) => {
+        if (item.type === 'break') {
+          y += lineHeight / 2;
+          checkPageBreak(lineHeight);
+        } else if (item.type === 'link' && item.url && item.content) {
+          checkPageBreak(lineHeight);
+          
+          // Determinar estilo del link
+          let linkFontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
+          if (item.style) {
+            const styles = item.style.split(',');
+            const hasBold = styles.includes('bold');
+            const hasItalic = styles.includes('italic');
+            
+            if (hasBold && hasItalic) {
+              linkFontStyle = 'bolditalic';
+            } else if (hasBold) {
+              linkFontStyle = 'bold';
+            } else if (hasItalic) {
+              linkFontStyle = 'italic';
+            }
+          }
+          
+          // Escribir el texto del enlace
+          pdf.setTextColor(59, 130, 246); // Azul para links
+          pdf.setFont('helvetica', linkFontStyle);
+          const linkLines = pdf.splitTextToSize(item.content, maxWidth);
+          linkLines.forEach((line: string, index: number) => {
+            if (index > 0) {
+              y += lineHeight;
+              checkPageBreak(lineHeight);
+            }
+            const lineWidth = pdf.getTextWidth(line);
+            pdf.text(line, margin, y);
+            
+            // Agregar link funcional (clickeable en el PDF)
+            pdf.link(margin, y - 5, lineWidth, lineHeight, { url: item.url });
+          });
+          
+          pdf.setTextColor(0, 0, 0); // Volver a negro
+          pdf.setFont('helvetica', 'normal');
+          y += lineHeight;
+        } else if (item.type === 'text' && item.content) {
+          let fontSize = 12;
+          let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
+          let isUnderline = false;
+          
+          // Procesar estilos (pueden estar combinados como "bold,italic")
+          if (item.style) {
+            const styles = item.style.split(',');
+            const hasBold = styles.includes('bold') || styles.includes('h1') || styles.includes('h2') || styles.includes('h3');
+            const hasItalic = styles.includes('italic');
+            const hasUnderline = styles.includes('underline');
+            
+            if (item.style === 'h1') {
+              fontSize = 18;
+              fontStyle = 'bold';
+            } else if (item.style === 'h2') {
+              fontSize = 16;
+              fontStyle = 'bold';
+            } else if (item.style === 'h3') {
+              fontSize = 14;
+              fontStyle = 'bold';
+            } else if (hasBold && hasItalic) {
+              fontStyle = 'bolditalic';
+            } else if (hasBold) {
+              fontStyle = 'bold';
+            } else if (hasItalic) {
+              fontStyle = 'italic';
+            }
+            
+            isUnderline = hasUnderline;
+          }
+          
+          pdf.setFontSize(fontSize);
+          pdf.setFont('helvetica', fontStyle);
+          
+          if (isUnderline) {
+            // jsPDF no tiene soporte directo para underline, pero podemos simularlo
+            // o simplemente usar el estilo normal
+            pdf.setFont('helvetica', fontStyle);
+          }
+          
+          // Si el contenido es solo espacios en blanco, saltarlo
+          if (item.content.trim().length === 0) {
+            return;
+          }
+          
+          const textLines = pdf.splitTextToSize(item.content, maxWidth);
+          textLines.forEach((line: string) => {
+            checkPageBreak(lineHeight);
+            pdf.text(line, margin, y);
+            y += lineHeight;
+          });
+          
+          // Resetear estilo
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
+        }
+      });
+
+      // Etiquetas
+      if (tags.length > 0) {
+        y += 10;
+        checkPageBreak(lineHeight * 2);
+        
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(107, 114, 128); // #6b7280
+        pdf.text('Etiquetas:', margin, y);
+        y += lineHeight;
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(255, 255, 255); // Blanco para el texto de las etiquetas
+        
+        let tagX = margin;
+        tags.forEach((tag) => {
+          const tagWidth = pdf.getTextWidth(tag) + 6;
+          
+          if (tagX + tagWidth > pageWidth - margin) {
+            y += lineHeight;
+            checkPageBreak(lineHeight);
+            tagX = margin;
+          }
+          
+          // Dibujar fondo azul para la etiqueta
+          pdf.setFillColor(59, 130, 246); // #3b82f6
+          pdf.roundedRect(tagX, y - 5, tagWidth, 6, 2, 2, 'F');
+          
+          // Texto de la etiqueta
+          pdf.text(tag, tagX + 3, y);
+          tagX += tagWidth + 4;
+        });
+        
+        pdf.setTextColor(0, 0, 0); // Volver a negro
+        y += lineHeight + 5;
       }
 
-      // Limpiar
-      document.body.removeChild(tempDiv);
+      // Footer
+      y = pageHeight - margin - 10;
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(107, 114, 128); // #6b7280
+      const footerText = `Generado el ${new Date().toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}`;
+      pdf.text(footerText, pageWidth / 2, y, { align: 'center' });
 
       // Descargar
       const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`;

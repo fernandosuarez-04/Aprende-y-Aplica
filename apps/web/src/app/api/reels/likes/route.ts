@@ -6,15 +6,25 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // Verificar autenticación (opcional para desarrollo)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      logger.warn('No user authenticated, using default user for development')
+    // Verificar autenticación - OBLIGATORIA
+    const { SessionService } = await import('@/features/auth/services/session.service')
+    let user = null
+    try {
+      user = await SessionService.getCurrentUser()
+    } catch (authError) {
+      logger.error('Error getting current user:', authError)
     }
 
-    // Usar usuario por defecto si no hay autenticación
-    const userId = user?.id || '8365d552-f342-4cd7-ae6b-dff8063a1377'
-    logger.log('🔍 Loading likes for user:', userId) // Debug
+    if (!user || !user.id) {
+      logger.warn('❌ Intento de obtener likes sin autenticación')
+      return NextResponse.json(
+        { error: 'Debes estar autenticado para ver tus likes' },
+        { status: 401 }
+      )
+    }
+
+    const userId = user.id
+    logger.log(`✅ Usuario autenticado para obtener likes: ${userId} (${user.username || user.email})`)
 
     // Obtener todos los likes del usuario
     const { data: likes, error } = await supabase

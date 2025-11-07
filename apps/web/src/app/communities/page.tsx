@@ -129,6 +129,20 @@ export default function CommunitiesPage() {
   const { communities: communitiesData, isLoading, isError, mutate } = useCommunities();
   const communities = communitiesData?.communities || [];
   
+  // Log para debugging en producción
+  React.useEffect(() => {
+    if (communitiesData) {
+      console.log('📊 Communities data loaded:', {
+        total: communitiesData.total,
+        count: communities.length,
+        hasData: !!communitiesData.communities
+      });
+    }
+    if (isError) {
+      console.error('❌ Error loading communities:', isError);
+    }
+  }, [communitiesData, isError, communities.length]);
+  
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -601,7 +615,47 @@ export default function CommunitiesPage() {
             </motion.div>
           )}
 
-          {!isLoading && filteredCommunities.length === 0 && (
+          {!isLoading && isError && (
+            <motion.div
+              className="text-center py-16"
+              variants={itemVariants}
+            >
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                <X className="w-12 h-12 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Error al cargar comunidades
+              </h3>
+              <p className="text-gray-600 dark:text-slate-400 mb-4">
+                {isError?.message || 'Ocurrió un error al intentar cargar las comunidades'}
+              </p>
+              <Button
+                onClick={() => mutate()}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl"
+              >
+                Reintentar
+              </Button>
+            </motion.div>
+          )}
+
+          {!isLoading && !isError && communities.length === 0 && (
+            <motion.div
+              className="text-center py-16"
+              variants={itemVariants}
+            >
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-slate-800/50 flex items-center justify-center">
+                <Users className="w-12 h-12 text-gray-600 dark:text-slate-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                No hay comunidades disponibles
+              </h3>
+              <p className="text-gray-600 dark:text-slate-400">
+                Aún no se han creado comunidades en la plataforma
+              </p>
+            </motion.div>
+          )}
+
+          {!isLoading && !isError && communities.length > 0 && filteredCommunities.length === 0 && (
             <motion.div
               className="text-center py-16"
               variants={itemVariants}

@@ -176,16 +176,17 @@ export async function POST(
       return NextResponse.json({ error: 'El comentario es demasiado largo' }, { status: 400 });
     }
 
-    // ⭐ MODERACIÓN: Verificar si contiene palabras prohibidas
-    const { containsForbiddenContent, registerWarning } = await import('../../../../../../../lib/moderation');
-    const forbiddenCheck = await containsForbiddenContent(content);
+    // ⭐ MODERACIÓN CAPA 1: Verificar si contiene palabras prohibidas
+    const { containsForbiddenContent, registerWarning, getUserWarningsCount } = await import('../../../../../../../lib/moderation');
+    const forbiddenCheck = await containsForbiddenContent(content, supabase);
 
     if (forbiddenCheck.contains) {
       try {
         const warningResult = await registerWarning(
           user.id,
           content,
-          'comment'
+          'comment',
+          supabase
         );
         
         // Si el usuario fue baneado
@@ -270,9 +271,102 @@ export async function POST(
       console.error('Error updating comment count:', updateError);
     }
 
+    console.log('✅ Comment created successfully:', newComment.id);
+
+    // ⭐ MODERACIÓN CAPA 2: Análisis con IA DESPUÉS de crear el comentario
+    // Este análisis se ejecuta en background sin bloquear la respuesta
+    (async () => {
+      try {
+        const { 
+          analyzeContentWithAI, 
+          logAIModerationAnalysis,
+          shouldAutoBan 
+        } = await import('../../../../../../../lib/ai-moderation');
+        
+        console.log('🤖 Starting AI moderation analysis for comment:', newComment.id);
+        
+        // Analizar contenido con IA
+        const aiResult = await analyzeContentWithAI(content, {
+          contentType: 'comment',
+          userId: user.id,
+          previousWarnings: await getUserWarningsCount(user.id, supabase),
+        });
+        
+        console.log('🤖 AI Analysis Result:', {
+          commentId: newComment.id,
+          isInappropriate: aiResult.isInappropriate,
+          confidence: (aiResult.confidence * 100).toFixed(1) + '%',
+          categories: aiResult.categories,
+          requiresHumanReview: aiResult.requiresHumanReview,
+        });
+        
+        // Registrar análisis en BD
+        await logAIModerationAnalysis(
+          user.id,
+          'comment',
+          newComment.id,
+          content,
+          aiResult,
+          supabase
+        );
+        
+        // Si la IA detectó contenido inapropiado
+        if (aiResult.isInappropriate) {
+          console.log('🚨 Inappropriate content detected! Deleting comment:', newComment.id);
+          
+          // ELIMINAR EL COMENTARIO
+          const { error: deleteError } = await supabase
+            .from('community_comments')
+            .delete()
+            .eq('id', newComment.id);
+          
+          if (deleteError) {
+            console.error('❌ Error deleting flagged comment:', deleteError);
+          } else {
+            console.log('✅ Comment deleted successfully:', newComment.id);
+            
+            // Decrementar el contador de comentarios
+            const { error: decrementError } = await (supabase as any).rpc('decrement_comment_count', {
+              post_id: postId
+            });
+            
+            if (decrementError) {
+              console.error('Error decrementing comment count:', decrementError);
+            }
+          }
+          
+          // Registrar advertencia
+          const warningResult = await registerWarning(
+            user.id,
+            content,
+            'comment',
+            supabase
+          );
+          
+          console.log('⚠️ Warning registered for user:', {
+            userId: user.id,
+            warningCount: warningResult.warningCount,
+            userBanned: warningResult.userBanned,
+          });
+          
+          // Si el usuario fue baneado (4ta advertencia)
+          if (warningResult.userBanned) {
+            console.log('🚫 User has been banned:', user.id);
+          }
+        } else {
+          console.log('✅ Content approved by AI moderation:', newComment.id);
+        }
+        
+      } catch (error) {
+        console.error('❌ Error in background AI moderation:', error);
+      }
+    })();
+
+    // Responder inmediatamente con el comentario creado
     return NextResponse.json({ 
       message: 'Comentario creado exitosamente',
-      comment: commentWithUser 
+      comment: commentWithUser,
+      aiModerationPending: true // Indica que el análisis de IA está en proceso
     });
   } catch (error) {
     console.error('Error in comments POST:', error);

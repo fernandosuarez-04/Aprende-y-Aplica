@@ -243,6 +243,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             ul, ol {
               margin: 0.5rem 0;
               padding-left: 1.5rem;
+              list-style-position: outside;
             }
             
             ul {
@@ -253,8 +254,28 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               list-style-type: decimal;
             }
             
+            ul ul {
+              list-style-type: circle;
+              margin-top: 0.25rem;
+              margin-bottom: 0.25rem;
+            }
+            
+            ul ul ul {
+              list-style-type: square;
+            }
+            
+            ol ol {
+              list-style-type: lower-alpha;
+            }
+            
+            ol ol ol {
+              list-style-type: lower-roman;
+            }
+            
             li {
               margin: 0.25rem 0;
+              padding-left: 0.25rem;
+              display: list-item;
             }
             
             p {

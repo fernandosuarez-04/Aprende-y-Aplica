@@ -6,9 +6,7 @@ import {
   ArrowLeft, 
   Calendar, 
   Eye, 
-  MessageCircle, 
   Share2, 
-  Bookmark,
   ExternalLink,
   TrendingUp,
   Users,
@@ -31,55 +29,6 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
   const router = useRouter()
   const resolvedParams = React.use(params)
   const { news, loading, error } = useNewsDetail(resolvedParams.slug)
-  const [isSaved, setIsSaved] = React.useState(false)
-  const [isSaving, setIsSaving] = React.useState(false)
-  const [isCheckingSaved, setIsCheckingSaved] = React.useState(true)
-
-  // Verificar si la noticia está guardada al cargar
-  React.useEffect(() => {
-    const checkSaved = async () => {
-      if (!resolvedParams.slug) return
-
-      try {
-        const response = await fetch(`/api/news/${resolvedParams.slug}/save`)
-        if (response.ok) {
-          const data = await response.json()
-          setIsSaved(data.saved)
-        }
-      } catch (error) {
-        console.error('Error checking saved status:', error)
-      } finally {
-        setIsCheckingSaved(false)
-      }
-    }
-
-    checkSaved()
-  }, [resolvedParams.slug])
-
-  const handleSave = async () => {
-    if (isSaving) return
-
-    setIsSaving(true)
-    try {
-      const response = await fetch(`/api/news/${resolvedParams.slug}/save`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setIsSaved(data.saved)
-
-        // Mostrar notificación de éxito (opcional, puedes usar un toast library)
-        console.log(data.message)
-      } else {
-        console.error('Error saving news')
-      }
-    } catch (error) {
-      console.error('Error saving news:', error)
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -402,22 +351,6 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
               >
                 <Share2 className="w-5 h-5" />
               </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving || isCheckingSaved}
-                className={`p-2 transition-colors ${
-                  isSaved
-                    ? 'text-primary hover:text-primary/80'
-                    : 'text-text-secondary hover:text-text-primary'
-                } disabled:opacity-50`}
-                title={isSaved ? 'Quitar de guardados' : 'Guardar noticia'}
-              >
-                {isSaving ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-                )}
-              </button>
             </div>
           </div>
         </div>
@@ -467,10 +400,6 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                 <div className="flex items-center gap-1">
                   <Eye className="w-4 h-4" />
                   <span>{news.view_count || 0} vistas</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{news.comment_count || 0} comentarios</span>
                 </div>
               </div>
 

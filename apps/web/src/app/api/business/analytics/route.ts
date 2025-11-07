@@ -146,13 +146,18 @@ export async function GET() {
       logger.error('Error fetching lesson progress for analytics:', lessonProgressError)
     }
 
-    // 5. Obtener certificados
+    // 5. Obtener certificados con información enriquecida
     const { data: certificates, error: certificatesError } = await supabase
       .from('user_course_certificates')
       .select(`
         user_id,
         course_id,
-        issued_at
+        issued_at,
+        courses (
+          id,
+          title,
+          instructor_id
+        )
       `)
       .in('user_id', userIds)
       .order('issued_at', { ascending: false })
@@ -160,6 +165,45 @@ export async function GET() {
     if (certificatesError) {
       logger.error('Error fetching certificates for analytics:', certificatesError)
     }
+
+    // Obtener IDs de instructores únicos
+    const instructorIds = [...new Set((certificates || [])
+      .map((cert: any) => cert.courses?.instructor_id)
+      .filter(Boolean))]
+
+    // Obtener información de instructores
+    const instructorMap = new Map()
+    if (instructorIds.length > 0) {
+      const { data: instructors } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, username')
+        .in('id', instructorIds)
+
+      if (instructors) {
+        instructors.forEach(instructor => {
+          const fullName = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim()
+          instructorMap.set(instructor.id, {
+            name: fullName || instructor.username || 'Instructor',
+            username: instructor.username
+          })
+        })
+      }
+    }
+
+    // Enriquecer certificados con datos del instructor
+    const enrichedCertificates = (certificates || []).map((cert: any) => {
+      const course = cert.courses || {}
+      const instructor = course.instructor_id ? instructorMap.get(course.instructor_id) : null
+      
+      return {
+        user_id: cert.user_id,
+        course_id: cert.course_id,
+        issued_at: cert.issued_at,
+        course_title: course.title || 'Curso sin título',
+        instructor_name: instructor?.name || 'Instructor',
+        instructor_username: instructor?.username || null
+      }
+    })
 
     // 6. Obtener información de cursos
     const courseIds = [...new Set([
@@ -192,7 +236,7 @@ export async function GET() {
     const totalTimeMinutes = lessonProgress?.reduce((sum: number, p: any) => sum + (p.time_spent_minutes || 0), 0) || 0
     const totalTimeHours = Math.round((totalTimeMinutes / 60) * 10) / 10
 
-    const totalCertificates = certificates?.length || 0
+    const totalCertificates = enrichedCertificates?.length || 0
 
     // Usuarios activos (con actividad en los últimos 30 días)
     const thirtyDaysAgo = new Date()
@@ -212,7 +256,7 @@ export async function GET() {
       const userAssignments = assignments?.filter((a: any) => a.user_id === ou.user_id) || []
       const userEnrollments = enrollments?.filter((e: any) => e.user_id === ou.user_id) || []
       const userProgress = lessonProgress?.filter((p: any) => p.user_id === ou.user_id) || []
-      const userCertificates = certificates?.filter((c: any) => c.user_id === ou.user_id) || []
+      const userCertificates = enrichedCertificates?.filter((c: any) => c.user_id === ou.user_id) || []
 
       const userCompleted = userAssignments.filter((a: any) => a.status === 'completed' || (a.completion_percentage || 0) >= 100).length
       const userProgressSum = userEnrollments.reduce((sum: number, e: any) => sum + (Number(e.overall_progress_percentage) || 0), 0)

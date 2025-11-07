@@ -198,16 +198,17 @@ export async function POST(
       return NextResponse.json({ error: 'El contenido es requerido' }, { status: 400 });
     }
 
-    // ⭐ MODERACIÓN: Verificar si contiene palabras prohibidas
-    const { containsForbiddenContent, registerWarning } = await import('../../../../../lib/moderation');
-    const forbiddenCheck = await containsForbiddenContent(content);
+    // ⭐ MODERACIÓN CAPA 1: Verificar si contiene palabras prohibidas
+    const { containsForbiddenContent, registerWarning, getUserWarningsCount } = await import('../../../../../lib/moderation');
+    const forbiddenCheck = await containsForbiddenContent(content, supabase);
 
     if (forbiddenCheck.contains) {
       try {
         const warningResult = await registerWarning(
           user.id,
           content,
-          'post'
+          'post',
+          supabase
         );
         
         // Si el usuario fue baneado
@@ -332,9 +333,91 @@ export async function POST(
 
     logger.log('✅ Post created successfully:', newPost.id);
 
+    // ⭐ MODERACIÓN CAPA 2: Análisis con IA DESPUÉS de crear el post
+    // Este análisis se ejecuta en background sin bloquear la respuesta
+    (async () => {
+      try {
+        const { 
+          analyzeContentWithAI, 
+          logAIModerationAnalysis,
+          shouldAutoBan 
+        } = await import('../../../../../lib/ai-moderation');
+        
+        logger.log('🤖 Starting AI moderation analysis for post:', newPost.id);
+        
+        // Analizar contenido con IA
+        const aiResult = await analyzeContentWithAI(content, {
+          contentType: 'post',
+          userId: user.id,
+          previousWarnings: await getUserWarningsCount(user.id, supabase),
+        });
+        
+        logger.log('🤖 AI Analysis Result:', {
+          postId: newPost.id,
+          isInappropriate: aiResult.isInappropriate,
+          confidence: (aiResult.confidence * 100).toFixed(1) + '%',
+          categories: aiResult.categories,
+          requiresHumanReview: aiResult.requiresHumanReview,
+        });
+        
+        // Registrar análisis en BD
+        await logAIModerationAnalysis(
+          user.id,
+          'post',
+          newPost.id,
+          content,
+          aiResult,
+          supabase
+        );
+        
+        // Si la IA detectó contenido inapropiado
+        if (aiResult.isInappropriate) {
+          logger.log('🚨 Inappropriate content detected! Deleting post:', newPost.id);
+          
+          // ELIMINAR EL POST
+          const { error: deleteError } = await supabase
+            .from('community_posts')
+            .delete()
+            .eq('id', newPost.id);
+          
+          if (deleteError) {
+            logger.error('❌ Error deleting flagged post:', deleteError);
+          } else {
+            logger.log('✅ Post deleted successfully:', newPost.id);
+          }
+          
+          // Registrar advertencia
+          const warningResult = await registerWarning(
+            user.id,
+            content,
+            'post',
+            supabase
+          );
+          
+          logger.log('⚠️ Warning registered for user:', {
+            userId: user.id,
+            warningCount: warningResult.warningCount,
+            userBanned: warningResult.userBanned,
+          });
+          
+          // Si el usuario fue baneado (4ta advertencia)
+          if (warningResult.userBanned) {
+            logger.log('🚫 User has been banned:', user.id);
+          }
+        } else {
+          logger.log('✅ Content approved by AI moderation:', newPost.id);
+        }
+        
+      } catch (error) {
+        logger.error('❌ Error in background AI moderation:', error);
+      }
+    })();
+
+    // Responder inmediatamente con el post creado
     return NextResponse.json({
       post: newPost,
-      success: true
+      success: true,
+      aiModerationPending: true // Indica que el análisis de IA está en proceso
     });
 
   } catch (error) {

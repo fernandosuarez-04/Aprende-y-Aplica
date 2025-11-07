@@ -140,6 +140,99 @@ export default function CourseLearnPage() {
   const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
 
+  // Función para convertir HTML a texto plano con formato mejorado
+  const htmlToPlainText = (html: string, addLineBreaks: boolean = true): string => {
+    if (!html) return '';
+    
+    // Verificar que estamos en el cliente
+    if (typeof document === 'undefined') {
+      // Fallback simple para SSR: eliminar etiquetas HTML básicas
+      return html
+        .replace(/<[^>]*>/g, '') // Eliminar todas las etiquetas HTML
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .trim();
+    }
+    
+    // Crear un elemento temporal para parsear el HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Convertir listas a texto legible con saltos de línea
+    const lists = tempDiv.querySelectorAll('ul, ol');
+    lists.forEach(list => {
+      const items = list.querySelectorAll('li');
+      items.forEach((li, index) => {
+        const listType = list.tagName.toLowerCase();
+        const prefix = listType === 'ol' ? `${index + 1}. ` : '• ';
+        const text = li.textContent?.trim() || '';
+        // Agregar prefijo y salto de línea si está habilitado
+        if (addLineBreaks) {
+          li.textContent = prefix + text + '\n';
+        } else {
+          li.textContent = prefix + text;
+        }
+      });
+    });
+    
+    // Convertir <p> y <div> a saltos de línea si está habilitado
+    if (addLineBreaks) {
+      const paragraphs = tempDiv.querySelectorAll('p, div');
+      paragraphs.forEach(p => {
+        if (p.textContent && !p.textContent.trim().endsWith('\n')) {
+          p.textContent = (p.textContent || '') + '\n';
+        }
+      });
+    }
+    
+    // Obtener el texto plano
+    let text = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Limpiar espacios múltiples y saltos de línea excesivos
+    if (addLineBreaks) {
+      text = text.replace(/\n{3,}/g, '\n\n'); // Máximo 2 saltos de línea consecutivos
+    }
+    
+    return text.trim();
+  };
+
+  // Función para generar vista previa inteligente
+  const generateNotePreview = (html: string, maxLength: number = 50): string => {
+    if (!html) return '';
+    
+    // Verificar que estamos en el cliente
+    if (typeof document === 'undefined') {
+      const plainText = htmlToPlainText(html, false);
+      return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
+    }
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Verificar si el primer elemento es una lista
+    const firstChild = tempDiv.firstElementChild;
+    if (firstChild && (firstChild.tagName === 'UL' || firstChild.tagName === 'OL')) {
+      // Si es una lista, obtener solo el primer elemento
+      const firstItem = firstChild.querySelector('li');
+      if (firstItem) {
+        const listType = firstChild.tagName.toLowerCase();
+        const prefix = listType === 'ol' ? '1. ' : '• ';
+        const text = firstItem.textContent?.trim() || '';
+        const preview = prefix + text;
+        return preview.length > maxLength 
+          ? preview.substring(0, maxLength) + '...' 
+          : preview + '...';
+      }
+    }
+    
+    // Si no es una lista o no tiene elementos, usar el método normal
+    const plainText = htmlToPlainText(html, false);
+    return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
+  };
+
   // Función para formatear timestamp
   const formatTimestamp = (dateString: string): string => {
     const date = new Date(dateString);
@@ -165,15 +258,19 @@ export default function CourseLearnPage() {
       if (response.ok) {
         const notes = await response.json();
         // Mapear notas de BD al formato del frontend
-        const mappedNotes = notes.map((note: any) => ({
-          id: note.note_id,
-          title: note.note_title,
-          content: note.note_content.substring(0, 50) + (note.note_content.length > 50 ? '...' : ''),
-          timestamp: formatTimestamp(note.updated_at || note.created_at),
-          lessonId: note.lesson_id,
-          fullContent: note.note_content, // Guardar contenido completo
-          tags: note.note_tags || []
-        }));
+        const mappedNotes = notes.map((note: any) => {
+          const preview = generateNotePreview(note.note_content, 50);
+          
+          return {
+            id: note.note_id,
+            title: note.note_title,
+            content: preview,
+            timestamp: formatTimestamp(note.updated_at || note.created_at),
+            lessonId: note.lesson_id,
+            fullContent: note.note_content, // Guardar contenido completo
+            tags: note.note_tags || []
+          };
+        });
         setSavedNotes(mappedNotes);
       } else if (response.status === 401) {
         // Usuario no autenticado, dejar notas vacías
@@ -299,7 +396,7 @@ export default function CourseLearnPage() {
 
     const message = liaMessage.trim();
     setLiaMessage(''); // Limpiar input inmediatamente
-    
+
     // Resetear altura del textarea después de enviar (igual al botón: 48px)
     if (liaTextareaRef.current) {
       liaTextareaRef.current.style.height = '48px';
@@ -311,6 +408,100 @@ export default function CourseLearnPage() {
 
     // Enviar mensaje con contexto
     await sendLiaMessage(message, lessonContext);
+  };
+
+  // Función para iniciar interacción con LIA desde una actividad
+  const handleStartActivityInteraction = async (activityContent: string, activityTitle: string) => {
+    // Abrir el panel de LIA si está cerrado
+    if (!isRightPanelOpen) {
+      setIsRightPanelOpen(true);
+    }
+
+    // Construir el prompt profesional para LIA con GUARDRAILS
+    const systemPrompt = `# SISTEMA: Inicio de Actividad Interactiva
+
+Vas a guiar al usuario a través de la actividad: "${activityTitle}"
+
+## TU ROL
+Eres LIA, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
+
+## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
+
+### 🚫 DESVÍOS NO PERMITIDOS:
+1. **NO te desvíes del guión**: Sigue ESTRICTAMENTE la estructura de la actividad
+2. **NO ofrezcas ayuda genérica**: Si el usuario pide sugerencias, responde SOLO dentro del contexto del paso actual
+3. **NO expliques conceptos no relacionados**: Mantente enfocado en completar el framework
+4. **NO cambies de tema**: Si el usuario intenta cambiar de tema, redirige amablemente al paso actual
+
+### ✅ MANEJO DE DESVÍOS:
+Si el usuario:
+- Se desvía del tema → Reconoce su mensaje y redirige: "Entiendo tu interés, pero primero completemos este paso del framework. [Repite la pregunta actual]"
+- Pide sugerencias genéricas → Proporciona 1-2 ejemplos específicos del paso actual y pide SU respuesta
+- Dice "no sé" o "ayúdame" → Ofrece 2-3 ejemplos concretos, pero insiste en que debe dar SU propia respuesta
+- Da respuestas muy cortas (ej: "sí", "no", "ok") → Pide más detalles específicos necesarios para el paso actual
+
+### 📊 SEGUIMIENTO DEL PROGRESO:
+- Cuenta internamente cuántas interacciones llevan en el MISMO paso
+- Si el usuario da más de 3 respuestas sin avanzar al siguiente paso del guión → Redirige firmemente: "Necesito que me des [información específica] para poder continuar con el siguiente paso"
+- Después de cada respuesta útil del usuario → Avanza inmediatamente al siguiente mensaje del guión
+
+## CONTENIDO DE LA ACTIVIDAD
+A continuación te proporciono el guión completo de la actividad. Los separadores "---" indican cambios de turno (tú hablas → esperas respuesta → continúas):
+
+\`\`\`
+${activityContent}
+\`\`\`
+
+## INSTRUCCIONES DE EJECUCIÓN
+
+1. **Flujo Estricto**:
+   - Identifica en qué paso del guión estás (contando los separadores "---")
+   - Presenta SOLO el mensaje actual del guión
+   - ESPERA la respuesta del usuario
+   - Valida la respuesta (¿es útil para el objetivo del paso?)
+   - Si es útil → AVANZA al siguiente mensaje del guión
+   - Si no es útil → Pide clarificación o ejemplos concretos, pero NO avances
+
+2. **Formato de Mensajes**:
+   - Elimina "Lia (IA):" y "[Usuario:]" del texto visible
+   - Usa un tono cálido pero directo
+   - Máximo 1-2 emojis por mensaje
+   - Sé concisa: 3-4 oraciones máximo por mensaje (excepto el inicial)
+
+3. **Recolección de Datos**:
+   - Guarda mentalmente las respuestas del usuario para el CSV final
+   - Si el framework requiere múltiples tareas → Pide UNA tarea a la vez
+   - Si requiere datos para cada tarea → Pregunta por los datos de UNA tarea a la vez
+   - NO te saltes pasos del guión
+
+4. **Señales de Progreso**:
+   - Cada 2-3 pasos, menciona el progreso: "¡Genial! Llevamos X de Y columnas completadas"
+   - Al completar una sección importante: "✅ Columna 1 completada. Ahora vamos con la Columna 2..."
+
+5. **Finalización**:
+   - SOLO cuando hayas completado TODOS los pasos del guión
+   - Genera el CSV con TODOS los datos recopilados
+   - Felicita y despide
+
+## ⚡ RECORDATORIO CONSTANTE
+Antes de cada respuesta, pregúntate:
+1. ¿Estoy siguiendo el guión paso a paso?
+2. ¿El usuario dio la información que necesito para este paso?
+3. ¿Debo avanzar al siguiente paso o pedir más detalles?
+4. ¿Me estoy desviando del objetivo de la actividad?
+
+**INICIA AHORA con el PRIMER mensaje del guión (después del primer "---"):**`;
+
+    // Construir contexto de la lección
+    const lessonContext = getLessonContext();
+
+    // Enviar el mensaje del sistema (no será visible en el chat)
+    await sendLiaMessage(systemPrompt, lessonContext, true);
+
+    // Hacer scroll al chat
+    setTimeout(() => {
+      liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
   };
 
   // Auto-scroll al final cuando hay nuevos mensajes o cuando está cargando
@@ -391,26 +582,11 @@ export default function CourseLearnPage() {
           return;
         }
         
-        const updatedNote = await response.json();
+        // Recargar notas desde el servidor para asegurar consistencia
+        await loadLessonNotes(currentLesson.lesson_id, slug);
         
-        // Actualizar la nota en la lista local
-        setSavedNotes(prev => prev.map(note => 
-          note.id === editingNote.id 
-            ? {
-                id: updatedNote.note_id || updatedNote.id,
-                title: noteData.title,
-                content: noteData.content.substring(0, 50) + (noteData.content.length > 50 ? '...' : ''),
-                fullContent: noteData.content,
-                tags: noteData.tags,
-                timestamp: formatTimestamp(updatedNote.updated_at || updatedNote.created_at || new Date().toISOString()),
-                lessonId: currentLesson.lesson_id
-              }
-            : note
-        ));
-        
-        // Actualizar estadísticas y recargar notas
-        updateNotesStats();
-        loadLessonNotes(currentLesson.lesson_id, slug);
+        // Actualizar estadísticas desde el servidor
+        await updateNotesStats();
       } else {
         // Crear nueva nota
         const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
@@ -425,24 +601,11 @@ export default function CourseLearnPage() {
           return;
         }
         
-        const newNote = await response.json();
+        // Recargar notas desde el servidor para asegurar consistencia
+        await loadLessonNotes(currentLesson.lesson_id, slug);
         
-        // Formatear la nota según la estructura esperada
-        const formattedNote = {
-          id: newNote.note_id || newNote.id,
-          title: noteData.title,
-          content: noteData.content.substring(0, 50) + (noteData.content.length > 50 ? '...' : ''),
-          fullContent: noteData.content,
-          tags: noteData.tags,
-          timestamp: formatTimestamp(newNote.created_at || new Date().toISOString()),
-          lessonId: currentLesson.lesson_id
-        };
-        
-        setSavedNotes(prev => [formattedNote, ...prev]);
-        
-        // Actualizar estadísticas y recargar notas
-        updateNotesStats();
-        loadLessonNotes(currentLesson.lesson_id, slug);
+        // Actualizar estadísticas desde el servidor
+        await updateNotesStats();
       }
       
       setIsNotesModalOpen(false);
@@ -457,31 +620,35 @@ export default function CourseLearnPage() {
     if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) return;
     
     try {
-      const response = await fetch(`/api/courses/${params.slug}/lessons/${currentLesson?.lesson_id}/notes/${noteId}`, {
+      if (!currentLesson?.lesson_id || !slug) {
+        alert('No se puede eliminar la nota: lección no seleccionada');
+        return;
+      }
+
+      const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`, {
         method: 'DELETE'
       });
       
       if (response.ok) {
-        setSavedNotes(prev => prev.filter(note => note.id !== noteId));
-        // Actualizar estadísticas
-        updateNotesStats();
+        // Recargar notas desde el servidor para asegurar consistencia
+        await loadLessonNotes(currentLesson.lesson_id, slug);
+        
+        // Actualizar estadísticas desde el servidor
+        await updateNotesStats();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        alert(`Error al eliminar la nota: ${errorData.error || 'Error desconocido'}`);
       }
     } catch (error) {
       console.error('Error al eliminar nota:', error);
+      alert('Error al eliminar la nota. Por favor, intenta de nuevo.');
     }
   };
 
-  // Función para actualizar estadísticas de notas
-  const updateNotesStats = () => {
-    const totalNotes = savedNotes.length;
-    const uniqueLessons = new Set(savedNotes.map(note => note.lessonId)).size;
-    const totalLessons = modules.reduce((acc, module) => acc + module.lessons.length, 0);
-    
-    setNotesStats({
-      totalNotes,
-      lessonsWithNotes: `${uniqueLessons}/${totalLessons}`,
-      lastUpdate: new Date().toLocaleString()
-    });
+  // Función para actualizar estadísticas de notas desde el servidor
+  const updateNotesStats = async () => {
+    if (!slug) return;
+    await loadNotesStats(slug);
   };
 
 
@@ -1166,8 +1333,8 @@ export default function CourseLearnPage() {
                                 </div>
                               </div>
                       </div>
-                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2">
-                        {note.content}
+                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2 whitespace-pre-line">
+                        {note.content || generateNotePreview(note.fullContent || '', 50)}
                       </p>
                       {note.tags && note.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
@@ -1377,6 +1544,7 @@ export default function CourseLearnPage() {
                         lesson={currentLesson}
                         slug={slug}
                         onPromptsChange={setCurrentActivityPrompts}
+                        onStartInteraction={handleStartActivityInteraction}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -2847,7 +3015,7 @@ function FormattedContentRenderer({ content }: { content: any }) {
   });
 
   return (
-    <div className="bg-gray-100 dark:bg-carbon-800/50 rounded-lg p-8 md:p-10 border border-gray-200 dark:border-carbon-600/50 shadow-lg">
+    <div className="bg-gray-100 dark:bg-carbon-800 rounded-lg p-8 md:p-10 border border-gray-200 dark:border-carbon-600 shadow-lg">
       <article className="prose dark:prose-invert max-w-none">
         <div className="text-gray-800 dark:text-slate-200 leading-relaxed space-y-6">
           {formattedContent.map((item, index) => {
@@ -2973,10 +3141,11 @@ function FormattedContentRenderer({ content }: { content: any }) {
   );
 }
 
-function ActivitiesContent({ lesson, slug, onPromptsChange }: {
+function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }: {
   lesson: Lesson;
   slug: string;
   onPromptsChange?: (prompts: string[]) => void;
+  onStartInteraction?: (content: string, title: string) => void;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -3101,8 +3270,8 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border-2 border-gray-300 dark:border-carbon-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
           </div>
           <p className="text-gray-600 dark:text-slate-400">Cargando actividades...</p>
@@ -3119,8 +3288,8 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
         
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border-2 border-gray-300 dark:border-carbon-600 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400" />
       </div>
           <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Actividades no disponibles</h3>
@@ -3145,9 +3314,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
 
       {/* Actividades */}
       {hasActivities && (
-        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden">
           {/* Header de actividades */}
-          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-800 px-6 py-4 border-b border-gray-200 dark:border-carbon-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Activity className="w-5 h-5 text-blue-400" />
@@ -3164,7 +3333,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
             {activities.map((activity) => (
               <div
                 key={activity.activity_id}
-                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
+                className="bg-gray-50 dark:bg-carbon-800 rounded-lg p-5 border border-gray-200 dark:border-carbon-600"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -3184,8 +3353,46 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                     )}
                   </div>
                 </div>
-                
-                <div className="bg-gray-100 dark:bg-carbon-800/50 rounded-lg p-4 mb-3">
+
+                {/* Botón especial para actividades ai_chat */}
+                {activity.activity_type === 'ai_chat' ? (
+                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-2xl shadow-purple-500/50">
+                        <MessageSquare className="w-8 h-8 text-white" />
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-bold text-white mb-2">
+                          Actividad Interactiva con LIA
+                        </h3>
+                        <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
+                          Esta es una actividad guiada por LIA, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (onStartInteraction) {
+                            onStartInteraction(activity.activity_content, activity.activity_title);
+                          }
+                        }}
+                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 hover:scale-105"
+                      >
+                        <span className="flex items-center gap-3">
+                          <MessageSquare className="w-5 h-5 group-hover:animate-pulse" />
+                          <span>Interactuar con LIA</span>
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </button>
+
+                      <p className="text-xs text-slate-400 mt-2">
+                        LIA te guiará a través de {activity.activity_title.toLowerCase()}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-carbon-800/50 dark:bg-carbon-800 rounded-lg p-4 mb-3">
                   {activity.activity_type === 'quiz' && (() => {
                     try {
                       // Intentar parsear el contenido como JSON si es un quiz
@@ -3237,7 +3444,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                           <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
                           <details className="mb-4">
                             <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-900 rounded overflow-auto">
+                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-800 rounded overflow-auto">
                               {typeof activity.activity_content === 'string'
                                 ? activity.activity_content
                                 : JSON.stringify(activity.activity_content, null, 2)}
@@ -3260,10 +3467,11 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
                   {activity.activity_type !== 'quiz' && (
                     <FormattedContentRenderer content={activity.activity_content} />
                   )}
-                </div>
+                  </div>
+                )}
 
-                {activity.ai_prompts && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
+                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
+                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
                     <div className="flex items-center gap-2 mb-4">
                       <HelpCircle className="w-4 h-4 text-purple-400" />
                       <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
@@ -3279,9 +3487,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange }: {
 
       {/* Materiales */}
       {hasMaterials && (
-        <div className="bg-white dark:bg-carbon-600 rounded-xl border border-gray-200 dark:border-carbon-500 overflow-hidden">
+        <div className="bg-white dark:bg-carbon-700 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden">
           {/* Header de materiales */}
-          <div className="bg-gray-50 dark:bg-carbon-700 px-6 py-4 border-b border-gray-200 dark:border-carbon-500">
+          <div className="bg-gray-50 dark:bg-carbon-800 px-6 py-4 border-b border-gray-200 dark:border-carbon-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5 text-green-400" />

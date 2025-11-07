@@ -22,6 +22,7 @@ interface AssignedCourse {
   assigned_at: string
   due_date?: string
   completed_at?: string
+  has_certificate?: boolean
 }
 
 export async function GET() {
@@ -113,19 +114,35 @@ export async function GET() {
       }
     }
 
+    // Obtener certificados reales del usuario
+    const { data: certificates, error: certificatesError } = await supabase
+      .from('user_course_certificates')
+      .select('certificate_id, course_id')
+      .eq('user_id', userId)
+
+    if (certificatesError) {
+      logger.error('❌ Error fetching certificates:', certificatesError)
+    }
+
+    // Crear mapa de certificados por curso_id para búsqueda rápida
+    const certificatesMap = new Map<string, boolean>()
+    certificates?.forEach((cert: any) => {
+      certificatesMap.set(cert.course_id, true)
+    })
+
     // Calcular estadísticas
     const totalAssigned = assignments?.length || 0
     const inProgress = assignments?.filter(a => 
       a.status === 'in_progress' && (a.completion_percentage || 0) > 0 && (a.completion_percentage || 0) < 100
     ).length || 0
     const completed = assignments?.filter(a => a.status === 'completed').length || 0
-    const certificates = completed // Los certificados son iguales a los completados
+    const certificatesCount = certificates?.length || 0
 
     const stats: DashboardStats = {
       total_assigned: totalAssigned,
       in_progress: inProgress,
       completed: completed,
-      certificates: certificates
+      certificates: certificatesCount
     }
 
     // Transformar asignaciones a formato de cursos
@@ -171,7 +188,8 @@ export async function GET() {
           slug: course?.slug || '',
           assigned_at: assignment.assigned_at,
           due_date: assignment.due_date || undefined,
-          completed_at: assignment.completed_at || undefined
+          completed_at: assignment.completed_at || undefined,
+          has_certificate: certificatesMap.has(assignment.course_id) || false
         }
       })
 

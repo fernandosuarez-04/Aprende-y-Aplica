@@ -5,14 +5,99 @@ import type { CourseLessonContext } from '../../../core/types/lia.types';
 import { checkRateLimit } from '../../../core/lib/rate-limit';
 import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor';
 import type { Database } from '../../../lib/supabase/types';
+import { SessionService } from '../../../features/auth/services/session.service';
+import { LiaLogger, type ContextType } from '../../../lib/analytics/lia-logger';
+
+// Tipo para el contexto de la página
+interface PageContext {
+  pathname: string;
+  detectedArea: string;
+  description: string;
+}
+
+/**
+ * Función para limpiar Markdown de las respuestas de LIA
+ * Elimina todos los símbolos de formato Markdown y los convierte a texto plano
+ */
+function cleanMarkdownFromResponse(text: string): string {
+  if (!text) return text;
+
+  let cleaned = text;
+
+  // Primero eliminar bloques de código (```código```) - debe ser antes de otros patrones
+  cleaned = cleaned.replace(/```[\w]*\n?[\s\S]*?```/g, (match) => {
+    // Extraer solo el contenido interno, sin los backticks y el lenguaje
+    const content = match.replace(/```[\w]*\n?/g, '').replace(/```/g, '').trim();
+    return content || '';
+  });
+  
+  // Eliminar títulos Markdown (# ## ### #### ##### ######)
+  cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+  
+  // Eliminar negritas (**texto** o __texto__) - múltiples pasadas para casos anidados
+  // Primero negritas dobles
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+  cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
+  
+  // Luego cursivas simples (*texto* o _texto_) - pero evitar conflictos con negritas
+  // Solo si no están precedidas por otro asterisco o guion bajo
+  cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*([^*\n])/g, '$1$2$3');
+  cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_([^_\n])/g, '$1$2$3');
+  
+  // Casos especiales al inicio o final de línea
+  cleaned = cleaned.replace(/^\*([^*\n]+)\*([^*\n])/g, '$1$2');
+  cleaned = cleaned.replace(/^_([^_\n]+)_([^_\n])/g, '$1$2');
+  cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*$/g, '$1$2');
+  cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_$/g, '$1$2');
+  
+  // Eliminar código en línea (`código`) - pero solo backticks simples
+  cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+  
+  // Eliminar enlaces [texto](url) - mantener solo el texto
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+  
+  // Eliminar imágenes ![alt](url) - eliminar completamente
+  cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
+  
+  // Eliminar bloques de citas (>)
+  cleaned = cleaned.replace(/^>\s+/gm, '');
+  
+  // Eliminar líneas horizontales (--- o ***)
+  cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
+  
+  // Eliminar tablas Markdown (| columna |)
+  cleaned = cleaned.replace(/\|/g, ' ');
+  
+  // Limpiar espacios múltiples y saltos de línea excesivos
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+  
+  // Limpiar espacios al inicio y final de cada línea (pero mantener estructura)
+  cleaned = cleaned.split('\n').map(line => {
+    // Preservar guiones simples para listas
+    const trimmed = line.trim();
+    if (trimmed.startsWith('- ')) {
+      return trimmed;
+    }
+    return trimmed;
+  }).join('\n');
+  
+  return cleaned.trim();
+}
 
 // Contextos específicos para diferentes secciones
 const getContextPrompt = (
   context: string, 
   userName?: string,
-  courseContext?: CourseLessonContext
+  courseContext?: CourseLessonContext,
+  pageContext?: PageContext
 ) => {
   const nameGreeting = userName ? `Te estás dirigiendo a ${userName}.` : '';
+  
+  // Información contextual de la página actual
+  const pageInfo = pageContext 
+    ? `\n\nCONTEXTO DE LA PÁGINA ACTUAL:\n- URL: ${pageContext.pathname}\n- Área: ${pageContext.detectedArea}\n- Descripción: ${pageContext.description}\n\nIMPORTANTE: El usuario está navegando en esta sección específica, por lo que debes priorizar información relevante a ${pageContext.description}.` 
+    : '';
   
   // Si hay contexto de curso/lección, crear prompt especializado
   if (courseContext && context === 'course') {
@@ -53,37 +138,83 @@ Personalidad:
 - Práctico con ejemplos concretos
 - Adaptativo al nivel del usuario
 
-Formato de respuestas:
-- Usa emojis estratégicamente
-- Estructura con viñetas y numeración usando guiones (-) o números (1, 2, 3)
-- NO uses formato markdown (NO uses ** para negritas, NO uses __ para cursivas, NO uses # para títulos)
-- NO uses asteriscos, guiones bajos, o símbolos especiales para formato
-- Escribe en texto plano, pero organizado con saltos de línea
+FORMATO DE RESPUESTAS - REGLAS ABSOLUTAS (CRÍTICO):
+🚫 PROHIBIDO ABSOLUTAMENTE USAR MARKDOWN:
+- NUNCA uses ** (dos asteriscos) para negritas
+- NUNCA uses __ (dos guiones bajos) para negritas
+- NUNCA uses * (un asterisco) para cursivas
+- NUNCA uses _ (un guion bajo) para cursivas
+- NUNCA uses # ## ### para títulos o encabezados
+- NUNCA uses backticks (símbolo de acento grave) para código
+- NUNCA uses triple backticks para bloques de código
+- NUNCA uses [texto](url) para enlaces
+- NUNCA uses > para citas
+- NUNCA uses --- o *** para líneas horizontales
+
+✅ FORMATO CORRECTO:
+- Escribe SOLO texto plano, sin ningún símbolo de formato
+- Usa emojis estratégicamente (pero sin Markdown)
+- Estructura con viñetas usando guiones simples (-) o números (1, 2, 3)
+- Usa saltos de línea para organizar el contenido
 - Usa MAYÚSCULAS o repetición de palabras para enfatizar (ejemplo: "MUY importante" o "importante - muy importante")
 - Mantén un tono positivo y motivador
 - Cita específicamente el contenido de la transcripción cuando sea relevante
+
+RECUERDA: Tu respuesta debe ser texto plano puro. Si detectas que estás a punto de usar cualquier símbolo de Markdown, detente y reescribe sin ese símbolo.
 
 CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${summaryInfo}${transcriptInfo}
 
 IMPORTANTE: Cuando respondas, siempre indica si la información proviene del video actual o si necesitarías revisar otra lección.`;
   }
   
+  // Instrucciones de formato (sin markdown)
+  const formatInstructions = `
+
+FORMATO DE RESPUESTAS (CRÍTICO):
+- Escribe SIEMPRE en texto plano sin ningún tipo de formato markdown
+- NUNCA uses asteriscos (*) para negritas o énfasis
+- NUNCA uses guiones bajos (_) para cursivas
+- NUNCA uses almohadillas (#) para títulos
+- Para enfatizar usa MAYÚSCULAS o palabras como "muy", "importante", "especial"
+- Para listas usa guiones simples (-) al inicio de cada línea
+- Para numeración usa números seguidos de punto (1., 2., 3.)
+- Usa emojis para hacer las respuestas más amigables
+- Separa ideas con saltos de línea dobles
+
+Ejemplos CORRECTOS:
+✓ "Esto es MUY importante para tu aprendizaje"
+✓ "Los puntos principales son:\n- Primer punto\n- Segundo punto"
+✓ "Aquí tienes 3 pasos:\n1. Primer paso\n2. Segundo paso\n3. Tercer paso"
+
+Ejemplos INCORRECTOS (NO HAGAS ESTO):
+✗ "Esto es **muy importante**"
+✗ "Los puntos principales son: **- Primer punto**"
+✗ "### Título importante"`;
+
   const contexts: Record<string, string> = {
     workshops: `Eres Lia, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
     ${nameGreeting}
-    Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.`,
+    Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.
+    
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`,
     
     communities: `Eres Lia, un asistente especializado en comunidades y networking. 
     ${nameGreeting}
-    Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.`,
+    Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.
+    
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`,
     
     news: `Eres Lia, un asistente especializado en noticias y actualidades sobre inteligencia artificial, tecnología y educación. 
     ${nameGreeting}
-    Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.`,
+    Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.
+    
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`,
     
     general: `Eres Lia, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
     ${nameGreeting}
-    Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.`
+    Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.
+    
+    FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, triple backticks, [], >, ---, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.`
   };
   
   return contexts[context] || contexts.general;
@@ -105,32 +236,34 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
     
-    // Verificar autenticación (hacer opcional para pruebas)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // ✅ CORRECCIÓN: Usar SessionService para obtener usuario autenticado (compatible con refresh tokens)
+    const user = await SessionService.getCurrentUser();
     
-    // Por ahora permitimos el acceso sin autenticación para pruebas
-    // Descomentar las siguientes líneas si quieres requerir autenticación:
-    /*
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
+    // Permitir acceso sin autenticación para usuarios no loggeados (sin analytics)
+    if (user) {
+      logger.info('Usuario autenticado en /api/ai-chat', { userId: user.id, username: user.username });
+    } else {
+      logger.info('Usuario no autenticado - chat sin analytics');
     }
-    */
 
     const { 
       message, 
       context = 'general', 
       conversationHistory = [], 
       userName,
-      courseContext 
+      courseContext,
+      pageContext,
+      isSystemMessage = false,
+      conversationId: existingConversationId
     }: {
       message: string;
       context?: string;
       conversationHistory?: Array<{ role: string; content: string }>;
       userName?: string;
       courseContext?: CourseLessonContext;
+      pageContext?: PageContext;
+      isSystemMessage?: boolean;
+      conversationId?: string;
     } = await request.json();
 
     // ✅ Validaciones básicas
@@ -141,8 +274,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Límite de longitud del mensaje (2000 caracteres)
-    const MAX_MESSAGE_LENGTH = 2000;
+    // ✅ Límite de longitud del mensaje (ampliado para mensajes del sistema)
+    const MAX_MESSAGE_LENGTH = isSystemMessage ? 10000 : 2000;
     if (message.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json(
         { error: `El mensaje es muy largo. Máximo ${MAX_MESSAGE_LENGTH} caracteres.` },
@@ -173,25 +306,139 @@ export async function POST(request: NextRequest) {
 
     const displayName = userInfo?.display_name || userInfo?.username || userInfo?.first_name || userName || 'usuario';
     
-    // Obtener el prompt de contexto específico con el nombre del usuario y contexto de curso
-    const contextPrompt = getContextPrompt(context, displayName, courseContext);
+    // Obtener el prompt de contexto específico con el nombre del usuario, contexto de curso y contexto de página
+    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext);
+
+    // ✅ ANALYTICS: Inicializar logger de LIA si el usuario está autenticado
+    let liaLogger: LiaLogger | null = null;
+    let conversationId: string | null = existingConversationId || null;
+    
+    if (user) {
+      try {
+        liaLogger = new LiaLogger(user.id);
+        
+        // Si no hay conversationId existente, iniciar nueva conversación
+        if (!conversationId) {
+          logger.info('Iniciando nueva conversación LIA', { userId: user.id, context });
+          
+          // Truncar browser para que no exceda el límite de 100 caracteres
+          const userAgent = request.headers.get('user-agent') || undefined;
+          const truncatedBrowser = userAgent ? userAgent.substring(0, 100) : undefined;
+          
+          // Obtener IP del usuario (solo la primera si hay múltiples)
+          const forwardedFor = request.headers.get('x-forwarded-for');
+          const realIp = request.headers.get('x-real-ip');
+          let clientIp: string | undefined;
+          
+          if (forwardedFor) {
+            // X-Forwarded-For puede tener múltiples IPs separadas por coma
+            // Tomamos solo la primera (IP del cliente real)
+            clientIp = forwardedFor.split(',')[0].trim();
+          } else if (realIp) {
+            clientIp = realIp.trim();
+          }
+          
+          conversationId = await liaLogger.startConversation({
+            contextType: context as ContextType,
+            courseContext: courseContext,
+            deviceType: request.headers.get('sec-ch-ua-platform') || undefined,
+            browser: truncatedBrowser,
+            ipAddress: clientIp
+          });
+          
+          logger.info('✅ Nueva conversación LIA creada exitosamente', { conversationId, userId: user.id, context });
+        } else {
+          // Si hay conversationId existente, establecerlo en el logger
+          logger.info('Continuando conversación LIA existente', { conversationId, userId: user.id });
+          liaLogger.setConversationId(conversationId);
+        }
+      } catch (error) {
+        logger.error('❌ Error inicializando LIA Analytics:', error);
+        // Log detallado del error para debugging en producción
+        console.error('[LIA ERROR] Detalles completos del error:', JSON.stringify({
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error,
+          userId: user.id,
+          context,
+          hasConversationId: !!conversationId,
+          timestamp: new Date().toISOString()
+        }, null, 2));
+        // Continuar sin analytics si hay error
+        liaLogger = null;
+        conversationId = null;
+      }
+    } else {
+      logger.info('Usuario no autenticado - LIA Analytics deshabilitado');
+    }
 
     // Intentar usar OpenAI si está disponible
     const openaiApiKey = process.env.OPENAI_API_KEY;
     let response: string;
     const hasCourseContext = context === 'course' && courseContext !== undefined;
     const userId = user?.id || null; // Obtener userId para registro de uso
+    
+    // ✅ ANALYTICS: Registrar mensaje del usuario (solo si no es mensaje del sistema invisible)
+    const startTime = Date.now();
+    if (liaLogger && conversationId && !isSystemMessage) {
+      try {
+        logger.info('Registrando mensaje de usuario', { conversationId, messageLength: message.length });
+        
+        await liaLogger.logMessage(
+          'user',
+          message,
+          false // no es mensaje del sistema
+          // metadata es opcional, no se envía para mensajes de usuario
+        );
+        
+        logger.info('✅ Mensaje de usuario registrado exitosamente', { conversationId });
+      } catch (error) {
+        logger.error('❌ Error registrando mensaje de usuario:', error);
+      }
+    } else {
+      if (!liaLogger) logger.info('No hay logger - saltando registro de mensaje usuario');
+      if (!conversationId) logger.info('No hay conversationId - saltando registro de mensaje usuario');
+      if (isSystemMessage) logger.info('Es mensaje del sistema - saltando registro visible');
+    }
 
+    let responseMetadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
+    
     if (openaiApiKey) {
       try {
-        response = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId);
+        const startTime = Date.now();
+        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage);
+        const responseTime = Date.now() - startTime;
+        response = result.response;
+        responseMetadata = result.metadata ? { ...result.metadata, responseTimeMs: responseTime } : { responseTimeMs: responseTime };
       } catch (error) {
         logger.error('Error con OpenAI, usando fallback:', error);
-        response = generateAIResponse(message, context, limitedHistory, contextPrompt);
+        const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt);
+        response = cleanMarkdownFromResponse(fallbackResponse);
       }
     } else {
       // Usar respuestas predeterminadas si no hay API key
-      response = generateAIResponse(message, context, limitedHistory, contextPrompt);
+      const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt);
+      response = cleanMarkdownFromResponse(fallbackResponse);
+    }
+
+    // ✅ ANALYTICS: Registrar respuesta del asistente (solo si no es mensaje del sistema invisible)
+    if (liaLogger && conversationId && !isSystemMessage) {
+      try {
+        logger.info('Registrando respuesta del asistente', { conversationId, responseLength: response.length });
+        
+        await liaLogger.logMessage(
+          'assistant',
+          response,
+          false, // no es mensaje del sistema
+          responseMetadata // incluir metadatos si están disponibles
+        );
+        
+        logger.info('✅ Respuesta del asistente registrada exitosamente', { conversationId });
+      } catch (error) {
+        logger.error('❌ Error registrando respuesta del asistente:', error);
+      }
     }
 
     // Guardar la conversación en la base de datos (opcional)
@@ -206,7 +453,6 @@ export async function POST(request: NextRequest) {
             context: context,
             user_message: message,
             assistant_response: response,
-            // Guardar contexto de curso si existe
             lesson_id: courseContext?.lessonTitle ? courseContext.lessonTitle.substring(0, 100) : null,
             created_at: new Date().toISOString()
           } as any);
@@ -219,7 +465,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ response });
+    return NextResponse.json({ 
+      response,
+      conversationId: conversationId || undefined // Devolver conversationId para el frontend
+    });
   } catch (error) {
     logger.error('Error en API de chat:', error);
     return NextResponse.json(
@@ -235,26 +484,58 @@ async function callOpenAI(
   systemPrompt: string,
   conversationHistory: Array<{ role: string; content: string }>,
   hasCourseContext: boolean = false,
-  userId: string | null = null
-): Promise<string> {
+  userId: string | null = null,
+  isSystemMessage: boolean = false
+): Promise<{ response: string; metadata?: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
+  // Prompt maestro anti-Markdown - reforzado y repetitivo
+  const antiMarkdownInstructions = `
+🚫 REGLA CRÍTICA - FORMATO DE RESPUESTA (LEER ANTES DE RESPONDER):
+
+PROHIBIDO ABSOLUTAMENTE USAR CUALQUIER SÍMBOLO DE MARKDOWN:
+- NUNCA uses ** (asteriscos dobles) para negritas
+- NUNCA uses __ (guiones bajos dobles) para negritas  
+- NUNCA uses * (asterisco simple) para cursivas
+- NUNCA uses _ (guion bajo simple) para cursivas
+- NUNCA uses # ## ### #### para títulos o encabezados
+- NUNCA uses backticks (símbolo de acento grave) para código en línea
+- NUNCA uses triple backticks para bloques de código
+- NUNCA uses [texto](url) para enlaces
+- NUNCA uses > para bloques de cita
+- NUNCA uses --- o *** para líneas horizontales
+- NUNCA uses | para tablas
+- NUNCA uses cualquier otro símbolo de formato Markdown
+
+✅ FORMATO CORRECTO PERMITIDO:
+- SOLO texto plano, sin símbolos de formato
+- Emojis están permitidos (pero sin Markdown)
+- Guiones simples (-) para listas
+- Números (1, 2, 3) para listas numeradas
+- Saltos de línea normales
+- MAYÚSCULAS para enfatizar (ejemplo: "MUY importante")
+- Repetición de palabras para énfasis (ejemplo: "importante - muy importante")
+
+RECUERDA: Cada vez que respondas, verifica que NO hayas usado ningún símbolo de Markdown. Si lo detectas, reescribe la respuesta sin esos símbolos.`;
+
   // Construir el historial de mensajes
   const messages = [
     {
       role: 'system' as const,
-      content: `${systemPrompt}\n\nEres Lia, un asistente virtual amigable y profesional. Responde siempre en español de manera natural y conversacional. Cuando te dirijas al usuario, usa su nombre de forma natural y amigable.\n\nIMPORTANTE: NO uses formato markdown en tus respuestas. NO uses ** para negritas, __ para cursivas, # para títulos, ni ningún otro símbolo de formato. Escribe en texto plano simple y claro.`
+      content: `${systemPrompt}\n\nEres Lia, un asistente virtual amigable y profesional. Responde siempre en español de manera natural y conversacional. Cuando te dirijas al usuario, usa su nombre de forma natural y amigable.\n\n${antiMarkdownInstructions}\n\nIMPORTANTE FINAL: Antes de enviar tu respuesta, verifica que NO contenga ningún símbolo de Markdown. Si encuentras alguno, elimínalo inmediatamente.`
     },
     ...conversationHistory.map(msg => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content
     })),
+    // Si es un mensaje del sistema (prompt de actividad), agregarlo como mensaje del sistema
+    // Si no, agregarlo como mensaje de usuario normal
     {
-      role: 'user' as const,
+      role: isSystemMessage ? 'system' as const : 'user' as const,
       content: message
     }
   ];
@@ -283,12 +564,14 @@ async function callOpenAI(
   const data = await response.json();
   
   // ✅ CORRECCIÓN 6: Registrar uso de OpenAI
+  const model = data.model || process.env.CHATBOT_MODEL || 'gpt-4o-mini';
+  const totalTokens = data.usage?.total_tokens || 0;
+  let estimatedCost = 0;
+  
   if (userId && data.usage) {
-    const model = data.model || process.env.CHATBOT_MODEL || 'gpt-4o-mini';
     const promptTokens = data.usage.prompt_tokens || 0;
     const completionTokens = data.usage.completion_tokens || 0;
-    const totalTokens = data.usage.total_tokens || 0;
-    const estimatedCost = calculateCost(promptTokens, completionTokens, model);
+    estimatedCost = calculateCost(promptTokens, completionTokens, model);
 
     logOpenAIUsage({
       userId,
@@ -308,7 +591,29 @@ async function callOpenAI(
     });
   }
   
-  return data.choices[0]?.message?.content || 'Lo siento, no pude procesar tu mensaje.';
+  // Aplicar limpieza de Markdown a la respuesta
+  const rawResponse = data.choices[0]?.message?.content || 'Lo siento, no pude procesar tu mensaje.';
+  const cleanedResponse = cleanMarkdownFromResponse(rawResponse);
+  
+  // Log si se detectó y limpió Markdown (solo en desarrollo)
+  if (process.env.NODE_ENV === 'development' && rawResponse !== cleanedResponse) {
+    logger.warn('Markdown detectado y limpiado en respuesta de LIA', {
+      originalLength: rawResponse.length,
+      cleanedLength: cleanedResponse.length
+    });
+  }
+  
+  // Preparar metadatos para retornar
+  const metadata = data.usage ? {
+    tokensUsed: data.usage.total_tokens,
+    costUsd: estimatedCost,
+    modelUsed: model
+  } : undefined;
+  
+  return {
+    response: cleanedResponse,
+    metadata
+  };
 }
 
 // Función para generar respuestas (simular IA)

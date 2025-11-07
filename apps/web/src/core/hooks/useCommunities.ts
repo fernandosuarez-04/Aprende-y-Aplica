@@ -12,11 +12,45 @@ import useSWR from 'swr';
  * @returns {object} - { data, error, isLoading, mutate }
  */
 export function useCommunities() {
-  const { data, error, isLoading, mutate } = useSWR('/api/communities', {
+  const { data, error, isLoading, mutate } = useSWR('/api/communities', async (url: string) => {
+    const res = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: res.statusText }));
+      const error = new Error(errorData.error || errorData.message || 'Error al cargar comunidades');
+      (error as any).status = res.status;
+      (error as any).info = errorData;
+      throw error;
+    }
+    
+    const result = await res.json();
+    
+    // Asegurar que siempre retornamos un objeto con la estructura esperada
+    if (!result.communities) {
+      console.warn('⚠️ API response missing communities array, using empty array');
+      return {
+        communities: [],
+        total: 0
+      };
+    }
+    
+    return result;
+  }, {
     // Cache semi-estático: revalidar cada 5 minutos si está en background
     dedupingInterval: 2000,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
+    // Reintentar en caso de error (excepto 404)
+    shouldRetryOnError: (error: any) => {
+      return error?.status !== 404;
+    },
+    errorRetryCount: 3,
+    errorRetryInterval: 2000,
   });
 
   return {
