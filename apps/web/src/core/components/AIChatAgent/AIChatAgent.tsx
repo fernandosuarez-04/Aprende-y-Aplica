@@ -69,6 +69,93 @@ function getPageContextInfo(pathname: string): string {
   return 'página principal de la plataforma';
 }
 
+// Función para extraer contenido dinámico real del DOM
+function extractPageContent(): {
+  title: string;
+  metaDescription: string;
+  headings: string[];
+  mainText: string;
+} {
+  // Extraer el título de la página
+  const title = document.title || '';
+
+  // Extraer meta description
+  const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content') || 
+                   document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
+
+  // Extraer los principales encabezados (h1, h2)
+  const headings: string[] = [];
+  const h1Elements = document.querySelectorAll('h1');
+  const h2Elements = document.querySelectorAll('h2');
+  
+  h1Elements.forEach(h => {
+    const text = h.textContent?.trim();
+    if (text && text.length > 0) headings.push(text);
+  });
+  
+  h2Elements.forEach(h => {
+    const text = h.textContent?.trim();
+    if (text && text.length > 0 && headings.length < 5) headings.push(text);
+  });
+
+  // Extraer texto visible del contenido principal
+  let mainText = '';
+  
+  // Intentar encontrar el contenido principal por selectores comunes
+  const mainSelectors = [
+    'main',
+    '[role="main"]',
+    '#main-content',
+    '.main-content',
+    'article',
+    '.content',
+    '.container'
+  ];
+
+  let mainElement: Element | null = null;
+  for (const selector of mainSelectors) {
+    mainElement = document.querySelector(selector);
+    if (mainElement) break;
+  }
+
+  // Si encontramos el elemento principal, extraer su texto
+  if (mainElement) {
+    // Clonar el elemento para no afectar el DOM real
+    const clone = mainElement.cloneNode(true) as Element;
+    
+    // Remover elementos que no queremos (scripts, estilos, navegación)
+    const unwantedSelectors = ['script', 'style', 'nav', 'header', 'footer', '.nav', '.navbar'];
+    unwantedSelectors.forEach(sel => {
+      clone.querySelectorAll(sel).forEach(el => el.remove());
+    });
+    
+    mainText = clone.textContent?.trim() || '';
+  } else {
+    // Fallback: usar el body pero excluir navegación y footer
+    const bodyClone = document.body.cloneNode(true) as Element;
+    const unwantedSelectors = ['script', 'style', 'nav', 'header', 'footer', '.nav', '.navbar'];
+    unwantedSelectors.forEach(sel => {
+      bodyClone.querySelectorAll(sel).forEach(el => el.remove());
+    });
+    mainText = bodyClone.textContent?.trim() || '';
+  }
+
+  // Limitar el texto a 800 caracteres para no sobrecargar el prompt
+  if (mainText.length > 800) {
+    mainText = mainText.substring(0, 800) + '...';
+  }
+
+  // Limpiar espacios múltiples y saltos de línea
+  mainText = mainText.replace(/\s+/g, ' ').trim();
+
+  return {
+    title,
+    metaDescription: metaDesc,
+    headings: headings.slice(0, 5), // Máximo 5 encabezados
+    mainText
+  };
+}
+
 export function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
@@ -93,6 +180,32 @@ export function AIChatAgent({
       timestamp: new Date()
     }
   ]);
+
+  // Estado para almacenar el contenido extraído del DOM
+  const [pageContent, setPageContent] = useState<{
+    title: string;
+    metaDescription: string;
+    headings: string[];
+    mainText: string;
+  } | null>(null);
+
+  // Extraer contenido del DOM cuando cambie la ruta o cuando se abra el chat
+  useEffect(() => {
+    // Extraer contenido después de un pequeño delay para asegurar que el DOM esté completamente cargado
+    const timer = setTimeout(() => {
+      const content = extractPageContent();
+      setPageContent(content);
+      console.log('📄 Contenido de página extraído:', {
+        title: content.title,
+        metaDescriptionLength: content.metaDescription.length,
+        headingsCount: content.headings.length,
+        mainTextLength: content.mainText.length,
+        headings: content.headings
+      });
+    }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
+
+    return () => clearTimeout(timer);
+  }, [pathname, isOpen]); // Re-extraer cuando cambie la ruta o se abra el chat
 
   // Debug: Log estado isOpen
   useEffect(() => {
@@ -352,6 +465,7 @@ export function AIChatAgent({
         context: activeContext,
         pageInfo: pageContextInfo,
         pathname: pathname,
+        pageContent: pageContent,
         historyLength: messages.length
       });
       
@@ -366,7 +480,12 @@ export function AIChatAgent({
           pageContext: {
             pathname: pathname,
             description: pageContextInfo,
-            detectedArea: detectedContext
+            detectedArea: detectedContext,
+            // Agregar contenido extraído del DOM
+            pageTitle: pageContent?.title || '',
+            metaDescription: pageContent?.metaDescription || '',
+            headings: pageContent?.headings || [],
+            mainText: pageContent?.mainText || ''
           },
           conversationHistory: messages.map(m => ({
             role: m.role,

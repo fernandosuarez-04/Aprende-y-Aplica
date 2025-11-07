@@ -13,6 +13,11 @@ interface PageContext {
   pathname: string;
   detectedArea: string;
   description: string;
+  // Contenido real extraído del DOM
+  pageTitle?: string;
+  metaDescription?: string;
+  headings?: string[];
+  mainText?: string;
 }
 
 /**
@@ -94,10 +99,30 @@ const getContextPrompt = (
 ) => {
   const nameGreeting = userName ? `Te estás dirigiendo a ${userName}.` : '';
   
-  // Información contextual de la página actual
-  const pageInfo = pageContext 
-    ? `\n\nCONTEXTO DE LA PÁGINA ACTUAL:\n- URL: ${pageContext.pathname}\n- Área: ${pageContext.detectedArea}\n- Descripción: ${pageContext.description}\n\nIMPORTANTE: El usuario está navegando en esta sección específica, por lo que debes priorizar información relevante a ${pageContext.description}.` 
-    : '';
+  // Información contextual de la página actual con contenido real extraído del DOM
+  let pageInfo = '';
+  if (pageContext) {
+    pageInfo = `\n\nCONTEXTO DE LA PÁGINA ACTUAL:\n- URL: ${pageContext.pathname}\n- Área: ${pageContext.detectedArea}\n- Descripción base: ${pageContext.description}`;
+    
+    // Agregar información extraída del DOM si está disponible
+    if (pageContext.pageTitle) {
+      pageInfo += `\n- Título de la página: "${pageContext.pageTitle}"`;
+    }
+    
+    if (pageContext.metaDescription) {
+      pageInfo += `\n- Descripción meta: "${pageContext.metaDescription}"`;
+    }
+    
+    if (pageContext.headings && pageContext.headings.length > 0) {
+      pageInfo += `\n- Encabezados principales: ${pageContext.headings.map(h => `"${h}"`).join(', ')}`;
+    }
+    
+    if (pageContext.mainText) {
+      pageInfo += `\n- Contenido visible en la página:\n"${pageContext.mainText}"`;
+    }
+    
+    pageInfo += `\n\nIMPORTANTE: El usuario está viendo esta página específica con este contenido. Debes responder basándote en la información real de la página que se muestra arriba, priorizando el contenido visible (título, encabezados y texto principal) sobre la descripción base.`;
+  }
   
   // Si hay contexto de curso/lección, crear prompt especializado
   if (courseContext && context === 'course') {
