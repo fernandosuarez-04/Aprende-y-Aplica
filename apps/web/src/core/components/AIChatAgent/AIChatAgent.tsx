@@ -8,7 +8,6 @@ import {
   Mic, 
   MicOff, 
   Loader2,
-  Bot,
   User
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
@@ -500,8 +499,12 @@ export function AIChatAgent({
               }}
             />
             
-            <div className="relative w-full h-full flex items-center justify-center">
-              <Bot className="w-8 h-8 text-white" />
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-full">
+              <img 
+                src={assistantAvatar}
+                alt={assistantName}
+                className="w-full h-full object-cover"
+              />
             </div>
 
             {hasUnreadMessages && (
@@ -553,44 +556,25 @@ export function AIChatAgent({
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* Avatar */}
-                {assistantAvatar ? (
-                  <div className="relative">
-                    <img 
-                      src={assistantAvatar} 
-                      alt={assistantName}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-white/50"
-                    />
-                    {/* Indicador de estado en línea */}
-                    <motion.div
-                      className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-blue-600"
-                      animate={{
-                        scale: [1, 1.2, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <Bot className="w-6 h-6 text-white" />
-                    </div>
-                    <motion.div
-                      className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-blue-600"
-                      animate={{
-                        scale: [1, 1.2, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="relative">
+                  <img 
+                    src={assistantAvatar} 
+                    alt={assistantName}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-white/50"
+                  />
+                  {/* Indicador de estado en línea */}
+                  <motion.div
+                    className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-blue-600"
+                    animate={{
+                      scale: [1, 1.2, 1],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                </div>
                 
                 <div>
                   <div className="flex items-center gap-2">
