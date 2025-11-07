@@ -39,6 +39,7 @@ export class NoteService {
         .select('*')
         .eq('user_id', userId)
         .eq('lesson_id', lessonId)
+        .order('updated_at', { ascending: false })
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -98,6 +99,7 @@ export class NoteService {
         .select('*')
         .eq('user_id', userId)
         .in('lesson_id', lessonIds)
+        .order('updated_at', { ascending: false })
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -249,8 +251,13 @@ export class NoteService {
       }
 
       const uniqueLessonIds = new Set(notes.map(n => n.lesson_id))
+      // Obtener la fecha de actualización más reciente de todas las notas
       const lastUpdate = notes.length > 0 
-        ? notes[0].updated_at || notes[0].created_at 
+        ? notes.reduce((latest, note) => {
+            const noteDate = note.updated_at || note.created_at
+            const latestDate = latest || ''
+            return noteDate > latestDate ? noteDate : latest
+          }, null as string | null)
         : null
 
       return {
