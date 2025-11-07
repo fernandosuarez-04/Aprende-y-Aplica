@@ -81,43 +81,53 @@ export async function GET(
       );
     }
 
-    // Optimización: Calcular response_count para todas las preguntas en una sola consulta
+    // OPTIMIZACIÓN CRÍTICA: Paralelizar todas las queries para reducir latencia
     if (questions && questions.length > 0) {
       const questionIds = questions.map((q: any) => q.id);
-      
-      // Obtener todos los conteos de respuestas en una sola consulta
-      const { data: responseCounts, error: countError } = await supabase
-        .from('course_question_responses')
-        .select('question_id')
-        .in('question_id', questionIds)
-        .eq('is_deleted', false);
+
+      // Obtener usuario actual primero
+      const currentUser = await SessionService.getCurrentUser();
+
+      // PARALELIZAR: Ejecutar response counts + user reactions simultáneamente
+      const queries = [
+        supabase
+          .from('course_question_responses')
+          .select('question_id')
+          .in('question_id', questionIds)
+          .eq('is_deleted', false)
+      ];
+
+      // Si hay usuario, agregar query de reacciones
+      if (currentUser) {
+        queries.push(
+          supabase
+            .from('course_question_reactions')
+            .select('question_id, reaction_type')
+            .eq('user_id', currentUser.id)
+            .in('question_id', questionIds)
+        );
+      }
+
+      // Ejecutar queries en paralelo
+      const results = await Promise.all(queries);
+      const responseCountsResult = results[0];
+      const userReactionsResult = currentUser ? results[1] : null;
 
       // Crear un mapa de conteos: questionId -> count
       const countsMap = new Map<string, number>();
-      if (responseCounts && !countError) {
-        responseCounts.forEach((response: any) => {
+      if (responseCountsResult.data && !responseCountsResult.error) {
+        responseCountsResult.data.forEach((response: any) => {
           const questionId = response.question_id;
           countsMap.set(questionId, (countsMap.get(questionId) || 0) + 1);
         });
       }
 
-      // Obtener usuario actual para incluir reacciones del usuario
-      const currentUser = await SessionService.getCurrentUser();
+      // Procesar reacciones del usuario
       let userReactionsMap = new Map<string, string>();
-      
-      if (currentUser && questionIds.length > 0) {
-        // Cargar reacciones del usuario en una sola consulta
-        const { data: userReactions } = await supabase
-          .from('course_question_reactions')
-          .select('question_id, reaction_type')
-          .eq('user_id', currentUser.id)
-          .in('question_id', questionIds);
-        
-        if (userReactions) {
-          userReactions.forEach((reaction: any) => {
-            userReactionsMap.set(reaction.question_id, reaction.reaction_type);
-          });
-        }
+      if (userReactionsResult && userReactionsResult.data) {
+        userReactionsResult.data.forEach((reaction: any) => {
+          userReactionsMap.set(reaction.question_id, reaction.reaction_type);
+        });
       }
 
       // Aplicar conteos y reacciones a las preguntas

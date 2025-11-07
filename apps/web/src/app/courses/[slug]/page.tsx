@@ -108,18 +108,25 @@ export default function CourseDetailPage() {
           }
         }
 
-        // Cargar instructor después de tener courseData
+        // OPTIMIZACIÓN: Cargar instructor en background (no bloquea el render)
         if (courseData?.instructor_id) {
-          const supabase = createClient();
-          const { data: instructorData } = await supabase
-            .from('users')
-            .select('id, first_name, last_name, display_name, username, profile_picture_url, bio, linkedin_url, cargo_rol')
-            .eq('id', courseData.instructor_id)
-            .single();
+          // Fire and forget - no bloqueamos el loading principal
+          (async () => {
+            try {
+              const supabase = createClient();
+              const { data: instructorData } = await supabase
+                .from('users')
+                .select('id, first_name, last_name, display_name, username, profile_picture_url, bio, linkedin_url, cargo_rol')
+                .eq('id', courseData.instructor_id)
+                .single();
 
-          if (instructorData) {
-            setInstructorData(instructorData);
-          }
+              if (instructorData) {
+                setInstructorData(instructorData);
+              }
+            } catch (err) {
+              console.error('Error loading instructor:', err);
+            }
+          })();
         }
 
       } catch (err) {

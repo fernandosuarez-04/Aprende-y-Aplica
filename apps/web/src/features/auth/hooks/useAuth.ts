@@ -70,15 +70,16 @@ export function useAuth() {
       // Limpiar caché de SWR inmediatamente
       await mutate(null, false)
 
-      // Redirigir a login
-      router.push('/auth')
+      // SECURITY FIX: Redirigir a home page y forzar recarga completa
+      // Usar window.location.href para asegurar limpieza total del estado
+      window.location.href = '/'
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Error during logout:', error)
       }
-      // Fallback: limpiar caché y redirigir
+      // Fallback: limpiar caché y redirigir a home con recarga completa
       await mutate(null, false)
-      router.push('/auth')
+      window.location.href = '/'
     }
   }
 
