@@ -1,16 +1,26 @@
 # Implementación de LIA (Learning Intelligence Assistant)
 
+## 🆕 NUEVA FUNCIONALIDAD: Detección Automática de Contexto (Nov 2025)
+
+**LIA ahora detecta automáticamente el área del sitio web donde se encuentra el usuario para ofrecer información contextual relevante.**
+
+Ver documentación completa: [`docs/LIA-CONTEXTO-AUTOMATICO.md`](./docs/LIA-CONTEXTO-AUTOMATICO.md)  
+Resumen ejecutivo: [`docs/RESUMEN-EJECUTIVO-CONTEXTO-LIA.md`](./docs/RESUMEN-EJECUTIVO-CONTEXTO-LIA.md)
+
+---
+
 ## Índice
 1. [Arquitectura General](#arquitectura-general)
 2. [Componentes Principales](#componentes-principales)
-3. [Obtención del Contexto de la Lección](#obtención-del-contexto-de-la-lección)
-4. [Flujo de Procesamiento de Mensajes](#flujo-de-procesamiento-de-mensajes)
-5. [Prompts del Sistema](#prompts-del-sistema)
-6. [Restricciones de Seguridad](#restricciones-de-seguridad)
-7. [Restricciones Éticas](#restricciones-éticas)
-8. [API y Endpoints](#api-y-endpoints)
-9. [Validación y Sanitización](#validación-y-sanitización)
-10. [Configuración](#configuración)
+3. [🆕 Sistema de Detección de Contexto](#sistema-de-detección-de-contexto)
+4. [Obtención del Contexto de la Lección](#obtención-del-contexto-de-la-lección)
+5. [Flujo de Procesamiento de Mensajes](#flujo-de-procesamiento-de-mensajes)
+6. [Prompts del Sistema](#prompts-del-sistema)
+7. [Restricciones de Seguridad](#restricciones-de-seguridad)
+8. [Restricciones Éticas](#restricciones-éticas)
+9. [API y Endpoints](#api-y-endpoints)
+10. [Validación y Sanitización](#validación-y-sanitización)
+11. [Configuración](#configuración)
 
 ---
 
@@ -99,6 +109,71 @@ this.currentContext = {
     nivelDificultad: 'Principiante'
 };
 ```
+
+---
+
+## 🆕 Sistema de Detección de Contexto
+
+### Detección Automática por URL (Implementado Nov 2025)
+
+LIA ahora detecta automáticamente el área del sitio donde está el usuario mediante análisis de URL.
+
+**Ubicación**: `apps/web/src/core/components/AIChatAgent/AIChatAgent.tsx`
+
+```typescript
+// Detección automática de contexto basado en URL
+function detectContextFromURL(pathname: string): string {
+  if (pathname.includes('/communities')) return 'communities';
+  if (pathname.includes('/courses')) return 'courses';
+  if (pathname.includes('/workshops')) return 'workshops';
+  if (pathname.includes('/news')) return 'news';
+  if (pathname.includes('/dashboard')) return 'dashboard';
+  if (pathname.includes('/prompt-directory')) return 'prompts';
+  if (pathname.includes('/business-panel')) return 'business';
+  if (pathname.includes('/profile')) return 'profile';
+  return 'general';
+}
+
+// Obtener descripción contextual de la página
+function getPageContextInfo(pathname: string): string {
+  const contextMap: Record<string, string> = {
+    '/communities': 'página de comunidades - donde los usuarios pueden unirse y participar en grupos',
+    '/courses': 'página de cursos - catálogo de cursos disponibles',
+    // ... más contextos
+  };
+  // Busca coincidencias y retorna descripción relevante
+}
+```
+
+**Integración en el componente:**
+```typescript
+export function AIChatAgent({ context = 'general', ... }) {
+  const pathname = usePathname();
+  const detectedContext = detectContextFromURL(pathname);
+  const activeContext = context === 'general' ? detectedContext : context;
+  const pageContextInfo = getPageContextInfo(pathname);
+  
+  // Se envía al API junto con el mensaje
+  const response = await fetch('/api/ai-chat', {
+    body: JSON.stringify({
+      message: userMessage.content,
+      context: activeContext,
+      pageContext: {
+        pathname,
+        description: pageContextInfo,
+        detectedArea: detectedContext
+      },
+      // ... más datos
+    })
+  });
+}
+```
+
+**Beneficios:**
+- ✅ Respuestas automáticamente relevantes según la página
+- ✅ No requiere configuración manual por página
+- ✅ Experiencia de usuario más fluida e inteligente
+- ✅ Compatible con todas las rutas existentes
 
 ### 2. Contexto Dinámico desde el DOM
 
