@@ -160,7 +160,7 @@ export default function NewsPage() {
 
       {/* Navigation Tabs */}
       <motion.div 
-        className="sticky top-0 z-40 bg-white/80 dark:bg-carbon-950/80 backdrop-blur-sm border-b border-gray-200 dark:border-carbon-700/50"
+        className="sticky top-0 z-40 bg-white dark:bg-gray-900 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.3 }}
@@ -177,7 +177,7 @@ export default function NewsPage() {
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                   activeTab === tab.key
                     ? 'bg-primary text-white'
-                    : 'text-gray-600 dark:text-text-tertiary hover:text-gray-900 dark:hover:text-text-primary hover:bg-gray-100 dark:hover:bg-carbon-800/50'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 <tab.icon className="w-5 h-5" />
@@ -198,8 +198,8 @@ export default function NewsPage() {
         >
           <div className="mx-auto max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-text-primary mb-4">Reels</h2>
-              <p className="text-gray-600 dark:text-text-secondary">Videos cortos con las últimas noticias y tendencias</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Reels</h2>
+              <p className="text-gray-600 dark:text-gray-400">Videos cortos con las últimas noticias y tendencias</p>
             </div>
             
             {/* Featured Reels */}
@@ -222,8 +222,8 @@ export default function NewsPage() {
         >
           <div className="mx-auto max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-text-primary mb-4">Noticias Destacadas</h2>
-              <p className="text-gray-600 dark:text-text-secondary">Las noticias más importantes y relevantes del momento</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Noticias Destacadas</h2>
+              <p className="text-gray-600 dark:text-gray-400">Las noticias más importantes y relevantes del momento</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -236,9 +236,9 @@ export default function NewsPage() {
                   transition={{ duration: 0.6, delay: 0.1 * index }}
                   onClick={() => handleNewsClick(item.slug)}
                 >
-                  <div className="bg-white/80 dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-200 dark:border-carbon-700/50 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20">
                     {/* Hero Image */}
-                    <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center overflow-hidden">
+                    <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20 flex items-center justify-center overflow-hidden">
                       {item.hero_image_url ? (
                         <Image 
                           src={item.hero_image_url} 
@@ -248,36 +248,37 @@ export default function NewsPage() {
                           className="object-cover"
                           loading="lazy"
                           quality={75}
+                          unoptimized={item.hero_image_url?.includes('supabase')}
                         />
                       ) : (
-                        <Newspaper className="w-16 h-16 text-primary/70" />
+                        <Newspaper className="w-16 h-16 text-primary/70 dark:text-primary/50" />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-carbon-900/80 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 dark:from-gray-900/90 to-transparent" />
                     </div>
                     
                     {/* Content */}
                     <div className="p-6">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="px-3 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full">
+                        <span className="px-3 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-400 text-xs font-medium rounded-full">
                           {item.language}
                         </span>
-                        <span className="text-gray-600 dark:text-text-tertiary text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">
                           {formatDate(item.published_at || item.created_at)}
                         </span>
                       </div>
                       
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-text-primary mb-3 group-hover:text-primary transition-colors">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 group-hover:text-primary dark:group-hover:text-primary-400 transition-colors">
                         {truncateText(item.title, 80)}
                       </h3>
                       
                       {item.intro && (
-                        <p className="text-gray-600 dark:text-text-secondary text-sm mb-4 line-clamp-3">
+                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3">
                           {truncateText(item.intro, 120)}
                         </p>
                       )}
                       
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-text-tertiary text-sm">
+                        <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400 text-sm">
                           <div className="flex items-center gap-1">
                             <Eye className="w-4 h-4" />
                             <span>{item.view_count || 0}</span>
@@ -287,7 +288,7 @@ export default function NewsPage() {
                             <span>{item.comment_count || 0}</span>
                           </div>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-4 h-4 text-primary dark:text-primary-400 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </div>
@@ -312,13 +313,13 @@ export default function NewsPage() {
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-text-tertiary w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 w-5 h-5" />
                 <input
                   type="text"
                   placeholder="Buscar noticias..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/80 dark:bg-carbon-800/50 border border-gray-300 dark:border-carbon-700/50 rounded-xl text-gray-900 dark:text-text-primary placeholder-gray-500 dark:placeholder-text-tertiary focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
             </div>
@@ -330,7 +331,7 @@ export default function NewsPage() {
                 className={`p-3 rounded-xl transition-all ${
                   viewMode === 'grid' 
                     ? 'bg-primary text-white' 
-                    : 'bg-white/80 dark:bg-carbon-800/50 text-gray-600 dark:text-text-tertiary hover:text-gray-900 dark:hover:text-text-primary'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
                 }`}
               >
                 <Grid3X3 className="w-5 h-5" />
@@ -340,7 +341,7 @@ export default function NewsPage() {
                 className={`p-3 rounded-xl transition-all ${
                   viewMode === 'list' 
                     ? 'bg-primary text-white' 
-                    : 'bg-white/80 dark:bg-carbon-800/50 text-gray-600 dark:text-text-tertiary hover:text-gray-900 dark:hover:text-text-primary'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
                 }`}
               >
                 <List className="w-5 h-5" />
@@ -355,12 +356,12 @@ export default function NewsPage() {
             </div>
           ) : error ? (
             <div className="text-center py-16">
-              <p className="text-gray-600 dark:text-text-secondary">Error al cargar las noticias: {error}</p>
+              <p className="text-gray-600 dark:text-gray-400">Error al cargar las noticias: {error}</p>
             </div>
           ) : filteredNews.length === 0 ? (
             <div className="text-center py-16">
-              <Newspaper className="w-16 h-16 text-gray-400 dark:text-text-tertiary mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-text-secondary">No se encontraron noticias</p>
+              <Newspaper className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">No se encontraron noticias</p>
             </div>
           ) : (
             <AnimatePresence mode="wait">
@@ -384,11 +385,11 @@ export default function NewsPage() {
                     transition={{ duration: 0.6, delay: 0.1 * index }}
                     onClick={() => handleNewsClick(item.slug)}
                   >
-                    <div className={`bg-white/80 dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-200 dark:border-carbon-700/50 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20 ${
+                    <div className={`bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20 ${
                       viewMode === 'list' ? 'flex' : ''
                     }`}>
                       {/* Hero Image */}
-                      <div className={`${viewMode === 'list' ? 'w-48 h-32' : 'h-48'} bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
+                      <div className={`${viewMode === 'list' ? 'w-48 h-32' : 'h-48'} bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
                         {item.hero_image_url ? (
                           <Image 
                             src={item.hero_image_url} 
@@ -398,36 +399,37 @@ export default function NewsPage() {
                             className="object-cover"
                             loading="lazy"
                             quality={75}
+                            unoptimized={item.hero_image_url?.includes('supabase')}
                           />
                         ) : (
-                          <Newspaper className="w-8 h-8 text-primary/70" />
+                          <Newspaper className="w-8 h-8 text-primary/70 dark:text-primary/50" />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-carbon-900/80 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 dark:from-gray-900/90 to-transparent" />
                       </div>
                       
                       {/* Content */}
                       <div className="p-6 flex-1">
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="px-3 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full">
+                          <span className="px-3 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-400 text-xs font-medium rounded-full">
                             {item.language}
                           </span>
-                          <span className="text-gray-600 dark:text-text-tertiary text-sm">
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">
                             {formatDate(item.published_at || item.created_at)}
                           </span>
                         </div>
                         
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-text-primary mb-3 group-hover:text-primary transition-colors">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 group-hover:text-primary dark:group-hover:text-primary-400 transition-colors">
                           {truncateText(item.title, viewMode === 'list' ? 100 : 80)}
                         </h3>
                         
                         {item.intro && (
-                          <p className="text-gray-600 dark:text-text-secondary text-sm mb-4 line-clamp-3">
+                          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3">
                             {truncateText(item.intro, viewMode === 'list' ? 200 : 120)}
                           </p>
                         )}
                         
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 text-gray-600 dark:text-text-tertiary text-sm">
+                          <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400 text-sm">
                             <div className="flex items-center gap-1">
                               <Eye className="w-4 h-4" />
                               <span>{item.view_count || 0}</span>
@@ -437,7 +439,7 @@ export default function NewsPage() {
                               <span>{item.comment_count || 0}</span>
                             </div>
                           </div>
-                          <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
+                          <ArrowRight className="w-4 h-4 text-primary dark:text-primary-400 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </div>

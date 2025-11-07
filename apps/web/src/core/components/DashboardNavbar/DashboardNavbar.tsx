@@ -78,7 +78,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
 
   return (
     <motion.header 
-      className="sticky top-0 z-50 bg-white/95 dark:bg-carbon-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-carbon-700/50"
+      className="sticky top-0 z-50 bg-white dark:bg-gray-900 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
@@ -142,7 +142,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                       className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                         isActive || isDirectoryDropdownOpen
                           ? 'text-white'
-                          : 'text-gray-700 dark:text-text-secondary hover:text-gray-900 dark:hover:text-text-primary'
+                          : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                       }`}
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -162,17 +162,17 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                       {/* Overlay de hover */}
                       {!isActive && !isDirectoryDropdownOpen && (
                         <motion.div
-                          className="absolute inset-0 bg-gray-200 dark:bg-carbon-700/50 rounded-xl opacity-0"
+                          className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-xl opacity-0"
                           whileHover={{ opacity: 1 }}
                           transition={{ duration: 0.2 }}
                         />
                       )}
                       
-                      <Icon className={`relative z-10 w-4 h-4 ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-text-secondary'}`} />
-                      <span className={`relative z-10 ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-text-secondary'}`}>{item.name}</span>
+                      <Icon className={`relative z-10 w-4 h-4 ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+                      <span className={`relative z-10 ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
                       <ChevronDown className={`relative z-10 w-4 h-4 transition-transform duration-200 ${
                         isDirectoryDropdownOpen ? 'rotate-180' : ''
-                      } ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-text-secondary'}`} />
+                      } ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
                     </motion.button>
                     
                     {/* Dropdown Menu */}
@@ -253,7 +253,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                   className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                     isActive
                       ? 'text-white'
-                      : 'text-gray-700 dark:text-text-secondary hover:text-gray-900 dark:hover:text-text-primary'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                   }`}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -273,14 +273,14 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                   {/* Overlay de hover */}
                   {!isActive && (
                     <motion.div
-                      className="absolute inset-0 bg-gray-200 dark:bg-carbon-700/50 rounded-xl opacity-0"
+                      className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-xl opacity-0"
                       whileHover={{ opacity: 1 }}
                       transition={{ duration: 0.2 }}
                     />
                   )}
                   
-                  <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-white' : 'text-gray-700 dark:text-text-secondary'}`} />
-                  <span className={`relative z-10 ${isActive ? 'text-white' : 'text-gray-700 dark:text-text-secondary'}`}>{item.name}</span>
+                  <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+                  <span className={`relative z-10 ${isActive ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
                   
                   {/* Indicador de notificación */}
                   {item.id === 'community' && (
@@ -316,7 +316,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
 
       {/* Mobile Navigation */}
       <motion.div 
-        className="lg:hidden border-t border-gray-200 dark:border-carbon-700/50"
+        className="lg:hidden border-t border-gray-200 dark:border-gray-800"
         initial={{ opacity: 0, height: 0 }}
         animate={{ opacity: 1, height: "auto" }}
         transition={{ duration: 0.3 }}
@@ -336,7 +336,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                       className={`flex items-center justify-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 w-full ${
                         isActive || isDirectoryDropdownOpen
                           ? 'text-white bg-gradient-to-r from-primary to-primary/80'
-                          : 'text-gray-700 dark:text-text-secondary hover:text-gray-900 dark:hover:text-text-primary hover:bg-gray-100 dark:hover:bg-carbon-700/50'
+                          : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -413,7 +413,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                   className={`flex items-center justify-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
                     isActive
                       ? 'text-white bg-gradient-to-r from-primary to-primary/80'
-                      : 'text-gray-700 dark:text-text-secondary hover:text-gray-900 dark:hover:text-text-primary hover:bg-gray-100 dark:hover:bg-carbon-700/50'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
