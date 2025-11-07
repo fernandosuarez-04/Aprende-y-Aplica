@@ -39,7 +39,23 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
       })
       // Cargar preguntas del quiz si existe
       if (material.material_type === 'quiz' && material.content_data) {
-        setQuizQuestions(material.content_data.questions || [])
+        const loadedQuestions = material.content_data.questions || []
+        // Normalizar preguntas de verdadero/falso: asegurar que tengan las opciones correctas
+        const normalizedQuestions = loadedQuestions.map((q: any) => {
+          if (q.questionType === 'true_false') {
+            // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
+            if (!q.options || q.options.length !== 2 || 
+                (q.options[0] !== 'Verdadero' && q.options[0] !== 'Falso') ||
+                (q.options[1] !== 'Verdadero' && q.options[1] !== 'Falso')) {
+              return {
+                ...q,
+                options: ['Verdadero', 'Falso']
+              }
+            }
+          }
+          return q
+        })
+        setQuizQuestions(normalizedQuestions)
       }
     }
   }, [material])

@@ -2572,11 +2572,44 @@ function QuizRenderer({ quizData, totalPoints }: {
       .toLowerCase();
   };
 
+  // Función para convertir entre "true"/"false" y "Verdadero"/"Falso"
+  const normalizeTrueFalse = (value: string): string => {
+    const normalized = normalizeOption(value);
+    if (normalized === 'true' || normalized === 'verdadero') return 'verdadero';
+    if (normalized === 'false' || normalized === 'falso') return 'falso';
+    return normalized;
+  };
+
   // Función para verificar si una respuesta es correcta
   const isAnswerCorrect = (question: any, selectedAnswer: string | number): boolean => {
     const correctAnswer = question.correctAnswer;
     const options = question.options;
 
+    // Si es pregunta de verdadero/falso, usar normalización especial
+    if (question.questionType === 'true_false') {
+      // Si la respuesta seleccionada es un índice
+      if (typeof selectedAnswer === 'number') {
+        const selectedOption = options[selectedAnswer];
+        if (typeof correctAnswer === 'string') {
+          return normalizeTrueFalse(selectedOption) === normalizeTrueFalse(correctAnswer);
+        }
+        if (typeof correctAnswer === 'number') {
+          return selectedAnswer === correctAnswer;
+        }
+      }
+      // Si la respuesta seleccionada es un string
+      if (typeof selectedAnswer === 'string') {
+        if (typeof correctAnswer === 'string') {
+          return normalizeTrueFalse(selectedAnswer) === normalizeTrueFalse(correctAnswer);
+        }
+        if (typeof correctAnswer === 'number') {
+          return normalizeTrueFalse(selectedAnswer) === normalizeTrueFalse(options[correctAnswer]);
+        }
+      }
+      return false;
+    }
+
+    // Para otros tipos de preguntas, usar la lógica original
     // Si la respuesta seleccionada es un índice
     if (typeof selectedAnswer === 'number') {
       // Caso 1: correctAnswer es también un índice
@@ -2605,10 +2638,26 @@ function QuizRenderer({ quizData, totalPoints }: {
     return false;
   };
 
+  // Normalizar preguntas: asegurar que las de verdadero/falso tengan las opciones correctas
+  const normalizedQuizData = quizData.map((question) => {
+    if (question.questionType === 'true_false') {
+      // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
+      if (!question.options || question.options.length !== 2 || 
+          (question.options[0] !== 'Verdadero' && question.options[0] !== 'Falso') ||
+          (question.options[1] !== 'Verdadero' && question.options[1] !== 'Falso')) {
+        return {
+          ...question,
+          options: ['Verdadero', 'Falso']
+        };
+      }
+    }
+    return question;
+  });
+
   const handleSubmit = () => {
     let correct = 0;
     let points = 0;
-    quizData.forEach(question => {
+    normalizedQuizData.forEach(question => {
       const selectedAnswer = selectedAnswers[question.id];
       if (selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer)) {
         correct++;
@@ -2620,7 +2669,7 @@ function QuizRenderer({ quizData, totalPoints }: {
     setShowResults(true);
   };
 
-  const totalQuestions = quizData.length;
+  const totalQuestions = normalizedQuizData.length;
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const passingThreshold = 80;
   const passed = percentage >= passingThreshold;
@@ -2684,7 +2733,7 @@ function QuizRenderer({ quizData, totalPoints }: {
 
       {/* Preguntas */}
       <div className="space-y-6">
-        {quizData.map((question, index) => {
+        {normalizedQuizData.map((question, index) => {
           const selectedAnswer = selectedAnswers[question.id];
           const isCorrect = selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer);
           const showExplanation = showResults && selectedAnswer !== undefined;
@@ -2730,10 +2779,20 @@ function QuizRenderer({ quizData, totalPoints }: {
 
                       // Determinar si esta opción es la correcta
                       let isCorrectOption = false;
-                      if (typeof question.correctAnswer === 'number') {
-                        isCorrectOption = optIndex === question.correctAnswer;
-                      } else if (typeof question.correctAnswer === 'string') {
-                        isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                      if (question.questionType === 'true_false') {
+                        // Para preguntas de verdadero/falso, usar normalización especial
+                        if (typeof question.correctAnswer === 'number') {
+                          isCorrectOption = optIndex === question.correctAnswer;
+                        } else if (typeof question.correctAnswer === 'string') {
+                          isCorrectOption = normalizeTrueFalse(option) === normalizeTrueFalse(question.correctAnswer);
+                        }
+                      } else {
+                        // Para otros tipos de preguntas, usar normalización estándar
+                        if (typeof question.correctAnswer === 'number') {
+                          isCorrectOption = optIndex === question.correctAnswer;
+                        } else if (typeof question.correctAnswer === 'string') {
+                          isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                        }
                       }
                       
                       return (
