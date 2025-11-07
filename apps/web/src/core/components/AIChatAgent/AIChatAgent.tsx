@@ -8,7 +8,8 @@ import {
   Mic, 
   MicOff, 
   Loader2,
-  User
+  User,
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -561,6 +562,103 @@ export function AIChatAgent({
     console.log('Recording toggled:', !isRecording);
   };
 
+  // Función para solicitar ayuda contextual
+  const handleRequestHelp = async () => {
+    console.log('❓ Solicitando ayuda contextual');
+    
+    // Abrir el chat si no está abierto
+    if (!isOpen) {
+      setIsOpen(true);
+      setIsMinimized(false);
+    }
+    
+    // Forzar extracción de contenido si no está disponible
+    let currentPageContent = pageContent;
+    if (!currentPageContent || !currentPageContent.title) {
+      console.log('⚠️ Contenido de página no disponible, extrayendo ahora...');
+      currentPageContent = extractPageContent();
+      setPageContent(currentPageContent);
+    }
+
+    console.log('📄 Enviando ayuda con contexto:', {
+      pathname,
+      pageTitle: currentPageContent?.title,
+      headings: currentPageContent?.headings,
+      mainTextLength: currentPageContent?.mainText?.length
+    });
+    
+    // Crear mensaje de ayuda automático
+    const helpMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: '¿Qué puedo hacer aquí? Ayúdame',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, helpMessage]);
+    setIsTyping(true);
+
+    try {
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: helpMessage.content,
+          context: activeContext,
+          pageContext: {
+            pathname: pathname,
+            description: pageContextInfo,
+            detectedArea: detectedContext,
+            pageTitle: currentPageContent?.title || '',
+            metaDescription: currentPageContent?.metaDescription || '',
+            headings: currentPageContent?.headings || [],
+            mainText: currentPageContent?.mainText || ''
+          },
+          conversationHistory: messages.map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          userName: user?.display_name || user?.username || user?.first_name
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error response:', errorData);
+        throw new Error('Error al obtener ayuda');
+      }
+
+      const data = await response.json();
+      
+      console.log('✅ Respuesta recibida:', {
+        responseLength: data.response?.length,
+        response: data.response?.substring(0, 100)
+      });
+      
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.response || 'Lo siento, no pude generar una respuesta.',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('❌ Error al solicitar ayuda:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
@@ -594,57 +692,83 @@ export function AIChatAgent({
   
   return (
     <>
-      {/* Botón flotante */}
+      {/* Botones flotantes */}
       {!isOpen && (
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
-          className="fixed bottom-6 right-6 z-50"
-        >
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
+          {/* Botón de ayuda contextual */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation();
-              console.log('🖱️ Botón flotante clickeado - abriendo chat');
-              setIsOpen(true);
-              setIsMinimized(false);
-              setHasUnreadMessages(false);
+              console.log('❓ Botón de ayuda clickeado');
+              handleRequestHelp();
             }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer"
+            className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+            title="¿Necesitas ayuda?"
           >
-            {/* Efecto de pulso */}
-            <motion.div
-              className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.7, 0, 0.7],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
+            <HelpCircle className="w-6 h-6 text-white" />
             
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-full">
-              <img 
-                src={assistantAvatar}
-                alt={assistantName}
-                className="w-full h-full object-cover"
-              />
+            {/* Tooltip */}
+            <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              ¿Necesitas ayuda?
+              <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
             </div>
-
-            {hasUnreadMessages && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full"
-              />
-            )}
           </motion.button>
-        </motion.div>
+
+          {/* Botón principal de LIA */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+          >
+            <motion.button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('🖱️ Botón flotante clickeado - abriendo chat');
+                setIsOpen(true);
+                setIsMinimized(false);
+                setHasUnreadMessages(false);
+              }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer"
+            >
+              {/* Efecto de pulso */}
+              <motion.div
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.7, 0, 0.7],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-full">
+                <img 
+                  src={assistantAvatar}
+                  alt={assistantName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {hasUnreadMessages && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full"
+                />
+              )}
+            </motion.button>
+          </motion.div>
+        </div>
       )}
 
       {/* Widget del chat */}
