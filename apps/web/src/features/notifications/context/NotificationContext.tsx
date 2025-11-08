@@ -52,7 +52,8 @@ interface NotificationProviderProps {
  *
  * ✅ OPTIMIZACIÓN: Polling reducido de 30s a 60s
  * ✅ OPTIMIZACIÓN: Deduping aumentado de 2s a 5s
- * ✅ OPTIMIZACIÓN: Solo revalidar en focus si dropdown está abierto
+ * ✅ FIX: Revalidación siempre activa para mantener datos actualizados
+ * ✅ FIX: Revalidación inicial al montar para cargar datos frescos
  *
  * Proporciona acceso a notificaciones en toda la aplicación
  * Usa SWR para cache y revalidación automática
@@ -62,9 +63,12 @@ export function NotificationProvider({
   pollingInterval = 60000  // ✅ OPTIMIZACIÓN: De 30s a 60s (50% menos requests)
 }: NotificationProviderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
-  // ✅ OPTIMIZACIÓN: Solo revalidar en focus si dropdown está abierto
-  const shouldRevalidateOnFocus = isDropdownOpen
+  // Marcar como montado después del primer render
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Obtener notificaciones no leídas
   const {
@@ -73,13 +77,13 @@ export function NotificationProvider({
     mutate: mutateNotifications,
     isLoading: isLoadingNotifications
   } = useSWR<{ success: boolean; data: { notifications: Notification[]; total: number } }>(
-    '/api/notifications?status=unread&limit=10&orderBy=priority',
+    isMounted ? '/api/notifications?status=unread&limit=10&orderBy=priority' : null,
     {
       refreshInterval: pollingInterval,
-      revalidateOnFocus: shouldRevalidateOnFocus,  // ✅ Condicional
+      revalidateOnFocus: true,  // ✅ Siempre revalidar en focus para mantener datos actualizados
       revalidateOnReconnect: true,
       dedupingInterval: 5000,  // ✅ De 2s a 5s para evitar requests duplicados
-      revalidateIfStale: false,  // ✅ No revalidar si data es reciente
+      revalidateIfStale: true,  // ✅ Revalidar si data está stale (importante para carga inicial)
     }
   )
 
@@ -89,13 +93,13 @@ export function NotificationProvider({
     error: countError,
     mutate: mutateCount
   } = useSWR<{ success: boolean; data: { total: number; critical: number; high: number } }>(
-    '/api/notifications/unread-count',
+    isMounted ? '/api/notifications/unread-count' : null,
     {
       refreshInterval: pollingInterval,
-      revalidateOnFocus: shouldRevalidateOnFocus,  // ✅ Condicional
+      revalidateOnFocus: true,  // ✅ Siempre revalidar en focus para mantener datos actualizados
       revalidateOnReconnect: true,
       dedupingInterval: 5000,  // ✅ De 2s a 5s
-      revalidateIfStale: false,  // ✅ No revalidar si data es reciente
+      revalidateIfStale: true,  // ✅ Revalidar si data está stale (importante para carga inicial)
     }
   )
 
@@ -205,10 +209,22 @@ export function NotificationProvider({
     ])
   }
 
+  // Forzar revalidación inicial al montar
+  useEffect(() => {
+    if (isMounted) {
+      // Revalidar inmediatamente al montar para asegurar datos frescos
+      mutateNotifications()
+      mutateCount()
+    }
+  }, [isMounted, mutateNotifications, mutateCount])
+
   // Escuchar evento personalizado para refrescar notificaciones
   useEffect(() => {
-    const handleRefresh = () => {
-      refreshNotifications()
+    const handleRefresh = async () => {
+      await Promise.all([
+        mutateNotifications(),
+        mutateCount()
+      ])
     }
 
     window.addEventListener('refresh-notifications', handleRefresh)
