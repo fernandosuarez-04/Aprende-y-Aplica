@@ -92,11 +92,18 @@ features/[feature-name]/
 - `auth/` - Authentication and user registration
 - `admin/` - Admin panel for user and community management
 - `ai-directory/` - AI applications catalog
+- `business-panel/` - Business administration panel
 - `communities/` - Community management, posts, and interactions
 - `courses/` - Course management and learning content
+- `instructor/` - Instructor-specific features and content
+- `landing/` - Landing page components
 - `news/` - News articles and reading statistics
+- `notifications/` - User notification system
 - `profile/` - User profile management
+- `purchases/` - Purchase history and management
+- `reels/` - Short-form video content (Reels)
 - `subscriptions/` - Subscription and payment management
+- `workshops/` - Workshop management and content
 
 ### Dependency Rules
 ```
@@ -116,25 +123,35 @@ shared/    → Cannot import from anywhere (pure infrastructure)
 - Follow the feature structure pattern above
 
 **core/** - Cross-cutting business logic
-- `services/api.ts` - Configured Axios client
-- `stores/` - Zustand state management
+- `components/` - Core reusable components (layout, navigation, etc.)
+- `hooks/` - Core custom hooks
+- `lib/` - Core libraries and utilities
+- `middleware/` - Request middleware
+- `providers/` - Context providers (theme, auth, etc.)
+- `services/api.ts` - Configured Axios client with interceptors
+- `stores/` - Zustand state management (authStore, themeStore, shoppingCartStore)
+- `types/` - Shared TypeScript types
+- `utils/` - Core utility functions
 
-**shared/** - Infrastructure components
-- `components/` - Reusable UI components
+**shared/** - Infrastructure components (no business logic)
 - `hooks/` - Generic hooks (useDebounce, useParallax, etc.)
 - `utils/` - Pure utility functions
 
 ### Backend Organization (API)
 
-**features/** - Business domain features
+**Note:** Backend API routes are currently placeholder endpoints (returning "Coming soon" messages). The API structure is prepared for future implementation.
+
+**features/** - Business domain features (to be implemented)
 - `[feature].controller.ts` - HTTP request handlers
 - `[feature].service.ts` - Business logic
 - `[feature].routes.ts` - Route definitions
 - `[feature].types.ts` - DTOs and Zod validation schemas
 
-**core/** - Infrastructure
-- `middleware/` - Auth, error handling, validation
+**Current structure:**
 - `config/` - Environment configuration
+- `middlewares/` - Error handling middleware
+- `shared/` - Shared types and constants
+- `index.ts` - Express server entry point with placeholder routes
 
 ## Important Patterns
 
@@ -158,12 +175,16 @@ shared/    → Cannot import from anywhere (pure infrastructure)
 ```typescript
 @/features/*  → apps/web/src/features/*
 @/core/*      → apps/web/src/core/*
-@/shared/*    → apps/web/src/shared/*
+@/app/*       → apps/web/src/app/*
 @/lib/*       → apps/web/src/lib/*
 @/utils/*     → apps/web/src/shared/utils/*
 @/hooks/*     → apps/web/src/shared/hooks/*
 @/components/*→ apps/web/src/shared/components/*
+@shared/*     → packages/shared/src/*
+@ui/*         → packages/ui/src/*
 ```
+
+Note: Both `@/features/*` and `@features/*` work for importing features.
 
 ## Styling & Design System
 
@@ -212,11 +233,17 @@ Always check `lib/supabase/types.ts` for the full database schema types.
 - Always use strict typing
 - Avoid `any`, prefer `unknown` if needed
 - Define interfaces for all props and data structures
+- Strict mode enabled: `strict: true`
 
 ### Component Creation
 - One component = one responsibility
 - Props should have TypeScript interfaces
 - Use Server Components by default, add `'use client'` only when needed
+- Client Components required for:
+  - Event handlers (onClick, onChange, etc.)
+  - Browser APIs (localStorage, window, etc.)
+  - React hooks (useState, useEffect, etc.)
+  - Context consumers
 
 ### File Organization
 - Use kebab-case for file names (`user-profile.tsx`)
@@ -228,6 +255,7 @@ Always check `lib/supabase/types.ts` for the full database schema types.
 - Always handle loading and error states
 - Use try-catch for async operations
 - Display user-friendly error messages
+- Backend errors handled by `errorHandler` middleware
 
 ## Security Considerations
 
@@ -248,11 +276,32 @@ NEXT_PUBLIC_API_URL=http://localhost:4000/api
 
 **Backend (.env):**
 ```
+# Server Configuration
 PORT=4000
 NODE_ENV=development
 ALLOWED_ORIGINS=http://localhost:3000
 API_VERSION=v1
+
+# Supabase
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_ANON_KEY=
+
+# JWT & Auth
+USER_JWT_SECRET=
+JWT_EXPIRES_IN=7d
+REFRESH_TOKEN_SECRET=
+REFRESH_TOKEN_EXPIRES_IN=30d
+SESSION_SECRET=
+
+# OpenAI (for Chat-Bot-LIA)
+OPENAI_API_KEY=
+CHATBOT_MODEL=gpt-4o-mini
+CHATBOT_MAX_TOKENS=700
+CHATBOT_TEMPERATURE=0.6
 ```
+
+See [.env.example](.env.example) for all available environment variables.
 
 ## Key Files to Reference
 
@@ -288,6 +337,20 @@ API_VERSION=v1
 - Backend Health Check: http://localhost:4000/health
 - API Base: http://localhost:4000/api/v1
 
+## Monorepo Workspace Commands
+
+When working with specific packages, use workspace flags:
+```bash
+# Install dependency in web app
+npm install <package> --workspace=apps/web
+
+# Install dependency in API
+npm install <package> --workspace=apps/api
+
+# Run command in specific workspace
+npm run <command> --workspace=apps/web
+```
+
 ## Important Notes
 
 - **NO webhooks** - Use REST API for all backend communication
@@ -296,3 +359,5 @@ API_VERSION=v1
 - Maintain separation between frontend and backend
 - Use monorepo workspaces correctly (`--workspace=apps/web`)
 - All builds ignore TypeScript and ESLint errors (configured for speed)
+- The backend API currently has placeholder endpoints; most backend logic is handled by Supabase directly
+- Use Axios interceptors in `core/services/api.ts` for API calls with automatic token refresh
