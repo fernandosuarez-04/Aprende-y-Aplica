@@ -452,16 +452,24 @@ async function loadNotesStats(
   const lastUpdate = notes && notes.length > 0 ? notes[0].updated_at : null
 
   // Obtener total de lecciones del curso
-  const { count: totalLessons } = await supabase
-    .from('course_lessons')
-    .select('lesson_id', { count: 'exact', head: true })
-    .in(
-      'module_id',
-      supabase
-        .from('course_modules')
-        .select('module_id')
-        .eq('course_id', courseId)
-    )
+  // Primero obtener los module_ids del curso
+  const { data: modules } = await supabase
+    .from('course_modules')
+    .select('module_id')
+    .eq('course_id', courseId)
+
+  const moduleIds = modules?.map((m: any) => m.module_id) || []
+
+  // Luego contar las lecciones de esos módulos
+  // Si no hay módulos, el total es 0
+  let totalLessons = 0
+  if (moduleIds.length > 0) {
+    const { count } = await supabase
+      .from('course_lessons')
+      .select('lesson_id', { count: 'exact', head: true })
+      .in('module_id', moduleIds)
+    totalLessons = count || 0
+  }
 
   return {
     totalNotes,
