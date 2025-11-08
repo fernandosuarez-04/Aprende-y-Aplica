@@ -62,23 +62,53 @@ export async function GET(
       .eq('is_deleted', false)
       .order('created_at', { ascending: true });
 
-    // OPTIMIZACIÓN: Calcular contadores de reacciones en batch
+    // OPTIMIZACIÓN: Calcular contadores de reacciones Y reacciones del usuario en batch
     // Si hay respuestas, obtener los contadores de reacciones en una sola query
     let reactionCountsMap = new Map<string, number>();
+    let userReactionsMap = new Map<string, string>();
+
     if (allResponses && allResponses.length > 0) {
       const responseIds = allResponses.map((r: any) => r.id);
-      
-      // Contar reacciones por respuesta en una sola query
-      const { data: reactionCounts, error: reactionCountsError } = await supabase
-        .from('course_question_reactions')
-        .select('response_id')
-        .in('response_id', responseIds);
-      
-      if (!reactionCountsError && reactionCounts) {
-        reactionCounts.forEach((reaction: any) => {
+
+      // Obtener usuario actual para cargar sus reacciones
+      const user = await SessionService.getCurrentUser();
+
+      // Query paralela: Contar reacciones y obtener reacciones del usuario
+      const reactionsPromises = [
+        supabase
+          .from('course_question_reactions')
+          .select('response_id')
+          .in('response_id', responseIds)
+      ];
+
+      // Si hay usuario, agregar query para sus reacciones
+      if (user) {
+        reactionsPromises.push(
+          supabase
+            .from('course_question_reactions')
+            .select('response_id, reaction_type')
+            .eq('user_id', user.id)
+            .in('response_id', responseIds)
+        );
+      }
+
+      const [reactionCountsResult, userReactionsResult] = await Promise.all(reactionsPromises);
+
+      // Procesar contadores de reacciones
+      if (!reactionCountsResult.error && reactionCountsResult.data) {
+        reactionCountsResult.data.forEach((reaction: any) => {
           const responseId = reaction.response_id;
           if (responseId) {
             reactionCountsMap.set(responseId, (reactionCountsMap.get(responseId) || 0) + 1);
+          }
+        });
+      }
+
+      // Procesar reacciones del usuario
+      if (userReactionsResult && !userReactionsResult.error && userReactionsResult.data) {
+        userReactionsResult.data.forEach((reaction: any) => {
+          if (reaction.response_id && reaction.reaction_type) {
+            userReactionsMap.set(reaction.response_id, reaction.reaction_type);
           }
         });
       }
@@ -101,13 +131,15 @@ export async function GET(
     const responseMap = new Map<string, any>();
     const topLevelResponses: any[] = [];
 
-    // Primero, indexar todas las respuestas por ID e incluir contadores de reacciones
+    // Primero, indexar todas las respuestas por ID e incluir contadores de reacciones y reacción del usuario
     allResponses.forEach((response: any) => {
       const reactionCount = reactionCountsMap.get(response.id) || 0;
-      responseMap.set(response.id, { 
-        ...response, 
+      const userReaction = userReactionsMap.get(response.id) || null;
+      responseMap.set(response.id, {
+        ...response,
         replies: [],
-        reaction_count: reactionCount // Añadir contador de reacciones
+        reaction_count: reactionCount, // Añadir contador de reacciones
+        user_reaction: userReaction    // Añadir reacción del usuario (si existe)
       });
     });
 

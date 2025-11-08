@@ -16,7 +16,13 @@ export async function GET(request: NextRequest) {
     }
 
     const favorites = await FavoritesService.getUserFavorites(userId)
-    return NextResponse.json(favorites)
+
+    // ⚡ Cache 30s - favoritos cambian ocasionalmente
+    const { withCache, semiStaticCache } = await import('@/core/utils/cache-headers')
+    return withCache(
+      NextResponse.json(favorites),
+      semiStaticCache
+    )
   } catch (error) {
     logError('GET /api/favorites', error)
     return NextResponse.json(
@@ -49,7 +55,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('POST /api/favorites', error)
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-    console.error('Error detallado en POST /api/favorites:', error)
     return NextResponse.json(
       {
         error: 'Error al gestionar favoritos',

@@ -441,19 +441,19 @@ export const NotesModal: React.FC<NotesModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700/50 w-full max-w-4xl h-[80vh] flex flex-col"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700/50 w-full max-w-4xl max-h-[calc(100vh-2rem)] md:max-h-[90vh] md:h-[80vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700/50">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-slate-700/50 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                   <Type className="w-4 h-4 text-white" />
@@ -474,7 +474,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Barra de herramientas */}
-            <div className="p-4 border-b border-gray-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50">
+            <div className="p-3 md:p-4 border-b border-gray-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 shrink-0 overflow-x-auto scrollbar-hide">
               <div className="flex flex-wrap gap-2">
                 {/* Primera fila */}
                 <div className="flex gap-1">
@@ -588,9 +588,9 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Área de contenido */}
-            <div className="flex-1 p-6 flex flex-col">
+            <div className="flex-1 p-4 md:p-6 flex flex-col overflow-hidden min-h-0">
               {/* Campo de título */}
-              <div className="mb-4">
+              <div className="mb-4 shrink-0">
                 <input
                   type="text"
                   placeholder="Título de la nota..."
@@ -601,12 +601,12 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               </div>
 
               {/* Editor de contenido */}
-              <div className="flex-1 bg-white dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/50 rounded-xl p-4">
+              <div className="flex-1 bg-white dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/50 rounded-xl p-4 min-h-0 overflow-hidden flex flex-col">
                 <div
                   ref={editorRef}
                   contentEditable
                   onInput={updateContent}
-                  className="notes-editor w-full h-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none resize-none overflow-y-auto"
+                  className="notes-editor w-full flex-1 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none resize-none overflow-y-auto"
                   style={{ 
                     minHeight: '200px',
                     lineHeight: '1.6'
@@ -616,7 +616,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               </div>
 
               {/* Etiquetas */}
-              <div className="mt-4">
+              <div className="mt-4 shrink-0">
                 <label className="block text-sm text-gray-700 dark:text-slate-300 mb-2">Etiquetas</label>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -661,29 +661,26 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Footer con botones */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50">
-              <div className="text-sm text-gray-600 dark:text-slate-400">
-                Ctrl+S para guardar • Ctrl+Z para deshacer • Ctrl+Y para rehacer
-              </div>
-              <div className="flex gap-3">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-3 p-3 md:p-4 pb-4 md:pb-4 border-t border-gray-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 shrink-0">
+              <div className="flex gap-2 md:gap-3 flex-1 md:flex-initial">
                 <button
                   onClick={onClose}
-                  className="px-6 py-3 bg-gray-200 dark:bg-slate-700/50 hover:bg-gray-300 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white rounded-xl font-medium transition-all duration-200"
+                  className="flex-1 md:flex-initial px-3 md:px-6 py-2 md:py-3 bg-gray-200 dark:bg-slate-700/50 hover:bg-gray-300 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white rounded-lg md:rounded-xl text-xs md:text-base font-medium transition-all duration-200"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !title.trim() || !content.trim()}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
+                  className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-lg md:rounded-xl text-xs md:text-base font-medium transition-all duration-200 shadow-lg hover:shadow-green-500/25"
                 >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? 'Guardando...' : 'Guardar Nota'}
+                  <Save className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
+                  <span className="truncate">{isSaving ? 'Guardando...' : 'Guardar Nota'}</span>
                 </button>
                 
                 <button
                   onClick={handleExportPDF}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                  className="hidden md:flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl text-base font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
                 >
                   <FileDown className="w-4 h-4" />
                   Convertir en PDF

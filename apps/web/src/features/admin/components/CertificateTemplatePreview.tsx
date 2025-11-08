@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import QRCode from 'react-qr-code'
+import dynamic from 'next/dynamic'
 import { X, Check, Maximize2, ArrowLeft } from 'lucide-react'
+
+// Importación dinámica de QRCode para evitar problemas con SSR
+const QRCode = dynamic(() => import('react-qr-code').then(mod => mod.default), {
+  ssr: false,
+  loading: () => <div className="w-[110px] h-[110px] bg-gray-200 animate-pulse rounded" />
+})
 
 interface CertificateTemplate {
   id: string

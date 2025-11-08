@@ -132,7 +132,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`}>
         <SWRProvider>
           <ThemeProvider>
-            <NotificationProvider pollingInterval={30000}>
+            <NotificationProvider pollingInterval={60000}>
               <PrefetchManager />
               <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
                 <ConditionalNavbar>

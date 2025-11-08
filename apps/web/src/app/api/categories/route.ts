@@ -5,11 +5,16 @@ import { formatApiError, logError } from '@/core/utils/api-errors'
 export async function GET(request: NextRequest) {
   try {
     const categories = await CourseService.getCategories()
-    return NextResponse.json(categories)
+
+    // ⚡ Cache 5min - categorías raramente cambian
+    const { withCache, staticCache } = await import('@/core/utils/cache-headers')
+    return withCache(
+      NextResponse.json(categories),
+      staticCache
+    )
   } catch (error) {
     logError('GET /api/categories', error)
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-    console.error('Error detallado en GET /api/categories:', error)
     return NextResponse.json(
       {
         error: 'Error al obtener categorías',

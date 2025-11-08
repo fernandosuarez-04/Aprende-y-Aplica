@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Send, 
-  Mic, 
-  MicOff, 
+import Image from 'next/image';
+import {
+  X,
+  Send,
+  Mic,
+  MicOff,
   Loader2,
   User,
   HelpCircle,
   AlertCircle,
-  MoreVertical
+  MoreVertical,
+  ChevronUp,
+  Bug
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -233,27 +236,13 @@ export function AIChatAgent({
   const containerRef = useRef<HTMLDivElement>(null);
   const initialPositionRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Debug: Log cuando los mensajes cambian
-  useEffect(() => {
-    console.log('📝 Mensajes actualizados:', messages.length, messages);
-  }, [messages]);
-  
-  // Debug y log: Contexto detectado automáticamente
-  useEffect(() => {
-    console.log('🌐 Contexto detectado automáticamente:', {
-      pathname,
-      detectedContext,
-      activeContext,
-      pageContextInfo
-    });
-  }, [pathname, detectedContext, activeContext, pageContextInfo]);
-  
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -461,7 +450,7 @@ export function AIChatAgent({
     }
   }, [isOpen]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
 
     const userMessage: Message = {
@@ -510,25 +499,20 @@ export function AIChatAgent({
           userName: user?.display_name || user?.username || user?.first_name
         }),
       });
-      
-      console.log('📡 Respuesta recibida:', {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText
-      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        console.error('❌ Error de API:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error de API:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
+        }
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('✅ Datos recibidos:', data);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -537,10 +521,11 @@ export function AIChatAgent({
         timestamp: new Date()
       };
 
-      console.log('💬 Mensaje del asistente:', assistantMessage);
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('❌ Error en el chat:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error en el chat:', error);
+      }
       const errorContent = error instanceof Error ? error.message : 'Lo siento, ocurrió un error. Por favor intenta de nuevo.';
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -552,20 +537,20 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
 
-  const toggleRecording = () => {
+  const toggleRecording = useCallback(() => {
     setIsRecording(!isRecording);
     // Aquí se implementaría la lógica de reconocimiento de voz
     console.log('Recording toggled:', !isRecording);
-  };
+  }, [isRecording]);
 
   // Función para solicitar ayuda contextual
   const handleRequestHelp = async () => {
@@ -672,12 +657,9 @@ export function AIChatAgent({
     
     // Si se está arrastrando o se movió el mouse, no ejecutar el toggle
     if (isDragging || hasMoved.current) {
-      console.log('⚠️ Click ignorado - se detectó arrastre');
       return;
     }
-    
-    console.log('🖱️ Toggle ejecutado - isOpen:', isOpen, 'isMinimized:', isMinimized);
-    
+
     if (isOpen) {
       setIsMinimized(!isMinimized);
     } else {
@@ -690,36 +672,100 @@ export function AIChatAgent({
   const handleClose = () => {
     setIsOpen(false);
     setIsMinimized(false);
+    setAreButtonsExpanded(false);
   };
 
-  // Renderizado del componente
-  console.log('🎨 AIChatAgent renderizando - isOpen:', isOpen, 'isMinimized:', isMinimized);
-  
   return (
     <>
       {/* Botones flotantes */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
-          {/* Botón de ayuda contextual */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
+          <AnimatePresence mode="wait">
+            {/* Botones expandidos: Ayuda y Reportar Problema */}
+            {areButtonsExpanded && (
+              <motion.div
+                key="expanded-buttons"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col gap-2"
+              >
+                {/* Botón de ayuda contextual */}
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('❓ Botón de ayuda clickeado');
+                    handleRequestHelp();
+                    setAreButtonsExpanded(false);
+                  }}
+                  initial={{ scale: 0, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2, delay: 0.05 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+                  title="¿Necesitas ayuda?"
+                >
+                  <HelpCircle className="w-6 h-6 text-white" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    ¿Necesitas ayuda?
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
+                  </div>
+                </motion.button>
+
+                {/* Botón de reportar problema */}
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('🐛 Botón de reportar problema clickeado');
+                    setIsReportOpen(true);
+                    setAreButtonsExpanded(false);
+                  }}
+                  initial={{ scale: 0, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-orange-500 shadow-lg hover:shadow-red-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+                  title="Reportar problema"
+                >
+                  <Bug className="w-6 h-6 text-white" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Reportar problema
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
+                  </div>
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Botón de expandir/colapsar - Solo flecha sin fondo */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation();
-              console.log('❓ Botón de ayuda clickeado');
-              handleRequestHelp();
+              setAreButtonsExpanded(!areButtonsExpanded);
             }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
-            title="¿Necesitas ayuda?"
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
+            className="cursor-pointer flex items-center justify-center group relative p-1"
+            title={areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
           >
-            <HelpCircle className="w-6 h-6 text-white" />
+            <motion.div
+              animate={{ rotate: areButtonsExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+            </motion.div>
             
             {/* Tooltip */}
             <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              ¿Necesitas ayuda?
+              {areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
               <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
             </div>
           </motion.button>
@@ -737,10 +783,11 @@ export function AIChatAgent({
                 setIsOpen(true);
                 setIsMinimized(false);
                 setHasUnreadMessages(false);
+                setAreButtonsExpanded(false);
               }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer"
+              className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer border-2 border-blue-400"
             >
               {/* Efecto de pulso */}
               <motion.div
@@ -814,11 +861,13 @@ export function AIChatAgent({
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* Avatar */}
-                <div className="relative">
-                  <img 
-                    src={assistantAvatar} 
+                <div className="relative w-10 h-10">
+                  <Image
+                    src={assistantAvatar}
                     alt={assistantName}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-white/50"
+                    fill
+                    className="rounded-full object-cover border-2 border-white/50"
+                    sizes="40px"
                   />
                   {/* Indicador de estado en línea */}
                   <motion.div
@@ -932,12 +981,14 @@ export function AIChatAgent({
                 >
                   {/* Avatar del mensaje */}
                   {message.role === 'user' ? (
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
                       {user?.profile_picture_url ? (
-                        <img 
-                          src={user.profile_picture_url} 
+                        <Image
+                          src={user.profile_picture_url}
                           alt={user.display_name || user.username || 'Usuario'}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="40px"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
@@ -946,11 +997,13 @@ export function AIChatAgent({
                       )}
                     </div>
                   ) : (
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500">
-                      <img 
-                        src={assistantAvatar} 
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
+                      <Image
+                        src={assistantAvatar}
                         alt={assistantName}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="40px"
                       />
                     </div>
                   )}
@@ -973,11 +1026,13 @@ export function AIChatAgent({
                   animate={{ opacity: 1 }}
                   className="flex gap-2 items-center"
                 >
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500">
-                    <img 
-                      src={assistantAvatar} 
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
+                    <Image
+                      src={assistantAvatar}
                       alt={assistantName}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="40px"
                     />
                   </div>
                   <div className="bg-white dark:bg-carbon-800 border border-gray-200 dark:border-carbon-600 rounded-2xl px-4 py-3">
@@ -1026,36 +1081,36 @@ export function AIChatAgent({
                   className="flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border border-gray-300 dark:border-carbon-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner"
                 />
                 
-                {/* Botón de micrófono */}
+                {/* Botón dinámico: micrófono cuando está vacío, enviar cuando hay texto */}
                 <motion.button
-                  onClick={toggleRecording}
+                  onClick={() => {
+                    if (inputMessage.trim()) {
+                      // Si hay texto, enviar mensaje
+                      handleSendMessage();
+                    } else {
+                      // Si no hay texto, activar/desactivar grabación
+                      toggleRecording();
+                    }
+                  }}
+                  disabled={isTyping && inputMessage.trim()}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-                    isRecording
-                      ? 'bg-red-500 text-white'
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    inputMessage.trim()
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/50'
+                      : isRecording
+                      ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
                       : 'bg-gray-200 dark:bg-carbon-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-carbon-700'
-                  }`}
+                  } ${isTyping && inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {isRecording ? (
+                  {isTyping && inputMessage.trim() ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : inputMessage.trim() ? (
+                    <Send className="w-5 h-5" />
+                  ) : isRecording ? (
                     <MicOff className="w-5 h-5" />
                   ) : (
                     <Mic className="w-5 h-5" />
-                  )}
-                </motion.button>
-                
-                {/* Botón de enviar */}
-                <motion.button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isTyping}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isTyping ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
                   )}
                 </motion.button>
               </div>
@@ -1064,7 +1119,7 @@ export function AIChatAgent({
               <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 font-medium">
                 <span>Presiona Enter para enviar</span>
                 <span>•</span>
-                <span>Micrófono para dictar</span>
+                <span>{inputMessage.trim() ? 'Clic para enviar' : 'Clic para dictar'}</span>
               </div>
             </motion.div>
           )}

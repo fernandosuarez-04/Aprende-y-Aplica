@@ -97,9 +97,31 @@ export async function POST(
           );
         }
 
-        return NextResponse.json({ action: 'removed', reaction_type });
+        // Obtener el nuevo contador de reacciones después de eliminar
+        const { data: reactionCount } = await supabase
+          .from('course_question_reactions')
+          .select('id', { count: 'exact' })
+          .eq('response_id', responseId);
+
+        return NextResponse.json({
+          action: 'removed',
+          reaction_type,
+          new_count: reactionCount?.length || 0,
+          user_reaction: null
+        });
       } else {
-        return NextResponse.json({ action: 'exists', reaction_type });
+        // Obtener contador actual
+        const { data: reactionCount } = await supabase
+          .from('course_question_reactions')
+          .select('id', { count: 'exact' })
+          .eq('response_id', responseId);
+
+        return NextResponse.json({
+          action: 'exists',
+          reaction_type,
+          new_count: reactionCount?.length || 0,
+          user_reaction: reaction_type
+        });
       }
     } else {
       // Crear la reacción
@@ -121,7 +143,18 @@ export async function POST(
         );
       }
 
-      return NextResponse.json({ action: 'added', reaction: reaction });
+      // Obtener el nuevo contador de reacciones después de agregar
+      const { data: reactionCount } = await supabase
+        .from('course_question_reactions')
+        .select('id', { count: 'exact' })
+        .eq('response_id', responseId);
+
+      return NextResponse.json({
+        action: 'added',
+        reaction: reaction,
+        new_count: reactionCount?.length || 0,
+        user_reaction: reaction_type
+      });
     }
   } catch (error) {
     console.error('Error in reactions API:', error);

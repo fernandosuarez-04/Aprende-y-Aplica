@@ -2,8 +2,11 @@ import { createClient } from '../../../lib/supabase/server'
 import { Course } from '@aprende-y-aplica/shared'
 
 export interface CourseWithInstructor extends Course {
+  instructor_id?: string;
   instructor_name?: string;
   instructor_email?: string;
+  category?: string;
+  slug?: string;
   rating?: number;
   price?: string;
   status?: 'Adquirido' | 'Disponible';

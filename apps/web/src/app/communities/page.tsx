@@ -129,20 +129,6 @@ export default function CommunitiesPage() {
   const { communities: communitiesData, isLoading, isError, mutate } = useCommunities();
   const communities = communitiesData?.communities || [];
   
-  // Log para debugging en producción
-  React.useEffect(() => {
-    if (communitiesData) {
-      console.log('📊 Communities data loaded:', {
-        total: communitiesData.total,
-        count: communities.length,
-        hasData: !!communitiesData.communities
-      });
-    }
-    if (isError) {
-      console.error('❌ Error loading communities:', isError);
-    }
-  }, [communitiesData, isError, communities.length]);
-  
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -157,7 +143,6 @@ export default function CommunitiesPage() {
 
   // Filtrado y ordenamiento memoizado - evita recalcular en cada render
   const filteredCommunities = React.useMemo(() => {
-    console.log('🔍 Filtering communities...');
     let filtered = communities;
 
     // Filtrar por categoría
@@ -268,7 +253,7 @@ export default function CommunitiesPage() {
         );
       }
     } catch (error) {
-      console.error('Error joining community:', error);
+      // Error handled silently in production
     } finally {
       setJoiningCommunity(null);
     }

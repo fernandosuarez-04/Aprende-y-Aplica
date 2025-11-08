@@ -196,23 +196,25 @@ export async function loginAction(formData: FormData) {
       await SessionService.createSession(user.id, parsed.rememberMe)
       console.log('✅ Sesión creada exitosamente');
       
-      // Crear notificación de inicio de sesión exitoso
-      try {
-        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
-        const headersList = await import('next/headers').then(m => m.headers())
-        const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                   headersList.get('x-real-ip') || 
-                   'unknown'
-        const userAgent = headersList.get('user-agent') || 'unknown'
-        
-        await AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
-          rememberMe: parsed.rememberMe,
-          timestamp: new Date().toISOString()
-        })
-      } catch (notificationError) {
-        // No lanzar error para no afectar el flujo principal
-        console.error('Error creando notificación de inicio de sesión:', notificationError)
-      }
+      // OPTIMIZACIÓN: Crear notificación en background (no await)
+      // No bloqueamos el login esperando la notificación
+      (async () => {
+        try {
+          const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+          const headersList = await import('next/headers').then(m => m.headers())
+          const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                     headersList.get('x-real-ip') ||
+                     'unknown'
+          const userAgent = headersList.get('user-agent') || 'unknown'
+
+          await AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
+            rememberMe: parsed.rememberMe,
+            timestamp: new Date().toISOString()
+          })
+        } catch (notificationError) {
+          console.error('Error creando notificación de inicio de sesión:', notificationError)
+        }
+      })().catch(() => {}) // Fire and forget
     } catch (sessionError) {
       console.error('❌ Error creando sesión:', sessionError);
       return { error: 'Error al crear la sesión. Por favor, intenta nuevamente.' }
@@ -229,31 +231,42 @@ export async function loginAction(formData: FormData) {
     // 7. Si NO es login personalizado (login general), verificar si usuario tiene organización
     // Si tiene organización, redirigir a su login personalizado antes de redirigir según rol
     if (!organizationId && !organizationSlug) {
-      // Buscar organización del usuario
+      // OPTIMIZACIÓN: Paralelizar búsqueda de organización en ambas tablas
       let userOrgSlug: string | null = null
 
-      // Prioridad 1: Buscar en organization_users (más reciente por joined_at)
-      const { data: userOrgs } = await supabase
-        .from('organization_users')
-        .select('organization_id, joined_at, organizations!inner(slug)')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('joined_at', { ascending: false })
-        .limit(1)
+      const orgQueries = [
+        // Query 1: Buscar en organization_users (más reciente por joined_at)
+        supabase
+          .from('organization_users')
+          .select('organization_id, joined_at, organizations!inner(slug)')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('joined_at', { ascending: false })
+          .limit(1)
+      ];
 
-      if (userOrgs && userOrgs.length > 0) {
-        userOrgSlug = userOrgs[0].organizations?.slug || null
-      } else if (user.organization_id) {
-        // Prioridad 2: Si no hay en organization_users, usar users.organization_id
-        const { data: userOrg } = await supabase
-          .from('organizations')
-          .select('slug')
-          .eq('id', user.organization_id)
-          .single()
+      // Query 2: Si usuario tiene organization_id, buscar en organizations
+      if (user.organization_id) {
+        orgQueries.push(
+          supabase
+            .from('organizations')
+            .select('slug')
+            .eq('id', user.organization_id)
+            .single()
+        );
+      }
 
-        if (userOrg) {
-          userOrgSlug = userOrg.slug
-        }
+      // Ejecutar queries en paralelo
+      const orgResults = await Promise.all(orgQueries);
+      const userOrgsResult = orgResults[0];
+      const userOrgResult = orgResults.length > 1 ? orgResults[1] : null;
+
+      // Prioridad 1: organization_users
+      if (userOrgsResult.data && userOrgsResult.data.length > 0) {
+        userOrgSlug = userOrgsResult.data[0].organizations?.slug || null;
+      } else if (userOrgResult && userOrgResult.data) {
+        // Prioridad 2: users.organization_id
+        userOrgSlug = userOrgResult.data.slug;
       }
 
       // Si usuario tiene organización, redirigir a su login personalizado
