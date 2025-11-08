@@ -18,6 +18,7 @@ import {
   Copy,
   Share2
 } from 'lucide-react'
+import { getFullUrl } from '@/lib/env'
 import { CertificateDisplay } from '@/core/components/CertificateDisplay/CertificateDisplay'
 import { generateCertificatePDF } from '@/core/utils/certificatePDF'
 
@@ -132,7 +133,7 @@ export default function CertificateDetailPage() {
 
   const shareCertificate = () => {
     if (certificate) {
-      const verifyUrl = `${window.location.origin}/certificates/verify/${certificate.certificate_hash}`
+      const verifyUrl = getFullUrl(`/certificates/verify/${certificate.certificate_hash}`)
       if (navigator.share) {
         navigator.share({
           title: `Certificado: ${certificate.course_title}`,

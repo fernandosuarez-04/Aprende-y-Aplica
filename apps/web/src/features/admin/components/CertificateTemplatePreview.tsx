@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { X, Check, Maximize2, ArrowLeft } from 'lucide-react'
+import { getFullUrl } from '@/lib/env'
 
 // Importación dinámica de QRCode para evitar problemas con SSR
 const QRCode = dynamic(() => import('react-qr-code').then(mod => mod.default), {
@@ -246,8 +247,8 @@ export function CertificateTemplatePreview({
                         <div className="bg-white p-3 rounded-lg border-2 shadow-lg" style={{ borderColor: primaryColor }}>
                           <QRCode
                             value={certificateHash 
-                              ? `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/${certificateHash}`
-                              : `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/[hash]`
+                              ? getFullUrl(`/certificates/verify/${certificateHash}`)
+                              : getFullUrl('/certificates/verify/[hash]')
                             }
                             size={110}
                             style={{ height: "auto", maxWidth: "100%", width: "100%" }}

@@ -3,6 +3,7 @@
 import React from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
+import { getFullUrl } from '../../../lib/env'
 
 // Importación dinámica de QRCode para evitar problemas con SSR
 const QRCode = dynamic(() => import('react-qr-code').then(mod => mod.default), {
@@ -89,8 +90,8 @@ export function CertificateDisplay({
   }
 
   const verifyUrl = certificateHash 
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/${certificateHash}`
-    : `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/[hash]`
+    ? getFullUrl(`/certificates/verify/${certificateHash}`)
+    : getFullUrl('/certificates/verify/[hash]')
 
   return (
     <div 

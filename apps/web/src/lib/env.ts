@@ -26,7 +26,13 @@ export function getBaseUrl(): string {
   }
   
   // En el cliente (navegador)
-  // Usar window.location para obtener el origen actual
+  // Priorizar NEXT_PUBLIC_APP_URL si está disponible (para producción)
+  // Esto asegura que los QRs generados apunten a la URL de producción
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  
+  // Fallback: usar window.location para obtener el origen actual
   return window.location.origin;
 }
 
