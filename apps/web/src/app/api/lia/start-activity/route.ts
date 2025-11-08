@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       totalSteps,
     });
   } catch (error) {
-    console.error('Error starting activity:', error);
+    // console.error('Error starting activity:', error);
     return NextResponse.json(
       { error: 'Error al iniciar actividad' },
       { status: 500 }

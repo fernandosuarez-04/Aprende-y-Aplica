@@ -124,7 +124,7 @@ export default function CourseDetailPage() {
                 setInstructorData(instructorData);
               }
             } catch (err) {
-              console.error('Error loading instructor:', err);
+              // console.error('Error loading instructor:', err);
             }
           })();
         }
@@ -166,7 +166,7 @@ export default function CourseDetailPage() {
       setIsPurchased(true);
       
     } catch (error) {
-      console.error('Error purchasing course:', error);
+      // console.error('Error purchasing course:', error);
       alert(error instanceof Error ? error.message : 'Error al adquirir el curso');
     } finally {
       setIsPurchasing(false);

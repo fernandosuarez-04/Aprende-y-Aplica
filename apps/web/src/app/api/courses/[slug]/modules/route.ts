@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
 
 /**
  * GET /api/courses/[slug]/modules
@@ -169,9 +170,13 @@ export async function GET(
       };
     });
 
-    return NextResponse.json(modulesWithLessons);
+    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+    return withCacheHeaders(
+      NextResponse.json(modulesWithLessons),
+      cacheHeaders.semiStatic
+    );
   } catch (error) {
-    console.error('Error in modules API:', error);
+    // console.error('Error in modules API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

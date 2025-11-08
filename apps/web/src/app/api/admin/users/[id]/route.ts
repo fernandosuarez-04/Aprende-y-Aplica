@@ -50,7 +50,7 @@ export async function PUT(
       }, { status: 400 })
     }
     
-    console.error('Error in PUT /api/admin/users/[id]:', error)
+    // console.error('Error in PUT /api/admin/users/[id]:', error)
     return NextResponse.json(
       { error: 'Error al actualizar usuario' },
       { status: 500 }
@@ -83,7 +83,7 @@ export async function DELETE(
       message: 'Usuario eliminado correctamente'
     })
   } catch (error) {
-    console.error('Error in DELETE /api/admin/users/[id]:', error)
+    // console.error('Error in DELETE /api/admin/users/[id]:', error)
     
     // Proporcionar mensaje más específico para errores de clave foránea
     if (error && typeof error === 'object' && 'code' in error && error.code === '23503') {

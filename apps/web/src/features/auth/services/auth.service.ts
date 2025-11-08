@@ -51,7 +51,7 @@ export class AuthService {
         .lt('expires_at', new Date().toISOString())
     } catch (error) {
       // Log error but don't throw to avoid breaking auth flow
-      console.error('Error clearing expired sessions:', error)
+      // console.error('Error clearing expired sessions:', error)
     }
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
 
 /**
  * GET /api/courses/[slug]/lessons/[lessonId]/summary
@@ -57,18 +58,22 @@ export async function GET(
       .single();
 
     if (summaryError) {
-      console.error('Error fetching summary:', summaryError);
+      // console.error('Error fetching summary:', summaryError);
       return NextResponse.json(
         { error: 'Error al obtener resumen' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      summary_content: lessonData?.summary_content || null
-    });
+    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos estáticos - 1 hora)
+    return withCacheHeaders(
+      NextResponse.json({
+        summary_content: lessonData?.summary_content || null
+      }),
+      cacheHeaders.static
+    );
   } catch (error) {
-    console.error('Error in summary API:', error);
+    // console.error('Error in summary API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

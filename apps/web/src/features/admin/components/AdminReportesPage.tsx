@@ -94,7 +94,7 @@ export function AdminReportesPage() {
       setIsEditModalOpen(false)
       setSelectedReporte(null)
     } catch (error) {
-      console.error('Error updating reporte:', error)
+      // console.error('Error updating reporte:', error)
       throw error
     } finally {
       setIsProcessing(null)

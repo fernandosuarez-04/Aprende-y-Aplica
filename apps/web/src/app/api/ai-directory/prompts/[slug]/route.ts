@@ -25,7 +25,7 @@ export async function GET(
       .single();
 
     if (error) {
-      console.error('Error fetching prompt:', error);
+      // console.error('Error fetching prompt:', error);
       return NextResponse.json(
         { error: 'Prompt not found' },
         { status: 404 }
@@ -42,7 +42,7 @@ export async function GET(
 
     return NextResponse.json({ prompt });
   } catch (error) {
-    console.error('Unexpected error:', error);
+    // console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

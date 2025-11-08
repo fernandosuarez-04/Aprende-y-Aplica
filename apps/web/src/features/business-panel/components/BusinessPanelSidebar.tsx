@@ -74,8 +74,8 @@ export function BusinessPanelSidebar({
   
   // useMemo para recalcular estilos cuando cambien los panelStyles
   const sidebarStyle: React.CSSProperties = useMemo(() => {
-    console.log('🎨 Sidebar Background Value:', sidebarBackground);
-    console.log('🎨 Panel Styles:', panelStyles);
+    // console.log('🎨 Sidebar Background Value:', sidebarBackground);
+    // console.log('🎨 Panel Styles:', panelStyles);
     
     const getSidebarBackgroundStyle = (backgroundValue: string): React.CSSProperties => {
       const opacity = panelStyles?.sidebar_opacity || 1;
@@ -86,7 +86,7 @@ export function BusinessPanelSidebar({
 
       // Si es un gradiente CSS (verificar primero porque puede contener URLs)
       if (backgroundValue.includes('linear-gradient') || backgroundValue.includes('radial-gradient') || backgroundValue.includes('conic-gradient')) {
-        console.log('✅ Aplicando gradiente con opacidad:', backgroundValue, opacity);
+        // console.log('✅ Aplicando gradiente con opacidad:', backgroundValue, opacity);
         return {
           background: backgroundValue,
           backgroundColor: 'transparent',
@@ -97,7 +97,7 @@ export function BusinessPanelSidebar({
       // Si es una imagen (URL absoluta o relativa)
       if (backgroundValue.startsWith('http://') || backgroundValue.startsWith('https://') || 
           (backgroundValue.startsWith('/') && !backgroundValue.startsWith('/#'))) {
-        console.log('✅ Aplicando imagen con opacidad:', backgroundValue, opacity);
+        // console.log('✅ Aplicando imagen con opacidad:', backgroundValue, opacity);
         return {
           backgroundImage: `url(${backgroundValue})`,
           backgroundSize: 'cover',
@@ -109,7 +109,7 @@ export function BusinessPanelSidebar({
       }
 
       // Si es un color (hex, rgb, rgba, hsl, etc.)
-      console.log('✅ Aplicando color con opacidad:', backgroundValue, opacity);
+      // console.log('✅ Aplicando color con opacidad:', backgroundValue, opacity);
       // Convertir color hex/rgb a rgba con opacidad
       if (backgroundValue.startsWith('#')) {
         // Convertir hex a rgb
@@ -128,7 +128,7 @@ export function BusinessPanelSidebar({
     }
     
     const result = getSidebarBackgroundStyle(sidebarBackground);
-    console.log('🎨 Sidebar Style Result:', result);
+    // console.log('🎨 Sidebar Style Result:', result);
     return result;
   }, [sidebarBackground, panelStyles])
 
@@ -151,7 +151,7 @@ export function BusinessPanelSidebar({
           }
         }
       } catch (error) {
-        console.error('Error fetching organization:', error)
+        // console.error('Error fetching organization:', error)
       } finally {
         setLoadingOrg(false)
       }

@@ -159,7 +159,7 @@ export function sanitizeHtml(
     const clean = DOMPurify.sanitize(content, config);
     return typeof clean === 'string' ? clean : String(clean);
   } catch (error) {
-    console.error('❌ Error sanitizando HTML:', error);
+    // console.error('❌ Error sanitizando HTML:', error);
     // En caso de error, retornar texto plano sin HTML
     return content.replace(/<[^>]*>/g, '');
   }

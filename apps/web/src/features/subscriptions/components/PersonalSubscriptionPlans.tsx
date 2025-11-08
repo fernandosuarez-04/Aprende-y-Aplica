@@ -43,7 +43,7 @@ export function PersonalSubscriptionPlans({
       onSubscribe(plan.id, billingCycle);
     } else {
       // TODO: Implementar lógica de suscripción
-      console.log(`Subscribing to ${plan.id} with ${billingCycle} billing`);
+      // console.log(`Subscribing to ${plan.id} with ${billingCycle} billing`);
     }
   };
 

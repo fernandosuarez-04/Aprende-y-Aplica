@@ -46,7 +46,7 @@ export function useNews(filters: NewsFilters = {}): UseNewsReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error fetching news:', err)
+      // console.error('Error fetching news:', err)
     } finally {
       setLoading(false)
     }
@@ -105,7 +105,7 @@ export function useNewsDetail(slug: string): UseNewsDetailReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error fetching news detail:', err)
+      // console.error('Error fetching news detail:', err)
     } finally {
       setLoading(false)
     }
@@ -157,7 +157,7 @@ export function useNewsStats(): UseNewsStatsReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error fetching news stats:', err)
+      // console.error('Error fetching news stats:', err)
     } finally {
       setLoading(false)
     }
@@ -201,7 +201,7 @@ export function useFeaturedNews(limit: number = 3): UseFeaturedNewsReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error fetching featured news:', err)
+      // console.error('Error fetching featured news:', err)
     } finally {
       setLoading(false)
     }

@@ -59,7 +59,7 @@ class SupabaseStorageService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error uploading file:', errorData);
+        // console.error('Error uploading file:', errorData);
         return { success: false, error: errorData.error || 'Error al subir archivo' };
       }
 
@@ -71,7 +71,7 @@ class SupabaseStorageService {
         path: result.path
       };
     } catch (error) {
-      console.error('Error in uploadFile:', error);
+      // console.error('Error in uploadFile:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Error desconocido' 
@@ -111,7 +111,7 @@ class SupabaseStorageService {
     attachment_data: any;
   }> {
     const { type } = attachmentData;
-    console.log('🎥 [YOUTUBE] SupabaseStorage.processAttachment - TIPO RECIBIDO:', type, attachmentData);
+    // console.log('🎥 [YOUTUBE] SupabaseStorage.processAttachment - TIPO RECIBIDO:', type, attachmentData);
 
     switch (type) {
       case 'image':
@@ -150,7 +150,7 @@ class SupabaseStorageService {
         break;
 
       case 'youtube':
-        console.log('🎥 [YOUTUBE] Procesando caso YouTube:', attachmentData);
+        // console.log('🎥 [YOUTUBE] Procesando caso YouTube:', attachmentData);
         const result = {
           attachment_url: attachmentData.url || null,
           attachment_type: 'youtube',
@@ -161,7 +161,7 @@ class SupabaseStorageService {
             url: attachmentData.url
           }
         };
-        console.log('🎥 [YOUTUBE] Resultado del caso YouTube:', result);
+        // console.log('🎥 [YOUTUBE] Resultado del caso YouTube:', result);
         return result;
 
       case 'link':
@@ -249,7 +249,7 @@ class SupabaseStorageService {
 
       throw new Error('Video no encontrado');
     } catch (error) {
-      console.error('Error getting YouTube video info:', error);
+      // console.error('Error getting YouTube video info:', error);
       return {
         title: 'Video de YouTube',
         thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`

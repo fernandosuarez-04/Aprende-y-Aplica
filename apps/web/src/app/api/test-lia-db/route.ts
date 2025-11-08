@@ -31,8 +31,6 @@ export async function GET() {
       ip_address: '127.0.0.1'
     };
 
-    console.log('[TEST] Intentando insertar:', testData);
-
     const { data, error } = await supabase
       .from('lia_conversations' as any)
       .insert(testData as any)
@@ -40,7 +38,7 @@ export async function GET() {
       .single();
 
     if (error) {
-      console.error('[TEST] Error en insert:', error);
+      // console.error('[TEST] Error en insert:', error);
       return NextResponse.json({
         success: false,
         error: error.message,
@@ -56,8 +54,6 @@ export async function GET() {
     // 4. Si llegamos aquí, funcionó
     const conversationId = (data as any)?.conversation_id;
 
-    console.log('[TEST] ✅ Insert exitoso:', conversationId);
-
     // 5. Verificar que se guardó
     const { data: checkData, error: checkError } = await supabase
       .from('lia_conversations' as any)
@@ -66,7 +62,7 @@ export async function GET() {
       .single();
 
     if (checkError) {
-      console.error('[TEST] Error verificando:', checkError);
+      // console.error('[TEST] Error verificando:', checkError);
     }
 
     // 6. Limpiar (borrar el registro de prueba)
@@ -88,7 +84,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('[TEST] Error general:', error);
+    // console.error('[TEST] Error general:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido',

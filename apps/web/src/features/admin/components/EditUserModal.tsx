@@ -62,7 +62,7 @@ export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalPr
 
   useEffect(() => {
     if (user) {
-      console.log('User data received:', user) // Debug log
+      // console.log('User data received:', user) // Debug log
       setFormData({
         username: user.username || '',
         email: user.email || '',

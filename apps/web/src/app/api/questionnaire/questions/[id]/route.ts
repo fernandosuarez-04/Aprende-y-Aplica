@@ -6,8 +6,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase no configurado - usando datos mock');
-}
+  }
 
 const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey, {
@@ -66,7 +65,7 @@ export async function GET(
       .single();
 
     if (questionError) {
-      console.error('Error fetching question:', questionError);
+      // console.error('Error fetching question:', questionError);
       return NextResponse.json(
         { error: 'Pregunta no encontrada' },
         { status: 404 }
@@ -89,7 +88,7 @@ export async function GET(
       .single();
 
     if (answerError && answerError.code !== 'PGRST116') {
-      console.error('Error fetching existing answer:', answerError);
+      // console.error('Error fetching existing answer:', answerError);
     }
 
     // Combinar pregunta con respuesta existente
@@ -101,7 +100,7 @@ export async function GET(
     return NextResponse.json(questionWithAnswer);
 
   } catch (error) {
-    console.error('Error in question API:', error);
+    // console.error('Error in question API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -173,7 +172,7 @@ export async function POST(
         .single();
 
       if (error) {
-        console.error('Error updating answer:', error);
+        // console.error('Error updating answer:', error);
         return NextResponse.json(
           { error: 'Error al actualizar la respuesta' },
           { status: 500 }
@@ -195,7 +194,7 @@ export async function POST(
         .single();
 
       if (error) {
-        console.error('Error creating answer:', error);
+        // console.error('Error creating answer:', error);
         return NextResponse.json(
           { error: 'Error al guardar la respuesta' },
           { status: 500 }
@@ -212,7 +211,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Error saving answer:', error);
+    // console.error('Error saving answer:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -31,7 +31,7 @@ function Icon({
   const IconComponent = LucideIcons[name] as React.ComponentType<React.SVGAttributes<SVGElement>>;
   
   if (!IconComponent) {
-    console.warn(`Icon "${name}" not found`);
+    // console.warn(`Icon "${name}" not found`);
     return null;
   }
 

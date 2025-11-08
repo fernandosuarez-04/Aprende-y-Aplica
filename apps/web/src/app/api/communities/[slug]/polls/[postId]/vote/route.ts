@@ -25,13 +25,6 @@ export async function POST(
       return NextResponse.json({ error: 'Opción requerida' }, { status: 400 });
     }
 
-    console.log('🗳️ [POLL VOTE] Procesando voto:', {
-      postId,
-      userId: user.id,
-      option,
-      action
-    });
-
     // Obtener el post para verificar que es una encuesta
     const { data: post, error: postError } = await supabase
       .from('community_posts')
@@ -54,7 +47,6 @@ export async function POST(
 
     // Si no tiene estructura votes, inicializarla automáticamente
     if (!pollData.votes || typeof pollData.votes !== 'object') {
-      console.log('⚠️ [POLL VOTE] Inicializando estructura votes para encuesta antigua...');
       const initialVotes: Record<string, string[]> = {};
       pollData.options.forEach((option: string) => {
         initialVotes[option] = [];
@@ -70,8 +62,6 @@ export async function POST(
 
     // Obtener el voto actual del usuario desde attachment_data
     const currentUserVote = pollData.userVotes?.[user.id] || null;
-
-    console.log('🗳️ [POLL VOTE] Voto actual del usuario:', currentUserVote);
 
     // Crear una copia de los datos de la encuesta para modificar
     const updatedPollData = { ...pollData };
@@ -149,11 +139,9 @@ export async function POST(
       .eq('id', postId);
 
     if (updatePostError) {
-      console.error('Error actualizando post:', updatePostError);
+      // console.error('Error actualizando post:', updatePostError);
       return NextResponse.json({ error: 'Error actualizando encuesta' }, { status: 500 });
     }
-
-    console.log('✅ [POLL VOTE] Voto procesado exitosamente');
 
     return NextResponse.json({
       success: true,
@@ -163,7 +151,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Error en votación de encuesta:', error);
+    // console.error('Error en votación de encuesta:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
@@ -200,7 +188,6 @@ export async function GET(
 
     // Si no tiene estructura votes, inicializarla automáticamente
     if (pollData && pollData.options && (!pollData.votes || typeof pollData.votes !== 'object')) {
-      console.log('⚠️ [POLL GET] Inicializando estructura votes para encuesta antigua...');
       const initialVotes: Record<string, string[]> = {};
       pollData.options.forEach((option: string) => {
         initialVotes[option] = [];
@@ -218,7 +205,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error obteniendo voto de usuario:', error);
+    // console.error('Error obteniendo voto de usuario:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

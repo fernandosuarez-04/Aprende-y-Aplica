@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       progress,
     });
   } catch (error) {
-    console.error('Error updating activity progress:', error);
+    // console.error('Error updating activity progress:', error);
     return NextResponse.json(
       { error: 'Error al actualizar progreso de actividad' },
       { status: 500 }

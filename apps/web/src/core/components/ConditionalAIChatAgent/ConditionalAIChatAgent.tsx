@@ -5,13 +5,14 @@ import { AIChatAgent } from '../AIChatAgent/AIChatAgent';
 
 /**
  * Wrapper condicional para AIChatAgent que lo oculta en páginas de lecciones
- * donde ya existe una implementación específica de Lia
+ * donde ya existe una implementación específica de Lia, en la página principal y en auth
  */
 export function ConditionalAIChatAgent() {
   const pathname = usePathname();
 
   // No mostrar en páginas de lecciones (learn) donde ya existe Lia propia
-  const shouldHideAgent = pathname?.includes('/learn');
+  // Tampoco mostrar en la página principal (/) ni en auth
+  const shouldHideAgent = pathname?.includes('/learn') || pathname === '/' || pathname?.startsWith('/auth');
 
   // Si debe ocultarse, no renderizar nada
   if (shouldHideAgent) {

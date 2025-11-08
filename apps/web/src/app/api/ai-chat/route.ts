@@ -121,7 +121,6 @@ function filterSystemPromptFromResponse(text: string): string {
   // Si comienza con alguno de estos indicadores, definitivamente es el prompt
   for (const indicator of promptIndicators) {
     if (trimmedText.startsWith(indicator)) {
-      console.warn('⚠️ Prompt del sistema detectado al inicio de respuesta - aplicando filtro');
       return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
     }
   }
@@ -136,7 +135,7 @@ function filterSystemPromptFromResponse(text: string): string {
 
   // Si hay 3 o más indicadores, es muy probable que sea el prompt completo
   if (indicatorCount >= 3) {
-    console.warn(`⚠️ Múltiples indicadores de prompt detectados (${indicatorCount}) - aplicando filtro`);
+    // console.log('Prompt detectado - aplicando filtro');
     return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
   }
 
@@ -151,7 +150,6 @@ function filterSystemPromptFromResponse(text: string): string {
 
   for (const pattern of codePatterns) {
     if (pattern.test(text)) {
-      console.warn('⚠️ Variables de sistema detectadas en respuesta - aplicando filtro');
       return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
     }
   }
@@ -463,17 +461,17 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.error('❌ Error inicializando LIA Analytics:', error);
         // Log detallado del error para debugging en producción
-        console.error('[LIA ERROR] Detalles completos del error:', JSON.stringify({
-          error: error instanceof Error ? {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-          } : error,
-          userId: user.id,
-          context,
-          hasConversationId: !!conversationId,
-          timestamp: new Date().toISOString()
-        }, null, 2));
+        // console.error('[LIA ERROR] Detalles completos del error:', JSON.stringify({
+        //   error: error instanceof Error ? {
+        //     message: error.message,
+        //     stack: error.stack,
+        //     name: error.name
+        //   } : error,
+        //   userId: user.id,
+        //   context,
+        //   hasConversationId: !!conversationId,
+        //   timestamp: new Date().toISOString()
+        // }, null, 2));
         // Continuar sin analytics si hay error
         liaLogger = null;
         conversationId = null;

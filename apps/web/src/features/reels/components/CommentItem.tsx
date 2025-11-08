@@ -90,7 +90,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
         alert('Error al eliminar comentario');
       }
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      // console.error('Error deleting comment:', error);
       alert('Error al eliminar comentario');
     }
   };
@@ -111,7 +111,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
         setReplies(data);
       }
     } catch (error) {
-      console.error('Error loading replies:', error);
+      // console.error('Error loading replies:', error);
     } finally {
       setIsLoadingReplies(false);
     }
@@ -143,7 +143,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
         }
       }
     } catch (error) {
-      console.error('Error submitting reply:', error);
+      // console.error('Error submitting reply:', error);
     } finally {
       setIsSubmittingReply(false);
     }

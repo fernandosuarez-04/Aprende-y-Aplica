@@ -82,7 +82,7 @@ export class LiaLogger {
       .single();
 
     if (error) {
-      console.error('Error starting conversation:', error);
+      // console.error('Error starting conversation:', error);
       throw error;
     }
 
@@ -117,7 +117,7 @@ export class LiaLogger {
     });
 
     if (error) {
-      console.error('Error logging message:', error);
+      // console.error('Error logging message:', error);
       throw error;
     }
 
@@ -140,7 +140,7 @@ export class LiaLogger {
     });
 
     if (error) {
-      console.error('Error ending conversation:', error);
+      // console.error('Error ending conversation:', error);
       throw error;
     }
 
@@ -174,7 +174,7 @@ export class LiaLogger {
       .single();
 
     if (error) {
-      console.error('Error starting activity:', error);
+      // console.error('Error starting activity:', error);
       throw error;
     }
 
@@ -220,7 +220,7 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      console.error('Error updating activity progress:', error);
+      // console.error('Error updating activity progress:', error);
       throw error;
     }
   }
@@ -262,7 +262,7 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      console.error('Error completing activity:', error);
+      // console.error('Error completing activity:', error);
       throw error;
     }
   }
@@ -282,7 +282,7 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      console.error('Error abandoning activity:', error);
+      // console.error('Error abandoning activity:', error);
       throw error;
     }
   }
@@ -314,7 +314,7 @@ export class LiaLogger {
       } as any);
 
     if (error) {
-      console.error('Error logging feedback:', error);
+      // console.error('Error logging feedback:', error);
       throw error;
     }
   }
@@ -344,7 +344,7 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      console.error('Error incrementing redirections:', error);
+      // console.error('Error incrementing redirections:', error);
     }
   }
 
@@ -380,7 +380,7 @@ export async function getUserConversationStats(userId: string) {
     .order('started_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching user stats:', error);
+    // console.error('Error fetching user stats:', error);
     return null;
   }
 
@@ -400,7 +400,7 @@ export async function getActivityPerformance(activityId: string) {
     .single();
 
   if (error) {
-    console.error('Error fetching activity performance:', error);
+    // console.error('Error fetching activity performance:', error);
     return null;
   }
 
@@ -421,7 +421,7 @@ export async function getCommonQuestionsForLesson(lessonId: string, limit: numbe
     .limit(limit);
 
   if (error) {
-    console.error('Error fetching common questions:', error);
+    // console.error('Error fetching common questions:', error);
     return null;
   }
 

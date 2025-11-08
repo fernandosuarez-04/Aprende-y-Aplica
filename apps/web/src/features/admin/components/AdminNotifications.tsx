@@ -103,7 +103,7 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
         setNotificationsList([])
       }
     } catch (err) {
-      console.error('Error fetching notifications:', err)
+      // console.error('Error fetching notifications:', err)
       setError('No se pudieron cargar las notificaciones')
       setNotificationsList([])
     } finally {
@@ -123,7 +123,7 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
         }
       }
     } catch (err) {
-      console.error('Error fetching unread count:', err)
+      // console.error('Error fetching unread count:', err)
     }
   }
 
@@ -194,10 +194,10 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
         // Actualizar conteo
         await fetchUnreadCount()
       } else {
-        console.error('Error al marcar como leída')
+        // console.error('Error al marcar como leída')
       }
     } catch (err) {
-      console.error('Error marking notification as read:', err)
+      // console.error('Error marking notification as read:', err)
     }
   }
 
@@ -215,10 +215,10 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
         // Actualizar conteo
         await fetchUnreadCount()
       } else {
-        console.error('Error al marcar todas como leídas')
+        // console.error('Error al marcar todas como leídas')
       }
     } catch (err) {
-      console.error('Error marking all as read:', err)
+      // console.error('Error marking all as read:', err)
     }
   }
 
@@ -236,10 +236,10 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
         // Actualizar conteo
         await fetchUnreadCount()
       } else {
-        console.error('Error al eliminar notificación')
+        // console.error('Error al eliminar notificación')
       }
     } catch (err) {
-      console.error('Error deleting notification:', err)
+      // console.error('Error deleting notification:', err)
     }
   }
 

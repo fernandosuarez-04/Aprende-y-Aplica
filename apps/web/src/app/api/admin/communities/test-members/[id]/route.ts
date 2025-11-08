@@ -9,8 +9,6 @@ export async function GET(
     const { id: communityId } = await params
     const supabase = await createClient()
 
-    console.log('Testing members for community ID:', communityId)
-
     // 1. Obtener la comunidad
     const { data: community, error: communityError } = await supabase
       .from('communities')
@@ -26,15 +24,11 @@ export async function GET(
       })
     }
 
-    console.log('Community found:', community)
-
     // 2. Obtener miembros de la comunidad
     const { data: members, error: membersError } = await supabase
       .from('community_members')
       .select('*')
       .eq('community_id', communityId)
-
-    console.log('Members query result:', { members, membersError })
 
     if (membersError) {
       return NextResponse.json({ 
@@ -56,15 +50,11 @@ export async function GET(
 
     // 3. Obtener IDs de usuarios únicos
     const userIds = [...new Set(members.map(member => member.user_id))]
-    console.log('Unique user IDs:', userIds)
-
     // 4. Obtener información de usuarios
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('id, display_name, first_name, last_name, email, profile_picture_url, cargo_rol')
       .in('id', userIds)
-
-    console.log('Users query result:', { users, usersError })
 
     // 5. Combinar datos
     const membersWithUsers = members.map(member => {
@@ -100,7 +90,7 @@ export async function GET(
       }
     })
   } catch (error: unknown) {
-    console.error('Error in test members endpoint:', error)
+    // console.error('Error in test members endpoint:', error)
     const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ 
       success: false, 

@@ -38,7 +38,7 @@ export async function GET(
 
     return NextResponse.json(notes)
   } catch (error) {
-    console.error('Error in notes GET API:', error)
+    // console.error('Error in notes GET API:', error)
     return NextResponse.json(
       {
         error: 'Error interno del servidor',
@@ -59,16 +59,9 @@ export async function POST(
 ) {
   try {
     const { slug, lessonId } = await params
-    console.log('POST /api/courses/[slug]/lessons/[lessonId]/notes - Parámetros:', { slug, lessonId })
-
     // Obtener usuario autenticado usando el sistema de sesiones personalizado
-    console.log('Obteniendo usuario autenticado...')
     const currentUser = await SessionService.getCurrentUser()
-    console.log('Usuario autenticado:', currentUser?.id)
-    console.log('Usuario completo:', currentUser)
-
     if (!currentUser) {
-      console.log('Usuario no autenticado')
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -77,10 +70,7 @@ export async function POST(
 
     // Verificar que el curso existe (opcional, para validación)
     const course = await CourseService.getCourseBySlug(slug, currentUser.id)
-    console.log('Curso encontrado:', course?.id)
-    
     if (!course) {
-      console.log('Curso no encontrado para slug:', slug)
       return NextResponse.json(
         { error: 'Curso no encontrado' },
         { status: 404 }
@@ -89,7 +79,11 @@ export async function POST(
 
     const body = await request.json()
     const { note_title, note_content, note_tags, source_type } = body
-    console.log('Datos recibidos:', { note_title, note_content: note_content?.substring(0, 100) + '...', note_tags, source_type })
+    // console.log('Creando nota:', { 
+    //   note_title: note_title?.substring(0, 50) + '...', 
+    //   note_tags, 
+    //   source_type 
+    // })
 
     // Validaciones más estrictas
     if (!note_title || typeof note_title !== 'string' || note_title.trim().length === 0) {
@@ -114,35 +108,27 @@ export async function POST(
       )
     }
 
-    console.log('Creando nota con datos:', {
-      userId: currentUser.id,
-      lessonId,
-      noteData: {
-        note_title: note_title.trim(),
-        note_content: note_content.trim(),
-        note_tags: note_tags && Array.isArray(note_tags) ? note_tags.filter(tag => tag.trim().length > 0) : [],
-        source_type: source_type || 'manual'
-      }
-    })
+    // console.log('Datos de la nota antes de crear:', {
+    //   note_title: note_title.trim(),
+    //   note_content: note_content.trim(),
+    //   note_tags: note_tags && Array.isArray(note_tags) ? note_tags.filter(tag => tag.trim().length > 0) : [],
+    //   source_type: source_type || 'manual'
+    // })
 
-    console.log('Llamando a NoteService.createNote...')
     const note = await NoteService.createNote(currentUser.id, lessonId, {
       note_title: note_title.trim(),
       note_content: note_content.trim(),
       note_tags: note_tags && Array.isArray(note_tags) ? note_tags.filter(tag => tag.trim().length > 0) : [],
       source_type: source_type || 'manual'
     })
-    console.log('NoteService.createNote completado exitosamente')
-
-    console.log('Nota creada exitosamente:', note)
     return NextResponse.json(note, { status: 201 })
   } catch (error) {
-    console.error('=== ERROR EN API DE NOTAS ===')
-    console.error('Error completo:', error)
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
-    console.error('Error message:', error instanceof Error ? error.message : 'No message')
-    console.error('Error name:', error instanceof Error ? error.name : 'No name')
-    console.error('=== FIN ERROR ===')
+    // console.error('=== ERROR EN API DE NOTAS ===')
+    // console.error('Error completo:', error)
+    // console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+    // console.error('Error message:', error instanceof Error ? error.message : 'No message')
+    // console.error('Error name:', error instanceof Error ? error.name : 'No name')
+    // console.error('=== FIN ERROR ===')
     
     return NextResponse.json(
       {

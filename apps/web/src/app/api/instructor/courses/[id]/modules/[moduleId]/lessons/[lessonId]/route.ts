@@ -65,7 +65,7 @@ export async function GET(
       lesson
     })
   } catch (error) {
-    console.error('Error in GET /api/instructor/courses/[id]/modules/[moduleId]/lessons/[lessonId]:', error)
+    // console.error('Error in GET /api/instructor/courses/[id]/modules/[moduleId]/lessons/[lessonId]:', error)
     return NextResponse.json(
       { 
         success: false,
@@ -132,7 +132,7 @@ export async function PUT(
       lesson
     })
   } catch (error) {
-    console.error('Error in PUT /api/instructor/courses/[id]/modules/[moduleId]/lessons/[lessonId]:', error)
+    // console.error('Error in PUT /api/instructor/courses/[id]/modules/[moduleId]/lessons/[lessonId]:', error)
     return NextResponse.json(
       { 
         success: false,
@@ -198,7 +198,7 @@ export async function DELETE(
       message: 'Lección eliminada correctamente'
     })
   } catch (error) {
-    console.error('Error in DELETE /api/instructor/courses/[id]/modules/[moduleId]/lessons/[lessonId]:', error)
+    // console.error('Error in DELETE /api/instructor/courses/[id]/modules/[moduleId]/lessons/[lessonId]:', error)
     return NextResponse.json(
       { 
         success: false,

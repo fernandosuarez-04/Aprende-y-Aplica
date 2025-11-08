@@ -10,8 +10,6 @@ export async function GET(
     const supabase = await createClient();
     const { slug } = await params;
 
-    console.log('🔍 Fetching members for community:', slug);
-
     // Obtener el usuario actual
     const { SessionService } = await import('../../../../../features/auth/services/session.service');
     const user = await SessionService.getCurrentUser();
@@ -29,11 +27,9 @@ export async function GET(
       .single();
 
     if (communityError || !community) {
-      console.error('❌ Community error:', communityError);
+      // console.error('❌ Community error:', communityError);
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
-
-    console.log('✅ Community found:', community.name);
 
     // Intentar obtener miembros reales de la base de datos
     let members = [];
@@ -60,7 +56,8 @@ export async function GET(
             bio,
             location,
             created_at,
-            points
+            points,
+            profile_visibility
           )
         `)
         .eq('community_id', community.id)
@@ -68,8 +65,6 @@ export async function GET(
         .order('joined_at', { ascending: true });
 
       if (membersError) {
-        console.log('⚠️ Error with direct join, trying alternative approach:', membersError.message);
-        
         // Si falla el join, intentar obtener miembros por community_id directamente
         const { data: membersData2, error: membersError2 } = await supabase
           .from('community_members')
@@ -78,7 +73,6 @@ export async function GET(
           .eq('is_active', true);
 
         if (membersError2) {
-          console.log('⚠️ Error with community_members table:', membersError2.message);
           throw new Error('No se pudo acceder a la tabla community_members');
         }
 
@@ -87,11 +81,10 @@ export async function GET(
           const userIds = membersData2.map(m => m.user_id);
           const { data: usersData, error: usersError } = await supabase
             .from('users')
-            .select('id, email, first_name, last_name, username, profile_picture_url, linkedin_url, github_url, website_url, bio, location, created_at, points')
+            .select('id, email, first_name, last_name, username, profile_picture_url, linkedin_url, github_url, website_url, bio, location, created_at, points, profile_visibility')
             .in('id', userIds);
 
           if (usersError) {
-            console.log('⚠️ Error fetching users:', usersError.message);
             throw new Error('No se pudo obtener información de usuarios');
           }
 
@@ -122,14 +115,12 @@ export async function GET(
         members = membersData || [];
       }
     } catch (error) {
-      console.log('⚠️ Error accessing real data, using mock data:', error);
       members = [];
     }
 
     // Si no hay miembros reales, retornar array vacío
     if (members.length === 0) {
-      console.log('📝 No members found for this community');
-    }
+      }
 
     // Obtener estadísticas de cada miembro (si es posible)
     const membersWithStats = await Promise.all(
@@ -152,7 +143,6 @@ export async function GET(
             .single();
 
           if (userError) {
-            console.log('⚠️ Error getting user points for', userId, ':', userError.message);
             // Si no se pueden obtener puntos de la base de datos, usar los puntos del objeto member.users si están disponibles
             stats.points = member.users?.points || 0;
           } else {
@@ -181,7 +171,6 @@ export async function GET(
           }
 
         } catch (error) {
-          console.log('⚠️ Error getting stats for user', userId, ':', error);
           // Mantener estadísticas en 0 si hay error
           stats = {
             posts_count: 0,
@@ -208,7 +197,8 @@ export async function GET(
             portfolio_url: member.users.website_url, // Usar website_url como portafolio
             bio: member.users.bio,
             location: member.users.location,
-            created_at: member.users.created_at
+            created_at: member.users.created_at,
+            profile_visibility: member.users.profile_visibility || 'public'
           },
           stats
         };
@@ -229,8 +219,6 @@ export async function GET(
       rank: index + 1,
       total_members: membersWithStats.length
     }));
-
-    console.log('✅ Returning mock members:', membersWithRanks.length);
 
     return NextResponse.json({
       community: {

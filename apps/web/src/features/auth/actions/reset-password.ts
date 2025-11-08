@@ -158,7 +158,7 @@ export async function requestPasswordResetAction(
       });
 
     if (insertError) {
-      console.error('Error guardando token:', insertError);
+      // console.error('Error guardando token:', insertError);
       return {
         error: 'Error procesando solicitud. Inténtalo más tarde.',
       };
@@ -167,15 +167,11 @@ export async function requestPasswordResetAction(
     // 8. ENVIAR EMAIL
     try {
       if (!emailService.isReady()) {
-        console.error('⚠️  Email service not configured');
+        // console.error('⚠️  Email service not configured');
 
         // En desarrollo, log del token
         if (process.env.NODE_ENV !== 'production') {
-          console.log(`🔐 [DEV] Token: ${resetToken}`);
-          console.log(
-            `🔗 [DEV] URL: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
-          );
-        }
+          }
 
         return { success: true, message: successMessage };
       }
@@ -183,17 +179,12 @@ export async function requestPasswordResetAction(
       const username = user.first_name || user.username || user.email.split('@')[0];
       await emailService.sendPasswordResetEmail(user.email, resetToken, username);
 
-      console.log(`✅ Email de recuperación enviado a ${user.email}`);
-    } catch (emailError) {
-      console.error('Error enviando email:', emailError);
+      } catch (emailError) {
+      // console.error('Error enviando email:', emailError);
 
       // En desarrollo, mostrar el token
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`🔐 [DEV] Token: ${resetToken}`);
-        console.log(
-          `🔗 [DEV] URL: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
-        );
-      }
+        }
     }
 
     return { success: true, message: successMessage };
@@ -202,7 +193,7 @@ export async function requestPasswordResetAction(
       return { error: error.errors[0].message };
     }
 
-    console.error('Error en requestPasswordResetAction:', error);
+    // console.error('Error en requestPasswordResetAction:', error);
     return { error: 'Error procesando solicitud. Inténtalo más tarde.' };
   }
 }
@@ -292,7 +283,7 @@ export async function resetPasswordAction(
       .eq('id', tokenData.user_id);
 
     if (updateError) {
-      console.error('Error actualizando contraseña:', updateError);
+      // console.error('Error actualizando contraseña:', updateError);
       return { error: 'Error actualizando contraseña.' };
     }
 
@@ -309,10 +300,7 @@ export async function resetPasswordAction(
         .update({ revoked: true })
         .eq('user_id', tokenData.user_id);
     } catch (sessionError) {
-      console.warn('No se pudieron invalidar sesiones:', sessionError);
-    }
-
-    console.log(`✅ Contraseña actualizada exitosamente para user_id: ${tokenData.user_id}`);
+      }
 
     // 12. RETORNAR ÉXITO
     return {
@@ -324,7 +312,7 @@ export async function resetPasswordAction(
       return { error: error.errors[0].message };
     }
 
-    console.error('Error en resetPasswordAction:', error);
+    // console.error('Error en resetPasswordAction:', error);
     return { error: 'Error procesando solicitud. Inténtalo más tarde.' };
   }
 }
@@ -359,7 +347,7 @@ export async function validateResetTokenAction(token: string) {
 
     return { valid: true };
   } catch (error) {
-    console.error('Error validando token:', error);
+    // console.error('Error validando token:', error);
     return { valid: false, error: 'Error validando token.' };
   }
 }

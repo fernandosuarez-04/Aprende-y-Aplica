@@ -12,7 +12,6 @@ export async function PATCH(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId, postId } = await params
-    console.log('🔍 Toggle Post Pin API - communityId:', communityId, 'postId:', postId)
     const supabase = await createClient()
 
     // Obtener datos actuales del post
@@ -24,14 +23,12 @@ export async function PATCH(
       .single()
 
     if (fetchError || !currentPost) {
-      console.error('❌ Error fetching post:', fetchError)
+      // console.error('❌ Error fetching post:', fetchError)
       return NextResponse.json({ 
         success: false, 
         message: 'Post no encontrado' 
       }, { status: 404 })
     }
-
-    console.log('✅ Post found:', currentPost)
 
     // Toggle el estado de fijado del post
     const newPinnedState = !currentPost.is_pinned
@@ -47,7 +44,7 @@ export async function PATCH(
       .single()
 
     if (updateError) {
-      console.error('Error updating post pin status:', updateError)
+      // console.error('Error updating post pin status:', updateError)
       return NextResponse.json({ 
         success: false, 
         message: 'Error al cambiar el estado de fijado del post' 
@@ -72,7 +69,7 @@ export async function PATCH(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.warn('Error en log de auditoría (no crítico):', auditError)
+      // console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 
@@ -82,7 +79,7 @@ export async function PATCH(
       message: `Post ${newPinnedState ? 'fijado' : 'desfijado'} exitosamente` 
     })
   } catch (error: unknown) {
-    console.error('Error in toggle post pin API:', error)
+    // console.error('Error in toggle post pin API:', error)
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 

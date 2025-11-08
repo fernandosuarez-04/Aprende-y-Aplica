@@ -15,8 +15,6 @@ export async function GET(
     const supabase = await createClient()
     const { id } = await params
 
-    console.log('🔄 Obteniendo noticia con ID:', id)
-
     const { data: news, error } = await supabase
       .from('news')
       .select(`
@@ -42,17 +40,16 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error('❌ Error fetching news:', error)
+      // console.error('❌ Error fetching news:', error)
       return NextResponse.json(
         { error: 'News not found' },
         { status: 404 }
       )
     }
 
-    console.log('✅ Noticia obtenida exitosamente:', news)
     return NextResponse.json({ news })
   } catch (error) {
-    console.error('💥 Unexpected error:', error)
+    // console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -84,7 +81,6 @@ export async function PUT(
     })
     
     const body = bodyRaw
-    console.log('🔄 Body recibido y validado:', JSON.stringify(body, null, 2))
 
     // Parsear campos JSON
     const parseJsonField = (field: any) => {
@@ -122,9 +118,6 @@ export async function PUT(
     if (body.cta !== undefined) updateData.cta = parseJsonField(body.cta)
     if (body.metrics !== undefined) updateData.metrics = parseJsonField(body.metrics)
 
-    console.log('🔄 Actualizando noticia con ID:', id)
-    console.log('📋 Datos a actualizar:', updateData)
-
     // @ts-ignore - Supabase types are too strict for dynamic updates
     const { data: updatedNews, error } = await supabase
       .from('news')
@@ -134,14 +127,13 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('❌ Error updating news:', error)
+      // console.error('❌ Error updating news:', error)
       return NextResponse.json(
         { error: 'Failed to update news' },
         { status: 500 }
       )
     }
 
-    console.log('✅ Noticia actualizada exitosamente:', updatedNews)
     return NextResponse.json({ news: updatedNews })
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación
@@ -156,7 +148,7 @@ export async function PUT(
       }, { status: 400 })
     }
     
-    console.error('💥 Unexpected error:', error)
+    // console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -175,25 +167,22 @@ export async function DELETE(
     const supabase = await createClient()
     const { id } = await params
 
-    console.log('🔄 Eliminando noticia con ID:', id)
-
     const { error } = await supabase
       .from('news')
       .delete()
       .eq('id', id)
 
     if (error) {
-      console.error('❌ Error deleting news:', error)
+      // console.error('❌ Error deleting news:', error)
       return NextResponse.json(
         { error: 'Failed to delete news' },
         { status: 500 }
       )
     }
 
-    console.log('✅ Noticia eliminada exitosamente')
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('💥 Unexpected error:', error)
+    // console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

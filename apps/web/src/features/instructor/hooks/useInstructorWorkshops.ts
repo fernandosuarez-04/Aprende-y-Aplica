@@ -31,7 +31,7 @@ export function useInstructorWorkshops(): UseInstructorWorkshopsReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error fetching instructor workshops:', err)
+      // console.error('Error fetching instructor workshops:', err)
     } finally {
       setIsLoading(false)
     }

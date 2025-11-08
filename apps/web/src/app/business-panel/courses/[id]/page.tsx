@@ -142,7 +142,7 @@ export default function BusinessCourseDetailPage() {
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar el curso')
-        console.error('Error loading course:', err)
+        // console.error('Error loading course:', err)
       } finally {
         setLoading(false)
       }

@@ -62,10 +62,10 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
         throw new Error(data.error || 'Error al obtener estilos');
       }
 
-      console.log('🎨 Estilos cargados desde API:', data.styles);
+      // console.log('🎨 Estilos cargados desde API:', data.styles);
       setStyles(data.styles);
     } catch (err: any) {
-      console.error('Error fetching organization styles:', err);
+      // console.error('Error fetching organization styles:', err);
       setError(err.message || 'Error al obtener estilos');
       setStyles(null);
     } finally {
@@ -88,7 +88,7 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
       if (userDashboard !== undefined) updateData.userDashboard = userDashboard;
       if (login !== undefined) updateData.login = login;
 
-      console.log('📤 Enviando actualización de estilos:', updateData);
+      // console.log('📤 Enviando actualización de estilos:', updateData);
 
       const response = await fetch('/api/business/settings/styles', {
         method: 'PUT',
@@ -105,11 +105,11 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
         throw new Error(data.error || 'Error al actualizar estilos');
       }
 
-      console.log('✅ Estilos actualizados:', data.styles);
+      // console.log('✅ Estilos actualizados:', data.styles);
       setStyles(data.styles);
       return true;
     } catch (err: any) {
-      console.error('Error updating styles:', err);
+      // console.error('Error updating styles:', err);
       setError(err.message || 'Error al actualizar estilos');
       return false;
     }
@@ -117,7 +117,7 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
 
   const applyTheme = async (themeId: string): Promise<boolean> => {
     try {
-      console.log('🎨 Aplicando tema:', themeId);
+      // console.log('🎨 Aplicando tema:', themeId);
 
       const response = await fetch('/api/business/settings/styles', {
         method: 'POST',
@@ -134,18 +134,18 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
         throw new Error(data.error || 'Error al aplicar tema');
       }
 
-      console.log('✅ Tema aplicado:', data.styles);
+      // console.log('✅ Tema aplicado:', data.styles);
       setStyles(data.styles);
       return true;
     } catch (err: any) {
-      console.error('Error applying theme:', err);
+      // console.error('Error applying theme:', err);
       setError(err.message || 'Error al aplicar tema');
       return false;
     }
   };
 
   const refetch = async () => {
-    console.log('🔄 Refrescando estilos...');
+    // console.log('🔄 Refrescando estilos...');
     await fetchStyles();
   };
 

@@ -66,7 +66,7 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
           url: window.location.href
         })
       } catch (err) {
-        console.log('Error sharing:', err)
+        // console.log('Error sharing:', err)
       }
     } else {
       // Fallback: copy to clipboard

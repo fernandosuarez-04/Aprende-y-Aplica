@@ -30,7 +30,7 @@ export function useBusinessReports() {
       const typeToFetch = type || reportType
       const filtersToUse = { ...filters, ...customFilters }
 
-      console.log('📡 Fetching report:', typeToFetch, 'with filters:', filtersToUse)
+      // console.log('📡 Fetching report:', typeToFetch, 'with filters:', filtersToUse)
 
       const params = new URLSearchParams({
         type: typeToFetch
@@ -56,22 +56,22 @@ export function useBusinessReports() {
       }
 
       const url = `/api/business/reports/data?${params.toString()}`
-      console.log('🌐 Fetching URL:', url)
+      // console.log('🌐 Fetching URL:', url)
 
       const response = await fetch(url, {
         credentials: 'include'
       })
 
-      console.log('📥 Response status:', response.status, response.statusText)
+      // console.log('📥 Response status:', response.status, response.statusText)
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ Error response:', errorText)
+        // console.error('❌ Error response:', errorText)
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
-      console.log('✅ Response data:', data)
+      // console.log('✅ Response data:', data)
 
       if (data.success && data.data) {
         setReportData({
@@ -80,14 +80,14 @@ export function useBusinessReports() {
           data: data.data,
           generated_at: data.generated_at
         })
-        console.log('✅ Report data set successfully')
+        // console.log('✅ Report data set successfully')
       } else {
         throw new Error(data.error || 'Error al obtener el reporte')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al cargar el reporte'
       setError(errorMessage)
-      console.error('❌ Error fetching report:', err)
+      // console.error('❌ Error fetching report:', err)
     } finally {
       setIsLoading(false)
     }

@@ -59,8 +59,6 @@ export class AdminUsersService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminUsersService.getUsers: Iniciando...')
-      
       const { data, error } = await supabase
         .from('users')
         .select(`
@@ -92,14 +90,13 @@ export class AdminUsersService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('❌ Error fetching users:', error)
+        // console.error('❌ Error fetching users:', error)
         throw error
       }
 
-      console.log('✅ Usuarios obtenidos:', data?.length || 0)
       return data || []
     } catch (error) {
-      console.error('💥 Error in AdminUsersService.getUsers:', error)
+      // console.error('💥 Error in AdminUsersService.getUsers:', error)
       throw error
     }
   }
@@ -113,7 +110,7 @@ export class AdminUsersService {
         .select('cargo_rol, email_verified')
 
       if (error) {
-        console.error('Error fetching user stats:', error)
+        // console.error('Error fetching user stats:', error)
         throw error
       }
 
@@ -128,7 +125,7 @@ export class AdminUsersService {
 
       return stats
     } catch (error) {
-      console.error('Error in AdminUsersService.getUserStats:', error)
+      // console.error('Error in AdminUsersService.getUserStats:', error)
       throw error
     }
   }
@@ -199,7 +196,7 @@ export class AdminUsersService {
         .single()
 
       if (error) {
-        console.error('Error updating user:', error)
+        // console.error('Error updating user:', error)
         throw error
       }
 
@@ -218,7 +215,7 @@ export class AdminUsersService {
 
       return data
     } catch (error) {
-      console.error('Error in AdminUsersService.updateUser:', error)
+      // console.error('Error in AdminUsersService.updateUser:', error)
       throw error
     }
   }
@@ -233,11 +230,11 @@ export class AdminUsersService {
         .eq('id', userId)
 
       if (error) {
-        console.error('Error updating user role:', error)
+        // console.error('Error updating user role:', error)
         throw error
       }
     } catch (error) {
-      console.error('Error in AdminUsersService.updateUserRole:', error)
+      // console.error('Error in AdminUsersService.updateUserRole:', error)
       throw error
     }
   }
@@ -302,7 +299,7 @@ export class AdminUsersService {
         .single()
 
       if (error) {
-        console.error('Error creating user:', error)
+        // console.error('Error creating user:', error)
         throw error
       }
 
@@ -321,7 +318,7 @@ export class AdminUsersService {
 
       return data
     } catch (error) {
-      console.error('Error in AdminUsersService.createUser:', error)
+      // console.error('Error in AdminUsersService.createUser:', error)
       throw error
     }
   }
@@ -354,7 +351,7 @@ export class AdminUsersService {
         })
       } catch (auditError) {
         // No fallar la eliminación si el log de auditoría falla
-        console.warn('Error logging audit action (non-critical):', auditError)
+        // console.error('Error en auditoría:', auditError)
       }
 
       // Eliminar todas las referencias del usuario antes de eliminar el usuario
@@ -377,8 +374,7 @@ export class AdminUsersService {
           .in('post_id', postIds)
 
         if (deleteCommentsError) {
-          console.warn('Warning deleting comments:', deleteCommentsError)
-        }
+          }
       }
 
       // 3. Eliminar reacciones en posts del usuario
@@ -389,8 +385,7 @@ export class AdminUsersService {
           .in('post_id', postIds)
 
         if (deleteReactionsError) {
-          console.warn('Warning deleting reactions:', deleteReactionsError)
-        }
+          }
       }
 
       // 3.5. Eliminar TODAS las reacciones creadas por el usuario (no solo en sus posts)
@@ -400,8 +395,7 @@ export class AdminUsersService {
         .eq('user_id', userId)
 
       if (deleteUserReactionsError) {
-        console.warn('Warning deleting user reactions:', deleteUserReactionsError)
-      }
+        }
 
       // 4. Eliminar posts de comunidades del usuario
       const { error: deletePostsError } = await adminSupabase
@@ -410,8 +404,7 @@ export class AdminUsersService {
         .eq('user_id', userId)
 
       if (deletePostsError) {
-        console.warn('Warning deleting community posts:', deletePostsError)
-      }
+        }
 
       // 5. Eliminar miembros de comunidades del usuario
       const { error: deleteMembersError } = await adminSupabase
@@ -420,8 +413,7 @@ export class AdminUsersService {
         .eq('user_id', userId)
 
       if (deleteMembersError) {
-        console.warn('Warning deleting community members:', deleteMembersError)
-      }
+        }
 
       // 5.5. Eliminar solicitudes de acceso a comunidades donde el usuario es el solicitante
       const { error: deleteAccessRequestsError } = await adminSupabase
@@ -430,8 +422,7 @@ export class AdminUsersService {
         .eq('requester_id', userId)
 
       if (deleteAccessRequestsError) {
-        console.warn('Warning deleting community access requests:', deleteAccessRequestsError)
-      }
+        }
 
       // 5.6. Eliminar solicitudes de acceso a comunidades donde el usuario es el revisor (opcional pero recomendado)
       const { error: deleteReviewedRequestsError } = await adminSupabase
@@ -440,8 +431,7 @@ export class AdminUsersService {
         .eq('reviewed_by', userId)
 
       if (deleteReviewedRequestsError) {
-        console.warn('Warning deleting reviewed access requests:', deleteReviewedRequestsError)
-      }
+        }
 
       // 6. Eliminar usuarios de organizaciones
       const { error: deleteOrgUsersError } = await adminSupabase
@@ -450,8 +440,7 @@ export class AdminUsersService {
         .eq('user_id', userId)
 
       if (deleteOrgUsersError) {
-        console.warn('Warning deleting organization users:', deleteOrgUsersError)
-      }
+        }
 
       // 6.5. Eliminar inscripciones a cursos del usuario
       const { error: deleteEnrollmentsError } = await adminSupabase
@@ -460,8 +449,7 @@ export class AdminUsersService {
         .eq('user_id', userId)
 
       if (deleteEnrollmentsError) {
-        console.warn('Warning deleting user course enrollments:', deleteEnrollmentsError)
-      }
+        }
 
       // 7. Eliminar sesiones del usuario
       const { error: deleteSessionsError } = await adminSupabase
@@ -470,8 +458,7 @@ export class AdminUsersService {
         .eq('user_id', userId)
 
       if (deleteSessionsError) {
-        console.warn('Warning deleting user sessions:', deleteSessionsError)
-      }
+        }
 
       // 8. Eliminar favoritos del usuario
       const { error: deleteFavoritesError } = await adminSupabase
@@ -480,8 +467,7 @@ export class AdminUsersService {
         .eq('user_id', userId)
 
       if (deleteFavoritesError) {
-        console.warn('Warning deleting app favorites:', deleteFavoritesError)
-      }
+        }
 
       // 8.5. Manejar referencias del usuario como instructor
       // Obtener todas las lecciones del instructor
@@ -500,8 +486,7 @@ export class AdminUsersService {
           .in('lesson_id', lessonIds)
 
         if (deleteActivitiesError) {
-          console.warn('Warning deleting lesson activities:', deleteActivitiesError)
-        }
+          }
 
         // Eliminar materiales de las lecciones antes de eliminar las lecciones
         const { error: deleteMaterialsError } = await adminSupabase
@@ -510,8 +495,7 @@ export class AdminUsersService {
           .in('lesson_id', lessonIds)
 
         if (deleteMaterialsError) {
-          console.warn('Warning deleting lesson materials:', deleteMaterialsError)
-        }
+          }
 
         // Eliminar progreso de lecciones antes de eliminar las lecciones
         const { error: deleteProgressError } = await adminSupabase
@@ -520,8 +504,7 @@ export class AdminUsersService {
           .in('lesson_id', lessonIds)
 
         if (deleteProgressError) {
-          console.warn('Warning deleting user lesson progress:', deleteProgressError)
-        }
+          }
       }
 
       // Eliminar las lecciones del instructor
@@ -531,8 +514,7 @@ export class AdminUsersService {
         .eq('instructor_id', userId)
 
       if (deleteLessonsError) {
-        console.warn('Warning deleting course lessons:', deleteLessonsError)
-      }
+        }
 
       // Cambiar instructor_id a NULL en courses (o eliminar si no permite NULL)
       const { error: updateCoursesError } = await adminSupabase
@@ -541,7 +523,6 @@ export class AdminUsersService {
         .eq('instructor_id', userId)
 
       if (updateCoursesError) {
-        console.warn('Warning updating courses instructor:', updateCoursesError)
         // Si falla porque instructor_id no puede ser NULL, intentar eliminar los cursos
         const { error: deleteCoursesError } = await adminSupabase
           .from('courses')
@@ -549,8 +530,7 @@ export class AdminUsersService {
           .eq('instructor_id', userId)
         
         if (deleteCoursesError) {
-          console.warn('Warning deleting courses:', deleteCoursesError)
-        }
+          }
       }
 
       // Cambiar created_by a NULL en news
@@ -560,7 +540,6 @@ export class AdminUsersService {
         .eq('created_by', userId)
 
       if (updateNewsError) {
-        console.warn('Warning updating news created_by:', updateNewsError)
         // Si falla porque created_by no puede ser NULL, intentar eliminar las noticias
         const { error: deleteNewsError } = await adminSupabase
           .from('news')
@@ -568,8 +547,7 @@ export class AdminUsersService {
           .eq('created_by', userId)
         
         if (deleteNewsError) {
-          console.warn('Warning deleting news:', deleteNewsError)
-        }
+          }
       }
 
       // 9. Finalmente eliminar el usuario
@@ -579,11 +557,11 @@ export class AdminUsersService {
         .eq('id', userId)
 
       if (error) {
-        console.error('Error deleting user:', error)
+        // console.error('Error deleting user:', error)
         throw error
       }
     } catch (error) {
-      console.error('Error in AdminUsersService.deleteUser:', error)
+      // console.error('Error in AdminUsersService.deleteUser:', error)
       throw error
     }
   }

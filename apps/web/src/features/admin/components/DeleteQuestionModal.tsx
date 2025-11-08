@@ -25,7 +25,7 @@ export function DeleteQuestionModal({ question, isOpen, onClose, onDelete }: Del
       await onDelete(question.id)
       onClose()
     } catch (error) {
-      console.error('Error deleting question:', error)
+      // console.error('Error deleting question:', error)
     } finally {
       setIsDeleting(false)
     }

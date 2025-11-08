@@ -23,15 +23,13 @@ export async function POST(
     const currentUser = await SessionService.getCurrentUser();
     
     if (!currentUser) {
-      console.error('❌ No hay usuario autenticado');
+      // console.error('❌ No hay usuario autenticado');
       return NextResponse.json(
         { error: 'No autenticado. Por favor inicia sesión.' },
         { status: 401 }
       );
     }
     
-    console.log('✅ User authenticated:', currentUser.id, currentUser.email);
-
     // Obtener el curso por slug
     const { data: course, error: courseError } = await supabase
       .from('courses')
@@ -84,8 +82,7 @@ export async function POST(
 
     if (existingPaymentMethod) {
       paymentMethodId = existingPaymentMethod.payment_method_id;
-      console.log('📦 Usando método de pago existente:', paymentMethodId);
-    } else {
+      } else {
       const { data: tempPaymentMethod, error: paymentMethodError } = await supabase
         .from('payment_methods')
         .insert({
@@ -105,15 +102,14 @@ export async function POST(
         .single();
 
       if (paymentMethodError || !tempPaymentMethod) {
-        console.error('Error creando método de pago temporal:', paymentMethodError);
+        // console.error('Error creando método de pago temporal:', paymentMethodError);
         return NextResponse.json(
           { error: 'Error al crear método de pago', details: paymentMethodError },
           { status: 500 }
         );
       }
       paymentMethodId = tempPaymentMethod.payment_method_id;
-      console.log('📦 Método de pago temporal creado:', paymentMethodId);
-    }
+      }
 
     // 1. Crear transacción (temporal, sin procesador de pago)
     const { data: transaction, error: transactionError } = await supabase
@@ -137,7 +133,7 @@ export async function POST(
       .single();
 
     if (transactionError || !transaction) {
-      console.error('Error creating transaction:', transactionError);
+      // console.error('Error creating transaction:', transactionError);
       return NextResponse.json(
         { error: 'Error al crear la transacción', details: transactionError },
         { status: 500 }
@@ -167,7 +163,7 @@ export async function POST(
       .single();
 
     if (purchaseError || !purchase) {
-      console.error('Error creating purchase:', purchaseError);
+      // console.error('Error creating purchase:', purchaseError);
       // Intentar eliminar la transacción creada
       await supabase.from('transactions').delete().eq('transaction_id', transaction.transaction_id);
       
@@ -193,10 +189,9 @@ export async function POST(
       .single();
 
     if (enrollmentError) {
-      console.error('Error creating enrollment:', enrollmentError);
+      // console.error('Error creating enrollment:', enrollmentError);
       // No revertimos la compra, solo lo registramos
-      console.warn('Compra creada pero enrollment falló:', enrollmentError);
-    }
+      }
 
     // 4. Actualizar el purchase con el enrollment_id si se creó correctamente
     if (enrollment) {
@@ -222,7 +217,7 @@ export async function POST(
         )
       } catch (notificationError) {
         // No lanzar error para no afectar el flujo principal
-        console.error('Error creando notificación de inscripción en curso:', notificationError)
+        // console.error('Error creando notificación de inscripción en curso:', notificationError)
       }
     }
 
@@ -243,7 +238,7 @@ export async function POST(
     }, { status: 200 });
 
   } catch (error) {
-    console.error('Error in purchase endpoint:', error);
+    // console.error('Error in purchase endpoint:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

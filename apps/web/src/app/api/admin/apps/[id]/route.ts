@@ -62,7 +62,7 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error('Error fetching app:', error)
+      // console.error('Error fetching app:', error)
       return NextResponse.json(
         { error: 'App not found' },
         { status: 404 }
@@ -71,7 +71,7 @@ export async function GET(
 
     return NextResponse.json({ app })
   } catch (error) {
-    console.error('Unexpected error:', error)
+    // console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -127,9 +127,6 @@ export async function PUT(
     if (body.is_verified !== undefined) updateData.is_verified = body.is_verified
     if (body.is_active !== undefined) updateData.is_active = body.is_active
 
-    console.log('🔄 Actualizando app con ID:', id)
-    console.log('📋 Datos a actualizar:', updateData)
-
     // @ts-ignore - Supabase types are too strict for dynamic updates
     const { data: updatedApp, error } = await supabase
       .from('ai_apps')
@@ -139,14 +136,13 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('❌ Error updating app:', error)
+      // console.error('❌ Error updating app:', error)
       return NextResponse.json(
         { error: 'Failed to update app' },
         { status: 500 }
       )
     }
 
-    console.log('✅ App actualizada exitosamente:', updatedApp)
     return NextResponse.json({ app: updatedApp })
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación
@@ -161,7 +157,7 @@ export async function PUT(
       }, { status: 400 })
     }
     
-    console.error('💥 Unexpected error:', error)
+    // console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -186,7 +182,7 @@ export async function DELETE(
       .eq('app_id', id)
 
     if (error) {
-      console.error('Error deleting app:', error)
+      // console.error('Error deleting app:', error)
       return NextResponse.json(
         { error: 'Failed to delete app' },
         { status: 500 }
@@ -195,7 +191,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Unexpected error:', error)
+    // console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

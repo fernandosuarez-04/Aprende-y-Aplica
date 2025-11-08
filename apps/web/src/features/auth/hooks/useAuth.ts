@@ -75,7 +75,7 @@ export function useAuth() {
       window.location.href = '/'
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error during logout:', error)
+        // console.error('Error during logout:', error)
       }
       // Fallback: limpiar caché y redirigir a home con recarga completa
       await mutate(null, false)
@@ -90,7 +90,7 @@ export function useAuth() {
       return updatedUser ?? null
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error refreshing user:', error)
+        // console.error('Error refreshing user:', error)
       }
       return null
     }

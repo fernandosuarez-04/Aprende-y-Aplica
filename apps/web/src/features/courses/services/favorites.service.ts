@@ -15,7 +15,7 @@ export class FavoritesService {
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching user favorites:', error)
+          // console.error('Error fetching user favorites:', error)
         }
         throw new Error(`Error al obtener favoritos: ${error.message}`)
       }
@@ -23,7 +23,7 @@ export class FavoritesService {
       return data?.map(favorite => favorite.course_id) || []
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error in FavoritesService.getUserFavorites:', error)
+        // console.error('Error in FavoritesService.getUserFavorites:', error)
       }
 
       // Si es un error de configuración de Supabase, devolver array vacío
@@ -68,13 +68,13 @@ export class FavoritesService {
           return
         }
         if (process.env.NODE_ENV === 'development') {
-          console.error('Error adding to favorites:', error)
+          // console.error('Error adding to favorites:', error)
         }
         throw new Error(`Error al agregar a favoritos: ${error.message}`)
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error in FavoritesService.addToFavorites:', error)
+        // console.error('Error in FavoritesService.addToFavorites:', error)
       }
       throw error
     }
@@ -95,13 +95,13 @@ export class FavoritesService {
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Error removing from favorites:', error)
+          // console.error('Error removing from favorites:', error)
         }
         throw new Error(`Error al remover de favoritos: ${error.message}`)
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error in FavoritesService.removeFromFavorites:', error)
+        // console.error('Error in FavoritesService.removeFromFavorites:', error)
       }
       throw error
     }
@@ -123,7 +123,7 @@ export class FavoritesService {
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         if (process.env.NODE_ENV === 'development') {
-          console.error('Error checking favorite status:', error)
+          // console.error('Error checking favorite status:', error)
         }
         throw new Error(`Error al verificar favorito: ${error.message}`)
       }
@@ -131,7 +131,7 @@ export class FavoritesService {
       return !!data
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error in FavoritesService.isFavorite:', error)
+        // console.error('Error in FavoritesService.isFavorite:', error)
       }
 
       // Si es un error de configuración de Supabase, devolver false
@@ -163,7 +163,7 @@ export class FavoritesService {
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error in FavoritesService.toggleFavorite:', error)
+        // console.error('Error in FavoritesService.toggleFavorite:', error)
       }
 
       // Si es un error de configuración de Supabase, simular comportamiento

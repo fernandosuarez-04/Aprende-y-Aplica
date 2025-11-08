@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
 
 /**
  * GET /api/courses/[slug]/lessons/[lessonId]/activities
@@ -57,16 +58,20 @@ export async function GET(
       .order('activity_order_index', { ascending: true });
 
     if (activitiesError) {
-      console.error('Error fetching activities:', activitiesError);
+      // console.error('Error fetching activities:', activitiesError);
       return NextResponse.json(
         { error: 'Error al obtener actividades' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(activities || []);
+    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos estáticos - 1 hora)
+    return withCacheHeaders(
+      NextResponse.json(activities || []),
+      cacheHeaders.static
+    );
   } catch (error) {
-    console.error('Error in activities API:', error);
+    // console.error('Error in activities API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

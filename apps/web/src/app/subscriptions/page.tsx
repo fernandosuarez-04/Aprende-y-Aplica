@@ -15,7 +15,7 @@ export default function SubscriptionsPage() {
 
   const handlePersonalSubscribe = (planId: string, billingCycle: 'monthly' | 'yearly') => {
     // TODO: Implementar lógica de suscripción personal
-    console.log('Subscribing to personal plan:', planId, billingCycle);
+    // console.log('Subscribing to personal plan:', planId, billingCycle);
   };
 
   return (

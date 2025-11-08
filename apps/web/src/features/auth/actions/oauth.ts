@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import validator from 'validator';
 import crypto from 'crypto';
 import { getBaseUrl } from '@/lib/env';
@@ -9,6 +9,8 @@ import { logger } from '@/lib/logger';
 import { GoogleOAuthService } from '../services/google-oauth.service';
 import { OAuthService } from '../services/oauth.service';
 import { SessionService } from '../services/session.service';
+import { RefreshTokenService } from '../../../lib/auth/refreshToken.service';
+import { SECURE_COOKIE_OPTIONS, getCustomCookieOptions } from '../../../lib/auth/cookie-config';
 import { AuthService } from '../services/auth.service';
 import { OAuthCallbackParams } from '../types/oauth.types';
 
@@ -161,7 +163,49 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
 
     // PASO 6: Crear sesión usando el sistema existente
     logger.info('OAuth: Creando sesión');
-    await SessionService.createSession(userId, false);
+    // Reutilizar cookieStore obtenido anteriormente para validar CSRF
+    const headersList = await headers();
+    const userAgent = headersList.get('user-agent') || 'unknown';
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               headersList.get('x-real-ip') ||
+               'unknown';
+
+    // Crear Request mock para RefreshTokenService
+    const requestHeaders = new Headers();
+    requestHeaders.set('user-agent', userAgent);
+    requestHeaders.set('x-real-ip', ip);
+    const mockRequest = new Request('http://localhost', {
+      headers: requestHeaders
+    });
+
+    // Crear sesión con refresh tokens
+    const sessionInfo = await RefreshTokenService.createSession(
+      userId,
+      false,
+      mockRequest
+    );
+
+    // Establecer cookies de refresh tokens directamente en el Server Action
+    cookieStore.set('access_token', sessionInfo.accessToken, {
+      ...SECURE_COOKIE_OPTIONS,
+      expires: sessionInfo.accessExpiresAt,
+    });
+
+    cookieStore.set('refresh_token', sessionInfo.refreshToken, {
+      ...SECURE_COOKIE_OPTIONS,
+      expires: sessionInfo.refreshExpiresAt,
+    });
+
+    // Crear sesión legacy (user_session) para compatibilidad
+    const legacySession = await SessionService.createLegacySession(userId, false);
+
+    // Establecer cookie legacy directamente en el Server Action
+    const maxAge = 7 * 24 * 60 * 60; // 7 días
+    cookieStore.set('aprende-y-aplica-session', legacySession.sessionToken, {
+      ...getCustomCookieOptions(maxAge),
+      expires: legacySession.expiresAt,
+    });
+
     logger.auth('Sesión creada exitosamente');
 
     // PASO 7: Limpiar sesiones expiradas

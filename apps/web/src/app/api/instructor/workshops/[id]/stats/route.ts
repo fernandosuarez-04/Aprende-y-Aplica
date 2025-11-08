@@ -361,7 +361,7 @@ export async function GET(
       },
     })
   } catch (error: any) {
-    console.error('Error obteniendo estadísticas:', error)
+    // console.error('Error obteniendo estadísticas:', error)
     return NextResponse.json({ success: false, error: error?.message || 'Error obteniendo estadísticas' }, { status: 500 })
   }
 }

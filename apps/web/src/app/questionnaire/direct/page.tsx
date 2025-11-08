@@ -148,13 +148,7 @@ export default function DirectQuestionnairePage() {
       'Maestro': 9                  // Educación/Docentes → exclusivo_rol_id = 9
     };
     
-    console.log('=== MAPEO DEBUG ===');
-    console.log('Type_rol original:', typeRol);
-    console.log('Type_rol normalizado:', normalizedTypeRol);
-    console.log('Mapeo encontrado:', mapping[normalizedTypeRol]);
-    console.log('Mapeo completo disponible:', Object.keys(mapping));
-    console.log('==================');
-    
+    // console.log('Mapping de rol:', normalizedTypeRol, '→', mapping[normalizedTypeRol] || 1);
     return mapping[normalizedTypeRol] || 1; // Fallback a CEO si no se encuentra
   };
 
@@ -168,8 +162,6 @@ export default function DirectQuestionnairePage() {
         return;
       }
       
-      console.log('Usuario autenticado:', user.id);
-      
       // Usar el cliente de Supabase configurado
       const supabase = createClient();
 
@@ -181,43 +173,20 @@ export default function DirectQuestionnairePage() {
         .single();
 
       if (profileError || !userProfile) {
-        console.error('Error de perfil:', profileError);
+        // console.error('Error de perfil:', profileError);
         setError('Perfil de usuario no encontrado. Por favor completa tu perfil profesional primero.');
         return;
       }
 
       // Verificar que el usuario tenga type_rol definido
       if (!userProfile.type_rol || userProfile.type_rol.trim() === '') {
-        console.warn('El usuario no tiene type_rol definido en su perfil');
         setError('Tu perfil profesional no está completo. Por favor completa la información de tu rol en la página de estadísticas.');
         return;
       }
 
-      console.log('=== PERFIL USUARIO ===');
-      console.log('Perfil encontrado:', userProfile);
-      console.log('Type_rol exacto:', `"${userProfile.type_rol}"`);
-      console.log('Longitud del type_rol:', userProfile.type_rol.length);
-      console.log('=====================');
-
       // Mapear type_rol a exclusivo_rol_id (basado en el sistema anterior)
       const exclusivoRolId = mapTypeRolToExclusivoRolId(userProfile.type_rol);
-      console.log('=== DEBUG MAPEO ===');
-      console.log('Type_rol del usuario:', userProfile.type_rol);
-      console.log('Exclusivo_rol_id mapeado:', exclusivoRolId);
-      console.log('Mapeo completo:', {
-        'CEO': 1,
-        'CTO/CIO': 2,
-        'Dirección de Marketing': 3,
-        'Dirección de Ventas': 6
-      });
-      console.log('==================');
-
       // Obtener preguntas filtradas por perfil
-      console.log('Buscando preguntas para:', {
-        type_rol: userProfile.type_rol,
-        exclusivo_rol_id: exclusivoRolId
-      });
-
       // Primero intentar buscar preguntas específicas para el perfil
       let questions = [];
       let questionsError = null;
@@ -236,28 +205,17 @@ export default function DirectQuestionnairePage() {
         .order('bloque', { ascending: true })
         .order('codigo', { ascending: true });
       
-      console.log('Buscando preguntas específicas para exclusivo_rol_id:', exclusivoRolId);
-
-      console.log('Preguntas específicas para el perfil:', { 
-        specificQuestions, 
-        specificError,
-        count: specificQuestions?.length || 0,
-        userProfile: { type_rol: userProfile.type_rol, exclusivo_rol_id: exclusivoRolId }
-      });
-
       // Debug adicional: verificar qué preguntas se están obteniendo
       if (specificQuestions && specificQuestions.length > 0) {
-        console.log('Primeras 3 preguntas encontradas:', specificQuestions.slice(0, 3).map(q => ({
-          id: q.id,
-          codigo: q.codigo,
-          section: q.section,
-          bloque: q.bloque,
-          exclusivo_rol_id: q.exclusivo_rol_id,
-          texto: q.texto?.substring(0, 100) + '...'
-        })));
+        // console.log('Preguntas específicas encontradas:', specificQuestions.map(q => ({
+        //   id: q.id,
+        //   codigo: q.codigo,
+        //   section: q.section,
+        //   bloque: q.bloque,
+        //   exclusivo_rol_id: q.exclusivo_rol_id,
+        //   texto: q.texto?.substring(0, 100) + '...'
+        // })));
       } else {
-        console.warn('NO SE ENCONTRARON PREGUNTAS ESPECÍFICAS para exclusivo_rol_id:', exclusivoRolId);
-        
         // Verificar si hay preguntas en la base de datos
         const { data: allQuestions, error: allError } = await supabase
           .from('preguntas')
@@ -265,32 +223,27 @@ export default function DirectQuestionnairePage() {
           .eq('section', 'Cuestionario')
           .limit(10);
         
-        console.log('Preguntas disponibles en la base de datos:', allQuestions);
-        console.log('Error al obtener todas las preguntas:', allError);
-      }
+        }
       
       // Debug: Mostrar las primeras 3 preguntas encontradas
       if (specificQuestions && specificQuestions.length > 0) {
-        console.log('Primeras 3 preguntas encontradas:', specificQuestions.slice(0, 3).map(q => ({
-          id: q.id,
-          codigo: q.codigo,
-          section: q.section,
-          bloque: q.bloque,
-          exclusivo_rol_id: q.exclusivo_rol_id,
-          texto: q.texto?.substring(0, 50) + '...'
-        })));
+        // console.log('Primeras preguntas encontradas:', specificQuestions.slice(0, 3).map(q => ({
+        //   id: q.id,
+        //   codigo: q.codigo,
+        //   section: q.section,
+        //   bloque: q.bloque,
+        //   exclusivo_rol_id: q.exclusivo_rol_id,
+        //   texto: q.texto?.substring(0, 50) + '...'
+        // })));
       }
 
       if (specificError) {
-        console.error('Error fetching specific questions:', specificError);
+        // console.error('Error fetching specific questions:', specificError);
         questionsError = specificError;
       } else if (specificQuestions && specificQuestions.length > 0) {
         questions = specificQuestions;
-        console.log('Usando preguntas específicas para el perfil:', questions.length);
-      } else {
+        } else {
         // Si no hay preguntas específicas, buscar todas las preguntas del cuestionario
-        console.log('No hay preguntas específicas, buscando todas las preguntas del cuestionario...');
-        
         const { data: allQuestions, error: allError } = await supabase
           .from('preguntas')
           .select('*')
@@ -298,35 +251,29 @@ export default function DirectQuestionnairePage() {
           .order('bloque', { ascending: true })
           .order('codigo', { ascending: true });
 
-        console.log('Todas las preguntas disponibles:', { allQuestions, allError });
-
         if (allError) {
-          console.error('Error fetching all questions:', allError);
+          // console.error('Error fetching all questions:', allError);
           questionsError = allError;
         } else if (allQuestions && allQuestions.length > 0) {
           questions = allQuestions;
-          console.log('Usando todas las preguntas disponibles:', questions.length);
-        } else {
-          console.warn('No hay preguntas en la base de datos');
+          } else {
           setError('No hay preguntas disponibles en la base de datos. Contacta al administrador.');
           return;
         }
       }
 
       if (questionsError) {
-        console.error('Error fetching questions:', questionsError);
+        // console.error('Error fetching questions:', questionsError);
         setError(`Error al obtener las preguntas: ${questionsError.message}`);
         return;
       }
 
       if (!questions || questions.length === 0) {
-        console.warn('No se encontraron preguntas');
         setError('No se encontraron preguntas disponibles.');
         return;
       }
 
-      console.log('Preguntas cargadas:', questions.length);
-      console.log('Primera pregunta (estructura):', questions[0]);
+      // console.log('Primera pregunta encontrada:', questions[0]);
       
       // Agrupar preguntas por sección
       const questionsBySection = questions.reduce((acc, q) => {
@@ -336,20 +283,12 @@ export default function DirectQuestionnairePage() {
         acc[q.section].push(q);
         return acc;
       }, {});
-      console.log('Preguntas por sección:', questionsBySection);
-      
       // Agrupar preguntas por tipo
       const questionsByType = questions.reduce((acc, q) => {
         acc[q.tipo] = (acc[q.tipo] || 0) + 1;
         return acc;
       }, {});
-      console.log('Preguntas por tipo:', questionsByType);
-      
-      console.log('Todas las preguntas:', questions);
-
       // Obtener respuestas existentes (con manejo de errores robusto)
-      console.log('Buscando respuestas existentes para user_id:', user.id);
-      
       let existingAnswers = [];
       let answersError = null;
       
@@ -362,27 +301,22 @@ export default function DirectQuestionnairePage() {
           .single();
 
         if (profileError || !userProfile) {
-          console.warn('No se encontró perfil de usuario, continuando sin respuestas existentes:', profileError);
           existingAnswers = [];
         } else {
-          console.log('Perfil de usuario encontrado:', userProfile.id);
-          
           const { data, error } = await supabase
             .from('respuestas')
             .select('pregunta_id, valor')
             .eq('user_perfil_id', userProfile.id);
 
           if (error) {
-            console.warn('Error al obtener respuestas existentes (tabla puede no existir):', error);
+            // console.error('Error al obtener respuestas existentes:', error);
             answersError = error;
             existingAnswers = []; // Continuar sin respuestas existentes
           } else {
             existingAnswers = data || [];
-            console.log('Respuestas existentes encontradas:', existingAnswers.length);
-          }
+            }
         }
       } catch (err) {
-        console.warn('Error inesperado al obtener respuestas:', err);
         answersError = err;
         existingAnswers = []; // Continuar sin respuestas existentes
       }
@@ -411,12 +345,6 @@ export default function DirectQuestionnairePage() {
         q.bloque === 'Conocimiento'
       );
       
-      console.log('Preguntas encontradas por bloque:', {
-        adopcion: adoptionQuestions.length,
-        conocimiento: knowledgeQuestions.length,
-        total: questionsWithAnswers.length
-      });
-      
       // Crear secciones basadas en los bloques encontrados
       if (adoptionQuestions.length > 0) {
         sections.push({
@@ -436,7 +364,6 @@ export default function DirectQuestionnairePage() {
 
       // Si no se encontraron secciones por bloque, crear una sección general
       if (sections.length === 0) {
-        console.log('No se encontraron preguntas por bloque, creando sección general...');
         sections.push({
           name: 'Cuestionario',
           description: 'Preguntas generales',
@@ -444,19 +371,9 @@ export default function DirectQuestionnairePage() {
         });
       }
 
-      console.log('Secciones organizadas:', sections);
-      console.log('Preguntas por sección:', {
-        adopcion: adoptionQuestions.length,
-        conocimiento: knowledgeQuestions.length,
-        total: questionsWithAnswers.length
-      });
-      console.log('Ejemplo de pregunta de adopción:', adoptionQuestions[0]);
-      console.log('Ejemplo de pregunta de conocimiento:', knowledgeQuestions[0]);
-      
       // Debug: Ver todos los bloques únicos en las preguntas
       const uniqueBlocks = [...new Set(questionsWithAnswers.map(q => q.bloque))];
-      console.log('Bloques únicos encontrados:', uniqueBlocks);
-      console.log('Primeras 5 preguntas con sus bloques:', questionsWithAnswers.slice(0, 5).map(q => ({ id: q.id, section: q.section, bloque: q.bloque, tipo: q.tipo })));
+      // console.log('Preguntas con respuestas:', questionsWithAnswers.map(q => ({ id: q.id, section: q.section, bloque: q.bloque, tipo: q.tipo })));
 
       setData({
         sections,
@@ -471,7 +388,7 @@ export default function DirectQuestionnairePage() {
       setAnswers(answersMap);
 
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      // console.error('Error fetching questions:', error);
       setError('Error al cargar las preguntas');
     } finally {
       setLoading(false);
@@ -489,13 +406,8 @@ export default function DirectQuestionnairePage() {
     try {
       setSaving(true);
       
-      console.log('=== INICIANDO GUARDADO DE RESPUESTA ===');
-      console.log('Question ID:', questionId);
-      console.log('Value:', value);
-      console.log('User:', user?.id);
-      
       if (!user) {
-        console.error('No hay usuario autenticado');
+        // console.error('No hay usuario autenticado');
         return;
       }
       
@@ -504,7 +416,6 @@ export default function DirectQuestionnairePage() {
 
       try {
         // Primero obtener el user_perfil_id del usuario
-        console.log('Buscando perfil de usuario para user_id:', user.id);
         const { data: userProfile, error: profileError } = await supabase
           .from('user_perfil')
           .select('id')
@@ -512,15 +423,12 @@ export default function DirectQuestionnairePage() {
           .single();
 
         if (profileError || !userProfile) {
-          console.error('Error al obtener perfil de usuario:', profileError);
-          console.error('Datos del perfil:', userProfile);
+          // console.error('Error al obtener perfil de usuario:', profileError);
+          // console.error('Datos del perfil:', userProfile);
           return;
         }
 
-        console.log('Perfil de usuario encontrado:', userProfile.id);
-
         // Verificar si ya existe una respuesta
-        console.log('Verificando si existe respuesta para pregunta:', questionId);
         const { data: existingAnswer, error: checkError } = await supabase
           .from('respuestas')
           .select('id')
@@ -528,18 +436,13 @@ export default function DirectQuestionnairePage() {
           .eq('pregunta_id', questionId)
           .single();
 
-        console.log('Respuesta existente:', existingAnswer);
-        console.log('Error al verificar:', checkError);
-
         if (checkError && checkError.code !== 'PGRST116') {
           // PGRST116 = no rows returned, que es normal si no existe la respuesta
-          console.warn('Error al verificar respuesta existente:', checkError);
           return;
         }
 
         if (existingAnswer) {
           // Actualizar respuesta existente
-          console.log('Actualizando respuesta existente con ID:', existingAnswer.id);
           const { error: updateError } = await supabase
             .from('respuestas')
             .update({
@@ -549,13 +452,11 @@ export default function DirectQuestionnairePage() {
             .eq('id', existingAnswer.id);
 
           if (updateError) {
-            console.error('Error al actualizar respuesta:', updateError);
+            // console.error('Error al actualizar respuesta:', updateError);
           } else {
-            console.log('✅ Respuesta actualizada correctamente para pregunta', questionId);
-          }
+            }
         } else {
           // Crear nueva respuesta
-          console.log('Creando nueva respuesta...');
           const insertData = {
             user_perfil_id: userProfile.id,
             pregunta_id: questionId,
@@ -563,37 +464,32 @@ export default function DirectQuestionnairePage() {
             respondido_en: new Date().toISOString()
           };
           
-          console.log('Datos a insertar:', insertData);
-          
           const { data: insertResult, error: insertError } = await supabase
             .from('respuestas')
             .insert(insertData)
             .select();
 
           if (insertError) {
-            console.error('❌ Error al crear nueva respuesta:', insertError);
-            console.error('Detalles del error:', {
-              message: insertError.message,
-              details: insertError.details,
-              hint: insertError.hint,
-              code: insertError.code
-            });
+            // console.error('❌ Error al crear nueva respuesta:', insertError);
+            // console.error('Detalles del error:', {
+            //   message: insertError.message,
+            //   details: insertError.details,
+            //   hint: insertError.hint,
+            //   code: insertError.code
+            // });
           } else {
-            console.log('✅ Nueva respuesta creada correctamente:', insertResult);
-            console.log('✅ Respuesta guardada para pregunta', questionId);
-          }
+            }
         }
       } catch (tableError) {
-        console.error('❌ Error con la tabla respuestas:', tableError);
+        // console.error('❌ Error con la tabla respuestas:', tableError);
         // Continuar sin guardar - el cuestionario puede funcionar sin persistir respuestas
       }
 
     } catch (error) {
-      console.error('❌ Error general en saveAnswer:', error);
+      // console.error('❌ Error general en saveAnswer:', error);
     } finally {
       setSaving(false);
-      console.log('=== FINALIZANDO GUARDADO DE RESPUESTA ===');
-    }
+      }
   };
 
   const handleNext = async () => {
@@ -645,26 +541,20 @@ export default function DirectQuestionnairePage() {
       }
       
       // Guardar TODAS las respuestas restantes
-      console.log('Guardando todas las respuestas...');
       const savePromises = Object.entries(answers).map(async ([questionId, value]) => {
         try {
           await saveAnswer(parseInt(questionId), value);
-          console.log(`Respuesta guardada para pregunta ${questionId}`);
-        } catch (error) {
-          console.warn(`Error al guardar respuesta ${questionId}:`, error);
-        }
+          } catch (error) {
+          }
       });
       
       await Promise.allSettled(savePromises);
-      
-      console.log('Cuestionario completado!');
-      console.log('Respuestas finales:', answers);
       
       // Redirigir a la página de estadísticas
       router.push('/statistics/results');
       
     } catch (error) {
-      console.error('Error al finalizar cuestionario:', error);
+      // console.error('Error al finalizar cuestionario:', error);
       alert('Error al finalizar el cuestionario. Por favor intenta nuevamente.');
     } finally {
       setSaving(false);
@@ -738,17 +628,6 @@ export default function DirectQuestionnairePage() {
   const progress = (currentQuestionNumber / totalQuestions) * 100;
   const answeredQuestions = Object.keys(answers).length;
   
-  console.log('Questionnaire state:', {
-    currentSectionIndex,
-    currentQuestionIndex,
-    currentSection: currentSection.name,
-    totalQuestions,
-    currentQuestionNumber,
-    currentQuestion,
-    progress,
-    answeredQuestions
-  });
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       {/* Compact Header - Todo en una línea */}
@@ -842,7 +721,7 @@ export default function DirectQuestionnairePage() {
 
             {/* Answer Options */}
             <div className="space-y-3 mb-8">
-              {console.log('Current question options:', currentQuestion.opciones)}
+              {}
               {currentQuestion.opciones && currentQuestion.opciones.length > 0 ? (
                 currentQuestion.opciones.map((opcion, index) => (
                 <motion.button

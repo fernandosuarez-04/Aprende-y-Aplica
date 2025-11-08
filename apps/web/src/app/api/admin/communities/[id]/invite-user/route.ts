@@ -58,7 +58,7 @@ export async function POST(
       .single()
 
     if (memberError && memberError.code !== 'PGRST116') {
-      console.error('Error checking existing member:', memberError)
+      // console.error('Error checking existing member:', memberError)
       return NextResponse.json(
         { success: false, error: 'Error al verificar membresía' },
         { status: 500 }
@@ -99,7 +99,7 @@ export async function POST(
       .single()
 
     if (addError) {
-      console.error('Error adding member:', addError)
+      // console.error('Error adding member:', addError)
       return NextResponse.json(
         { success: false, error: 'Error al agregar usuario a la comunidad' },
         { status: 500 }
@@ -112,7 +112,6 @@ export async function POST(
     })
 
     if (updateCountError) {
-      console.warn('Error updating member count:', updateCountError)
       // No fallar la operación por esto
     }
 
@@ -148,7 +147,7 @@ export async function POST(
       }, { status: 400 })
     }
     
-    console.error('Error in POST /api/admin/communities/[id]/invite-user:', error)
+    // console.error('Error in POST /api/admin/communities/[id]/invite-user:', error)
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }

@@ -73,7 +73,7 @@ export function usePurchaseHistory(): UsePurchaseHistoryReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMessage);
-      console.error('Error fetching purchase history:', err);
+      // console.error('Error fetching purchase history:', err);
     } finally {
       setLoading(false);
     }

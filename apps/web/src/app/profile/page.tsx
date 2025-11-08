@@ -58,7 +58,7 @@ export default function ProfilePage() {
     try {
       await updateProfile(formData)
     } catch (error) {
-      console.error('Error saving profile:', error)
+      // console.error('Error saving profile:', error)
     }
   }
 
@@ -188,7 +188,7 @@ export default function ProfilePage() {
                         try {
                           await uploadProfilePicture(e.target.files[0])
                         } catch (error) {
-                          console.error('Error uploading profile picture:', error)
+                          // console.error('Error uploading profile picture:', error)
                         }
                       }
                     }}
@@ -495,7 +495,7 @@ export default function ProfilePage() {
                             try {
                               await uploadCurriculum(e.target.files[0])
                             } catch (error) {
-                              console.error('Error uploading curriculum:', error)
+                              // console.error('Error uploading curriculum:', error)
                             }
                           }
                         }}

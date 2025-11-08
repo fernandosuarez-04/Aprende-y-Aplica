@@ -52,7 +52,7 @@ export function CommentsSection({
         setComments(data.comments || []);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      // console.error('Error fetching comments:', error);
     }
   };
 
@@ -85,11 +85,11 @@ export function CommentsSection({
         onCommentAdded?.(data.comment);
       } else {
         const errorData = await response.json();
-        console.error('Error creating comment:', errorData.error);
+        // console.error('Error creating comment:', errorData.error);
         alert('Error al crear el comentario: ' + errorData.error);
       }
     } catch (error) {
-      console.error('Error creating comment:', error);
+      // console.error('Error creating comment:', error);
       alert('Error al crear el comentario');
     } finally {
       setIsSubmitting(false);
@@ -125,11 +125,11 @@ export function CommentsSection({
         setReplyingTo(null);
       } else {
         const errorData = await response.json();
-        console.error('Error creating reply:', errorData.error);
+        // console.error('Error creating reply:', errorData.error);
         alert('Error al crear la respuesta: ' + errorData.error);
       }
     } catch (error) {
-      console.error('Error creating reply:', error);
+      // console.error('Error creating reply:', error);
       alert('Error al crear la respuesta');
     } finally {
       setIsSubmitting(false);

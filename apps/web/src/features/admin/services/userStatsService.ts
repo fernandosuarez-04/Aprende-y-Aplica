@@ -61,7 +61,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to create user profile')
       return await response.json()
     } catch (error) {
-      console.error('Error creating user profile:', error)
+      // console.error('Error creating user profile:', error)
       throw error
     }
   }
@@ -76,7 +76,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to update user profile')
       return await response.json()
     } catch (error) {
-      console.error('Error updating user profile:', error)
+      // console.error('Error updating user profile:', error)
       throw error
     }
   }
@@ -88,7 +88,7 @@ export class UserStatsService {
       })
       if (!response.ok) throw new Error('Failed to delete user profile')
     } catch (error) {
-      console.error('Error deleting user profile:', error)
+      // console.error('Error deleting user profile:', error)
       throw error
     }
   }
@@ -100,7 +100,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch questions')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching questions:', error)
+      // console.error('Error fetching questions:', error)
       throw error
     }
   }
@@ -111,7 +111,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch question')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching question:', error)
+      // console.error('Error fetching question:', error)
       throw error
     }
   }
@@ -126,7 +126,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to create question')
       return await response.json()
     } catch (error) {
-      console.error('Error creating question:', error)
+      // console.error('Error creating question:', error)
       throw error
     }
   }
@@ -141,7 +141,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to update question')
       return await response.json()
     } catch (error) {
-      console.error('Error updating question:', error)
+      // console.error('Error updating question:', error)
       throw error
     }
   }
@@ -153,7 +153,7 @@ export class UserStatsService {
       })
       if (!response.ok) throw new Error('Failed to delete question')
     } catch (error) {
-      console.error('Error deleting question:', error)
+      // console.error('Error deleting question:', error)
       throw error
     }
   }
@@ -165,7 +165,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch answers')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching answers:', error)
+      // console.error('Error fetching answers:', error)
       throw error
     }
   }
@@ -176,7 +176,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch answer')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching answer:', error)
+      // console.error('Error fetching answer:', error)
       throw error
     }
   }
@@ -191,7 +191,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to create answer')
       return await response.json()
     } catch (error) {
-      console.error('Error creating answer:', error)
+      // console.error('Error creating answer:', error)
       throw error
     }
   }
@@ -206,7 +206,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to update answer')
       return await response.json()
     } catch (error) {
-      console.error('Error updating answer:', error)
+      // console.error('Error updating answer:', error)
       throw error
     }
   }
@@ -218,7 +218,7 @@ export class UserStatsService {
       })
       if (!response.ok) throw new Error('Failed to delete answer')
     } catch (error) {
-      console.error('Error deleting answer:', error)
+      // console.error('Error deleting answer:', error)
       throw error
     }
   }
@@ -230,7 +230,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch GenAI adoption data')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching GenAI adoption:', error)
+      // console.error('Error fetching GenAI adoption:', error)
       throw error
     }
   }
@@ -241,7 +241,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch GenAI adoption record')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching GenAI adoption record:', error)
+      // console.error('Error fetching GenAI adoption record:', error)
       throw error
     }
   }
@@ -256,7 +256,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to create GenAI adoption record')
       return await response.json()
     } catch (error) {
-      console.error('Error creating GenAI adoption:', error)
+      // console.error('Error creating GenAI adoption:', error)
       throw error
     }
   }
@@ -271,7 +271,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to update GenAI adoption record')
       return await response.json()
     } catch (error) {
-      console.error('Error updating GenAI adoption:', error)
+      // console.error('Error updating GenAI adoption:', error)
       throw error
     }
   }
@@ -283,7 +283,7 @@ export class UserStatsService {
       })
       if (!response.ok) throw new Error('Failed to delete GenAI adoption record')
     } catch (error) {
-      console.error('Error deleting GenAI adoption:', error)
+      // console.error('Error deleting GenAI adoption:', error)
       throw error
     }
   }
@@ -295,7 +295,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch roles')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching roles:', error)
+      // console.error('Error fetching roles:', error)
       throw error
     }
   }
@@ -306,7 +306,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch levels')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching levels:', error)
+      // console.error('Error fetching levels:', error)
       throw error
     }
   }
@@ -317,7 +317,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch areas')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching areas:', error)
+      // console.error('Error fetching areas:', error)
       throw error
     }
   }
@@ -328,7 +328,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch relationships')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching relationships:', error)
+      // console.error('Error fetching relationships:', error)
       throw error
     }
   }
@@ -339,7 +339,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch company sizes')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching company sizes:', error)
+      // console.error('Error fetching company sizes:', error)
       throw error
     }
   }
@@ -350,7 +350,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch sectors')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching sectors:', error)
+      // console.error('Error fetching sectors:', error)
       throw error
     }
   }
@@ -362,7 +362,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch user stats')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching user stats:', error)
+      // console.error('Error fetching user stats:', error)
       throw error
     }
   }
@@ -373,7 +373,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch question stats')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching question stats:', error)
+      // console.error('Error fetching question stats:', error)
       throw error
     }
   }
@@ -384,7 +384,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch answer stats')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching answer stats:', error)
+      // console.error('Error fetching answer stats:', error)
       throw error
     }
   }
@@ -395,7 +395,7 @@ export class UserStatsService {
       if (!response.ok) throw new Error('Failed to fetch GenAI stats')
       return await response.json()
     } catch (error) {
-      console.error('Error fetching GenAI stats:', error)
+      // console.error('Error fetching GenAI stats:', error)
       throw error
     }
   }

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    console.error('Error en GET /api/business/settings/styles:', error);
+    // console.error('Error en GET /api/business/settings/styles:', error);
     return NextResponse.json(
       { success: false, error: 'Error al obtener estilos' },
       { status: 500 }
@@ -144,7 +144,7 @@ export async function PUT(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    console.error('Error en PUT /api/business/settings/styles:', error);
+    // console.error('Error en PUT /api/business/settings/styles:', error);
     return NextResponse.json(
       { success: false, error: 'Error al actualizar estilos' },
       { status: 500 }
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    console.error('Error en POST /api/business/settings/styles:', error);
+    // console.error('Error en POST /api/business/settings/styles:', error);
     return NextResponse.json(
       { success: false, error: 'Error al aplicar tema' },
       { status: 500 }

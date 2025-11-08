@@ -43,7 +43,7 @@ export async function GET(
 
     return NextResponse.json({ isPurchased });
   } catch (error) {
-    console.error('Error in check-purchase API:', error);
+    // console.error('Error in check-purchase API:', error);
     return NextResponse.json({ isPurchased: false });
   }
 }

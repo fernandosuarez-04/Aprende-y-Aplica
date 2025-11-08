@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
 
 /**
  * GET /api/courses/[slug]/questions
@@ -74,7 +75,7 @@ export async function GET(
     const { data: questions, error: questionsError } = await query;
 
     if (questionsError) {
-      console.error('Error fetching questions:', questionsError);
+      // console.error('Error fetching questions:', questionsError);
       return NextResponse.json(
         { error: 'Error al obtener preguntas' },
         { status: 500 }
@@ -137,12 +138,20 @@ export async function GET(
         user_reaction: userReactionsMap.get(question.id) || null
       }));
 
-      return NextResponse.json(questionsWithCounts || []);
+      // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+      return withCacheHeaders(
+        NextResponse.json(questionsWithCounts || []),
+        cacheHeaders.semiStatic
+      );
     }
 
-    return NextResponse.json(questions || []);
+    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+    return withCacheHeaders(
+      NextResponse.json(questions || []),
+      cacheHeaders.semiStatic
+    );
   } catch (error) {
-    console.error('Error in questions API:', error);
+    // console.error('Error in questions API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',
@@ -226,7 +235,7 @@ export async function POST(
       .single();
 
     if (questionError) {
-      console.error('Error creating question:', questionError);
+      // console.error('Error creating question:', questionError);
       return NextResponse.json(
         { error: 'Error al crear pregunta' },
         { status: 500 }
@@ -235,7 +244,7 @@ export async function POST(
 
     return NextResponse.json(question, { status: 201 });
   } catch (error) {
-    console.error('Error in questions API:', error);
+    // console.error('Error in questions API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

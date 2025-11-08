@@ -32,7 +32,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
       setUsers(data.users)
       setStats(data.stats)
     } catch (err) {
-      console.error('Error fetching users:', err)
+      // console.error('Error fetching users:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setIsLoading(false)

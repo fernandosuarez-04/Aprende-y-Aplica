@@ -26,7 +26,7 @@ export async function GET(
       modules
     })
   } catch (error) {
-    console.error('Error in GET /api/admin/courses/[id]/modules:', error)
+    // console.error('Error in GET /api/admin/courses/[id]/modules:', error)
     return NextResponse.json(
       { 
         success: false,
@@ -66,7 +66,7 @@ export async function POST(
       module
     })
   } catch (error) {
-    console.error('Error in POST /api/admin/courses/[id]/modules:', error)
+    // console.error('Error in POST /api/admin/courses/[id]/modules:', error)
     return NextResponse.json(
       { 
         success: false,

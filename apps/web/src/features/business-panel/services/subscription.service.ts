@@ -17,7 +17,7 @@ export class SubscriptionService {
 
       if (error && error.code !== 'PGRST116') {
         // PGRST116 = no rows returned, lo cual es válido
-        console.error('Error checking subscription:', error)
+        // console.error('Error checking subscription:', error)
         return false
       }
 
@@ -37,7 +37,7 @@ export class SubscriptionService {
       // Si end_date es null, significa lifetime y está activa
       return true
     } catch (error) {
-      console.error('Error in SubscriptionService.hasActiveSubscription:', error)
+      // console.error('Error in SubscriptionService.hasActiveSubscription:', error)
       return false
     }
   }
@@ -57,7 +57,7 @@ export class SubscriptionService {
         .maybeSingle()
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error getting subscription:', error)
+        // console.error('Error getting subscription:', error)
         return null
       }
 
@@ -76,7 +76,7 @@ export class SubscriptionService {
 
       return data
     } catch (error) {
-      console.error('Error in SubscriptionService.getActiveSubscription:', error)
+      // console.error('Error in SubscriptionService.getActiveSubscription:', error)
       return null
     }
   }

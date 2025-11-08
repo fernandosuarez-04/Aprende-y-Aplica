@@ -342,7 +342,7 @@ export default function StatisticsResultsPage() {
         .single();
 
       if (profileError || !userProfile) {
-        console.log('🔍 Usuario sin perfil, redirigiendo a personalizar experiencia');
+        // console.log('🔍 Usuario sin perfil, redirigiendo a personalizar experiencia');
         router.push('/statistics');
         return;
       }
@@ -355,16 +355,16 @@ export default function StatisticsResultsPage() {
         .limit(1);
 
       if (responsesError || !responses || responses.length === 0) {
-        console.log('🔍 Usuario sin respuestas, redirigiendo a personalizar experiencia');
+        // console.log('🔍 Usuario sin respuestas, redirigiendo a personalizar experiencia');
         router.push('/statistics');
         return;
       }
 
-      console.log('🔍 Usuario tiene datos, cargando estadísticas');
+      // console.log('🔍 Usuario tiene datos, cargando estadísticas');
       // Si tiene datos, cargar las estadísticas
       fetchStatisticsData();
     } catch (error) {
-      console.error('Error verificando datos del usuario:', error);
+      // console.error('Error verificando datos del usuario:', error);
       router.push('/statistics');
     }
   };
@@ -412,7 +412,7 @@ export default function StatisticsResultsPage() {
         .eq('user_perfil_id', userProfile.id);
 
       if (responsesError) {
-        console.warn('Error al obtener respuestas:', responsesError);
+        // console.warn('Error al obtener respuestas:', responsesError);
       }
 
       // Obtener datos de adopción por países
@@ -422,7 +422,7 @@ export default function StatisticsResultsPage() {
         .order('indice_aipi', { ascending: false });
 
       if (adoptionError) {
-        console.warn('Error al obtener datos de adopción:', adoptionError);
+        // console.warn('Error al obtener datos de adopción:', adoptionError);
       }
 
       // Procesar datos para el radar
@@ -441,7 +441,7 @@ export default function StatisticsResultsPage() {
       setCountryData(adoptionData || []);
 
     } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
+      // console.error('Error al obtener estadísticas:', error);
       setError('Error al cargar las estadísticas');
     } finally {
       setLoading(false);
@@ -930,12 +930,12 @@ export default function StatisticsResultsPage() {
                                 // Filtrar solo países con valores válidos (no null)
                                 const validCountries = countryData.filter(c => c.indice_aipi != null && c.indice_aipi > 0);
                                 const minValue = validCountries.length > 0 ? Math.min(...validCountries.map(c => c.indice_aipi)) : 0;
-                                console.log('🔍 Debug mínimo corregido:', {
-                                  validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi })),
-                                  minValue,
-                                  totalCountries: countryData.length,
-                                  validCountriesCount: validCountries.length
-                                });
+                                // console.log('🔍 Debug mínimo corregido:', {
+                                //   validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi })),
+                                //   minValue,
+                                //   totalCountries: countryData.length,
+                                //   validCountriesCount: validCountries.length
+                                // });
                                 return minValue.toFixed(3);
                               })()
                             : '0.000'
@@ -948,11 +948,11 @@ export default function StatisticsResultsPage() {
                                 const validCountries = countryData.filter(c => c.indice_aipi != null && c.indice_aipi > 0);
                                 const minValue = validCountries.length > 0 ? Math.min(...validCountries.map(c => c.indice_aipi)) : 0;
                                 const minCountry = validCountries.find(c => c.indice_aipi === minValue);
-                                console.log('🔍 Debug país mínimo corregido:', { 
-                                  minValue, 
-                                  minCountry,
-                                  validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi }))
-                                });
+                                // console.log('🔍 Debug país mínimo corregido:', {
+                                //   minValue,
+                                //   minCountry,
+                                //   validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi }))
+                                // });
                                 return minCountry?.pais || 'N/A';
                               })()
                             : 'N/A'
@@ -979,12 +979,12 @@ export default function StatisticsResultsPage() {
                       const userCountryData = countryData.find(c => 
                         c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim()
                       );
-                      console.log('🔍 Debug país usuario:', {
-                        userProfilePais: userProfile.pais,
-                        countryData: countryData.map(c => c.pais),
-                        userCountryData,
-                        countryDataLength: countryData.length
-                      });
+                      // console.log('🔍 Debug país usuario:', {
+                      //   userProfilePais: userProfile.pais,
+                      //   countryData: countryData.map(c => c.pais),
+                      //   userCountryData,
+                      //   countryDataLength: countryData.length
+                      // });
                       return userCountryData;
                     })() && (
                       <div className="flex justify-between items-center p-3 bg-yellow-500/10 dark:bg-yellow-500/10 border border-yellow-500/20 dark:border-yellow-500/20 rounded-lg">

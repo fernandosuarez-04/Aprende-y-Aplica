@@ -42,13 +42,13 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error('Error fetching reel:', error)
+      // console.error('Error fetching reel:', error)
       return NextResponse.json({ error: 'Reel not found' }, { status: 404 })
     }
 
     return NextResponse.json(reel)
   } catch (error) {
-    console.error('Error in GET /api/admin/reels/[id]:', error)
+    // console.error('Error in GET /api/admin/reels/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -67,8 +67,6 @@ export async function PUT(
     // ✅ SEGURIDAD: Validar datos de entrada con Zod
     const bodyRaw = await request.json()
     const body = UpdateReelSchema.parse(bodyRaw)
-    
-    console.log('🔄 Body validado:', JSON.stringify(body, null, 2))
 
     const updateData: any = {}
     
@@ -93,7 +91,7 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('Error updating reel:', error)
+      // console.error('Error updating reel:', error)
       return NextResponse.json({ error: 'Failed to update reel' }, { status: 500 })
     }
 
@@ -111,7 +109,7 @@ export async function PUT(
       }, { status: 400 })
     }
     
-    console.error('Error in PUT /api/admin/reels/[id]:', error)
+    // console.error('Error in PUT /api/admin/reels/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -133,13 +131,13 @@ export async function DELETE(
       .eq('id', id)
 
     if (error) {
-      console.error('Error deleting reel:', error)
+      // console.error('Error deleting reel:', error)
       return NextResponse.json({ error: 'Failed to delete reel' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error in DELETE /api/admin/reels/[id]:', error)
+    // console.error('Error in DELETE /api/admin/reels/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

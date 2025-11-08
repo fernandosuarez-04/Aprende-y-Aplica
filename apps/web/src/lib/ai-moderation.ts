@@ -56,7 +56,7 @@ export async function analyzeContentWithAI(
 
   // Si la moderación AI está desactivada o no hay API key
   if (!AI_MODERATION_ENABLED || !openai) {
-    console.log('⚠️ AI Moderation is disabled or API key missing');
+    // console.log('⚠️ AI Moderation is disabled or API key missing');
     return {
       isInappropriate: false,
       confidence: 0,
@@ -96,33 +96,33 @@ export async function analyzeContentWithAI(
 
     // 🔍 ANÁLISIS DUAL: SIEMPRE ejecutar GPT en paralelo para máxima precisión
     // GPT detecta leetspeak, contexto, amenazas veladas que OpenAI puede perder
-    console.log('🎯 Running GPT contextual analysis in parallel...');
+    // console.log('🎯 Running GPT contextual analysis in parallel...');
     
     try {
       const gptAnalysis = await analyzeContentWithGPT(content, context);
       
-      console.log('🤖 GPT Analysis Result:', {
-        gptConfidence: (gptAnalysis.confidence * 100).toFixed(1) + '%',
-        openAIConfidence: (confidence * 100).toFixed(1) + '%',
-        gptCategories: gptAnalysis.categories,
-        openAICategories: flaggedCategories,
-      });
+      // console.log('🤖 GPT Analysis Result:', {
+      //   gptConfidence: (gptAnalysis.confidence * 100).toFixed(1) + '%',
+      //   openAIConfidence: (confidence * 100).toFixed(1) + '%',
+      //   gptCategories: gptAnalysis.categories,
+      //   openAICategories: flaggedCategories,
+      // });
       
       // Usar el análisis más estricto (mayor confianza)
       if (gptAnalysis.confidence > confidence) {
-        console.log('✅ Using GPT result (higher confidence)');
+        // console.log('✅ Using GPT result (higher confidence)');
         confidence = gptAnalysis.confidence;
         isInappropriate = gptAnalysis.isInappropriate;
         flaggedCategories = [...flaggedCategories, ...gptAnalysis.categories];
       } else if (gptAnalysis.isInappropriate && !isInappropriate) {
         // Si GPT dice que es inapropiado pero OpenAI no, confiar en GPT
-        console.log('✅ GPT detected inappropriate content that OpenAI missed');
+        // console.log('✅ GPT detected inappropriate content that OpenAI missed');
         isInappropriate = true;
         flaggedCategories.push(...gptAnalysis.categories);
       }
       
     } catch (gptError) {
-      console.error('❌ Error in GPT analysis:', gptError);
+      // console.error('❌ Error in GPT analysis:', gptError);
       // Si GPT falla, seguir solo con OpenAI
     }
 
@@ -140,13 +140,13 @@ export async function analyzeContentWithAI(
       confidence < AUTO_BAN_THRESHOLD &&
       confidence >= CONFIDENCE_THRESHOLD;
 
-    console.log('🤖 AI Moderation Result:', {
-      isInappropriate,
-      confidence: (confidence * 100).toFixed(1) + '%',
-      categories: flaggedCategories,
-      requiresHumanReview,
-      processingTimeMs,
-    });
+    // console.log('🤖 AI Moderation Result:', {
+    //   isInappropriate,
+    //   confidence: (confidence * 100).toFixed(1) + '%',
+    //   categories: flaggedCategories,
+    //   requiresHumanReview,
+    //   processingTimeMs,
+    // });
 
     return {
       isInappropriate,
@@ -158,7 +158,7 @@ export async function analyzeContentWithAI(
     };
 
   } catch (error) {
-    console.error('❌ Error in AI moderation:', error);
+    // console.error('❌ Error in AI moderation:', error);
     
     // En caso de error, ser conservador y permitir el contenido
     // pero registrar para revisión manual
@@ -298,7 +298,7 @@ Recuerda: Leetspeak y números NO son excusa. "mu3rt3" = "muerte"`;
     };
 
   } catch (error) {
-    console.error('❌ Error in GPT moderation:', error);
+    // console.error('❌ Error in GPT moderation:', error);
     
     return {
       isInappropriate: false,
@@ -339,10 +339,10 @@ export async function logAIModerationAnalysis(
     });
 
     if (error) {
-      console.error('Error logging AI moderation:', error);
+      // console.error('Error logging AI moderation:', error);
     }
   } catch (error) {
-    console.error('Exception logging AI moderation:', error);
+    // console.error('Exception logging AI moderation:', error);
   }
 }
 

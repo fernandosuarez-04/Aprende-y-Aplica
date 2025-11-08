@@ -63,7 +63,7 @@ export function useAdminModules(): UseAdminModulesReturn {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
       // No limpiar todos los módulos en caso de error, mantener los existentes
-      console.error('Error fetching modules:', err)
+      // console.error('Error fetching modules:', err)
     } finally {
       setLoading(false)
     }

@@ -145,7 +145,7 @@ export function AdminRecentActivity() {
           setActivities([])
         }
       } catch (err) {
-        console.error('Error fetching recent activity:', err)
+        // console.error('Error fetching recent activity:', err)
         setError('No se pudo cargar la actividad reciente')
         setActivities([])
       } finally {

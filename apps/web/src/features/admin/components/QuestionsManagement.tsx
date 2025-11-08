@@ -85,7 +85,7 @@ export function QuestionsManagement() {
           niveles: niveles || []
         })
       } catch (error) {
-        console.error('Error loading lookup data:', error)
+        // console.error('Error loading lookup data:', error)
       }
     }
 
@@ -329,7 +329,7 @@ export function QuestionsManagement() {
           try {
             await createQuestion(questionData)
           } catch (error) {
-            console.error('Error al crear pregunta:', error)
+            // console.error('Error al crear pregunta:', error)
           }
         }
 
@@ -340,7 +340,7 @@ export function QuestionsManagement() {
           fileInputRef.current.value = ''
         }
       } catch (error) {
-        console.error('Error al importar CSV:', error)
+        // console.error('Error al importar CSV:', error)
         alert('Error al importar el archivo CSV. Verifica el formato.')
       }
     }

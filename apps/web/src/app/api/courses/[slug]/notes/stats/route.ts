@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { NoteService } from '@/features/courses/services/note.service'
 import { CourseService } from '@/features/courses/services/course.service'
 import { SessionService } from '@/features/auth/services/session.service'
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers'
 
 /**
  * GET /api/courses/[slug]/notes/stats
@@ -36,9 +37,13 @@ export async function GET(
 
     const stats = await NoteService.getNotesStats(currentUser.id, course.id)
 
-    return NextResponse.json(stats)
+    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos dinámicos - 30 segundos)
+    return withCacheHeaders(
+      NextResponse.json(stats),
+      cacheHeaders.dynamic
+    )
   } catch (error) {
-    console.error('Error in notes stats GET API:', error)
+    // console.error('Error in notes stats GET API:', error)
     return NextResponse.json(
       {
         error: 'Error interno del servidor',

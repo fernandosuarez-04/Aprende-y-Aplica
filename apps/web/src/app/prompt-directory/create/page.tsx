@@ -131,7 +131,7 @@ export default function CreatePromptPage() {
       }
 
       const data = await response.json();
-      console.log('📥 Frontend received data:', data);
+      // console.log('📥 Frontend received data:', data);
       const aiResponseText = data.response;
       const newGeneratedPrompt: GeneratedPrompt = data.generatedPrompt;
 
@@ -146,7 +146,7 @@ export default function CreatePromptPage() {
       setGeneratedPrompt(newGeneratedPrompt);
 
     } catch (error: any) {
-      console.error('Error sending message:', error);
+      // console.error('Error sending message:', error);
       setMessages((prev) => [
         ...prev,
         {
@@ -173,11 +173,11 @@ export default function CreatePromptPage() {
     setIsLoading(true);
     try {
       // TODO: Implement actual save to database API endpoint
-      console.log('Saving prompt:', {
-        ...generatedPrompt,
-        title: savePromptTitle,
-        description: savePromptDescription,
-      });
+      // console.log('Saving prompt:', {
+      //   ...generatedPrompt,
+      //   title: savePromptTitle,
+      //   description: savePromptDescription,
+      // });
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       alert('Prompt guardado exitosamente!');
@@ -187,7 +187,7 @@ export default function CreatePromptPage() {
       setGeneratedPrompt(null);
       router.push('/prompt-directory');
     } catch (error) {
-      console.error('Error saving prompt:', error);
+      // console.error('Error saving prompt:', error);
       alert('Error al guardar el prompt.');
     } finally {
       setIsLoading(false);

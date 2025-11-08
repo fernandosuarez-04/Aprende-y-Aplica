@@ -43,7 +43,7 @@ export default function CartPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('❌ Error en respuesta del checkout:', data);
+        // console.error('❌ Error en respuesta del checkout:', data);
         // Mostrar detalles si están disponibles
         const errorMessage = data.details 
           ? `${data.error}\n\nDetalles:\n${data.details.join('\n')}`
@@ -63,7 +63,7 @@ export default function CartPage() {
         throw new Error(data.error || 'Error al procesar el pago');
       }
     } catch (err) {
-      console.error('Error en checkout:', err);
+      // console.error('Error en checkout:', err);
       setError(err instanceof Error ? err.message : 'Error al procesar el pago');
     } finally {
       setIsProcessing(false);

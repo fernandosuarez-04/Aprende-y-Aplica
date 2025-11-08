@@ -23,7 +23,7 @@ export async function GET(
     })
 
     if (error) {
-      console.error('Error validating certificate:', error)
+      // console.error('Error validating certificate:', error)
       return NextResponse.json(
         { 
           error: 'Error al validar el certificado',
@@ -60,7 +60,7 @@ export async function GET(
       }
     })
   } catch (error) {
-    console.error('Error in /api/certificates/verify/[hash]:', error)
+    // console.error('Error in /api/certificates/verify/[hash]:', error)
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

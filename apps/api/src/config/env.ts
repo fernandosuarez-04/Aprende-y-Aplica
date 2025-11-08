@@ -169,19 +169,19 @@ function validateEnv() {
         throw new Error('❌ SUPABASE_SERVICE_ROLE_KEY es requerida en producción');
       }
 
-      console.log('✅ Validación de entorno en PRODUCCIÓN exitosa');
+      // console.log('✅ Validación de entorno en PRODUCCIÓN exitosa');
     } else {
       // ✅ En desarrollo, mostrar configuración (sin exponer valores)
-      console.log('🔧 Variables de entorno cargadas (desarrollo):');
-      console.log('  - NODE_ENV:', parsed.NODE_ENV);
-      console.log('  - PORT:', parsed.PORT);
-      console.log('  - SUPABASE_URL:', parsed.SUPABASE_URL ? '✅' : '❌');
-      console.log('  - JWT_SECRET:', jwtSecret ? '✅' : '❌');
-      console.log('  - REFRESH_SECRET:', refreshSecret ? '✅' : '❌');
-      console.log('  - SESSION_SECRET:', sessionSecret ? '✅' : '❌');
-      console.log('  - OPENAI_API_KEY:', parsed.OPENAI_API_KEY ? '✅' : '❌');
-      console.log('  - SMTP configurado:', parsed.SMTP_HOST && parsed.SMTP_USER ? '✅' : '❌');
-      console.log('  - OAuth configurado:', parsed.GOOGLE_OAUTH_CLIENT_ID ? '✅' : '❌');
+      // console.log('🔧 Variables de entorno cargadas (desarrollo):');
+      // console.log('  - NODE_ENV:', parsed.NODE_ENV);
+      // console.log('  - PORT:', parsed.PORT);
+      // console.log('  - SUPABASE_URL:', parsed.SUPABASE_URL ? '✅' : '❌');
+      // console.log('  - JWT_SECRET:', jwtSecret ? '✅' : '❌');
+      // console.log('  - REFRESH_SECRET:', refreshSecret ? '✅' : '❌');
+      // console.log('  - SESSION_SECRET:', sessionSecret ? '✅' : '❌');
+      // console.log('  - OPENAI_API_KEY:', parsed.OPENAI_API_KEY ? '✅' : '❌');
+      // console.log('  - SMTP configurado:', parsed.SMTP_HOST && parsed.SMTP_USER ? '✅' : '❌');
+      // console.log('  - OAuth configurado:', parsed.GOOGLE_OAUTH_CLIENT_ID ? '✅' : '❌');
     }
 
     // ✅ Retornar config con valores procesados
@@ -204,14 +204,14 @@ function validateEnv() {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('\n❌ Error de validación de variables de entorno:\n');
+      // console.error('\n❌ Error de validación de variables de entorno:\n');
       error.errors.forEach(err => {
-        console.error(`  - ${err.path.join('.')}: ${err.message}`);
+        // console.error(`  - ${err.path.join('.')}: ${err.message}`);
       });
-      console.error('\n💡 Revisa tu archivo .env y corrige los errores.');
-      console.error('💡 Consulta .env.example para ver las variables requeridas.\n');
+      // console.error('\n💡 Revisa tu archivo .env y corrige los errores.');
+      // console.error('💡 Consulta .env.example para ver las variables requeridas.\n');
     } else {
-      console.error('❌ Error validando entorno:', error);
+      // console.error('❌ Error validando entorno:', error);
     }
     process.exit(1);
   }

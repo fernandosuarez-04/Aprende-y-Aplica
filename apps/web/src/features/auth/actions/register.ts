@@ -116,7 +116,7 @@ export async function registerAction(formData: FormData) {
       .single()
 
     if (error) {
-      console.error('Error creating user profile:', error)
+      // console.error('Error creating user profile:', error)
       // Limpiar cuenta de auth en caso de error
       // Nota: Esto requeriría service role key, por ahora solo logueamos
       return { error: 'Error al crear perfil de usuario' }
@@ -128,7 +128,7 @@ export async function registerAction(formData: FormData) {
       userId: user.id 
     }
   } catch (error) {
-    console.error('Register error:', error)
+    // console.error('Register error:', error)
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message }
     }

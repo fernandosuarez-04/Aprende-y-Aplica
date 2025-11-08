@@ -51,7 +51,7 @@ export function usePersonalSubscriptions(): UsePersonalSubscriptionsReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMessage);
-      console.error('Error fetching subscription:', err);
+      // console.error('Error fetching subscription:', err);
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export function usePersonalSubscriptions(): UsePersonalSubscriptionsReturn {
       setCurrentSubscription(data.subscription);
       
       // TODO: Redirigir a página de pago o mostrar mensaje de éxito
-      console.log('Subscription created:', data.subscription);
+      // console.log('Subscription created:', data.subscription);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMessage);
@@ -120,7 +120,7 @@ export function usePersonalSubscriptions(): UsePersonalSubscriptionsReturn {
       setCurrentSubscription(data.subscription);
       
       // TODO: Mostrar mensaje de éxito
-      console.log('Subscription cancelled:', data.subscription);
+      // console.log('Subscription cancelled:', data.subscription);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMessage);

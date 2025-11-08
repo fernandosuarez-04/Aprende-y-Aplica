@@ -74,13 +74,13 @@ export class InstructorWorkshopsService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching instructor workshops:', error)
+        // console.error('Error fetching instructor workshops:', error)
         throw error
       }
 
       return (data || []) as InstructorWorkshop[]
     } catch (error) {
-      console.error('Error in InstructorWorkshopsService.getInstructorWorkshops:', error)
+      // console.error('Error in InstructorWorkshopsService.getInstructorWorkshops:', error)
       throw error
     }
   }
@@ -139,13 +139,13 @@ export class InstructorWorkshopsService {
         .single()
 
       if (error) {
-        console.error('Error creating workshop:', error)
+        // console.error('Error creating workshop:', error)
         throw error
       }
 
       return data as InstructorWorkshop
     } catch (error) {
-      console.error('Error in InstructorWorkshopsService.createWorkshop:', error)
+      // console.error('Error in InstructorWorkshopsService.createWorkshop:', error)
       throw error
     }
   }
@@ -213,13 +213,13 @@ export class InstructorWorkshopsService {
         .single()
 
       if (error) {
-        console.error('Error updating workshop:', error)
+        // console.error('Error updating workshop:', error)
         throw error
       }
 
       return data as InstructorWorkshop
     } catch (error) {
-      console.error('Error in InstructorWorkshopsService.updateWorkshop:', error)
+      // console.error('Error in InstructorWorkshopsService.updateWorkshop:', error)
       throw error
     }
   }
@@ -289,7 +289,7 @@ export class InstructorWorkshopsService {
         instructor_name: instructorName
       }
     } catch (error) {
-      console.error('Error in InstructorWorkshopsService.getWorkshopById:', error)
+      // console.error('Error in InstructorWorkshopsService.getWorkshopById:', error)
       throw error
     }
   }

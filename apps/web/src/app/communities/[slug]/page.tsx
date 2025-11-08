@@ -97,7 +97,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
         setComments(data.comments || []);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      // console.error('Error fetching comments:', error);
     }
   };
 
@@ -130,11 +130,11 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
         onCommentAdded?.(data.comment);
       } else {
         const errorData = await response.json();
-        console.error('Error creating comment:', errorData.error);
+        // console.error('Error creating comment:', errorData.error);
         alert('Error al crear el comentario: ' + errorData.error);
       }
     } catch (error) {
-      console.error('Error creating comment:', error);
+      // console.error('Error creating comment:', error);
       alert('Error al crear el comentario');
     } finally {
       setIsSubmitting(false);
@@ -251,7 +251,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Error copying to clipboard:', err);
+      // console.error('Error copying to clipboard:', err);
     }
   };
 
@@ -410,8 +410,8 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPollData, setCurrentPollData] = useState(pollData);
 
-  console.log('🎯 PollViewer received data:', pollData);
-  console.log('🎯 PollViewer - Raw pollData keys:', Object.keys(pollData || {}));
+  // console.log('🎯 PollViewer received data:', pollData);
+  // console.log('🎯 PollViewer - Raw pollData keys:', Object.keys(pollData || {}));
 
   // Normalizar los datos de la encuesta
   const normalizedData = {
@@ -419,7 +419,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
     options: currentPollData.options || currentPollData.choices || currentPollData.responses || []
   };
   
-  console.log('🎯 PollViewer - Normalized data:', normalizedData);
+  // console.log('🎯 PollViewer - Normalized data:', normalizedData);
 
   // Calcular votos totales usando la estructura del sistema anterior
   const totalVotes = normalizedData.options?.reduce((sum: number, option: any) => {
@@ -441,7 +441,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
           }
         }
       } catch (error) {
-        console.error('Error obteniendo voto del usuario:', error);
+        // console.error('Error obteniendo voto del usuario:', error);
       }
     };
 
@@ -482,15 +482,15 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
             setHasVoted(false);
           }
           
-          console.log('✅ Voto procesado:', data.message);
+          // console.log('✅ Voto procesado:', data.message);
         }
       } else {
         const errorData = await response.json();
-        console.error('Error en votación:', errorData.error);
+        // console.error('Error en votación:', errorData.error);
         // Aquí podrías mostrar un toast de error
       }
     } catch (error) {
-      console.error('Error enviando voto:', error);
+      // console.error('Error enviando voto:', error);
       // Aquí podrías mostrar un toast de error
     } finally {
       setIsLoading(false);
@@ -643,23 +643,23 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
   const [imageError, setImageError] = useState(false);
 
   // Debug: ver qué datos llegan
-  console.log('🔍 AttachmentViewer props:', { 
-    attachmentUrl, 
-    attachmentType, 
-    attachmentData, 
-    fileName,
-    isPoll: attachmentType === 'poll',
-    hasAttachmentData: !!attachmentData
-  });
+  // console.log('🔍 AttachmentViewer props:', {
+  //   attachmentUrl,
+  //   attachmentType,
+  //   attachmentData,
+  //   fileName,
+  //   isPoll: attachmentType === 'poll',
+  //   hasAttachmentData: !!attachmentData
+  // });
   
   // Debug más detallado para encuestas
   if (attachmentType === 'poll') {
-    console.log('🎯 POLL DETECTED - Full data:', {
-      attachmentType,
-      attachmentData,
-      attachmentUrl,
-      fileName
-    });
+    // console.log('🎯 POLL DETECTED - Full data:', {
+    //   attachmentType,
+    //   attachmentData,
+    //   attachmentUrl,
+    //   fileName
+    // });
   }
 
   // Si es una encuesta, renderizar el componente de encuesta
@@ -670,13 +670,13 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
                  (attachmentData && (attachmentData.question || attachmentData.options));
   
   if (isPoll && attachmentData) {
-    console.log('✅ Rendering PollViewer with data:', attachmentData);
+    // console.log('✅ Rendering PollViewer with data:', attachmentData);
     return <PollViewer pollData={attachmentData} postId={postId} />;
   }
 
   // Debug: si parece ser poll pero no tiene datos
   if (isPoll && !attachmentData) {
-    console.log('❌ Poll type detected but no attachment data:', { attachmentType, attachmentData });
+    // console.log('❌ Poll type detected but no attachment data:', { attachmentType, attachmentData });
   }
 
   if (!attachmentUrl) return null;
@@ -1222,7 +1222,7 @@ function useAuth() {
           setUser(null);
         }
       } catch (error) {
-        console.error('Error getting session:', error);
+        // console.error('Error getting session:', error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -1241,7 +1241,7 @@ function useAuth() {
         router.push('/auth');
       }
     } catch (error) {
-      console.error('Error during logout:', error);
+      // console.error('Error during logout:', error);
       // Fallback: limpiar estado local y redirigir
       setUser(null);
       router.push('/auth');
@@ -1350,7 +1350,7 @@ export default function CommunityDetailPage() {
 
   useEffect(() => {
     if (slug) {
-      console.log('🚀 Loading community in parallel mode');
+      // console.log('🚀 Loading community in parallel mode');
       console.time('Total Community Load');
       
       // ✅ Ejecutar ambas llamadas en PARALELO en lugar de secuencial
@@ -1359,9 +1359,9 @@ export default function CommunityDetailPage() {
         fetchPosts()
       ]).then(() => {
         console.timeEnd('Total Community Load');
-        console.log('✅ Community fully loaded');
+        // console.log('✅ Community fully loaded');
       }).catch(error => {
-        console.error('❌ Error loading community:', error);
+        // console.error('❌ Error loading community:', error);
       });
     }
   }, [slug]);
@@ -1373,10 +1373,10 @@ export default function CommunityDetailPage() {
         const data = await response.json();
         setCommunity(data.community);
       } else {
-        console.error('Error fetching community:', response.statusText);
+        // console.error('Error fetching community:', response.statusText);
       }
     } catch (error) {
-      console.error('Error fetching community:', error);
+      // console.error('Error fetching community:', error);
     }
   };
 
@@ -1385,11 +1385,11 @@ export default function CommunityDetailPage() {
       const response = await fetch(`/api/communities/${slug}/posts`);
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Posts data received:', data.posts);
+        // console.log('📊 Posts data received:', data.posts);
         
         // Debug: buscar posts con encuestas
         const pollPosts = data.posts?.filter((post: any) => post.attachment_type === 'poll');
-        console.log('🔍 Poll posts found:', pollPosts);
+        // console.log('🔍 Poll posts found:', pollPosts);
         
         setPosts(data.posts || []);
         
@@ -1399,7 +1399,7 @@ export default function CommunityDetailPage() {
         }
       } else {
         const errorData = await response.json();
-        console.error('Error fetching posts:', errorData);
+        // console.error('Error fetching posts:', errorData);
         
         // Si es error de autenticación, no mostrar posts pero permitir ver la comunidad
         if (response.status === 401 && errorData.requires_auth) {
@@ -1409,7 +1409,7 @@ export default function CommunityDetailPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      // console.error('Error fetching posts:', error);
     } finally {
       setIsLoading(false);
     }
@@ -1421,7 +1421,7 @@ export default function CommunityDetailPage() {
 
       const postIds = posts.map(post => post.id);
       
-      console.log(`🚀 Loading reactions for ${postIds.length} posts using batch endpoint`);
+      // console.log(`🚀 Loading reactions for ${postIds.length} posts using batch endpoint`);
       console.time('Batch Reactions Load');
 
       // ✅ 1 SOLA LLAMADA HTTP para obtener todas las reacciones
@@ -1434,13 +1434,13 @@ export default function CommunityDetailPage() {
       });
 
       if (!response.ok) {
-        console.error('Error loading batch reactions:', response.statusText);
+        // console.error('Error loading batch reactions:', response.statusText);
         return;
       }
 
       const data = await response.json();
       console.timeEnd('Batch Reactions Load');
-      console.log(`✅ Batch reactions loaded successfully for ${data.totalPosts} posts`);
+      // console.log(`✅ Batch reactions loaded successfully for ${data.totalPosts} posts`);
 
       // Mapear los datos recibidos al formato esperado
       const userReactionsMap: Record<string, string | null> = {};
@@ -1455,7 +1455,7 @@ export default function CommunityDetailPage() {
       setPostReactionStats(reactionStatsMap);
 
     } catch (error) {
-      console.error('Error loading user reactions:', error);
+      // console.error('Error loading user reactions:', error);
     }
   };
 
@@ -1503,7 +1503,7 @@ export default function CommunityDetailPage() {
           type: postAttachment.type,
           ...postAttachment.data
         };
-        console.log('🎥 [YOUTUBE] handleCreatePost - TIPO ANTES DE ENVIAR:', postAttachment.type, attachmentData);
+        // console.log('🎥 [YOUTUBE] handleCreatePost - TIPO ANTES DE ENVIAR:', postAttachment.type, attachmentData);
       }
 
       const result = await createPostWithAttachment(slug, newPostContent, attachmentData);
@@ -1517,7 +1517,7 @@ export default function CommunityDetailPage() {
       setCommunity(prev => prev ? { ...prev, member_count: prev.member_count + 1 } : null);
       
     } catch (error) {
-      console.error('Error creating post:', error);
+      // console.error('Error creating post:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el post';
       alert(errorMessage);
     } finally {
@@ -1625,14 +1625,14 @@ export default function CommunityDetailPage() {
             }));
           }
         } catch (error) {
-          console.error('Error reloading reaction stats:', error);
+          // console.error('Error reloading reaction stats:', error);
         }
       } else {
         const errorData = await response.json();
-        console.error('Error handling reaction:', errorData.error);
+        // console.error('Error handling reaction:', errorData.error);
       }
     } catch (error) {
-      console.error('Error handling reaction:', error);
+      // console.error('Error handling reaction:', error);
     }
   };
 
@@ -1658,7 +1658,7 @@ export default function CommunityDetailPage() {
           fetchPosts();
         } else {
           const errorData = await response.json();
-          console.error('Error joining community:', errorData.error);
+          // console.error('Error joining community:', errorData.error);
         }
       } else {
         const response = await fetch('/api/communities/request-access', {
@@ -1673,11 +1673,11 @@ export default function CommunityDetailPage() {
           setCommunity(prev => prev ? { ...prev, has_pending_request: true } : null);
         } else {
           const errorData = await response.json();
-          console.error('Error requesting access:', errorData.error);
+          // console.error('Error requesting access:', errorData.error);
         }
       }
     } catch (error) {
-      console.error('Error joining community:', error);
+      // console.error('Error joining community:', error);
     } finally {
       setIsJoining(false);
     }
@@ -2133,14 +2133,14 @@ export default function CommunityDetailPage() {
                           emoji: reaction.emoji
                         }));
                         
-                        console.log('Post reaction data:', {
-                          postId: post.id,
-                          totalReactions,
-                          reactionStats,
-                          topReactions,
-                          postReactions: postReactions[post.id],
-                          postReactionCount: post.reaction_count
-                        });
+                        // console.log('Post reaction data:', {
+                        //   postId: post.id,
+                        //   totalReactions,
+                        //   reactionStats,
+                        //   topReactions,
+                        //   postReactions: postReactions[post.id],
+                        //   postReactionCount: post.reaction_count
+                        // });
                         
                         return (
                           <ReactionBanner

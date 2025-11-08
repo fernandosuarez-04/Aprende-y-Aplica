@@ -28,8 +28,6 @@ export class AdminCoursesService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 Cargando cursos desde la tabla courses...')
-
       // ✅ OPTIMIZACIÓN: Usar JOIN para obtener instructor en la misma query
       // ANTES: 1 + N queries (100 cursos = 101 queries)
       // DESPUÉS: 1 query total (99% menos queries)
@@ -63,11 +61,11 @@ export class AdminCoursesService {
         .order('title', { ascending: true })
 
       if (error) {
-        console.error('❌ Error fetching courses:', error)
+        // console.error('❌ Error fetching courses:', error)
         return []
       }
 
-      console.log('✅ Cursos cargados con instructores (1 query):', data?.length || 0)
+      // console.log('Cursos encontrados:', data?.length || 0)
 
       // Mapear datos con instructor ya incluido
       const courses = (data || []).map((course: any) => {
@@ -101,10 +99,9 @@ export class AdminCoursesService {
         }
       })
 
-      console.log('✅ Cursos procesados:', courses.length)
       return courses
     } catch (error) {
-      console.error('💥 Error in AdminCoursesService.getAllCourses:', error)
+      // console.error('💥 Error in AdminCoursesService.getAllCourses:', error)
       return []
     }
   }
@@ -113,8 +110,6 @@ export class AdminCoursesService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 Cargando cursos activos...')
-
       // ✅ OPTIMIZACIÓN: Usar JOIN para obtener instructor en la misma query
       // ANTES: 1 + N queries (100 cursos = 101 queries)
       // DESPUÉS: 1 query total (99% menos queries)
@@ -149,11 +144,11 @@ export class AdminCoursesService {
         .order('title', { ascending: true })
 
       if (error) {
-        console.error('❌ Error fetching active courses:', error)
+        // console.error('❌ Error fetching active courses:', error)
         return []
       }
 
-      console.log('✅ Cursos activos cargados con instructores (1 query):', data?.length || 0)
+      // console.log('Cursos activos encontrados:', data?.length || 0)
 
       // Mapear datos con instructor ya incluido
       const courses = (data || []).map((course: any) => {
@@ -187,10 +182,9 @@ export class AdminCoursesService {
         }
       })
 
-      console.log('✅ Cursos activos procesados:', courses.length)
       return courses
     } catch (error) {
-      console.error('💥 Error in AdminCoursesService.getActiveCourses:', error)
+      // console.error('💥 Error in AdminCoursesService.getActiveCourses:', error)
       return []
     }
   }

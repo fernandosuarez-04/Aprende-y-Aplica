@@ -68,14 +68,11 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
    */
   const refreshToken = useCallback(async () => {
     if (isRefreshingRef.current) {
-      console.log('🔄 Ya hay un refresh en progreso, ignorando');
       return;
     }
     
     try {
       isRefreshingRef.current = true;
-      console.log('🔄 Refrescando access token...');
-      
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
         credentials: 'include'
@@ -85,7 +82,6 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
         const data = await response.json();
         
         if (data.code === 'SESSION_EXPIRED') {
-          console.log('❌ Sesión expirada completamente');
           onExpiry?.();
           
           if (redirectOnExpiry) {
@@ -98,8 +94,6 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
       }
       
       const data = await response.json();
-      console.log('✅ Token refrescado exitosamente');
-      
       // Programar el siguiente refresh
       if (data.expiresAt) {
         scheduleNextRefresh(data.expiresAt);
@@ -108,7 +102,7 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
       onRefresh?.();
       
     } catch (error) {
-      console.error('💥 Error refrescando token:', error);
+      // console.error('💥 Error refrescando token:', error);
       
       // Si falla, intentar una vez más en 30 segundos
       refreshTimerRef.current = setTimeout(() => {
@@ -136,10 +130,9 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
     
     if (refreshTime <= 0) {
       // Ya expiró o está a punto de expirar, refrescar inmediatamente
-      console.log('⚠️ Token a punto de expirar, refrescando inmediatamente');
       refreshToken();
     } else {
-      console.log(`⏰ Programando refresh en ${Math.round(refreshTime / 1000 / 60)} minutos`);
+      } minutos`);
       refreshTimerRef.current = setTimeout(() => {
         refreshToken();
       }, refreshTime);
@@ -151,27 +144,23 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
    */
   const initializeSession = useCallback(async () => {
     try {
-      console.log('🔍 Verificando estado de sesión...');
-      
       const response = await fetch('/api/auth/refresh', {
         method: 'GET',
         credentials: 'include'
       });
       
       if (!response.ok) {
-        console.log('❌ No hay sesión activa');
         return;
       }
       
       const data = await response.json();
       
       if (data.authenticated && data.accessExpiresAt) {
-        console.log('✅ Sesión activa encontrada');
         scheduleNextRefresh(data.accessExpiresAt);
       }
       
     } catch (error) {
-      console.error('💥 Error inicializando sesión:', error);
+      // console.error('💥 Error inicializando sesión:', error);
     }
   }, [scheduleNextRefresh]);
   

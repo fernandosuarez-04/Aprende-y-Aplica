@@ -14,7 +14,6 @@ export async function PATCH(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId, requestId } = await params
-    console.log('🔍 Approve API - communityId:', communityId, 'requestId:', requestId)
     const supabase = await createClient()
 
     // Validar que el usuario puede gestionar solicitudes de esta comunidad
@@ -35,14 +34,12 @@ export async function PATCH(
       .single()
 
     if (fetchError || !currentRequest) {
-      console.error('❌ Error fetching request:', fetchError)
+      // console.error('❌ Error fetching request:', fetchError)
       return NextResponse.json({ 
         success: false, 
         message: 'Solicitud no encontrada' 
       }, { status: 404 })
     }
-
-    console.log('✅ Request found:', currentRequest)
 
     if (currentRequest.status !== 'pending') {
       return NextResponse.json({ 
@@ -65,7 +62,7 @@ export async function PATCH(
       .single()
 
     if (updateError) {
-      console.error('Error updating access request:', updateError)
+      // console.error('Error updating access request:', updateError)
       return NextResponse.json({ 
         success: false, 
         message: 'Error al aprobar la solicitud' 
@@ -84,7 +81,7 @@ export async function PATCH(
       })
 
     if (addMemberError) {
-      console.error('Error adding member to community:', addMemberError)
+      // console.error('Error adding member to community:', addMemberError)
       // No fallar la operación por esto, solo loguear el error
     }
 
@@ -106,7 +103,6 @@ export async function PATCH(
         .eq('id', communityId)
 
       if (updateCountError) {
-        console.warn('Error updating member count:', updateCountError)
         // No fallar la operación por esto, solo loguear el warning
       }
     }
@@ -128,7 +124,7 @@ export async function PATCH(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.warn('Error en log de auditoría (no crítico):', auditError)
+      // console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 
@@ -138,7 +134,7 @@ export async function PATCH(
       message: 'Solicitud aprobada exitosamente' 
     })
   } catch (error: unknown) {
-    console.error('Error in approve access request API:', error)
+    // console.error('Error in approve access request API:', error)
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 

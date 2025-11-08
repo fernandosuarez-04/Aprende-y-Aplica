@@ -19,12 +19,8 @@ export async function PUT(
     const body = await request.json()
     const promptData = UpdatePromptSchema.parse(body)
     
-    console.log('🔄 Actualizando prompt:', promptId)
-    console.log('📋 Datos validados:', promptData)
-    
     const updatedPrompt = await AdminPromptsService.updatePrompt(promptId, promptData)
 
-    console.log('✅ Prompt actualizado exitosamente:', updatedPrompt)
     return NextResponse.json({
       success: true,
       prompt: updatedPrompt
@@ -60,11 +56,8 @@ export async function DELETE(
     
     const { id: promptId } = await params
 
-    console.log('🔄 Eliminando prompt:', promptId)
-
     await AdminPromptsService.deletePrompt(promptId)
 
-    console.log('✅ Prompt eliminado exitosamente')
     return NextResponse.json({
       success: true,
       message: 'Prompt eliminado exitosamente'

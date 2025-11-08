@@ -1,10 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Bell, Shield, Save } from 'lucide-react';
+import { Settings, Bell, Shield, Save, Loader2 } from 'lucide-react';
+import { useAuth } from '../../features/auth/hooks/useAuth';
 
 export default function AccountSettingsPage() {
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
@@ -18,6 +24,84 @@ export default function AccountSettingsPage() {
     showEmail: false,
     showActivity: true,
   });
+
+  // Cargar configuración actual
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/account-settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.privacy) {
+            setPrivacy({
+              profileVisibility: data.privacy.profileVisibility || 'public',
+              showEmail: data.privacy.showEmail || false,
+              showActivity: data.privacy.showActivity !== undefined ? data.privacy.showActivity : true,
+            });
+          }
+          if (data.notifications) {
+            setNotifications(data.notifications);
+          }
+        }
+      } catch (error) {
+        // console.error('Error loading settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [user?.id]);
+
+  // Guardar configuración
+  const handleSave = async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsSaving(true);
+      setSaveMessage(null);
+      
+      const response = await fetch('/api/account-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          privacy,
+          notifications,
+        }),
+      });
+
+      if (response.ok) {
+        setSaveMessage({ type: 'success', text: 'Configuración guardada exitosamente' });
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        setSaveMessage({ type: 'error', text: error.error || 'Error al guardar la configuración' });
+        setTimeout(() => setSaveMessage(null), 5000);
+      }
+    } catch (error) {
+      // console.error('Error saving settings:', error);
+      setSaveMessage({ type: 'error', text: 'Error al guardar la configuración' });
+      setTimeout(() => setSaveMessage(null), 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-carbon dark:bg-carbon-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-text-primary">Cargando configuración...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-carbon dark:bg-carbon-900">
@@ -36,6 +120,22 @@ export default function AccountSettingsPage() {
               Gestiona tu privacidad y preferencias de notificaciones
             </p>
           </div>
+
+          {/* Mensaje de guardado */}
+          {saveMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`mb-6 p-4 rounded-lg ${
+                saveMessage.type === 'success'
+                  ? 'bg-green-500/10 border border-green-500/20 text-green-500'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-500'
+              }`}
+            >
+              {saveMessage.text}
+            </motion.div>
+          )}
 
           {/* Sección de Privacidad */}
           <motion.div
@@ -67,9 +167,13 @@ export default function AccountSettingsPage() {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-text-primary"
                 >
                   <option value="public">Público</option>
-                  <option value="private">Privado</option>
-                  <option value="friends">Solo amigos</option>
+                  <option value="self">Yo</option>
                 </select>
+                <p className="text-xs text-text-tertiary mt-1">
+                  {privacy.profileVisibility === 'public'
+                    ? 'Tu perfil será visible para todos los miembros de la comunidad'
+                    : 'Solo tú podrás ver la información completa de tu perfil'}
+                </p>
               </div>
 
               <div className="flex items-center justify-between">
@@ -261,9 +365,22 @@ export default function AccountSettingsPage() {
             transition={{ delay: 0.3 }}
             className="flex justify-end"
           >
-            <button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-medium px-6 py-3 rounded-lg transition-colors">
-              <Save className="w-4 h-4" />
-              Guardar cambios
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-lg transition-colors"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Guardar cambios
+                </>
+              )}
             </button>
           </motion.div>
         </motion.div>
@@ -271,4 +388,3 @@ export default function AccountSettingsPage() {
     </div>
   );
 }
-

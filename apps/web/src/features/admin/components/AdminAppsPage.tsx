@@ -86,7 +86,7 @@ export function AdminAppsPage() {
       setIsDeleteModalOpen(false)
       setSelectedApp(null)
     } catch (error) {
-      console.error('Error deleting app:', error)
+      // console.error('Error deleting app:', error)
     } finally {
       setIsProcessing(null)
     }
@@ -96,7 +96,7 @@ export function AdminAppsPage() {
     try {
       await createApp(appData)
     } catch (error) {
-      console.error('Error creating app:', error)
+      // console.error('Error creating app:', error)
       throw error
     }
   }
@@ -105,7 +105,7 @@ export function AdminAppsPage() {
     try {
       await updateApp(appId, appData)
     } catch (error) {
-      console.error('Error updating app:', error)
+      // console.error('Error updating app:', error)
       throw error
     }
   }
@@ -115,7 +115,7 @@ export function AdminAppsPage() {
       setIsProcessing(app.app_id)
       await toggleAppStatus(app.app_id, !app.is_active)
     } catch (error) {
-      console.error('Error toggling app status:', error)
+      // console.error('Error toggling app status:', error)
     } finally {
       setIsProcessing(null)
     }
@@ -126,7 +126,7 @@ export function AdminAppsPage() {
       setIsProcessing(app.app_id)
       await toggleAppFeatured(app.app_id, !app.is_featured)
     } catch (error) {
-      console.error('Error toggling app featured:', error)
+      // console.error('Error toggling app featured:', error)
     } finally {
       setIsProcessing(null)
     }
@@ -137,7 +137,7 @@ export function AdminAppsPage() {
       setIsProcessing(app.app_id)
       await toggleAppVerified(app.app_id, !app.is_verified)
     } catch (error) {
-      console.error('Error toggling app verified:', error)
+      // console.error('Error toggling app verified:', error)
     } finally {
       setIsProcessing(null)
     }

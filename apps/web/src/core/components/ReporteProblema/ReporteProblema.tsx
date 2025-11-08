@@ -166,8 +166,6 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         from_lia: fromLia
       };
 
-      console.log('📤 Enviando reporte:', reportData);
-
       const response = await fetch('/api/reportes', {
         method: 'POST',
         headers: {
@@ -176,17 +174,13 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         body: JSON.stringify(reportData),
       });
 
-      console.log('📊 Response status:', response.status, response.statusText);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Error del servidor:', errorData);
+        // console.error('❌ Error del servidor:', errorData);
         throw new Error(errorData.error || 'Error al enviar el reporte');
       }
 
       const result = await response.json();
-      console.log('✅ Reporte enviado:', result);
-
       // Mostrar pantalla de éxito
       setStep('success');
 
@@ -196,7 +190,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       }, 3000);
 
     } catch (error) {
-      console.error('❌ Error al enviar reporte:', error);
+      // console.error('❌ Error al enviar reporte:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setIsSubmitting(false);

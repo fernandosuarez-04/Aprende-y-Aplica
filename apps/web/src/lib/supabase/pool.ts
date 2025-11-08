@@ -39,7 +39,7 @@ class SupabaseConnectionPool {
     if (this.clients.has(clientKey)) {
       this.hits++
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🔵 Supabase Pool HIT (${this.hits} hits, ${this.misses} misses, ${this.connectionCount} connections)`)
+        // console.log(`🔵 Supabase Pool HIT (${this.hits} hits, ${this.misses} misses, ${this.connectionCount} connections)`)
       }
       return this.clients.get(clientKey)!
     }
@@ -50,7 +50,7 @@ class SupabaseConnectionPool {
       this.clients.delete(firstKey)
       this.connectionCount--
       if (process.env.NODE_ENV === 'development') {
-        console.log(`⚠️ Supabase Pool FULL - Evicted oldest connection`)
+        // console.log(`⚠️ Supabase Pool FULL - Evicted oldest connection`)
       }
     }
 
@@ -75,7 +75,7 @@ class SupabaseConnectionPool {
     this.connectionCount++
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🟢 Supabase Pool MISS - Created new connection (${this.hits} hits, ${this.misses} misses, ${this.connectionCount} connections)`)
+      // console.log(`🟢 Supabase Pool MISS - Created new connection (${this.hits} hits, ${this.misses} misses, ${this.connectionCount} connections)`)
     }
 
     return client

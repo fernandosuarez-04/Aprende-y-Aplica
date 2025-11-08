@@ -24,7 +24,7 @@ export class ReelsService {
       }
       return await response.json()
     } catch (error) {
-      console.error('Error fetching featured reels:', error)
+      // console.error('Error fetching featured reels:', error)
       return []
     }
   }
@@ -37,7 +37,7 @@ export class ReelsService {
       }
       return await response.json()
     } catch (error) {
-      console.error('Error fetching reels:', error)
+      // console.error('Error fetching reels:', error)
       return []
     }
   }

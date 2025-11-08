@@ -61,7 +61,7 @@ export function usePromptFavorites(): UsePromptFavoritesReturn {
         setError(null)
       } else {
         setError(errorMessage)
-        console.error('Error fetching prompt favorites:', err)
+        // console.error('Error fetching prompt favorites:', err)
       }
     } finally {
       setLoading(false)
@@ -106,7 +106,7 @@ export function usePromptFavorites(): UsePromptFavoritesReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error toggling prompt favorite:', err)
+      // console.error('Error toggling prompt favorite:', err)
       return false
     }
   }

@@ -212,22 +212,14 @@ export function AIChatAgent({
     const timer = setTimeout(() => {
       const content = extractPageContent();
       setPageContent(content);
-      console.log('📄 Contenido de página extraído:', {
-        title: content.title,
-        metaDescriptionLength: content.metaDescription.length,
-        headingsCount: content.headings.length,
-        mainTextLength: content.mainText.length,
-        headings: content.headings
-      });
-    }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
+      }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
 
     return () => clearTimeout(timer);
   }, [pathname, isOpen]); // Re-extraer cuando cambie la ruta o se abra el chat
 
   // Debug: Log estado isOpen
   useEffect(() => {
-    console.log('🔵 Estado isOpen cambió:', isOpen);
-  }, [isOpen]);
+    }, [isOpen]);
 
   // Estado para posición arrastrable
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -255,7 +247,7 @@ export function AIChatAgent({
         const { x, y } = JSON.parse(savedPosition);
         setPosition({ x, y });
       } catch (e) {
-        console.error('Error loading saved position:', e);
+        // console.error('Error loading saved position:', e);
       }
     }
   }, []);
@@ -465,15 +457,6 @@ export function AIChatAgent({
     setIsTyping(true);
 
     try {
-      console.log('🔄 Enviando mensaje a la API...', {
-        message: userMessage.content,
-        context: activeContext,
-        pageInfo: pageContextInfo,
-        pathname: pathname,
-        pageContent: pageContent,
-        historyLength: messages.length
-      });
-      
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -503,11 +486,11 @@ export function AIChatAgent({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         if (process.env.NODE_ENV === 'development') {
-          console.error('Error de API:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorData
-          });
+          // console.error('Error de API:', {
+          //   status: response.status,
+          //   statusText: response.statusText,
+          //   error: errorData
+          // });
         }
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
@@ -524,7 +507,7 @@ export function AIChatAgent({
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error en el chat:', error);
+        // console.error('Error en el chat:', error);
       }
       const errorContent = error instanceof Error ? error.message : 'Lo siento, ocurrió un error. Por favor intenta de nuevo.';
       const errorMessage: Message = {
@@ -549,13 +532,10 @@ export function AIChatAgent({
   const toggleRecording = useCallback(() => {
     setIsRecording(!isRecording);
     // Aquí se implementaría la lógica de reconocimiento de voz
-    console.log('Recording toggled:', !isRecording);
-  }, [isRecording]);
+    }, [isRecording]);
 
   // Función para solicitar ayuda contextual
   const handleRequestHelp = async () => {
-    console.log('❓ Solicitando ayuda contextual');
-    
     // Abrir el chat si no está abierto
     if (!isOpen) {
       setIsOpen(true);
@@ -565,18 +545,10 @@ export function AIChatAgent({
     // Forzar extracción de contenido si no está disponible
     let currentPageContent = pageContent;
     if (!currentPageContent || !currentPageContent.title) {
-      console.log('⚠️ Contenido de página no disponible, extrayendo ahora...');
       currentPageContent = extractPageContent();
       setPageContent(currentPageContent);
     }
 
-    console.log('📄 Enviando ayuda con contexto:', {
-      pathname,
-      pageTitle: currentPageContent?.title,
-      headings: currentPageContent?.headings,
-      mainTextLength: currentPageContent?.mainText?.length
-    });
-    
     // Crear mensaje de ayuda automático
     const helpMessage: Message = {
       id: Date.now().toString(),
@@ -616,16 +588,11 @@ export function AIChatAgent({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Error response:', errorData);
+        // console.error('❌ Error response:', errorData);
         throw new Error('Error al obtener ayuda');
       }
 
       const data = await response.json();
-      
-      console.log('✅ Respuesta recibida:', {
-        responseLength: data.response?.length,
-        response: data.response?.substring(0, 100)
-      });
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -636,7 +603,7 @@ export function AIChatAgent({
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('❌ Error al solicitar ayuda:', error);
+      // console.error('❌ Error al solicitar ayuda:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -680,28 +647,28 @@ export function AIChatAgent({
       {/* Botones flotantes */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {/* Botones expandidos: Ayuda y Reportar Problema */}
             {areButtonsExpanded && (
               <motion.div
                 key="expanded-buttons"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col gap-2"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col gap-2 overflow-hidden"
               >
                 {/* Botón de ayuda contextual */}
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('❓ Botón de ayuda clickeado');
                     handleRequestHelp();
                     setAreButtonsExpanded(false);
                   }}
                   initial={{ scale: 0, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2, delay: 0.05 }}
+                  transition={{ duration: 0.15, delay: 0.05 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
@@ -720,14 +687,13 @@ export function AIChatAgent({
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('🐛 Botón de reportar problema clickeado');
                     setIsReportOpen(true);
                     setAreButtonsExpanded(false);
                   }}
                   initial={{ scale: 0, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.15 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-orange-500 shadow-lg hover:shadow-red-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
@@ -779,7 +745,6 @@ export function AIChatAgent({
             <motion.button
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('🖱️ Botón flotante clickeado - abriendo chat');
                 setIsOpen(true);
                 setIsMinimized(false);
                 setHasUnreadMessages(false);

@@ -43,13 +43,13 @@ export class NoteService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching notes:', error)
+        // console.error('Error fetching notes:', error)
         throw new Error(`Error al obtener notas: ${error.message}`)
       }
 
       return data || []
     } catch (error) {
-      console.error('Error in NoteService.getNotesByLesson:', error)
+      // console.error('Error in NoteService.getNotesByLesson:', error)
       throw error
     }
   }
@@ -103,13 +103,13 @@ export class NoteService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching notes:', error)
+        // console.error('Error fetching notes:', error)
         throw new Error(`Error al obtener notas: ${error.message}`)
       }
 
       return data || []
     } catch (error) {
-      console.error('Error in NoteService.getNotesByCourse:', error)
+      // console.error('Error in NoteService.getNotesByCourse:', error)
       throw error
     }
   }
@@ -140,13 +140,13 @@ export class NoteService {
         .single()
 
       if (error) {
-        console.error('Error creating note:', error)
+        // console.error('Error creating note:', error)
         throw new Error(`Error al crear nota: ${error.message}`)
       }
 
       return data
     } catch (error) {
-      console.error('Error in NoteService.createNote:', error)
+      // console.error('Error in NoteService.createNote:', error)
       throw error
     }
   }
@@ -185,13 +185,13 @@ export class NoteService {
         .single()
 
       if (error) {
-        console.error('Error updating note:', error)
+        // console.error('Error updating note:', error)
         throw new Error(`Error al actualizar nota: ${error.message}`)
       }
 
       return data
     } catch (error) {
-      console.error('Error in NoteService.updateNote:', error)
+      // console.error('Error in NoteService.updateNote:', error)
       throw error
     }
   }
@@ -210,11 +210,11 @@ export class NoteService {
         .eq('user_id', userId) // Asegurar que solo el dueño puede eliminar
 
       if (error) {
-        console.error('Error deleting note:', error)
+        // console.error('Error deleting note:', error)
         throw new Error(`Error al eliminar nota: ${error.message}`)
       }
     } catch (error) {
-      console.error('Error in NoteService.deleteNote:', error)
+      // console.error('Error in NoteService.deleteNote:', error)
       throw error
     }
   }
@@ -267,7 +267,7 @@ export class NoteService {
         lastUpdate
       }
     } catch (error) {
-      console.error('Error in NoteService.getNotesStats:', error)
+      // console.error('Error in NoteService.getNotesStats:', error)
       throw error
     }
   }

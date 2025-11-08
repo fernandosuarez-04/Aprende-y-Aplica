@@ -326,7 +326,7 @@ export function AdminWorkshopsPage() {
                     <button 
                       onClick={() => {
                         if (confirm('¿Estás seguro de eliminar este taller?')) {
-                          console.log('Eliminar taller:', workshop.id)
+                          // console.log('Eliminar taller:', workshop.id)
                         }
                       }}
                       className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
@@ -364,7 +364,7 @@ export function AdminWorkshopsPage() {
               await refetch()
               setEditingWorkshop(null)
             } catch (error) {
-              console.error('Error updating workshop:', error)
+              // console.error('Error updating workshop:', error)
               alert(error instanceof Error ? error.message : 'Error al actualizar el taller')
             } finally {
               setIsUpdating(false)

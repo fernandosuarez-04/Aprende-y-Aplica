@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
 
 /**
  * GET /api/courses/[slug]/lessons/[lessonId]/transcript
@@ -57,18 +58,22 @@ export async function GET(
       .single();
 
     if (transcriptError) {
-      console.error('Error fetching transcript:', transcriptError);
+      // console.error('Error fetching transcript:', transcriptError);
       return NextResponse.json(
         { error: 'Error al obtener transcripción' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      transcript_content: lessonData?.transcript_content || null
-    });
+    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos estáticos - 1 hora)
+    return withCacheHeaders(
+      NextResponse.json({
+        transcript_content: lessonData?.transcript_content || null
+      }),
+      cacheHeaders.static
+    );
   } catch (error) {
-    console.error('Error in transcript API:', error);
+    // console.error('Error in transcript API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

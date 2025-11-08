@@ -25,8 +25,6 @@ export async function GET(
     const supabase = await createClient();
     const { slug } = await params;
 
-    console.log('🔍 Fetching leagues data for community:', slug);
-
     // Obtener el usuario actual
     const { SessionService } = await import('../../../../../features/auth/services/session.service');
     const user = await SessionService.getCurrentUser();
@@ -44,11 +42,9 @@ export async function GET(
       .single();
 
     if (communityError || !community) {
-      console.error('❌ Community error:', communityError);
+      // console.error('❌ Community error:', communityError);
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
-
-    console.log('✅ Community found:', community.name);
 
     // Obtener todos los miembros de la comunidad con sus puntos
     let members = [];
@@ -77,8 +73,6 @@ export async function GET(
         .order('joined_at', { ascending: true });
 
       if (membersError) {
-        console.log('⚠️ Error with direct join, trying alternative approach:', membersError.message);
-        
         // Si falla el join, obtener datos por separado
         const { data: membersData2, error: membersError2 } = await supabase
           .from('community_members')
@@ -87,7 +81,6 @@ export async function GET(
           .eq('is_active', true);
 
         if (membersError2) {
-          console.log('⚠️ Error with community_members table:', membersError2.message);
           throw new Error('No se pudo acceder a la tabla community_members');
         }
 
@@ -99,7 +92,6 @@ export async function GET(
             .in('id', userIds);
 
           if (usersError) {
-            console.log('⚠️ Error fetching users:', usersError.message);
             throw new Error('No se pudo obtener información de usuarios');
           }
 
@@ -123,7 +115,6 @@ export async function GET(
         members = membersData || [];
       }
     } catch (error) {
-      console.log('⚠️ Error accessing real data:', error);
       members = [];
     }
 
@@ -172,12 +163,6 @@ export async function GET(
 
     // Obtener el usuario actual con su información de liga
     const currentUser = membersWithRanks.find(m => m.user_id === user.id);
-
-    console.log('✅ Returning leagues data:', {
-      totalMembers: membersWithRanks.length,
-      leagueStats,
-      currentUser: currentUser ? `${currentUser.username} - ${currentUser.league}` : 'Not found'
-    });
 
     return NextResponse.json({
       community: {

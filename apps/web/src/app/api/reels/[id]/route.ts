@@ -9,8 +9,6 @@ export async function GET(
     const supabase = await createClient();
     const { id } = await params;
 
-    console.log('🔍 Fetching reel:', id);
-
     // Obtener el reel con información del creador
     const { data: reel, error: reelError } = await supabase
       .from('reels')
@@ -44,7 +42,7 @@ export async function GET(
       .single();
 
     if (reelError || !reel) {
-      console.error('❌ Reel not found:', reelError);
+      // console.error('❌ Reel not found:', reelError);
       return NextResponse.json({ error: 'Reel no encontrado' }, { status: 404 });
     }
 
@@ -91,8 +89,6 @@ export async function GET(
         user_agent: request.headers.get('user-agent') || 'unknown'
       });
 
-    console.log('✅ Reel fetched successfully:', reel.id);
-
     return NextResponse.json({
       reel: {
         ...reel,
@@ -102,7 +98,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ Error in reel API:', error);
+    // console.error('❌ Error in reel API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -159,7 +155,7 @@ export async function PUT(
       .single();
 
     if (updateError) {
-      console.error('❌ Error updating reel:', updateError);
+      // console.error('❌ Error updating reel:', updateError);
       return NextResponse.json({ error: 'Error al actualizar el reel' }, { status: 500 });
     }
 
@@ -193,15 +189,13 @@ export async function PUT(
       }
     }
 
-    console.log('✅ Reel updated successfully:', id);
-
     return NextResponse.json({
       reel: updatedReel,
       message: 'Reel actualizado exitosamente'
     });
 
   } catch (error) {
-    console.error('❌ Error in reel PUT API:', error);
+    // console.error('❌ Error in reel PUT API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -243,18 +237,16 @@ export async function DELETE(
       .eq('id', id);
 
     if (deleteError) {
-      console.error('❌ Error deleting reel:', deleteError);
+      // console.error('❌ Error deleting reel:', deleteError);
       return NextResponse.json({ error: 'Error al eliminar el reel' }, { status: 500 });
     }
-
-    console.log('✅ Reel deleted successfully:', id);
 
     return NextResponse.json({
       message: 'Reel eliminado exitosamente'
     });
 
   } catch (error) {
-    console.error('❌ Error in reel DELETE API:', error);
+    // console.error('❌ Error in reel DELETE API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

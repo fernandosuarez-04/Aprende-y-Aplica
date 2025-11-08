@@ -116,7 +116,7 @@ export function ReactionDetailsModal({
         setReactionStats(stats);
       }
     } catch (error) {
-      console.error('Error fetching reaction details:', error);
+      // console.error('Error fetching reaction details:', error);
     } finally {
       setLoading(false);
     }

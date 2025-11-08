@@ -69,7 +69,7 @@ export class AdminLessonsService {
         .order('lesson_order_index', { ascending: true })
 
       if (error) {
-        console.error('Error fetching lessons:', error)
+        // console.error('Error fetching lessons:', error)
         throw error
       }
 
@@ -118,7 +118,7 @@ export class AdminLessonsService {
 
       return lessonsWithInstructors
     } catch (error) {
-      console.error('Error in AdminLessonsService.getModuleLessons:', error)
+      // console.error('Error in AdminLessonsService.getModuleLessons:', error)
       throw error
     }
   }
@@ -134,7 +134,7 @@ export class AdminLessonsService {
         .single()
 
       if (error) {
-        console.error('Error fetching lesson:', error)
+        // console.error('Error fetching lesson:', error)
         throw error
       }
 
@@ -155,7 +155,7 @@ export class AdminLessonsService {
 
       return data as AdminLesson
     } catch (error) {
-      console.error('Error in AdminLessonsService.getLessonById:', error)
+      // console.error('Error in AdminLessonsService.getLessonById:', error)
       return null
     }
   }
@@ -224,7 +224,7 @@ export class AdminLessonsService {
         .single()
 
       if (error) {
-        console.error('Error creating lesson:', error)
+        // console.error('Error creating lesson:', error)
         throw error
       }
 
@@ -250,7 +250,7 @@ export class AdminLessonsService {
 
       return createdLesson as AdminLesson
     } catch (error) {
-      console.error('Error in AdminLessonsService.createLesson:', error)
+      // console.error('Error in AdminLessonsService.createLesson:', error)
       throw error
     }
   }
@@ -305,7 +305,7 @@ export class AdminLessonsService {
         .single()
 
       if (error) {
-        console.error('Error updating lesson:', error)
+        // console.error('Error updating lesson:', error)
         throw error
       }
 
@@ -333,7 +333,7 @@ export class AdminLessonsService {
 
       return updatedLesson as AdminLesson
     } catch (error) {
-      console.error('Error in AdminLessonsService.updateLesson:', error)
+      // console.error('Error in AdminLessonsService.updateLesson:', error)
       throw error
     }
   }
@@ -355,7 +355,7 @@ export class AdminLessonsService {
         .eq('lesson_id', lessonId)
 
       if (error) {
-        console.error('Error deleting lesson:', error)
+        // console.error('Error deleting lesson:', error)
         throw error
       }
 
@@ -365,7 +365,7 @@ export class AdminLessonsService {
         await this.updateModuleDuration(lessonData.module_id)
       }
     } catch (error) {
-      console.error('Error in AdminLessonsService.deleteLesson:', error)
+      // console.error('Error in AdminLessonsService.deleteLesson:', error)
       throw error
     }
   }
@@ -390,11 +390,11 @@ export class AdminLessonsService {
       const errors = results.filter(r => r.error)
 
       if (errors.length > 0) {
-        console.error('Error reordering lessons:', errors)
+        // console.error('Error reordering lessons:', errors)
         throw new Error('Error al reordenar lecciones')
       }
     } catch (error) {
-      console.error('Error in AdminLessonsService.reorderLessons:', error)
+      // console.error('Error in AdminLessonsService.reorderLessons:', error)
       throw error
     }
   }
@@ -426,13 +426,13 @@ export class AdminLessonsService {
         .single()
 
       if (error) {
-        console.error('Error toggling lesson published:', error)
+        // console.error('Error toggling lesson published:', error)
         throw error
       }
 
       return (data as any) as AdminLesson
     } catch (error) {
-      console.error('Error in AdminLessonsService.toggleLessonPublished:', error)
+      // console.error('Error in AdminLessonsService.toggleLessonPublished:', error)
       throw error
     }
   }
@@ -472,7 +472,7 @@ export class AdminLessonsService {
         await this.updateCourseDuration((module as any).course_id)
       }
     } catch (error) {
-      console.error('Error in AdminLessonsService.updateModuleDuration:', error)
+      // console.error('Error in AdminLessonsService.updateModuleDuration:', error)
       throw error
     }
   }
@@ -500,7 +500,7 @@ export class AdminLessonsService {
         .update(courseUpdateData)
         .eq('id', courseId)
     } catch (error) {
-      console.error('Error in AdminLessonsService.updateCourseDuration:', error)
+      // console.error('Error in AdminLessonsService.updateCourseDuration:', error)
       throw error
     }
   }

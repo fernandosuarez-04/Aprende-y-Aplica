@@ -75,7 +75,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
       await onSave(dataToSave)
       onClose()
     } catch (error) {
-      console.error('Error updating workshop:', error)
+      // console.error('Error updating workshop:', error)
       alert('Error al actualizar el taller')
     } finally {
       setLoading(false)

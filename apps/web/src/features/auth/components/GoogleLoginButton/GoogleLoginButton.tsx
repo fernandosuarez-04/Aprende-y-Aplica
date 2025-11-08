@@ -45,7 +45,7 @@ export function GoogleLoginButton() {
       }
 
       // Solo es un error real si llegamos aquí
-      console.error('Error iniciando login con Google:', error);
+      // console.error('Error iniciando login con Google:', error);
       setIsLoading(false);
     }
   };

@@ -12,7 +12,6 @@ export async function DELETE(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId, postId } = await params
-    console.log('🔍 Delete Post API - communityId:', communityId, 'postId:', postId)
     const supabase = await createClient()
 
     // Obtener datos actuales del post para el log de auditoría
@@ -24,14 +23,12 @@ export async function DELETE(
       .single()
 
     if (fetchError || !currentPost) {
-      console.error('❌ Error fetching post:', fetchError)
+      // console.error('❌ Error fetching post:', fetchError)
       return NextResponse.json({ 
         success: false, 
         message: 'Post no encontrado' 
       }, { status: 404 })
     }
-
-    console.log('✅ Post found:', currentPost)
 
     // Eliminar comentarios relacionados
     const { error: deleteCommentsError } = await supabase
@@ -40,7 +37,6 @@ export async function DELETE(
       .eq('post_id', postId)
 
     if (deleteCommentsError) {
-      console.warn('Warning deleting comments:', deleteCommentsError)
       // No fallar la operación por esto
     }
 
@@ -51,7 +47,6 @@ export async function DELETE(
       .eq('post_id', postId)
 
     if (deleteReactionsError) {
-      console.warn('Warning deleting reactions:', deleteReactionsError)
       // No fallar la operación por esto
     }
 
@@ -63,7 +58,7 @@ export async function DELETE(
       .eq('community_id', communityId)
 
     if (deletePostError) {
-      console.error('Error deleting post:', deletePostError)
+      // console.error('Error deleting post:', deletePostError)
       return NextResponse.json({ 
         success: false, 
         message: 'Error al eliminar el post' 
@@ -87,7 +82,6 @@ export async function DELETE(
         .eq('id', communityId)
 
       if (updateCountError) {
-        console.warn('Error updating posts count:', updateCountError)
         // No fallar la operación por esto
       }
     }
@@ -114,7 +108,7 @@ export async function DELETE(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.warn('Error en log de auditoría (no crítico):', auditError)
+      // console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 
@@ -123,7 +117,7 @@ export async function DELETE(
       message: 'Post eliminado exitosamente' 
     })
   } catch (error: unknown) {
-    console.error('Error in delete post API:', error)
+    // console.error('Error in delete post API:', error)
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 

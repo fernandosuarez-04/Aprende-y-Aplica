@@ -33,8 +33,6 @@ export interface NewsStats {
 export class AdminNewsService {
   static async getNews(): Promise<AdminNews[]> {
     try {
-      console.log('🔄 AdminNewsService.getNews: Iniciando...')
-      
       const response = await fetch('/api/admin/news', {
         method: 'GET',
         headers: {
@@ -47,18 +45,15 @@ export class AdminNewsService {
       }
 
       const data = await response.json()
-      console.log('✅ Noticias obtenidas exitosamente:', data.news?.length || 0)
       return data.news || []
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.getNews:', error)
+      // console.error('💥 Error in AdminNewsService.getNews:', error)
       throw error
     }
   }
 
   static async getNewsStats(): Promise<NewsStats> {
     try {
-      console.log('🔄 AdminNewsService.getNewsStats: Iniciando...')
-      
       const response = await fetch('/api/admin/news/stats', {
         method: 'GET',
         headers: {
@@ -71,19 +66,15 @@ export class AdminNewsService {
       }
 
       const data = await response.json()
-      console.log('✅ Estadísticas de noticias obtenidas:', data.stats)
       return data.stats
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.getNewsStats:', error)
+      // console.error('💥 Error in AdminNewsService.getNewsStats:', error)
       throw error
     }
   }
 
   static async createNews(newsData: Partial<AdminNews>, adminUserId: string): Promise<AdminNews> {
     try {
-      console.log('🔄 AdminNewsService.createNews: Iniciando...')
-      console.log('📋 Datos a insertar:', newsData)
-      
       const response = await fetch('/api/admin/news', {
         method: 'POST',
         headers: {
@@ -97,19 +88,15 @@ export class AdminNewsService {
       }
 
       const data = await response.json()
-      console.log('✅ Noticia creada exitosamente:', data.news)
       return data.news
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.createNews:', error)
+      // console.error('💥 Error in AdminNewsService.createNews:', error)
       throw error
     }
   }
 
   static async updateNews(newsId: string, newsData: Partial<AdminNews>): Promise<AdminNews> {
     try {
-      console.log('🔄 AdminNewsService.updateNews: Iniciando...')
-      console.log('📋 Datos a actualizar:', newsData)
-      
       const response = await fetch(`/api/admin/news/${newsId}`, {
         method: 'PUT',
         headers: {
@@ -123,18 +110,15 @@ export class AdminNewsService {
       }
 
       const data = await response.json()
-      console.log('✅ Noticia actualizada exitosamente:', data.news)
       return data.news
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.updateNews:', error)
+      // console.error('💥 Error in AdminNewsService.updateNews:', error)
       throw error
     }
   }
 
   static async deleteNews(newsId: string): Promise<void> {
     try {
-      console.log('🔄 AdminNewsService.deleteNews: Iniciando...')
-      
       const response = await fetch(`/api/admin/news/${newsId}`, {
         method: 'DELETE',
         headers: {
@@ -146,17 +130,14 @@ export class AdminNewsService {
         throw new Error('Failed to delete news')
       }
 
-      console.log('✅ Noticia eliminada exitosamente')
-    } catch (error) {
-      console.error('💥 Error in AdminNewsService.deleteNews:', error)
+      } catch (error) {
+      // console.error('💥 Error in AdminNewsService.deleteNews:', error)
       throw error
     }
   }
 
   static async toggleNewsStatus(newsId: string, status: 'draft' | 'published' | 'archived'): Promise<void> {
     try {
-      console.log('🔄 AdminNewsService.toggleNewsStatus: Iniciando...')
-      
       const response = await fetch(`/api/admin/news/${newsId}/status`, {
         method: 'PATCH',
         headers: {
@@ -169,17 +150,14 @@ export class AdminNewsService {
         throw new Error('Failed to toggle news status')
       }
 
-      console.log('✅ Estado de noticia actualizado exitosamente')
-    } catch (error) {
-      console.error('💥 Error in AdminNewsService.toggleNewsStatus:', error)
+      } catch (error) {
+      // console.error('💥 Error in AdminNewsService.toggleNewsStatus:', error)
       throw error
     }
   }
 
   static async getNewsById(newsId: string): Promise<AdminNews> {
     try {
-      console.log('🔄 AdminNewsService.getNewsById: Iniciando...')
-      
       const response = await fetch(`/api/admin/news/${newsId}`, {
         method: 'GET',
         headers: {
@@ -192,10 +170,9 @@ export class AdminNewsService {
       }
 
       const data = await response.json()
-      console.log('✅ Noticia obtenida exitosamente:', data.news)
       return data.news
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.getNewsById:', error)
+      // console.error('💥 Error in AdminNewsService.getNewsById:', error)
       throw error
     }
   }

@@ -90,7 +90,7 @@ export default function BusinessUserDashboardPage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching organization:', error)
+        // console.error('Error fetching organization:', error)
       }
     }
     fetchOrganization()
@@ -149,7 +149,7 @@ export default function BusinessUserDashboardPage() {
         }
       }
     } catch (err) {
-      console.error('Error fetching dashboard data:', err)
+      // console.error('Error fetching dashboard data:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
       // Asegurar que siempre tenemos valores por defecto
       setStats({

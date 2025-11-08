@@ -18,7 +18,6 @@ import {
   Copy,
   Share2
 } from 'lucide-react'
-import Image from 'next/image'
 
 interface Certificate {
   certificate_id: string
@@ -43,7 +42,6 @@ export default function CertificateDetailPage() {
   const [certificate, setCertificate] = useState<Certificate | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
     if (certificateId) {
@@ -81,7 +79,7 @@ export default function CertificateDetailPage() {
         throw new Error(data.error || 'Error al obtener certificado')
       }
     } catch (err) {
-      console.error('Error fetching certificate:', err)
+      // console.error('Error fetching certificate:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
@@ -130,7 +128,7 @@ export default function CertificateDetailPage() {
         document.body.removeChild(a)
       }
     } catch (err) {
-      console.error('Error downloading certificate:', err)
+      // console.error('Error downloading certificate:', err)
       alert(err instanceof Error ? err.message : 'Error al descargar certificado')
     }
   }
@@ -156,7 +154,7 @@ export default function CertificateDetailPage() {
           title: `Certificado: ${certificate.course_title}`,
           text: `He completado el curso "${certificate.course_title}" y obtuve este certificado.`,
           url: verifyUrl
-        }).catch(err => console.error('Error sharing:', err))
+        }).catch(err => {/* console.error('Error sharing:', err) */})
       } else {
         navigator.clipboard.writeText(verifyUrl)
         alert('Enlace de verificación copiado al portapapeles')
@@ -214,27 +212,50 @@ export default function CertificateDetailPage() {
               transition={{ duration: 0.5 }}
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
-              {!imageError && certificate.certificate_url ? (
-                <div className="relative w-full aspect-[4/3] bg-gray-100 dark:bg-gray-900">
-                  <Image
-                    src={certificate.certificate_url}
-                    alt={`Certificado de ${certificate.course_title}`}
-                    fill
-                    className="object-contain"
-                    onError={() => setImageError(true)}
+              {certificate.certificate_url ? (
+                <div className="w-full aspect-[4/3] bg-gray-100 dark:bg-gray-900 relative">
+                  <iframe
+                    src={`${certificate.certificate_url}#toolbar=0&navpanes=0&scrollbar=0`}
+                    className="w-full h-full border-0"
+                    title={`Certificado de ${certificate.course_title}`}
+                    allow="fullscreen"
                   />
+                  {/* Botón para abrir en nueva pestaña */}
+                  <div className="absolute bottom-4 right-4 z-10">
+                    <a
+                      href={certificate.certificate_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm border border-gray-200 dark:border-gray-700"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Abrir en nueva pestaña
+                    </a>
+                  </div>
                 </div>
               ) : (
-                <div className="w-full aspect-[4/3] bg-gradient-to-br from-primary/10 to-blue-600/10 dark:from-primary/20 dark:to-blue-600/20 flex items-center justify-center p-12">
-                  <div className="text-center">
+                <div className="w-full aspect-[4/3] bg-gradient-to-br from-primary/10 to-blue-600/10 dark:from-primary/20 dark:to-blue-600/20 flex flex-col items-center justify-center p-12">
+                  <div className="text-center mb-6">
                     <Award className="w-24 h-24 text-primary mx-auto mb-4" />
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       {certificate.course_title}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
                       Certificado de finalización
                     </p>
                   </div>
+                  {certificate.certificate_url && (
+                    <a
+                      href={certificate.certificate_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      <ExternalLink className="w-5 h-5" />
+                      Ver Certificado Completo
+                    </a>
+                  )}
                 </div>
               )}
 

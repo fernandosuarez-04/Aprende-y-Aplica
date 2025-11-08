@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../supabase/server'
 import { cookies } from 'next/headers'
+import { SECURE_COOKIE_OPTIONS } from './cookie-config'
 import * as crypto from 'crypto'
 import * as bcrypt from 'bcryptjs'
-import { SECURE_COOKIE_OPTIONS } from './cookie-config'
 
 /**
  * ✅ ISSUE #17: Servicio de Refresh Tokens
@@ -77,6 +77,15 @@ export class RefreshTokenService {
   }
 
   /**
+   * ⚡ OPTIMIZACIÓN: Hashea un token para búsqueda directa en BD
+   * Permite query indexed en lugar de fetch ALL + loop
+   * Público para uso desde SessionService
+   */
+  static async hashTokenForLookup(token: string): Promise<string> {
+    return bcrypt.hash(token, 10)
+  }
+
+  /**
    * Obtiene el fingerprint del dispositivo (basado en headers)
    */
   private static async getDeviceFingerprint(request?: Request): Promise<string> {
@@ -106,6 +115,9 @@ export class RefreshTokenService {
 
   /**
    * ✅ ISSUE #17: Crear sesión con access token y refresh token
+   * Genera tokens y los guarda en la base de datos, pero NO establece cookies.
+   * Las cookies deben establecerse en el Server Action que llama a este método.
+   * @param request Opcional: Request para obtener información del dispositivo
    */
   static async createSession(
     userId: string,
@@ -142,25 +154,7 @@ export class RefreshTokenService {
       throw new Error(`Error creando refresh token: ${error.message}`)
     }
 
-    // ✅ Establecer cookies con configuración segura
-    const cookieStore = await cookies()
-
-    cookieStore.set('access_token', accessToken, {
-      ...SECURE_COOKIE_OPTIONS,
-      expires: accessExpiresAt,
-    })
-
-    cookieStore.set('refresh_token', refreshToken, {
-      ...SECURE_COOKIE_OPTIONS,
-      expires: refreshExpiresAt,
-    })
-
-    console.log(`✅ Sesión creada para usuario ${userId}:`, {
-      accessExpiresIn: '30 minutos',
-      refreshExpiresIn: rememberMe ? '30 días' : '7 días',
-      inactivityTimeout: '24 horas'
-    })
-
+    // Retornar información de sesión (sin establecer cookies)
     return {
       userId,
       accessToken,
@@ -234,8 +228,6 @@ export class RefreshTokenService {
       expires: accessExpiresAt,
     })
 
-    console.log(`🔄 Sesión refrescada para usuario ${tokenData.user_id}`)
-
     return { userId: tokenData.user_id }
   }
 
@@ -274,8 +266,7 @@ export class RefreshTokenService {
       .eq('user_id', userId)
       .eq('is_revoked', false)
 
-    console.log(`🚪 Todos los tokens revocados para usuario ${userId}: ${reason}`)
-  }
+    }
 
   /**
    * Destruir sesión actual (logout)
@@ -292,8 +283,7 @@ export class RefreshTokenService {
       await this.revokeAllUserTokens(userId, 'User logout')
     }
 
-    console.log('✅ Sesión destruida')
-  }
+    }
 
   /**
    * Obtener todas las sesiones activas de un usuario
@@ -329,14 +319,13 @@ export class RefreshTokenService {
       .select('id')
 
     if (error) {
-      console.error('Error cleaning expired tokens:', error)
+      // console.error('Error cleaning expired tokens:', error)
       return 0
     }
 
     const count = data?.length || 0
     if (count > 0) {
-      console.log(`🧹 Limpiados ${count} tokens expirados`)
-    }
+      }
 
     return count
   }
