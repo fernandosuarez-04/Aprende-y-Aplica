@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 /**
  * POST /api/reportes
@@ -82,38 +83,59 @@ export async function POST(request: NextRequest) {
       titulo: titulo.substring(0, 50)
     });
 
-    // Si hay screenshot, subirlo a Supabase Storage
+    // Si hay screenshot, subirlo a Supabase Storage usando service role key
     let screenshot_url = null;
     if (screenshot_data) {
       try {
-        // Convertir base64 a blob
-        const base64Data = screenshot_data.split(',')[1];
+        // Crear cliente con service role key para bypass de RLS
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        
+        if (!supabaseServiceKey) {
+          console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY no está configurada. La subida de screenshots puede fallar.');
+        }
+        
+        const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        });
+        
+        // Convertir base64 a buffer
+        const base64Data = screenshot_data.split(',')[1] || screenshot_data;
         const buffer = Buffer.from(base64Data, 'base64');
         
-        // Generar nombre único
-        const fileName = `reporte-${user.id}-${Date.now()}.jpg`;
+        // Generar nombre único con timestamp y ID de usuario
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 9);
+        const fileName = `reporte-${user.id}-${timestamp}-${randomId}.jpg`;
         
-        // Subir a Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        console.log('📸 Subiendo screenshot al bucket reportes-screenshots...');
+        
+        // Subir a Storage con service role key (bypass RLS)
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
           .from('reportes-screenshots')
           .upload(fileName, buffer, {
             contentType: 'image/jpeg',
             cacheControl: '3600',
+            upsert: false
           });
 
         if (uploadError) {
-          console.error('Error subiendo screenshot:', uploadError);
+          console.error('❌ Error subiendo screenshot:', uploadError);
+          // Continuar sin screenshot si falla la subida
         } else {
           // Obtener URL pública
-          const { data: publicUrlData } = supabase.storage
+          const { data: publicUrlData } = supabaseAdmin.storage
             .from('reportes-screenshots')
-            .getPublicUrl(fileName);
+            .getPublicUrl(uploadData.path);
           
           screenshot_url = publicUrlData.publicUrl;
-          console.log('📸 Screenshot subido:', screenshot_url);
+          console.log('✅ Screenshot subido exitosamente:', screenshot_url);
         }
       } catch (error) {
-        console.error('Error procesando screenshot:', error);
+        console.error('❌ Error procesando screenshot:', error);
         // Continuar sin screenshot si falla
       }
     }

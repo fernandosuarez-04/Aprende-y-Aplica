@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -10,13 +10,12 @@ import {
   Zap, 
   Palette, 
   HelpCircle,
-  Camera,
+  Upload,
   Send,
   CheckCircle,
   Loader2
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
-import html2canvas from 'html2canvas';
 
 interface ReporteProblemProps {
   isOpen: boolean;
@@ -49,8 +48,9 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Datos del formulario
   const [categoria, setCategoria] = useState<Categoria>(preselectedCategory as Categoria || 'bug');
@@ -60,48 +60,63 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
   const [pasosReproducir, setPasosReproducir] = useState('');
   const [comportamientoEsperado, setComportamientoEsperado] = useState('');
 
-  // Reset form cuando se abre
+  // Reset form cuando se abre o cierra
   useEffect(() => {
     if (isOpen) {
       setStep('form');
       setError(null);
-      setScreenshot(null);
+      setScreenshotFile(null);
+      setScreenshotPreview(null);
       if (preselectedCategory) {
         setCategoria(preselectedCategory as Categoria);
       }
+    } else {
+      // Limpiar también cuando se cierra
+      setScreenshotFile(null);
+      setScreenshotPreview(null);
+      setTitulo('');
+      setDescripcion('');
+      setPasosReproducir('');
+      setComportamientoEsperado('');
+      setCategoria('bug');
+      setPrioridad('media');
+      setError(null);
     }
   }, [isOpen, preselectedCategory]);
 
-  const captureScreenshot = async () => {
-    setCapturingScreenshot(true);
-    try {
-      // Ocultar el modal temporalmente
-      const modal = document.querySelector('[data-reporte-modal]') as HTMLElement;
-      if (modal) {
-        modal.style.display = 'none';
-      }
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+    // Validar que sea una imagen
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor selecciona un archivo de imagen válido');
+      return;
+    }
 
-      const canvas = await html2canvas(document.body, {
-        allowTaint: true,
-        useCORS: true,
-        logging: false,
-        scale: 0.5 // Reducir calidad para menor tamaño
-      });
+    // Validar tamaño (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      setError('La imagen es demasiado grande. Máximo 10MB');
+      return;
+    }
 
-      const screenshotData = canvas.toDataURL('image/jpeg', 0.7);
-      setScreenshot(screenshotData);
+    setError(null);
+    setScreenshotFile(file);
 
-      // Mostrar el modal nuevamente
-      if (modal) {
-        modal.style.display = 'flex';
-      }
-    } catch (error) {
-      console.error('Error capturando pantalla:', error);
-      setError('No se pudo capturar la pantalla. Puedes continuar sin captura.');
-    } finally {
-      setCapturingScreenshot(false);
+    // Crear preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setScreenshotPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveScreenshot = () => {
+    setScreenshotFile(null);
+    setScreenshotPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -124,6 +139,17 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       const screenResolution = `${window.screen.width}x${window.screen.height}`;
       const navegador = navigator.userAgent.match(/(chrome|firefox|safari|edge|opera)/i)?.[0] || 'Desconocido';
 
+      // Convertir File a base64 si hay screenshot
+      let screenshotData = null;
+      if (screenshotFile) {
+        const reader = new FileReader();
+        screenshotData = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(screenshotFile);
+        });
+      }
+
       const reportData = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
@@ -136,7 +162,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         navegador,
         pasos_reproducir: pasosReproducir.trim() || null,
         comportamiento_esperado: comportamientoEsperado.trim() || null,
-        screenshot_data: screenshot,
+        screenshot_data: screenshotData,
         from_lia: fromLia
       };
 
@@ -167,14 +193,6 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       // Cerrar automáticamente después de 3 segundos
       setTimeout(() => {
         onClose();
-        // Reset form
-        setTitulo('');
-        setDescripcion('');
-        setPasosReproducir('');
-        setComportamientoEsperado('');
-        setScreenshot(null);
-        setCategoria('bug');
-        setPrioridad('media');
       }, 3000);
 
     } catch (error) {
@@ -200,10 +218,10 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-[var(--color-bg-card)] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] p-6 text-white relative">
+          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 text-white relative">
             <button
               onClick={onClose}
               className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -223,12 +241,12 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] scrollbar-hide">
             {step === 'form' ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Categoría */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-3">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
                     Categoría *
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -239,14 +257,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                           key={cat.value}
                           type="button"
                           onClick={() => setCategoria(cat.value)}
-                          className={`p-3 rounded-lg border-2 transition-all ${
+                          className={`p-3 rounded-lg border-2 transition-all bg-white dark:bg-slate-700/50 ${
                             categoria === cat.value
-                              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
-                              : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/50'
+                              ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
+                              : 'border-gray-300 dark:border-slate-600 hover:border-blue-500/50 dark:hover:border-blue-500/50'
                           }`}
                         >
                           <Icon className={`w-5 h-5 mx-auto mb-1 ${cat.color}`} />
-                          <span className="text-xs font-medium text-[var(--color-text-primary)]">
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">
                             {cat.label}
                           </span>
                         </button>
@@ -257,13 +275,13 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
 
                 {/* Prioridad */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Prioridad
                   </label>
                   <select
                     value={prioridad}
                     onChange={(e) => setPrioridad(e.target.value as Prioridad)}
-                    className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-dark)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {prioridades.map((p) => (
                       <option key={p.value} value={p.value}>
@@ -275,7 +293,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
 
                 {/* Título */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Título *
                   </label>
                   <input
@@ -284,14 +302,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setTitulo(e.target.value)}
                     placeholder="Resumen breve del problema"
                     maxLength={200}
-                    className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-dark)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
                 {/* Descripción */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Descripción *
                   </label>
                   <textarea
@@ -299,14 +317,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setDescripcion(e.target.value)}
                     placeholder="Describe el problema en detalle..."
                     rows={4}
-                    className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-dark)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     required
                   />
                 </div>
 
                 {/* Pasos para reproducir (opcional) */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Pasos para reproducir (opcional)
                   </label>
                   <textarea
@@ -314,13 +332,13 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setPasosReproducir(e.target.value)}
                     placeholder="1. Haz clic en...&#10;2. Navega a...&#10;3. El error ocurre cuando..."
                     rows={3}
-                    className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-dark)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
                 </div>
 
                 {/* Comportamiento esperado (opcional) */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Comportamiento esperado (opcional)
                   </label>
                   <textarea
@@ -328,49 +346,51 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setComportamientoEsperado(e.target.value)}
                     placeholder="¿Qué esperabas que sucediera?"
                     rows={2}
-                    className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-dark)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
                 </div>
 
                 {/* Captura de pantalla */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Captura de pantalla (opcional)
                   </label>
-                  {screenshot ? (
+                  {screenshotPreview ? (
                     <div className="relative">
                       <img 
-                        src={screenshot} 
-                        alt="Screenshot" 
-                        className="w-full rounded-lg border border-[var(--color-border)]"
+                        src={screenshotPreview} 
+                        alt="Screenshot preview" 
+                        className="w-full rounded-lg border border-gray-300 dark:border-slate-600 max-h-64 object-contain"
                       />
                       <button
                         type="button"
-                        onClick={() => setScreenshot(null)}
+                        onClick={handleRemoveScreenshot}
                         className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={captureScreenshot}
-                      disabled={capturingScreenshot}
-                      className="w-full py-3 px-4 border-2 border-dashed border-[var(--color-border)] rounded-lg hover:border-[var(--color-primary)] transition-colors flex items-center justify-center gap-2 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-                    >
-                      {capturingScreenshot ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Capturando...
-                        </>
-                      ) : (
-                        <>
-                          <Camera className="w-5 h-5" />
-                          Capturar Pantalla
-                        </>
-                      )}
-                    </button>
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="screenshot-upload"
+                      />
+                      <label
+                        htmlFor="screenshot-upload"
+                        className="w-full py-3 px-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors flex items-center justify-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 bg-white dark:bg-slate-700/50 cursor-pointer"
+                      >
+                        <Upload className="w-5 h-5" />
+                        Subir Imagen
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-2 text-center">
+                        Máximo 10MB. Formatos: JPG, PNG, GIF
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -387,14 +407,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     type="button"
                     onClick={onClose}
                     disabled={isSubmitting}
-                    className="flex-1 px-6 py-3 rounded-lg border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-dark)] transition-colors disabled:opacity-50"
+                    className="flex-1 px-6 py-3 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white bg-white dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting || !titulo.trim() || !descripcion.trim()}
-                    className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
                       <>
@@ -416,15 +436,15 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                 <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle className="w-10 h-10 text-green-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-3">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                   ¡Reporte Enviado con Éxito!
                 </h3>
-                <p className="text-[var(--color-text-secondary)] mb-6">
+                <p className="text-gray-600 dark:text-slate-400 mb-6">
                   Gracias por ayudarnos a mejorar. Revisaremos tu reporte pronto.
                 </p>
                 <button
                   onClick={onClose}
-                  className="px-8 py-3 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white font-semibold hover:shadow-lg transition-all"
+                  className="px-8 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
                 >
                   Cerrar
                 </button>
