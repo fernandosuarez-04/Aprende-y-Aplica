@@ -12,7 +12,9 @@ import {
   User,
   HelpCircle,
   AlertCircle,
-  MoreVertical
+  MoreVertical,
+  ChevronUp,
+  Bug
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -240,6 +242,7 @@ export function AIChatAgent({
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -669,6 +672,7 @@ export function AIChatAgent({
   const handleClose = () => {
     setIsOpen(false);
     setIsMinimized(false);
+    setAreButtonsExpanded(false);
   };
 
   return (
@@ -676,26 +680,88 @@ export function AIChatAgent({
       {/* Botones flotantes */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
-          {/* Botón de ayuda contextual */}
+          <AnimatePresence>
+            {/* Botones expandidos: Ayuda y Reportar Problema */}
+            {areButtonsExpanded && (
+              <>
+                {/* Botón de ayuda contextual */}
+                <motion.button
+                  key="help-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('❓ Botón de ayuda clickeado');
+                    handleRequestHelp();
+                    setAreButtonsExpanded(false);
+                  }}
+                  initial={{ scale: 0, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0, y: 20 }}
+                  transition={{ duration: 0.2, delay: 0.1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+                  title="¿Necesitas ayuda?"
+                >
+                  <HelpCircle className="w-6 h-6 text-white" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    ¿Necesitas ayuda?
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
+                  </div>
+                </motion.button>
+
+                {/* Botón de reportar problema */}
+                <motion.button
+                  key="report-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('🐛 Botón de reportar problema clickeado');
+                    setIsReportOpen(true);
+                    setAreButtonsExpanded(false);
+                  }}
+                  initial={{ scale: 0, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0, y: 20 }}
+                  transition={{ duration: 0.2 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-orange-500 shadow-lg hover:shadow-red-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+                  title="Reportar problema"
+                >
+                  <Bug className="w-6 h-6 text-white" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Reportar problema
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
+                  </div>
+                </motion.button>
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* Botón de expandir/colapsar */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation();
-              console.log('❓ Botón de ayuda clickeado');
-              handleRequestHelp();
+              setAreButtonsExpanded(!areButtonsExpanded);
             }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
-            title="¿Necesitas ayuda?"
+            className="w-10 h-10 rounded-full bg-gray-700 dark:bg-gray-600 shadow-lg hover:shadow-gray-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+            title={areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
           >
-            <HelpCircle className="w-6 h-6 text-white" />
+            <motion.div
+              animate={{ rotate: areButtonsExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChevronUp className="w-5 h-5 text-white" />
+            </motion.div>
             
             {/* Tooltip */}
             <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              ¿Necesitas ayuda?
+              {areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
               <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
             </div>
           </motion.button>
@@ -713,10 +779,11 @@ export function AIChatAgent({
                 setIsOpen(true);
                 setIsMinimized(false);
                 setHasUnreadMessages(false);
+                setAreButtonsExpanded(false);
               }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer"
+              className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer border-2 border-blue-400"
             >
               {/* Efecto de pulso */}
               <motion.div
