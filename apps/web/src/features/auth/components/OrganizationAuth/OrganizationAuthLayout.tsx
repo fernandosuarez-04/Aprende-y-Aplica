@@ -50,7 +50,7 @@ export function OrganizationAuthLayout({
           setLoginStyles(data.styles.login);
         }
       } catch (error) {
-        console.error('Error fetching login styles:', error);
+        // console.error('Error fetching login styles:', error);
       }
     };
 

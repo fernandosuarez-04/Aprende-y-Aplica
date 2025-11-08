@@ -35,7 +35,7 @@ export function DeleteProfileModal({ profile, isOpen, onClose, onDelete }: Delet
       await onDelete(profile.id)
       onClose()
     } catch (error) {
-      console.error('Error deleting profile:', error)
+      // console.error('Error deleting profile:', error)
     } finally {
       setIsLoading(false)
     }

@@ -69,13 +69,13 @@ export class AdminModulesService {
         .order('module_order_index', { ascending: true })
 
       if (error) {
-        console.error('Error fetching modules:', error)
+        // console.error('Error fetching modules:', error)
         throw error
       }
 
       return data || []
     } catch (error) {
-      console.error('Error in AdminModulesService.getCourseModules:', error)
+      // console.error('Error in AdminModulesService.getCourseModules:', error)
       throw error
     }
   }
@@ -91,13 +91,13 @@ export class AdminModulesService {
         .single()
 
       if (error) {
-        console.error('Error fetching module:', error)
+        // console.error('Error fetching module:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminModulesService.getModuleById:', error)
+      // console.error('Error in AdminModulesService.getModuleById:', error)
       return null
     }
   }
@@ -131,13 +131,13 @@ export class AdminModulesService {
         .single()
 
       if (error) {
-        console.error('Error creating module:', error)
+        // console.error('Error creating module:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminModulesService.createModule:', error)
+      // console.error('Error in AdminModulesService.createModule:', error)
       throw error
     }
   }
@@ -157,13 +157,13 @@ export class AdminModulesService {
         .single()
 
       if (error) {
-        console.error('Error updating module:', error)
+        // console.error('Error updating module:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminModulesService.updateModule:', error)
+      // console.error('Error in AdminModulesService.updateModule:', error)
       throw error
     }
   }
@@ -179,7 +179,7 @@ export class AdminModulesService {
         .eq('module_id', moduleId)
 
       if (lessonsError) {
-        console.error('Error fetching lessons for module:', lessonsError)
+        // console.error('Error fetching lessons for module:', lessonsError)
         throw lessonsError
       }
 
@@ -216,7 +216,7 @@ export class AdminModulesService {
           .eq('module_id', moduleId)
 
         if (deleteLessonsError) {
-          console.error('Error deleting lessons:', deleteLessonsError)
+          // console.error('Error deleting lessons:', deleteLessonsError)
           throw deleteLessonsError
         }
       }
@@ -228,11 +228,11 @@ export class AdminModulesService {
         .eq('module_id', moduleId)
 
       if (error) {
-        console.error('Error deleting module:', error)
+        // console.error('Error deleting module:', error)
         throw error
       }
     } catch (error) {
-      console.error('Error in AdminModulesService.deleteModule:', error)
+      // console.error('Error in AdminModulesService.deleteModule:', error)
       throw error
     }
   }
@@ -253,11 +253,11 @@ export class AdminModulesService {
       const errors = results.filter(r => r.error)
 
       if (errors.length > 0) {
-        console.error('Error reordering modules:', errors)
+        // console.error('Error reordering modules:', errors)
         throw new Error('Error al reordenar módulos')
       }
     } catch (error) {
-      console.error('Error in AdminModulesService.reorderModules:', error)
+      // console.error('Error in AdminModulesService.reorderModules:', error)
       throw error
     }
   }
@@ -288,13 +288,13 @@ export class AdminModulesService {
         .single()
 
       if (error) {
-        console.error('Error toggling module published:', error)
+        // console.error('Error toggling module published:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminModulesService.toggleModulePublished:', error)
+      // console.error('Error in AdminModulesService.toggleModulePublished:', error)
       throw error
     }
   }
@@ -310,7 +310,7 @@ export class AdminModulesService {
         .eq('module_id', moduleId)
 
       if (error) {
-        console.error('Error calculating module duration:', error)
+        // console.error('Error calculating module duration:', error)
         throw error
       }
 
@@ -325,7 +325,7 @@ export class AdminModulesService {
 
       return totalMinutes
     } catch (error) {
-      console.error('Error in AdminModulesService.calculateModuleDuration:', error)
+      // console.error('Error in AdminModulesService.calculateModuleDuration:', error)
       throw error
     }
   }

@@ -331,7 +331,7 @@ export default function CourseLearnPage() {
         setSavedNotes([]);
       }
     } catch (error) {
-      console.error('Error loading notes:', error);
+      // console.error('Error loading notes:', error);
       setSavedNotes([]);
     }
   };
@@ -665,7 +665,7 @@ Antes de cada respuesta, pregúntate:
       setIsNotesModalOpen(false);
       setEditingNote(null);
     } catch (error) {
-      console.error('Error al guardar nota:', error);
+      // console.error('Error al guardar nota:', error);
     }
   };
 
@@ -694,7 +694,7 @@ Antes de cada respuesta, pregúntate:
         alert(`Error al eliminar la nota: ${errorData.error || 'Error desconocido'}`);
       }
     } catch (error) {
-      console.error('Error al eliminar nota:', error);
+      // console.error('Error al eliminar nota:', error);
       alert('Error al eliminar la nota. Por favor, intenta de nuevo.');
     }
   };
@@ -796,7 +796,7 @@ Antes de cada respuesta, pregúntate:
         setCurrentLesson(selectedLesson);
       }
     } catch (error) {
-      console.error('Error loading modules:', error);
+      // console.error('Error loading modules:', error);
     }
   };
 
@@ -872,7 +872,7 @@ Antes de cada respuesta, pregúntate:
   // Función para marcar una lección como completada (local y BD)
   const markLessonAsCompleted = async (lessonId: string): Promise<boolean> => {
     if (!canCompleteLesson(lessonId)) {
-      console.log('No se puede completar la lección porque la anterior no está completada');
+      // console.log('No se puede completar la lección porque la anterior no está completada');
       return false;
     }
 
@@ -920,7 +920,7 @@ Antes de cada respuesta, pregúntate:
         responseData = await response.json();
       } catch (jsonError) {
         // Si no es JSON válido, manejar como error
-        console.warn('Respuesta no es JSON válido - Status:', response.status);
+        // console.warn('Respuesta no es JSON válido - Status:', response.status);
         // Retornar true porque el estado local se actualizó
         return true;
       }
@@ -953,16 +953,16 @@ Antes de cada respuesta, pregúntate:
             setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
           }
 
-          console.error('Error del servidor:', responseData?.error || responseData);
+          // console.error('Error del servidor:', responseData?.error || responseData);
           return false;
         }
 
         // Para otros errores, solo loguear si hay un mensaje de error claro
         if (responseData?.error) {
-          console.warn('Advertencia al guardar progreso en BD:', responseData.error);
+          // console.warn('Advertencia al guardar progreso en BD:', responseData.error);
         } else if (response.status >= 500) {
           // Solo loguear errores del servidor (500+), no errores del cliente
-          console.warn('Error del servidor al guardar progreso - Status:', response.status);
+          // console.warn('Error del servidor al guardar progreso - Status:', response.status);
         }
         // Retornar true porque el estado local se actualizó y los datos pueden haberse guardado
         return true;
@@ -978,7 +978,7 @@ Antes de cada respuesta, pregúntate:
 
       return true;
     } catch (error) {
-      console.error('Error al guardar progreso en BD:', error);
+      // console.error('Error al guardar progreso en BD:', error);
       // Mantener el estado local aunque falle la BD
       return true;
     }
@@ -1008,7 +1008,7 @@ Antes de cada respuesta, pregúntate:
       // Marcar lección anterior como completada en segundo plano (no bloqueante)
       if (currentLesson) {
         markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
-          console.error('Error al marcar lección como completada:', error);
+          // console.error('Error al marcar lección como completada:', error);
         });
       }
     }
@@ -1036,7 +1036,7 @@ Antes de cada respuesta, pregúntate:
       // Si se está avanzando, marcar como completada en segundo plano
       if (selectedIndex > currentIndex) {
         markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
-          console.error('Error al marcar lección como completada:', error);
+          // console.error('Error al marcar lección como completada:', error);
         });
       }
     }
@@ -2210,16 +2210,16 @@ function VideoContent({
   const isLastLesson = !hasNextLesson;
   
   // Debug logging
-  console.log('VideoContent - Lesson data:', {
-    lesson_id: lesson.lesson_id,
-    lesson_title: lesson.lesson_title,
-    video_provider: lesson.video_provider,
-    video_provider_id: lesson.video_provider_id,
-    hasVideo,
-    hasPreviousVideo,
-    hasNextVideo,
-    fullLesson: lesson
-  });
+  // console.log('VideoContent - Lesson data:', {
+  //   lesson_id: lesson.lesson_id,
+  //   lesson_title: lesson.lesson_title,
+  //   video_provider: lesson.video_provider,
+  //   video_provider_id: lesson.video_provider_id,
+  //   hasVideo,
+  //   hasPreviousVideo,
+  //   hasNextVideo,
+  //   fullLesson: lesson
+  // });
   
   return (
     <div className="space-y-6">
@@ -2386,7 +2386,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
           setTranscriptContent(null);
         }
       } catch (error) {
-        console.error('Error loading transcript:', error);
+        // console.error('Error loading transcript:', error);
         setTranscriptContent(null);
       } finally {
         setLoading(false);
@@ -2428,7 +2428,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000); // Reset después de 2 segundos
     } catch (error) {
-      console.error('Error al copiar al portapapeles:', error);
+      // console.error('Error al copiar al portapapeles:', error);
       alert('Error al copiar al portapapeles');
     }
   };
@@ -2448,9 +2448,9 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
         source_type: 'manual' // Usar valor válido según la restricción de la BD
       };
 
-      console.log('=== DEBUG TRANSCRIPCIÓN ===');
-      console.log('Enviando payload de nota:', notePayload);
-      console.log('URL de la API:', `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`);
+      // console.log('=== DEBUG TRANSCRIPCIÓN ===');
+      // console.log('Enviando payload de nota:', notePayload);
+      // console.log('URL de la API:', `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`);
 
       const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`, {
         method: 'POST',
@@ -2461,14 +2461,14 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
         body: JSON.stringify(notePayload)
       });
       
-      console.log('Respuesta del servidor:', response.status, response.statusText);
-      console.log('Headers de respuesta:', Object.fromEntries(response.headers.entries()));
+      // console.log('Respuesta del servidor:', response.status, response.statusText);
+      // console.log('Headers de respuesta:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         let errorData;
         try {
           const responseText = await response.text();
-          console.log('Respuesta del servidor (texto):', responseText);
+          // console.log('Respuesta del servidor (texto):', responseText);
           
           if (responseText) {
             errorData = JSON.parse(responseText);
@@ -2476,18 +2476,18 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
             errorData = { error: 'Respuesta vacía del servidor' };
           }
         } catch (parseError) {
-          console.error('Error al parsear respuesta JSON:', parseError);
+          // console.error('Error al parsear respuesta JSON:', parseError);
           errorData = { error: 'Error al procesar respuesta del servidor' };
         }
         
-        console.error('Error detallado del servidor:', errorData);
+        // console.error('Error detallado del servidor:', errorData);
         alert(`Error al guardar la transcripción en notas:\n\n${errorData.error || 'Error desconocido'}\n\nDetalles: ${errorData.message || 'Sin detalles adicionales'}\n\nCódigo de estado: ${response.status}`);
         return;
       }
       
       const newNote = await response.json();
-      console.log('Nota creada exitosamente:', newNote);
-      console.log('=== FIN DEBUG ===');
+      // console.log('Nota creada exitosamente:', newNote);
+      // console.log('=== FIN DEBUG ===');
       
       // Mostrar mensaje de éxito
       alert('✅ Transcripción guardada exitosamente en notas');
@@ -2496,8 +2496,8 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
       // loadLessonNotes(lesson.lesson_id, slug);
       
     } catch (error) {
-      console.error('Error al guardar transcripción en notas:', error);
-      console.log('=== FIN DEBUG (ERROR) ===');
+      // console.error('Error al guardar transcripción en notas:', error);
+      // console.log('=== FIN DEBUG (ERROR) ===');
       alert(`❌ Error al guardar la transcripción en notas:\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nRevisa la consola para más detalles.`);
     } finally {
       setIsSaving(false);
@@ -2648,7 +2648,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           setSummaryContent(null);
         }
       } catch (error) {
-        console.error('Error loading summary:', error);
+        // console.error('Error loading summary:', error);
         setSummaryContent(null);
       } finally {
         setLoading(false);
@@ -3086,7 +3086,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
       promptsList = [String(prompts)];
     }
   } catch (e) {
-    console.warn('Error parsing prompts:', e);
+    // console.warn('Error parsing prompts:', e);
     promptsList = [String(prompts)];
   }
 
@@ -3106,7 +3106,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
                   alert('Prompt copiado al portapapeles');
                 }).catch(() => {
                   // Fallback: mostrar el prompt
-                  console.log('Prompt:', cleanPrompt);
+                  // console.log('Prompt:', cleanPrompt);
                 });
               }}
               className="w-full text-left px-4 py-3 bg-white dark:bg-purple-500/20 hover:bg-purple-100 dark:hover:bg-purple-500/30 border border-purple-200 dark:border-purple-500/40 rounded-lg transition-all hover:border-purple-300 dark:hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 group"
@@ -3525,7 +3525,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           setMaterials([]);
         }
       } catch (error) {
-        console.error('Error loading activities and materials:', error);
+        // console.error('Error loading activities and materials:', error);
         setActivities([]);
         setMaterials([]);
       } finally {
@@ -3571,7 +3571,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
             }
           });
         } catch (error) {
-          console.warn('Error parsing prompts:', error);
+          // console.warn('Error parsing prompts:', error);
         }
       }
     });
@@ -3740,7 +3740,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         try {
                           quizData = JSON.parse(quizData);
                         } catch (e) {
-                          console.warn('⚠️ Quiz content is not valid JSON:', e);
+                          // console.warn('⚠️ Quiz content is not valid JSON:', e);
                           return (
                             <div className="prose dark:prose-invert max-w-none">
                               <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
@@ -3790,7 +3790,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         </div>
                       );
                     } catch (e) {
-                      console.error('❌ Error processing quiz:', e);
+                      // console.error('❌ Error processing quiz:', e);
                       return (
                         <div className="prose prose-invert dark:prose-invert max-w-none">
                           <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
@@ -3876,7 +3876,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                           try {
                             quizData = JSON.parse(quizData);
                           } catch (e) {
-                            console.warn('Quiz content is not valid JSON:', e);
+                            // console.warn('Quiz content is not valid JSON:', e);
                             return null;
                           }
                         }
@@ -3904,7 +3904,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                           }
                         }
                       } catch (e) {
-                        console.warn('Error parsing quiz data:', e);
+                        // console.warn('Error parsing quiz data:', e);
                       }
                       return null;
                     })()}
@@ -4060,7 +4060,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         setHasMore(false);
       }
     } catch (error) {
-      console.error('Error loading questions:', error);
+      // console.error('Error loading questions:', error);
       setQuestions([]);
       setHasMore(false);
     } finally {
@@ -4119,7 +4119,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         setHasMore(false);
       }
     } catch (error) {
-      console.error('Error loading more questions:', error);
+      // console.error('Error loading more questions:', error);
       setHasMore(false);
     } finally {
       setLoadingMore(false);
@@ -4256,11 +4256,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
             }
           }
         } catch (syncError) {
-          console.error('Error syncing reaction state:', syncError);
+          // console.error('Error syncing reaction state:', syncError);
         }
       }
     } catch (error) {
-      console.error('Error handling reaction:', error);
+      // console.error('Error handling reaction:', error);
       // Revertir en caso de error
       setReactionCounts(prev => ({ ...prev, [questionId]: currentCount }));
       setUserReactions(prev => {
@@ -4621,7 +4621,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
           setResponseReactions(reactionsMap);
         }
       } catch (error) {
-        console.error('Error loading question data:', error);
+        // console.error('Error loading question data:', error);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -4731,7 +4731,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         }
       }
     } catch (error) {
-      console.error('Error handling response reaction:', error);
+      // console.error('Error handling response reaction:', error);
       // Revertir en caso de error
       setResponseReactionCounts(prev => ({ ...prev, [responseId]: currentCount }));
       setResponseReactions(prev => {
@@ -4764,7 +4764,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         setNewResponse('');
       }
     } catch (error) {
-      console.error('Error submitting response:', error);
+      // console.error('Error submitting response:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -4795,7 +4795,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         setReplyingTo(null);
       }
     } catch (error) {
-      console.error('Error submitting reply:', error);
+      // console.error('Error submitting reply:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -4838,7 +4838,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         setReplyingToReply(null);
       }
     } catch (error) {
-      console.error('Error submitting reply to reply:', error);
+      // console.error('Error submitting reply to reply:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -5233,7 +5233,7 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
         alert(`Error: ${errorData.error}`);
       }
     } catch (error) {
-      console.error('Error creating question:', error);
+      // console.error('Error creating question:', error);
       alert('Error al crear la pregunta');
     } finally {
       setIsSubmitting(false);

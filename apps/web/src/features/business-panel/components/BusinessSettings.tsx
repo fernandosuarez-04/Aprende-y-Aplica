@@ -694,7 +694,7 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
       // Por ahora mostramos un alert
       alert('Funcionalidad de cancelación en desarrollo. Próximamente estarás disponible para cancelar tu suscripción.')
     } catch (error) {
-      console.error('Error cancelling subscription:', error)
+      // console.error('Error cancelling subscription:', error)
       alert('Error al cancelar la suscripción. Por favor, intenta más tarde.')
     } finally {
       setIsCancelling(false)
@@ -734,7 +734,7 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
         day: 'numeric'
       })
     } catch (error) {
-      console.error('Error formatting date:', error)
+      // console.error('Error formatting date:', error)
       return 'No disponible'
     }
   }
@@ -889,7 +889,7 @@ function BrandingTab() {
         setFaviconPreview(data.branding.favicon_url)
       }
     } catch (error) {
-      console.error('Error fetching branding:', error)
+      // console.error('Error fetching branding:', error)
       setSaveError('Error al cargar configuración de branding')
     } finally {
       setIsLoading(false)

@@ -10,10 +10,9 @@ export async function POST(request: NextRequest) {
   // Wrapper para capturar CUALQUIER error y devolver JSON
   try {
     // Logging temprano para ver si la request llega
-    ,
-        'content-length': request.headers.get('content-length'),
-      }
-    })
+    // console.log('📤 Request recibida:', {
+    //   'content-length': request.headers.get('content-length'),
+    // })
     
     // Verificar Content-Length antes de procesar
     const contentLength = request.headers.get('content-length')
@@ -21,7 +20,7 @@ export async function POST(request: NextRequest) {
       const sizeBytes = parseInt(contentLength, 10)
       const maxSize = 1024 * 1024 * 1024 // 1GB
       if (sizeBytes > maxSize) {
-        console.error('❌ Request too large:', sizeBytes)
+        // console.error('❌ Request too large:', sizeBytes)
         return NextResponse.json(
           { 
             error: 'El archivo excede el tamaño máximo de 1GB',
@@ -33,7 +32,6 @@ export async function POST(request: NextRequest) {
           }
         )
       }
-      .toFixed(2)} MB`)
     }
     
     // Verificar variables de entorno
@@ -41,7 +39,7 @@ export async function POST(request: NextRequest) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('❌ Missing Supabase environment variables')
+      // console.error('❌ Missing Supabase environment variables')
       return NextResponse.json(
         { 
           error: 'Configuración del servidor incompleta. Variables de entorno faltantes.',
@@ -70,7 +68,7 @@ export async function POST(request: NextRequest) {
     try {
       formData = await request.formData()
       } catch (formDataError) {
-      console.error('❌ Error reading FormData:', formDataError)
+      // console.error('❌ Error reading FormData:', formDataError)
       return NextResponse.json(
         {
           error: 'Error al leer el archivo. El archivo puede ser demasiado grande o estar corrupto.',
@@ -86,7 +84,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
 
     if (!file) {
-      console.error('❌ No file provided')
+      // console.error('❌ No file provided')
       return NextResponse.json(
         { error: 'No se proporcionó archivo de video' },
         { 
@@ -99,7 +97,7 @@ export async function POST(request: NextRequest) {
     // Validar tamaño (máximo 1GB para videos)
     const maxSize = 1024 * 1024 * 1024 // 1GB
     if (file.size > maxSize) {
-      console.error('❌ File too large:', file.size)
+      // console.error('❌ File too large:', file.size)
       return NextResponse.json(
         { error: 'El video excede el tamaño máximo de 1GB' },
         { 
@@ -125,7 +123,7 @@ export async function POST(request: NextRequest) {
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
     
     if (bucketsError) {
-      console.error('❌ Error listing buckets:', bucketsError)
+      // console.error('❌ Error listing buckets:', bucketsError)
       return NextResponse.json(
         { error: 'Error al acceder al almacenamiento', details: bucketsError.message },
         { status: 500 }
@@ -134,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     const bucketExists = buckets?.some(b => b.name === 'course-videos')
     if (!bucketExists) {
-      console.error('❌ Bucket "course-videos" does not exist')
+      // console.error('❌ Bucket "course-videos" does not exist')
       return NextResponse.json(
         { 
           error: 'El bucket de almacenamiento no existe. Por favor, créalo en Supabase.',
@@ -159,7 +157,7 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-      console.error('❌ Error uploading video:', uploadError)
+      // console.error('❌ Error uploading video:', uploadError)
       return NextResponse.json(
         { 
           error: 'Error al subir el video',
@@ -171,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!uploadData) {
-      console.error('❌ No upload data returned')
+      // console.error('❌ No upload data returned')
       return NextResponse.json(
         { error: 'No se recibió confirmación de la subida' },
         { status: 500 }
@@ -184,7 +182,7 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(filePath)
 
     if (!urlData?.publicUrl) {
-      console.error('❌ Could not get public URL')
+      // console.error('❌ Could not get public URL')
       return NextResponse.json(
         { error: 'Error al obtener la URL pública del video' },
         { status: 500 }
@@ -202,7 +200,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     // Asegurar que SIEMPRE devolvemos JSON, nunca HTML
-    console.error('💥 Unexpected error in upload video API:', error)
+    // console.error('💥 Unexpected error in upload video API:', error)
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
     const errorStack = error instanceof Error ? error.stack : undefined
     
@@ -224,7 +222,7 @@ export async function POST(request: NextRequest) {
       )
     } catch (jsonError) {
       // Si incluso devolver JSON falla, devolver un string JSON simple
-      console.error('💥 Error even creating JSON response:', jsonError)
+      // console.error('💥 Error even creating JSON response:', jsonError)
       return new NextResponse(
         JSON.stringify({ 
           success: false,

@@ -38,7 +38,7 @@ export async function DELETE(
       .eq('community_id', communityId)
 
     if (deleteError) {
-      console.error('Error removing member:', deleteError)
+      // console.error('Error removing member:', deleteError)
       return NextResponse.json({ 
         success: false, 
         message: 'Error al remover el miembro' 
@@ -81,7 +81,7 @@ export async function DELETE(
       message: 'Miembro removido exitosamente' 
     })
   } catch (error: unknown) {
-    console.error('Error in remove member API:', error)
+    // console.error('Error in remove member API:', error)
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 

@@ -86,7 +86,7 @@ export function OrganizationRegisterForm({
           setSuccess(result.message || 'Cuenta creada exitosamente');
         }
       } catch (error) {
-        console.error('Register error:', error);
+        // console.error('Register error:', error);
         setError('Error inesperado al crear la cuenta');
       }
     });

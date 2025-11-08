@@ -34,7 +34,7 @@ export function EditReporteModal({ reporte, isOpen, onClose, onSave, isProcessin
         notas_admin: notasAdmin.trim() || undefined
       })
     } catch (error) {
-      console.error('Error saving reporte:', error)
+      // console.error('Error saving reporte:', error)
       // El error se maneja en el componente padre
     }
   }

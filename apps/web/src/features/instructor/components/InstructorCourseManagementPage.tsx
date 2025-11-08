@@ -104,7 +104,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           }
         }
       } catch (error) {
-        console.error('Error loading instructor signature:', error)
+        // console.error('Error loading instructor signature:', error)
       }
     }
     loadInstructorSignature()
@@ -139,7 +139,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
             setChartData(data.charts || null)
           }
         } catch (e) {
-          console.error('Error cargando estadísticas:', e)
+          // console.error('Error cargando estadísticas:', e)
         } finally {
           setStatsLoading(false)
         }
@@ -608,14 +608,14 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                         currentSignatureUrl={instructorSignatureUrl}
                         currentSignatureName={instructorSignatureName}
                         onUpload={async (url, signatureName) => {
-                          console.log('InstructorSignatureUpload - onUpload called:', { url, signatureName })
+                          // console.log('InstructorSignatureUpload - onUpload called:', { url, signatureName })
                           // Actualizar estado inmediatamente
                           setInstructorSignatureUrl(url)
                           setInstructorSignatureName(signatureName)
-                          console.log('InstructorSignatureUpload - State updated:', { 
-                            newUrl: url, 
-                            newName: signatureName 
-                          })
+                          // console.log('InstructorSignatureUpload - State updated:', {
+                          //   newUrl: url,
+                          //   newName: signatureName
+                          // })
                           // Recargar la firma desde la base de datos después de un pequeño delay
                           // para asegurar que la BD se haya actualizado
                           setTimeout(async () => {
@@ -623,10 +623,10 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                               const res = await fetch(`/api/auth/me`)
                               const data = await res.json()
                               if (res.ok && data?.user) {
-                                console.log('InstructorSignatureUpload - Reloaded from DB:', {
-                                  signature_url: data.user.signature_url,
-                                  signature_name: data.user.signature_name
-                                })
+                                // console.log('InstructorSignatureUpload - Reloaded from DB:', {
+                                //   signature_url: data.user.signature_url,
+                                //   signature_name: data.user.signature_name
+                                // })
                                 if (data.user.signature_url) {
                                   setInstructorSignatureUrl(data.user.signature_url)
                                 } else {
@@ -639,7 +639,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                                 }
                               }
                             } catch (error) {
-                              console.error('Error reloading signature:', error)
+                              // console.error('Error reloading signature:', error)
                             }
                           }, 500)
                         }}
@@ -650,6 +650,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               </div>
             </div>
 
+// 
             {/* Estadísticas de Certificados */}
             <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
               <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -657,6 +658,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 Certificados Emitidos
               </h2>
               
+// 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                 <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
                   <div className="text-sm text-purple-300/80 mb-2">Total Emitidos</div>
@@ -680,6 +682,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
+// 
         {/* Vista previa */}
         {activeTab === 'preview' && (
           <div className="mt-6">
@@ -725,6 +728,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
+// 
         {/* Estadísticas */}
         {activeTab === 'stats' && (
           <div className="mt-6 space-y-6">
@@ -768,6 +772,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
+// 
                 {/* Estadísticas de Usuarios */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -810,6 +815,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
+// 
                 {/* Estadísticas Financieras */}
                 {(userStats?.total_purchases > 0 || userStats?.total_revenue_cents > 0) && (
                   <div>
@@ -831,6 +837,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 )}
 
+// 
                 {/* Estadísticas de Reseñas */}
                 {userStats?.total_reviews > 0 && (
                   <div>
@@ -851,6 +858,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 )}
 
+// 
                 {/* Análisis Estadístico Profundo */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -900,6 +908,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
+// 
                 {/* Métricas de RRHH */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -929,6 +938,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
+// 
                 {/* Gráficas Avanzadas */}
                 {chartData && (
                   <div className="space-y-6">
@@ -937,26 +947,31 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       Visualizaciones Avanzadas
                     </h2>
                     
+// 
                     {/* Gráfica de Tendencia de Inscripciones */}
                     {chartData.enrollment_trend && chartData.enrollment_trend.length > 0 && (
                       <EnrollmentTrendChart data={chartData.enrollment_trend} />
                     )}
 
+// 
                     {/* Gráfica de Distribución de Progreso */}
                     {chartData.progress_distribution && chartData.progress_distribution.length > 0 && (
                       <ProgressDistributionChart data={chartData.progress_distribution} />
                     )}
 
+// 
                     {/* Gráfica de Dispersión: Engagement */}
                     {chartData.engagement_data && chartData.engagement_data.length > 0 && (
                       <EngagementScatterChart data={chartData.engagement_data} />
                     )}
 
+// 
                     {/* Gráfica de Tasas de RRHH */}
                     {chartData.enrollment_rates && chartData.enrollment_rates.length > 0 && (
                       <CompletionRateChart data={chartData.enrollment_rates} />
                     )}
 
+// 
                     {/* Gráficas de pastel: Roles y Áreas */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {chartData.user_roles_pie && chartData.user_roles_pie.length > 0 && (
@@ -969,6 +984,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 )}
 
+// 
                 {/* Lista de Usuarios Inscritos */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -1054,6 +1070,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
+// 
         {showModuleModal && (
           <ModuleModal
             module={selectedModule}
@@ -1069,6 +1086,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           />
         )}
 
+// 
         {showDeleteModuleModal && deletingModule && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -1095,7 +1113,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       setShowDeleteModuleModal(false)
                       setDeletingModule(null)
                     } catch (error) {
-                      console.error('Error deleting module:', error)
+                      // console.error('Error deleting module:', error)
                       alert('Error al eliminar el módulo')
                     }
                   }}
@@ -1108,6 +1126,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
+// 
         {showDeleteLessonModal && deletingLesson && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -1137,7 +1156,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       setShowDeleteLessonModal(false)
                       setDeletingLesson(null)
                     } catch (error) {
-                      console.error('Error deleting lesson:', error)
+                      // console.error('Error deleting lesson:', error)
                       alert('Error al eliminar la lección')
                     }
                   }}
@@ -1150,6 +1169,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
+// 
         {showLessonModal && editingModuleId && (
           <LessonModal
             moduleId={editingModuleId}
@@ -1179,6 +1199,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           />
         )}
 
+// 
         {showMaterialModal && editingLessonId && (() => {
           const lesson = lessons.find(l => l.lesson_id === editingLessonId)
           if (!lesson || !lesson.module_id) return null
@@ -1199,6 +1220,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           )
         })()}
 
+// 
         {showActivityModal && editingLessonId && (() => {
           const lesson = lessons.find(l => l.lesson_id === editingLessonId)
           if (!lesson || !lesson.module_id) return null
@@ -1225,6 +1247,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           )
         })()}
 
+// 
         {/* Modal de Preview de Plantillas de Certificados */}
         <CertificateTemplatePreview
           key={`cert-preview-${instructorSignatureName || 'no-name'}-${instructorSignatureUrl || 'no-url'}`}
@@ -1246,6 +1269,10 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   )
 }
 
+// 
 export default InstructorCourseManagementPage
 
+// 
 
+// 
+// 

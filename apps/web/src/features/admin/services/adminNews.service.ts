@@ -47,7 +47,7 @@ export class AdminNewsService {
       const data = await response.json()
       return data.news || []
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.getNews:', error)
+      // console.error('💥 Error in AdminNewsService.getNews:', error)
       throw error
     }
   }
@@ -68,7 +68,7 @@ export class AdminNewsService {
       const data = await response.json()
       return data.stats
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.getNewsStats:', error)
+      // console.error('💥 Error in AdminNewsService.getNewsStats:', error)
       throw error
     }
   }
@@ -90,7 +90,7 @@ export class AdminNewsService {
       const data = await response.json()
       return data.news
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.createNews:', error)
+      // console.error('💥 Error in AdminNewsService.createNews:', error)
       throw error
     }
   }
@@ -112,7 +112,7 @@ export class AdminNewsService {
       const data = await response.json()
       return data.news
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.updateNews:', error)
+      // console.error('💥 Error in AdminNewsService.updateNews:', error)
       throw error
     }
   }
@@ -131,7 +131,7 @@ export class AdminNewsService {
       }
 
       } catch (error) {
-      console.error('💥 Error in AdminNewsService.deleteNews:', error)
+      // console.error('💥 Error in AdminNewsService.deleteNews:', error)
       throw error
     }
   }
@@ -151,7 +151,7 @@ export class AdminNewsService {
       }
 
       } catch (error) {
-      console.error('💥 Error in AdminNewsService.toggleNewsStatus:', error)
+      // console.error('💥 Error in AdminNewsService.toggleNewsStatus:', error)
       throw error
     }
   }
@@ -172,7 +172,7 @@ export class AdminNewsService {
       const data = await response.json()
       return data.news
     } catch (error) {
-      console.error('💥 Error in AdminNewsService.getNewsById:', error)
+      // console.error('💥 Error in AdminNewsService.getNewsById:', error)
       throw error
     }
   }

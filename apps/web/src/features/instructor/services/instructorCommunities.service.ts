@@ -21,7 +21,7 @@ export class InstructorCommunitiesService {
       const data = await response.json()
       return data.communities || []
     } catch (error) {
-      console.error('💥 Error in InstructorCommunitiesService.getCommunities:', error)
+      // console.error('💥 Error in InstructorCommunitiesService.getCommunities:', error)
       throw error
     }
   }
@@ -42,7 +42,7 @@ export class InstructorCommunitiesService {
       const data = await response.json()
       return data.stats
     } catch (error) {
-      console.error('💥 Error in InstructorCommunitiesService.getCommunityStats:', error)
+      // console.error('💥 Error in InstructorCommunitiesService.getCommunityStats:', error)
       throw error
     }
   }

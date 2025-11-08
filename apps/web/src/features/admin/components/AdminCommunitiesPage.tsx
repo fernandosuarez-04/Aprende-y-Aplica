@@ -75,7 +75,7 @@ export function AdminCommunitiesPage() {
         refetch() // Recargar los datos
       }
     } catch (error) {
-      console.error('Error toggling community visibility:', error)
+      // console.error('Error toggling community visibility:', error)
     }
   }
 
@@ -95,7 +95,7 @@ export function AdminCommunitiesPage() {
         throw new Error('Error al actualizar comunidad')
       }
     } catch (error) {
-      console.error('Error saving community:', error)
+      // console.error('Error saving community:', error)
       throw error
     }
   }
@@ -114,7 +114,7 @@ export function AdminCommunitiesPage() {
         throw new Error('Error al eliminar comunidad')
       }
     } catch (error) {
-      console.error('Error deleting community:', error)
+      // console.error('Error deleting community:', error)
       throw error
     }
   }
@@ -125,7 +125,7 @@ export function AdminCommunitiesPage() {
 
   const handleSaveNewCommunity = async (communityData: any) => {
     try {
-      console.log('🔄 Enviando datos de comunidad:', communityData)
+      // console.log('🔄 Enviando datos de comunidad:', communityData)
       
       const response = await fetch('/api/admin/communities/create', {
         method: 'POST',
@@ -135,20 +135,20 @@ export function AdminCommunitiesPage() {
         body: JSON.stringify(communityData)
       })
       
-      console.log('📡 Respuesta del servidor:', response.status, response.statusText)
+      // console.log('📡 Respuesta del servidor:', response.status, response.statusText)
       
       const data = await response.json()
-      console.log('📋 Datos de respuesta:', data)
+      // console.log('📋 Datos de respuesta:', data)
       
       if (response.ok && data.success) {
-        console.log('✅ Comunidad creada exitosamente')
+        // console.log('✅ Comunidad creada exitosamente')
         refetch() // Recargar los datos
       } else {
-        console.error('❌ Error en la respuesta:', data)
+        // console.error('❌ Error en la respuesta:', data)
         throw new Error(data.message || data.error || 'Error al crear la comunidad')
       }
     } catch (error) {
-      console.error('💥 Error creating community:', error)
+      // console.error('💥 Error creating community:', error)
       throw error
     }
   }

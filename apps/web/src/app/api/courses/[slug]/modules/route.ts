@@ -176,7 +176,7 @@ export async function GET(
       cacheHeaders.semiStatic
     );
   } catch (error) {
-    console.error('Error in modules API:', error);
+    // console.error('Error in modules API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

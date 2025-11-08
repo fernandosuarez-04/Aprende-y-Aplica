@@ -70,7 +70,7 @@ export default function QuestionnairePage() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        console.error('Error getting session:', sessionError);
+        // console.error('Error getting session:', sessionError);
         setError('Error de autenticación. Por favor inicia sesión nuevamente.');
         return;
       }
@@ -102,7 +102,7 @@ export default function QuestionnairePage() {
         setError(result.error || 'Error al cargar las preguntas');
       }
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      // console.error('Error fetching questions:', error);
       setError('Error al cargar las preguntas');
     } finally {
       setLoading(false);
@@ -130,7 +130,7 @@ export default function QuestionnairePage() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.access_token) {
-        console.error('No hay sesión activa para guardar respuesta');
+        // console.error('No hay sesión activa para guardar respuesta');
         return;
       }
       
@@ -146,11 +146,11 @@ export default function QuestionnairePage() {
       const result = await response.json();
       
       if (!response.ok) {
-        console.error('Error saving answer:', result.error);
+        // console.error('Error saving answer:', result.error);
         // No mostramos error al usuario para no interrumpir el flujo
       }
     } catch (error) {
-      console.error('Error saving answer:', error);
+      // console.error('Error saving answer:', error);
     } finally {
       setSaving(false);
     }

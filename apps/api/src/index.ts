@@ -100,10 +100,10 @@ app.use((req: Request, res: Response) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor Chat-Bot-LIA corriendo en http://localhost:${PORT}`);
-  console.log(`📚 API Version: ${API_VERSION}`);
-  console.log(`🌍 Environment: ${config.NODE_ENV}`);
-  console.log(`⏰ Started at: ${new Date().toISOString()}`);
+  // console.log(`🚀 Servidor Chat-Bot-LIA corriendo en http://localhost:${PORT}`);
+  // console.log(`📚 API Version: ${API_VERSION}`);
+  // console.log(`🌍 Environment: ${config.NODE_ENV}`);
+  // console.log(`⏰ Started at: ${new Date().toISOString()}`);
 });
 
 export default app;

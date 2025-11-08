@@ -117,7 +117,7 @@ export function VideoPlayer({
 
   // Manejar errores del iframe
   const handleIframeError = () => {
-    console.error('VideoPlayer iframe error');
+    // console.error('VideoPlayer iframe error');
     setIsLoading(false);
     setError('Error al cargar el video');
   };
@@ -187,7 +187,7 @@ export function VideoPlayer({
               setError(null);
             }}
             onError={(e) => {
-              console.error('VideoPlayer video error:', e);
+              // console.error('VideoPlayer video error:', e);
               setIsLoading(false);
               setError('Error al cargar el video');
             }}

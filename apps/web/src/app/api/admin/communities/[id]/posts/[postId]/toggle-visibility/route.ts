@@ -23,7 +23,7 @@ export async function PATCH(
       .single()
 
     if (fetchError || !currentPost) {
-      console.error('❌ Error fetching post:', fetchError)
+      // console.error('❌ Error fetching post:', fetchError)
       return NextResponse.json({ 
         success: false, 
         message: 'Post no encontrado' 
@@ -44,7 +44,7 @@ export async function PATCH(
       .single()
 
     if (updateError) {
-      console.error('Error updating post visibility:', updateError)
+      // console.error('Error updating post visibility:', updateError)
       return NextResponse.json({ 
         success: false, 
         message: 'Error al cambiar la visibilidad del post' 
@@ -69,7 +69,7 @@ export async function PATCH(
         user_agent: userAgent
       })
     } catch (auditError) {
-      :', auditError)
+      // console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 
@@ -79,7 +79,7 @@ export async function PATCH(
       message: `Post ${newVisibility ? 'ocultado' : 'mostrado'} exitosamente` 
     })
   } catch (error: unknown) {
-    console.error('Error in toggle post visibility API:', error)
+    // console.error('Error in toggle post visibility API:', error)
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 

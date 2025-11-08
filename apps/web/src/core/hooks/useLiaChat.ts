@@ -81,7 +81,7 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
       // ✅ ANALYTICS: Guardar conversationId que viene del backend
       if (data.conversationId && !conversationIdRef.current) {
         conversationIdRef.current = data.conversationId;
-        console.log('[LIA Analytics] Nueva conversación iniciada:', data.conversationId);
+        // console.log('[LIA Analytics] Nueva conversación iniciada:', data.conversationId);
       }
       
       const assistantMessage: LiaMessage = {
@@ -123,9 +123,9 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
             completed: true
           }),
         });
-        console.log('[LIA Analytics] Conversación cerrada:', conversationIdRef.current);
+        // console.log('[LIA Analytics] Conversación cerrada:', conversationIdRef.current);
       } catch (error) {
-        console.error('[LIA Analytics] Error cerrando conversación:', error);
+        // console.error('[LIA Analytics] Error cerrando conversación:', error);
       }
       
       conversationIdRef.current = null;

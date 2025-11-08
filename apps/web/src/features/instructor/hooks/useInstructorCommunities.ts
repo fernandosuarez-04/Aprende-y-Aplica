@@ -30,7 +30,7 @@ export function useInstructorCommunities(): UseInstructorCommunitiesReturn {
       setCommunities(communitiesData)
       setStats(statsData)
     } catch (err) {
-      console.error('Error fetching instructor communities data:', err)
+      // console.error('Error fetching instructor communities data:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setIsLoading(false)

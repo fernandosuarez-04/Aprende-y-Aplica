@@ -28,7 +28,7 @@ export default function HomePage() {
         }
       } catch (err) {
         setError('Error al cargar el contenido');
-        console.error('Error loading content:', err);
+        // console.error('Error loading content:', err);
       } finally {
         setLoading(false);
       }

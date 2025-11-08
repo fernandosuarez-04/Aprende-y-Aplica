@@ -32,7 +32,7 @@ const userProfileFetcher = async (key: string): Promise<UserProfile | null> => {
 
   if (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.error('Error fetching user profile:', error)
+      // console.error('Error fetching user profile:', error)
     }
     throw new Error(`Error al obtener perfil: ${error.message}`)
   }

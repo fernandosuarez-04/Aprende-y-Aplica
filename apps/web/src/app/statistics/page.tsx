@@ -73,7 +73,7 @@ export default function StatisticsPage() {
         .single();
 
       if (profileError || !userProfile) {
-        console.log('🔍 Usuario sin perfil, mostrando formulario de personalización');
+        // console.log('🔍 Usuario sin perfil, mostrando formulario de personalización');
         loadData();
         return;
       }
@@ -86,16 +86,16 @@ export default function StatisticsPage() {
         .limit(1);
 
       if (responsesError || !responses || responses.length === 0) {
-        console.log('🔍 Usuario sin respuestas, mostrando formulario de personalización');
+        // console.log('🔍 Usuario sin respuestas, mostrando formulario de personalización');
         loadData();
         return;
       }
 
-      console.log('🔍 Usuario tiene datos, redirigiendo a resultados');
+      // console.log('🔍 Usuario tiene datos, redirigiendo a resultados');
       // Si tiene datos, redirigir a los resultados
       router.push('/statistics/results');
     } catch (error) {
-      console.error('Error verificando datos del usuario:', error);
+      // console.error('Error verificando datos del usuario:', error);
       loadData();
     }
   };
@@ -111,7 +111,7 @@ export default function StatisticsPage() {
         setReferenceData(reference);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      // console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -160,7 +160,7 @@ export default function StatisticsPage() {
         rol_id: rol_id
       };
 
-      console.log('Enviando datos:', profileData);
+      // console.log('Enviando datos:', profileData);
       
       const response = await fetch('/api/statistics/profile', {
         method: 'POST',
@@ -169,7 +169,7 @@ export default function StatisticsPage() {
       });
 
       const result = await response.json();
-      console.log('Respuesta de la API:', result);
+      // console.log('Respuesta de la API:', result);
 
       if (response.ok) {
         // Generar perfil recomendado basado en los datos
@@ -177,11 +177,11 @@ export default function StatisticsPage() {
         setRecommendedProfile(profile);
         setShowProfileConfirmation(true);
       } else {
-        console.error('Error en la API:', result.error);
+        // console.error('Error en la API:', result.error);
         alert(`Error: ${result.error || 'Error desconocido'}`);
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
+      // console.error('Error saving profile:', error);
       alert('Error al guardar el perfil. Por favor intenta de nuevo.');
     } finally {
       setSaving(false);

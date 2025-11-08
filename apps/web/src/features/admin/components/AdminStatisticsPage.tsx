@@ -35,16 +35,16 @@ interface ChartData {
 }
 
 export function AdminStatisticsPage() {
-  console.log('🚀 AdminStatisticsPage: Componente iniciado')
+  // console.log('🚀 AdminStatisticsPage: Componente iniciado')
   
   const { stats: dbStats, isLoading, error } = useAdminStats()
   const [selectedPeriod, setSelectedPeriod] = useState('6months')
 
   // Debug: Log de datos
   useEffect(() => {
-    console.log('📊 AdminStatisticsPage - dbStats:', dbStats)
-    console.log('📊 AdminStatisticsPage - isLoading:', isLoading)
-    console.log('📊 AdminStatisticsPage - error:', error)
+    // console.log('📊 AdminStatisticsPage - dbStats:', dbStats)
+    // console.log('📊 AdminStatisticsPage - isLoading:', isLoading)
+    // console.log('📊 AdminStatisticsPage - error:', error)
   }, [dbStats, isLoading, error])
 
   // Convertir datos de la base de datos a formato de tarjetas

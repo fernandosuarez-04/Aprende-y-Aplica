@@ -22,7 +22,7 @@ export const logger = {
    */
   log: (...args: any[]) => {
     if (isDevelopment) {
-      console.log(...args)
+      // console.log(...args)
     }
   },
 
@@ -32,7 +32,7 @@ export const logger = {
    */
   info: (...args: any[]) => {
     if (isDevelopment) {
-      console.info(...args)
+      // console.info(...args)
     }
   },
 
@@ -42,7 +42,7 @@ export const logger = {
    */
   warn: (...args: any[]) => {
     if (isDevelopment) {
-      console.warn(...args)
+      // console.warn(...args)
     }
   },
 
@@ -52,7 +52,7 @@ export const logger = {
    */
   debug: (...args: any[]) => {
     if (isDevelopment) {
-      console.debug(...args)
+      // console.debug(...args)
     }
   },
 
@@ -62,7 +62,7 @@ export const logger = {
    * @example logger.error('Database connection failed:', error)
    */
   error: (...args: any[]) => {
-    console.error(...args)
+    // console.error(...args)
   },
 
   /**
@@ -144,7 +144,7 @@ export const componentLogger = {
    */
   render: (componentName: string, props?: Record<string, any>) => {
     if (isDevelopment) {
-      console.log(`🎨 [${componentName}] Rendering`, props || '')
+      // console.log(`🎨 [${componentName}] Rendering`, props || '')
     }
   },
 
@@ -154,7 +154,7 @@ export const componentLogger = {
    */
   mount: (componentName: string) => {
     if (isDevelopment) {
-      console.log(`✅ [${componentName}] Mounted`)
+      // console.log(`✅ [${componentName}] Mounted`)
     }
   },
 
@@ -164,7 +164,7 @@ export const componentLogger = {
    */
   unmount: (componentName: string) => {
     if (isDevelopment) {
-      console.log(`❌ [${componentName}] Unmounted`)
+      // console.log(`❌ [${componentName}] Unmounted`)
     }
   },
 
@@ -174,7 +174,7 @@ export const componentLogger = {
    */
   effect: (componentName: string, description: string) => {
     if (isDevelopment) {
-      console.log(`⚡ [${componentName}] Effect: ${description}`)
+      // console.log(`⚡ [${componentName}] Effect: ${description}`)
     }
   },
 }
@@ -189,7 +189,7 @@ export const apiLogger = {
    */
   request: (method: string, path: string, data?: any) => {
     if (isDevelopment) {
-      console.log(`🔍 [API] ${method} ${path}`, data || '')
+      // console.log(`🔍 [API] ${method} ${path}`, data || '')
     }
   },
 
@@ -199,7 +199,7 @@ export const apiLogger = {
    */
   success: (method: string, path: string, data?: any) => {
     if (isDevelopment) {
-      console.log(`✅ [API] ${method} ${path} - Success`, data || '')
+      // console.log(`✅ [API] ${method} ${path} - Success`, data || '')
     }
   },
 
@@ -208,7 +208,7 @@ export const apiLogger = {
    * @example apiLogger.error('GET', '/api/users', error)
    */
   error: (method: string, path: string, error: any) => {
-    console.error(`❌ [API] ${method} ${path} - Error:`, error)
+    // console.error(`❌ [API] ${method} ${path} - Error:`, error)
   },
 }
 

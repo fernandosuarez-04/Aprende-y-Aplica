@@ -47,7 +47,7 @@ export default function AccountSettingsPage() {
           }
         }
       } catch (error) {
-        console.error('Error loading settings:', error);
+        // console.error('Error loading settings:', error);
       } finally {
         setIsLoading(false);
       }
@@ -84,7 +84,7 @@ export default function AccountSettingsPage() {
         setTimeout(() => setSaveMessage(null), 5000);
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
+      // console.error('Error saving settings:', error);
       setSaveMessage({ type: 'error', text: 'Error al guardar la configuración' });
       setTimeout(() => setSaveMessage(null), 5000);
     } finally {

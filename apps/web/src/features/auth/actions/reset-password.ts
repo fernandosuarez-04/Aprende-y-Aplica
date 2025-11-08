@@ -158,7 +158,7 @@ export async function requestPasswordResetAction(
       });
 
     if (insertError) {
-      console.error('Error guardando token:', insertError);
+      // console.error('Error guardando token:', insertError);
       return {
         error: 'Error procesando solicitud. Inténtalo más tarde.',
       };
@@ -167,7 +167,7 @@ export async function requestPasswordResetAction(
     // 8. ENVIAR EMAIL
     try {
       if (!emailService.isReady()) {
-        console.error('⚠️  Email service not configured');
+        // console.error('⚠️  Email service not configured');
 
         // En desarrollo, log del token
         if (process.env.NODE_ENV !== 'production') {
@@ -180,7 +180,7 @@ export async function requestPasswordResetAction(
       await emailService.sendPasswordResetEmail(user.email, resetToken, username);
 
       } catch (emailError) {
-      console.error('Error enviando email:', emailError);
+      // console.error('Error enviando email:', emailError);
 
       // En desarrollo, mostrar el token
       if (process.env.NODE_ENV !== 'production') {
@@ -193,7 +193,7 @@ export async function requestPasswordResetAction(
       return { error: error.errors[0].message };
     }
 
-    console.error('Error en requestPasswordResetAction:', error);
+    // console.error('Error en requestPasswordResetAction:', error);
     return { error: 'Error procesando solicitud. Inténtalo más tarde.' };
   }
 }
@@ -283,7 +283,7 @@ export async function resetPasswordAction(
       .eq('id', tokenData.user_id);
 
     if (updateError) {
-      console.error('Error actualizando contraseña:', updateError);
+      // console.error('Error actualizando contraseña:', updateError);
       return { error: 'Error actualizando contraseña.' };
     }
 
@@ -312,7 +312,7 @@ export async function resetPasswordAction(
       return { error: error.errors[0].message };
     }
 
-    console.error('Error en resetPasswordAction:', error);
+    // console.error('Error en resetPasswordAction:', error);
     return { error: 'Error procesando solicitud. Inténtalo más tarde.' };
   }
 }
@@ -347,7 +347,7 @@ export async function validateResetTokenAction(token: string) {
 
     return { valid: true };
   } catch (error) {
-    console.error('Error validando token:', error);
+    // console.error('Error validando token:', error);
     return { valid: false, error: 'Error validando token.' };
   }
 }

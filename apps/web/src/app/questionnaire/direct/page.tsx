@@ -148,7 +148,7 @@ export default function DirectQuestionnairePage() {
       'Maestro': 9                  // Educación/Docentes → exclusivo_rol_id = 9
     };
     
-    );
+    // console.log('Mapping de rol:', normalizedTypeRol, '→', mapping[normalizedTypeRol] || 1);
     return mapping[normalizedTypeRol] || 1; // Fallback a CEO si no se encuentra
   };
 
@@ -173,7 +173,7 @@ export default function DirectQuestionnairePage() {
         .single();
 
       if (profileError || !userProfile) {
-        console.error('Error de perfil:', profileError);
+        // console.error('Error de perfil:', profileError);
         setError('Perfil de usuario no encontrado. Por favor completa tu perfil profesional primero.');
         return;
       }
@@ -207,14 +207,14 @@ export default function DirectQuestionnairePage() {
       
       // Debug adicional: verificar qué preguntas se están obteniendo
       if (specificQuestions && specificQuestions.length > 0) {
-        .map(q => ({
-          id: q.id,
-          codigo: q.codigo,
-          section: q.section,
-          bloque: q.bloque,
-          exclusivo_rol_id: q.exclusivo_rol_id,
-          texto: q.texto?.substring(0, 100) + '...'
-        })));
+        // console.log('Preguntas específicas encontradas:', specificQuestions.map(q => ({
+        //   id: q.id,
+        //   codigo: q.codigo,
+        //   section: q.section,
+        //   bloque: q.bloque,
+        //   exclusivo_rol_id: q.exclusivo_rol_id,
+        //   texto: q.texto?.substring(0, 100) + '...'
+        // })));
       } else {
         // Verificar si hay preguntas en la base de datos
         const { data: allQuestions, error: allError } = await supabase
@@ -227,18 +227,18 @@ export default function DirectQuestionnairePage() {
       
       // Debug: Mostrar las primeras 3 preguntas encontradas
       if (specificQuestions && specificQuestions.length > 0) {
-        .map(q => ({
-          id: q.id,
-          codigo: q.codigo,
-          section: q.section,
-          bloque: q.bloque,
-          exclusivo_rol_id: q.exclusivo_rol_id,
-          texto: q.texto?.substring(0, 50) + '...'
-        })));
+        // console.log('Primeras preguntas encontradas:', specificQuestions.slice(0, 3).map(q => ({
+        //   id: q.id,
+        //   codigo: q.codigo,
+        //   section: q.section,
+        //   bloque: q.bloque,
+        //   exclusivo_rol_id: q.exclusivo_rol_id,
+        //   texto: q.texto?.substring(0, 50) + '...'
+        // })));
       }
 
       if (specificError) {
-        console.error('Error fetching specific questions:', specificError);
+        // console.error('Error fetching specific questions:', specificError);
         questionsError = specificError;
       } else if (specificQuestions && specificQuestions.length > 0) {
         questions = specificQuestions;
@@ -252,7 +252,7 @@ export default function DirectQuestionnairePage() {
           .order('codigo', { ascending: true });
 
         if (allError) {
-          console.error('Error fetching all questions:', allError);
+          // console.error('Error fetching all questions:', allError);
           questionsError = allError;
         } else if (allQuestions && allQuestions.length > 0) {
           questions = allQuestions;
@@ -263,7 +263,7 @@ export default function DirectQuestionnairePage() {
       }
 
       if (questionsError) {
-        console.error('Error fetching questions:', questionsError);
+        // console.error('Error fetching questions:', questionsError);
         setError(`Error al obtener las preguntas: ${questionsError.message}`);
         return;
       }
@@ -273,7 +273,7 @@ export default function DirectQuestionnairePage() {
         return;
       }
 
-      :', questions[0]);
+      // console.log('Primera pregunta encontrada:', questions[0]);
       
       // Agrupar preguntas por sección
       const questionsBySection = questions.reduce((acc, q) => {
@@ -309,7 +309,7 @@ export default function DirectQuestionnairePage() {
             .eq('user_perfil_id', userProfile.id);
 
           if (error) {
-            :', error);
+            // console.error('Error al obtener respuestas existentes:', error);
             answersError = error;
             existingAnswers = []; // Continuar sin respuestas existentes
           } else {
@@ -373,7 +373,7 @@ export default function DirectQuestionnairePage() {
 
       // Debug: Ver todos los bloques únicos en las preguntas
       const uniqueBlocks = [...new Set(questionsWithAnswers.map(q => q.bloque))];
-      .map(q => ({ id: q.id, section: q.section, bloque: q.bloque, tipo: q.tipo })));
+      // console.log('Preguntas con respuestas:', questionsWithAnswers.map(q => ({ id: q.id, section: q.section, bloque: q.bloque, tipo: q.tipo })));
 
       setData({
         sections,
@@ -388,7 +388,7 @@ export default function DirectQuestionnairePage() {
       setAnswers(answersMap);
 
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      // console.error('Error fetching questions:', error);
       setError('Error al cargar las preguntas');
     } finally {
       setLoading(false);
@@ -407,7 +407,7 @@ export default function DirectQuestionnairePage() {
       setSaving(true);
       
       if (!user) {
-        console.error('No hay usuario autenticado');
+        // console.error('No hay usuario autenticado');
         return;
       }
       
@@ -423,8 +423,8 @@ export default function DirectQuestionnairePage() {
           .single();
 
         if (profileError || !userProfile) {
-          console.error('Error al obtener perfil de usuario:', profileError);
-          console.error('Datos del perfil:', userProfile);
+          // console.error('Error al obtener perfil de usuario:', profileError);
+          // console.error('Datos del perfil:', userProfile);
           return;
         }
 
@@ -452,7 +452,7 @@ export default function DirectQuestionnairePage() {
             .eq('id', existingAnswer.id);
 
           if (updateError) {
-            console.error('Error al actualizar respuesta:', updateError);
+            // console.error('Error al actualizar respuesta:', updateError);
           } else {
             }
         } else {
@@ -470,23 +470,23 @@ export default function DirectQuestionnairePage() {
             .select();
 
           if (insertError) {
-            console.error('❌ Error al crear nueva respuesta:', insertError);
-            console.error('Detalles del error:', {
-              message: insertError.message,
-              details: insertError.details,
-              hint: insertError.hint,
-              code: insertError.code
-            });
+            // console.error('❌ Error al crear nueva respuesta:', insertError);
+            // console.error('Detalles del error:', {
+            //   message: insertError.message,
+            //   details: insertError.details,
+            //   hint: insertError.hint,
+            //   code: insertError.code
+            // });
           } else {
             }
         }
       } catch (tableError) {
-        console.error('❌ Error con la tabla respuestas:', tableError);
+        // console.error('❌ Error con la tabla respuestas:', tableError);
         // Continuar sin guardar - el cuestionario puede funcionar sin persistir respuestas
       }
 
     } catch (error) {
-      console.error('❌ Error general en saveAnswer:', error);
+      // console.error('❌ Error general en saveAnswer:', error);
     } finally {
       setSaving(false);
       }
@@ -554,7 +554,7 @@ export default function DirectQuestionnairePage() {
       router.push('/statistics/results');
       
     } catch (error) {
-      console.error('Error al finalizar cuestionario:', error);
+      // console.error('Error al finalizar cuestionario:', error);
       alert('Error al finalizar el cuestionario. Por favor intenta nuevamente.');
     } finally {
       setSaving(false);

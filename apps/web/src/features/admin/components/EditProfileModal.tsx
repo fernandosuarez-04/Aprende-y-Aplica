@@ -106,7 +106,7 @@ export function EditProfileModal({ profile, isOpen, onClose, onSave }: EditProfi
       await onSave(updateData)
       onClose()
     } catch (error) {
-      console.error('Error updating profile:', error)
+      // console.error('Error updating profile:', error)
     } finally {
       setIsLoading(false)
     }

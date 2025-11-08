@@ -99,7 +99,7 @@ export function useUserStats() {
         setAnswerStats(answerStatsData)
         setGenAIStats(genAIStatsData)
       } catch (apiError) {
-        console.warn('Error cargando datos de API, usando datos de ejemplo:', apiError)
+        // console.warn('Error cargando datos de API, usando datos de ejemplo:', apiError)
         
         // Usar datos de ejemplo si las APIs fallan
         setUserProfiles([])

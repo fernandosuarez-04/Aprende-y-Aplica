@@ -77,7 +77,7 @@ export class AdminAppsService {
       const data = await response.json()
       return data.apps || []
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.getApps:', error)
+      // console.error('💥 Error in AdminAppsService.getApps:', error)
       throw error
     }
   }
@@ -103,13 +103,13 @@ export class AdminAppsService {
         .order('name', { ascending: true })
 
       if (error) {
-        console.error('❌ Error fetching categories:', error)
+        // console.error('❌ Error fetching categories:', error)
         throw error
       }
 
       return data || []
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.getCategories:', error)
+      // console.error('💥 Error in AdminAppsService.getCategories:', error)
       throw error
     }
   }
@@ -125,7 +125,7 @@ export class AdminAppsService {
       const data = await response.json()
       return data.stats
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.getAppStats:', error)
+      // console.error('💥 Error in AdminAppsService.getAppStats:', error)
       throw error
     }
   }
@@ -147,7 +147,7 @@ export class AdminAppsService {
       const data = await response.json()
       return data.app
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.createApp:', error)
+      // console.error('💥 Error in AdminAppsService.createApp:', error)
       throw error
     }
   }
@@ -169,7 +169,7 @@ export class AdminAppsService {
       const data = await response.json()
       return data.app
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.updateApp:', error)
+      // console.error('💥 Error in AdminAppsService.updateApp:', error)
       throw error
     }
   }
@@ -185,7 +185,7 @@ export class AdminAppsService {
       }
 
       } catch (error) {
-      console.error('💥 Error in AdminAppsService.deleteApp:', error)
+      // console.error('💥 Error in AdminAppsService.deleteApp:', error)
       throw error
     }
   }
@@ -207,7 +207,7 @@ export class AdminAppsService {
       const data = await response.json()
       return data.app
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.toggleAppStatus:', error)
+      // console.error('💥 Error in AdminAppsService.toggleAppStatus:', error)
       throw error
     }
   }
@@ -229,7 +229,7 @@ export class AdminAppsService {
       const data = await response.json()
       return data.app
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.toggleAppFeatured:', error)
+      // console.error('💥 Error in AdminAppsService.toggleAppFeatured:', error)
       throw error
     }
   }
@@ -251,7 +251,7 @@ export class AdminAppsService {
       const data = await response.json()
       return data.app
     } catch (error) {
-      console.error('💥 Error in AdminAppsService.toggleAppVerified:', error)
+      // console.error('💥 Error in AdminAppsService.toggleAppVerified:', error)
       throw error
     }
   }

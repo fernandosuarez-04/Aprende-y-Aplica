@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             }
           }
         } catch (error) {
-          console.error('Error fetching Vimeo duration:', error)
+          // console.error('Error fetching Vimeo duration:', error)
         }
       }
     } else if (provider === 'custom') {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ duration })
   } catch (error) {
-    console.error('Error detecting video duration:', error)
+    // console.error('Error detecting video duration:', error)
     return NextResponse.json(
       { error: 'Error al detectar duración del video' },
       { status: 500 }

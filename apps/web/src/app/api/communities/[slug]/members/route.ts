@@ -27,7 +27,7 @@ export async function GET(
       .single();
 
     if (communityError || !community) {
-      console.error('❌ Community error:', communityError);
+      // console.error('❌ Community error:', communityError);
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 

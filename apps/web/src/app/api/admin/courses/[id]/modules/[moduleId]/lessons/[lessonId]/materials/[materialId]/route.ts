@@ -29,7 +29,7 @@ export async function PUT(
       material
     })
   } catch (error) {
-    console.error('Error in PUT /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/materials/[materialId]:', error)
+    // console.error('Error in PUT /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/materials/[materialId]:', error)
     return NextResponse.json(
       { 
         success: false,
@@ -64,7 +64,7 @@ export async function DELETE(
       success: true
     })
   } catch (error) {
-    console.error('Error in DELETE /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/materials/[materialId]:', error)
+    // console.error('Error in DELETE /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/materials/[materialId]:', error)
     return NextResponse.json(
       { 
         success: false,

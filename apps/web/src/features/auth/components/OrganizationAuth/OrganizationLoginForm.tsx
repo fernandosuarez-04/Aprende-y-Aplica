@@ -49,7 +49,7 @@ export function OrganizationLoginForm({
           setLoginStyles(data.styles.login);
         }
       } catch (error) {
-        console.error('Error fetching login styles:', error);
+        // console.error('Error fetching login styles:', error);
       }
     };
 
@@ -87,7 +87,7 @@ export function OrganizationLoginForm({
   useEffect(() => {
     if (redirectInfo && redirectInfo.countdown === 0) {
       const urlToRedirect = redirectUrlRef.current || redirectInfo.to;
-      console.log('🔄 Redirigiendo (useEffect) a:', urlToRedirect);
+      // console.log('🔄 Redirigiendo (useEffect) a:', urlToRedirect);
       
       // Limpiar intervalo si aún existe
       if (countdownIntervalRef.current) {
@@ -127,10 +127,10 @@ export function OrganizationLoginForm({
             'Content-Type': 'application/json',
           },
         }).then(() => {
-          console.log('✅ Sesión cerrada antes de redirigir (useEffect)');
+          // console.log('✅ Sesión cerrada antes de redirigir (useEffect)');
           performRedirect();
         }).catch((logoutError) => {
-          console.error('⚠️ Error al cerrar sesión:', logoutError);
+          // console.error('⚠️ Error al cerrar sesión:', logoutError);
           // Continuar con la redirección aunque haya error
           performRedirect();
         });
@@ -153,7 +153,7 @@ export function OrganizationLoginForm({
     setIsPending(true);
     
     try {
-      console.log('🔄 Iniciando proceso de login (organización)...');
+      // console.log('🔄 Iniciando proceso de login (organización)...');
       
       const formData = new FormData();
       formData.append('emailOrUsername', data.emailOrUsername);
@@ -162,13 +162,13 @@ export function OrganizationLoginForm({
       formData.append('organizationId', organizationId);
       formData.append('organizationSlug', organizationSlug);
 
-      console.log('📤 Enviando datos al servidor...');
+      // console.log('📤 Enviando datos al servidor...');
       const result = await loginAction(formData);
       
-      console.log('📥 Respuesta recibida:', result);
+      // console.log('📥 Respuesta recibida:', result);
       
       if (result?.error) {
-        console.error('❌ Error en login:', result.error);
+        // console.error('❌ Error en login:', result.error);
         
         // Si hay información de redirección, mostrar mensaje con countdown
         if (result.redirectTo && result.redirectMessage) {
@@ -211,7 +211,7 @@ export function OrganizationLoginForm({
               
               // Usar la URL del ref para asegurar que tenemos la URL correcta
               let urlToRedirect = redirectUrlRef.current || result.redirectTo;
-              console.log('🔄 Redirigiendo a:', urlToRedirect);
+              // console.log('🔄 Redirigiendo a:', urlToRedirect);
               
               // Si redirigimos a /auth, primero cerrar sesión para evitar que el middleware nos redirija de vuelta
               if (urlToRedirect === '/auth' || urlToRedirect.startsWith('/auth')) {
@@ -224,7 +224,7 @@ export function OrganizationLoginForm({
                       'Content-Type': 'application/json',
                     },
                   });
-                  console.log('✅ Sesión cerrada antes de redirigir');
+                  // console.log('✅ Sesión cerrada antes de redirigir');
                   
                   // Agregar parámetro para evitar redirección automática del middleware
                   if (urlToRedirect === '/auth' || urlToRedirect === '/auth/') {
@@ -235,7 +235,7 @@ export function OrganizationLoginForm({
                     urlToRedirect += '?redirect=force';
                   }
                 } catch (logoutError) {
-                  console.error('⚠️ Error al cerrar sesión:', logoutError);
+                  // console.error('⚠️ Error al cerrar sesión:', logoutError);
                   // Agregar parámetro como respaldo
                   if (urlToRedirect === '/auth' || urlToRedirect === '/auth/') {
                     urlToRedirect = '/auth?redirect=force';
@@ -261,24 +261,24 @@ export function OrganizationLoginForm({
         }
       }
     } catch (error: any) {
-      console.error('💥 Error capturado en onSubmit:', error);
+      // console.error('💥 Error capturado en onSubmit:', error);
       
       if (error && typeof error === 'object') {
         if ('digest' in error) {
           const digest = error.digest;
           if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
-            console.log('✅ Redirección detectada, login exitoso');
+            // console.log('✅ Redirección detectada, login exitoso');
             throw error;
           }
         }
         
         if (error.message && error.message.includes('NEXT_REDIRECT')) {
-          console.log('✅ Redirección detectada (alternativa), login exitoso');
+          // console.log('✅ Redirección detectada (alternativa), login exitoso');
           throw error;
         }
       }
       
-      console.error('❌ Error inesperado:', error);
+      // console.error('❌ Error inesperado:', error);
       setError('Error inesperado al iniciar sesión');
       setIsPending(false);
     }

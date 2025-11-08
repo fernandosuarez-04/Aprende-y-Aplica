@@ -230,7 +230,7 @@ export default function BusinessPanelUsersPage() {
                   document.body.removeChild(a)
                   window.URL.revokeObjectURL(url)
                 } catch (err) {
-                  console.error('Error descargando plantilla:', err)
+                  // console.error('Error descargando plantilla:', err)
                 }
               }}
               variant="outline" 

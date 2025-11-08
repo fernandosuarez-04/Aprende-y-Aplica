@@ -58,7 +58,7 @@ export async function GET(
       .single();
 
     if (summaryError) {
-      console.error('Error fetching summary:', summaryError);
+      // console.error('Error fetching summary:', summaryError);
       return NextResponse.json(
         { error: 'Error al obtener resumen' },
         { status: 500 }
@@ -73,7 +73,7 @@ export async function GET(
       cacheHeaders.static
     );
   } catch (error) {
-    console.error('Error in summary API:', error);
+    // console.error('Error in summary API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

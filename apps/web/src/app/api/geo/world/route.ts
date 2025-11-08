@@ -52,7 +52,7 @@ export async function GET() {
       error: 'No se pudo cargar el mapa desde ninguna fuente disponible.'
     })
   } catch (error) {
-    console.error('Error loading world map:', error)
+    // console.error('Error loading world map:', error)
     return NextResponse.json(
       {
         type: 'FeatureCollection',

@@ -92,7 +92,7 @@ export function BusinessThemeCustomizer() {
     setSaveSuccess(null);
 
     try {
-      console.log('💾 Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
+      // console.log('💾 Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
       
       const success = await updateStyles(
         panelStyles || undefined,
@@ -103,7 +103,7 @@ export function BusinessThemeCustomizer() {
       if (success) {
         setSaveSuccess('Estilos guardados correctamente');
         setTimeout(() => setSaveSuccess(null), 3000);
-        console.log('✅ Estilos guardados exitosamente, refrescando...');
+        // console.log('✅ Estilos guardados exitosamente, refrescando...');
         // Refrescar estilos para asegurar que todos los componentes se actualicen
         await refetch();
       } else {
@@ -111,7 +111,7 @@ export function BusinessThemeCustomizer() {
         setTimeout(() => setSaveError(null), 3000);
       }
     } catch (err: any) {
-      console.error('❌ Error al guardar estilos:', err);
+      // console.error('❌ Error al guardar estilos:', err);
       setSaveError(err.message || 'Error al guardar estilos');
       setTimeout(() => setSaveError(null), 3000);
     } finally {
@@ -391,7 +391,7 @@ function StyleEditor({ style, onChange }: StyleEditorProps) {
   const handleSaveAdjustments = (adjustments: ImageAdjustments) => {
     setImageAdjustments(adjustments);
     // Los ajustes se guardarán en el estado pero la imagen URL permanece igual
-    console.log('Ajustes guardados:', adjustments);
+    // console.log('Ajustes guardados:', adjustments);
   };
 
   return (

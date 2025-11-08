@@ -26,7 +26,7 @@ export async function GET(
       activities
     })
   } catch (error) {
-    console.error('Error in GET /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/activities:', error)
+    // console.error('Error in GET /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/activities:', error)
     return NextResponse.json(
       { 
         success: false,
@@ -66,7 +66,7 @@ export async function POST(
       activity
     })
   } catch (error) {
-    console.error('Error in POST /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/activities:', error)
+    // console.error('Error in POST /api/admin/courses/[id]/modules/[moduleId]/lessons/[lessonId]/activities:', error)
     return NextResponse.json(
       { 
         success: false,

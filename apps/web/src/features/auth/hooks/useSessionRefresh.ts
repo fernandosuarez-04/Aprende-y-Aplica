@@ -102,7 +102,7 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
       onRefresh?.();
       
     } catch (error) {
-      console.error('💥 Error refrescando token:', error);
+      // console.error('💥 Error refrescando token:', error);
       
       // Si falla, intentar una vez más en 30 segundos
       refreshTimerRef.current = setTimeout(() => {
@@ -160,7 +160,7 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
       }
       
     } catch (error) {
-      console.error('💥 Error inicializando sesión:', error);
+      // console.error('💥 Error inicializando sesión:', error);
     }
   }, [scheduleNextRefresh]);
   

@@ -37,7 +37,7 @@ function ShareModal({ reel, onClose }: { reel: FeaturedReel; onClose: () => void
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Error copying to clipboard:', err)
+      // console.error('Error copying to clipboard:', err)
     }
   }
 
@@ -61,7 +61,7 @@ function ShareModal({ reel, onClose }: { reel: FeaturedReel; onClose: () => void
           url: reelUrl
         })
       } catch (err) {
-        console.log('Error sharing:', err)
+        // console.log('Error sharing:', err)
       }
     }
   }

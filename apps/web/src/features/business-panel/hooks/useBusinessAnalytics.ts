@@ -134,7 +134,7 @@ export function useBusinessAnalytics() {
       }
       
       setError(errorMessage)
-      console.error('Error fetching analytics:', err)
+      // console.error('Error fetching analytics:', err)
     } finally {
       setIsLoading(false)
     }

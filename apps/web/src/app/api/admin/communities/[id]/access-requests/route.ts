@@ -35,7 +35,7 @@ export async function GET(
       requests 
     })
   } catch (error: unknown) {
-    console.error('Error fetching access requests via API:', error)
+    // console.error('Error fetching access requests via API:', error)
     const message = error instanceof Error ? error.message : 'Error al obtener las solicitudes';
     return NextResponse.json({ 
       success: false, 

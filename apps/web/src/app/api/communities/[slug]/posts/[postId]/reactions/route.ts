@@ -38,7 +38,7 @@ export async function GET(
       .order('created_at', { ascending: false });
 
     if (reactionsError) {
-      console.error('Error fetching reactions:', reactionsError);
+      // console.error('Error fetching reactions:', reactionsError);
       return NextResponse.json({ error: 'Error al obtener reacciones' }, { status: 500 });
     }
 
@@ -119,7 +119,7 @@ export async function GET(
       userReaction: getUserCurrentReaction(reactions, user.id)
     });
   } catch (error) {
-    console.error('Error in reactions GET:', error);
+    // console.error('Error in reactions GET:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
@@ -182,7 +182,7 @@ export async function POST(
       .eq('user_id', user.id);
 
     if (checkError) {
-      console.error('Error checking existing reactions:', checkError);
+      // console.error('Error checking existing reactions:', checkError);
       return NextResponse.json({ error: 'Error al verificar reacciones' }, { status: 500 });
     }
 
@@ -198,7 +198,7 @@ export async function POST(
           .eq('id', currentReaction.id);
 
         if (deleteError) {
-          console.error('Error deleting reaction:', deleteError);
+          // console.error('Error deleting reaction:', deleteError);
           return NextResponse.json({ error: 'Error al eliminar reacción' }, { status: 500 });
         }
 
@@ -227,7 +227,7 @@ export async function POST(
           .eq('id', currentReaction.id);
 
         if (updateError) {
-          console.error('Error updating reaction:', updateError);
+          // console.error('Error updating reaction:', updateError);
           return NextResponse.json({ error: 'Error al actualizar reacción' }, { status: 500 });
         }
 
@@ -250,7 +250,7 @@ export async function POST(
           .single();
 
         if (insertError) {
-          console.error('Error creating reaction:', insertError);
+          // console.error('Error creating reaction:', insertError);
           return NextResponse.json({ error: 'Error al crear reacción' }, { status: 500 });
         }
 
@@ -263,7 +263,7 @@ export async function POST(
       }
     }
   } catch (error) {
-    console.error('Error in reactions POST:', error);
+    // console.error('Error in reactions POST:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

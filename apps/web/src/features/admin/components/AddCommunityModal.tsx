@@ -73,22 +73,22 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
   const loadCourses = async () => {
     setLoadingCourses(true)
     try {
-      console.log('🔄 Cargando cursos desde API...')
+      // console.log('🔄 Cargando cursos desde API...')
       const response = await fetch('/api/admin/courses')
       const data = await response.json()
       
-      console.log('📡 Respuesta de API cursos:', data)
+      // console.log('📡 Respuesta de API cursos:', data)
       
       if (data.success) {
         setCourses(data.courses || [])
-        console.log('✅ Cursos cargados exitosamente:', data.courses?.length || 0)
-        console.log('📋 Lista de cursos:', data.courses)
+        // console.log('✅ Cursos cargados exitosamente:', data.courses?.length || 0)
+        // console.log('📋 Lista de cursos:', data.courses)
       } else {
-        console.error('❌ Error loading courses:', data.error)
+        // console.error('❌ Error loading courses:', data.error)
         setCourses([]) // Asegurar que courses sea un array vacío
       }
     } catch (error) {
-      console.error('💥 Error loading courses:', error)
+      // console.error('💥 Error loading courses:', error)
       setCourses([]) // Asegurar que courses sea un array vacío
     } finally {
       setLoadingCourses(false)

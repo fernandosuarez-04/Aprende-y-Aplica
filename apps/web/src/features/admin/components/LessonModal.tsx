@@ -69,7 +69,7 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
       await onSave(formData)
       onClose()
     } catch (error) {
-      console.error('Error saving lesson:', error)
+      // console.error('Error saving lesson:', error)
     } finally {
       setLoading(false)
     }

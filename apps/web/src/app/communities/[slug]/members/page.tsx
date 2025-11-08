@@ -214,18 +214,18 @@ export default function MembersPage() {
   const fetchMembers = async () => {
     try {
       setIsLoading(true);
-      console.log('🔍 Fetching members for community:', slug);
+      // console.log('🔍 Fetching members for community:', slug);
       
       const response = await fetch(`/api/communities/${slug}/members`);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Members data received:', data);
+        // console.log('✅ Members data received:', data);
         setCommunity(data.community);
         setMembers(data.members || []);
       } else {
         const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
+        // console.error('❌ API Error:', errorData);
         if (response.status === 401) {
           router.push('/auth');
         } else if (response.status === 403) {
@@ -233,7 +233,7 @@ export default function MembersPage() {
         }
       }
     } catch (error) {
-      console.error('❌ Network error fetching members:', error);
+      // console.error('❌ Network error fetching members:', error);
     } finally {
       setIsLoading(false);
     }

@@ -78,7 +78,7 @@ export function PollModal({ isOpen, onClose, onConfirm }: PollModalProps) {
       setDuration('7');
       onClose();
     } catch (error) {
-      console.error('Error creating poll:', error);
+      // console.error('Error creating poll:', error);
     } finally {
       setIsLoading(false);
     }

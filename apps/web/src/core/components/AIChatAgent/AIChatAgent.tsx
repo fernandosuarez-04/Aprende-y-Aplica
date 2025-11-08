@@ -247,7 +247,7 @@ export function AIChatAgent({
         const { x, y } = JSON.parse(savedPosition);
         setPosition({ x, y });
       } catch (e) {
-        console.error('Error loading saved position:', e);
+        // console.error('Error loading saved position:', e);
       }
     }
   }, []);
@@ -486,11 +486,11 @@ export function AIChatAgent({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         if (process.env.NODE_ENV === 'development') {
-          console.error('Error de API:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorData
-          });
+          // console.error('Error de API:', {
+          //   status: response.status,
+          //   statusText: response.statusText,
+          //   error: errorData
+          // });
         }
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
@@ -507,7 +507,7 @@ export function AIChatAgent({
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error en el chat:', error);
+        // console.error('Error en el chat:', error);
       }
       const errorContent = error instanceof Error ? error.message : 'Lo siento, ocurrió un error. Por favor intenta de nuevo.';
       const errorMessage: Message = {
@@ -588,7 +588,7 @@ export function AIChatAgent({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Error response:', errorData);
+        // console.error('❌ Error response:', errorData);
         throw new Error('Error al obtener ayuda');
       }
 
@@ -603,7 +603,7 @@ export function AIChatAgent({
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('❌ Error al solicitar ayuda:', error);
+      // console.error('❌ Error al solicitar ayuda:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',

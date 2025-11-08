@@ -47,7 +47,7 @@ export class InstructorNewsService {
       const data = await response.json()
       return data.news || []
     } catch (error) {
-      console.error('💥 Error in InstructorNewsService.getNews:', error)
+      // console.error('💥 Error in InstructorNewsService.getNews:', error)
       throw error
     }
   }
@@ -68,7 +68,7 @@ export class InstructorNewsService {
       const data = await response.json()
       return data.stats
     } catch (error) {
-      console.error('💥 Error in InstructorNewsService.getNewsStats:', error)
+      // console.error('💥 Error in InstructorNewsService.getNewsStats:', error)
       throw error
     }
   }
@@ -90,7 +90,7 @@ export class InstructorNewsService {
       const data = await response.json()
       return data.news
     } catch (error) {
-      console.error('💥 Error in InstructorNewsService.createNews:', error)
+      // console.error('💥 Error in InstructorNewsService.createNews:', error)
       throw error
     }
   }
@@ -112,7 +112,7 @@ export class InstructorNewsService {
       const data = await response.json()
       return data.news
     } catch (error) {
-      console.error('💥 Error in InstructorNewsService.updateNews:', error)
+      // console.error('💥 Error in InstructorNewsService.updateNews:', error)
       throw error
     }
   }
@@ -131,7 +131,7 @@ export class InstructorNewsService {
       }
 
       } catch (error) {
-      console.error('💥 Error in InstructorNewsService.deleteNews:', error)
+      // console.error('💥 Error in InstructorNewsService.deleteNews:', error)
       throw error
     }
   }
@@ -151,7 +151,7 @@ export class InstructorNewsService {
       }
 
       } catch (error) {
-      console.error('💥 Error in InstructorNewsService.toggleNewsStatus:', error)
+      // console.error('💥 Error in InstructorNewsService.toggleNewsStatus:', error)
       throw error
     }
   }
@@ -172,7 +172,7 @@ export class InstructorNewsService {
       const data = await response.json()
       return data.news
     } catch (error) {
-      console.error('💥 Error in InstructorNewsService.getNewsById:', error)
+      // console.error('💥 Error in InstructorNewsService.getNewsById:', error)
       throw error
     }
   }

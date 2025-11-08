@@ -87,7 +87,7 @@ export function EditQuestionModal({ question, isOpen, onClose, onSave }: EditQue
       await onSave(questionData)
       onClose()
     } catch (error) {
-      console.error('Error updating question:', error)
+      // console.error('Error updating question:', error)
     } finally {
       setIsLoading(false)
     }

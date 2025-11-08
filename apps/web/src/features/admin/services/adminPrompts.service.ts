@@ -122,7 +122,7 @@ export class AdminPromptsService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('❌ Error fetching prompts:', error)
+        // console.error('❌ Error fetching prompts:', error)
         throw error
       }
 
@@ -153,7 +153,7 @@ export class AdminPromptsService {
 
       return promptsWithAuthors
     } catch (error) {
-      console.error('💥 Error in AdminPromptsService.getPrompts:', error)
+      // console.error('💥 Error in AdminPromptsService.getPrompts:', error)
       throw error
     }
   }
@@ -179,13 +179,13 @@ export class AdminPromptsService {
         .order('name', { ascending: true })
 
       if (error) {
-        console.error('❌ Error fetching categories:', error)
+        // console.error('❌ Error fetching categories:', error)
         throw error
       }
 
       return data || []
     } catch (error) {
-      console.error('💥 Error in AdminPromptsService.getCategories:', error)
+      // console.error('💥 Error in AdminPromptsService.getCategories:', error)
       throw error
     }
   }
@@ -249,7 +249,7 @@ export class AdminPromptsService {
 
       return result
     } catch (error) {
-      console.error('💥 Error in AdminPromptsService.getPromptStats:', error)
+      // console.error('💥 Error in AdminPromptsService.getPromptStats:', error)
       throw error
     }
   }
@@ -288,7 +288,7 @@ export class AdminPromptsService {
         .single()
 
       if (userCheckError || !userCheck) {
-        console.error('❌ Error: adminUserId no existe en la base de datos:', adminUserId)
+        // console.error('❌ Error: adminUserId no existe en la base de datos:', adminUserId)
         throw new Error(`El usuario autenticado no existe en la base de datos: ${adminUserId}`)
       }
 
@@ -351,13 +351,13 @@ export class AdminPromptsService {
         .single()
 
       if (error) {
-        console.error('❌ Error creating prompt:', error)
+        // console.error('❌ Error creating prompt:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('💥 Error in AdminPromptsService.createPrompt:', error)
+      // console.error('💥 Error in AdminPromptsService.createPrompt:', error)
       throw error
     }
   }
@@ -421,13 +421,13 @@ export class AdminPromptsService {
         .single()
 
       if (error) {
-        console.error('❌ Error updating prompt:', error)
+        // console.error('❌ Error updating prompt:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('💥 Error in AdminPromptsService.updatePrompt:', error)
+      // console.error('💥 Error in AdminPromptsService.updatePrompt:', error)
       throw error
     }
   }
@@ -442,12 +442,12 @@ export class AdminPromptsService {
         .eq('prompt_id', promptId)
 
       if (error) {
-        console.error('❌ Error deleting prompt:', error)
+        // console.error('❌ Error deleting prompt:', error)
         throw error
       }
 
       } catch (error) {
-      console.error('💥 Error in AdminPromptsService.deletePrompt:', error)
+      // console.error('💥 Error in AdminPromptsService.deletePrompt:', error)
       throw error
     }
   }
@@ -471,13 +471,13 @@ export class AdminPromptsService {
         .single()
 
       if (error) {
-        console.error('❌ Error toggling prompt status:', error)
+        // console.error('❌ Error toggling prompt status:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('💥 Error in AdminPromptsService.togglePromptStatus:', error)
+      // console.error('💥 Error in AdminPromptsService.togglePromptStatus:', error)
       throw error
     }
   }
@@ -501,13 +501,13 @@ export class AdminPromptsService {
         .single()
 
       if (error) {
-        console.error('❌ Error toggling prompt featured:', error)
+        // console.error('❌ Error toggling prompt featured:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('💥 Error in AdminPromptsService.togglePromptFeatured:', error)
+      // console.error('💥 Error in AdminPromptsService.togglePromptFeatured:', error)
       throw error
     }
   }

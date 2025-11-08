@@ -61,7 +61,7 @@ export function AddReelModal({ onClose, onSave }: AddReelModalProps) {
     try {
       await onSave(formData)
     } catch (error) {
-      console.error('Error saving reel:', error)
+      // console.error('Error saving reel:', error)
     } finally {
       setLoading(false)
     }

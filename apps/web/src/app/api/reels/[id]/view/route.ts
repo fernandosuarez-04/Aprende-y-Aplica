@@ -30,7 +30,7 @@ export async function POST(
       .single()
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing view:', checkError)
+      // console.error('Error checking existing view:', checkError)
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
@@ -47,7 +47,7 @@ export async function POST(
         })
 
       if (insertError) {
-        console.error('Error adding view:', insertError)
+        // console.error('Error adding view:', insertError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
@@ -59,7 +59,7 @@ export async function POST(
         .single()
 
       if (fetchError) {
-        console.error('Error fetching current reel:', fetchError)
+        // console.error('Error fetching current reel:', fetchError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
@@ -73,14 +73,14 @@ export async function POST(
         .eq('id', id)
 
       if (incrementError) {
-        console.error('Error incrementing view count:', incrementError)
+        // console.error('Error incrementing view count:', incrementError)
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error in POST /api/reels/[id]/view:', error)
+    // console.error('Error in POST /api/reels/[id]/view:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

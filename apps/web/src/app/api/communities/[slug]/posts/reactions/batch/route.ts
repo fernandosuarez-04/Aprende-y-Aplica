@@ -38,7 +38,7 @@ export async function POST(
       .order('created_at', { ascending: false });
 
     if (reactionsError) {
-      console.error('❌ Error fetching batch reactions:', reactionsError);
+      // console.error('❌ Error fetching batch reactions:', reactionsError);
       return NextResponse.json({ error: 'Error al obtener reacciones' }, { status: 500 });
     }
 
@@ -90,7 +90,7 @@ export async function POST(
       };
     });
 
-    .length} posts`);
+    // console.log(`Procesados ${postIds.length} posts`);
 
     return NextResponse.json({ 
       success: true,
@@ -99,7 +99,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('❌ Error in batch reactions API:', error);
+    // console.error('❌ Error in batch reactions API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

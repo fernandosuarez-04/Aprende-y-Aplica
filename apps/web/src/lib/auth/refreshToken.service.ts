@@ -328,7 +328,7 @@ export class RefreshTokenService {
       .select('id')
 
     if (error) {
-      console.error('Error cleaning expired tokens:', error)
+      // console.error('Error cleaning expired tokens:', error)
       return 0
     }
 

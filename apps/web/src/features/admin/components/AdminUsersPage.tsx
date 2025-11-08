@@ -107,7 +107,7 @@ export function AdminUsersPage() {
       setIsDeleteModalOpen(false)
       setDeletingUser(null)
     } catch (error) {
-      console.error('Error deleting user:', error)
+      // console.error('Error deleting user:', error)
       alert(error instanceof Error ? error.message : 'Error al eliminar usuario')
     }
   }
@@ -144,7 +144,7 @@ export function AdminUsersPage() {
       refetch()
       setIsAddModalOpen(false)
     } catch (error) {
-      console.error('Error creating user:', error)
+      // console.error('Error creating user:', error)
       throw error
     }
   }

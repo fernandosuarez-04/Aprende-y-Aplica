@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error obteniendo estadísticas de rate limit:', error);
+    // console.error('Error obteniendo estadísticas de rate limit:', error);
     return NextResponse.json(
       {
         success: false,
@@ -59,7 +59,7 @@ export async function DELETE(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error limpiando rate limits:', error);
+    // console.error('Error limpiando rate limits:', error);
     return NextResponse.json(
       {
         success: false,

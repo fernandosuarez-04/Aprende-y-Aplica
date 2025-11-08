@@ -58,7 +58,7 @@ export async function GET(
       .order('activity_order_index', { ascending: true });
 
     if (activitiesError) {
-      console.error('Error fetching activities:', activitiesError);
+      // console.error('Error fetching activities:', activitiesError);
       return NextResponse.json(
         { error: 'Error al obtener actividades' },
         { status: 500 }
@@ -71,7 +71,7 @@ export async function GET(
       cacheHeaders.static
     );
   } catch (error) {
-    console.error('Error in activities API:', error);
+    // console.error('Error in activities API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

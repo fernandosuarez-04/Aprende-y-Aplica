@@ -62,7 +62,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
       await onSave(dataToSave)
       onClose()
     } catch (error) {
-      console.error('Error saving material:', error)
+      // console.error('Error saving material:', error)
     } finally {
       setLoading(false)
     }

@@ -43,67 +43,68 @@ export function reportWebVitals(metric: NextWebVitalsMetric) {
     }).catch((error) => {
       // Falló silenciosamente - no queremos que afecte la app
       if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to send web vitals:', error)
+        // console.error('Failed to send web vitals:', error)
       }
     })
   }
 
   // Log en desarrollo
   if (process.env.NODE_ENV === 'development') {
-    console.log('📊 Web Vital:', {
-      name: metric.name,
-      value: metric.value,
-      rating: metric.rating,
-    })
-  }
-}
-
-/**
- * Thresholds para Core Web Vitals
- * Fuente: https://web.dev/vitals/
- */
-export const WEB_VITALS_THRESHOLDS = {
+    // console.log('📊 Web Vital:', {
+      // name: metric.name,
+      // value: metric.value,
+      // rating: metric.rating,
+    // })
+  // }
+// }
+// 
+// /**
+ // * Thresholds para Core Web Vitals
+ // * Fuente: https://web.dev/vitals/
+ // */
+// export const WEB_VITALS_THRESHOLDS = {
   // Largest Contentful Paint - Mide velocidad de carga
-  LCP: {
-    good: 2500, // < 2.5s
-    needsImprovement: 4000, // 2.5s - 4s
+  // LCP: {
+    // good: 2500, // < 2.5s
+    // needsImprovement: 4000, // 2.5s - 4s
     // > 4s es poor
-  },
+  // },
   // First Input Delay - Mide interactividad
-  FID: {
-    good: 100, // < 100ms
-    needsImprovement: 300, // 100ms - 300ms
+  // FID: {
+    // good: 100, // < 100ms
+    // needsImprovement: 300, // 100ms - 300ms
     // > 300ms es poor
-  },
+  // },
   // Cumulative Layout Shift - Mide estabilidad visual
-  CLS: {
-    good: 0.1, // < 0.1
-    needsImprovement: 0.25, // 0.1 - 0.25
+  // CLS: {
+    // good: 0.1, // < 0.1
+    // needsImprovement: 0.25, // 0.1 - 0.25
     // > 0.25 es poor
-  },
+  // },
   // First Contentful Paint
-  FCP: {
-    good: 1800, // < 1.8s
-    needsImprovement: 3000, // 1.8s - 3s
+  // FCP: {
+    // good: 1800, // < 1.8s
+    // needsImprovement: 3000, // 1.8s - 3s
     // > 3s es poor
-  },
+  // },
   // Time to First Byte
-  TTFB: {
-    good: 800, // < 800ms
-    needsImprovement: 1800, // 800ms - 1.8s
+  // TTFB: {
+    // good: 800, // < 800ms
+    // needsImprovement: 1800, // 800ms - 1.8s
     // > 1.8s es poor
-  },
-}
-
-/**
- * Obtiene el rating de una métrica
- */
-export function getMetricRating(name: string, value: number): 'good' | 'needs-improvement' | 'poor' {
-  const thresholds = WEB_VITALS_THRESHOLDS[name as keyof typeof WEB_VITALS_THRESHOLDS]
-
-  if (!thresholds) return 'poor'
-
-  if (value <= thresholds.good) return 'good'
-  if (value <= thresholds.needsImprovement) return 'needs-improvement'
-  return 'poor'
-}
+  // },
+// }
+// 
+// /**
+ // * Obtiene el rating de una métrica
+ // */
+// export function getMetricRating(name: string, value: number): 'good' | 'needs-improvement' | 'poor' {
+  // const thresholds = WEB_VITALS_THRESHOLDS[name as keyof typeof WEB_VITALS_THRESHOLDS]
+// 
+  // if (!thresholds) return 'poor'
+// 
+  // if (value <= thresholds.good) return 'good'
+  // if (value <= thresholds.needsImprovement) return 'needs-improvement'
+  // return 'poor'
+// }
+// 

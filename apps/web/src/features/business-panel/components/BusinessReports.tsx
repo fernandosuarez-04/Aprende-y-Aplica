@@ -68,13 +68,13 @@ export function BusinessReports({}: BusinessReportsProps) {
   }, [showFilters, filters])
 
   const handleGenerateReport = () => {
-    console.log('🔄 Generando reporte manualmente:', reportType)
+    // console.log('🔄 Generando reporte manualmente:', reportType)
     const filtersToUse = {
       ...filters,
       start_date: localStartDate || undefined,
       end_date: localEndDate || undefined
     }
-    console.log('📊 Filtros a usar:', filtersToUse)
+    // console.log('📊 Filtros a usar:', filtersToUse)
     fetchReport(reportType, filtersToUse)
   }
 
@@ -82,7 +82,7 @@ export function BusinessReports({}: BusinessReportsProps) {
   useEffect(() => {
     // Solo generar si hay un tipo de reporte seleccionado
     if (reportType) {
-      console.log('🔄 Generando reporte automáticamente:', reportType)
+      // console.log('🔄 Generando reporte automáticamente:', reportType)
       const filtersToUse = {
         ...filters,
         start_date: localStartDate || undefined,
@@ -148,7 +148,7 @@ export function BusinessReports({}: BusinessReportsProps) {
       link.click()
       document.body.removeChild(link)
     } catch (err) {
-      console.error('Error al exportar CSV:', err)
+      // console.error('Error al exportar CSV:', err)
       alert('Error al exportar el reporte a CSV')
     }
   }
@@ -194,7 +194,7 @@ export function BusinessReports({}: BusinessReportsProps) {
       const filename = `reporte_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`
       pdf.save(filename)
     } catch (err) {
-      console.error('Error al generar PDF:', err)
+      // console.error('Error al generar PDF:', err)
       alert('Error al generar el PDF')
     } finally {
       setIsGenerating(false)

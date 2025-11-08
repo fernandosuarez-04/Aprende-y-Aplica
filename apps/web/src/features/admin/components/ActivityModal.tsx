@@ -64,7 +64,7 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
       await onSave(payload)
       onClose()
     } catch (error) {
-      console.error('Error saving activity:', error)
+      // console.error('Error saving activity:', error)
     } finally {
       setLoading(false)
     }

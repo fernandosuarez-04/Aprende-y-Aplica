@@ -137,7 +137,7 @@ export async function GET(
       cacheHeaders.dynamic // 30 segundos (contiene datos de progreso del usuario)
     )
   } catch (error) {
-    console.error('Error in unified learn-data endpoint:', error)
+    // console.error('Error in unified learn-data endpoint:', error)
     return NextResponse.json(
       {
         error: 'Error interno del servidor',

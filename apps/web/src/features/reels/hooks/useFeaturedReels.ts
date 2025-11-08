@@ -12,12 +12,12 @@ export function useFeaturedReels(limit: number = 6) {
     try {
       setLoading(true)
       setError(null)
-      console.log('🔄 Fetching featured reels with limit:', limit)
+      // console.log('🔄 Fetching featured reels with limit:', limit)
       const data = await ReelsService.getFeaturedReels(limit)
-      console.log('📊 Received featured reels:', { count: data.length, reels: data.map(r => ({ id: r.id, title: r.title })) })
+      // console.log('📊 Received featured reels:', { count: data.length, reels: data.map(r => ({ id: r.id, title: r.title })) })
       setReels(data)
     } catch (err) {
-      console.error('❌ Error fetching featured reels:', err)
+      // console.error('❌ Error fetching featured reels:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)

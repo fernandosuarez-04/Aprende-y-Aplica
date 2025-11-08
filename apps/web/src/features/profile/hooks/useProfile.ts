@@ -89,7 +89,7 @@ export function useProfile(): UseProfileReturn {
         .single() as { data: Database['public']['Tables']['users']['Row'] | null, error: any }
 
       if (fetchError || !data) {
-        console.error('Error fetching user profile:', fetchError)
+        // console.error('Error fetching user profile:', fetchError)
         throw new Error(`Error al obtener perfil: ${fetchError?.message || 'No data found'}`)
       }
 
@@ -119,11 +119,11 @@ export function useProfile(): UseProfileReturn {
       }
       
       setProfile(profileData)
-      console.log('🔍 Profile data loaded:', profileData)
+      // console.log('🔍 Profile data loaded:', profileData)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error fetching profile:', err)
+      // console.error('Error fetching profile:', err)
     } finally {
       setLoading(false)
     }
@@ -166,7 +166,7 @@ export function useProfile(): UseProfileReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error updating profile:', err)
+      // console.error('Error updating profile:', err)
       throw err
     } finally {
       setSaving(false)
@@ -189,7 +189,7 @@ export function useProfile(): UseProfileReturn {
         throw new Error('Usuario no autenticado')
       }
       
-      console.log('🔍 Usuario autenticado:', currentUser.id)
+      // console.log('🔍 Usuario autenticado:', currentUser.id)
       
       // Validar archivo
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
@@ -202,14 +202,14 @@ export function useProfile(): UseProfileReturn {
         throw new Error('El archivo es demasiado grande. Máximo 5MB.')
       }
       
-      console.log('📁 Archivo válido:', file.name, file.type, file.size)
+      // console.log('📁 Archivo válido:', file.name, file.type, file.size)
       
       // Subir directamente a Supabase Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`
       const filePath = `profile-pictures/${fileName}`
 
-      console.log('📤 Subiendo archivo:', filePath)
+      // console.log('📤 Subiendo archivo:', filePath)
 
       // Subir archivo a Supabase Storage
       const supabase = createBrowserClient(
@@ -221,18 +221,18 @@ export function useProfile(): UseProfileReturn {
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('❌ Error uploading profile picture:', uploadError)
+        // console.error('❌ Error uploading profile picture:', uploadError)
         throw new Error(`Error al subir imagen: ${uploadError.message}`)
       }
 
-      console.log('✅ Upload exitoso directo a Supabase')
+      // console.log('✅ Upload exitoso directo a Supabase')
 
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
-      console.log('🔗 URL pública:', publicUrl)
+      // console.log('🔗 URL pública:', publicUrl)
 
       // Actualizar perfil en la base de datos
       const { error: updateError } = await supabase
@@ -244,11 +244,11 @@ export function useProfile(): UseProfileReturn {
         .eq('id', currentUser.id)
 
       if (updateError) {
-        console.error('❌ Error updating profile:', updateError)
+        // console.error('❌ Error updating profile:', updateError)
         throw new Error(`Error al actualizar perfil: ${updateError.message}`)
       }
       
-      console.log('✅ Perfil actualizado en base de datos')
+      // console.log('✅ Perfil actualizado en base de datos')
       
       // Actualizar perfil local con nueva URL
       setProfile(prev => prev ? { ...prev, profile_picture_url: publicUrl } : null)
@@ -257,7 +257,7 @@ export function useProfile(): UseProfileReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error uploading profile picture:', err)
+      // console.error('Error uploading profile picture:', err)
       throw err
     } finally {
       setSaving(false)
@@ -309,7 +309,7 @@ export function useProfile(): UseProfileReturn {
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('Error uploading curriculum:', uploadError)
+        // console.error('Error uploading curriculum:', uploadError)
         throw new Error(`Error al subir curriculum: ${uploadError.message}`)
       }
 
@@ -328,7 +328,7 @@ export function useProfile(): UseProfileReturn {
         .eq('id', currentUser.id)
 
       if (updateError) {
-        console.error('Error updating profile:', updateError)
+        // console.error('Error updating profile:', updateError)
         throw new Error(`Error al actualizar perfil: ${updateError.message}`)
       }
       
@@ -339,7 +339,7 @@ export function useProfile(): UseProfileReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error uploading curriculum:', err)
+      // console.error('Error uploading curriculum:', err)
       throw err
     } finally {
       setSaving(false)
@@ -356,11 +356,11 @@ export function useProfile(): UseProfileReturn {
       setError(null)
       
       // TODO: Implementar API para cambio de contraseña
-      console.log('Change password not implemented yet')
+      // console.log('Change password not implemented yet')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error changing password:', err)
+      // console.error('Error changing password:', err)
       throw err
     } finally {
       setSaving(false)

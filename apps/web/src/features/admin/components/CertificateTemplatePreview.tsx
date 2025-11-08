@@ -69,30 +69,34 @@ export function CertificateTemplatePreview({
   // Debug: Log cuando cambian los props de firma
   useEffect(() => {
     if (isOpen) {
-      console.log('CertificateTemplatePreview - Signature props updated:', {
-        instructorSignatureUrl,
-        instructorSignatureName,
-        instructorDisplayName,
-        hasSignatureName: !!instructorSignatureName,
-        hasSignatureUrl: !!instructorSignatureUrl,
-        signatureNameLength: instructorSignatureName?.length || 0,
-        signatureNameValue: instructorSignatureName,
-        willShowName: !!(instructorSignatureName && instructorSignatureName.trim() && (!instructorSignatureUrl || !instructorSignatureUrl.trim()))
-      })
+      // console.log('CertificateTemplatePreview - Signature props updated:', {
+      //   instructorSignatureUrl,
+      //   instructorSignatureName,
+      //   instructorDisplayName,
+      //   hasSignatureName: !!instructorSignatureName,
+      //   hasSignatureUrl: !!instructorSignatureUrl,
+      //   signatureNameLength: instructorSignatureName?.length || 0,
+      //   signatureNameValue: instructorSignatureName,
+      //   willShowName: !!(instructorSignatureName && instructorSignatureName.trim() && (!instructorSignatureUrl || !instructorSignatureUrl.trim()))
+      // })
     }
   }, [isOpen, instructorSignatureUrl, instructorSignatureName, instructorDisplayName])
   
+// 
   if (!isOpen) return null
 
+// 
   const renderTemplatePreview = (template: CertificateTemplate, isExpanded: boolean = false) => {
     const isSelected = selectedTemplate === template.id
     const { primaryColor, secondaryColor, accentColor, style } = template.preview
 
+// 
     // Función auxiliar para renderizar la firma del instructor
     const renderInstructorSignature = () => {
       const hasSignatureName = instructorSignatureName && typeof instructorSignatureName === 'string' && instructorSignatureName.trim().length > 0
       const hasSignatureUrl = instructorSignatureUrl && typeof instructorSignatureUrl === 'string' && instructorSignatureUrl.trim().length > 0
       
+// 
       if (hasSignatureName && !hasSignatureUrl) {
         // Mostrar nombre arriba de la línea
         return (
@@ -139,6 +143,7 @@ export function CertificateTemplatePreview({
       }
     }
 
+// 
     const certificateContent = (
       <div
         className={`relative transition-all duration-200 ${
@@ -157,12 +162,14 @@ export function CertificateTemplatePreview({
                 <div className="absolute inset-2 border-4" style={{ borderColor: secondaryColor }}></div>
                 <div className="absolute inset-4 border-2" style={{ borderColor: accentColor }}></div>
                 
+// 
                 {/* Esquinas decorativas ornamentales */}
                 <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4" style={{ borderColor: accentColor }}></div>
                 <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4" style={{ borderColor: accentColor }}></div>
                 <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4" style={{ borderColor: accentColor }}></div>
                 <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4" style={{ borderColor: accentColor }}></div>
                 
+// 
                 {/* Contenido principal */}
                 <div className="flex-1 p-12 flex flex-col relative z-10">
                   {/* Contenido del certificado */}
@@ -181,6 +188,7 @@ export function CertificateTemplatePreview({
                       </div>
                     </div>
 
+// 
                     {/* Nombre de la plataforma */}
                     <div className="text-3xl font-bold mb-8 tracking-wide" style={{ 
                       color: primaryColor,
@@ -189,16 +197,19 @@ export function CertificateTemplatePreview({
                       Aprende y Aplica
                     </div>
                     
+// 
                     {/* Línea decorativa */}
                     <div className="w-64 h-1 mb-10 mx-auto" style={{ 
                       background: `linear-gradient(to right, transparent, ${accentColor}, transparent)`
                     }}></div>
                     
+// 
                     {/* Texto del certificado */}
                     <div className="text-lg mb-6 text-gray-700 max-w-3xl font-medium leading-relaxed px-8">
                       El presente certifica que
                     </div>
                     
+// 
                     <div className="text-4xl font-bold mb-6 px-6 py-3 border-4 rounded-lg" style={{ 
                       color: secondaryColor,
                       borderColor: primaryColor,
@@ -207,10 +218,12 @@ export function CertificateTemplatePreview({
                       {studentName}
                     </div>
                     
+// 
                     <div className="text-lg mb-6 text-gray-700 max-w-3xl font-medium leading-relaxed px-8">
                       ha completado exitosamente el curso
                     </div>
                     
+// 
                     <div className="text-2xl font-semibold mb-12 px-6 py-3 border-2 rounded" style={{ 
                       color: primaryColor,
                       borderColor: secondaryColor,
@@ -219,6 +232,7 @@ export function CertificateTemplatePreview({
                       {courseName}
                     </div>
 
+// 
                     {/* Firmas, QR Code y Fecha - Footer */}
                     <div className="flex justify-between items-center w-full mt-6 px-8 pb-4 border-t-2 pt-6" style={{ borderColor: accentColor }}>
                       {/* Firma del Instructor - Izquierda */}
@@ -226,6 +240,7 @@ export function CertificateTemplatePreview({
                         {renderInstructorSignature()}
                       </div>
                       
+// 
                       {/* QR Code - Centro */}
                       <div className="flex-shrink-0 mx-8 flex flex-col items-center justify-center">
                         <div className="bg-white p-3 rounded-lg border-2 shadow-lg" style={{ borderColor: primaryColor }}>
@@ -242,6 +257,7 @@ export function CertificateTemplatePreview({
                         </div>
                       </div>
                       
+// 
                       {/* Fecha - Derecha */}
                       <div className="text-center flex-1 flex flex-col items-center justify-center">
                         <div className="text-sm font-semibold mb-3" style={{ color: primaryColor }}>
@@ -254,6 +270,7 @@ export function CertificateTemplatePreview({
                     </div>
                   </div>
 
+// 
                   {/* Decoraciones laterales */}
                   <div className="absolute left-8 top-1/2 transform -translate-y-1/2 w-12 h-32 opacity-20">
                     <div className="w-full h-full border-l-4" style={{ borderColor: accentColor }}></div>
@@ -266,6 +283,7 @@ export function CertificateTemplatePreview({
             )}
           </div>
 
+// 
           {/* Información de la plantilla */}
           {!isExpanded && (
             <div className="p-4 bg-gray-50 dark:bg-gray-900/50">
@@ -300,6 +318,7 @@ export function CertificateTemplatePreview({
       </div>
     )
 
+// 
     if (isExpanded) {
       return (
         <div className="fixed inset-0 bg-black/80 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
@@ -340,6 +359,7 @@ export function CertificateTemplatePreview({
               </div>
             </div>
 
+// 
             {/* Certificado completo */}
             <div className="p-6 overflow-auto flex-1 flex items-center justify-center">
               <div className="w-full max-w-4xl">
@@ -351,9 +371,11 @@ export function CertificateTemplatePreview({
       )
     }
 
+// 
     return certificateContent
   }
 
+// 
   // Si hay una plantilla expandida, mostrar solo la vista expandida
   if (expandedTemplate) {
     const template = templates.find(t => t.id === expandedTemplate)
@@ -362,6 +384,7 @@ export function CertificateTemplatePreview({
     }
   }
 
+// 
   return (
     <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700">
@@ -383,6 +406,7 @@ export function CertificateTemplatePreview({
           </button>
         </div>
 
+// 
         {/* Content */}
         <div className="p-6 overflow-y-auto scrollbar-thin-dark flex-1">
           <div className="flex justify-center">
@@ -396,6 +420,7 @@ export function CertificateTemplatePreview({
           </div>
         </div>
 
+// 
         {/* Footer */}
         <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
           <button
@@ -419,3 +444,5 @@ export function CertificateTemplatePreview({
   )
 }
 
+// 
+// 

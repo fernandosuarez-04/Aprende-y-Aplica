@@ -48,7 +48,7 @@ export async function PATCH(
       .single()
 
     if (error) {
-      console.error('❌ Error updating news status:', error)
+      // console.error('❌ Error updating news status:', error)
       return NextResponse.json(
         { error: 'Failed to update news status' },
         { status: 500 }
@@ -57,7 +57,7 @@ export async function PATCH(
 
     return NextResponse.json({ news: updatedNews })
   } catch (error) {
-    console.error('💥 Unexpected error:', error)
+    // console.error('💥 Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -46,13 +46,13 @@ export class AdminMaterialsService {
         .order('material_order_index', { ascending: true })
 
       if (error) {
-        console.error('Error fetching materials:', error)
+        // console.error('Error fetching materials:', error)
         throw error
       }
 
       return data || []
     } catch (error) {
-      console.error('Error in AdminMaterialsService.getLessonMaterials:', error)
+      // console.error('Error in AdminMaterialsService.getLessonMaterials:', error)
       throw error
     }
   }
@@ -68,13 +68,13 @@ export class AdminMaterialsService {
         .single()
 
       if (error) {
-        console.error('Error fetching material:', error)
+        // console.error('Error fetching material:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminMaterialsService.getMaterialById:', error)
+      // console.error('Error in AdminMaterialsService.getMaterialById:', error)
       return null
     }
   }
@@ -117,13 +117,13 @@ export class AdminMaterialsService {
         .single()
 
       if (error) {
-        console.error('Error creating material:', error)
+        // console.error('Error creating material:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminMaterialsService.createMaterial:', error)
+      // console.error('Error in AdminMaterialsService.createMaterial:', error)
       throw error
     }
   }
@@ -157,13 +157,13 @@ export class AdminMaterialsService {
         .single()
 
       if (error) {
-        console.error('Error updating material:', error)
+        // console.error('Error updating material:', error)
         throw error
       }
 
       return data
     } catch (error) {
-      console.error('Error in AdminMaterialsService.updateMaterial:', error)
+      // console.error('Error in AdminMaterialsService.updateMaterial:', error)
       throw error
     }
   }
@@ -185,14 +185,14 @@ export class AdminMaterialsService {
         .eq('material_id', materialId)
 
       if (error) {
-        console.error('Error deleting material:', error)
+        // console.error('Error deleting material:', error)
         throw error
       }
 
       // TODO: Eliminar archivo de Supabase Storage si existe file_url
       // Esto se implementaría en el futuro si es necesario
     } catch (error) {
-      console.error('Error in AdminMaterialsService.deleteMaterial:', error)
+      // console.error('Error in AdminMaterialsService.deleteMaterial:', error)
       throw error
     }
   }
@@ -212,11 +212,11 @@ export class AdminMaterialsService {
       const errors = results.filter(r => r.error)
 
       if (errors.length > 0) {
-        console.error('Error reordering materials:', errors)
+        // console.error('Error reordering materials:', errors)
         throw new Error('Error al reordenar materiales')
       }
     } catch (error) {
-      console.error('Error in AdminMaterialsService.reorderMaterials:', error)
+      // console.error('Error in AdminMaterialsService.reorderMaterials:', error)
       throw error
     }
   }
@@ -240,7 +240,7 @@ export class AdminMaterialsService {
         })
 
       if (error) {
-        console.error('Error uploading file:', error)
+        // console.error('Error uploading file:', error)
         throw error
       }
 
@@ -251,7 +251,7 @@ export class AdminMaterialsService {
 
       return urlData.publicUrl
     } catch (error) {
-      console.error('Error in AdminMaterialsService.uploadMaterialFile:', error)
+      // console.error('Error in AdminMaterialsService.uploadMaterialFile:', error)
       throw error
     }
   }

@@ -58,7 +58,7 @@ export async function GET(
       .single();
 
     if (transcriptError) {
-      console.error('Error fetching transcript:', transcriptError);
+      // console.error('Error fetching transcript:', transcriptError);
       return NextResponse.json(
         { error: 'Error al obtener transcripción' },
         { status: 500 }
@@ -73,7 +73,7 @@ export async function GET(
       cacheHeaders.static
     );
   } catch (error) {
-    console.error('Error in transcript API:', error);
+    // console.error('Error in transcript API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

@@ -12,17 +12,17 @@ interface AdminAccessButtonProps {
 export function AdminAccessButton({ onClose, className = '' }: AdminAccessButtonProps) {
   const { isAdmin, isLoading } = useUserRole()
 
-  console.log('🔍 AdminAccessButton: Verificando acceso...')
-  console.log('👤 isAdmin:', isAdmin)
-  console.log('⏳ isLoading:', isLoading)
+  // console.log('🔍 AdminAccessButton: Verificando acceso...')
+  // console.log('👤 isAdmin:', isAdmin)
+  // console.log('⏳ isLoading:', isLoading)
 
   // Solo mostrar si es administrador y no está cargando
   if (isLoading || !isAdmin) {
-    console.log('❌ AdminAccessButton: No se muestra - isLoading:', isLoading, 'isAdmin:', isAdmin)
+    // console.log('❌ AdminAccessButton: No se muestra - isLoading:', isLoading, 'isAdmin:', isAdmin)
     return null
   }
 
-  console.log('✅ AdminAccessButton: Mostrando botón de administración')
+  // console.log('✅ AdminAccessButton: Mostrando botón de administración')
 
   return (
     <Link href="/admin/dashboard" onClick={onClose}>

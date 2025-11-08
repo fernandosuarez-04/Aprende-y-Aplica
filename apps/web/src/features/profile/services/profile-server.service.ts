@@ -55,7 +55,7 @@ export class ProfileServerService {
         .single()
 
       if (error) {
-        console.error('Error fetching profile:', error)
+        // console.error('Error fetching profile:', error)
         throw new Error(`Error al obtener perfil: ${error.message}`)
       }
 
@@ -87,7 +87,7 @@ export class ProfileServerService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      console.error('Error in ProfileServerService.getProfile:', error)
+      // console.error('Error in ProfileServerService.getProfile:', error)
       throw error
     }
   }
@@ -114,7 +114,7 @@ export class ProfileServerService {
         .single()
 
       if (error) {
-        console.error('Error updating profile:', error)
+        // console.error('Error updating profile:', error)
         throw new Error(`Error al actualizar perfil: ${error.message}`)
       }
 
@@ -147,7 +147,7 @@ export class ProfileServerService {
         })
       } catch (notificationError) {
         // No lanzar error para no afectar el flujo principal
-        console.error('Error creando notificación de actualización de perfil:', notificationError)
+        // console.error('Error creando notificación de actualización de perfil:', notificationError)
       }
 
       return {
@@ -174,7 +174,7 @@ export class ProfileServerService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      console.error('Error in ProfileServerService.updateProfile:', error)
+      // console.error('Error in ProfileServerService.updateProfile:', error)
       throw error
     }
   }

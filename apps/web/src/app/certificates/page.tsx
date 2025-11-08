@@ -69,7 +69,7 @@ export default function CertificatesPage() {
         throw new Error(data.error || 'Error al obtener certificados')
       }
     } catch (err) {
-      console.error('Error fetching certificates:', err)
+      // console.error('Error fetching certificates:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
@@ -123,7 +123,7 @@ export default function CertificatesPage() {
         document.body.removeChild(a)
       }
     } catch (err) {
-      console.error('Error downloading certificate:', err)
+      // console.error('Error downloading certificate:', err)
       alert(err instanceof Error ? err.message : 'Error al descargar certificado')
     }
   }

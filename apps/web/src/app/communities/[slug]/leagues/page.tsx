@@ -191,13 +191,13 @@ export default function LeaguesPage() {
   const fetchLeaguesData = async () => {
     try {
       setIsLoading(true);
-      console.log('🔍 Fetching leagues data for community:', slug);
+      // console.log('🔍 Fetching leagues data for community:', slug);
       
       const response = await fetch(`/api/communities/${slug}/leagues`);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Leagues data received:', data);
+        // console.log('✅ Leagues data received:', data);
         setCommunity(data.community);
         setCurrentUser(data.currentUser);
         setMembers(data.members || []);
@@ -206,7 +206,7 @@ export default function LeaguesPage() {
         setLeagueStats(data.leagueStats);
       } else {
         const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
+        // console.error('❌ API Error:', errorData);
         if (response.status === 401) {
           router.push('/auth');
         } else if (response.status === 403) {
@@ -214,7 +214,7 @@ export default function LeaguesPage() {
         }
       }
     } catch (error) {
-      console.error('❌ Network error fetching leagues:', error);
+      // console.error('❌ Network error fetching leagues:', error);
     } finally {
       setIsLoading(false);
     }

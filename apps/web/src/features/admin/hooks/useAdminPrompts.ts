@@ -22,12 +22,12 @@ export function useAdminPrompts() {
       setIsLoading(true)
       setError(null)
       
-      console.log('🔄 useAdminPrompts: Cargando prompts...')
+      // console.log('🔄 useAdminPrompts: Cargando prompts...')
       
       const response = await fetch('/api/admin/prompts')
       const data = await response.json()
       
-      console.log('📡 Respuesta de API prompts:', data)
+      // console.log('📡 Respuesta de API prompts:', data)
       
       if (data.success) {
         setPrompts(data.prompts || [])
@@ -40,13 +40,13 @@ export function useAdminPrompts() {
           totalDownloads: 0,
           averageRating: 0
         })
-        console.log('✅ Prompts cargados exitosamente:', data.prompts?.length || 0)
+        // console.log('✅ Prompts cargados exitosamente:', data.prompts?.length || 0)
       } else {
-        console.error('❌ Error en respuesta:', data.error)
+        // console.error('❌ Error en respuesta:', data.error)
         setError(data.error || 'Error al cargar prompts')
       }
     } catch (err) {
-      console.error('💥 Error loading prompts:', err)
+      // console.error('💥 Error loading prompts:', err)
       setError('Error de conexión al cargar prompts')
     } finally {
       setIsLoading(false)
@@ -55,7 +55,7 @@ export function useAdminPrompts() {
 
   const createPrompt = async (promptData: Partial<AdminPrompt>) => {
     try {
-      console.log('🔄 useAdminPrompts: Creando prompt...', promptData)
+      // console.log('🔄 useAdminPrompts: Creando prompt...', promptData)
       
       const response = await fetch('/api/admin/prompts', {
         method: 'POST',
@@ -66,7 +66,7 @@ export function useAdminPrompts() {
       })
       
       const data = await response.json()
-      console.log('📡 Respuesta de API crear prompt:', data)
+      // console.log('📡 Respuesta de API crear prompt:', data)
       
       if (!response.ok) {
         // Si la respuesta no es OK, hay un error
@@ -83,7 +83,7 @@ export function useAdminPrompts() {
       
       if (data.success) {
         await fetchPrompts() // Recargar la lista
-        console.log('✅ Prompt creado exitosamente')
+        // console.log('✅ Prompt creado exitosamente')
         return { success: true, prompt: data.prompt }
       } else {
         const errorMessage = data.message || data.error || 'Error al crear prompt'
@@ -97,14 +97,14 @@ export function useAdminPrompts() {
         throw new Error(errorMessage)
       }
     } catch (err) {
-      console.error('💥 Error creating prompt:', err)
+      // console.error('💥 Error creating prompt:', err)
       throw err
     }
   }
 
   const updatePrompt = async (promptId: string, promptData: Partial<AdminPrompt>) => {
     try {
-      console.log('🔄 useAdminPrompts: Actualizando prompt...', promptData)
+      // console.log('🔄 useAdminPrompts: Actualizando prompt...', promptData)
       
       const response = await fetch(`/api/admin/prompts/${promptId}`, {
         method: 'PUT',
@@ -115,7 +115,7 @@ export function useAdminPrompts() {
       })
       
       const data = await response.json()
-      console.log('📡 Respuesta de API actualizar prompt:', data)
+      // console.log('📡 Respuesta de API actualizar prompt:', data)
       
       if (!response.ok) {
         // Si la respuesta no es OK, hay un error
@@ -132,7 +132,7 @@ export function useAdminPrompts() {
       
       if (data.success) {
         await fetchPrompts() // Recargar la lista
-        console.log('✅ Prompt actualizado exitosamente')
+        // console.log('✅ Prompt actualizado exitosamente')
         return { success: true, prompt: data.prompt }
       } else {
         const errorMessage = data.message || data.error || 'Error al actualizar prompt'
@@ -146,14 +146,14 @@ export function useAdminPrompts() {
         throw new Error(errorMessage)
       }
     } catch (err) {
-      console.error('💥 Error updating prompt:', err)
+      // console.error('💥 Error updating prompt:', err)
       throw err
     }
   }
 
   const deletePrompt = async (promptId: string) => {
     try {
-      console.log('🔄 useAdminPrompts: Eliminando prompt...')
+      // console.log('🔄 useAdminPrompts: Eliminando prompt...')
       
       const response = await fetch(`/api/admin/prompts/${promptId}`, {
         method: 'DELETE'
@@ -163,20 +163,20 @@ export function useAdminPrompts() {
       
       if (data.success) {
         await fetchPrompts() // Recargar la lista
-        console.log('✅ Prompt eliminado exitosamente')
+        // console.log('✅ Prompt eliminado exitosamente')
         return { success: true }
       } else {
         throw new Error(data.error || 'Error al eliminar prompt')
       }
     } catch (err) {
-      console.error('💥 Error deleting prompt:', err)
+      // console.error('💥 Error deleting prompt:', err)
       throw err
     }
   }
 
   const togglePromptStatus = async (promptId: string, isActive: boolean) => {
     try {
-      console.log('🔄 useAdminPrompts: Cambiando estado del prompt...')
+      // console.log('🔄 useAdminPrompts: Cambiando estado del prompt...')
       
       const response = await fetch(`/api/admin/prompts/${promptId}/toggle-status`, {
         method: 'PATCH',
@@ -195,20 +195,20 @@ export function useAdminPrompts() {
             ? { ...prompt, is_active: isActive }
             : prompt
         ))
-        console.log('✅ Estado del prompt actualizado')
+        // console.log('✅ Estado del prompt actualizado')
         return { success: true, prompt: data.prompt }
       } else {
         throw new Error(data.error || 'Error al cambiar estado del prompt')
       }
     } catch (err) {
-      console.error('💥 Error toggling prompt status:', err)
+      // console.error('💥 Error toggling prompt status:', err)
       throw err
     }
   }
 
   const togglePromptFeatured = async (promptId: string, isFeatured: boolean) => {
     try {
-      console.log('🔄 useAdminPrompts: Cambiando estado destacado del prompt...')
+      // console.log('🔄 useAdminPrompts: Cambiando estado destacado del prompt...')
       
       const response = await fetch(`/api/admin/prompts/${promptId}/toggle-featured`, {
         method: 'PATCH',
@@ -227,13 +227,13 @@ export function useAdminPrompts() {
             ? { ...prompt, is_featured: isFeatured }
             : prompt
         ))
-        console.log('✅ Estado destacado del prompt actualizado')
+        // console.log('✅ Estado destacado del prompt actualizado')
         return { success: true, prompt: data.prompt }
       } else {
         throw new Error(data.error || 'Error al cambiar estado destacado del prompt')
       }
     } catch (err) {
-      console.error('💥 Error toggling prompt featured:', err)
+      // console.error('💥 Error toggling prompt featured:', err)
       throw err
     }
   }

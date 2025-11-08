@@ -60,7 +60,7 @@ export async function createClient() {
     cacheHits++
     if (process.env.NODE_ENV === 'development') {
       const hitRate = ((cacheHits / (cacheHits + cacheMisses)) * 100).toFixed(2)
-      console.log(`🔵 Server Client Pool HIT (${cacheHits} hits, ${cacheMisses} misses, ${hitRate}% hit rate)`)
+      // console.log(`🔵 Server Client Pool HIT (${cacheHits} hits, ${cacheMisses} misses, ${hitRate}% hit rate)`)
     }
     return cachedClient
   }
@@ -76,7 +76,7 @@ export async function createClient() {
     const hitRate = cacheHits + cacheMisses > 0
       ? ((cacheHits / (cacheHits + cacheMisses)) * 100).toFixed(2)
       : '0.00'
-    console.log(`🟢 Server Client Pool MISS (${cacheHits} hits, ${cacheMisses} misses, ${hitRate}% hit rate)`)
+    // console.log(`🟢 Server Client Pool MISS (${cacheHits} hits, ${cacheMisses} misses, ${hitRate}% hit rate)`)
   }
 
   // ✅ OPTIMIZACIÓN: Crear nuevo cliente con configuración optimizada

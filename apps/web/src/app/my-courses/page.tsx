@@ -74,7 +74,7 @@ export default function MyCoursesPage() {
       const data = await response.json();
       setCourses(data);
     } catch (error) {
-      console.error('Error fetching courses:', error);
+      // console.error('Error fetching courses:', error);
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function MyCoursesPage() {
       const data = await response.json();
       setStats(data);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      // console.error('Error fetching stats:', error);
     }
   };
 

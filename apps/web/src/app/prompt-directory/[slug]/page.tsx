@@ -90,7 +90,7 @@ export default function PromptDetailPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy prompt:', err);
+      // console.error('Failed to copy prompt:', err);
     }
   };
 
@@ -110,7 +110,7 @@ export default function PromptDetailPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Error al descargar el prompt:', err);
+      // console.error('Error al descargar el prompt:', err);
     }
   };
 

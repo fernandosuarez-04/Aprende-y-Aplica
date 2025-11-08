@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
     }));
   }
   
-  console.log('🚀 Middleware ejecutándose para:', pathname);
+  // console.log('🚀 Middleware ejecutándose para:', pathname);
   
   // Actualizar sesión de Supabase
   let response = await updateSession(request);
@@ -78,7 +78,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = isAdminRoute || isInstructorRoute || isUserRoute;
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
   
-  console.log('📍 Ruta protegida:', isProtectedRoute, 'Ruta auth:', isAuthRoute);
+  // console.log('📍 Ruta protegida:', isProtectedRoute, 'Ruta auth:', isAuthRoute);
   
   // Verificar cookies (sistema legacy y nuevo)
   const sessionCookie = request.cookies.get('aprende-y-aplica-session');
@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
   const hasSession = hasLegacySession || hasAccessToken;
   
   // Para debugging: mostrar cookies
-  console.log('🍪 Cookies detectadas:', {
+  // console.log('🍪 Cookies detectadas:', {
     legacy: hasLegacySession,
     access: hasAccessToken,
     refresh: hasRefreshToken
@@ -101,16 +101,16 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute) {
     // Si no hay ningún tipo de sesión, redirigir a login
     if (!hasSession && !hasRefreshToken) {
-      console.log('� Redirigiendo a /auth - no hay sesión para ruta protegida');
+      // console.log('� Redirigiendo a /auth - no hay sesión para ruta protegida');
       return NextResponse.redirect(new URL('/auth?error=session_required', request.url));
     }
     
     // Si tiene refresh token pero no access token, intentar refrescar
     if (hasRefreshToken && !hasAccessToken) {
-      console.log('🔄 Intentando refrescar access token expirado');
+      // console.log('🔄 Intentando refrescar access token expirado');
       try {
         const sessionInfo = await RefreshTokenService.refreshSession(request);
-        console.log('✅ Access token refrescado exitosamente');
+        // console.log('✅ Access token refrescado exitosamente');
         
         // Crear nueva respuesta con cookies actualizadas
         response = NextResponse.next();
@@ -119,8 +119,8 @@ export async function middleware(request: NextRequest) {
         // Solo necesitamos continuar con la request
         
       } catch (error) {
-        console.log('❌ Error refrescando token:', error);
-        console.log('🔒 Redirigiendo a /auth - token refresh falló');
+        // console.log('❌ Error refrescando token:', error);
+        // console.log('🔒 Redirigiendo a /auth - token refresh falló');
         
         // Crear respuesta de redirección y limpiar cookies inválidas
         const redirectResponse = NextResponse.redirect(
@@ -137,37 +137,37 @@ export async function middleware(request: NextRequest) {
     
     // ✅ VALIDACIÓN DE ROL ROBUSTA (Issue #16)
     // Verificar permisos basados en el rol del usuario
-    console.log('🔐 Validando permisos de rol para:', pathname);
+    // console.log('🔐 Validando permisos de rol para:', pathname);
     
     let roleValidationResponse: NextResponse | null = null;
     
     if (isAdminRoute) {
-      console.log('🔐 Validando acceso de Administrador');
+      // console.log('🔐 Validando acceso de Administrador');
       roleValidationResponse = await validateAdminAccess(request);
     } else if (isInstructorRoute) {
-      console.log('🔐 Validando acceso de Instructor');
+      // console.log('🔐 Validando acceso de Instructor');
       roleValidationResponse = await validateInstructorAccess(request);
     } else if (isUserRoute) {
-      console.log('🔐 Validando acceso de Usuario');
+      // console.log('🔐 Validando acceso de Usuario');
       roleValidationResponse = await validateUserAccess(request);
     }
     
     // Si la validación de rol devuelve una respuesta, significa que el acceso fue denegado
     if (roleValidationResponse) {
-      console.log('❌ Acceso denegado por validación de rol');
+      // console.log('❌ Acceso denegado por validación de rol');
       return roleValidationResponse;
     }
     
-    console.log('✅ Validación de rol exitosa');
+    // console.log('✅ Validación de rol exitosa');
   }
   
   // Si es una ruta de auth y hay sesión válida, redirigir al dashboard
   if (isAuthRoute && hasSession) {
-    console.log('✅ Redirigiendo a /dashboard - usuario autenticado en ruta auth');
+    // console.log('✅ Redirigiendo a /dashboard - usuario autenticado en ruta auth');
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
-  console.log('➡️ Continuando sin redirección');
+  // console.log('➡️ Continuando sin redirección');
   
   // Agregar headers de rate limit a la respuesta si están disponibles
   const rateLimitInfo = request.headers.get('X-Rate-Limit-Info');
@@ -176,7 +176,7 @@ export async function middleware(request: NextRequest) {
       const { limit, remaining, reset } = JSON.parse(rateLimitInfo);
       response = addRateLimitHeaders(response, limit, remaining, new Date(reset));
     } catch (error) {
-      console.warn('Error agregando headers de rate limit:', error);
+      // console.warn('Error agregando headers de rate limit:', error);
     }
   }
   

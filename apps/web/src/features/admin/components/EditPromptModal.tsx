@@ -49,7 +49,7 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
         setCategories(data.categories || [])
       }
     } catch (error) {
-      console.error('Error fetching categories:', error)
+      // console.error('Error fetching categories:', error)
     }
   }
 
@@ -135,7 +135,7 @@ export function EditPromptModal({ isOpen, onClose, onSave, prompt }: EditPromptM
       
       onClose()
     } catch (error) {
-      console.error('Error updating prompt:', error)
+      // console.error('Error updating prompt:', error)
     } finally {
       setIsLoading(false)
     }

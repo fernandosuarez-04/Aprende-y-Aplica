@@ -65,11 +65,11 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
             const existingIds = new Set(prev.map(p => p.id))
             const uniqueNewPosts = newPosts.filter((post: T) => !existingIds.has(post.id))
             
-            console.log(`📥 Infinite Scroll: Loaded ${newPosts.length} posts, ${uniqueNewPosts.length} unique, ${newPosts.length - uniqueNewPosts.length} duplicates filtered`)
+            // console.log(`📥 Infinite Scroll: Loaded ${newPosts.length} posts, ${uniqueNewPosts.length} unique, ${newPosts.length - uniqueNewPosts.length} duplicates filtered`)
             
             // Si no hay posts nuevos únicos, no hay más por cargar
             if (uniqueNewPosts.length === 0) {
-              console.log('✅ Infinite Scroll: No more unique posts, stopping pagination')
+              // console.log('✅ Infinite Scroll: No more unique posts, stopping pagination')
               setHasMore(false)
               return prev
             }
@@ -80,7 +80,7 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
         }
       }
     } catch (error) {
-      console.error('Error loading posts:', error)
+      // console.error('Error loading posts:', error)
     } finally {
       setLoading(false)
     }
@@ -100,9 +100,9 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
           <OptimizedPostCard
             key={post.id}
             post={post}
-            onReact={() => console.log('React to', post.id)}
-            onComment={() => console.log('Comment on', post.id)}
-            onShare={() => console.log('Share', post.id)}
+            onReact={() => {/* console.log('React to', post.id) */}}
+            onComment={() => {/* console.log('Comment on', post.id) */}}
+            onShare={() => {/* console.log('Share', post.id) */}}
           />
         )
       ))}

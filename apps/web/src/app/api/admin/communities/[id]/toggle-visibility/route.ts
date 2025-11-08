@@ -27,7 +27,7 @@ export async function PATCH(
       community: updatedCommunity 
     })
   } catch (error: unknown) {
-    console.error('Error toggling community visibility via API:', error)
+    // console.error('Error toggling community visibility via API:', error)
     const message = error instanceof Error ? error.message : 'Error al cambiar visibilidad de la comunidad';
     return NextResponse.json({ 
       success: false, 

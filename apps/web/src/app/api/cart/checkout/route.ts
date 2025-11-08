@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Procesar cada item del carrito
     for (const item of items) {
       try {
-        `);
+        // console.log(`Procesando item: ${item.title}`);
         
         if (item.itemType === 'course') {
           // Procesar curso
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
           if (courseResult.success) {
             results.courses.push(courseResult.data);
           } else {
-            console.error(`❌ Error procesando curso ${item.title}:`, courseResult.error);
+            // console.error(`Error procesando curso ${item.title}:`, courseResult.error);
             results.errors.push(`Error procesando curso ${item.title}: ${courseResult.error}`);
           }
         } else if (item.itemType === 'subscription') {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           if (subscriptionResult.success) {
             results.subscriptions.push(subscriptionResult.data);
           } else {
-            console.error(`❌ Error procesando suscripción ${item.title}:`, subscriptionResult.error);
+            // console.error(`❌ Error procesando suscripción ${item.title}:`, subscriptionResult.error);
             results.errors.push(`Error procesando suscripción ${item.title}: ${subscriptionResult.error}`);
           }
         } else {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-        console.error(`❌ Excepción procesando ${item.title}:`, errorMessage);
+        // console.error(`❌ Excepción procesando ${item.title}:`, errorMessage);
         results.errors.push(`Error procesando ${item.title}: ${errorMessage}`);
       }
     }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error en checkout:', error);
+    // console.error('Error en checkout:', error);
     return NextResponse.json(
       {
         success: false,
@@ -146,7 +146,7 @@ async function processCoursePurchase(
         course = courseBySlug;
         courseError = null;
         } else {
-        console.error('❌ Error obteniendo curso:', courseError || slugError);
+        // console.error('❌ Error obteniendo curso:', courseError || slugError);
         return { success: false, error: `Curso no encontrado: ${(courseError || slugError)?.message || 'Curso no existe'}` };
       }
     }
@@ -226,7 +226,7 @@ async function processCoursePurchase(
       .single();
 
     if (transactionError || !transaction) {
-      console.error('❌ Error creando transacción:', transactionError);
+      // console.error('❌ Error creando transacción:', transactionError);
       return { success: false, error: `Error al crear la transacción: ${transactionError?.message || 'Error desconocido'}` };
     }
 
@@ -253,7 +253,7 @@ async function processCoursePurchase(
       .single();
 
     if (purchaseError || !purchase) {
-      console.error('❌ Error creando purchase:', purchaseError);
+      // console.error('❌ Error creando purchase:', purchaseError);
       // Limpiar transacción si falla
       await supabase.from('transactions').delete().eq('transaction_id', transaction.transaction_id);
       return { success: false, error: `Error al crear la compra: ${purchaseError?.message || 'Error desconocido'}` };
@@ -273,7 +273,7 @@ async function processCoursePurchase(
       .single();
 
     if (enrollmentError) {
-      console.error('Error creating enrollment (no crítico):', enrollmentError);
+      // console.error('Error creating enrollment (no crítico):', enrollmentError);
       // No fallar si el enrollment falla, ya que el purchase está creado
     }
 
@@ -294,7 +294,7 @@ async function processCoursePurchase(
         },
       });
       } catch (notifError) {
-      console.error('Error creando notificación (no crítico):', notifError);
+      // console.error('Error creando notificación (no crítico):', notifError);
       // No fallar si la notificación falla
     }
 
@@ -307,7 +307,7 @@ async function processCoursePurchase(
       },
     };
   } catch (error) {
-    console.error('Error in processCoursePurchase:', error);
+    // console.error('Error in processCoursePurchase:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido',
@@ -376,7 +376,7 @@ async function processSubscriptionPurchase(
       .single();
 
     if (subscriptionError || !subscription) {
-      console.error('❌ Error creando suscripción:', subscriptionError);
+      // console.error('❌ Error creando suscripción:', subscriptionError);
       return { success: false, error: `Error al crear la suscripción: ${subscriptionError?.message || 'Error desconocido'}` };
     }
 
@@ -397,7 +397,7 @@ async function processSubscriptionPurchase(
         },
       });
       } catch (notifError) {
-      console.error('Error creando notificación (no crítico):', notifError);
+      // console.error('Error creando notificación (no crítico):', notifError);
       // No fallar si la notificación falla
     }
 
@@ -410,7 +410,7 @@ async function processSubscriptionPurchase(
       },
     };
   } catch (error) {
-    console.error('Error in processSubscriptionPurchase:', error);
+    // console.error('Error in processSubscriptionPurchase:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido',

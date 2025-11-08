@@ -87,13 +87,13 @@ export function SWRProvider({ children }: SWRProviderProps) {
         onSuccess: (data, key) => {
           // Solo en desarrollo
           if (process.env.NODE_ENV === 'development') {
-            console.log(`✅ SWR Success: ${key}`);
+            // console.log(`✅ SWR Success: ${key}`);
           }
         },
         
         onError: (error, key) => {
           // Log de errores
-          console.error(`❌ SWR Error: ${key}`, error);
+          // console.error(`❌ SWR Error: ${key}`, error);
           
           // Aquí podrías enviar a servicio de monitoring (Sentry, etc.)
           // if (process.env.NODE_ENV === 'production') {

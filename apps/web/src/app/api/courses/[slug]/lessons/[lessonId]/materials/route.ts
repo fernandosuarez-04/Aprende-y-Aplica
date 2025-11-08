@@ -58,7 +58,7 @@ export async function GET(
       .order('material_order_index', { ascending: true });
 
     if (materialsError) {
-      console.error('Error fetching materials:', materialsError);
+      // console.error('Error fetching materials:', materialsError);
       return NextResponse.json(
         { error: 'Error al obtener materiales' },
         { status: 500 }
@@ -71,7 +71,7 @@ export async function GET(
       cacheHeaders.static
     );
   } catch (error) {
-    console.error('Error in materials API:', error);
+    // console.error('Error in materials API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

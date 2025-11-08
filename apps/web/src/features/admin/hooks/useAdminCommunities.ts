@@ -31,7 +31,7 @@ export function useAdminCommunities(): UseAdminCommunitiesReturn {
       if (!communitiesResponse.ok || !statsResponse.ok) {
         const communitiesError = !communitiesResponse.ok ? await communitiesResponse.json().catch(() => null) : null
         const statsError = !statsResponse.ok ? await statsResponse.json().catch(() => null) : null
-        console.error('❌ Error en respuestas:', { communitiesError, statsError })
+        // console.error('❌ Error en respuestas:', { communitiesError, statsError })
         throw new Error('Error al cargar los datos de comunidades')
       }
 
@@ -41,39 +41,45 @@ export function useAdminCommunities(): UseAdminCommunitiesReturn {
       ])
 
       // Logging para debugging
-      console.log('📊 Communities API Response:', {
-        hasCommunities: !!communitiesData.communities,
-        communitiesCount: communitiesData.communities?.length || 0,
-        rawData: communitiesData
-      })
-      console.log('📈 Stats API Response:', {
-        hasStats: !!statsData.stats,
-        stats: statsData.stats
-      })
+      // console.log('📊 Communities API Response:', {
+      //   hasCommunities: !!communitiesData.communities,
+      //   communitiesCount: communitiesData.communities?.length || 0,
+      //   rawData: communitiesData
+      // })
+      // console.log('📈 Stats API Response:', {
+      //   hasStats: !!statsData.stats,
+      //   stats: statsData.stats
+      // })
 
+// 
       // Manejar ambos formatos: paginado (data) y no paginado (communities)
       const communities = communitiesData.communities || communitiesData.data || []
       
+// 
       setCommunities(communities)
       setStats(statsData.stats || null)
 
-      console.log('✅ Communities loaded:', communities.length)
+// 
+      // console.log('✅ Communities loaded:', communities.length)
     } catch (err) {
-      console.error('❌ Error fetching communities data:', err)
+      // console.error('❌ Error fetching communities data:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setIsLoading(false)
     }
   }
 
+// 
   useEffect(() => {
     fetchData()
   }, [])
 
+// 
   const refetch = () => {
     fetchData()
   }
 
+// 
   return {
     communities,
     stats,
@@ -83,6 +89,7 @@ export function useAdminCommunities(): UseAdminCommunitiesReturn {
   }
 }
 
+// 
 /**
  * ✅ ISSUE #19: Hook para paginación infinita de comunidades
  * Usa cursor-based pagination para manejar miles de comunidades
@@ -99,6 +106,7 @@ interface UseCommunitiesPaginatedParams {
   limit?: number
 }
 
+// 
 interface PaginatedCommunitiesPage {
   data: AdminCommunity[]
   nextCursor: string | null
@@ -106,25 +114,30 @@ interface PaginatedCommunitiesPage {
   total: number
 }
 
+// 
 export function useCommunitiesPaginated(params: UseCommunitiesPaginatedParams = {}) {
   const { search, visibility, isActive, limit = 20 } = params
 
+// 
   const [pages, setPages] = useState<PaginatedCommunitiesPage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+// 
   // Resetear páginas cuando cambian los filtros
   useEffect(() => {
     setPages([])
     fetchFirstPage()
   }, [search, visibility, isActive, limit])
 
+// 
   const fetchFirstPage = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
+// 
       const params = new URLSearchParams({
         limit: limit.toString(),
         ...(search && { search }),
@@ -132,31 +145,37 @@ export function useCommunitiesPaginated(params: UseCommunitiesPaginatedParams = 
         ...(isActive !== undefined && { isActive: String(isActive) })
       })
 
+// 
       const response = await fetch(`/api/admin/communities?${params}`)
       
+// 
       if (!response.ok) {
         throw new Error('Error al cargar comunidades')
       }
 
+// 
       const result: PaginatedCommunitiesPage = await response.json()
       setPages([result])
     } catch (err) {
-      console.error('Error fetching first page:', err)
+      // console.error('Error fetching first page:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setIsLoading(false)
     }
   }
 
+// 
   const fetchNextPage = async () => {
     if (isFetchingNextPage || !pages.length || !pages[pages.length - 1].hasMore) {
       return
     }
 
+// 
     try {
       setIsFetchingNextPage(true)
       setError(null)
 
+// 
       const lastPage = pages[pages.length - 1]
       const params = new URLSearchParams({
         limit: limit.toString(),
@@ -166,32 +185,38 @@ export function useCommunitiesPaginated(params: UseCommunitiesPaginatedParams = 
         ...(isActive !== undefined && { isActive: String(isActive) })
       })
 
+// 
       const response = await fetch(`/api/admin/communities?${params}`)
       
+// 
       if (!response.ok) {
         throw new Error('Error al cargar más comunidades')
       }
 
+// 
       const result: PaginatedCommunitiesPage = await response.json()
       setPages(prev => [...prev, result])
     } catch (err) {
-      console.error('Error fetching next page:', err)
+      // console.error('Error fetching next page:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setIsFetchingNextPage(false)
     }
   }
 
+// 
   const refetch = () => {
     setPages([])
     fetchFirstPage()
   }
 
+// 
   // Aplanar todas las páginas en un solo array
   const allCommunities = pages.flatMap(page => page.data)
   const hasNextPage = pages.length > 0 && pages[pages.length - 1].hasMore
   const total = pages[0]?.total || 0
 
+// 
   return {
     communities: allCommunities,
     total,
@@ -203,3 +228,4 @@ export function useCommunitiesPaginated(params: UseCommunitiesPaginatedParams = 
     refetch
   }
 }
+// 

@@ -19,7 +19,7 @@ export function DeleteNewsModal({ isOpen, onClose, news, onConfirm }: DeleteNews
     try {
       await onConfirm()
     } catch (error) {
-      console.error('Error deleting news:', error)
+      // console.error('Error deleting news:', error)
     } finally {
       setIsDeleting(false)
     }

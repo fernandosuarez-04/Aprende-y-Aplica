@@ -75,7 +75,7 @@ export async function GET(
     const { data: questions, error: questionsError } = await query;
 
     if (questionsError) {
-      console.error('Error fetching questions:', questionsError);
+      // console.error('Error fetching questions:', questionsError);
       return NextResponse.json(
         { error: 'Error al obtener preguntas' },
         { status: 500 }
@@ -151,7 +151,7 @@ export async function GET(
       cacheHeaders.semiStatic
     );
   } catch (error) {
-    console.error('Error in questions API:', error);
+    // console.error('Error in questions API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',
@@ -235,7 +235,7 @@ export async function POST(
       .single();
 
     if (questionError) {
-      console.error('Error creating question:', questionError);
+      // console.error('Error creating question:', questionError);
       return NextResponse.json(
         { error: 'Error al crear pregunta' },
         { status: 500 }
@@ -244,7 +244,7 @@ export async function POST(
 
     return NextResponse.json(question, { status: 201 });
   } catch (error) {
-    console.error('Error in questions API:', error);
+    // console.error('Error in questions API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

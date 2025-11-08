@@ -68,14 +68,14 @@ export async function middleware(request: NextRequest) {
                   activeStatuses.includes(organization.subscription_status) &&
                   organization.is_active) {
                 // Redirigir a login personalizado
-                console.log('🔄 Redirigiendo usuario de organización a login personalizado')
+                // console.log('🔄 Redirigiendo usuario de organización a login personalizado')
                 return NextResponse.redirect(new URL(`/auth/${organization.slug}`, request.url))
               }
             }
           }
         }
       } catch (error) {
-        console.error('Error verificando organización en middleware:', error)
+        // console.error('Error verificando organización en middleware:', error)
         // Continuar con flujo normal si hay error
       }
     }

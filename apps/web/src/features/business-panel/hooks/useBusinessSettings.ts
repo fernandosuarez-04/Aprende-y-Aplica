@@ -76,7 +76,7 @@ export function useBusinessSettings() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al cargar configuración'
       setError(errorMessage)
-      console.error('Error fetching settings:', err)
+      // console.error('Error fetching settings:', err)
     } finally {
       setIsLoading(false)
     }
@@ -114,7 +114,7 @@ export function useBusinessSettings() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar la organización'
       setError(errorMessage)
-      console.error('Error updating organization:', err)
+      // console.error('Error updating organization:', err)
       return false
     }
   }

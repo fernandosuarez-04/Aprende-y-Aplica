@@ -38,7 +38,7 @@ export function ModuleModal({ module, onClose, onSave }: ModuleModalProps) {
       await onSave(formData)
       onClose()
     } catch (error) {
-      console.error('Error saving module:', error)
+      // console.error('Error saving module:', error)
     } finally {
       setLoading(false)
     }

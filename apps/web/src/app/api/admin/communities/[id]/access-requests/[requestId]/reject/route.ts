@@ -61,7 +61,7 @@ export async function PATCH(
       .single()
 
     if (updateError) {
-      console.error('Error updating access request:', updateError)
+      // console.error('Error updating access request:', updateError)
       return NextResponse.json({ 
         success: false, 
         message: 'Error al rechazar la solicitud' 
@@ -85,7 +85,7 @@ export async function PATCH(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.error('Error en auditoría:', auditError)
+      // console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 
@@ -95,7 +95,7 @@ export async function PATCH(
       message: 'Solicitud rechazada exitosamente' 
     })
   } catch (error: unknown) {
-    console.error('Error in reject access request API:', error)
+    // console.error('Error in reject access request API:', error)
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ 
       success: false, 

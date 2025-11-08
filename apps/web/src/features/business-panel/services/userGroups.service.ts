@@ -60,7 +60,7 @@ export class UserGroupsService {
 
       return data.groups || []
     } catch (error) {
-      console.error('Error fetching groups:', error)
+      // console.error('Error fetching groups:', error)
       return []
     }
   }
@@ -76,7 +76,7 @@ export class UserGroupsService {
 
       return data.group || null
     } catch (error) {
-      console.error('Error fetching group:', error)
+      // console.error('Error fetching group:', error)
       return null
     }
   }
@@ -139,7 +139,7 @@ export class UserGroupsService {
 
       return data.members || []
     } catch (error) {
-      console.error('Error fetching group members:', error)
+      // console.error('Error fetching group members:', error)
       return []
     }
   }

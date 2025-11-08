@@ -125,7 +125,7 @@ export function NotificationBell({
       try {
         await markAsRead(notification.notification_id)
       } catch (error) {
-        console.error('Error marcando notificación como leída:', error)
+        // console.error('Error marcando notificación como leída:', error)
       }
     }
 
@@ -142,7 +142,7 @@ export function NotificationBell({
     try {
       await markAsRead(notificationId)
     } catch (error) {
-      console.error('Error marcando notificación como leída:', error)
+      // console.error('Error marcando notificación como leída:', error)
     }
   }
 
@@ -152,7 +152,7 @@ export function NotificationBell({
     try {
       await archiveNotification(notificationId)
     } catch (error) {
-      console.error('Error archivando notificación:', error)
+      // console.error('Error archivando notificación:', error)
     }
   }
 
@@ -164,7 +164,7 @@ export function NotificationBell({
       try {
         await deleteNotification(notificationId)
       } catch (error) {
-        console.error('Error eliminando notificación:', error)
+        // console.error('Error eliminando notificación:', error)
       }
     }
   }

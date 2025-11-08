@@ -39,20 +39,20 @@ export function LoginForm() {
     setIsPending(true);
     
     try {
-      console.log('🔄 Iniciando proceso de login...');
+      // console.log('🔄 Iniciando proceso de login...');
       
       const formData = new FormData();
       formData.append('emailOrUsername', data.emailOrUsername);
       formData.append('password', data.password);
       formData.append('rememberMe', data.rememberMe.toString());
 
-      console.log('📤 Enviando datos al servidor...');
+      // console.log('📤 Enviando datos al servidor...');
       const result = await loginAction(formData);
       
-      console.log('📥 Respuesta recibida:', result);
+      // console.log('📥 Respuesta recibida:', result);
       
       if (result?.error) {
-        console.error('❌ Error en login:', result.error);
+        // console.error('❌ Error en login:', result.error);
         setError(result.error);
         setIsPending(false);
       }
@@ -66,20 +66,20 @@ export function LoginForm() {
           const digest = error.digest;
           if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
             // Es una redirección exitosa, re-lanzar para que Next.js la maneje
-            console.log('✅ Redirección detectada, login exitoso');
+            // console.log('✅ Redirección detectada, login exitoso');
             throw error;
           }
         }
         
         // También puede ser un error de redirección de otra forma
         if (error.message && error.message.includes('NEXT_REDIRECT')) {
-          console.log('✅ Redirección detectada (alternativa), login exitoso');
+          // console.log('✅ Redirección detectada (alternativa), login exitoso');
           throw error;
         }
       }
       
       // Solo mostrar error si NO es una redirección
-      console.error('❌ Error inesperado:', error);
+      // console.error('❌ Error inesperado:', error);
       setError('Error inesperado al iniciar sesión');
       setIsPending(false);
     }

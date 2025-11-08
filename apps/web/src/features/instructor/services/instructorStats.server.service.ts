@@ -52,12 +52,12 @@ export class InstructorStatsServerService {
       const { data: reels, error: reelsError } = reelsResult
 
       if (coursesError) {
-        console.error('Error fetching courses for instructor:', coursesError)
+        // console.error('Error fetching courses for instructor:', coursesError)
         throw new Error(`Error al obtener cursos: ${coursesError.message}`)
       }
 
       if (reelsError) {
-        console.error('Error fetching reels for instructor:', reelsError)
+        // console.error('Error fetching reels for instructor:', reelsError)
         throw new Error(`Error al obtener reels: ${reelsError.message}`)
       }
 
@@ -109,7 +109,7 @@ export class InstructorStatsServerService {
         reelsThisMonth
       }
     } catch (error) {
-      console.error('Error in InstructorStatsServerService.getInstructorStats:', error)
+      // console.error('Error in InstructorStatsServerService.getInstructorStats:', error)
       throw error
     }
   }

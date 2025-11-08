@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       completed: true,
     });
   } catch (error) {
-    console.error('Error completing activity:', error);
+    // console.error('Error completing activity:', error);
     return NextResponse.json(
       { error: 'Error al completar actividad' },
       { status: 500 }

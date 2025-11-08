@@ -68,7 +68,7 @@ export class AdminWorkshopsService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching workshops:', error)
+        // console.error('Error fetching workshops:', error)
         throw error
       }
 
@@ -98,7 +98,7 @@ export class AdminWorkshopsService {
 
       return workshopsWithInstructors
     } catch (error) {
-      console.error('Error in AdminWorkshopsService.getAllWorkshops:', error)
+      // console.error('Error in AdminWorkshopsService.getAllWorkshops:', error)
       throw error
     }
   }
@@ -148,7 +148,7 @@ export class AdminWorkshopsService {
         totalInstructors: totalInstructors || 0
       }
     } catch (error) {
-      console.error('Error in AdminWorkshopsService.getWorkshopStats:', error)
+      // console.error('Error in AdminWorkshopsService.getWorkshopStats:', error)
       throw error
     }
   }
@@ -220,7 +220,7 @@ export class AdminWorkshopsService {
         .single()
 
       if (error) {
-        console.error('Error creating workshop:', error)
+        // console.error('Error creating workshop:', error)
         throw error
       }
 
@@ -239,7 +239,7 @@ export class AdminWorkshopsService {
 
       return data
     } catch (error) {
-      console.error('Error in AdminWorkshopsService.createWorkshop:', error)
+      // console.error('Error in AdminWorkshopsService.createWorkshop:', error)
       throw error
     }
   }
@@ -332,7 +332,7 @@ export class AdminWorkshopsService {
         .single()
 
       if (error) {
-        console.error('Error updating workshop:', error)
+        // console.error('Error updating workshop:', error)
         throw error
       }
 
@@ -351,7 +351,7 @@ export class AdminWorkshopsService {
 
       return data
     } catch (error) {
-      console.error('Error in AdminWorkshopsService.updateWorkshop:', error)
+      // console.error('Error in AdminWorkshopsService.updateWorkshop:', error)
       throw error
     }
   }
@@ -374,7 +374,7 @@ export class AdminWorkshopsService {
         .eq('id', workshopId)
 
       if (error) {
-        console.error('Error deleting workshop:', error)
+        // console.error('Error deleting workshop:', error)
         throw error
       }
 
@@ -391,7 +391,7 @@ export class AdminWorkshopsService {
         user_agent: requestInfo?.userAgent
       })
     } catch (error) {
-      console.error('Error in AdminWorkshopsService.deleteWorkshop:', error)
+      // console.error('Error in AdminWorkshopsService.deleteWorkshop:', error)
       throw error
     }
   }
@@ -407,7 +407,7 @@ export class AdminWorkshopsService {
         .order('display_name')
 
       if (error) {
-        console.error('Error fetching instructors:', error)
+        // console.error('Error fetching instructors:', error)
         throw error
       }
 
@@ -418,7 +418,7 @@ export class AdminWorkshopsService {
               'Instructor sin nombre'
       }))
     } catch (error) {
-      console.error('Error in AdminWorkshopsService.getInstructors:', error)
+      // console.error('Error in AdminWorkshopsService.getInstructors:', error)
       throw error
     }
   }

@@ -21,7 +21,7 @@ export async function PATCH(
       .single()
 
     if (fetchError) {
-      console.error('Error fetching reel:', fetchError)
+      // console.error('Error fetching reel:', fetchError)
       return NextResponse.json({ error: 'Reel not found' }, { status: 404 })
     }
 
@@ -39,13 +39,13 @@ export async function PATCH(
       .single()
 
     if (error) {
-      console.error('Error toggling reel featured:', error)
+      // console.error('Error toggling reel featured:', error)
       return NextResponse.json({ error: 'Failed to toggle reel featured' }, { status: 500 })
     }
 
     return NextResponse.json(updatedReel)
   } catch (error) {
-    console.error('Error in PATCH /api/admin/reels/[id]/featured:', error)
+    // console.error('Error in PATCH /api/admin/reels/[id]/featured:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

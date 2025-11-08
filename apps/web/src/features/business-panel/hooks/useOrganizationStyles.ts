@@ -52,7 +52,7 @@ export function useOrganizationStyles() {
 
         setStyles(data.styles);
       } catch (err: any) {
-        console.error('Error fetching organization styles:', err);
+        // console.error('Error fetching organization styles:', err);
         setError(err.message || 'Error al obtener estilos');
         setStyles(null);
       } finally {
@@ -92,7 +92,7 @@ export function useOrganizationStyles() {
       setStyles(data.styles);
       return true;
     } catch (err: any) {
-      console.error('Error updating styles:', err);
+      // console.error('Error updating styles:', err);
       setError(err.message || 'Error al actualizar estilos');
       return false;
     }
@@ -118,7 +118,7 @@ export function useOrganizationStyles() {
       setStyles(data.styles);
       return true;
     } catch (err: any) {
-      console.error('Error applying theme:', err);
+      // console.error('Error applying theme:', err);
       setError(err.message || 'Error al aplicar tema');
       return false;
     }
@@ -147,7 +147,7 @@ export function useOrganizationStyles() {
 
         setStyles(data.styles);
       } catch (err: any) {
-        console.error('Error refetching styles:', err);
+        // console.error('Error refetching styles:', err);
         setError(err.message || 'Error al obtener estilos');
       } finally {
         setLoading(false);

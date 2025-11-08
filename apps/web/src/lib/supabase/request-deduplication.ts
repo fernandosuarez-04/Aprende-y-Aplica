@@ -41,7 +41,7 @@ class RequestDeduplicator {
     if (cached) {
       const age = Date.now() - cached.timestamp
       if (age < ttl) {
-        console.log(`🔵 Request deduplicada: ${url}`)
+        // console.log(`🔵 Request deduplicada: ${url}`)
         return cached.promise
       } else {
         // Expiró, eliminar del cache
@@ -50,7 +50,7 @@ class RequestDeduplicator {
     }
 
     // Crear nueva request
-    console.log(`🟢 Nueva request: ${url}`)
+    // console.log(`🟢 Nueva request: ${url}`)
     const promise = fetch(url, options)
       .then(async (res) => {
         if (!res.ok) {
@@ -89,7 +89,7 @@ class RequestDeduplicator {
     if (cached) {
       const age = Date.now() - cached.timestamp
       if (age < ttl) {
-        console.log(`🔵 Query Supabase deduplicada: ${queryKey}`)
+        // console.log(`🔵 Query Supabase deduplicada: ${queryKey}`)
         return cached.promise
       } else {
         this.cache.delete(cacheKey)
@@ -97,7 +97,7 @@ class RequestDeduplicator {
     }
 
     // Ejecutar query
-    console.log(`🟢 Nueva query Supabase: ${queryKey}`)
+    // console.log(`🟢 Nueva query Supabase: ${queryKey}`)
     const promise = queryFn().finally(() => {
       setTimeout(() => {
         this.cache.delete(cacheKey)
@@ -126,7 +126,7 @@ class RequestDeduplicator {
    */
   clear(): void {
     this.cache.clear()
-    console.log('🧹 Cache de deduplication limpiado')
+    // console.log('🧹 Cache de deduplication limpiado')
   }
 
   /**

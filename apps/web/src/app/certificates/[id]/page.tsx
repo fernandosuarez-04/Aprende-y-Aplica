@@ -79,7 +79,7 @@ export default function CertificateDetailPage() {
         throw new Error(data.error || 'Error al obtener certificado')
       }
     } catch (err) {
-      console.error('Error fetching certificate:', err)
+      // console.error('Error fetching certificate:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
@@ -128,7 +128,7 @@ export default function CertificateDetailPage() {
         document.body.removeChild(a)
       }
     } catch (err) {
-      console.error('Error downloading certificate:', err)
+      // console.error('Error downloading certificate:', err)
       alert(err instanceof Error ? err.message : 'Error al descargar certificado')
     }
   }
@@ -154,7 +154,7 @@ export default function CertificateDetailPage() {
           title: `Certificado: ${certificate.course_title}`,
           text: `He completado el curso "${certificate.course_title}" y obtuve este certificado.`,
           url: verifyUrl
-        }).catch(err => console.error('Error sharing:', err))
+        }).catch(err => {/* console.error('Error sharing:', err) */})
       } else {
         navigator.clipboard.writeText(verifyUrl)
         alert('Enlace de verificación copiado al portapapeles')

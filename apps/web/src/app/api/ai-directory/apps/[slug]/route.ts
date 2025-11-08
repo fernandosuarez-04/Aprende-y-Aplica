@@ -25,7 +25,7 @@ export async function GET(
       .single();
 
     if (error) {
-      console.error('Error fetching app:', error);
+      // console.error('Error fetching app:', error);
       return NextResponse.json(
         { error: 'App not found' },
         { status: 404 }
@@ -42,7 +42,7 @@ export async function GET(
 
     return NextResponse.json({ app });
   } catch (error) {
-    console.error('Unexpected error:', error);
+    // console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

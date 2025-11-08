@@ -90,13 +90,13 @@ export class AdminUsersService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('❌ Error fetching users:', error)
+        // console.error('❌ Error fetching users:', error)
         throw error
       }
 
       return data || []
     } catch (error) {
-      console.error('💥 Error in AdminUsersService.getUsers:', error)
+      // console.error('💥 Error in AdminUsersService.getUsers:', error)
       throw error
     }
   }
@@ -110,7 +110,7 @@ export class AdminUsersService {
         .select('cargo_rol, email_verified')
 
       if (error) {
-        console.error('Error fetching user stats:', error)
+        // console.error('Error fetching user stats:', error)
         throw error
       }
 
@@ -125,7 +125,7 @@ export class AdminUsersService {
 
       return stats
     } catch (error) {
-      console.error('Error in AdminUsersService.getUserStats:', error)
+      // console.error('Error in AdminUsersService.getUserStats:', error)
       throw error
     }
   }
@@ -196,7 +196,7 @@ export class AdminUsersService {
         .single()
 
       if (error) {
-        console.error('Error updating user:', error)
+        // console.error('Error updating user:', error)
         throw error
       }
 
@@ -215,7 +215,7 @@ export class AdminUsersService {
 
       return data
     } catch (error) {
-      console.error('Error in AdminUsersService.updateUser:', error)
+      // console.error('Error in AdminUsersService.updateUser:', error)
       throw error
     }
   }
@@ -230,11 +230,11 @@ export class AdminUsersService {
         .eq('id', userId)
 
       if (error) {
-        console.error('Error updating user role:', error)
+        // console.error('Error updating user role:', error)
         throw error
       }
     } catch (error) {
-      console.error('Error in AdminUsersService.updateUserRole:', error)
+      // console.error('Error in AdminUsersService.updateUserRole:', error)
       throw error
     }
   }
@@ -299,7 +299,7 @@ export class AdminUsersService {
         .single()
 
       if (error) {
-        console.error('Error creating user:', error)
+        // console.error('Error creating user:', error)
         throw error
       }
 
@@ -318,7 +318,7 @@ export class AdminUsersService {
 
       return data
     } catch (error) {
-      console.error('Error in AdminUsersService.createUser:', error)
+      // console.error('Error in AdminUsersService.createUser:', error)
       throw error
     }
   }
@@ -351,7 +351,7 @@ export class AdminUsersService {
         })
       } catch (auditError) {
         // No fallar la eliminación si el log de auditoría falla
-        :', auditError)
+        // console.error('Error en auditoría:', auditError)
       }
 
       // Eliminar todas las referencias del usuario antes de eliminar el usuario
@@ -557,11 +557,11 @@ export class AdminUsersService {
         .eq('id', userId)
 
       if (error) {
-        console.error('Error deleting user:', error)
+        // console.error('Error deleting user:', error)
         throw error
       }
     } catch (error) {
-      console.error('Error in AdminUsersService.deleteUser:', error)
+      // console.error('Error in AdminUsersService.deleteUser:', error)
       throw error
     }
   }

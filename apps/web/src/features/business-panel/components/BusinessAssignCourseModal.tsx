@@ -34,7 +34,7 @@ export function BusinessAssignCourseModal({
   // Refrescar usuarios cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      console.log('🔄 Refrescando usuarios en modal de asignación...')
+      // console.log('🔄 Refrescando usuarios en modal de asignación...')
       refetchUsers()
     }
   }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -54,7 +54,7 @@ export function BusinessAssignCourseModal({
             }
           }
         } catch (err) {
-          console.error('Error fetching assigned users:', err)
+          // console.error('Error fetching assigned users:', err)
         }
       }
       fetchAssignedUsers()

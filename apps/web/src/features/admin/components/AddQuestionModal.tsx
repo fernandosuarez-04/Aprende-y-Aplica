@@ -67,7 +67,7 @@ export function AddQuestionModal({ isOpen, onClose, onSave }: AddQuestionModalPr
         respuesta_correcta: ''
       })
     } catch (error) {
-      console.error('Error creating question:', error)
+      // console.error('Error creating question:', error)
     } finally {
       setIsLoading(false)
     }

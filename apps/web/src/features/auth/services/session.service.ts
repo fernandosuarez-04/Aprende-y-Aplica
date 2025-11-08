@@ -361,7 +361,7 @@ export class SessionService {
 
       return !error && !!session;
     } catch (error) {
-      console.error('Error validating session:', error);
+      // console.error('Error validating session:', error);
       return false;
     }
   }

@@ -184,7 +184,7 @@ export async function GET() {
       }
     })
   } catch (error) {
-    console.error('Error fetching performance dashboard:', error)
+    // console.error('Error fetching performance dashboard:', error)
     return NextResponse.json(
       {
         error: 'Error al obtener dashboard de rendimiento',
@@ -218,7 +218,7 @@ export async function POST() {
       action: 'npm run dev'
     })
   } catch (error) {
-    console.error('Error resetting dashboard:', error)
+    // console.error('Error resetting dashboard:', error)
     return NextResponse.json(
       {
         error: 'Error al reiniciar dashboard',

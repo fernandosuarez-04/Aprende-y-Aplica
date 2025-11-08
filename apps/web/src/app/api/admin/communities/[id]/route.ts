@@ -50,7 +50,7 @@ export async function PUT(
       }, { status: 400 })
     }
     
-    console.error('Error in PUT /api/admin/communities/[id]:', error)
+    // console.error('Error in PUT /api/admin/communities/[id]:', error)
     return NextResponse.json(
       { error: 'Error al actualizar comunidad' },
       { status: 500 }
@@ -83,7 +83,7 @@ export async function DELETE(
       message: 'Comunidad eliminada correctamente'
     })
   } catch (error) {
-    console.error('Error in DELETE /api/admin/communities/[id]:', error)
+    // console.error('Error in DELETE /api/admin/communities/[id]:', error)
     return NextResponse.json(
       { error: 'Error al eliminar comunidad' },
       { status: 500 }

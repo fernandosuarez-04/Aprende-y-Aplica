@@ -60,7 +60,7 @@ export class BusinessUsersService {
 
       return data.users || []
     } catch (error) {
-      console.error('Error fetching users:', error)
+      // console.error('Error fetching users:', error)
       return [] // Retornar array vacío en caso de error de red
     }
   }
@@ -90,7 +90,7 @@ export class BusinessUsersService {
         members: 0
       }
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      // console.error('Error fetching stats:', error)
       return {
         total: 0,
         active: 0,

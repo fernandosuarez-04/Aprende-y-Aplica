@@ -39,16 +39,16 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     initializeTheme()
   }, [initializeTheme])
 
-  console.log('🔍 AdminUserDropdown: Usuario recibido:', user)
-  console.log('🎭 Rol del usuario:', user.cargo_rol)
-  console.log('✅ Es administrador:', user.cargo_rol?.toLowerCase() === 'administrador')
+  // console.log('🔍 AdminUserDropdown: Usuario recibido:', user)
+  // console.log('🎭 Rol del usuario:', user.cargo_rol)
+  // console.log('✅ Es administrador:', user.cargo_rol?.toLowerCase() === 'administrador')
 
   const handleLogout = async () => {
     try {
       await logout()
       router.push('/auth')
     } catch (error) {
-      console.error('Error al cerrar sesión:', error)
+      // console.error('Error al cerrar sesión:', error)
     }
   }
 

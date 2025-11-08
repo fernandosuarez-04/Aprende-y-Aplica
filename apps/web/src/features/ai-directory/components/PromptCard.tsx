@@ -81,14 +81,14 @@ export function PromptCard({ prompt }: PromptCardProps) {
     }
 
     if (!toggleFavorite) {
-      console.error('toggleFavorite function is not available');
+      // console.error('toggleFavorite function is not available');
       return;
     }
 
     try {
       await toggleFavorite(promptId);
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      // console.error('Error toggling favorite:', error);
     }
   };
 

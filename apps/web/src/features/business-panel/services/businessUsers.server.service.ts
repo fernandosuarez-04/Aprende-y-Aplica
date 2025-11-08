@@ -42,11 +42,11 @@ export class BusinessUsersServerService {
         .order('joined_at', { ascending: false })
 
       if (orgUsersError) {
-        console.error('❌ Error fetching organization users:', orgUsersError)
+        // console.error('❌ Error fetching organization users:', orgUsersError)
         throw orgUsersError
       }
 
-      : 'No hay datos')
+      // console.log('Datos de usuarios de la organización:', orgUsersData || 'No hay datos')
 
       // Transformar datos para incluir org_role y org_status
       // IMPORTANTE: Validar que el user_id coincide con el user.id para seguridad adicional
@@ -68,11 +68,11 @@ export class BusinessUsersServerService {
           
           // Validación adicional: verificar que user.organization_id coincide (doble verificación)
           if (userData.organization_id && userData.organization_id !== organizationId) {
-            console.error('🚨 ERROR DE SEGURIDAD: Usuario de otra organización detectado!', {
-              user_org: userData.organization_id,
-              expected_org: organizationId,
-              user_id: userData.id
-            })
+            // console.error('🚨 ERROR DE SEGURIDAD: Usuario de otra organización detectado!', {
+            //   user_org: userData.organization_id,
+            //   expected_org: organizationId,
+            //   user_id: userData.id
+            // })
             return false
           }
           return true
@@ -81,6 +81,7 @@ export class BusinessUsersServerService {
           // Acceder a los datos del usuario usando la relación específica
           const userData = ou.users
           
+// 
           return {
             ...userData,
         org_role: ou.role as 'owner' | 'admin' | 'member',
@@ -89,32 +90,37 @@ export class BusinessUsersServerService {
           }
         })
 
+// 
       if (users.length > 0) {
         }
       return users
     } catch (error) {
-      console.error('💥 Error in BusinessUsersService.getOrganizationUsers:', error)
+      // console.error('💥 Error in BusinessUsersService.getOrganizationUsers:', error)
       throw error
     }
   }
 
+// 
   /**
    * Obtener estadísticas de usuarios de la organización
    */
   static async getOrganizationStats(organizationId: string): Promise<BusinessUserStats> {
     const supabase = await createClient()
 
+// 
     try {
       const { data, error } = await supabase
         .from('organization_users')
         .select('role, status')
         .eq('organization_id', organizationId)
 
+// 
       if (error) {
-        console.error('Error fetching organization stats:', error)
+        // console.error('Error fetching organization stats:', error)
         throw error
       }
 
+// 
       const stats: BusinessUserStats = {
         total: data?.length || 0,
         active: data?.filter((u: any) => u.status === 'active').length || 0,
@@ -124,13 +130,15 @@ export class BusinessUsersServerService {
         members: data?.filter((u: any) => u.role === 'member').length || 0
       }
 
+// 
       return stats
     } catch (error) {
-      console.error('Error in BusinessUsersService.getOrganizationStats:', error)
+      // console.error('Error in BusinessUsersService.getOrganizationStats:', error)
       throw error
     }
   }
 
+// 
   /**
    * Crear un nuevo usuario en la organización
    */
@@ -141,19 +149,23 @@ export class BusinessUsersServerService {
   ): Promise<BusinessUser> {
     const supabase = await createClient()
 
+// 
     try {
       // Paso 1: Validar que la contraseña esté presente
       if (!userData.password || !userData.password.trim()) {
         throw new Error('La contraseña es obligatoria')
       }
 
+// 
       if (userData.password.trim().length < 6) {
         throw new Error('La contraseña debe tener al menos 6 caracteres')
       }
 
+// 
       // Paso 2: Hash de contraseña (obligatoria)
       const passwordHash = await bcrypt.hash(userData.password.trim(), 10)
 
+// 
       // Paso 3: Crear el usuario
       const userInsertData: any = {
         username: userData.username,
@@ -167,17 +179,20 @@ export class BusinessUsersServerService {
         password_hash: passwordHash
       }
 
+// 
       const { data: newUser, error: userError } = await supabase
         .from('users')
         .insert(userInsertData)
         .select()
         .single()
 
+// 
       if (userError) {
-        console.error('Error creating user:', userError)
+        // console.error('Error creating user:', userError)
         throw userError
       }
 
+// 
       // Paso 4: Agregar a organization_users (siempre activo porque siempre hay contraseña)
       const { error: orgUserError } = await supabase
         .from('organization_users')
@@ -191,18 +206,21 @@ export class BusinessUsersServerService {
           joined_at: new Date().toISOString()
         })
 
+// 
       if (orgUserError) {
-        console.error('Error adding user to organization:', orgUserError)
+        // console.error('Error adding user to organization:', orgUserError)
         // Rollback: eliminar usuario si falla agregarlo a la organización
         await supabase.from('users').delete().eq('id', newUser.id)
         throw orgUserError
       }
 
+// 
       // Paso 4: Si es invitación, enviar email (placeholder)
       if (userData.send_invitation && !userData.password) {
         // TODO: Implementar servicio de email
       }
 
+// 
       // Paso 5: Retornar el usuario con info de organización
       const { data: orgUserData } = await supabase
         .from('organization_users')
@@ -211,6 +229,7 @@ export class BusinessUsersServerService {
         .eq('user_id', newUser.id)
         .single()
 
+// 
       const businessUser: BusinessUser = {
         ...newUser,
         org_role: orgUserData?.role || 'member',
@@ -218,13 +237,15 @@ export class BusinessUsersServerService {
         joined_at: orgUserData?.joined_at
       }
 
+// 
       return businessUser
     } catch (error) {
-      console.error('Error in BusinessUsersService.createOrganizationUser:', error)
+      // console.error('Error in BusinessUsersService.createOrganizationUser:', error)
       throw error
     }
   }
 
+// 
   /**
    * Actualizar un usuario de la organización
    */
@@ -235,6 +256,7 @@ export class BusinessUsersServerService {
   ): Promise<BusinessUser> {
     const supabase = await createClient()
 
+// 
     try {
       // Verificar que el usuario pertenece a la organización
       const { data: orgUser, error: orgUserError } = await supabase
@@ -244,32 +266,38 @@ export class BusinessUsersServerService {
         .eq('user_id', userId)
         .single()
 
+// 
       if (orgUserError || !orgUser) {
         throw new Error('Usuario no pertenece a tu organización')
       }
 
+// 
       // Actualizar datos del usuario
       const userUpdateData: any = {}
       if (userData.first_name !== undefined) userUpdateData.first_name = userData.first_name
       if (userData.last_name !== undefined) userUpdateData.last_name = userData.last_name
       if (userData.display_name !== undefined) userUpdateData.display_name = userData.display_name
 
+// 
       if (Object.keys(userUpdateData).length > 0) {
         const { error: updateError } = await supabase
           .from('users')
           .update(userUpdateData)
           .eq('id', userId)
 
+// 
         if (updateError) {
           throw updateError
         }
       }
 
+// 
       // Actualizar datos en organization_users
       const orgUpdateData: any = {}
       if (userData.org_role !== undefined) orgUpdateData.role = userData.org_role
       if (userData.org_status !== undefined) orgUpdateData.status = userData.org_status
 
+// 
       if (Object.keys(orgUpdateData).length > 0) {
         const { error: orgUpdateError } = await supabase
           .from('organization_users')
@@ -277,11 +305,13 @@ export class BusinessUsersServerService {
           .eq('organization_id', organizationId)
           .eq('user_id', userId)
 
+// 
         if (orgUpdateError) {
           throw orgUpdateError
         }
       }
 
+// 
       // Retornar usuario actualizado
       const { data: orgUserData } = await supabase
         .from('organization_users')
@@ -311,10 +341,12 @@ export class BusinessUsersServerService {
         .eq('user_id', userId)
         .single()
 
+// 
       if (!orgUserData || !orgUserData.users) {
         throw new Error('Usuario no encontrado después de actualizar')
       }
 
+// 
       return {
         ...orgUserData.users,
         org_role: orgUserData?.role || 'member',
@@ -322,17 +354,19 @@ export class BusinessUsersServerService {
         joined_at: orgUserData?.joined_at
       }
     } catch (error) {
-      console.error('Error in BusinessUsersService.updateOrganizationUser:', error)
+      // console.error('Error in BusinessUsersService.updateOrganizationUser:', error)
       throw error
     }
   }
 
+// 
   /**
    * Eliminar un usuario de la organización
    */
   static async deleteOrganizationUser(organizationId: string, userId: string): Promise<void> {
     const supabase = await createClient()
 
+// 
     try {
       // Verificar que el usuario pertenece a la organización
       const { data: orgUser, error: orgUserError } = await supabase
@@ -342,10 +376,12 @@ export class BusinessUsersServerService {
         .eq('user_id', userId)
         .single()
 
+// 
       if (orgUserError || !orgUser) {
         throw new Error('Usuario no pertenece a tu organización')
       }
 
+// 
       // Eliminar de organization_users (no eliminar el usuario real)
       const { error: deleteError } = await supabase
         .from('organization_users')
@@ -353,21 +389,24 @@ export class BusinessUsersServerService {
         .eq('organization_id', organizationId)
         .eq('user_id', userId)
 
+// 
       if (deleteError) {
         throw deleteError
       }
 
+// 
       // Actualizar el usuario para quitar referencia a la organización
       await supabase
         .from('users')
         .update({ organization_id: null, cargo_rol: 'Usuario', type_rol: 'Usuario' })
         .eq('id', userId)
     } catch (error) {
-      console.error('Error in BusinessUsersService.deleteOrganizationUser:', error)
+      // console.error('Error in BusinessUsersService.deleteOrganizationUser:', error)
       throw error
     }
   }
 
+// 
   /**
    * Reenviar invitación a un usuario
    */
@@ -375,6 +414,7 @@ export class BusinessUsersServerService {
     // TODO: Implementar servicio de email
     const supabase = await createClient()
     
+// 
     // Actualizar invited_at
     await supabase
       .from('organization_users')
@@ -383,38 +423,46 @@ export class BusinessUsersServerService {
       .eq('user_id', userId)
   }
 
+// 
   /**
    * Suspender un usuario
    */
   static async suspendUser(organizationId: string, userId: string): Promise<void> {
     const supabase = await createClient()
 
+// 
     const { error } = await supabase
       .from('organization_users')
       .update({ status: 'suspended' })
       .eq('organization_id', organizationId)
       .eq('user_id', userId)
 
+// 
     if (error) {
       throw error
     }
   }
 
+// 
   /**
    * Activar un usuario
    */
   static async activateUser(organizationId: string, userId: string): Promise<void> {
     const supabase = await createClient()
 
+// 
     const { error } = await supabase
       .from('organization_users')
       .update({ status: 'active' })
       .eq('organization_id', organizationId)
       .eq('user_id', userId)
 
+// 
     if (error) {
       throw error
     }
   }
 }
 
+// 
+// 

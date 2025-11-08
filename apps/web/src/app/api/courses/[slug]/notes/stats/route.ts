@@ -43,7 +43,7 @@ export async function GET(
       cacheHeaders.dynamic
     )
   } catch (error) {
-    console.error('Error in notes stats GET API:', error)
+    // console.error('Error in notes stats GET API:', error)
     return NextResponse.json(
       {
         error: 'Error interno del servidor',

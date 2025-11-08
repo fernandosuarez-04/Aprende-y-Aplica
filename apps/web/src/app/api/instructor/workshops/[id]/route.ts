@@ -34,7 +34,7 @@ export async function PUT(
 
     return NextResponse.json(workshop)
   } catch (error) {
-    console.error('Error in PUT /api/instructor/workshops/[id]:', error)
+    // console.error('Error in PUT /api/instructor/workshops/[id]:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Error al actualizar el taller' },
       { status: 500 }
@@ -54,7 +54,7 @@ export async function GET(
     }
     return NextResponse.json({ success: true, workshop })
   } catch (error) {
-    console.error('Error in GET /api/instructor/workshops/[id]:', error)
+    // console.error('Error in GET /api/instructor/workshops/[id]:', error)
     return NextResponse.json({ error: 'Error al obtener el taller' }, { status: 500 })
   }
 }

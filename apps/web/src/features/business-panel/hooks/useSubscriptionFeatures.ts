@@ -45,7 +45,7 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
           }
         }
       } catch (error) {
-        console.error('Error fetching subscription plan:', error)
+        // console.error('Error fetching subscription plan:', error)
       } finally {
         setLoading(false)
       }

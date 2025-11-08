@@ -99,11 +99,11 @@ export class AdminStatsService {
         engagementGrowth: calculateGrowthPercentage(favoritesResult.count || 0, favoritesGrowthResult.count || 0)
       }
 
-      :', aiAppsGrowthResult.count || 0)
+      // console.log('Crecimiento de AI Apps:', aiAppsGrowthResult.count || 0)
       return stats
     } catch (error) {
-      console.error('❌ AdminStatsService: Error completo:', error)
-      console.error('❌ AdminStatsService: Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+      // console.error('❌ AdminStatsService: Error completo:', error)
+      // console.error('❌ AdminStatsService: Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
       
       // Retornar valores por defecto en caso de error
       const defaultStats = {

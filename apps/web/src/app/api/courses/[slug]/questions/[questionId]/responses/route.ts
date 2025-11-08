@@ -115,7 +115,7 @@ export async function GET(
     }
 
     if (responsesError) {
-      console.error('Error fetching responses:', responsesError);
+      // console.error('Error fetching responses:', responsesError);
       return NextResponse.json(
         { error: 'Error al obtener respuestas' },
         { status: 500 }
@@ -186,7 +186,7 @@ export async function GET(
 
     return NextResponse.json(topLevelResponses);
   } catch (error) {
-    console.error('Error in responses API:', error);
+    // console.error('Error in responses API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',
@@ -289,7 +289,7 @@ export async function POST(
       .single();
 
     if (responseError) {
-      console.error('Error creating response:', responseError);
+      // console.error('Error creating response:', responseError);
       return NextResponse.json(
         { error: 'Error al crear respuesta' },
         { status: 500 }
@@ -298,7 +298,7 @@ export async function POST(
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    console.error('Error in responses API:', error);
+    // console.error('Error in responses API:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

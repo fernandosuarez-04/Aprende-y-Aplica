@@ -73,7 +73,7 @@ export function RegisterForm() {
           setSuccess(result.message);
         }
       } catch (error) {
-        console.error('Register error:', error);
+        // console.error('Register error:', error);
         setError('Error inesperado al crear la cuenta');
       }
     });

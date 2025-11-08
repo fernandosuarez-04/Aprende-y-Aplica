@@ -15,10 +15,10 @@ export function useLogoEasterEgg() {
       const newCount = prev + 1
       
       // Mostrar feedback discreto en consola
-      console.log(`🥚 ${newCount}/5`)
+      // console.log(`🥚 ${newCount}/5`)
       
       if (newCount >= 5) {
-        console.log('🎉 ¡Easter Egg!')
+        // console.log('🎉 ¡Easter Egg!')
         setIsActivated(true)
         
         // Pequeño delay para el efecto visual
@@ -38,7 +38,7 @@ export function useLogoEasterEgg() {
     if (clickCount > 0 && !isActivated) {
       const timer = setTimeout(() => {
         setClickCount(0)
-        console.log('🔄 Reset')
+        // console.log('🔄 Reset')
       }, 3000)
 
       return () => clearTimeout(timer)

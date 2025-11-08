@@ -80,11 +80,11 @@ export default function ReelsPage() {
   // Función para manejar likes
   const handleLike = useCallback(async (reelId: string) => {
     try {
-      console.log(`🔄 Toggling like for reel: ${reelId}`); // Debug
+      // console.log(`🔄 Toggling like for reel: ${reelId}`); // Debug
       
       // Prevenir múltiples clicks simultáneos
       const currentLikedState = likedReels.has(reelId);
-      console.log(`🔍 Current liked state for ${reelId}:`, currentLikedState); // Debug
+      // console.log(`🔍 Current liked state for ${reelId}:`, currentLikedState); // Debug
       
       const response = await fetch(`/api/reels/${reelId}/like`, {
         method: 'POST',
@@ -94,14 +94,14 @@ export default function ReelsPage() {
       });
 
       if (!response.ok) {
-        console.error('❌ Failed to toggle like:', response.status, response.statusText);
+        // console.error('❌ Failed to toggle like:', response.status, response.statusText);
         return;
       }
 
       const result = await response.json();
       const isLiked = result.liked;
 
-      console.log(`✅ Like ${isLiked ? 'added' : 'removed'} for reel ${reelId}`); // Debug
+      // console.log(`✅ Like ${isLiked ? 'added' : 'removed'} for reel ${reelId}`); // Debug
       
       setLikedReels(prev => {
         const newSet = new Set(prev);
@@ -110,7 +110,7 @@ export default function ReelsPage() {
         } else {
           newSet.delete(reelId);
         }
-        console.log(`🔍 Updated liked reels:`, Array.from(newSet)); // Debug
+        // console.log(`🔍 Updated liked reels:`, Array.from(newSet)); // Debug
         return newSet;
       });
 
@@ -127,7 +127,7 @@ export default function ReelsPage() {
       ));
       
     } catch (error) {
-      console.error('❌ Error liking reel:', error);
+      // console.error('❌ Error liking reel:', error);
     }
   }, [likedReels]);
 
@@ -148,19 +148,19 @@ export default function ReelsPage() {
         } else if (result.reels && Array.isArray(result.reels)) {
           reelsData = result.reels;
         } else {
-          console.error('Unexpected API response structure:', result);
+          // console.error('Unexpected API response structure:', result);
           reelsData = [];
         }
         
-        console.log('📊 Reels loaded:', { 
-          count: reelsData.length, 
-          sample: reelsData[0] ? {
-            id: reelsData[0].id,
-            title: reelsData[0].title,
-            hasUsers: !!reelsData[0].users,
-            usersData: reelsData[0].users
-          } : null
-        });
+        // console.log('📊 Reels loaded:', { 
+        //   count: reelsData.length, 
+        //   sample: reelsData[0] ? {
+        //     id: reelsData[0].id,
+        //     title: reelsData[0].title,
+        //     hasUsers: !!reelsData[0].users,
+        //     usersData: reelsData[0].users
+        //   } : null
+        // });
         
         if (pageNum === 1) {
           setReels(reelsData);
@@ -170,7 +170,7 @@ export default function ReelsPage() {
         setHasMore(reelsData.length === 10);
       }
     } catch (error) {
-      console.error('Error loading reels:', error);
+      // console.error('Error loading reels:', error);
     } finally {
       setIsLoading(false);
     }
@@ -180,11 +180,11 @@ export default function ReelsPage() {
   const loadUserLikes = useCallback(async () => {
     try {
       setIsLoadingLikes(true);
-      console.log('🔄 Loading user likes...'); // Debug
+      // console.log('🔄 Loading user likes...'); // Debug
       const response = await fetch('/api/reels/likes');
       
       if (!response.ok) {
-        console.error('❌ Failed to load user likes:', response.status, response.statusText);
+        // console.error('❌ Failed to load user likes:', response.status, response.statusText);
         return;
       }
       
@@ -192,20 +192,20 @@ export default function ReelsPage() {
       
       // Validar que la respuesta es un array
       if (!Array.isArray(likedIds)) {
-        console.error('❌ Invalid response format from likes API:', likedIds);
+        // console.error('❌ Invalid response format from likes API:', likedIds);
         return;
       }
       
-      console.log('✅ Loaded liked reel IDs:', likedIds); // Debug
+      // console.log('✅ Loaded liked reel IDs:', likedIds); // Debug
       setLikedReels(new Set(likedIds));
       
       // Verificar que los likes se aplicaron correctamente
       setTimeout(() => {
-        console.log('🔍 Current liked reels state:', Array.from(new Set(likedIds))); // Debug
+        // console.log('🔍 Current liked reels state:', Array.from(new Set(likedIds))); // Debug
       }, 100);
       
     } catch (error) {
-      console.error('❌ Error loading user likes:', error);
+      // console.error('❌ Error loading user likes:', error);
     } finally {
       setIsLoadingLikes(false);
     }
@@ -221,7 +221,7 @@ export default function ReelsPage() {
         },
       });
     } catch (error) {
-      console.error('Error registering view:', error);
+      // console.error('Error registering view:', error);
     }
   };
 
@@ -271,7 +271,7 @@ export default function ReelsPage() {
             },
           });
         } catch (error) {
-          console.error('Error registering share:', error);
+          // console.error('Error registering share:', error);
         }
       } else {
         // Fallback: copiar al portapapeles
@@ -296,19 +296,19 @@ export default function ReelsPage() {
             },
           });
         } catch (error) {
-          console.error('Error registering share:', error);
+          // console.error('Error registering share:', error);
         }
       }
     } catch (error: any) {
       // El usuario canceló el share o hubo un error
       if (error.name !== 'AbortError') {
-        console.error('Error sharing:', error);
+        // console.error('Error sharing:', error);
         // Fallback: copiar al portapapeles
         try {
           await navigator.clipboard.writeText(shareUrl);
           alert('¡Enlace copiado al portapapeles!');
         } catch (clipboardError) {
-          console.error('Error copying to clipboard:', clipboardError);
+          // console.error('Error copying to clipboard:', clipboardError);
         }
       }
     }
@@ -321,7 +321,7 @@ export default function ReelsPage() {
         try {
         video.pause();
         } catch (error) {
-          console.warn('Error pausing video:', error);
+          // console.warn('Error pausing video:', error);
         }
       }
     });
@@ -331,7 +331,7 @@ export default function ReelsPage() {
     if (currentVideo) {
       try {
         currentVideo.play().catch((error) => {
-          console.warn('Error playing video:', error);
+          // console.warn('Error playing video:', error);
         });
       setIsPlaying(true);
       
@@ -340,7 +340,7 @@ export default function ReelsPage() {
         registerView(reels[index].id);
       }
       } catch (error) {
-        console.warn('Error with video play:', error);
+        // console.warn('Error with video play:', error);
       }
     }
   };
@@ -352,7 +352,7 @@ export default function ReelsPage() {
       currentVideo.pause();
       setIsPlaying(false);
       } catch (error) {
-        console.warn('Error pausing video:', error);
+        // console.warn('Error pausing video:', error);
       }
     }
   };
@@ -377,14 +377,14 @@ export default function ReelsPage() {
   // Sincronizar estado de likes con reels cargados
   useEffect(() => {
     if (reels.length > 0 && !isLoadingLikes) {
-      console.log('🔍 Syncing likes state with loaded reels');
-      console.log('📊 Reels loaded:', reels.length);
-      console.log('❤️ Liked reels:', Array.from(likedReels));
+      // console.log('🔍 Syncing likes state with loaded reels');
+      // console.log('📊 Reels loaded:', reels.length);
+      // console.log('❤️ Liked reels:', Array.from(likedReels));
       
       // Verificar que cada reel tiene el estado correcto
       reels.forEach(reel => {
         const isLiked = likedReels.has(reel.id);
-        console.log(`🎬 Reel "${reel.title}" (${reel.id}): liked=${isLiked}, count=${reel.like_count}`);
+        // console.log(`🎬 Reel "${reel.title}" (${reel.id}): liked=${isLiked}, count=${reel.like_count}`);
       });
     }
   }, [reels, likedReels, isLoadingLikes]);

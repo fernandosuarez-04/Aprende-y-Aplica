@@ -39,7 +39,7 @@ export function CheckpointModal({ checkpoint, lessonId, onClose, onSave }: Check
       await onSave(formData)
       onClose()
     } catch (error) {
-      console.error('Error saving checkpoint:', error)
+      // console.error('Error saving checkpoint:', error)
     } finally {
       setLoading(false)
     }
