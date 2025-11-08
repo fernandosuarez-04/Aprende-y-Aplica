@@ -680,15 +680,16 @@ export function AIChatAgent({
       {/* Botones flotantes */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {/* Botones expandidos: Ayuda y Reportar Problema */}
             {areButtonsExpanded && (
               <motion.div
                 key="expanded-buttons"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col gap-2"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col gap-2 overflow-hidden"
               >
                 {/* Botón de ayuda contextual */}
                 <motion.button
@@ -701,7 +702,7 @@ export function AIChatAgent({
                   initial={{ scale: 0, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2, delay: 0.05 }}
+                  transition={{ duration: 0.15, delay: 0.05 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
@@ -727,7 +728,7 @@ export function AIChatAgent({
                   initial={{ scale: 0, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.15 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-orange-500 shadow-lg hover:shadow-red-500/50 transition-all cursor-pointer flex items-center justify-center group relative"

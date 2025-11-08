@@ -49,6 +49,7 @@ interface Member {
     bio?: string;
     location?: string;
     created_at: string;
+    profile_visibility?: string;
   };
   stats: {
     posts_count: number;
@@ -498,6 +499,7 @@ export default function MembersPage() {
               const rankBadge = getRankBadge(member.rank, member.total_members);
               const roleBadge = getRoleBadge(member.role);
               const RoleIcon = roleBadge.icon;
+              const isProfileRestricted = member.user.profile_visibility === 'self';
               
               return (
                 <motion.div
@@ -548,81 +550,90 @@ export default function MembersPage() {
                             : member.user.username || 'Usuario'
                           }
                         </h3>
-                        {member.user.username && (
+                        {!isProfileRestricted && member.user.username && (
                           <p className="text-sm text-gray-600 dark:text-slate-400">@{member.user.username}</p>
                         )}
-                        {member.user.bio && (
+                        {!isProfileRestricted && member.user.bio && (
                           <p 
                             className="text-sm text-gray-700 dark:text-slate-300 mt-1 line-clamp-2"
                             dangerouslySetInnerHTML={{ __html: sanitizeBio(member.user.bio) }}
                           />
                         )}
+                        {isProfileRestricted && (
+                          <p className="text-sm text-gray-500 dark:text-slate-400 italic mt-1">
+                            Este usuario ha restringido su perfil
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Star className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-                          <span className="text-xs text-gray-600 dark:text-slate-400">Puntos</span>
+                    {/* Stats - Solo mostrar si el perfil no está restringido */}
+                    {!isProfileRestricted && (
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Star className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+                            <span className="text-xs text-gray-600 dark:text-slate-400">Puntos</span>
+                          </div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-white">{member.stats.points}</div>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">{member.stats.points}</div>
-                      </div>
-                      <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <span className="text-xs text-gray-600 dark:text-slate-400">Posts</span>
+                        <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <span className="text-xs text-gray-600 dark:text-slate-400">Posts</span>
+                          </div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-white">{member.stats.posts_count}</div>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">{member.stats.posts_count}</div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Social Links */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {member.user.linkedin_url && (
-                          <a
-                            href={member.user.linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg transition-colors group/link"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Linkedin className="w-4 h-4 text-blue-400 group-hover/link:text-blue-300" />
-                          </a>
-                        )}
-                        {member.user.github_url && (
-                          <a
-                            href={member.user.github_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 bg-gray-600/20 hover:bg-gray-600/40 rounded-lg transition-colors group/link"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Github className="w-4 h-4 text-gray-400 group-hover/link:text-gray-300" />
-                          </a>
-                        )}
-                        {member.user.portfolio_url && (
-                          <a
-                            href={member.user.portfolio_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 bg-purple-600/20 hover:bg-purple-600/40 rounded-lg transition-colors group/link"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Globe className="w-4 h-4 text-purple-400 group-hover/link:text-purple-300" />
-                          </a>
-                        )}
-                      </div>
-                      
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-slate-400">
-                          <Calendar className="w-3 h-3" />
-                          {formatJoinDate(member.joined_at)}
+                    {/* Social Links - Solo mostrar si el perfil no está restringido */}
+                    {!isProfileRestricted && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {member.user.linkedin_url && (
+                            <a
+                              href={member.user.linkedin_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg transition-colors group/link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Linkedin className="w-4 h-4 text-blue-400 group-hover/link:text-blue-300" />
+                            </a>
+                          )}
+                          {member.user.github_url && (
+                            <a
+                              href={member.user.github_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 bg-gray-600/20 hover:bg-gray-600/40 rounded-lg transition-colors group/link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Github className="w-4 h-4 text-gray-400 group-hover/link:text-gray-300" />
+                            </a>
+                          )}
+                          {member.user.portfolio_url && (
+                            <a
+                              href={member.user.portfolio_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 bg-purple-600/20 hover:bg-purple-600/40 rounded-lg transition-colors group/link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Globe className="w-4 h-4 text-purple-400 group-hover/link:text-purple-300" />
+                            </a>
+                          )}
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-slate-400">
+                            <Calendar className="w-3 h-3" />
+                            {formatJoinDate(member.joined_at)}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -675,120 +686,151 @@ export default function MembersPage() {
                 </button>
               </div>
 
-              {/* Member Profile */}
-              <div className="text-center mb-8">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
-                  {selectedMember.user.profile_picture_url ? (
-                    <img
-                      src={selectedMember.user.profile_picture_url}
-                      alt={`${selectedMember.user.first_name} ${selectedMember.user.last_name}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-12 h-12 text-white" />
+              {selectedMember.user.profile_visibility === 'self' ? (
+                /* Perfil restringido - Solo mostrar nombre y foto */
+                <div className="text-center">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
+                    {selectedMember.user.profile_picture_url ? (
+                      <img
+                        src={selectedMember.user.profile_picture_url}
+                        alt={`${selectedMember.user.first_name} ${selectedMember.user.last_name}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-12 h-12 text-white" />
+                    )}
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    {selectedMember.user.first_name && selectedMember.user.last_name
+                      ? `${selectedMember.user.first_name} ${selectedMember.user.last_name}`
+                      : selectedMember.user.username || 'Usuario'
+                    }
+                  </h3>
+                  <div className="mt-8 p-6 bg-gray-50 dark:bg-slate-700/30 rounded-lg border border-gray-200 dark:border-slate-600">
+                    <p className="text-gray-600 dark:text-slate-400 italic">
+                      Este usuario ha restringido su perfil
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Perfil público - Mostrar toda la información */
+                <>
+                  {/* Member Profile */}
+                  <div className="text-center mb-8">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
+                      {selectedMember.user.profile_picture_url ? (
+                        <img
+                          src={selectedMember.user.profile_picture_url}
+                          alt={`${selectedMember.user.first_name} ${selectedMember.user.last_name}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-12 h-12 text-white" />
+                      )}
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                      {selectedMember.user.first_name && selectedMember.user.last_name
+                        ? `${selectedMember.user.first_name} ${selectedMember.user.last_name}`
+                        : selectedMember.user.username || 'Usuario'
+                      }
+                    </h3>
+                    {selectedMember.user.username && (
+                      <p className="text-gray-600 dark:text-slate-400">@{selectedMember.user.username}</p>
+                    )}
+                    {selectedMember.user.bio && (
+                      <p 
+                        className="text-gray-700 dark:text-slate-300 mt-2"
+                        dangerouslySetInnerHTML={{ __html: sanitizeBio(selectedMember.user.bio) }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
+                      <Trophy className="w-6 h-6 text-yellow-500 dark:text-yellow-400 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{selectedMember.stats.points}</div>
+                      <div className="text-xs text-gray-600 dark:text-slate-400">Puntos</div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
+                      <MessageSquare className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{selectedMember.stats.posts_count}</div>
+                      <div className="text-xs text-gray-600 dark:text-slate-400">Posts</div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
+                      <Heart className="w-6 h-6 text-red-600 dark:text-red-400 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{selectedMember.stats.reactions_received}</div>
+                      <div className="text-xs text-gray-600 dark:text-slate-400">Reacciones</div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
+                      <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">#{selectedMember.rank}</div>
+                      <div className="text-xs text-gray-600 dark:text-slate-400">Rango</div>
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-4">
+                    {selectedMember.user.email && (
+                      <div className="flex items-center gap-3">
+                        <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <span className="text-gray-700 dark:text-slate-300">{selectedMember.user.email}</span>
+                      </div>
+                    )}
+                    {selectedMember.user.location && (
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        <span className="text-gray-700 dark:text-slate-300">{selectedMember.user.location}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <span className="text-gray-700 dark:text-slate-300">Se unió {formatJoinDate(selectedMember.joined_at)}</span>
+                    </div>
+                  </div>
+
+                  {/* Social Links */}
+                  {(selectedMember.user.linkedin_url || selectedMember.user.github_url || selectedMember.user.portfolio_url) && (
+                    <div className="mt-8">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Enlaces Sociales</h4>
+                      <div className="flex gap-4">
+                        {selectedMember.user.linkedin_url && (
+                          <a
+                            href={selectedMember.user.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 dark:bg-blue-600/20 hover:bg-blue-600/40 dark:hover:bg-blue-600/40 rounded-lg transition-colors"
+                          >
+                            <Linkedin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <span className="text-gray-900 dark:text-white">LinkedIn</span>
+                          </a>
+                        )}
+                        {selectedMember.user.github_url && (
+                          <a
+                            href={selectedMember.user.github_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-600/20 dark:bg-gray-600/20 hover:bg-gray-600/40 dark:hover:bg-gray-600/40 rounded-lg transition-colors"
+                          >
+                            <Github className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            <span className="text-gray-900 dark:text-white">GitHub</span>
+                          </a>
+                        )}
+                        {selectedMember.user.portfolio_url && (
+                          <a
+                            href={selectedMember.user.portfolio_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 dark:bg-purple-600/20 hover:bg-purple-600/40 dark:hover:bg-purple-600/40 rounded-lg transition-colors"
+                          >
+                            <Globe className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            <span className="text-gray-900 dark:text-white">Portafolio</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  {selectedMember.user.first_name && selectedMember.user.last_name
-                    ? `${selectedMember.user.first_name} ${selectedMember.user.last_name}`
-                    : selectedMember.user.username || 'Usuario'
-                  }
-                </h3>
-                {selectedMember.user.username && (
-                  <p className="text-gray-600 dark:text-slate-400">@{selectedMember.user.username}</p>
-                )}
-                {selectedMember.user.bio && (
-                  <p 
-                    className="text-gray-700 dark:text-slate-300 mt-2"
-                    dangerouslySetInnerHTML={{ __html: sanitizeBio(selectedMember.user.bio) }}
-                  />
-                )}
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
-                  <Trophy className="w-6 h-6 text-yellow-500 dark:text-yellow-400 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{selectedMember.stats.points}</div>
-                  <div className="text-xs text-gray-600 dark:text-slate-400">Puntos</div>
-                </div>
-                <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
-                  <MessageSquare className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{selectedMember.stats.posts_count}</div>
-                  <div className="text-xs text-gray-600 dark:text-slate-400">Posts</div>
-                </div>
-                <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
-                  <Heart className="w-6 h-6 text-red-600 dark:text-red-400 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{selectedMember.stats.reactions_received}</div>
-                  <div className="text-xs text-gray-600 dark:text-slate-400">Reacciones</div>
-                </div>
-                <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 text-center">
-                  <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">#{selectedMember.rank}</div>
-                  <div className="text-xs text-gray-600 dark:text-slate-400">Rango</div>
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              <div className="space-y-4">
-                {selectedMember.user.email && (
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-gray-700 dark:text-slate-300">{selectedMember.user.email}</span>
-                  </div>
-                )}
-                {selectedMember.user.location && (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-red-600 dark:text-red-400" />
-                    <span className="text-gray-700 dark:text-slate-300">{selectedMember.user.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  <span className="text-gray-700 dark:text-slate-300">Se unió {formatJoinDate(selectedMember.joined_at)}</span>
-                </div>
-              </div>
-
-              {/* Social Links */}
-              {(selectedMember.user.linkedin_url || selectedMember.user.github_url || selectedMember.user.portfolio_url) && (
-                <div className="mt-8">
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Enlaces Sociales</h4>
-                  <div className="flex gap-4">
-                    {selectedMember.user.linkedin_url && (
-                      <a
-                        href={selectedMember.user.linkedin_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 dark:bg-blue-600/20 hover:bg-blue-600/40 dark:hover:bg-blue-600/40 rounded-lg transition-colors"
-                      >
-                        <Linkedin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        <span className="text-gray-900 dark:text-white">LinkedIn</span>
-                      </a>
-                    )}
-                    {selectedMember.user.github_url && (
-                      <a
-                        href={selectedMember.user.github_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-600/20 dark:bg-gray-600/20 hover:bg-gray-600/40 dark:hover:bg-gray-600/40 rounded-lg transition-colors"
-                      >
-                        <Github className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                        <span className="text-gray-900 dark:text-white">GitHub</span>
-                      </a>
-                    )}
-                    {selectedMember.user.portfolio_url && (
-                      <a
-                        href={selectedMember.user.portfolio_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 dark:bg-purple-600/20 hover:bg-purple-600/40 dark:hover:bg-purple-600/40 rounded-lg transition-colors"
-                      >
-                        <Globe className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        <span className="text-gray-900 dark:text-white">Portafolio</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
+                </>
               )}
             </motion.div>
           </motion.div>

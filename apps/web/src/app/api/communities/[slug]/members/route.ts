@@ -60,7 +60,8 @@ export async function GET(
             bio,
             location,
             created_at,
-            points
+            points,
+            profile_visibility
           )
         `)
         .eq('community_id', community.id)
@@ -87,7 +88,7 @@ export async function GET(
           const userIds = membersData2.map(m => m.user_id);
           const { data: usersData, error: usersError } = await supabase
             .from('users')
-            .select('id, email, first_name, last_name, username, profile_picture_url, linkedin_url, github_url, website_url, bio, location, created_at, points')
+            .select('id, email, first_name, last_name, username, profile_picture_url, linkedin_url, github_url, website_url, bio, location, created_at, points, profile_visibility')
             .in('id', userIds);
 
           if (usersError) {
@@ -208,7 +209,8 @@ export async function GET(
             portfolio_url: member.users.website_url, // Usar website_url como portafolio
             bio: member.users.bio,
             location: member.users.location,
-            created_at: member.users.created_at
+            created_at: member.users.created_at,
+            profile_visibility: member.users.profile_visibility || 'public'
           },
           stats
         };

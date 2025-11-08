@@ -69,9 +69,20 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
+  // Ref para almacenar el valor anterior de favorites y evitar bucles infinitos
+  const prevFavoritesRef = React.useRef<string[]>([]);
+
   // Sincronizar favoritos entre hooks
   React.useEffect(() => {
-    setFavorites(favorites);
+    // Comparar contenido del array, no la referencia
+    const currentStr = JSON.stringify([...favorites].sort());
+    const prevStr = JSON.stringify([...prevFavoritesRef.current].sort());
+    
+    // Solo actualizar si el contenido realmente cambió
+    if (currentStr !== prevStr) {
+      setFavorites(favorites);
+      prevFavoritesRef.current = favorites;
+    }
   }, [favorites, setFavorites]);
 
   // Obtener estadísticas y actividad reciente
