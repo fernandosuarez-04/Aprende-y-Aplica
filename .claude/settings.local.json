@@ -22,7 +22,8 @@
       "Bash(cat:*)",
       "Bash(npm:*)",
       "Bash(npx next info)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../supabase/server'
 import { cookies } from 'next/headers'
+import { SECURE_COOKIE_OPTIONS } from './cookie-config'
 import * as crypto from 'crypto'
 import * as bcrypt from 'bcryptjs'
-import { SECURE_COOKIE_OPTIONS } from './cookie-config'
 
 /**
  * ✅ ISSUE #17: Servicio de Refresh Tokens
@@ -115,6 +115,9 @@ export class RefreshTokenService {
 
   /**
    * ✅ ISSUE #17: Crear sesión con access token y refresh token
+   * Genera tokens y los guarda en la base de datos, pero NO establece cookies.
+   * Las cookies deben establecerse en el Server Action que llama a este método.
+   * @param request Opcional: Request para obtener información del dispositivo
    */
   static async createSession(
     userId: string,
@@ -151,19 +154,7 @@ export class RefreshTokenService {
       throw new Error(`Error creando refresh token: ${error.message}`)
     }
 
-    // ✅ Establecer cookies con configuración segura
-    const cookieStore = await cookies()
-
-    cookieStore.set('access_token', accessToken, {
-      ...SECURE_COOKIE_OPTIONS,
-      expires: accessExpiresAt,
-    })
-
-    cookieStore.set('refresh_token', refreshToken, {
-      ...SECURE_COOKIE_OPTIONS,
-      expires: refreshExpiresAt,
-    })
-
+    // Retornar información de sesión (sin establecer cookies)
     return {
       userId,
       accessToken,

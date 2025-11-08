@@ -1371,9 +1371,9 @@ CREATE TABLE public.user_warnings (
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  username text NOT NULL UNIQUE,
-  email text UNIQUE,
-  password_hash text,
+  username text NOT NULL UNIQUE CHECK (username ~* '^[A-Za-z0-9_-]+$'::text),
+  email text UNIQUE CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$'::text),
+  password_hash text CHECK (password_hash IS NULL OR password_hash ~* '^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$'::text),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   last_login_at timestamp with time zone,
@@ -1403,6 +1403,14 @@ CREATE TABLE public.users (
   ban_reason text,
   signature_url text,
   signature_name text,
+  profile_visibility character varying DEFAULT 'public'::character varying CHECK (profile_visibility::text = ANY (ARRAY['public'::character varying, 'self'::character varying]::text[])),
+  notification_email boolean DEFAULT true,
+  notification_push boolean DEFAULT true,
+  notification_marketing boolean DEFAULT false,
+  notification_course_updates boolean DEFAULT true,
+  notification_community_updates boolean DEFAULT false,
+  show_email boolean DEFAULT false,
+  show_activity boolean DEFAULT true,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );

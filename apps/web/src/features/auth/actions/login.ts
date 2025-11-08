@@ -3,9 +3,12 @@
 import { createClient } from '../../../lib/supabase/server'
 import { AuthService } from '../services/auth.service'
 import { SessionService } from '../services/session.service'
+import { RefreshTokenService } from '../../../lib/auth/refreshToken.service'
+import { SECURE_COOKIE_OPTIONS, getCustomCookieOptions } from '../../../lib/auth/cookie-config'
 import { z } from 'zod'
 import { redirect } from 'next/navigation'
 import bcrypt from 'bcryptjs'
+import { cookies, headers } from 'next/headers'
 
 const loginSchema = z.object({
   emailOrUsername: z.string().min(1, 'El correo o usuario es requerido'),
@@ -30,11 +33,7 @@ export async function loginAction(formData: FormData) {
     const organizationSlug = formData.get('organizationSlug')?.toString()
 
     // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
-    // Escapar el valor para evitar problemas con caracteres especiales
-    const searchValue = parsed.emailOrUsername.trim();
-    
     // Buscar usuario por username o email (case-insensitive match exacto)
-    // Intentar primero por username
     let { data: user, error } = await supabase
       .from('users')
       .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
@@ -64,10 +63,10 @@ export async function loginAction(formData: FormData) {
       
       // Crear notificación de intento de inicio de sesión fallido
       try {
-        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
-        const headersList = await import('next/headers').then(m => m.headers())
-        const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                   headersList.get('x-real-ip') || 
+        const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
+        const headersList = await headers()
+        const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                   headersList.get('x-real-ip') ||
                    'unknown'
         const userAgent = headersList.get('user-agent') || 'unknown'
         
@@ -177,19 +176,63 @@ export async function loginAction(formData: FormData) {
 
     // 6. Crear sesión personalizada (sin Supabase Auth)
     try {
-      await SessionService.createSession(user.id, parsed.rememberMe)
+      // ✅ Obtener cookieStore DENTRO del try para mantener el contexto AsyncLocalStorage
+      const cookieStore = await cookies()
+      const headersList = await headers()
+      const userAgent = headersList.get('user-agent') || 'unknown'
+      const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                 headersList.get('x-real-ip') ||
+                 'unknown'
+
+      // Crear Request mock para RefreshTokenService
+      const requestHeaders = new Headers()
+      requestHeaders.set('user-agent', userAgent)
+      requestHeaders.set('x-real-ip', ip)
+      const mockRequest = new Request('http://localhost', {
+        headers: requestHeaders
+      })
+
+      // 6.1. Crear sesión con refresh tokens (genera tokens y los guarda en DB)
+      const sessionInfo = await RefreshTokenService.createSession(
+        user.id,
+        parsed.rememberMe,
+        mockRequest
+      )
+
+      // 6.2. Crear sesión legacy ANTES de establecer cookies
+      const legacySession = await SessionService.createLegacySession(
+        user.id,
+        parsed.rememberMe
+      )
+
+      // 6.3. Establecer TODAS las cookies usando la misma instancia de cookieStore
+      // IMPORTANTE: Reutilizar cookieStore obtenido anteriormente para mantener el contexto
+      // NOTA: cookieStore.set() NO es async en Next.js 15 - no requiere await
+
+      // Establecer cookie access_token
+      cookieStore.set('access_token', sessionInfo.accessToken, {
+        ...SECURE_COOKIE_OPTIONS,
+        expires: sessionInfo.accessExpiresAt,
+      });
+
+      // Establecer cookie refresh_token
+      cookieStore.set('refresh_token', sessionInfo.refreshToken, {
+        ...SECURE_COOKIE_OPTIONS,
+        expires: sessionInfo.refreshExpiresAt,
+      });
+
+      // Establecer cookie legacy
+      const maxAge = parsed.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
+      cookieStore.set('aprende-y-aplica-session', legacySession.sessionToken, {
+        ...getCustomCookieOptions(maxAge),
+        expires: legacySession.expiresAt,
+      });
 
       // OPTIMIZACIÓN: Crear notificación en background (no await)
       // No bloqueamos el login esperando la notificación
       (async () => {
         try {
-          const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
-          const headersList = await import('next/headers').then(m => m.headers())
-          const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                     headersList.get('x-real-ip') ||
-                     'unknown'
-          const userAgent = headersList.get('user-agent') || 'unknown'
-
+          const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
           await AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
             rememberMe: parsed.rememberMe,
             timestamp: new Date().toISOString()
@@ -199,6 +242,8 @@ export async function loginAction(formData: FormData) {
         }
       })().catch(() => {}) // Fire and forget
     } catch (sessionError) {
+      // Log del error para debugging
+      console.error('Error creando sesión:', sessionError)
       return { error: 'Error al crear la sesión. Por favor, intenta nuevamente.' }
     }
 
