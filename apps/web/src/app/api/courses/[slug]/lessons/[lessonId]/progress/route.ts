@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
 import { CertificateService } from '@/core/services/certificate.service';
 import { logger } from '@/lib/utils/logger';
+import { calculateCourseProgress } from '@/lib/utils/lesson-progress';
 
 /**
  * POST /api/courses/[slug]/lessons/[lessonId]/progress
@@ -164,15 +165,86 @@ export async function POST(
       }
     }
 
+    // Verificar si hay quizzes obligatorios y si están completados/aprobados
+    // 1. Quizzes en lesson_materials
+    const { data: materialQuizzes } = await supabase
+      .from('lesson_materials')
+      .select('material_id')
+      .eq('lesson_id', lessonId)
+      .eq('material_type', 'quiz');
+
+    // 2. Quizzes en lesson_activities (solo los obligatorios)
+    const { data: activityQuizzes } = await supabase
+      .from('lesson_activities')
+      .select('activity_id')
+      .eq('lesson_id', lessonId)
+      .eq('activity_type', 'quiz')
+      .eq('is_required', true);
+
+    const totalRequiredQuizzes = (materialQuizzes?.length || 0) + (activityQuizzes?.length || 0);
+
+    // Si hay quizzes obligatorios, verificar que estén completados y aprobados
+    if (totalRequiredQuizzes > 0) {
+      const materialIds = (materialQuizzes || []).map((q: any) => q.material_id);
+      const activityIds = (activityQuizzes || []).map((q: any) => q.activity_id);
+
+      // Obtener submissions del usuario para esta lección
+      let submissionsQuery = supabase
+        .from('user_quiz_submissions')
+        .select('material_id, activity_id, is_passed')
+        .eq('user_id', currentUser.id)
+        .eq('lesson_id', lessonId)
+        .eq('enrollment_id', enrollmentId);
+
+      // Filtrar por material_id o activity_id
+      if (materialIds.length > 0 && activityIds.length > 0) {
+        submissionsQuery = submissionsQuery.or(
+          `material_id.in.(${materialIds.join(',')}),activity_id.in.(${activityIds.join(',')})`
+        );
+      } else if (materialIds.length > 0) {
+        submissionsQuery = submissionsQuery.in('material_id', materialIds);
+      } else if (activityIds.length > 0) {
+        submissionsQuery = submissionsQuery.in('activity_id', activityIds);
+      }
+
+      const { data: submissions, error: submissionsError } = await submissionsQuery;
+
+      if (submissionsError) {
+        console.error('Error verificando submissions:', submissionsError);
+      }
+
+      const submissionsList = submissions || [];
+      const passedSubmissions = submissionsList.filter((s: any) => s.is_passed);
+
+      // Verificar que todos los quizzes obligatorios estén aprobados
+      if (passedSubmissions.length < totalRequiredQuizzes) {
+        return NextResponse.json(
+          {
+            error: 'Hace falta realizar actividad',
+            code: 'REQUIRED_QUIZ_NOT_PASSED',
+            details: {
+              totalRequired: totalRequiredQuizzes,
+              passed: passedSubmissions.length,
+              message: `Debes completar y aprobar todos los quizzes obligatorios (${passedSubmissions.length}/${totalRequiredQuizzes} completados)`,
+            },
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Obtener progreso actual de la lección
     const { data: existingProgress } = await supabase
       .from('user_lesson_progress')
-      .select('progress_id, is_completed')
+      .select('progress_id, is_completed, video_progress_percentage')
       .eq('enrollment_id', enrollmentId)
       .eq('lesson_id', lessonId)
       .single();
 
     const now = new Date().toISOString();
+
+    // NOTA: No se valida el progreso del video porque el sistema de checkpoints no está funcionando
+    // Solo se validan los quizzes obligatorios si existen (ya validado arriba)
 
     // Actualizar o crear progreso de la lección
     if (existingProgress) {
@@ -222,16 +294,61 @@ export async function POST(
     }
 
     // Calcular y actualizar progreso general del curso
+    // Usar progreso combinado (50% video + 50% quiz si quiz_passed = true) SOLO si hay quizzes
+    
+    // Primero, obtener qué lecciones tienen quizzes obligatorios
+    // Optimización: obtener todos los quizzes de todas las lecciones en consultas paralelas
+    const lessonIds = allLessons.map((l: any) => l.lesson_id);
+    
+    const [materialQuizzesResult, activityQuizzesResult] = await Promise.all([
+      supabase
+        .from('lesson_materials')
+        .select('lesson_id')
+        .in('lesson_id', lessonIds)
+        .eq('material_type', 'quiz'),
+      supabase
+        .from('lesson_activities')
+        .select('lesson_id')
+        .in('lesson_id', lessonIds)
+        .eq('activity_type', 'quiz')
+        .eq('is_required', true)
+    ]);
+
+    const lessonsWithQuizzesSet = new Set<string>();
+    
+    // Agregar lecciones con quizzes de materiales
+    (materialQuizzesResult.data || []).forEach((q: any) => {
+      lessonsWithQuizzesSet.add(q.lesson_id);
+    });
+    
+    // Agregar lecciones con quizzes de actividades
+    (activityQuizzesResult.data || []).forEach((q: any) => {
+      lessonsWithQuizzesSet.add(q.lesson_id);
+    });
+
+    // Obtener progreso de todas las lecciones
     const { data: allProgress } = await supabase
       .from('user_lesson_progress')
-      .select('lesson_id, is_completed')
+      .select('lesson_id, is_completed, video_progress_percentage, quiz_passed')
       .eq('enrollment_id', enrollmentId);
 
-    const totalLessons = allLessons.length;
-    const completedLessons = allProgress?.filter((p: any) => p.is_completed).length || 0;
-    const overallProgress = totalLessons > 0 
-      ? Math.round((completedLessons / totalLessons) * 100 * 100) / 100 // Redondear a 2 decimales
-      : 0;
+    // Obtener progreso de todas las lecciones del curso (no solo las que tienen progreso guardado)
+    const progressMap = new Map(
+      (allProgress || []).map((p: any) => [p.lesson_id, p])
+    );
+
+    // Crear array con el progreso de cada lección (usar valores por defecto si no existe)
+    const lessonsProgress = allLessons.map((lesson: any) => {
+      const progress = progressMap.get(lesson.lesson_id);
+      return {
+        lesson_id: lesson.lesson_id,
+        video_progress_percentage: progress?.video_progress_percentage || 0,
+        quiz_passed: progress?.quiz_passed || false,
+      };
+    });
+
+    // Calcular progreso general usando la función helper (solo aplica fórmula de quiz si hay quizzes)
+    const overallProgress = calculateCourseProgress(lessonsProgress, lessonsWithQuizzesSet);
 
     // Obtener información del curso antes de actualizar el enrollment
     const { data: courseInfo } = await supabase
