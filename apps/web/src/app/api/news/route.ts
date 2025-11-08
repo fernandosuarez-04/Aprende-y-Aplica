@@ -12,9 +12,10 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
     
+    // ⚡ SELECT específico en lugar de '*' para reducir payload
     let query = supabase
       .from('news')
-      .select('*')
+      .select('id, title, slug, excerpt, content, featured_image_url, author_id, published_at, status, language, metrics, created_at, updated_at')
       .eq('status', status)
       .order('published_at', { ascending: false })
 

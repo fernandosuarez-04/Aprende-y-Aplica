@@ -16,7 +16,13 @@
       "Bash(awk:*)",
       "Bash(git log:*)",
       "Bash(mkdir:*)",
-      "Bash(if exist \"D:\\EcosDeLiderazgo\\ProyectosEcosDeLiderazgo\\En Desarrollo\\Bot Ventas Whatsapp\\BOT CURSO\\Aprende-y-Aplica\\apps\\web\\.next\" rmdir /s /q \"D:\\EcosDeLiderazgo\\ProyectosEcosDeLiderazgo\\En Desarrollo\\Bot Ventas Whatsapp\\BOT CURSO\\Aprende-y-Aplica\\apps\\web\\.next\")"
+      "Bash(if exist \"D:\\EcosDeLiderazgo\\ProyectosEcosDeLiderazgo\\En Desarrollo\\Bot Ventas Whatsapp\\BOT CURSO\\Aprende-y-Aplica\\apps\\web\\.next\" rmdir /s /q \"D:\\EcosDeLiderazgo\\ProyectosEcosDeLiderazgo\\En Desarrollo\\Bot Ventas Whatsapp\\BOT CURSO\\Aprende-y-Aplica\\apps\\web\\.next\")",
+      "Bash(set NODE_ENV=production)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(npm:*)",
+      "Bash(npx next info)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

@@ -52,17 +52,22 @@ export function PrefetchManager() {
       routesToPrefetch = criticalRoutes
     }
 
-    // Hacer prefetch después de 2 segundos para no interferir con la carga inicial
+    // Hacer prefetch después de 3 segundos para no interferir con la carga inicial
+    // Aumentado de 2s a 3s para dar más prioridad a contenido crítico
     const timer = setTimeout(() => {
       routesToPrefetch.forEach(route => {
         try {
           router.prefetch(route)
-          console.log(`✅ Prefetched: ${route}`)
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`✅ Prefetched: ${route}`)
+          }
         } catch (error) {
-          console.warn(`❌ Failed to prefetch: ${route}`, error)
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`❌ Failed to prefetch: ${route}`, error)
+          }
         }
       })
-    }, 2000)
+    }, 3000)
 
     return () => clearTimeout(timer)
   }, [pathname, router])

@@ -7,6 +7,7 @@ import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
 import { NotificationProvider } from '../features/notifications/context/NotificationContext';
 import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
+import { ReportButton } from '../core/components/ReportButton/ReportButton';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -131,7 +132,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`}>
         <SWRProvider>
           <ThemeProvider>
-            <NotificationProvider pollingInterval={30000}>
+            <NotificationProvider pollingInterval={60000}>
               <PrefetchManager />
               <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
                 <ConditionalNavbar>
@@ -140,6 +141,8 @@ export default function RootLayout({
               </div>
               {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
               <ConditionalAIChatAgent />
+              {/* Botón flotante para reportar problemas */}
+              <ReportButton />
             </NotificationProvider>
           </ThemeProvider>
         </SWRProvider>

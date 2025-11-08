@@ -38,11 +38,14 @@ import {
   Search,
   Maximize2,
   Minimize2,
-  Trash2
+  Trash2,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 import { NotesModal } from '../../../../core/components/NotesModal';
 import { VideoPlayer } from '../../../../core/components/VideoPlayer';
+import { ExpandableText } from '../../../../core/components/ExpandableText';
 import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
 
@@ -85,8 +88,14 @@ export default function CourseLearnPage() {
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  
+  // Estado para detectar si estamos en móvil
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Inicializar paneles cerrados en móviles, abiertos en desktop
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+  
   const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
@@ -107,10 +116,11 @@ export default function CourseLearnPage() {
     isLoading: isLiaLoading,
     sendMessage: sendLiaMessage,
     clearHistory: clearLiaHistory
-  } = useLiaChat('¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?');
+  } = useLiaChat('¡Hola! Soy Lia, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?');
   
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
+  const [isLiaRecording, setIsLiaRecording] = useState(false);
   // Ref para hacer scroll automático al final de los mensajes de LIA
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
@@ -122,6 +132,38 @@ export default function CourseLearnPage() {
       setCurrentActivityPrompts([]);
     }
   }, [activeTab]);
+
+  // Detectar tamaño de pantalla y ajustar estado inicial de paneles
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768; // md breakpoint
+      setIsMobile(mobile);
+    };
+
+    // Verificar al montar
+    checkMobile();
+
+    // Escuchar cambios de tamaño de ventana
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []); // Solo ejecutar al montar
+
+  // Ajustar paneles cuando cambia isMobile
+  useEffect(() => {
+    if (isMobile) {
+      // En móvil, cerrar ambos paneles si están abiertos al iniciar
+      if (isLeftPanelOpen && isRightPanelOpen) {
+        setIsLeftPanelOpen(false);
+        setIsRightPanelOpen(false);
+      }
+    } else {
+      // En desktop, abrir ambos paneles si están cerrados
+      if (!isLeftPanelOpen && !isRightPanelOpen) {
+        setIsLeftPanelOpen(true);
+        setIsRightPanelOpen(true);
+      }
+    }
+  }, [isMobile]); // Solo cuando cambia isMobile
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -423,7 +465,7 @@ export default function CourseLearnPage() {
 Vas a guiar al usuario a través de la actividad: "${activityTitle}"
 
 ## TU ROL
-Eres LIA, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
+Eres Lia, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
 
 ## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
 
@@ -1002,10 +1044,10 @@ Antes de cada respuesta, pregúntate:
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando curso...</p>
+          <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-700 dark:text-gray-300 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -1013,10 +1055,10 @@ Antes de cada respuesta, pregúntate:
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-carbon flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Curso no encontrado</h1>
-          <p className="text-gray-700 dark:text-white/70 mb-8">El curso que buscas no existe</p>
+          <p className="text-gray-700 dark:text-gray-300 mb-8">El curso que buscas no existe</p>
           <button 
             onClick={() => router.push('/my-courses')} 
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -1030,104 +1072,130 @@ Antes de cada respuesta, pregúntate:
 
   return (
     <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
-      {/* Header superior con nueva estructura */}
+      {/* Header superior con nueva estructura - Responsive */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-2 shrink-0 relative z-40"
+        className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
       >
-        <div className="flex items-center justify-between w-full">
+        <div className="flex items-center justify-between w-full gap-2">
           {/* Sección izquierda: Botón regresar | Logo | Nombre del taller */}
-          <div className="flex items-center gap-3">
-        {/* Botón de regreso */}
-        <button
-          onClick={() => router.back()}
-              className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-        >
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            {/* Botón de regreso */}
+            <button
+              onClick={() => router.back()}
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+            >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
-        </button>
+            </button>
 
-            {/* Logo de la empresa */}
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-            <img 
-              src="/icono.png" 
-              alt="Aprende y Aplica" 
-              className="w-6 h-6 rounded"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  parent.innerHTML = '<div class="w-6 h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
-                }
-              }}
-            />
-          </div>
-
-            {/* Separador visual */}
-            <div className="w-px h-5 bg-gray-300 dark:bg-slate-600/50"></div>
-
-            {/* Nombre del taller */}
-          <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-white">{course.title || course.course_title}</h1>
-            <p className="text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
-          </div>
-        </div>
-
-          {/* Sección central: Progreso */}
-          <div className="flex items-center gap-3">
-            {/* Barra de progreso */}
-          <div className="flex items-center gap-2">
-              <div className="w-40 h-1.5 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${courseProgress}%` }}
-                transition={{ duration: 1 }}
-                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
+            {/* Logo de la empresa - Oculto en móviles muy pequeños */}
+            <div className="hidden sm:block w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
+              <img 
+                src="/icono.png" 
+                alt="Aprende y Aplica" 
+                className="w-5 h-5 md:w-6 md:h-6 rounded"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-5 h-5 md:w-6 md:h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
+                  }
+                }}
               />
             </div>
-              <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center">
+
+            {/* Separador visual - Oculto en móviles */}
+            <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-slate-600/50"></div>
+
+            {/* Nombre del taller */}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm md:text-base font-bold text-gray-900 dark:text-white truncate">
+                {course.title || course.course_title}
+              </h1>
+              <p className="hidden md:block text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
+            </div>
+          </div>
+
+          {/* Sección central: Progreso - Solo porcentaje compacto en móviles */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Barra de progreso - Oculto en móviles */}
+            <div className="hidden md:flex items-center gap-2">
+              <div className="w-32 lg:w-40 h-1.5 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${courseProgress}%` }}
+                  transition={{ duration: 1 }}
+                  className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
+                />
+              </div>
+            </div>
+            {/* Porcentaje compacto - Visible siempre */}
+            <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0">
               {courseProgress}%
             </span>
           </div>
-        </div>
 
-          {/* Sección derecha: Usuario */}
-        <div className="flex items-center gap-2">
-            {/* Menú de usuario */}
+          {/* Sección derecha: Usuario - Oculto en móviles */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <UserDropdown />
           </div>
         </div>
       </motion.div>
 
-      {/* Contenido principal - 3 paneles */}
-      <div className="flex-1 flex overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
-        {/* Panel Izquierdo - Material del Curso */}
+      {/* Contenido principal - 3 paneles - Responsive */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
+        {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
         <AnimatePresence>
           {isLeftPanelOpen && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 320, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col overflow-hidden shadow-xl my-2 ml-2 border border-gray-200 dark:border-slate-700/50"
-            >
-              {/* Header con línea separadora alineada con panel central */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-blue-400" />
+            <>
+              {/* Overlay oscuro en móvil */}
+              {isMobile && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsLeftPanelOpen(false)}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                />
+              )}
+              
+              <motion.div
+                initial={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
+                animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
+                exit={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className={`
+                  ${isMobile 
+                    ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none' 
+                    : 'relative'
+                  }
+                  bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col overflow-hidden shadow-xl 
+                  ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
+                  border border-gray-200 dark:border-slate-700/50
+                `}
+              >
+                {/* Header con línea separadora alineada con panel central */}
+                <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-blue-400" />
                     Material del Curso
                   </h2>
                   <button
                     onClick={() => setIsLeftPanelOpen(false)}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                   >
-                    <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    {isMobile ? (
+                      <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    ) : (
+                      <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    )}
                   </button>
                 </div>
 
               {/* Contenido con scroll */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
                 {/* Sección de Material del Curso */}
                 <div className="mb-8">
                   {/* Header de Contenido con botón de colapsar */}
@@ -1381,12 +1449,13 @@ Antes de cada respuesta, pregúntate:
                 </div>
               </div>
             </motion.div>
+            </>
           )}
         </AnimatePresence>
 
-        {/* Barra vertical para abrir panel izquierdo */}
+        {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
         {!isLeftPanelOpen && (
-          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
               <button
                 onClick={() => {
@@ -1463,7 +1532,7 @@ Antes de cada respuesta, pregúntate:
         )}
 
         {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-2 mx-2 border-2 border-gray-300 dark:border-slate-700/50">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-gray-300 dark:border-slate-700/50">
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -1476,21 +1545,21 @@ Antes de cada respuesta, pregúntate:
             </div>
           ) : currentLesson ? (
             <>
-              {/* Tabs mejorados */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-2 p-3 rounded-t-lg h-[56px] items-center">
+              {/* Tabs mejorados - Responsive */}
+              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-lg h-[56px] items-center overflow-x-auto scrollbar-hide">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
-                  const shouldHideText = isLiaExpanded && !isActive;
+                  const shouldHideText = isLiaExpanded && !isActive && !isMobile;
 
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center rounded-xl transition-all duration-200 relative group ${
+                      className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
                         shouldHideText
                           ? 'px-2 py-2 hover:px-3 hover:gap-2'
-                          : 'px-4 py-2 gap-2'
+                          : 'px-3 md:px-4 py-2 gap-1 md:gap-2'
                       } ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
@@ -1499,7 +1568,7 @@ Antes de cada respuesta, pregúntate:
                     >
                       <Icon className="w-4 h-4 shrink-0" />
                       <span 
-                        className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                        className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
                           shouldHideText
                             ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
                             : ''
@@ -1513,7 +1582,7 @@ Antes de cada respuesta, pregúntate:
               </div>
 
               {/* Contenido del tab activo */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -1521,7 +1590,7 @@ Antes de cada respuesta, pregúntate:
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="h-full p-6"
+                    className="h-full p-3 md:p-6"
                   >
                     {activeTab === 'video' && (
                       <VideoContent 
@@ -1561,59 +1630,94 @@ Antes de cada respuesta, pregúntate:
           )}
         </div>
 
-        {/* Panel Derecho - Solo LIA */}
+        {/* Panel Derecho - Solo LIA - Drawer en móvil */}
         <AnimatePresence>
           {isRightPanelOpen && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: isLiaExpanded ? 640 : 320, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl overflow-hidden my-2 mr-2 border border-gray-200 dark:border-slate-700/50"
-            >
-              {/* Header LIA con línea separadora alineada con panel central */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
-                    <MessageSquare className="w-4 h-4 text-white" />
+            <>
+              {/* Overlay oscuro en móvil */}
+              {isMobile && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsRightPanelOpen(false)}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                />
+              )}
+              
+              <motion.div
+                initial={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
+                animate={isMobile 
+                  ? { x: 0 } 
+                  : { width: isLiaExpanded ? 640 : 320, opacity: 1 }
+                }
+                exit={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className={`
+                  ${isMobile 
+                    ? 'fixed inset-y-0 right-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
+                    : 'relative'
+                  }
+                  bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
+                  ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
+                  border border-gray-200 dark:border-slate-700/50
+                `}
+              >
+                {/* Header Lia con línea separadora alineada con panel central */}
+                <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
+                      <Image
+                        src="/lia-avatar.png"
+                        alt="Lia"
+                        fill
+                        className="object-cover"
+                        sizes="32px"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Lia</h3>
+                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">LIA</h3>
-                    <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={handleOpenClearHistoryModal}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                    title="Reiniciar conversación con LIA"
-                  >
-                    <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                  </button>
-                  <button
-                    onClick={handleToggleLiaExpanded}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                    title={isLiaExpanded ? "Reducir tamaño de LIA" : "Expandir LIA"}
-                  >
-                    {isLiaExpanded ? (
-                      <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                    ) : (
-                      <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handleOpenClearHistoryModal}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                      title="Reiniciar conversación con Lia"
+                    >
+                      <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                    </button>
+                    {!isMobile && (
+                      <button
+                        onClick={handleToggleLiaExpanded}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                        title={isLiaExpanded ? "Reducir tamaño de Lia" : "Expandir Lia"}
+                      >
+                        {isLiaExpanded ? (
+                          <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        ) : (
+                          <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        )}
+                      </button>
                     )}
-                  </button>
-                  <button
-                    onClick={() => setIsRightPanelOpen(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                  >
-                    <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                  </button>
+                    <button
+                      onClick={() => setIsRightPanelOpen(false)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                    >
+                      {isMobile ? (
+                        <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Chat de LIA expandido */}
-              <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Chat de Lia expandido */}
+              <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`}>
                   {liaMessages.map((message) => (
                     <div
                       key={message.id}
@@ -1672,7 +1776,7 @@ Antes de cada respuesta, pregúntate:
                             </div>
                             <div>
                               <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
-                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a LIA</p>
+                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
                             </div>
                           </div>
                           <button
@@ -1720,11 +1824,11 @@ Antes de cada respuesta, pregúntate:
                 </AnimatePresence>
 
                 {/* Área de entrada */}
-                <div className="border-t border-gray-200 dark:border-slate-700/50 p-4 relative">
+                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'pb-20' : ''}`}>
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
-                      placeholder="Escribe tu pregunta a LIA..."
+                      placeholder="Escribe tu pregunta a Lia..."
                       value={liaMessage}
                       onChange={(e) => {
                         setLiaMessage(e.target.value);
@@ -1742,26 +1846,46 @@ Antes de cada respuesta, pregúntate:
                       style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
                     />
                     <button
-                      onClick={handleSendLiaMessage}
-                      disabled={!liaMessage.trim() || isLiaLoading}
-                      className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25 shrink-0"
+                      onClick={() => {
+                        if (liaMessage.trim()) {
+                          // Si hay texto, enviar mensaje
+                          handleSendLiaMessage();
+                        } else {
+                          // Si no hay texto, activar/desactivar grabación
+                          setIsLiaRecording(!isLiaRecording);
+                          // Aquí se implementaría la lógica de reconocimiento de voz
+                        }
+                      }}
+                      disabled={isLiaLoading && liaMessage.trim()}
+                      className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${
+                        liaMessage.trim()
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-blue-500/50'
+                          : isLiaRecording
+                          ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50'
+                          : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-slate-600'
+                      } ${isLiaLoading && liaMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      {isLiaLoading ? (
+                      {isLiaLoading && liaMessage.trim() ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
+                      ) : liaMessage.trim() ? (
                         <Send className="w-5 h-5" />
+                      ) : isLiaRecording ? (
+                        <MicOff className="w-5 h-5" />
+                      ) : (
+                        <Mic className="w-5 h-5" />
                       )}
                     </button>
                   </div>
                 </div>
               </div>
             </motion.div>
+            </>
           )}
         </AnimatePresence>
 
-        {/* Barra vertical para abrir panel derecho */}
+        {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
         {!isRightPanelOpen && (
-          <div className="w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => {
@@ -1769,7 +1893,7 @@ Antes de cada respuesta, pregúntate:
                 setIsLiaExpanded(false);
               }}
               className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
-              title="Mostrar LIA"
+              title="Mostrar Lia"
             >
               <ChevronLeft className="w-5 h-5 text-gray-900 dark:text-white" />
             </button>
@@ -1778,7 +1902,70 @@ Antes de cada respuesta, pregúntate:
         )}
       </div>
 
-      {/* Modal de Notas */}
+      {/* Barra de navegación inferior flotante para móviles */}
+      {isMobile && (
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+        >
+          <div className="flex items-center justify-around px-4 py-3">
+            {/* Botón Material del Curso */}
+            <button
+              onClick={() => {
+                setIsLeftPanelOpen(true);
+                setIsRightPanelOpen(false);
+              }}
+              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                isLeftPanelOpen
+                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <BookOpen className="w-5 h-5" />
+              <span className="text-xs font-medium">Material</span>
+            </button>
+
+            {/* Botón Lección Anterior */}
+            {getPreviousLesson() && (
+              <button
+                onClick={navigateToPreviousLesson}
+                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                <span className="text-xs font-medium">Anterior</span>
+              </button>
+            )}
+
+            {/* Botón Lección Siguiente */}
+            {getNextLesson() && (
+              <button
+                onClick={navigateToNextLesson}
+                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+                <span className="text-xs font-medium">Siguiente</span>
+              </button>
+            )}
+
+            {/* Botón Lia */}
+            <button
+              onClick={() => {
+                setIsRightPanelOpen(true);
+                setIsLeftPanelOpen(false);
+              }}
+              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                isRightPanelOpen
+                  ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span className="text-xs font-medium">Lia</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
       <NotesModal
         isOpen={isNotesModalOpen}
         onClose={() => {
@@ -1900,7 +2087,7 @@ Antes de cada respuesta, pregúntate:
         )}
       </AnimatePresence>
 
-      {/* Modal de Confirmación para Limpiar Historial de LIA */}
+      {/* Modal de Confirmación para Limpiar Historial de Lia */}
       <AnimatePresence>
         {isClearHistoryModalOpen && (
           <motion.div
@@ -1926,21 +2113,27 @@ Antes de cada respuesta, pregúntate:
               onClick={(e) => e.stopPropagation()}
               className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700/50 shadow-2xl max-w-md w-full p-6"
             >
-              {/* Icono */}
+              {/* Avatar */}
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <MessageSquare className="w-8 h-8 text-white" />
+                <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-lg shadow-blue-500/25">
+                  <Image
+                    src="/lia-avatar.png"
+                    alt="Lia"
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
                 </div>
               </div>
 
               {/* Título */}
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                ¿Reiniciar conversación con LIA?
+                ¿Reiniciar conversación con Lia?
               </h3>
 
               {/* Mensaje */}
               <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
-                ¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con LIA.
+                ¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con Lia.
               </p>
 
               {/* Botones */}
@@ -2150,7 +2343,11 @@ function VideoContent({
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{lesson.lesson_title}</h2>
         {lesson.lesson_description && (
-          <p className="text-gray-600 dark:text-slate-300 mt-2">{lesson.lesson_description}</p>
+          <ExpandableText 
+            text={lesson.lesson_description} 
+            maxLines={2}
+            className="mt-2"
+          />
         )}
       </div>
     </div>
@@ -2325,11 +2522,11 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando transcripción...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando transcripción...</p>
         </div>
       </div>
     );
@@ -2468,11 +2665,11 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando resumen...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando resumen...</p>
         </div>
       </div>
     );
@@ -2923,6 +3120,124 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
   );
 }
 
+// Componente específico para renderizar lecturas preservando formato original
+function ReadingContentRenderer({ content }: { content: any }) {
+  let readingContent = content;
+  
+  // Si el contenido es un objeto con propiedades, intentar extraer el texto
+  if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+    // Buscar propiedades comunes que contengan el texto
+    readingContent = content.text || content.content || content.body || content.description || content.title || '';
+    
+    // Si no encontramos contenido, intentar convertir todo el objeto a string
+    if (!readingContent || readingContent === '') {
+      readingContent = JSON.stringify(content, null, 2);
+    }
+  }
+
+  // Si es un string, intentar parsearlo si parece JSON
+  if (typeof readingContent === 'string') {
+    try {
+      const parsed = JSON.parse(readingContent);
+      if (typeof parsed === 'object' && parsed !== null) {
+        readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
+      }
+    } catch (e) {
+      // No es JSON, usar directamente
+    }
+  }
+
+  // Asegurar que es string
+  if (typeof readingContent !== 'string') {
+    readingContent = String(readingContent);
+  }
+
+  // Preservar saltos de línea y formato original
+  // Dividir por saltos de línea pero mantener líneas vacías para preservar párrafos
+  const lines = readingContent.split('\n');
+  
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700">
+      <div className="prose prose-lg dark:prose-invert max-w-none">
+        <div className="text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
+          {lines.map((line, index) => {
+            const trimmedLine = line.trim();
+            
+            // Si la línea está vacía, renderizar un espacio para separar párrafos
+            if (trimmedLine === '') {
+              return <div key={`line-${index}`} className="h-4" />;
+            }
+            
+            // Detectar títulos principales (Introducción:, Cuerpo:, etc.)
+            const mainSectionMatch = trimmedLine.match(/^(Introducción|Cuerpo|Cierre|Conclusión|Resumen):?\s*$/i);
+            if (mainSectionMatch) {
+              return (
+                <h1 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-bold text-3xl mb-4 mt-8 first:mt-0 border-b-2 border-purple-500/40 dark:border-purple-400/40 pb-3"
+                >
+                  {mainSectionMatch[1]}
+                </h1>
+              );
+            }
+            
+            // Detectar subtítulos numerados (1. Título, 2. Título, etc.)
+            const numberedMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
+            if (numberedMatch && trimmedLine.length < 150) {
+              const [, number, title] = numberedMatch;
+              return (
+                <h2 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-semibold text-2xl mb-3 mt-6 border-b border-purple-500/20 dark:border-purple-400/30 pb-2"
+                >
+                  <span className="text-purple-600 dark:text-purple-400">{number}.</span> {title}
+                </h2>
+              );
+            }
+            
+            // Detectar subtítulos con formato "1.1 - Título" o "1.1 - Título:"
+            const subsectionMatch = trimmedLine.match(/^(\d+\.\d+)\s*[-–]\s*(.+?):?\s*$/);
+            if (subsectionMatch && trimmedLine.length < 150) {
+              const [, number, title] = subsectionMatch;
+              return (
+                <h3 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-semibold text-xl mb-3 mt-5"
+                >
+                  <span className="text-purple-600 dark:text-purple-400">{number}</span> - {title}
+                </h3>
+              );
+            }
+            
+            // Detectar títulos sin numeración (líneas cortas que terminan con dos puntos)
+            if (trimmedLine.endsWith(':') && trimmedLine.length < 100 && trimmedLine.length > 5) {
+              return (
+                <h3 
+                  key={`line-${index}`} 
+                  className="text-gray-900 dark:text-white font-semibold text-xl mb-3 mt-5"
+                >
+                  {trimmedLine}
+                </h3>
+              );
+            }
+            
+            // Párrafos normales
+            return (
+              <p 
+                key={`line-${index}`} 
+                className="text-gray-800 dark:text-gray-200 leading-relaxed mb-4 text-base"
+                style={{ lineHeight: '1.8' }}
+              >
+                {line}
+              </p>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Componente para renderizar contenido formateado (actividades, materiales de lectura, etc.)
 function FormattedContentRenderer({ content }: { content: any }) {
   let readingContent = content;
@@ -3270,11 +3585,11 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-carbon-700 rounded-xl border-2 border-gray-300 dark:border-carbon-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando actividades...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando actividades...</p>
         </div>
       </div>
     );
@@ -3358,16 +3673,22 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                 {activity.activity_type === 'ai_chat' ? (
                   <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-2xl shadow-purple-500/50">
-                        <MessageSquare className="w-8 h-8 text-white" />
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/50">
+                        <Image
+                          src="/lia-avatar.png"
+                          alt="Lia"
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
                       </div>
 
                       <div>
                         <h3 className="text-xl font-bold text-white mb-2">
-                          Actividad Interactiva con LIA
+                          Actividad Interactiva con Lia
                         </h3>
                         <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
-                          Esta es una actividad guiada por LIA, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
+                          Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
                         </p>
                       </div>
 
@@ -3380,14 +3701,22 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 hover:scale-105"
                       >
                         <span className="flex items-center gap-3">
-                          <MessageSquare className="w-5 h-5 group-hover:animate-pulse" />
-                          <span>Interactuar con LIA</span>
+                          <div className="relative w-5 h-5">
+                            <Image
+                              src="/lia-avatar.png"
+                              alt="Lia"
+                              fill
+                              className="object-cover rounded-full group-hover:animate-pulse"
+                              sizes="20px"
+                            />
+                          </div>
+                          <span>Interactuar con Lia</span>
                           <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </span>
                       </button>
 
                       <p className="text-xs text-slate-400 mt-2">
-                        LIA te guiará a través de {activity.activity_title.toLowerCase()}
+                        Lia te guiará a través de {activity.activity_title.toLowerCase()}
                       </p>
                     </div>
                   </div>
@@ -3506,7 +3835,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
             {materials.map((material) => (
               <div
                 key={material.material_id}
-                className="bg-gray-50 dark:bg-carbon-700/50 rounded-lg p-5 border border-gray-200 dark:border-carbon-600/50"
+                className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -3521,14 +3850,14 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         </span>
                       )}
                     </div>
-                    {material.material_description && (
+                    {material.material_description && material.material_type !== 'reading' && (
                       <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{material.material_description}</p>
                     )}
                   </div>
                 </div>
                 
                 {/* Contenido del material */}
-                {material.content_data && (
+                {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
                   <div className="w-full mt-4">
                     {material.material_type === 'quiz' && (() => {
                       try {
@@ -3572,7 +3901,9 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                       return null;
                     })()}
                     {material.material_type === 'reading' && (
-                      <FormattedContentRenderer content={material.content_data} />
+                      <ReadingContentRenderer 
+                        content={material.content_data || material.material_description} 
+                      />
                     )}
                     {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
                       <FormattedContentRenderer content={material.content_data} />
@@ -3942,11 +4273,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
         </div>
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-slate-400 animate-pulse" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-400">Cargando preguntas...</p>
+          <p className="text-gray-600 dark:text-gray-300">Cargando preguntas...</p>
         </div>
       </div>
     );
@@ -4229,158 +4560,69 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     adjustTextareaHeight();
   }, []);
 
-  // OPTIMIZACIÓN: Carga separada - primero pregunta básica (rápido), luego respuestas y reacciones (lazy)
+  // OPTIMIZACIÓN CRÍTICA: Carga paralela de pregunta + respuestas (elimina waterfall de 9-14s)
   useEffect(() => {
     let cancelled = false;
 
-    // Cargar pregunta básica primero (sin bloquear UI)
-    async function loadQuestionBasic() {
+    async function loadQuestionData() {
       try {
         setLoading(true);
-        const questionRes = await fetch(`/api/courses/${slug}/questions/${questionId}`);
-        
+        setLoadingResponses(true);
+
+        // PARALELIZAR: Cargar pregunta y respuestas al mismo tiempo
+        const [questionRes, responsesRes] = await Promise.all([
+          fetch(`/api/courses/${slug}/questions/${questionId}`),
+          fetch(`/api/courses/${slug}/questions/${questionId}/responses`)
+        ]);
+
         if (cancelled) return;
 
+        // Procesar pregunta
         if (questionRes.ok) {
           const questionData = await questionRes.json();
           setQuestion(questionData);
         }
-      } catch (error) {
-        console.error('Error loading question:', error);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
 
-    loadQuestionBasic();
-
-    // Cargar respuestas de forma lazy (sin bloquear la UI)
-    async function loadResponsesLazy() {
-      try {
-        setLoadingResponses(true);
-        const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
-        
-        if (cancelled) return;
-
+        // Procesar respuestas
         if (responsesRes.ok) {
           const responsesData = await responsesRes.json();
           setResponses(responsesData || []);
-          
-          // Cargar reacciones solo si hay respuestas
-          if (responsesData && responsesData.length > 0) {
-            loadReactionsLazy(responsesData);
-          } else {
-            // Inicializar contadores vacíos si no hay respuestas
-            setResponseReactionCounts({});
-          }
+
+          // Inicializar contadores de reacciones desde los datos de respuesta
+          // (ya vienen con reaction_count del servidor)
+          const countsMap: Record<string, number> = {};
+          const reactionsMap: Record<string, string> = {};
+
+          const initCountsFromResponses = (responses: any[]) => {
+            responses.forEach((r: any) => {
+              if (r.id) {
+                countsMap[r.id] = r.reaction_count || 0;
+                // Si el usuario ya reaccionó, viene en user_reaction del servidor
+                if (r.user_reaction) {
+                  reactionsMap[r.id] = r.user_reaction;
+                }
+              }
+              if (r.replies && r.replies.length > 0) {
+                initCountsFromResponses(r.replies);
+              }
+            });
+          };
+
+          initCountsFromResponses(responsesData);
+          setResponseReactionCounts(countsMap);
+          setResponseReactions(reactionsMap);
         }
       } catch (error) {
-        console.error('Error loading responses:', error);
+        console.error('Error loading question data:', error);
       } finally {
         if (!cancelled) {
+          setLoading(false);
           setLoadingResponses(false);
         }
       }
     }
 
-    // Cargar reacciones de forma lazy y en background
-    async function loadReactionsLazy(responsesData: any[]) {
-      try {
-        setLoadingReactions(true);
-        
-        // Usar el sistema de autenticación personalizado
-        const userResponse = await fetch('/api/auth/me', {
-          credentials: 'include'
-        });
-        
-        if (cancelled) return;
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
-          
-          if (!userId) {
-            // Si no hay usuario, solo inicializar contadores
-            const countsMap: Record<string, number> = {};
-            const collectIds = (responses: any[]) => {
-              responses.forEach((r: any) => {
-                if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                if (r.replies && r.replies.length > 0) {
-                  collectIds(r.replies);
-                }
-              });
-            };
-            collectIds(responsesData);
-            setResponseReactionCounts(countsMap);
-            return;
-          }
-          
-          // Recopilar todos los IDs de respuestas (recursivamente)
-          const allResponseIds: string[] = [];
-          const collectIds = (responses: any[]) => {
-            responses.forEach((r: any) => {
-              if (r.id) allResponseIds.push(r.id);
-              if (r.replies && r.replies.length > 0) {
-                collectIds(r.replies);
-              }
-            });
-          };
-          collectIds(responsesData);
-          
-          if (allResponseIds.length > 0) {
-            const { createClient } = await import('@supabase/supabase-js');
-            const supabase = createClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!,
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            );
-            
-            const { data: userReactionsData } = await supabase
-              .from('course_question_reactions')
-              .select('response_id, reaction_type')
-              .eq('user_id', userId)
-              .in('response_id', allResponseIds);
-            
-            if (cancelled) return;
-            
-            const reactionsMap: Record<string, string> = {};
-            const countsMap: Record<string, number> = {};
-            
-            if (userReactionsData) {
-              userReactionsData.forEach((reaction: any) => {
-                if (reaction.response_id) {
-                  reactionsMap[reaction.response_id] = reaction.reaction_type;
-                }
-              });
-            }
-            
-            // Inicializar contadores con valores de las respuestas
-            const initCounts = (responses: any[]) => {
-              responses.forEach((r: any) => {
-                if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                if (r.replies && r.replies.length > 0) {
-                  initCounts(r.replies);
-                }
-              });
-            };
-            initCounts(responsesData);
-            
-            setResponseReactions(reactionsMap);
-            setResponseReactionCounts(countsMap);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading response reactions:', error);
-      } finally {
-        if (!cancelled) {
-          setLoadingReactions(false);
-        }
-      }
-    }
-
-    // Cargar respuestas en paralelo con la pregunta (pero sin bloquear)
-    loadResponsesLazy();
+    loadQuestionData();
 
     return () => {
       cancelled = true;
@@ -4418,16 +4660,15 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
   const handleResponseReaction = async (responseId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     const currentReaction = responseReactions[responseId];
     const isCurrentlyLiked = currentReaction === 'like';
     const currentCount = responseReactionCounts[responseId] ?? 0;
-    
-    // Actualización optimista - aplicar cambios inmediatamente
+
+    // OPTIMIZACIÓN: Actualización optimista inmediata (sin bloquear UI)
     const newCount = isCurrentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
     const newReactionState = isCurrentlyLiked ? null : 'like';
-    
-    // Actualizar estado optimista
+
     setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCount }));
     setResponseReactions(prev => {
       if (newReactionState) {
@@ -4438,17 +4679,17 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         return updated;
       }
     });
-    
+
     try {
       const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses/${responseId}/reactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           reaction_type: 'like',
           action: 'toggle'
         })
       });
-      
+
       if (!response.ok) {
         // Revertir en caso de error
         setResponseReactionCounts(prev => ({ ...prev, [responseId]: currentCount }));
@@ -4462,74 +4703,23 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
           }
         });
       } else {
-        // Sincronizar estado con el servidor
-        try {
-          const userResponse = await fetch('/api/auth/me', { credentials: 'include' });
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
-            
-            if (userId) {
-              const { createClient } = await import('@supabase/supabase-js');
-              const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-              );
-              
-              // Verificar estado actual de la reacción después de la actualización
-              const { data: currentReaction } = await supabase
-                .from('course_question_reactions')
-                .select('reaction_type')
-                .eq('user_id', userId)
-                .eq('response_id', responseId)
-                .eq('reaction_type', 'like')
-                .maybeSingle();
-              
-              // Actualizar estado de reacción según el servidor (estado real)
-              setResponseReactions(prev => {
-                if (currentReaction) {
-                  return { ...prev, [responseId]: 'like' };
-                } else {
-                  const updated = { ...prev };
-                  delete updated[responseId];
-                  return updated;
-                }
-              });
-              
-              // Recargar respuestas para obtener contadores actualizados desde el servidor
-              const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
-              if (responsesRes.ok) {
-                const responsesData = await responsesRes.json();
-                
-                // Función para actualizar contadores desde respuestas
-                const updateCountsFromResponses = (responses: any[], countsMap: Record<string, number>) => {
-                  responses.forEach((r: any) => {
-                    if (r.id) countsMap[r.id] = r.reaction_count || 0;
-                    if (r.replies && r.replies.length > 0) {
-                      r.replies.forEach((reply: any) => {
-                        if (reply.id) countsMap[reply.id] = reply.reaction_count || 0;
-                        if (reply.replies && reply.replies.length > 0) {
-                          reply.replies.forEach((nestedReply: any) => {
-                            if (nestedReply.id) countsMap[nestedReply.id] = nestedReply.reaction_count || 0;
-                          });
-                        }
-                      });
-                    }
-                  });
-                };
-                
-                const newCountsMap: Record<string, number> = {};
-                updateCountsFromResponses(responsesData, newCountsMap);
-                
-                // Reemplazar contador con el valor real del servidor (sin sumar/restar)
-                if (newCountsMap[responseId] !== undefined) {
-                  setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCountsMap[responseId] }));
-                }
-              }
-            }
-          }
-        } catch (syncError) {
-          console.error('Error syncing response reaction state:', syncError);
+        // OPTIMIZACIÓN CRÍTICA: Usar datos del servidor sin queries adicionales
+        const data = await response.json();
+
+        // Sincronizar con el contador real del servidor
+        if (data.new_count !== undefined) {
+          setResponseReactionCounts(prev => ({ ...prev, [responseId]: data.new_count }));
+        }
+
+        // Sincronizar estado de reacción del usuario
+        if (data.user_reaction) {
+          setResponseReactions(prev => ({ ...prev, [responseId]: data.user_reaction }));
+        } else {
+          setResponseReactions(prev => {
+            const updated = { ...prev };
+            delete updated[responseId];
+            return updated;
+          });
         }
       }
     } catch (error) {

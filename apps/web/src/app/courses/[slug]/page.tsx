@@ -51,125 +51,95 @@ export default function CourseDetailPage() {
   const [instructorData, setInstructorData] = useState<any>(null);
 
   useEffect(() => {
-    async function loadCourse() {
+    async function loadCourseData() {
+      if (!slug) return;
+
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}`);
-        
-        if (!response.ok) {
+        setCheckingPurchase(true);
+
+        // ⚡ Paralelizar: Curso + Purchase Check + Modules + Reviews
+        const [courseResponse, purchaseResponse, modulesResponse, reviewsResponse] = await Promise.all([
+          fetch(`/api/courses/${slug}`),
+          fetch(`/api/courses/${slug}/check-purchase`),
+          fetch(`/api/courses/${slug}/modules`),
+          fetch(`/api/courses/${slug}/reviews`)
+        ]);
+
+        // Procesar curso
+        if (!courseResponse.ok) {
           throw new Error('Curso no encontrado');
         }
-        
-        const courseData = await response.json();
+        const courseData = await courseResponse.json();
         setCourse(courseData);
         setIsFavorite(courseData.isFavorite || false);
+
+        // Procesar purchase
+        if (purchaseResponse.ok) {
+          const purchaseData = await purchaseResponse.json();
+          setIsPurchased(purchaseData.isPurchased);
+        }
+
+        // Procesar módulos
+        if (modulesResponse.ok) {
+          const modulesData = await modulesResponse.json();
+          if (Array.isArray(modulesData)) {
+            setModules(modulesData);
+            if (modulesData.length > 0) {
+              setExpandedModules(new Set([modulesData[0].module_id || modulesData[0].id]));
+            }
+          } else if (modulesData.modules && Array.isArray(modulesData.modules)) {
+            setModules(modulesData.modules);
+            if (modulesData.modules.length > 0) {
+              setExpandedModules(new Set([modulesData.modules[0].module_id || modulesData.modules[0].id]));
+            }
+          } else {
+            setModules([]);
+          }
+        }
+
+        // Procesar reviews
+        if (reviewsResponse.ok) {
+          const reviewsData = await reviewsResponse.json();
+          if (reviewsData.reviews) {
+            setReviews(reviewsData.reviews);
+          } else if (Array.isArray(reviewsData)) {
+            setReviews(reviewsData);
+          }
+        }
+
+        // OPTIMIZACIÓN: Cargar instructor en background (no bloquea el render)
+        if (courseData?.instructor_id) {
+          // Fire and forget - no bloqueamos el loading principal
+          (async () => {
+            try {
+              const supabase = createClient();
+              const { data: instructorData } = await supabase
+                .from('users')
+                .select('id, first_name, last_name, display_name, username, profile_picture_url, bio, linkedin_url, cargo_rol')
+                .eq('id', courseData.instructor_id)
+                .single();
+
+              if (instructorData) {
+                setInstructorData(instructorData);
+              }
+            } catch (err) {
+              console.error('Error loading instructor:', err);
+            }
+          })();
+        }
+
       } catch (err) {
         setError('Error al cargar el curso');
-        console.error('Error loading course:', err);
       } finally {
         setLoading(false);
-      }
-    }
-
-    async function checkPurchase() {
-      try {
-        setCheckingPurchase(true);
-        const response = await fetch(`/api/courses/${slug}/check-purchase`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setIsPurchased(data.isPurchased);
-        }
-      } catch (err) {
-        console.error('Error checking purchase:', err);
-      } finally {
         setCheckingPurchase(false);
       }
     }
 
-    if (slug) {
-      loadCourse();
-      checkPurchase();
-    }
+    loadCourseData();
   }, [slug]);
 
-  useEffect(() => {
-    async function loadModules() {
-      if (!slug) return;
-      try {
-        const response = await fetch(`/api/courses/${slug}/modules`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📦 Datos de módulos recibidos:', data);
-          // La API devuelve un array directo, no un objeto con modules
-          if (Array.isArray(data)) {
-            console.log(`✅ Se encontraron ${data.length} módulos`);
-            setModules(data);
-            if (data.length > 0) {
-              setExpandedModules(new Set([data[0].module_id || data[0].id]));
-            }
-          } else if (data.modules && Array.isArray(data.modules)) {
-            console.log(`✅ Se encontraron ${data.modules.length} módulos en data.modules`);
-            setModules(data.modules);
-            if (data.modules.length > 0) {
-              setExpandedModules(new Set([data.modules[0].module_id || data.modules[0].id]));
-            }
-          } else {
-            console.warn('⚠️ Modules data format unexpected:', data);
-            setModules([]);
-          }
-        } else {
-          const errorText = await response.text().catch(() => '');
-          console.error('❌ Error response from modules API:', response.status, response.statusText, errorText);
-          setModules([]);
-        }
-      } catch (err) {
-        console.error('Error loading modules:', err);
-        setModules([]);
-      }
-    }
-
-    async function loadReviews() {
-      if (!slug) return;
-      try {
-        const response = await fetch(`/api/courses/${slug}/reviews`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.reviews) {
-            setReviews(data.reviews);
-          } else if (Array.isArray(data)) {
-            setReviews(data);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading reviews:', err);
-      }
-    }
-
-    async function loadInstructor() {
-      if (!course?.instructor_id) return;
-      try {
-        const supabase = createClient();
-        const { data: instructorData, error } = await supabase
-          .from('users')
-          .select('id, first_name, last_name, display_name, username, email, profile_picture_url, bio, linkedin_url, github_url, website_url, location, cargo_rol, type_rol')
-          .eq('id', course.instructor_id)
-          .single();
-
-        if (!error && instructorData) {
-          setInstructorData(instructorData);
-        }
-      } catch (err) {
-        console.error('Error loading instructor:', err);
-      }
-    }
-
-    if (course?.id) {
-      loadModules();
-      loadReviews();
-      loadInstructor();
-    }
-  }, [course?.id, course?.instructor_id, slug]);
 
   const handlePurchase = async () => {
     if (!course) return;
@@ -280,10 +250,10 @@ export default function CourseDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-carbon-300 text-lg">Cargando curso...</p>
+          <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-700 dark:text-gray-300 text-lg">Cargando curso...</p>
         </div>
       </div>
     );
@@ -291,10 +261,10 @@ export default function CourseDetailPage() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Error</h1>
-          <p className="text-gray-600 dark:text-carbon-300 mb-8">{error || 'No se pudo cargar el curso'}</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">{error || 'No se pudo cargar el curso'}</p>
           <button 
             onClick={() => router.back()} 
             className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors"
@@ -315,7 +285,7 @@ export default function CourseDetailPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-carbon-900 dark:via-carbon-800 dark:to-carbon-900"
+      className="w-full min-h-screen bg-white dark:bg-gray-900"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Back Button */}
@@ -339,6 +309,8 @@ export default function CourseDetailPage() {
               fill
               className="object-cover"
               priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
+              quality={85}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent dark:from-carbon-900 dark:via-carbon-900/50"></div>
             
@@ -709,6 +681,9 @@ export default function CourseDetailPage() {
                               alt={course.instructor_name || 'Instructor'}
                               fill
                               className="object-cover"
+                              loading="lazy"
+                              sizes="96px"
+                              quality={75}
                             />
                           </div>
                         ) : (

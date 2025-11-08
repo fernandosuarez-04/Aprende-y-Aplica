@@ -115,7 +115,7 @@ export default function DashboardPage() {
           setRecentActivity(sortedCourses);
         }
       } catch (error) {
-        console.error('Error fetching stats and activity:', error);
+        // Error handled silently in production
       } finally {
         setLoadingStats(false);
       }
@@ -129,7 +129,6 @@ export default function DashboardPage() {
     try {
       await toggleFavorite(courseId);
     } catch (error) {
-      console.error('Error toggling favorite:', error);
       // Mostrar mensaje de error al usuario si es necesario
       if (error instanceof Error && error.message.includes('Variables de entorno')) {
         alert('Error: Supabase no está configurado. Por favor, configura las variables de entorno.');
@@ -145,23 +144,20 @@ export default function DashboardPage() {
     }
   };
 
-  // Usar únicamente datos de la API
-  const workshops = filteredCourses.map(course => {
-    // Debug: verificar que se esté obteniendo la imagen y el status
-    console.log(`Curso: ${course.title}, Thumbnail: ${course.thumbnail}, Status: ${course.status}`);
-    
-    return {
+  // ⚡ Memoizar transformación de workshops para evitar re-cálculos
+  const workshops = React.useMemo(() => {
+    return filteredCourses.map(course => ({
       id: course.id,
       title: course.title,
       instructor: course.instructor_name || 'Instructor',
       rating: course.rating || 4.5,
       price: course.price || 'MX$0',
-      status: course.status || 'Disponible', // Usar el status del curso desde la API
-      image: course.thumbnail || null, // Usar null en lugar de placeholder para detectar si hay imagen
+      status: course.status || 'Disponible',
+      image: course.thumbnail || null,
       category: course.category || 'General',
-      isFavorite: isFavorite(course.id), // Usar el hook de favoritos
-    };
-  });
+      isFavorite: isFavorite(course.id),
+    }));
+  }, [filteredCourses, isFavorite]);
 
   // Mostrar loading mientras se obtienen los datos del usuario
   if (loading) {

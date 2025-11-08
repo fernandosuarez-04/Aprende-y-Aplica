@@ -14,17 +14,20 @@ export class FavoritesService {
         .eq('user_id', userId)
 
       if (error) {
-        console.error('Error fetching user favorites:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching user favorites:', error)
+        }
         throw new Error(`Error al obtener favoritos: ${error.message}`)
       }
 
       return data?.map(favorite => favorite.course_id) || []
     } catch (error) {
-      console.error('Error in FavoritesService.getUserFavorites:', error)
-      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in FavoritesService.getUserFavorites:', error)
+      }
+
       // Si es un error de configuración de Supabase, devolver array vacío
       if (error instanceof Error && error.message.includes('Variables de entorno')) {
-        console.warn('Supabase no configurado correctamente, devolviendo favoritos vacíos')
         return []
       }
       
@@ -62,14 +65,17 @@ export class FavoritesService {
       if (error) {
         // Si es un error de duplicado, ignorarlo
         if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
-          console.warn('Favorito ya existe, ignorando inserción duplicada')
           return
         }
-        console.error('Error adding to favorites:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error adding to favorites:', error)
+        }
         throw new Error(`Error al agregar a favoritos: ${error.message}`)
       }
     } catch (error) {
-      console.error('Error in FavoritesService.addToFavorites:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in FavoritesService.addToFavorites:', error)
+      }
       throw error
     }
   }
@@ -88,11 +94,15 @@ export class FavoritesService {
         .eq('course_id', courseId)
 
       if (error) {
-        console.error('Error removing from favorites:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error removing from favorites:', error)
+        }
         throw new Error(`Error al remover de favoritos: ${error.message}`)
       }
     } catch (error) {
-      console.error('Error in FavoritesService.removeFromFavorites:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in FavoritesService.removeFromFavorites:', error)
+      }
       throw error
     }
   }
@@ -112,21 +122,24 @@ export class FavoritesService {
         .maybeSingle()
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error checking favorite status:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error checking favorite status:', error)
+        }
         throw new Error(`Error al verificar favorito: ${error.message}`)
       }
 
       return !!data
     } catch (error) {
-      console.error('Error in FavoritesService.isFavorite:', error)
-      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in FavoritesService.isFavorite:', error)
+      }
+
       // Si es un error de configuración de Supabase, devolver false
       if (error instanceof Error && (
         error.message.includes('Variables de entorno') ||
         error.message.includes('NEXT_PUBLIC_SUPABASE_URL') ||
         error.message.includes('NEXT_PUBLIC_SUPABASE_ANON_KEY')
       )) {
-        console.warn('Supabase no configurado, asumiendo que no es favorito')
         return false
       }
       
@@ -149,15 +162,16 @@ export class FavoritesService {
         return true
       }
     } catch (error) {
-      console.error('Error in FavoritesService.toggleFavorite:', error)
-      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in FavoritesService.toggleFavorite:', error)
+      }
+
       // Si es un error de configuración de Supabase, simular comportamiento
       if (error instanceof Error && (
         error.message.includes('Variables de entorno') ||
         error.message.includes('NEXT_PUBLIC_SUPABASE_URL') ||
         error.message.includes('NEXT_PUBLIC_SUPABASE_ANON_KEY')
       )) {
-        console.warn('Supabase no configurado, simulando toggle de favorito')
         // Simular que se agregó a favoritos (puedes cambiar esta lógica según necesites)
         return true
       }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   BookOpen, 
@@ -16,7 +16,7 @@ import { ShoppingCart } from '../ShoppingCart'
 import { HiddenAdminButton } from '../HiddenAdminButton'
 import { NotificationBell } from '../NotificationBell'
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { usePrefetchOnHover } from '../../hooks/usePrefetch'
 
 interface DashboardNavbarProps {
@@ -30,13 +30,46 @@ const navigationItems = [
   { id: 'news', name: 'Noticias', icon: Newspaper },
 ]
 
+const directoryOptions = [
+  {
+    id: 'prompt-directory',
+    name: 'Prompt Directory',
+    description: 'Prompts de IA',
+    icon: Sparkles,
+    route: '/prompt-directory',
+    gradient: 'from-purple-500 to-pink-500'
+  },
+  {
+    id: 'apps-directory',
+    name: 'Apps Directory',
+    description: 'Herramientas de IA',
+    icon: Grid3X3,
+    route: '/apps-directory',
+    gradient: 'from-blue-500 to-cyan-500'
+  }
+]
+
 export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const [isDirectoryDropdownOpen, setIsDirectoryDropdownOpen] = useState(false)
+  const [isMobileDirectoryDropdownOpen, setIsMobileDirectoryDropdownOpen] = useState(false)
+  const mobileDropdownRef = useRef<HTMLDivElement>(null)
   const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg()
   const prefetchOnHover = usePrefetchOnHover()
 
-  // Close dropdown when clicking outside
+  // Determinar item activo basado en pathname para móvil
+  const getMobileActiveItem = (): string => {
+    if (pathname.startsWith('/dashboard') || pathname.startsWith('/my-courses') || pathname.startsWith('/courses')) return 'workshops'
+    if (pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory')) return 'directory'
+    if (pathname.startsWith('/communities')) return 'community'
+    if (pathname.startsWith('/news')) return 'news'
+    return activeItem
+  }
+
+  const mobileActiveItem = getMobileActiveItem()
+
+  // Close dropdown when clicking outside (desktop)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isDirectoryDropdownOpen) {
@@ -56,6 +89,23 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isDirectoryDropdownOpen]);
+
+  // Close mobile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileDirectoryDropdownOpen && mobileDropdownRef.current && !mobileDropdownRef.current.contains(event.target as Node)) {
+        setIsMobileDirectoryDropdownOpen(false)
+      }
+    }
+
+    if (isMobileDirectoryDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMobileDirectoryDropdownOpen])
 
   const handleNavigation = (itemId: string) => {
     switch (itemId) {
@@ -314,121 +364,131 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      <motion.div 
-        className="lg:hidden border-t border-gray-200 dark:border-gray-800"
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: "auto" }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-2 gap-3">
-            {navigationItems.map((item, index) => {
-              const Icon = item.icon
-              const isActive = activeItem === item.id
-              
-              // Special handling for directory dropdown on mobile
-              if (item.id === 'directory') {
-                return (
-                  <div key={item.id} className="col-span-2">
-                    <motion.button
-                      onClick={() => handleNavigation(item.id)}
-                      className={`flex items-center justify-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 w-full ${
-                        isActive || isDirectoryDropdownOpen
-                          ? 'text-white bg-gradient-to-r from-primary to-primary/80'
-                          : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
-                      }`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.name}</span>
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
-                        isDirectoryDropdownOpen ? 'rotate-180' : ''
-                      }`} />
-                    </motion.button>
-                    
-                    {/* Mobile Dropdown */}
+      {/* Mobile Navigation - Diseño estilo Coda.io */}
+      <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
+        {/* Backdrop para el dropdown móvil */}
+        <AnimatePresence>
+          {isMobileDirectoryDropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[49] lg:hidden"
+              onClick={() => setIsMobileDirectoryDropdownOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        <div className="grid grid-cols-4 h-[70px]">
+          {navigationItems.map((item) => {
+            const Icon = item.icon
+            const isActive = mobileActiveItem === item.id
+            const isDirectory = item.id === 'directory'
+
+            return (
+              <div key={item.id} className="relative flex items-center justify-center">
+                <motion.button
+                  onClick={() => {
+                    if (item.id === 'directory') {
+                      setIsMobileDirectoryDropdownOpen(!isMobileDirectoryDropdownOpen)
+                    } else {
+                      handleNavigation(item.id)
+                    }
+                  }}
+                  className={`
+                    flex flex-col items-center justify-center gap-1 w-full h-full
+                    transition-colors duration-200
+                    ${isActive && !isDirectory
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-400'
+                    }
+                    ${isDirectory && isMobileDirectoryDropdownOpen
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : ''
+                    }
+                  `}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {/* Indicador activo */}
+                  {isActive && !isDirectory && (
+                    <motion.div
+                      layoutId="mobileTopNavActive"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-blue-600 dark:bg-blue-400 rounded-b-full"
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    />
+                  )}
+
+                  {/* Icono */}
+                  <div className="relative">
+                    <Icon className="w-5 h-5" />
+                    {/* Indicador de notificación para Comunidad */}
+                    {item.id === 'community' && (
+                      <motion.div
+                        className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Texto */}
+                  <span className="text-[10px] font-medium leading-tight text-center px-1">
+                    {item.name}
+                  </span>
+                </motion.button>
+
+                {/* Dropdown de Directorio IA - se expande hacia abajo */}
+                {isDirectory && (
+                  <div ref={mobileDropdownRef} className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 z-[60]">
                     <AnimatePresence>
-                      {isDirectoryDropdownOpen && (
+                      {isMobileDirectoryDropdownOpen && (
                         <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="mt-2 space-y-2"
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden"
                         >
-                          <motion.button
-                            onClick={() => {
-                              router.push('/prompt-directory')
-                              setIsDirectoryDropdownOpen(false)
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-full text-left"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 }}
-                          >
-                            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                              <Sparkles className="w-3 h-3 text-white" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900 dark:text-white text-sm">Prompt Directory</div>
-                              <div className="text-xs text-gray-600 dark:text-text-secondary">Prompts de IA</div>
-                            </div>
-                          </motion.button>
-                          
-                          <motion.button
-                            onClick={() => {
-                              router.push('/apps-directory')
-                              setIsDirectoryDropdownOpen(false)
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-full text-left"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 }}
-                          >
-                            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                              <Grid3X3 className="w-3 h-3 text-white" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900 dark:text-white text-sm">Apps Directory</div>
-                              <div className="text-xs text-gray-600 dark:text-text-secondary">Herramientas de IA</div>
-                            </div>
-                          </motion.button>
+                          {directoryOptions.map((option, index) => {
+                            const OptionIcon = option.icon
+                            return (
+                              <motion.button
+                                key={option.id}
+                                onClick={() => {
+                                  router.push(option.route)
+                                  setIsMobileDirectoryDropdownOpen(false)
+                                }}
+                                {...prefetchOnHover(option.route)}
+                                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full text-left first:border-b border-gray-200 dark:border-gray-700"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                whileHover={{ x: 2 }}
+                              >
+                                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${option.gradient} flex items-center justify-center flex-shrink-0`}>
+                                  <OptionIcon className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-sm text-gray-900 dark:text-white">
+                                    {option.name}
+                                  </div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                    {option.description}
+                                  </div>
+                                </div>
+                              </motion.button>
+                            )
+                          })}
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
-                )
-              }
-              
-              // Regular navigation items
-              return (
-                <motion.button
-                  key={item.id}
-                  onClick={() => handleNavigation(item.id)}
-                  className={`flex items-center justify-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    isActive
-                      ? 'text-white bg-gradient-to-r from-primary to-primary/80'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </motion.button>
-              )
-            })}
-          </div>
+                )}
+              </div>
+            )
+          })}
         </div>
-      </motion.div>
+      </div>
       
       {/* Botón oculto de administración */}
       <HiddenAdminButton />

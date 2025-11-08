@@ -21,30 +21,16 @@ export function useUserRole() {
   const [isUser, setIsUser] = useState(false)
 
   useEffect(() => {
-    console.log('🔄 useUserRole: Verificando rol del usuario...')
-    console.log('👤 Usuario:', user)
-    console.log('⏳ Loading:', loading)
-    
     if (user && !loading) {
       // ✅ Normalizar con toLowerCase() y trim() para evitar bugs con espacios
       const role = user.cargo_rol?.toLowerCase().trim()
-      console.log('🎭 Rol detectado:', role)
-      
+
       setIsAdmin(role === ROLES.ADMIN)
       setIsInstructor(role === ROLES.INSTRUCTOR)
       setIsBusiness(role === ROLES.BUSINESS)
       setIsBusinessUser(role === ROLES.BUSINESS_USER)
       setIsUser(role === ROLES.USER)
-      
-      console.log('✅ Estados actualizados:', {
-        isAdmin: role === ROLES.ADMIN,
-        isInstructor: role === ROLES.INSTRUCTOR,
-        isBusiness: role === ROLES.BUSINESS,
-        isBusinessUser: role === ROLES.BUSINESS_USER,
-        isUser: role === ROLES.USER
-      })
     } else {
-      console.log('❌ No hay usuario o está cargando')
       setIsAdmin(false)
       setIsInstructor(false)
       setIsBusiness(false)

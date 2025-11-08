@@ -1,26 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ShieldCheckIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { useUserRole } from '@/core/hooks/useUserRole'
 
-export function HiddenAdminButton() {
+export const HiddenAdminButton = React.memo(function HiddenAdminButton() {
   const [isVisible, setIsVisible] = useState(false)
   const { isAdmin, isLoading } = useUserRole()
 
-  console.log('🔍 HiddenAdminButton: Verificando acceso...')
-  console.log('👤 isAdmin:', isAdmin)
-  console.log('⏳ isLoading:', isLoading)
-
   // Solo mostrar si es administrador y no está cargando
   if (isLoading || !isAdmin) {
-    console.log('❌ HiddenAdminButton: No se muestra - isLoading:', isLoading, 'isAdmin:', isAdmin)
     return null
   }
-
-  console.log('✅ HiddenAdminButton: Mostrando botón de administración')
 
   return (
     <>
@@ -60,4 +53,4 @@ export function HiddenAdminButton() {
       </motion.div>
     </>
   )
-}
+})
