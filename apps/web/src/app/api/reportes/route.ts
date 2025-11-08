@@ -41,7 +41,11 @@ export async function POST(request: NextRequest) {
       pasos_reproducir,
       comportamiento_esperado,
       screenshot_data,
-      from_lia = false
+      from_lia = false,
+      // 👇 NUEVO: Campos de rrweb
+      session_recording,
+      recording_size,
+      recording_duration
     } = body;
 
     // Validaciones
@@ -148,6 +152,10 @@ export async function POST(request: NextRequest) {
         pasos_reproducir: pasos_reproducir?.trim() || null,
         comportamiento_esperado: comportamiento_esperado?.trim() || null,
         screenshot_url,
+        // 👇 NUEVO: Campos de rrweb
+        session_recording: session_recording || null,
+        recording_size: recording_size || null,
+        recording_duration: recording_duration || null,
         metadata: {
           from_lia,
           timestamp: new Date().toISOString()

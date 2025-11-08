@@ -44,10 +44,13 @@
   "author": "Equipo Aprende y Aplica",
   "license": "MIT",
   "dependencies": {
+    "@rrweb/types": "^2.0.0-alpha.18",
     "html2canvas": "^1.4.1",
     "next-pwa": "^5.6.0",
     "openai": "^6.8.0",
     "react-qr-code": "^2.0.18",
+    "rrweb": "^2.0.0-alpha.4",
+    "rrweb-player": "^1.0.0-alpha.4",
     "zod": "^4.1.12"
   }
 }
