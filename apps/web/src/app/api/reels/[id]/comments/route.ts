@@ -154,6 +154,31 @@ export async function POST(
       return NextResponse.json({ error: 'Error interno' }, { status: 500 })
     }
 
+    // Crear notificación para el autor del reel (en background)
+    (async () => {
+      try {
+        // Obtener información del reel para saber quién es el autor
+        const { data: reel } = await supabase
+          .from('reels')
+          .select('user_id')
+          .eq('id', id)
+          .single();
+
+        if (reel && reel.user_id && reel.user_id !== userId) {
+          const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service');
+          await AutoNotificationsService.notifyReelComment(
+            id,
+            newComment.id,
+            reel.user_id,
+            userId,
+            content.trim()
+          );
+        }
+      } catch (notificationError) {
+        // Error silenciado para no afectar el flujo principal
+      }
+    })().catch(() => {}); // Fire and forget
+
     return NextResponse.json(newComment)
   } catch (error) {
     logger.error('Error in POST /api/reels/[id]/comments:', error)

@@ -254,6 +254,31 @@ export async function POST(
           return NextResponse.json({ error: 'Error al crear reacción' }, { status: 500 });
         }
 
+        // Crear notificación para el autor del post (en background)
+        (async () => {
+          try {
+            // Obtener información del post para saber quién es el autor y el community_id
+            const { data: post } = await supabase
+              .from('community_posts')
+              .select('user_id, community_id')
+              .eq('id', postId)
+              .single();
+
+            if (post && post.user_id && post.user_id !== user.id) {
+              const { AutoNotificationsService } = await import('../../../../../../../features/notifications/services/auto-notifications.service');
+              await AutoNotificationsService.notifyCommunityPostReaction(
+                postId,
+                post.user_id,
+                user.id,
+                reaction_type,
+                post.community_id
+              );
+            }
+          } catch (notificationError) {
+            // Error silenciado para no afectar el flujo principal
+          }
+        })().catch(() => {}); // Fire and forget
+
         // El trigger automáticamente incrementará el contador
         return NextResponse.json({ 
           message: 'Reacción agregada', 

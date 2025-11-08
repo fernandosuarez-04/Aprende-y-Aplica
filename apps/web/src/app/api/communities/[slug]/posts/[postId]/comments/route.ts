@@ -271,6 +271,32 @@ export async function POST(
       // console.error('Error updating comment count:', updateError);
     }
 
+    // Crear notificación para el autor del post (en background)
+    (async () => {
+      try {
+        // Obtener información del post para saber quién es el autor
+        const { data: post } = await supabase
+          .from('community_posts')
+          .select('user_id')
+          .eq('id', postId)
+          .single();
+
+        if (post && post.user_id && post.user_id !== user.id) {
+          const { AutoNotificationsService } = await import('../../../../../../../features/notifications/services/auto-notifications.service');
+          await AutoNotificationsService.notifyCommunityPostComment(
+            postId,
+            newComment.id,
+            post.user_id,
+            user.id,
+            content.trim(),
+            community.id
+          );
+        }
+      } catch (notificationError) {
+        // Error silenciado para no afectar el flujo principal
+      }
+    })().catch(() => {}); // Fire and forget
+
     // ⭐ MODERACIÓN CAPA 2: Análisis con IA DESPUÉS de crear el comentario
     // Este análisis se ejecuta en background sin bloquear la respuesta
     (async () => {

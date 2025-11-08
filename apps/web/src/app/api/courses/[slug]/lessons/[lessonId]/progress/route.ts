@@ -240,6 +240,13 @@ export async function POST(
       .eq('id', courseId)
       .single();
 
+    // Obtener información de la lección para la notificación
+    const { data: lessonInfo } = await supabase
+      .from('course_lessons')
+      .select('title')
+      .eq('lesson_id', lessonId)
+      .single();
+
     // Obtener el progreso anterior para detectar cambios significativos
     const { data: previousEnrollment } = await supabase
       .from('user_course_enrollments')
@@ -268,11 +275,29 @@ export async function POST(
       // No retornar error aquí, el progreso de la lección ya se guardó
     }
 
+    // Crear notificación de lección completada (en background)
+    (async () => {
+      try {
+        if (courseInfo && lessonInfo) {
+          const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service');
+          await AutoNotificationsService.notifyCourseLessonCompleted(
+            currentUser.id,
+            courseId,
+            courseInfo.title,
+            lessonId,
+            lessonInfo.title
+          );
+        }
+      } catch (notificationError) {
+        // Error silenciado para no afectar el flujo principal
+      }
+    })().catch(() => {}); // Fire and forget
+
     // Si el curso está completado al 100%, generar certificado automáticamente
     if (overallProgress === 100) {
       try {
-        // Obtener información completa del curso e instructor
-        const { data: courseInfo } = await supabase
+        // Obtener información completa del curso e instructor (si no la tenemos ya)
+        const { data: courseInfoFull } = await supabase
           .from('courses')
           .select('id, title, instructor_id')
           .eq('id', courseId)
@@ -280,11 +305,11 @@ export async function POST(
 
         // Obtener información del instructor
         let instructorName = 'Instructor'
-        if (courseInfo?.instructor_id) {
+        if (courseInfoFull?.instructor_id) {
           const { data: instructor } = await supabase
             .from('users')
             .select('first_name, last_name, username')
-            .eq('id', courseInfo.instructor_id)
+            .eq('id', courseInfoFull.instructor_id)
             .single();
 
           if (instructor) {
@@ -310,7 +335,7 @@ export async function POST(
           userId: currentUser.id,
           courseId: courseId,
           enrollmentId: enrollmentId,
-          courseTitle: courseInfo?.title || 'Curso',
+          courseTitle: courseInfoFull?.title || courseInfo?.title || 'Curso',
           instructorName: instructorName,
           userName: userName
         })
@@ -327,10 +352,46 @@ export async function POST(
         } else {
           logger.warn('⚠️ No se pudo generar el certificado automáticamente')
         }
+
+        // Crear notificación de curso completado (en background)
+        (async () => {
+          try {
+            const courseTitle = courseInfoFull?.title || courseInfo?.title
+            if (courseTitle) {
+              const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service');
+              await AutoNotificationsService.notifyCourseCompleted(
+                currentUser.id,
+                courseId,
+                courseTitle,
+                !!certificateUrl // hasCertificate
+              );
+            }
+          } catch (notificationError) {
+            // Error silenciado para no afectar el flujo principal
+          }
+        })().catch(() => {}); // Fire and forget
       } catch (certError) {
         logger.error('Error generando certificado automáticamente:', certError)
         // No fallar la respuesta si el certificado no se genera
         // El usuario puede generar el certificado manualmente después
+        
+        // Crear notificación de curso completado incluso si falla el certificado
+        (async () => {
+          try {
+            const courseTitle = courseInfo?.title
+            if (courseTitle) {
+              const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service');
+              await AutoNotificationsService.notifyCourseCompleted(
+                currentUser.id,
+                courseId,
+                courseTitle,
+                false // hasCertificate = false porque falló
+              );
+            }
+          } catch (notificationError) {
+            // Error silenciado para no afectar el flujo principal
+          }
+        })().catch(() => {}); // Fire and forget
       }
     }
 
