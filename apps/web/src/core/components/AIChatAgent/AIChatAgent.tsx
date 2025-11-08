@@ -679,24 +679,29 @@ export function AIChatAgent({
     <>
       {/* Botones flotantes */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
-          <AnimatePresence>
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
+          <AnimatePresence mode="wait">
             {/* Botones expandidos: Ayuda y Reportar Problema */}
             {areButtonsExpanded && (
-              <>
+              <motion.div
+                key="expanded-buttons"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col gap-2"
+              >
                 {/* Botón de ayuda contextual */}
                 <motion.button
-                  key="help-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     console.log('❓ Botón de ayuda clickeado');
                     handleRequestHelp();
                     setAreButtonsExpanded(false);
                   }}
-                  initial={{ scale: 0, opacity: 0, y: 20 }}
+                  initial={{ scale: 0, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0, opacity: 0, y: 20 }}
-                  transition={{ duration: 0.2, delay: 0.1 }}
+                  exit={{ scale: 0, opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2, delay: 0.05 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
@@ -713,16 +718,15 @@ export function AIChatAgent({
 
                 {/* Botón de reportar problema */}
                 <motion.button
-                  key="report-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     console.log('🐛 Botón de reportar problema clickeado');
                     setIsReportOpen(true);
                     setAreButtonsExpanded(false);
                   }}
-                  initial={{ scale: 0, opacity: 0, y: 20 }}
+                  initial={{ scale: 0, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0, opacity: 0, y: 20 }}
+                  exit={{ scale: 0, opacity: 0, y: 10 }}
                   transition={{ duration: 0.2 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
@@ -737,26 +741,26 @@ export function AIChatAgent({
                     <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
                   </div>
                 </motion.button>
-              </>
+              </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Botón de expandir/colapsar */}
+          {/* Botón de expandir/colapsar - Solo flecha sin fondo */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation();
               setAreButtonsExpanded(!areButtonsExpanded);
             }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-10 h-10 rounded-full bg-gray-700 dark:bg-gray-600 shadow-lg hover:shadow-gray-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
+            className="cursor-pointer flex items-center justify-center group relative p-1"
             title={areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
           >
             <motion.div
               animate={{ rotate: areButtonsExpanded ? 180 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              <ChevronUp className="w-5 h-5 text-white" />
+              <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
             </motion.div>
             
             {/* Tooltip */}
