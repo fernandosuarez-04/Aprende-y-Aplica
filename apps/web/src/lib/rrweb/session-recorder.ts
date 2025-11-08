@@ -17,7 +17,7 @@ export class SessionRecorder {
   private events: eventWithTime[] = [];
   private stopRecording: (() => void) | undefined | null = null;
   private isRecording = false;
-  private maxEvents = 1000; // Aumentado para no perder eventos importantes
+  private maxEvents = 5000; // Aumentado de 1000 a 5000 para capturar más contexto (~30-60s)
   private maxDuration = 60000; // 60 segundos máximo
   private initialSnapshot: eventWithTime | null = null; // Guardar snapshot inicial
 
@@ -76,28 +76,47 @@ export class SessionRecorder {
             }
           }
         },
-        // Configuración para optimizar tamaño
-        checkoutEveryNms: 10000, // Checkpoint cada 10 segundos
-        checkoutEveryNth: 200, // Checkpoint cada 200 eventos
-        recordCanvas: false, // No grabar canvas (pesado)
+        // Configuración optimizada para reducir eventos sin perder contexto importante
+        checkoutEveryNms: 15000, // Checkpoint cada 15 segundos (reducido de 10s)
+        checkoutEveryNth: 300, // Checkpoint cada 300 eventos (aumentado de 200)
+        recordCanvas: false, // No grabar canvas (muy pesado)
         recordCrossOriginIframes: false, // No grabar iframes externos
-        collectFonts: false, // No recolectar fuentes
-        // Sampling para reducir eventos de mouse
+        collectFonts: false, // No recolectar fuentes (reduce tamaño)
+        inlineStylesheet: false, // No inline CSS (reduce eventos)
+        // Sampling agresivo para reducir ruido
         sampling: {
           mousemove: true,
+          mousemoveCallback: 500, // Sample mousemove cada 500ms (más espaciado)
           mouseInteraction: {
-            MouseUp: false,
-            MouseDown: false,
-            Click: true, // Solo clicks importantes
-            ContextMenu: false,
-            DblClick: true,
-            Focus: false,
-            Blur: false,
-            TouchStart: false,
-            TouchEnd: false,
+            MouseUp: false, // No capturar mouse up
+            MouseDown: false, // No capturar mouse down
+            Click: true, // Solo clicks (importante para reproducir acciones)
+            ContextMenu: false, // No menu contextual
+            DblClick: true, // Double clicks (importante)
+            Focus: false, // No focus events
+            Blur: false, // No blur events
+            TouchStart: false, // No touch start
+            TouchEnd: false, // No touch end
           },
-          scroll: 150, // Sample scroll cada 150ms
-          input: 'last', // Solo el último valor de inputs
+          scroll: 300, // Sample scroll cada 300ms (más espaciado)
+          media: 800, // Sample media cada 800ms
+          input: 'last', // Solo el último valor de inputs (no cada keystroke)
+        },
+        // Ignorar ciertos elementos que generan mucho ruido
+        ignoreClass: 'rr-ignore',
+        maskTextClass: 'rr-mask',
+        maskAllInputs: false, // No enmascarar inputs para mejor debugging
+        slimDOMOptions: {
+          script: true, // Remover scripts del DOM
+          comment: true, // Remover comentarios
+          headFavicon: true, // Remover favicon
+          headWhitespace: true, // Remover whitespace del head
+          headMetaDescKeywords: true, // Remover meta keywords
+          headMetaSocial: true, // Remover meta social
+          headMetaRobots: true, // Remover meta robots
+          headMetaHttpEquiv: true, // Remover meta http-equiv
+          headMetaAuthorship: true, // Remover meta authorship
+          headMetaVerification: true, // Remover meta verification
         },
       });
 
@@ -118,7 +137,50 @@ export class SessionRecorder {
   }
 
   /**
-   * Detiene la grabación
+   * Captura una copia de la sesión actual SIN detener la grabación.
+   * Ideal para reportes donde queremos capturar el momento pero seguir grabando.
+   */
+  captureSnapshot(): RecordingSession | null {
+    if (!this.isRecording) {
+      console.warn('⚠️ No hay grabación activa para capturar');
+      return null;
+    }
+
+    // Verificar que tengamos eventos
+    if (this.events.length === 0) {
+      console.error('❌ No hay eventos para capturar');
+      return null;
+    }
+
+    console.log('📸 Capturando snapshot de la sesión sin detener grabación...');
+
+    // Crear copia de los eventos actuales
+    const eventsCopy = [...this.events];
+
+    // Verificar que tengamos el snapshot inicial (tipo 2)
+    const hasSnapshot = eventsCopy.some(e => e.type === 2);
+    if (!hasSnapshot && this.initialSnapshot) {
+      console.log('➕ Agregando snapshot inicial a la copia');
+      eventsCopy.unshift(this.initialSnapshot);
+    }
+
+    const session: RecordingSession = {
+      events: eventsCopy,
+      startTime: eventsCopy[0]?.timestamp || Date.now(),
+      endTime: eventsCopy[eventsCopy.length - 1]?.timestamp || Date.now(),
+    };
+
+    const duration = session.endTime && session.startTime 
+      ? Math.round((session.endTime - session.startTime) / 1000)
+      : 0;
+    console.log(`✅ Snapshot capturado: ${session.events.length} eventos (${duration}s de grabación)`);
+    
+    // NO limpiamos eventos, la grabación continúa
+    return session;
+  }
+
+  /**
+   * Detiene la grabación y retorna la sesión final
    */
   stop(): RecordingSession | null {
     if (!this.isRecording) {

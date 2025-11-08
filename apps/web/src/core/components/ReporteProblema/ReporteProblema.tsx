@@ -17,7 +17,7 @@ import {
   Video
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
-import { useSessionRecorder } from '../../../lib/rrweb/use-session-recorder';
+import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
 
 interface ReporteProblemProps {
   isOpen: boolean;
@@ -54,15 +54,8 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // 🎬 NUEVO: Hook de grabación de sesión con rrweb
-  const {
-    isRecording,
-    recordingSize,
-    startRecording,
-    stopRecording,
-    exportSessionBase64,
-    getSession,
-  } = useSessionRecorder({ autoStart: false });
+  // 🎬 Ya no necesitamos el hook porque la grabación corre en background desde el layout
+  // Usamos el singleton sessionRecorder directamente al enviar el reporte
 
   // Datos del formulario
   const [categoria, setCategoria] = useState<Categoria>(preselectedCategory as Categoria || 'bug');
@@ -83,11 +76,8 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         setCategoria(preselectedCategory as Categoria);
       }
       
-      // 🎬 NUEVO: Iniciar grabación automáticamente al abrir modal
-      if (!isRecording) {
-        console.log('🎬 Iniciando grabación de sesión...');
-        startRecording();
-      }
+      // 🎬 La grabación ya está corriendo en background desde que cargó la app
+      // No necesitamos iniciar una nueva grabación aquí
     } else {
       // Limpiar también cuando se cierra
       setScreenshotFile(null);
@@ -100,13 +90,10 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       setPrioridad('media');
       setError(null);
       
-      // 🎬 NUEVO: Detener grabación al cerrar modal
-      if (isRecording) {
-        console.log('🛑 Deteniendo grabación al cerrar modal');
-        stopRecording();
-      }
+      // 🎬 Ya no detenemos la grabación al cerrar porque sigue corriendo en background
+      // La grabación continúa hasta que el usuario recargue la página o cierre la app
     }
-  }, [isOpen, preselectedCategory, isRecording, startRecording, stopRecording]);
+  }, [isOpen, preselectedCategory]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -174,20 +161,23 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         });
       }
 
-      // 🎬 NUEVO: Obtener grabación de sesión
+      // 🎬 NUEVO: Capturar snapshot de la sesión SIN detener la grabación
       let sessionRecording = null;
       let recordingDuration = 0;
+      let recordingSizeStr = 'N/A';
       
-      if (isRecording) {
-        console.log('🛑 Deteniendo grabación antes de enviar...');
-        const session = stopRecording();
-        
-        if (session && session.endTime) {
-          // Exportar la sesión retornada (pasándola explícitamente)
-          sessionRecording = exportSessionBase64(session);
-          recordingDuration = session.endTime - session.startTime;
-          console.log(`✅ Grabación capturada: ${session.events.length} eventos, ${recordingSize}, ${recordingDuration}ms`);
-        }
+      // La grabación está corriendo en background, capturamos un snapshot sin detenerla
+      console.log('📸 Capturando snapshot de la sesión en background...');
+      const session = sessionRecorder.captureSnapshot();
+      
+      if (session && session.endTime) {
+        // Exportar el snapshot capturado
+        sessionRecording = sessionRecorder.exportSessionBase64(session);
+        recordingDuration = session.endTime - session.startTime;
+        recordingSizeStr = `${Math.round(sessionRecording.length / 1024)} KB`;
+        console.log(`✅ Snapshot capturado: ${session.events.length} eventos, ${recordingSizeStr}, ${recordingDuration}ms`);
+      } else {
+        console.warn('⚠️ No se pudo capturar el snapshot de la sesión');
       }
 
       const reportData = {
@@ -205,7 +195,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         screenshot_data: screenshotData,
         // 🎬 NUEVO: Incluir grabación de sesión
         session_recording: sessionRecording,
-        recording_size: recordingSize,
+        recording_size: recordingSizeStr,
         recording_duration: recordingDuration,
         from_lia: fromLia
       };
@@ -277,17 +267,16 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
               }
             </p>
             
-            {/* 🎬 NUEVO: Indicador de grabación */}
-            {step === 'form' && isRecording && (
+            {/* 🎬 Indicador de que la sesión será capturada (siempre grabando en background) */}
+            {step === 'form' && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-500/20 border border-red-300/30 rounded-lg backdrop-blur-sm"
+                className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-500/20 border border-blue-300/30 rounded-lg backdrop-blur-sm"
               >
-                <div className="w-2 h-2 bg-red-300 rounded-full animate-pulse" />
-                <Video className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  Grabando sesión ({recordingSize})
+                <Video className="w-4 h-4 text-blue-300" />
+                <span className="text-sm font-medium text-blue-100">
+                  Se incluirá grabación de los últimos 60 segundos
                 </span>
               </motion.div>
             )}

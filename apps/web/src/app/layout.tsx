@@ -7,6 +7,7 @@ import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
 import { NotificationProvider } from '../features/notifications/context/NotificationContext';
 import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
+import { GlobalRecorderProvider } from '../core/components/GlobalRecorderProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -129,20 +130,22 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
       <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`}>
-        <SWRProvider>
-          <ThemeProvider>
-            <NotificationProvider pollingInterval={60000}>
-              <PrefetchManager />
-              <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
-                <ConditionalNavbar>
-                  {children}
-                </ConditionalNavbar>
-              </div>
-              {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
-              <ConditionalAIChatAgent />
-            </NotificationProvider>
-          </ThemeProvider>
-        </SWRProvider>
+        <GlobalRecorderProvider>
+          <SWRProvider>
+            <ThemeProvider>
+              <NotificationProvider pollingInterval={60000}>
+                <PrefetchManager />
+                <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
+                  <ConditionalNavbar>
+                    {children}
+                  </ConditionalNavbar>
+                </div>
+                {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+                <ConditionalAIChatAgent />
+              </NotificationProvider>
+            </ThemeProvider>
+          </SWRProvider>
+        </GlobalRecorderProvider>
       </body>
     </html>
   );
