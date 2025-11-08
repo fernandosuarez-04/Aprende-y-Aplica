@@ -140,7 +140,7 @@ export async function GET(
             // Obtener enrollment del usuario para este curso
             const { data: enrollment } = await supabase
               .from('user_course_enrollments')
-              .select('enrollment_id')
+              .select('enrollment_id, overall_progress_percentage')
               .eq('user_id', currentUser.id)
               .eq('course_id', courseId)
               .single();
@@ -235,7 +235,26 @@ export async function GET(
       })
     );
 
-    return NextResponse.json(modulesWithLessons);
+    // Obtener el progreso general del curso si hay usuario autenticado
+    let overallProgress = 0;
+    const currentUser = await SessionService.getCurrentUser();
+    if (currentUser) {
+      const { data: enrollment } = await supabase
+        .from('user_course_enrollments')
+        .select('overall_progress_percentage')
+        .eq('user_id', currentUser.id)
+        .eq('course_id', courseId)
+        .single();
+      
+      if (enrollment?.overall_progress_percentage !== undefined) {
+        overallProgress = Number(enrollment.overall_progress_percentage);
+      }
+    }
+
+    return NextResponse.json({
+      modules: modulesWithLessons,
+      overall_progress_percentage: overallProgress,
+    });
   } catch (error) {
     console.error('Error in modules API:', error);
     return NextResponse.json(
