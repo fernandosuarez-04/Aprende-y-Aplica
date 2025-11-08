@@ -3,7 +3,7 @@
  */
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import rrwebPlayer from 'rrweb-player';
 import type { RecordingSession } from '../../../lib/rrweb/session-recorder';
 
@@ -26,13 +26,27 @@ export function SessionPlayer({
   skipInactive = true,
   speed = 1,
 }: SessionPlayerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
+  // Callback ref que se ejecuta cuando el div se monta
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node !== null) {
+      console.log('✅ Contenedor montado correctamente');
+      setContainer(node);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!containerRef.current || !session.events.length) {
+    if (!container) {
+      console.log('⏳ Esperando contenedor...');
+      return;
+    }
+    
+    if (!session.events.length) {
+      console.warn('⚠️ SessionPlayer: No hay eventos para reproducir')
       setError('No hay eventos para reproducir');
       setIsLoading(false);
       return;
@@ -42,14 +56,18 @@ export function SessionPlayer({
       // Limpiar player anterior si existe
       if (playerRef.current) {
         playerRef.current.pause();
-        containerRef.current.innerHTML = '';
+        container.innerHTML = '';
       }
 
       console.log('🎬 Inicializando player con', session.events.length, 'eventos');
+      console.log('📋 Primeros 5 eventos:', session.events.slice(0, 5).map(e => ({
+        type: e.type,
+        timestamp: e.timestamp
+      })));
 
       // Crear nuevo player
       playerRef.current = new rrwebPlayer({
-        target: containerRef.current,
+        target: container,
         props: {
           events: session.events,
           width: typeof width === 'number' ? width : undefined,
@@ -81,7 +99,7 @@ export function SessionPlayer({
         }
       }
     };
-  }, [session, width, height, autoPlay, showController, skipInactive, speed]);
+  }, [container, session, width, height, autoPlay, showController, skipInactive, speed]);
 
   if (isLoading) {
     return (

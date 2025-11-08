@@ -17,8 +17,9 @@ export class SessionRecorder {
   private events: eventWithTime[] = [];
   private stopRecording: (() => void) | undefined | null = null;
   private isRecording = false;
-  private maxEvents = 500; // Limitar eventos para no consumir mucha memoria
+  private maxEvents = 1000; // Aumentado para no perder eventos importantes
   private maxDuration = 60000; // 60 segundos máximo
+  private initialSnapshot: eventWithTime | null = null; // Guardar snapshot inicial
 
   private constructor() {}
 
@@ -45,18 +46,34 @@ export class SessionRecorder {
 
     console.log('🎬 Iniciando grabación de sesión...');
     this.events = [];
+    this.initialSnapshot = null;
     this.isRecording = true;
 
     try {
       this.stopRecording = record({
         emit: (event) => {
+          // Guardar el snapshot inicial (tipo 2) por separado
+          if (event.type === 2 && !this.initialSnapshot) {
+            this.initialSnapshot = event;
+            console.log('📸 Snapshot inicial capturado');
+          }
+          
           // Agregar evento a la lista
           this.events.push(event);
 
           // Limitar número de eventos (rolling buffer)
+          // PERO siempre mantener el snapshot inicial
           if (this.events.length > this.maxEvents) {
-            // Mantener solo los últimos N eventos
-            this.events = this.events.slice(-this.maxEvents);
+            // Mantener snapshot inicial + últimos N-1 eventos
+            const snapshot = this.initialSnapshot || this.events.find(e => e.type === 2);
+            const recentEvents = this.events.slice(-this.maxEvents + 1);
+            
+            // Si el snapshot no está en los eventos recientes, agregarlo al inicio
+            if (snapshot && !recentEvents.some(e => e.type === 2)) {
+              this.events = [snapshot, ...recentEvents];
+            } else {
+              this.events = recentEvents;
+            }
           }
         },
         // Configuración para optimizar tamaño
@@ -113,16 +130,36 @@ export class SessionRecorder {
     this.stopRecording?.();
     this.isRecording = false;
 
+    // Verificar que tengamos eventos
+    if (this.events.length === 0) {
+      console.error('❌ No se capturaron eventos');
+      return null;
+    }
+
+    // Verificar que tengamos el snapshot inicial (tipo 2)
+    const hasSnapshot = this.events.some(e => e.type === 2);
+    if (!hasSnapshot) {
+      console.warn('⚠️ No se encontró snapshot inicial (tipo 2), intentando recuperar...');
+      // Si tenemos el snapshot guardado, agregarlo al inicio
+      if (this.initialSnapshot) {
+        this.events.unshift(this.initialSnapshot);
+        console.log('✅ Snapshot inicial recuperado');
+      } else {
+        console.error('❌ No se puede reproducir sin snapshot inicial');
+      }
+    }
+
     const session: RecordingSession = {
       events: [...this.events],
       startTime: this.events[0]?.timestamp || Date.now(),
       endTime: this.events[this.events.length - 1]?.timestamp || Date.now(),
     };
 
-    console.log(`✅ Grabación detenida. ${session.events.length} eventos capturados`);
+    console.log(`✅ Grabación detenida. ${session.events.length} eventos capturados (Snapshot: ${hasSnapshot ? 'Sí' : 'No'})`);
 
     // Limpiar eventos
     this.events = [];
+    this.initialSnapshot = null;
     this.stopRecording = null;
 
     return session;

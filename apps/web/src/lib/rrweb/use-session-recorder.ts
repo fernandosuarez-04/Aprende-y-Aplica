@@ -97,8 +97,8 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
     return currentSession || sessionRecorder.getCurrentSession();
   }, [currentSession]);
 
-  const exportSessionBase64 = useCallback(() => {
-    const session = getSession();
+  const exportSessionBase64 = useCallback((sessionToExport?: RecordingSession | null) => {
+    const session = sessionToExport || getSession();
     if (!session) return null;
     return sessionRecorder.exportSessionBase64(session);
   }, [getSession]);

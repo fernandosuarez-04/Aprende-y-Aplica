@@ -183,9 +183,10 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         const session = stopRecording();
         
         if (session && session.endTime) {
-          sessionRecording = exportSessionBase64();
+          // Exportar la sesión retornada (pasándola explícitamente)
+          sessionRecording = exportSessionBase64(session);
           recordingDuration = session.endTime - session.startTime;
-          console.log(`✅ Grabación capturada: ${recordingSize}, ${recordingDuration}ms`);
+          console.log(`✅ Grabación capturada: ${session.events.length} eventos, ${recordingSize}, ${recordingDuration}ms`);
         }
       }
 

@@ -1,22 +1,13 @@
 'use client'
 
-import { Fragment, useState, useMemo } from 'react'
+import { Fragment, useState, useMemo, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, UserIcon, ComputerDesktopIcon, PhotoIcon, LinkIcon, CalendarIcon, PencilIcon, PlayIcon, VideoCameraIcon } from '@heroicons/react/24/outline'
 import { AdminReporte } from '../services/adminReportes.service'
-import dynamic from 'next/dynamic'
 import type { RecordingSession } from '../../../lib/rrweb/session-recorder'
 
-// Lazy load del SessionPlayer para evitar problemas de SSR
-const SessionPlayer = dynamic<any>(
-  () => import('../../../core/components/SessionPlayer/SessionPlayer').then(mod => mod.SessionPlayer),
-  { ssr: false }
-)
-
-const SessionInfo = dynamic<any>(
-  () => import('../../../core/components/SessionPlayer/SessionPlayer').then(mod => mod.SessionInfo),
-  { ssr: false }
-)
+// Importar componentes directamente (solo se cargan en el cliente)
+import { SessionPlayer, SessionInfo } from '../../../core/components/SessionPlayer/SessionPlayer'
 
 interface ViewReporteModalProps {
   reporte: AdminReporte
@@ -27,6 +18,12 @@ interface ViewReporteModalProps {
 
 export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewReporteModalProps) {
   const [showPlayer, setShowPlayer] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Detectar cuando estamos en el cliente
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Parsear la sesión grabada
   const session = useMemo<RecordingSession | null>(() => {
@@ -41,7 +38,18 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
       }
       const decoder = new TextDecoder('utf-8')
       const jsonString = decoder.decode(bytes)
-      return JSON.parse(jsonString)
+      const parsedSession = JSON.parse(jsonString)
+      
+      // Debug: Verificar estructura de la sesión
+      console.log('📦 Sesión parseada:', {
+        totalEvents: parsedSession.events?.length || 0,
+        hasSnapshot: parsedSession.events?.some((e: any) => e.type === 2) || false,
+        eventTypes: parsedSession.events?.map((e: any) => e.type).slice(0, 10) || [],
+        startTime: parsedSession.startTime,
+        endTime: parsedSession.endTime
+      })
+      
+      return parsedSession
     } catch (error) {
       console.error('Error al parsear sesión:', error)
       return null
@@ -340,13 +348,14 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
                       </div>
 
                       {/* Reproductor */}
-                      {showPlayer && (
+                      {showPlayer && isMounted && (
                         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-lg">
                           <SessionPlayer
+                            key={`player-${reporte.id}-${showPlayer}`}
                             session={session}
                             width="100%"
                             height="600px"
-                            autoPlay={true}
+                            autoPlay={false}
                             showController={true}
                             skipInactive={true}
                             speed={1}
