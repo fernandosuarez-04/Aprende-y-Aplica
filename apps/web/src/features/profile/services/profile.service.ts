@@ -148,15 +148,30 @@ export class ProfileService {
     try {
       const supabase = createClient()
       
+      // Validar tipo de archivo (coincide con configuración del bucket: image/png, image/jpeg, image/jpg, image/gif)
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Tipo de archivo no válido. Solo se permiten PNG, JPEG, JPG y GIF.')
+      }
+
+      // Validar tamaño (máximo 10MB según configuración del bucket)
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        throw new Error('El archivo es demasiado grande. Máximo 10MB.')
+      }
+      
       // Generar nombre único para el archivo
       const fileExt = file.name.split('.').pop()
       const fileName = `${userId}-${Date.now()}.${fileExt}`
       const filePath = `profile-pictures/${fileName}`
 
-      // Subir archivo a Supabase Storage
+      // Subir archivo a Supabase Storage (bucket: avatars)
       const { data, error } = await supabase.storage
-        .from('profile-pictures')
-        .upload(filePath, file)
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
       if (error) {
         // console.error('Error uploading profile picture:', error)
@@ -165,7 +180,7 @@ export class ProfileService {
 
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .getPublicUrl(filePath)
 
       // Actualizar perfil con nueva URL

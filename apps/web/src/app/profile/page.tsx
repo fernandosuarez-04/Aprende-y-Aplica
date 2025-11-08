@@ -182,13 +182,16 @@ export default function ProfilePage() {
                     type="file" 
                     id="profile-picture-upload" 
                     className="hidden" 
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/jpg,image/png,image/gif"
                     onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
                         try {
                           await uploadProfilePicture(e.target.files[0])
+                          // Mostrar mensaje de éxito (opcional: puedes agregar un toast aquí)
                         } catch (error) {
-                          // console.error('Error uploading profile picture:', error)
+                          const errorMessage = error instanceof Error ? error.message : 'Error al subir la imagen'
+                          alert(errorMessage) // TODO: Reemplazar con sistema de notificaciones/toast
+                          console.error('Error uploading profile picture:', error)
                         }
                       }
                     }}
@@ -494,8 +497,11 @@ export default function ProfilePage() {
                           if (e.target.files && e.target.files[0]) {
                             try {
                               await uploadCurriculum(e.target.files[0])
+                              // Mostrar mensaje de éxito (opcional: puedes agregar un toast aquí)
                             } catch (error) {
-                              // console.error('Error uploading curriculum:', error)
+                              const errorMessage = error instanceof Error ? error.message : 'Error al subir el curriculum'
+                              alert(errorMessage) // TODO: Reemplazar con sistema de notificaciones/toast
+                              console.error('Error uploading curriculum:', error)
                             }
                           }
                         }}
