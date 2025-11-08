@@ -6,7 +6,8 @@ import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
 import { NotificationProvider } from '../features/notifications/context/NotificationContext';
-import { AIChatAgentWrapper } from '../core/components/AIChatAgent/AIChatAgentWrapper';
+import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
+import { ReportButton } from '../core/components/ReportButton/ReportButton';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -138,8 +139,10 @@ export default function RootLayout({
                   {children}
                 </ConditionalNavbar>
               </div>
-              {/* AI Chat Agent - Lia - Disponible en todas las páginas */}
-              <AIChatAgentWrapper />
+              {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+              <ConditionalAIChatAgent />
+              {/* Botón flotante para reportar problemas */}
+              <ReportButton />
             </NotificationProvider>
           </ThemeProvider>
         </SWRProvider>
