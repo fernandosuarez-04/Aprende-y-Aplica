@@ -1065,5 +1065,5 @@ export function AIChatAgent({
       />
     </>
   );
-})
+}
 
