@@ -13,9 +13,11 @@ import {
   Upload,
   Send,
   CheckCircle,
-  Loader2
+  Loader2,
+  Video
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { useSessionRecorder } from '../../../lib/rrweb/use-session-recorder';
 
 interface ReporteProblemProps {
   isOpen: boolean;
@@ -52,6 +54,16 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // 🎬 NUEVO: Hook de grabación de sesión con rrweb
+  const {
+    isRecording,
+    recordingSize,
+    startRecording,
+    stopRecording,
+    exportSessionBase64,
+    getSession,
+  } = useSessionRecorder({ autoStart: false });
+
   // Datos del formulario
   const [categoria, setCategoria] = useState<Categoria>(preselectedCategory as Categoria || 'bug');
   const [prioridad, setPrioridad] = useState<Prioridad>('media');
@@ -70,6 +82,12 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       if (preselectedCategory) {
         setCategoria(preselectedCategory as Categoria);
       }
+      
+      // 🎬 NUEVO: Iniciar grabación automáticamente al abrir modal
+      if (!isRecording) {
+        console.log('🎬 Iniciando grabación de sesión...');
+        startRecording();
+      }
     } else {
       // Limpiar también cuando se cierra
       setScreenshotFile(null);
@@ -81,8 +99,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       setCategoria('bug');
       setPrioridad('media');
       setError(null);
+      
+      // 🎬 NUEVO: Detener grabación al cerrar modal
+      if (isRecording) {
+        console.log('🛑 Deteniendo grabación al cerrar modal');
+        stopRecording();
+      }
     }
-  }, [isOpen, preselectedCategory]);
+  }, [isOpen, preselectedCategory, isRecording, startRecording, stopRecording]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,6 +174,21 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         });
       }
 
+      // 🎬 NUEVO: Obtener grabación de sesión
+      let sessionRecording = null;
+      let recordingDuration = 0;
+      
+      if (isRecording) {
+        console.log('🛑 Deteniendo grabación antes de enviar...');
+        const session = stopRecording();
+        
+        if (session) {
+          sessionRecording = exportSessionBase64();
+          recordingDuration = session.endTime - session.startTime;
+          console.log(`✅ Grabación capturada: ${recordingSize}, ${recordingDuration}ms`);
+        }
+      }
+
       const reportData = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
@@ -163,6 +202,10 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         pasos_reproducir: pasosReproducir.trim() || null,
         comportamiento_esperado: comportamientoEsperado.trim() || null,
         screenshot_data: screenshotData,
+        // 🎬 NUEVO: Incluir grabación de sesión
+        session_recording: sessionRecording,
+        recording_size: recordingSize,
+        recording_duration: recordingDuration,
         from_lia: fromLia
       };
 
@@ -226,12 +269,27 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
             <h2 className="text-2xl font-bold mb-2">
               {step === 'form' ? 'Reportar un Problema' : '¡Reporte Enviado!'}
             </h2>
-            <p className="text-white/90 text-sm">
+            <p className="text-blue-100">
               {step === 'form' 
                 ? 'Ayúdanos a mejorar reportando problemas o sugerencias'
                 : 'Gracias por tu reporte. Lo revisaremos pronto.'
               }
             </p>
+            
+            {/* 🎬 NUEVO: Indicador de grabación */}
+            {step === 'form' && isRecording && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-500/20 border border-red-300/30 rounded-lg backdrop-blur-sm"
+              >
+                <div className="w-2 h-2 bg-red-300 rounded-full animate-pulse" />
+                <Video className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Grabando sesión ({recordingSize})
+                </span>
+              </motion.div>
+            )}
           </div>
 
           {/* Content */}
