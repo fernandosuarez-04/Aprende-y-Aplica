@@ -216,7 +216,7 @@ export function LoginForm() {
             disabled={isPending}
           >
             <span className="relative z-10">
-              {isPending ? 'Ingresando...' : 'Ingresar'}
+              {isPending ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </span>
             {/* Efecto de brillo al hover */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />

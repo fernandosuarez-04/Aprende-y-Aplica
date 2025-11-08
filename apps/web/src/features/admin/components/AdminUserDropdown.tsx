@@ -163,7 +163,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                   } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200`}
                 >
                   <HomeIcon className="w-4 h-4 mr-3" />
-                  Ir al Dashboard
+                  Ir al Home
                 </button>
               )}
             </Menu.Item>

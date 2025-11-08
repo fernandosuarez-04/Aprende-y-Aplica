@@ -151,7 +151,7 @@ export function InstructorUserDropdown({ user }: InstructorUserDropdownProps) {
                   } flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
                 >
                   <HomeIcon className="w-4 h-4 mr-3" />
-                  Ir al Dashboard
+                  Ir al Home
                 </button>
               )}
             </Menu.Item>

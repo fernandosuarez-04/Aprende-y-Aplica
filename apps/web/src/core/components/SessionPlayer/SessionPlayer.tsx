@@ -6,6 +6,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import rrwebPlayer from 'rrweb-player';
 import type { RecordingSession } from '../../../lib/rrweb/session-recorder';
+// Nota: Los estilos de rrweb-player están incluidos en el paquete JavaScript
+// No es necesario importar CSS adicional para la versión alpha
 
 interface SessionPlayerProps {
   session: RecordingSession;

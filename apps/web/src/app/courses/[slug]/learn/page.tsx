@@ -1087,7 +1087,7 @@ Antes de cada respuesta, pregúntate:
         className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
       >
         <div className="flex items-center justify-between w-full gap-2">
-          {/* Sección izquierda: Botón regresar | Logo | Nombre del taller */}
+          {/* Sección izquierda: Botón regresar | Nombre del taller */}
           <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
             {/* Botón de regreso */}
             <button
@@ -1096,26 +1096,6 @@ Antes de cada respuesta, pregúntate:
             >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
             </button>
-
-            {/* Logo de la empresa - Oculto en móviles muy pequeños */}
-            <div className="hidden sm:block w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
-              <img 
-                src="/icono.png" 
-                alt="Aprende y Aplica" 
-                className="w-5 h-5 md:w-6 md:h-6 rounded"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="w-5 h-5 md:w-6 md:h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
-                  }
-                }}
-              />
-            </div>
-
-            {/* Separador visual - Oculto en móviles */}
-            <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-slate-600/50"></div>
 
             {/* Nombre del taller */}
             <div className="min-w-0 flex-1">
@@ -1554,39 +1534,42 @@ Antes de cada respuesta, pregúntate:
           ) : currentLesson ? (
             <>
               {/* Tabs mejorados - Responsive */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-lg h-[56px] items-center overflow-x-auto scrollbar-hide">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  const shouldHideText = isLiaExpanded && !isActive && !isMobile;
+              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-lg h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth" style={{ scrollPaddingLeft: '0.5rem', scrollPaddingRight: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                <div className="flex gap-1 md:gap-2 items-center min-w-max">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    const shouldHideText = isLiaExpanded && !isActive && !isMobile;
 
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
-                        shouldHideText
-                          ? 'px-2 py-2 hover:px-3 hover:gap-2'
-                          : 'px-3 md:px-4 py-2 gap-1 md:gap-2'
-                      } ${
-                        isActive
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
-                          : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span 
-                        className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
                           shouldHideText
-                            ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
-                            : ''
+                            ? 'px-2 py-2 hover:px-3 hover:gap-2'
+                            : 'px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit'
+                        } ${
+                          isActive
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
+                            : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
                         }`}
+                        style={{ scrollSnapAlign: 'start' }}
                       >
-                        {tab.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span 
+                          className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                            shouldHideText
+                              ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
+                              : ''
+                          }`}
+                        >
+                          {tab.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Contenido del tab activo */}
@@ -1725,7 +1708,7 @@ Antes de cada respuesta, pregúntate:
               {/* Chat de Lia expandido */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
-                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`}>
+                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`} style={{ paddingBottom: isMobile ? 'calc(1rem + 80px)' : '1rem' }}>
                   {liaMessages.map((message) => (
                     <div
                       key={message.id}
@@ -1832,7 +1815,7 @@ Antes de cada respuesta, pregúntate:
                 </AnimatePresence>
 
                 {/* Área de entrada */}
-                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'pb-20' : ''}`}>
+                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 z-10 ${isMobile ? 'pb-[calc(80px+1rem)]' : ''}`}>
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
@@ -2223,9 +2206,9 @@ function VideoContent({
   
   return (
     <div className="space-y-6">
-      <div className="relative">
+      <div className="relative w-full">
         {hasVideo ? (
-          <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative">
+          <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative bg-black">
             <VideoPlayer
               videoProvider={lesson.video_provider!}
               videoProviderId={lesson.video_provider_id!}
