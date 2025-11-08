@@ -13,9 +13,11 @@ import {
   Upload,
   Send,
   CheckCircle,
-  Loader2
+  Loader2,
+  Video
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
 
 interface ReporteProblemProps {
   isOpen: boolean;
@@ -52,6 +54,9 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // 🎬 Ya no necesitamos el hook porque la grabación corre en background desde el layout
+  // Usamos el singleton sessionRecorder directamente al enviar el reporte
+
   // Datos del formulario
   const [categoria, setCategoria] = useState<Categoria>(preselectedCategory as Categoria || 'bug');
   const [prioridad, setPrioridad] = useState<Prioridad>('media');
@@ -70,6 +75,9 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       if (preselectedCategory) {
         setCategoria(preselectedCategory as Categoria);
       }
+      
+      // 🎬 La grabación ya está corriendo en background desde que cargó la app
+      // No necesitamos iniciar una nueva grabación aquí
     } else {
       // Limpiar también cuando se cierra
       setScreenshotFile(null);
@@ -81,6 +89,9 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       setCategoria('bug');
       setPrioridad('media');
       setError(null);
+      
+      // 🎬 Ya no detenemos la grabación al cerrar porque sigue corriendo en background
+      // La grabación continúa hasta que el usuario recargue la página o cierre la app
     }
   }, [isOpen, preselectedCategory]);
 
@@ -150,6 +161,25 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         });
       }
 
+      // 🎬 NUEVO: Capturar snapshot de la sesión SIN detener la grabación
+      let sessionRecording = null;
+      let recordingDuration = 0;
+      let recordingSizeStr = 'N/A';
+      
+      // La grabación está corriendo en background, capturamos un snapshot sin detenerla
+      console.log('📸 Capturando snapshot de la sesión en background...');
+      const session = sessionRecorder.captureSnapshot();
+      
+      if (session && session.endTime) {
+        // Exportar el snapshot capturado
+        sessionRecording = sessionRecorder.exportSessionBase64(session);
+        recordingDuration = session.endTime - session.startTime;
+        recordingSizeStr = `${Math.round(sessionRecording.length / 1024)} KB`;
+        console.log(`✅ Snapshot capturado: ${session.events.length} eventos, ${recordingSizeStr}, ${recordingDuration}ms`);
+      } else {
+        console.warn('⚠️ No se pudo capturar el snapshot de la sesión');
+      }
+
       const reportData = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
@@ -163,6 +193,10 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         pasos_reproducir: pasosReproducir.trim() || null,
         comportamiento_esperado: comportamientoEsperado.trim() || null,
         screenshot_data: screenshotData,
+        // 🎬 NUEVO: Incluir grabación de sesión
+        session_recording: sessionRecording,
+        recording_size: recordingSizeStr,
+        recording_duration: recordingDuration,
         from_lia: fromLia
       };
 
@@ -226,12 +260,26 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
             <h2 className="text-2xl font-bold mb-2">
               {step === 'form' ? 'Reportar un Problema' : '¡Reporte Enviado!'}
             </h2>
-            <p className="text-white/90 text-sm">
+            <p className="text-blue-100">
               {step === 'form' 
                 ? 'Ayúdanos a mejorar reportando problemas o sugerencias'
                 : 'Gracias por tu reporte. Lo revisaremos pronto.'
               }
             </p>
+            
+            {/* 🎬 Indicador de que la sesión será capturada (siempre grabando en background) */}
+            {step === 'form' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-500/20 border border-blue-300/30 rounded-lg backdrop-blur-sm"
+              >
+                <Video className="w-4 h-4 text-blue-300" />
+                <span className="text-sm font-medium text-blue-100">
+                  Se incluirá grabación de los últimos 60 segundos
+                </span>
+              </motion.div>
+            )}
           </div>
 
           {/* Content */}
