@@ -12,7 +12,7 @@ import {
   NewspaperIcon,
   PlayIcon,
   UserGroupIcon,
-  Cog6ToothIcon,
+  DocumentTextIcon,
   ChartBarIcon,
   XMarkIcon,
   ChevronRightIcon,
@@ -44,7 +44,7 @@ const navigation = [
   { name: 'Reels', href: '/admin/reels', icon: PlayIcon, current: false },
   { name: 'Estadísticas', href: '/admin/statistics', icon: ChartBarIcon, current: false },
   { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon, current: false },
-  { name: 'Configuración', href: '/admin/settings', icon: Cog6ToothIcon, current: false },
+  { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon, current: false },
 ]
 
 export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, isCollapsed, onToggleCollapse, isPinned, onTogglePin }: AdminSidebarProps) {

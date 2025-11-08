@@ -111,7 +111,7 @@ CREATE TABLE public.ai_prompts (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT ai_prompts_pkey PRIMARY KEY (prompt_id),
   CONSTRAINT ai_prompts_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.ai_categories(category_id),
-  CONSTRAINT ai_prompts_author_id_fkey FOREIGN KEY (author_id) REFERENCES auth.users(id)
+  CONSTRAINT ai_prompts_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.app_favorites (
   favorite_id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -120,7 +120,7 @@ CREATE TABLE public.app_favorites (
   created_at timestamp without time zone DEFAULT now(),
   CONSTRAINT app_favorites_pkey PRIMARY KEY (favorite_id),
   CONSTRAINT app_favorites_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.ai_apps(app_id),
-  CONSTRAINT app_favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT app_favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.app_ratings (
   rating_id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -132,7 +132,7 @@ CREATE TABLE public.app_ratings (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT app_ratings_pkey PRIMARY KEY (rating_id),
   CONSTRAINT app_ratings_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.ai_apps(app_id),
-  CONSTRAINT app_ratings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT app_ratings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.areas (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -569,6 +569,112 @@ CREATE TABLE public.lesson_materials (
   CONSTRAINT lesson_materials_pkey PRIMARY KEY (material_id),
   CONSTRAINT lesson_materials_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id)
 );
+CREATE TABLE public.lia_activity_completions (
+  completion_id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  conversation_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  activity_id uuid NOT NULL,
+  status character varying NOT NULL,
+  total_steps integer,
+  completed_steps integer DEFAULT 0,
+  current_step integer DEFAULT 1,
+  generated_output jsonb,
+  attempts_to_complete integer DEFAULT 1,
+  time_to_complete_seconds integer,
+  user_needed_help boolean DEFAULT false,
+  lia_had_to_redirect integer DEFAULT 0,
+  started_at timestamp with time zone DEFAULT now(),
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lia_activity_completions_pkey PRIMARY KEY (completion_id),
+  CONSTRAINT lia_activity_completions_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.lia_conversations(conversation_id),
+  CONSTRAINT lia_activity_completions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT lia_activity_completions_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES public.lesson_activities(activity_id)
+);
+CREATE TABLE public.lia_common_questions (
+  question_id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  question_text text NOT NULL,
+  context_type character varying,
+  lesson_id uuid,
+  activity_id uuid,
+  times_asked integer DEFAULT 1,
+  first_asked_at timestamp with time zone DEFAULT now(),
+  last_asked_at timestamp with time zone DEFAULT now(),
+  best_response text,
+  best_response_rating numeric,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lia_common_questions_pkey PRIMARY KEY (question_id),
+  CONSTRAINT lia_common_questions_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id),
+  CONSTRAINT lia_common_questions_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES public.lesson_activities(activity_id)
+);
+CREATE TABLE public.lia_conversations (
+  conversation_id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  context_type character varying NOT NULL,
+  course_id uuid,
+  module_id uuid,
+  lesson_id uuid,
+  activity_id uuid,
+  started_at timestamp with time zone NOT NULL DEFAULT now(),
+  ended_at timestamp with time zone,
+  duration_seconds integer,
+  total_messages integer DEFAULT 0,
+  total_user_messages integer DEFAULT 0,
+  total_lia_messages integer DEFAULT 0,
+  conversation_completed boolean DEFAULT false,
+  user_abandoned boolean DEFAULT false,
+  device_type character varying,
+  browser character varying,
+  ip_address inet,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lia_conversations_pkey PRIMARY KEY (conversation_id),
+  CONSTRAINT lia_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT lia_conversations_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT lia_conversations_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.course_modules(module_id),
+  CONSTRAINT lia_conversations_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id),
+  CONSTRAINT lia_conversations_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES public.lesson_activities(activity_id)
+);
+CREATE TABLE public.lia_messages (
+  message_id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  conversation_id uuid NOT NULL,
+  role character varying NOT NULL,
+  content text NOT NULL,
+  is_system_message boolean DEFAULT false,
+  message_sequence integer NOT NULL,
+  model_used character varying,
+  tokens_used integer,
+  cost_usd numeric,
+  response_time_ms integer,
+  user_sentiment character varying,
+  sentiment_score numeric,
+  contains_question boolean DEFAULT false,
+  is_off_topic boolean DEFAULT false,
+  lia_redirected boolean DEFAULT false,
+  lia_provided_example boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lia_messages_pkey PRIMARY KEY (message_id),
+  CONSTRAINT lia_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.lia_conversations(conversation_id)
+);
+CREATE TABLE public.lia_user_feedback (
+  feedback_id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  message_id uuid NOT NULL,
+  conversation_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  feedback_type character varying NOT NULL,
+  rating integer CHECK (rating >= 1 AND rating <= 5),
+  comment text,
+  response_too_long boolean DEFAULT false,
+  response_too_short boolean DEFAULT false,
+  response_off_topic boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lia_user_feedback_pkey PRIMARY KEY (feedback_id),
+  CONSTRAINT lia_user_feedback_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.lia_messages(message_id),
+  CONSTRAINT lia_user_feedback_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.lia_conversations(conversation_id),
+  CONSTRAINT lia_user_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.news (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   slug text NOT NULL UNIQUE,
@@ -812,7 +918,7 @@ CREATE TABLE public.prompt_favorites (
   created_at timestamp without time zone DEFAULT now(),
   CONSTRAINT prompt_favorites_pkey PRIMARY KEY (favorite_id),
   CONSTRAINT prompt_favorites_prompt_id_fkey FOREIGN KEY (prompt_id) REFERENCES public.ai_prompts(prompt_id),
-  CONSTRAINT prompt_favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT prompt_favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.prompt_ratings (
   rating_id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -824,7 +930,7 @@ CREATE TABLE public.prompt_ratings (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT prompt_ratings_pkey PRIMARY KEY (rating_id),
   CONSTRAINT prompt_ratings_prompt_id_fkey FOREIGN KEY (prompt_id) REFERENCES public.ai_prompts(prompt_id),
-  CONSTRAINT prompt_ratings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT prompt_ratings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.reel_comment_replies (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -942,6 +1048,32 @@ CREATE TABLE public.relaciones (
   slug text NOT NULL UNIQUE,
   nombre text NOT NULL,
   CONSTRAINT relaciones_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.reportes_problemas (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  titulo character varying NOT NULL,
+  descripcion text NOT NULL,
+  categoria character varying NOT NULL CHECK (categoria::text = ANY (ARRAY['bug'::character varying, 'sugerencia'::character varying, 'contenido'::character varying, 'performance'::character varying, 'ui-ux'::character varying, 'otro'::character varying]::text[])),
+  prioridad character varying DEFAULT 'media'::character varying CHECK (prioridad::text = ANY (ARRAY['baja'::character varying, 'media'::character varying, 'alta'::character varying, 'critica'::character varying]::text[])),
+  pagina_url text NOT NULL,
+  pathname character varying,
+  user_agent text,
+  screen_resolution character varying,
+  navegador character varying,
+  screenshot_url text,
+  pasos_reproducir text,
+  comportamiento_esperado text,
+  estado character varying DEFAULT 'pendiente'::character varying CHECK (estado::text = ANY (ARRAY['pendiente'::character varying, 'en_revision'::character varying, 'en_progreso'::character varying, 'resuelto'::character varying, 'rechazado'::character varying, 'duplicado'::character varying]::text[])),
+  admin_asignado uuid,
+  notas_admin text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  resuelto_at timestamp with time zone,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT reportes_problemas_pkey PRIMARY KEY (id),
+  CONSTRAINT reportes_problemas_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT reportes_problemas_admin_asignado_fkey FOREIGN KEY (admin_asignado) REFERENCES public.users(id)
 );
 CREATE TABLE public.respuestas (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -1124,6 +1256,9 @@ CREATE TABLE public.user_lesson_progress (
   user_id uuid NOT NULL,
   lesson_id uuid NOT NULL,
   enrollment_id uuid NOT NULL,
+  quiz_progress_percentage numeric DEFAULT 0.00 CHECK (quiz_progress_percentage >= 0.00 AND quiz_progress_percentage <= 100.00),
+  quiz_completed boolean DEFAULT false,
+  quiz_passed boolean DEFAULT false,
   CONSTRAINT user_lesson_progress_pkey PRIMARY KEY (progress_id),
   CONSTRAINT user_lesson_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_lesson_progress_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id),
@@ -1188,6 +1323,28 @@ CREATE TABLE public.user_perfil (
   CONSTRAINT user_perfil_relacion_id_fkey FOREIGN KEY (relacion_id) REFERENCES public.relaciones(id),
   CONSTRAINT user_perfil_tamano_id_fkey FOREIGN KEY (tamano_id) REFERENCES public.tamanos_empresa(id),
   CONSTRAINT user_perfil_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES public.sectores(id)
+);
+CREATE TABLE public.user_quiz_submissions (
+  submission_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_answers jsonb NOT NULL DEFAULT '{}'::jsonb,
+  score integer DEFAULT 0 CHECK (score >= 0),
+  total_points integer DEFAULT 0 CHECK (total_points >= 0),
+  percentage_score numeric DEFAULT 0.00 CHECK (percentage_score >= 0.00 AND percentage_score <= 100.00),
+  is_passed boolean DEFAULT false,
+  completed_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  user_id uuid NOT NULL,
+  lesson_id uuid NOT NULL,
+  enrollment_id uuid NOT NULL,
+  material_id uuid,
+  activity_id uuid,
+  CONSTRAINT user_quiz_submissions_pkey PRIMARY KEY (submission_id),
+  CONSTRAINT user_quiz_submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_quiz_submissions_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id),
+  CONSTRAINT user_quiz_submissions_enrollment_id_fkey FOREIGN KEY (enrollment_id) REFERENCES public.user_course_enrollments(enrollment_id),
+  CONSTRAINT user_quiz_submissions_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.lesson_materials(material_id),
+  CONSTRAINT user_quiz_submissions_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES public.lesson_activities(activity_id)
 );
 CREATE TABLE public.user_session (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
