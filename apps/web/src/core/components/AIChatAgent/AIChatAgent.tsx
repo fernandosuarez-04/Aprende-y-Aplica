@@ -547,7 +547,7 @@ export function AIChatAgent({
     setIsRecording(!isRecording);
     // Aquí se implementaría la lógica de reconocimiento de voz
     console.log('Recording toggled:', !isRecording);
-  };
+  }, [isRecording]);
 
   // Función para solicitar ayuda contextual
   const handleRequestHelp = async () => {
