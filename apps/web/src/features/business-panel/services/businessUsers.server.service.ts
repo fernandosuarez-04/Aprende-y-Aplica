@@ -10,8 +10,6 @@ export class BusinessUsersServerService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 BusinessUsersService.getUsers: Iniciando para organización:', organizationId)
-
       // Primero obtener usuarios de la tabla organization_users con joins
       // IMPORTANTE: Validar que organization_id coincida para seguridad
       // Usar la relación específica organization_users_user_id_fkey para evitar ambigüedad
@@ -48,8 +46,7 @@ export class BusinessUsersServerService {
         throw orgUsersError
       }
 
-      console.log('📊 Datos brutos de organization_users:', orgUsersData?.length || 0)
-      console.log('📊 Estructura del primer registro:', orgUsersData?.[0] ? JSON.stringify(orgUsersData[0], null, 2) : 'No hay datos')
+      : 'No hay datos')
 
       // Transformar datos para incluir org_role y org_status
       // IMPORTANTE: Validar que el user_id coincide con el user.id para seguridad adicional
@@ -61,16 +58,11 @@ export class BusinessUsersServerService {
           
           // Validación de seguridad: verificar que el user existe y que user_id coincide
           if (!userData || !ou.user_id) {
-            console.warn('⚠️ Registro de organization_users sin usuario asociado:', ou)
             return false
           }
           
           // Validar que user_id coincide con el id del usuario
           if (userData.id !== ou.user_id) {
-            console.warn('⚠️ user_id no coincide con user.id:', {
-              user_id: ou.user_id,
-              user_data_id: userData.id
-            })
             return false
           }
           
@@ -97,15 +89,8 @@ export class BusinessUsersServerService {
           }
         })
 
-      console.log('✅ Usuarios de organización obtenidos:', users?.length || 0)
       if (users.length > 0) {
-        console.log('✅ Primer usuario mapeado:', {
-          id: users[0].id,
-          username: users[0].username,
-          org_role: users[0].org_role,
-          org_status: users[0].org_status
-        })
-      }
+        }
       return users
     } catch (error) {
       console.error('💥 Error in BusinessUsersService.getOrganizationUsers:', error)
@@ -215,7 +200,6 @@ export class BusinessUsersServerService {
 
       // Paso 4: Si es invitación, enviar email (placeholder)
       if (userData.send_invitation && !userData.password) {
-        console.log('📧 Enviar invitación a:', newUser.email)
         // TODO: Implementar servicio de email
       }
 
@@ -389,8 +373,6 @@ export class BusinessUsersServerService {
    */
   static async resendInvitation(organizationId: string, userId: string): Promise<void> {
     // TODO: Implementar servicio de email
-    console.log('📧 Reenviar invitación a usuario:', userId, 'de organización:', organizationId)
-    
     const supabase = await createClient()
     
     // Actualizar invited_at

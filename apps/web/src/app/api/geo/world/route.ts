@@ -40,8 +40,7 @@ export async function GET() {
         // Limpiar timeout si existe
         if (err.name !== 'AbortError') {
           // Continuar con la siguiente fuente si esta falla
-          console.warn(`Failed to load from ${source}:`, err)
-        }
+          }
         continue
       }
     }

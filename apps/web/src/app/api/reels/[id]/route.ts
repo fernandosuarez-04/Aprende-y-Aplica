@@ -9,8 +9,6 @@ export async function GET(
     const supabase = await createClient();
     const { id } = await params;
 
-    console.log('🔍 Fetching reel:', id);
-
     // Obtener el reel con información del creador
     const { data: reel, error: reelError } = await supabase
       .from('reels')
@@ -90,8 +88,6 @@ export async function GET(
         ip_address: clientIP,
         user_agent: request.headers.get('user-agent') || 'unknown'
       });
-
-    console.log('✅ Reel fetched successfully:', reel.id);
 
     return NextResponse.json({
       reel: {
@@ -193,8 +189,6 @@ export async function PUT(
       }
     }
 
-    console.log('✅ Reel updated successfully:', id);
-
     return NextResponse.json({
       reel: updatedReel,
       message: 'Reel actualizado exitosamente'
@@ -246,8 +240,6 @@ export async function DELETE(
       console.error('❌ Error deleting reel:', deleteError);
       return NextResponse.json({ error: 'Error al eliminar el reel' }, { status: 500 });
     }
-
-    console.log('✅ Reel deleted successfully:', id);
 
     return NextResponse.json({
       message: 'Reel eliminado exitosamente'

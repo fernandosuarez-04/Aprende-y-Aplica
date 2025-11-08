@@ -68,8 +68,6 @@ export interface AppStats {
 export class AdminAppsService {
   static async getApps(): Promise<AdminApp[]> {
     try {
-      console.log('🔄 AdminAppsService.getApps: Iniciando...')
-      
       const response = await fetch('/api/admin/apps')
       
       if (!response.ok) {
@@ -77,7 +75,6 @@ export class AdminAppsService {
       }
 
       const data = await response.json()
-      console.log('✅ Apps obtenidas:', data.apps?.length || 0)
       return data.apps || []
     } catch (error) {
       console.error('💥 Error in AdminAppsService.getApps:', error)
@@ -87,8 +84,6 @@ export class AdminAppsService {
 
   static async getCategories(): Promise<AdminCategory[]> {
     try {
-      console.log('🔄 AdminAppsService.getCategories: Iniciando...')
-      
       const supabase = createClient()
       
       const { data, error } = await supabase
@@ -112,7 +107,6 @@ export class AdminAppsService {
         throw error
       }
 
-      console.log('✅ Categorías obtenidas:', data?.length || 0)
       return data || []
     } catch (error) {
       console.error('💥 Error in AdminAppsService.getCategories:', error)
@@ -122,8 +116,6 @@ export class AdminAppsService {
 
   static async getAppStats(): Promise<AppStats> {
     try {
-      console.log('🔄 AdminAppsService.getAppStats: Iniciando...')
-      
       const response = await fetch('/api/admin/apps/stats')
       
       if (!response.ok) {
@@ -131,7 +123,6 @@ export class AdminAppsService {
       }
 
       const data = await response.json()
-      console.log('✅ Estadísticas de apps obtenidas:', data.stats)
       return data.stats
     } catch (error) {
       console.error('💥 Error in AdminAppsService.getAppStats:', error)
@@ -141,9 +132,6 @@ export class AdminAppsService {
 
   static async createApp(appData: Partial<AdminApp>, adminUserId: string): Promise<AdminApp> {
     try {
-      console.log('🔄 AdminAppsService.createApp: Iniciando...')
-      console.log('📋 Datos a insertar:', appData)
-      
       const response = await fetch('/api/admin/apps', {
         method: 'POST',
         headers: {
@@ -157,7 +145,6 @@ export class AdminAppsService {
       }
 
       const data = await response.json()
-      console.log('✅ App creada exitosamente:', data.app)
       return data.app
     } catch (error) {
       console.error('💥 Error in AdminAppsService.createApp:', error)
@@ -167,9 +154,6 @@ export class AdminAppsService {
 
   static async updateApp(appId: string, appData: Partial<AdminApp>): Promise<AdminApp> {
     try {
-      console.log('🔄 AdminAppsService.updateApp: Iniciando...')
-      console.log('📋 Datos a actualizar:', appData)
-      
       const response = await fetch(`/api/admin/apps/${appId}`, {
         method: 'PUT',
         headers: {
@@ -183,7 +167,6 @@ export class AdminAppsService {
       }
 
       const data = await response.json()
-      console.log('✅ App actualizada exitosamente:', data.app)
       return data.app
     } catch (error) {
       console.error('💥 Error in AdminAppsService.updateApp:', error)
@@ -193,8 +176,6 @@ export class AdminAppsService {
 
   static async deleteApp(appId: string): Promise<void> {
     try {
-      console.log('🔄 AdminAppsService.deleteApp: Iniciando...')
-      
       const response = await fetch(`/api/admin/apps/${appId}`, {
         method: 'DELETE'
       })
@@ -203,8 +184,7 @@ export class AdminAppsService {
         throw new Error('Failed to delete app')
       }
 
-      console.log('✅ App eliminada exitosamente')
-    } catch (error) {
+      } catch (error) {
       console.error('💥 Error in AdminAppsService.deleteApp:', error)
       throw error
     }
@@ -212,8 +192,6 @@ export class AdminAppsService {
 
   static async toggleAppStatus(appId: string, isActive: boolean): Promise<AdminApp> {
     try {
-      console.log('🔄 AdminAppsService.toggleAppStatus: Iniciando...')
-      
       const response = await fetch(`/api/admin/apps/${appId}`, {
         method: 'PUT',
         headers: {
@@ -227,7 +205,6 @@ export class AdminAppsService {
       }
 
       const data = await response.json()
-      console.log('✅ Estado de la app actualizado:', data.app)
       return data.app
     } catch (error) {
       console.error('💥 Error in AdminAppsService.toggleAppStatus:', error)
@@ -237,8 +214,6 @@ export class AdminAppsService {
 
   static async toggleAppFeatured(appId: string, isFeatured: boolean): Promise<AdminApp> {
     try {
-      console.log('🔄 AdminAppsService.toggleAppFeatured: Iniciando...')
-      
       const response = await fetch(`/api/admin/apps/${appId}`, {
         method: 'PUT',
         headers: {
@@ -252,7 +227,6 @@ export class AdminAppsService {
       }
 
       const data = await response.json()
-      console.log('✅ Estado destacado de la app actualizado:', data.app)
       return data.app
     } catch (error) {
       console.error('💥 Error in AdminAppsService.toggleAppFeatured:', error)
@@ -262,8 +236,6 @@ export class AdminAppsService {
 
   static async toggleAppVerified(appId: string, isVerified: boolean): Promise<AdminApp> {
     try {
-      console.log('🔄 AdminAppsService.toggleAppVerified: Iniciando...')
-      
       const response = await fetch(`/api/admin/apps/${appId}`, {
         method: 'PUT',
         headers: {
@@ -277,7 +249,6 @@ export class AdminAppsService {
       }
 
       const data = await response.json()
-      console.log('✅ Estado verificado de la app actualizado:', data.app)
       return data.app
     } catch (error) {
       console.error('💥 Error in AdminAppsService.toggleAppVerified:', error)

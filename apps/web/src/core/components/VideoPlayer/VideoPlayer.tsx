@@ -25,27 +25,17 @@ export function VideoPlayer({
   const [error, setError] = useState<string | null>(null);
 
   // Debug logging
-  console.log('VideoPlayer props:', {
-    videoProvider,
-    videoProviderId,
-    title,
-    className
-  });
-
   // Validar datos de entrada
   const isValidVideoData = () => {
     if (!videoProvider || !videoProviderId) {
-      console.warn('VideoPlayer: Missing video provider or ID');
       return false;
     }
     
     if (videoProvider === 'youtube' && !videoProviderId.match(/^[a-zA-Z0-9_-]{11}$/)) {
-      console.warn('VideoPlayer: Invalid YouTube video ID format');
       return false;
     }
     
     if (videoProvider === 'vimeo' && !videoProviderId.match(/^\d+$/)) {
-      console.warn('VideoPlayer: Invalid Vimeo video ID format');
       return false;
     }
     
@@ -100,7 +90,6 @@ export function VideoPlayer({
               }
             }
           } catch (error) {
-            console.warn('Error getting Supabase public URL, using fallback:', error);
             // Fallback: usar NEXT_PUBLIC_SUPABASE_URL directamente
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
             if (supabaseUrl) {
@@ -117,13 +106,11 @@ export function VideoPlayer({
         url = '';
     }
     
-    console.log('Generated video URL:', url);
     return url;
   };
 
   // Manejar carga del iframe
   const handleIframeLoad = () => {
-    console.log('VideoPlayer iframe loaded successfully');
     setIsLoading(false);
     setError(null);
   };
@@ -196,7 +183,6 @@ export function VideoPlayer({
             className="w-full h-full rounded-lg"
             preload="metadata"
             onLoadedData={() => {
-              console.log('VideoPlayer video loaded successfully');
               setIsLoading(false);
               setError(null);
             }}

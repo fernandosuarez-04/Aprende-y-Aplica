@@ -12,7 +12,6 @@ export async function DELETE(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId, postId } = await params
-    console.log('🔍 Delete Post API - communityId:', communityId, 'postId:', postId)
     const supabase = await createClient()
 
     // Obtener datos actuales del post para el log de auditoría
@@ -31,8 +30,6 @@ export async function DELETE(
       }, { status: 404 })
     }
 
-    console.log('✅ Post found:', currentPost)
-
     // Eliminar comentarios relacionados
     const { error: deleteCommentsError } = await supabase
       .from('community_comments')
@@ -40,7 +37,6 @@ export async function DELETE(
       .eq('post_id', postId)
 
     if (deleteCommentsError) {
-      console.warn('Warning deleting comments:', deleteCommentsError)
       // No fallar la operación por esto
     }
 
@@ -51,7 +47,6 @@ export async function DELETE(
       .eq('post_id', postId)
 
     if (deleteReactionsError) {
-      console.warn('Warning deleting reactions:', deleteReactionsError)
       // No fallar la operación por esto
     }
 
@@ -87,7 +82,6 @@ export async function DELETE(
         .eq('id', communityId)
 
       if (updateCountError) {
-        console.warn('Error updating posts count:', updateCountError)
         // No fallar la operación por esto
       }
     }
@@ -114,7 +108,7 @@ export async function DELETE(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.warn('Error en log de auditoría (no crítico):', auditError)
+      console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 

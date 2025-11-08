@@ -69,8 +69,6 @@ export default function QuestionnairePage() {
       
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('Session data:', { session: !!session, error: sessionError });
-      
       if (sessionError) {
         console.error('Error getting session:', sessionError);
         setError('Error de autenticación. Por favor inicia sesión nuevamente.');
@@ -78,12 +76,9 @@ export default function QuestionnairePage() {
       }
       
       if (!session?.access_token) {
-        console.warn('No hay sesión activa');
         setError('No hay sesión activa. Por favor inicia sesión.');
         return;
       }
-      
-      console.log('Token encontrado, haciendo request...');
       
       const response = await fetch('/api/questionnaire/questions-client', {
         headers: {

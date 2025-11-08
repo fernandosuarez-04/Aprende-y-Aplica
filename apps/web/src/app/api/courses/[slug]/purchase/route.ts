@@ -30,8 +30,6 @@ export async function POST(
       );
     }
     
-    console.log('✅ User authenticated:', currentUser.id, currentUser.email);
-
     // Obtener el curso por slug
     const { data: course, error: courseError } = await supabase
       .from('courses')
@@ -84,8 +82,7 @@ export async function POST(
 
     if (existingPaymentMethod) {
       paymentMethodId = existingPaymentMethod.payment_method_id;
-      console.log('📦 Usando método de pago existente:', paymentMethodId);
-    } else {
+      } else {
       const { data: tempPaymentMethod, error: paymentMethodError } = await supabase
         .from('payment_methods')
         .insert({
@@ -112,8 +109,7 @@ export async function POST(
         );
       }
       paymentMethodId = tempPaymentMethod.payment_method_id;
-      console.log('📦 Método de pago temporal creado:', paymentMethodId);
-    }
+      }
 
     // 1. Crear transacción (temporal, sin procesador de pago)
     const { data: transaction, error: transactionError } = await supabase
@@ -195,8 +191,7 @@ export async function POST(
     if (enrollmentError) {
       console.error('Error creating enrollment:', enrollmentError);
       // No revertimos la compra, solo lo registramos
-      console.warn('Compra creada pero enrollment falló:', enrollmentError);
-    }
+      }
 
     // 4. Actualizar el purchase con el enrollment_id si se creó correctamente
     if (enrollment) {

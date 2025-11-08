@@ -127,9 +127,6 @@ export async function PUT(
     if (body.is_verified !== undefined) updateData.is_verified = body.is_verified
     if (body.is_active !== undefined) updateData.is_active = body.is_active
 
-    console.log('🔄 Actualizando app con ID:', id)
-    console.log('📋 Datos a actualizar:', updateData)
-
     // @ts-ignore - Supabase types are too strict for dynamic updates
     const { data: updatedApp, error } = await supabase
       .from('ai_apps')
@@ -146,7 +143,6 @@ export async function PUT(
       )
     }
 
-    console.log('✅ App actualizada exitosamente:', updatedApp)
     return NextResponse.json({ app: updatedApp })
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación

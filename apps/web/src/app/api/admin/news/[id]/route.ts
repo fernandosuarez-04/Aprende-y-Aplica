@@ -15,8 +15,6 @@ export async function GET(
     const supabase = await createClient()
     const { id } = await params
 
-    console.log('🔄 Obteniendo noticia con ID:', id)
-
     const { data: news, error } = await supabase
       .from('news')
       .select(`
@@ -49,7 +47,6 @@ export async function GET(
       )
     }
 
-    console.log('✅ Noticia obtenida exitosamente:', news)
     return NextResponse.json({ news })
   } catch (error) {
     console.error('💥 Unexpected error:', error)
@@ -84,7 +81,7 @@ export async function PUT(
     })
     
     const body = bodyRaw
-    console.log('🔄 Body recibido y validado:', JSON.stringify(body, null, 2))
+    )
 
     // Parsear campos JSON
     const parseJsonField = (field: any) => {
@@ -122,9 +119,6 @@ export async function PUT(
     if (body.cta !== undefined) updateData.cta = parseJsonField(body.cta)
     if (body.metrics !== undefined) updateData.metrics = parseJsonField(body.metrics)
 
-    console.log('🔄 Actualizando noticia con ID:', id)
-    console.log('📋 Datos a actualizar:', updateData)
-
     // @ts-ignore - Supabase types are too strict for dynamic updates
     const { data: updatedNews, error } = await supabase
       .from('news')
@@ -141,7 +135,6 @@ export async function PUT(
       )
     }
 
-    console.log('✅ Noticia actualizada exitosamente:', updatedNews)
     return NextResponse.json({ news: updatedNews })
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación
@@ -175,8 +168,6 @@ export async function DELETE(
     const supabase = await createClient()
     const { id } = await params
 
-    console.log('🔄 Eliminando noticia con ID:', id)
-
     const { error } = await supabase
       .from('news')
       .delete()
@@ -190,7 +181,6 @@ export async function DELETE(
       )
     }
 
-    console.log('✅ Noticia eliminada exitosamente')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('💥 Unexpected error:', error)

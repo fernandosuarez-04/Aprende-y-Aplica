@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { dedupedFetch } from '@/lib/supabase/request-deduplication';
 import { 
   Play, 
   BookOpen, 
@@ -43,11 +44,22 @@ import {
   MicOff
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
-import { NotesModal } from '../../../../core/components/NotesModal';
-import { VideoPlayer } from '../../../../core/components/VideoPlayer';
+// ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
+import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
 import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
+
+// Lazy load componentes pesados (solo se cargan cuando se usan)
+const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
+  loading: () => <div className="flex items-center justify-center p-8">Cargando notas...</div>,
+  ssr: false // Modal no necesita SSR
+});
+
+const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlayer').then(mod => ({ default: mod.VideoPlayer })), {
+  loading: () => <div className="flex items-center justify-center aspect-video bg-gray-900 rounded-lg">Cargando video...</div>,
+  ssr: false
+});
 
 interface Lesson {
   lesson_id: string;
@@ -698,21 +710,43 @@ Antes de cada respuesta, pregúntate:
     async function loadCourse() {
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}`);
-        
-        if (!response.ok) throw new Error('Curso no encontrado');
-        
-        const courseData = await response.json();
-        console.log('Course data loaded:', courseData);
-        setCourse(courseData);
-        
-        // Cargar módulos y lecciones usando el slug
-        await loadModules(slug);
-        
-        // Cargar estadísticas de notas del curso usando el slug
-        await loadNotesStats(slug);
+
+        // ⚡ OPTIMIZACIÓN CRÍTICA: Usar endpoint unificado para reducir de 7 requests a 1
+        // Determinar lessonId para incluir datos de lección actual (opcional)
+        const lessonId = currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
+        const queryParams = lessonId ? `?lessonId=${lessonId}` : '';
+
+        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${queryParams}`);
+
+        // Extraer datos del response unificado
+        if (learnData.course) {
+          setCourse(learnData.course);
+        }
+
+        if (learnData.modules) {
+          setModules(learnData.modules);
+
+          // Calcular progreso
+          const allLessons = learnData.modules.flatMap((m: Module) => m.lessons);
+          const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
+          const totalProgress = allLessons.length > 0
+            ? Math.round((completedLessons.length / allLessons.length) * 100)
+            : 0;
+          setCourseProgress(totalProgress);
+        }
+
+        if (learnData.notesStats) {
+          setNotesStats(learnData.notesStats);
+        }
+
+        // Si se incluyó lessonId y hay datos de lección, cachearlos
+        if (learnData.currentLesson && lessonId) {
+          // Los datos ya están cacheados en el navegador por el fetch
+          // Cuando los tabs los soliciten, vendrán del cache
+        }
+
       } catch (error) {
-        console.error('Error loading course:', error);
+        // Error manejado silenciosamente
       } finally {
         setLoading(false);
       }
@@ -730,62 +764,36 @@ Antes de cada respuesta, pregúntate:
     }
   }, [currentLesson?.lesson_id, slug]);
 
-  // Prefetch de contenidos cuando cambia la lección para mejorar rendimiento
-  useEffect(() => {
-    if (currentLesson?.lesson_id && slug) {
-      // Prefetch en paralelo usando Promise.all para precargar en caché del navegador
-      Promise.all([
-        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript`, {
-          method: 'GET',
-        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
-        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary`, {
-          method: 'GET',
-        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
-        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/activities`, {
-          method: 'GET',
-        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
-        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/materials`, {
-          method: 'GET',
-        }).catch(() => {}), // Ignorar errores silenciosamente en prefetch
-        fetch(`/api/courses/${slug}/questions`, {
-          method: 'GET',
-        }).catch(() => {}) // Prefetch de questions para mejorar rendimiento
-      ]);
-    }
-  }, [currentLesson?.lesson_id, slug]);
+  // ⚡ OPTIMIZACIÓN: Eliminado prefetch waterfall - datos ya vienen del endpoint unificado
+  // El endpoint /learn-data ya incluye transcript, summary, activities, materials y questions
 
 
   const loadModules = async (courseSlug: string) => {
     try {
-      const response = await fetch(`/api/courses/${courseSlug}/modules`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Modules data loaded:', data);
-        setModules(data);
-        
-        // Calcular progreso general del curso
-        const allLessons = data.flatMap((m: Module) => m.lessons);
-        const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
-        const totalProgress = allLessons.length > 0 
-          ? Math.round((completedLessons.length / allLessons.length) * 100)
-          : 0;
-        setCourseProgress(totalProgress);
-        
-        // Actualizar estadísticas de notas con el total de lecciones
-        const totalLessons = allLessons.length;
-        setNotesStats(prev => ({
-          ...prev,
-          lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0'
-        }));
-        
-        // Seleccionar la primera lección disponible o la siguiente no completada
-        if (data.length > 0 && data[0].lessons.length > 0) {
-          const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
-          const selectedLesson = nextIncomplete || data[0].lessons[0];
-          setCurrentLesson(selectedLesson);
-        }
-      } else {
-        console.error('Error fetching modules:', response.statusText);
+      // ⚡ OPTIMIZACIÓN: Usar dedupedFetch para evitar requests duplicados
+      const data = await dedupedFetch(`/api/courses/${courseSlug}/modules`);
+      setModules(data);
+
+      // Calcular progreso general del curso
+      const allLessons = data.flatMap((m: Module) => m.lessons);
+      const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
+      const totalProgress = allLessons.length > 0
+        ? Math.round((completedLessons.length / allLessons.length) * 100)
+        : 0;
+      setCourseProgress(totalProgress);
+
+      // Actualizar estadísticas de notas con el total de lecciones
+      const totalLessons = allLessons.length;
+      setNotesStats(prev => ({
+        ...prev,
+        lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0'
+      }));
+
+      // Seleccionar la primera lección disponible o la siguiente no completada
+      if (data.length > 0 && data[0].lessons.length > 0) {
+        const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
+        const selectedLesson = nextIncomplete || data[0].lessons[0];
+        setCurrentLesson(selectedLesson);
       }
     } catch (error) {
       console.error('Error loading modules:', error);

@@ -24,8 +24,6 @@ export async function POST(
       return NextResponse.json({ error: 'postIds es requerido y debe ser un array' }, { status: 400 });
     }
 
-    console.log(`🚀 [BATCH] Fetching reactions for ${postIds.length} posts`);
-
     // ✅ 1 SOLA QUERY para obtener todas las reacciones de todos los posts
     const { data: allReactions, error: reactionsError } = await supabase
       .from('community_reactions')
@@ -43,8 +41,6 @@ export async function POST(
       console.error('❌ Error fetching batch reactions:', reactionsError);
       return NextResponse.json({ error: 'Error al obtener reacciones' }, { status: 500 });
     }
-
-    console.log(`✅ [BATCH] Fetched ${allReactions?.length || 0} total reactions`);
 
     // Agrupar reacciones por post_id
     const reactionsByPost: Record<string, any> = {};
@@ -94,7 +90,7 @@ export async function POST(
       };
     });
 
-    console.log(`✅ [BATCH] Processed reactions for ${Object.keys(reactionsByPost).length} posts`);
+    .length} posts`);
 
     return NextResponse.json({ 
       success: true,

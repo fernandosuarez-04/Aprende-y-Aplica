@@ -271,8 +271,6 @@ export async function POST(
       console.error('Error updating comment count:', updateError);
     }
 
-    console.log('✅ Comment created successfully:', newComment.id);
-
     // ⭐ MODERACIÓN CAPA 2: Análisis con IA DESPUÉS de crear el comentario
     // Este análisis se ejecuta en background sin bloquear la respuesta
     (async () => {
@@ -283,8 +281,6 @@ export async function POST(
           shouldAutoBan 
         } = await import('../../../../../../../lib/ai-moderation');
         
-        console.log('🤖 Starting AI moderation analysis for comment:', newComment.id);
-        
         // Analizar contenido con IA
         const aiResult = await analyzeContentWithAI(content, {
           contentType: 'comment',
@@ -292,10 +288,7 @@ export async function POST(
           previousWarnings: await getUserWarningsCount(user.id, supabase),
         });
         
-        console.log('🤖 AI Analysis Result:', {
-          commentId: newComment.id,
-          isInappropriate: aiResult.isInappropriate,
-          confidence: (aiResult.confidence * 100).toFixed(1) + '%',
+        .toFixed(1) + '%',
           categories: aiResult.categories,
           requiresHumanReview: aiResult.requiresHumanReview,
         });
@@ -312,8 +305,6 @@ export async function POST(
         
         // Si la IA detectó contenido inapropiado
         if (aiResult.isInappropriate) {
-          console.log('🚨 Inappropriate content detected! Deleting comment:', newComment.id);
-          
           // ELIMINAR EL COMENTARIO
           const { error: deleteError } = await supabase
             .from('community_comments')
@@ -323,8 +314,6 @@ export async function POST(
           if (deleteError) {
             console.error('❌ Error deleting flagged comment:', deleteError);
           } else {
-            console.log('✅ Comment deleted successfully:', newComment.id);
-            
             // Decrementar el contador de comentarios
             const { error: decrementError } = await (supabase as any).rpc('decrement_comment_count', {
               post_id: postId
@@ -343,19 +332,11 @@ export async function POST(
             supabase
           );
           
-          console.log('⚠️ Warning registered for user:', {
-            userId: user.id,
-            warningCount: warningResult.warningCount,
-            userBanned: warningResult.userBanned,
-          });
-          
           // Si el usuario fue baneado (4ta advertencia)
           if (warningResult.userBanned) {
-            console.log('🚫 User has been banned:', user.id);
-          }
+            }
         } else {
-          console.log('✅ Content approved by AI moderation:', newComment.id);
-        }
+          }
         
       } catch (error) {
         console.error('❌ Error in background AI moderation:', error);

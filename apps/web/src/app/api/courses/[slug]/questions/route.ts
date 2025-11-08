@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
 
 /**
  * GET /api/courses/[slug]/questions
@@ -137,10 +138,18 @@ export async function GET(
         user_reaction: userReactionsMap.get(question.id) || null
       }));
 
-      return NextResponse.json(questionsWithCounts || []);
+      // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+      return withCacheHeaders(
+        NextResponse.json(questionsWithCounts || []),
+        cacheHeaders.semiStatic
+      );
     }
 
-    return NextResponse.json(questions || []);
+    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+    return withCacheHeaders(
+      NextResponse.json(questions || []),
+      cacheHeaders.semiStatic
+    );
   } catch (error) {
     console.error('Error in questions API:', error);
     return NextResponse.json(

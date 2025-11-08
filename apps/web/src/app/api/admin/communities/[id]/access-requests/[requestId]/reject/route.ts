@@ -85,7 +85,7 @@ export async function PATCH(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.warn('Error en log de auditoría (no crítico):', auditError)
+      console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 

@@ -171,11 +171,7 @@ export async function requestPasswordResetAction(
 
         // En desarrollo, log del token
         if (process.env.NODE_ENV !== 'production') {
-          console.log(`🔐 [DEV] Token: ${resetToken}`);
-          console.log(
-            `🔗 [DEV] URL: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
-          );
-        }
+          }
 
         return { success: true, message: successMessage };
       }
@@ -183,17 +179,12 @@ export async function requestPasswordResetAction(
       const username = user.first_name || user.username || user.email.split('@')[0];
       await emailService.sendPasswordResetEmail(user.email, resetToken, username);
 
-      console.log(`✅ Email de recuperación enviado a ${user.email}`);
-    } catch (emailError) {
+      } catch (emailError) {
       console.error('Error enviando email:', emailError);
 
       // En desarrollo, mostrar el token
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`🔐 [DEV] Token: ${resetToken}`);
-        console.log(
-          `🔗 [DEV] URL: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
-        );
-      }
+        }
     }
 
     return { success: true, message: successMessage };
@@ -309,10 +300,7 @@ export async function resetPasswordAction(
         .update({ revoked: true })
         .eq('user_id', tokenData.user_id);
     } catch (sessionError) {
-      console.warn('No se pudieron invalidar sesiones:', sessionError);
-    }
-
-    console.log(`✅ Contraseña actualizada exitosamente para user_id: ${tokenData.user_id}`);
+      }
 
     // 12. RETORNAR ÉXITO
     return {

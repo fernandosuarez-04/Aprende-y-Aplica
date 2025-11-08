@@ -88,8 +88,6 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.getPrompts: Iniciando...')
-      
       const { data, error } = await supabase
         .from('ai_prompts')
         .select(`
@@ -128,8 +126,6 @@ export class AdminPromptsService {
         throw error
       }
 
-      console.log('✅ Prompts obtenidos:', data?.length || 0)
-
       // Obtener información de autores
       const promptsWithAuthors = await Promise.all(
         (data || []).map(async (prompt) => {
@@ -155,7 +151,6 @@ export class AdminPromptsService {
         })
       )
 
-      console.log('✅ Prompts con autores procesados:', promptsWithAuthors.length)
       return promptsWithAuthors
     } catch (error) {
       console.error('💥 Error in AdminPromptsService.getPrompts:', error)
@@ -167,8 +162,6 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.getCategories: Iniciando...')
-      
       const { data, error } = await supabase
         .from('ai_categories')
         .select(`
@@ -190,7 +183,6 @@ export class AdminPromptsService {
         throw error
       }
 
-      console.log('✅ Categorías obtenidas:', data?.length || 0)
       return data || []
     } catch (error) {
       console.error('💥 Error in AdminPromptsService.getCategories:', error)
@@ -202,16 +194,13 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.getPromptStats: Iniciando...')
-      
       // Obtener estadísticas básicas
       const { count: totalPrompts, error: totalError } = await supabase
         .from('ai_prompts')
         .select('*', { count: 'exact', head: true })
 
       if (totalError) {
-        console.warn('Error counting total prompts:', totalError)
-      }
+        }
 
       const { count: activePrompts, error: activeError } = await supabase
         .from('ai_prompts')
@@ -219,8 +208,7 @@ export class AdminPromptsService {
         .eq('is_active', true)
 
       if (activeError) {
-        console.warn('Error counting active prompts:', activeError)
-      }
+        }
 
       const { count: featuredPrompts, error: featuredError } = await supabase
         .from('ai_prompts')
@@ -228,8 +216,7 @@ export class AdminPromptsService {
         .eq('is_featured', true)
 
       if (featuredError) {
-        console.warn('Error counting featured prompts:', featuredError)
-      }
+        }
 
       // Obtener estadísticas agregadas
       const { data: statsData, error: statsError } = await supabase
@@ -238,8 +225,7 @@ export class AdminPromptsService {
         .eq('is_active', true)
 
       if (statsError) {
-        console.warn('Error fetching prompt stats:', statsError)
-      }
+        }
 
       const stats = statsData || []
       const totalLikes = stats.reduce((sum, prompt) => sum + (prompt.like_count || 0), 0)
@@ -261,7 +247,6 @@ export class AdminPromptsService {
         averageRating: Math.round(averageRating * 10) / 10
       }
 
-      console.log('✅ Estadísticas de prompts calculadas:', result)
       return result
     } catch (error) {
       console.error('💥 Error in AdminPromptsService.getPromptStats:', error)
@@ -273,9 +258,6 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.createPrompt: Iniciando...')
-      console.log('📋 Datos a insertar:', promptData)
-      
       // ✅ SEGURIDAD: Sanitizar y generar slug único
       let slug: string;
       
@@ -309,8 +291,6 @@ export class AdminPromptsService {
         console.error('❌ Error: adminUserId no existe en la base de datos:', adminUserId)
         throw new Error(`El usuario autenticado no existe en la base de datos: ${adminUserId}`)
       }
-
-      console.log('✅ Usuario verificado:', adminUserId)
 
       // Procesar tags correctamente
       let processedTags: string[] = []
@@ -375,7 +355,6 @@ export class AdminPromptsService {
         throw error
       }
 
-      console.log('✅ Prompt creado exitosamente:', data)
       return data
     } catch (error) {
       console.error('💥 Error in AdminPromptsService.createPrompt:', error)
@@ -387,9 +366,6 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.updatePrompt: Iniciando...')
-      console.log('📋 Datos a actualizar:', promptData)
-      
       // Solo incluir campos que sabemos que existen en la BD
       const updateData: any = {
         updated_at: new Date().toISOString()
@@ -417,8 +393,6 @@ export class AdminPromptsService {
       if (promptData.is_active !== undefined) updateData.is_active = promptData.is_active
       if (promptData.category_id !== undefined) updateData.category_id = promptData.category_id
 
-      console.log('📋 Datos filtrados para actualizar:', updateData)
-      
       const { data, error } = await supabase
         .from('ai_prompts')
         .update(updateData)
@@ -451,7 +425,6 @@ export class AdminPromptsService {
         throw error
       }
 
-      console.log('✅ Prompt actualizado exitosamente:', data)
       return data
     } catch (error) {
       console.error('💥 Error in AdminPromptsService.updatePrompt:', error)
@@ -463,8 +436,6 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.deletePrompt: Iniciando...')
-      
       const { error } = await supabase
         .from('ai_prompts')
         .delete()
@@ -475,8 +446,7 @@ export class AdminPromptsService {
         throw error
       }
 
-      console.log('✅ Prompt eliminado exitosamente')
-    } catch (error) {
+      } catch (error) {
       console.error('💥 Error in AdminPromptsService.deletePrompt:', error)
       throw error
     }
@@ -486,8 +456,6 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.togglePromptStatus: Iniciando...')
-      
       const { data, error } = await supabase
         .from('ai_prompts')
         .update({ 
@@ -507,7 +475,6 @@ export class AdminPromptsService {
         throw error
       }
 
-      console.log('✅ Estado del prompt actualizado:', data)
       return data
     } catch (error) {
       console.error('💥 Error in AdminPromptsService.togglePromptStatus:', error)
@@ -519,8 +486,6 @@ export class AdminPromptsService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminPromptsService.togglePromptFeatured: Iniciando...')
-      
       const { data, error } = await supabase
         .from('ai_prompts')
         .update({ 
@@ -540,7 +505,6 @@ export class AdminPromptsService {
         throw error
       }
 
-      console.log('✅ Estado destacado del prompt actualizado:', data)
       return data
     } catch (error) {
       console.error('💥 Error in AdminPromptsService.togglePromptFeatured:', error)

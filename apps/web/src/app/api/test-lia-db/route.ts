@@ -31,8 +31,6 @@ export async function GET() {
       ip_address: '127.0.0.1'
     };
 
-    console.log('[TEST] Intentando insertar:', testData);
-
     const { data, error } = await supabase
       .from('lia_conversations' as any)
       .insert(testData as any)
@@ -55,8 +53,6 @@ export async function GET() {
 
     // 4. Si llegamos aquí, funcionó
     const conversationId = (data as any)?.conversation_id;
-
-    console.log('[TEST] ✅ Insert exitoso:', conversationId);
 
     // 5. Verificar que se guardó
     const { data: checkData, error: checkError } = await supabase

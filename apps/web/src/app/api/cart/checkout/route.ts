@@ -25,8 +25,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { items }: { items: CartItem[] } = body;
 
-    console.log('📦 Procesando checkout con items:', items.length);
-
     if (!items || items.length === 0) {
       return NextResponse.json(
         { error: 'El carrito está vacío' },
@@ -43,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Procesar cada item del carrito
     for (const item of items) {
       try {
-        console.log(`🔄 Procesando item: ${item.title} (${item.itemType})`);
+        `);
         
         if (item.itemType === 'course') {
           // Procesar curso
@@ -55,7 +53,6 @@ export async function POST(request: NextRequest) {
           );
           
           if (courseResult.success) {
-            console.log(`✅ Curso procesado: ${item.title}`);
             results.courses.push(courseResult.data);
           } else {
             console.error(`❌ Error procesando curso ${item.title}:`, courseResult.error);
@@ -72,14 +69,12 @@ export async function POST(request: NextRequest) {
           );
           
           if (subscriptionResult.success) {
-            console.log(`✅ Suscripción procesada: ${item.title}`);
             results.subscriptions.push(subscriptionResult.data);
           } else {
             console.error(`❌ Error procesando suscripción ${item.title}:`, subscriptionResult.error);
             results.errors.push(`Error procesando suscripción ${item.title}: ${subscriptionResult.error}`);
           }
         } else {
-          console.warn(`⚠️ Tipo de item desconocido: ${item.itemType}`);
           results.errors.push(`Tipo de item desconocido: ${item.itemType}`);
         }
       } catch (error) {
@@ -88,8 +83,6 @@ export async function POST(request: NextRequest) {
         results.errors.push(`Error procesando ${item.title}: ${errorMessage}`);
       }
     }
-
-    console.log(`📊 Resultados: ${results.courses.length} cursos, ${results.subscriptions.length} suscripciones, ${results.errors.length} errores`);
 
     // Si hay errores pero al menos una compra exitosa, retornar éxito parcial
     if (results.errors.length > 0 && results.courses.length === 0 && results.subscriptions.length === 0) {
@@ -143,7 +136,6 @@ async function processCoursePurchase(
 
     // Si no se encuentra por ID, intentar buscar por slug
     if (courseError || !course) {
-      console.log(`⚠️ Curso no encontrado por ID "${courseId}", intentando por slug...`);
       const { data: courseBySlug, error: slugError } = await supabase
         .from('courses')
         .select('id, title, price, slug')
@@ -153,8 +145,7 @@ async function processCoursePurchase(
       if (!slugError && courseBySlug) {
         course = courseBySlug;
         courseError = null;
-        console.log(`✅ Curso encontrado por slug: ${course.title}`);
-      } else {
+        } else {
         console.error('❌ Error obteniendo curso:', courseError || slugError);
         return { success: false, error: `Curso no encontrado: ${(courseError || slugError)?.message || 'Curso no existe'}` };
       }
@@ -302,8 +293,7 @@ async function processCoursePurchase(
           actionUrl: `/courses/${course.slug}`,
         },
       });
-      console.log(`✅ Notificación creada para curso: ${course.title}`);
-    } catch (notifError) {
+      } catch (notifError) {
       console.error('Error creando notificación (no crítico):', notifError);
       // No fallar si la notificación falla
     }
@@ -406,8 +396,7 @@ async function processSubscriptionPurchase(
           actionUrl: '/subscriptions',
         },
       });
-      console.log(`✅ Notificación creada para suscripción: ${plan.name}`);
-    } catch (notifError) {
+      } catch (notifError) {
       console.error('Error creando notificación (no crítico):', notifError);
       // No fallar si la notificación falla
     }

@@ -7,8 +7,6 @@ export interface InstructorCommunityStats extends CommunityStats {}
 export class InstructorCommunitiesService {
   static async getCommunities(): Promise<InstructorCommunity[]> {
     try {
-      console.log('🔄 InstructorCommunitiesService.getCommunities: Iniciando...')
-      
       const response = await fetch('/api/instructor/communities', {
         method: 'GET',
         headers: {
@@ -21,7 +19,6 @@ export class InstructorCommunitiesService {
       }
 
       const data = await response.json()
-      console.log('✅ Comunidades del instructor obtenidas exitosamente:', data.communities?.length || 0)
       return data.communities || []
     } catch (error) {
       console.error('💥 Error in InstructorCommunitiesService.getCommunities:', error)
@@ -31,8 +28,6 @@ export class InstructorCommunitiesService {
 
   static async getCommunityStats(): Promise<InstructorCommunityStats> {
     try {
-      console.log('🔄 InstructorCommunitiesService.getCommunityStats: Iniciando...')
-      
       const response = await fetch('/api/instructor/communities/stats', {
         method: 'GET',
         headers: {
@@ -45,7 +40,6 @@ export class InstructorCommunitiesService {
       }
 
       const data = await response.json()
-      console.log('✅ Estadísticas de comunidades del instructor obtenidas:', data.stats)
       return data.stats
     } catch (error) {
       console.error('💥 Error in InstructorCommunitiesService.getCommunityStats:', error)

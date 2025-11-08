@@ -22,8 +22,6 @@ export async function PATCH(
       )
     }
 
-    console.log('🔄 Cambiando estado de noticia con ID:', id, 'a:', status)
-
     const updateData: any = {
       status,
       updated_at: new Date().toISOString()
@@ -57,7 +55,6 @@ export async function PATCH(
       )
     }
 
-    console.log('✅ Estado de noticia actualizado exitosamente:', updatedNews)
     return NextResponse.json({ news: updatedNews })
   } catch (error) {
     console.error('💥 Unexpected error:', error)

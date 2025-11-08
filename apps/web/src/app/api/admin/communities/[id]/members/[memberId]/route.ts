@@ -55,7 +55,6 @@ export async function DELETE(
       .eq('id', communityId)
 
     if (updateCountError) {
-      console.warn('Error updating member count:', updateCountError)
       // No fallar la operación por esto, solo loguear el warning
     }
 

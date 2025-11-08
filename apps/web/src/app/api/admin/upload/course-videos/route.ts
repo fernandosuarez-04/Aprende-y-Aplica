@@ -10,11 +10,7 @@ export async function POST(request: NextRequest) {
   // Wrapper para capturar CUALQUIER error y devolver JSON
   try {
     // Logging temprano para ver si la request llega
-    console.log('📥 Received upload request', {
-      url: request.url,
-      method: request.method,
-      headers: {
-        'content-type': request.headers.get('content-type'),
+    ,
         'content-length': request.headers.get('content-length'),
       }
     })
@@ -37,7 +33,7 @@ export async function POST(request: NextRequest) {
           }
         )
       }
-      console.log('✅ Content-Length OK:', `${(sizeBytes / 1024 / 1024).toFixed(2)} MB`)
+      .toFixed(2)} MB`)
     }
     
     // Verificar variables de entorno
@@ -61,8 +57,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ Environment variables OK')
-
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) {
       // requireAdmin ya devuelve JSON, solo asegurar Content-Type
@@ -71,15 +65,11 @@ export async function POST(request: NextRequest) {
       return clonedResponse
     }
     
-    console.log('✅ Authentication OK')
-
     // Intentar leer FormData con manejo de errores específico
     let formData: FormData
     try {
-      console.log('📥 Reading FormData...')
       formData = await request.formData()
-      console.log('✅ FormData read successfully')
-    } catch (formDataError) {
+      } catch (formDataError) {
       console.error('❌ Error reading FormData:', formDataError)
       return NextResponse.json(
         {
@@ -105,8 +95,6 @@ export async function POST(request: NextRequest) {
         }
       )
     }
-
-    console.log('✅ File received:', { name: file.name, size: file.size, type: file.type })
 
     // Validar tamaño (máximo 1GB para videos)
     const maxSize = 1024 * 1024 * 1024 // 1GB
@@ -161,8 +149,6 @@ export async function POST(request: NextRequest) {
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
     const filePath = `videos/${fileName}`
 
-    console.log('📤 Uploading video:', { fileName, size: file.size, type: file.type })
-
     // Subir archivo usando service role key
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('course-videos')
@@ -204,8 +190,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-
-    console.log('✅ Video uploaded successfully:', urlData.publicUrl)
 
     return NextResponse.json({
       success: true,

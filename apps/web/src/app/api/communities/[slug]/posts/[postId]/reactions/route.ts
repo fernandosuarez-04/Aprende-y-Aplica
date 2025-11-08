@@ -103,8 +103,7 @@ export async function GET(
           topReactions = topData;
         }
       } catch (error) {
-        console.warn('Error fetching top reactions:', error);
-      }
+        }
     }
 
     // Calcular total de reacciones

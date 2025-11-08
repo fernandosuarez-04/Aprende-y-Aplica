@@ -60,8 +60,6 @@ export class AdminReportesService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminReportesService.getReportes: Iniciando...')
-      
       // Construir query base
       let query = supabase
         .from('reportes_problemas')
@@ -111,8 +109,6 @@ export class AdminReportesService {
         throw error
       }
 
-      console.log('✅ Reportes obtenidos:', data?.length || 0)
-
       // Obtener información de usuarios
       const reportesConUsuarios = await Promise.all(
         (data || []).map(async (reporte) => {
@@ -152,7 +148,6 @@ export class AdminReportesService {
         })
       )
 
-      console.log('✅ Reportes con usuarios procesados:', reportesConUsuarios.length)
       return reportesConUsuarios
     } catch (error) {
       console.error('💥 Error in AdminReportesService.getReportes:', error)
@@ -164,8 +159,6 @@ export class AdminReportesService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminReportesService.getReporteById: Iniciando...')
-      
       const { data, error } = await supabase
         .from('reportes_problemas')
         .select(`
@@ -254,9 +247,6 @@ export class AdminReportesService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminReportesService.updateReporte: Iniciando...')
-      console.log('📋 Datos a actualizar:', updates)
-      
       const updateData: any = {
         updated_at: new Date().toISOString()
       }
@@ -278,8 +268,6 @@ export class AdminReportesService {
         updateData.prioridad = updates.prioridad
       }
 
-      console.log('📋 Datos filtrados para actualizar:', updateData)
-      
       const { data, error } = await supabase
         .from('reportes_problemas')
         .update(updateData)
@@ -292,7 +280,6 @@ export class AdminReportesService {
         throw error
       }
 
-      console.log('✅ Reporte actualizado exitosamente:', data)
       return data as AdminReporte
     } catch (error) {
       console.error('💥 Error in AdminReportesService.updateReporte:', error)
@@ -304,8 +291,6 @@ export class AdminReportesService {
     const supabase = await createClient()
 
     try {
-      console.log('🔄 AdminReportesService.getReporteStats: Iniciando...')
-      
       // Obtener todos los reportes para calcular estadísticas
       const { data: reportes, error } = await supabase
         .from('reportes_problemas')
@@ -357,7 +342,6 @@ export class AdminReportesService {
         stats.porPrioridad[pri] = (stats.porPrioridad[pri] || 0) + 1
       })
 
-      console.log('✅ Estadísticas de reportes calculadas:', stats)
       return stats
     } catch (error) {
       console.error('💥 Error in AdminReportesService.getReporteStats:', error)

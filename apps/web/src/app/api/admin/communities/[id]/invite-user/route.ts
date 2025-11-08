@@ -112,7 +112,6 @@ export async function POST(
     })
 
     if (updateCountError) {
-      console.warn('Error updating member count:', updateCountError)
       // No fallar la operación por esto
     }
 

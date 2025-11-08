@@ -22,12 +22,6 @@ export async function loginAction(formData: FormData) {
       rememberMe: formData.get('rememberMe') === 'true',
     })
 
-    console.log('🔍 Login attempt:', {
-      emailOrUsername: parsed.emailOrUsername,
-      passwordLength: parsed.password.length,
-      rememberMe: parsed.rememberMe
-    })
-
     // 2. Crear cliente Supabase
     const supabase = await createClient()
 
@@ -47,19 +41,12 @@ export async function loginAction(formData: FormData) {
       .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .single()
 
-    console.log('🔍 User query result:', {
-      user: user ? { id: user.id, username: user.username, email: user.email } : null,
-      error: error ? { code: error.code, message: error.message } : null
-    })
-
     if (error || !user) {
-      console.log('❌ User not found or error:', error)
       return { error: 'Credenciales inválidas' }
     }
 
     // ⭐ MODERACIÓN: Verificar si el usuario está baneado
     if ((user as any).is_banned) {
-      console.log('🚫 Usuario baneado intenta iniciar sesión');
       return { 
         error: `❌ Tu cuenta ha sido suspendida por violaciones de las reglas de la comunidad. ${(user as any).ban_reason || ''}`,
         banned: true
@@ -68,14 +55,12 @@ export async function loginAction(formData: FormData) {
 
     // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)
     if (!user.password_hash) {
-      console.error('❌ User has no password_hash');
       return { error: 'Error en la configuración de la cuenta. Por favor, contacta al soporte.' }
     }
 
     const passwordValid = await bcrypt.compare(parsed.password, user.password_hash)
-    
+
     if (!passwordValid) {
-      console.log('❌ Invalid password');
       
       // Crear notificación de intento de inicio de sesión fallido
       try {
@@ -91,9 +76,9 @@ export async function loginAction(formData: FormData) {
         })
       } catch (notificationError) {
         // No lanzar error para no afectar el flujo principal
-        console.error('Error creando notificación de inicio de sesión fallido:', notificationError)
+        // Error silenciado para no exponer información
       }
-      
+
       return { error: 'Credenciales inválidas' }
     }
 
@@ -191,11 +176,9 @@ export async function loginAction(formData: FormData) {
     // }
 
     // 6. Crear sesión personalizada (sin Supabase Auth)
-    console.log('🔐 Iniciando creación de sesión...');
     try {
       await SessionService.createSession(user.id, parsed.rememberMe)
-      console.log('✅ Sesión creada exitosamente');
-      
+
       // OPTIMIZACIÓN: Crear notificación en background (no await)
       // No bloqueamos el login esperando la notificación
       (async () => {
@@ -212,11 +195,10 @@ export async function loginAction(formData: FormData) {
             timestamp: new Date().toISOString()
           })
         } catch (notificationError) {
-          console.error('Error creando notificación de inicio de sesión:', notificationError)
+          // Error silenciado para no exponer información
         }
       })().catch(() => {}) // Fire and forget
     } catch (sessionError) {
-      console.error('❌ Error creando sesión:', sessionError);
       return { error: 'Error al crear la sesión. Por favor, intenta nuevamente.' }
     }
 
@@ -225,7 +207,6 @@ export async function loginAction(formData: FormData) {
       await AuthService.clearExpiredSessions()
     } catch (clearError) {
       // No fallar el login si falla la limpieza
-      console.warn('⚠️ Error limpiando sesiones expiradas:', clearError);
     }
 
     // 7. Si NO es login personalizado (login general), verificar si usuario tiene organización
@@ -271,30 +252,22 @@ export async function loginAction(formData: FormData) {
 
       // Si usuario tiene organización, redirigir a su login personalizado
       if (userOrgSlug) {
-        console.log(`🎯 Usuario con organización, redirigiendo a /auth/${userOrgSlug}`);
         redirect(`/auth/${userOrgSlug}`)
       }
     }
 
     // 8. Redirigir según el rol del usuario
-    console.log('🔄 Redirigiendo según rol:', user.cargo_rol);
-    
     const normalizedRole = user.cargo_rol?.trim();
-    
+
     if (normalizedRole === 'Administrador') {
-      console.log('🎯 Redirigiendo a /admin/dashboard');
       redirect('/admin/dashboard')
     } else if (normalizedRole === 'Instructor') {
-      console.log('🎯 Redirigiendo a /instructor/dashboard');
       redirect('/instructor/dashboard')
     } else if (normalizedRole === 'Business') {
-      console.log('🎯 Redirigiendo a /business-panel/dashboard');
       redirect('/business-panel/dashboard')
     } else if (normalizedRole === 'Business User') {
-      console.log('🎯 Redirigiendo a /business-user/dashboard');
       redirect('/business-user/dashboard')
     } else {
-      console.log('🎯 Redirigiendo a /dashboard');
       redirect('/dashboard')
     }
   } catch (error) {
@@ -303,30 +276,17 @@ export async function loginAction(formData: FormData) {
       const digest = (error as any).digest
       if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
         // Es una redirección, no un error - re-lanzar para que Next.js la maneje
-        console.log('✅ Redirección exitosa detectada');
         throw error
       }
     }
-    
-    console.error('❌ Login error completo:', error)
-    console.error('❌ Error name:', (error as any)?.name)
-    console.error('❌ Error message:', (error as any)?.message)
-    console.error('❌ Error stack:', (error as any)?.stack)
-    
+
     if (error instanceof z.ZodError) {
-      console.log('❌ Validation error:', error.errors)
       const firstError = error.errors[0];
       return { error: firstError?.message || 'Error de validación' }
     }
-    
+
     // Proporcionar mensajes de error más específicos
     if (error instanceof Error) {
-      console.error('❌ Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-      
       // Mensajes de error más específicos según el tipo
       if (error.message.includes('password_hash') || error.message.includes('password')) {
         return { error: 'Error al verificar las credenciales. Por favor, intenta nuevamente.' }
@@ -336,10 +296,9 @@ export async function loginAction(formData: FormData) {
         return { error: 'Error al crear la sesión. Por favor, verifica las cookies de tu navegador.' }
       }
     }
-    
+
     // Proporcionar mensaje de error más descriptivo
     const errorMessage = (error as any)?.message || 'Error inesperado al iniciar sesión';
-    console.log('❌ Unexpected error:', errorMessage)
     return { error: errorMessage }
   }
 }

@@ -121,7 +121,6 @@ function filterSystemPromptFromResponse(text: string): string {
   // Si comienza con alguno de estos indicadores, definitivamente es el prompt
   for (const indicator of promptIndicators) {
     if (trimmedText.startsWith(indicator)) {
-      console.warn('⚠️ Prompt del sistema detectado al inicio de respuesta - aplicando filtro');
       return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
     }
   }
@@ -136,7 +135,7 @@ function filterSystemPromptFromResponse(text: string): string {
 
   // Si hay 3 o más indicadores, es muy probable que sea el prompt completo
   if (indicatorCount >= 3) {
-    console.warn(`⚠️ Múltiples indicadores de prompt detectados (${indicatorCount}) - aplicando filtro`);
+    - aplicando filtro`);
     return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
   }
 
@@ -151,7 +150,6 @@ function filterSystemPromptFromResponse(text: string): string {
 
   for (const pattern of codePatterns) {
     if (pattern.test(text)) {
-      console.warn('⚠️ Variables de sistema detectadas en respuesta - aplicando filtro');
       return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
     }
   }

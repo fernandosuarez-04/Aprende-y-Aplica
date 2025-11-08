@@ -55,7 +55,6 @@ export class BusinessUsersService {
       const data = await response.json()
       
       if (!response.ok) {
-        console.warn('API error:', data.error)
         return [] // Retornar array vacío en lugar de lanzar
       }
 
@@ -72,7 +71,6 @@ export class BusinessUsersService {
       const data = await response.json()
       
       if (!response.ok) {
-        console.warn('API error:', data.error)
         return {
           total: 0,
           active: 0,

@@ -68,7 +68,7 @@ export async function PUT(
     const bodyRaw = await request.json()
     const body = UpdateReelSchema.parse(bodyRaw)
     
-    console.log('🔄 Body validado:', JSON.stringify(body, null, 2))
+    )
 
     const updateData: any = {}
     

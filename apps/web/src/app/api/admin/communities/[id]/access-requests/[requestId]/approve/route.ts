@@ -14,7 +14,6 @@ export async function PATCH(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId, requestId } = await params
-    console.log('🔍 Approve API - communityId:', communityId, 'requestId:', requestId)
     const supabase = await createClient()
 
     // Validar que el usuario puede gestionar solicitudes de esta comunidad
@@ -41,8 +40,6 @@ export async function PATCH(
         message: 'Solicitud no encontrada' 
       }, { status: 404 })
     }
-
-    console.log('✅ Request found:', currentRequest)
 
     if (currentRequest.status !== 'pending') {
       return NextResponse.json({ 
@@ -106,7 +103,6 @@ export async function PATCH(
         .eq('id', communityId)
 
       if (updateCountError) {
-        console.warn('Error updating member count:', updateCountError)
         // No fallar la operación por esto, solo loguear el warning
       }
     }
@@ -128,7 +124,7 @@ export async function PATCH(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.warn('Error en log de auditoría (no crítico):', auditError)
+      console.error('Error en auditoría:', auditError)
       // No fallar la operación por esto
     }
 

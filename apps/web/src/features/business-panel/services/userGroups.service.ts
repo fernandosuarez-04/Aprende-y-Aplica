@@ -55,7 +55,6 @@ export class UserGroupsService {
       const data = await response.json()
       
       if (!response.ok) {
-        console.warn('API error:', data.error)
         return []
       }
 
@@ -72,7 +71,6 @@ export class UserGroupsService {
       const data = await response.json()
       
       if (!response.ok) {
-        console.warn('API error:', data.error)
         return null
       }
 
@@ -136,7 +134,6 @@ export class UserGroupsService {
       const data = await response.json()
       
       if (!response.ok) {
-        console.warn('API error:', data.error)
         return []
       }
 

@@ -14,11 +14,8 @@ export async function PATCH(
     const { id: promptId } = await params
     const { isActive } = await request.json()
 
-    console.log('🔄 Cambiando estado del prompt:', promptId, 'isActive:', isActive)
-
     const updatedPrompt = await AdminPromptsService.togglePromptStatus(promptId, isActive)
 
-    console.log('✅ Estado del prompt actualizado:', updatedPrompt)
     return NextResponse.json({
       success: true,
       prompt: updatedPrompt

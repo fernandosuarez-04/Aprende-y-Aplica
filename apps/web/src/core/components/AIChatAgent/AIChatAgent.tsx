@@ -212,22 +212,14 @@ export function AIChatAgent({
     const timer = setTimeout(() => {
       const content = extractPageContent();
       setPageContent(content);
-      console.log('📄 Contenido de página extraído:', {
-        title: content.title,
-        metaDescriptionLength: content.metaDescription.length,
-        headingsCount: content.headings.length,
-        mainTextLength: content.mainText.length,
-        headings: content.headings
-      });
-    }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
+      }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
 
     return () => clearTimeout(timer);
   }, [pathname, isOpen]); // Re-extraer cuando cambie la ruta o se abra el chat
 
   // Debug: Log estado isOpen
   useEffect(() => {
-    console.log('🔵 Estado isOpen cambió:', isOpen);
-  }, [isOpen]);
+    }, [isOpen]);
 
   // Estado para posición arrastrable
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -465,15 +457,6 @@ export function AIChatAgent({
     setIsTyping(true);
 
     try {
-      console.log('🔄 Enviando mensaje a la API...', {
-        message: userMessage.content,
-        context: activeContext,
-        pageInfo: pageContextInfo,
-        pathname: pathname,
-        pageContent: pageContent,
-        historyLength: messages.length
-      });
-      
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -549,13 +532,10 @@ export function AIChatAgent({
   const toggleRecording = useCallback(() => {
     setIsRecording(!isRecording);
     // Aquí se implementaría la lógica de reconocimiento de voz
-    console.log('Recording toggled:', !isRecording);
-  }, [isRecording]);
+    }, [isRecording]);
 
   // Función para solicitar ayuda contextual
   const handleRequestHelp = async () => {
-    console.log('❓ Solicitando ayuda contextual');
-    
     // Abrir el chat si no está abierto
     if (!isOpen) {
       setIsOpen(true);
@@ -565,18 +545,10 @@ export function AIChatAgent({
     // Forzar extracción de contenido si no está disponible
     let currentPageContent = pageContent;
     if (!currentPageContent || !currentPageContent.title) {
-      console.log('⚠️ Contenido de página no disponible, extrayendo ahora...');
       currentPageContent = extractPageContent();
       setPageContent(currentPageContent);
     }
 
-    console.log('📄 Enviando ayuda con contexto:', {
-      pathname,
-      pageTitle: currentPageContent?.title,
-      headings: currentPageContent?.headings,
-      mainTextLength: currentPageContent?.mainText?.length
-    });
-    
     // Crear mensaje de ayuda automático
     const helpMessage: Message = {
       id: Date.now().toString(),
@@ -621,11 +593,6 @@ export function AIChatAgent({
       }
 
       const data = await response.json();
-      
-      console.log('✅ Respuesta recibida:', {
-        responseLength: data.response?.length,
-        response: data.response?.substring(0, 100)
-      });
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -695,7 +662,6 @@ export function AIChatAgent({
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('❓ Botón de ayuda clickeado');
                     handleRequestHelp();
                     setAreButtonsExpanded(false);
                   }}
@@ -721,7 +687,6 @@ export function AIChatAgent({
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('🐛 Botón de reportar problema clickeado');
                     setIsReportOpen(true);
                     setAreButtonsExpanded(false);
                   }}
@@ -780,7 +745,6 @@ export function AIChatAgent({
             <motion.button
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('🖱️ Botón flotante clickeado - abriendo chat');
                 setIsOpen(true);
                 setIsMinimized(false);
                 setHasUnreadMessages(false);

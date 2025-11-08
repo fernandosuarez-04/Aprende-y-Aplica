@@ -195,7 +195,6 @@ export class AdminModulesService {
             .eq('lesson_id', lessonId)
 
           if (materialsError) {
-            console.warn(`Error deleting materials for lesson ${lessonId}:`, materialsError)
             // Continuar aunque falle, no es crítico
           }
 
@@ -206,7 +205,6 @@ export class AdminModulesService {
             .eq('lesson_id', lessonId)
 
           if (activitiesError) {
-            console.warn(`Error deleting activities for lesson ${lessonId}:`, activitiesError)
             // Continuar aunque falle, no es crítico
           }
         }

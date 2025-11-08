@@ -34,8 +34,6 @@ export class InstructorStatsServerService {
       }
 
       // Fallback: Vista no disponible, usar queries tradicionales paralelizadas
-      console.warn('Vista materializada no disponible, usando queries tradicionales')
-
       // ✅ OPTIMIZACIÓN: Paralelizar queries de cursos y reels
       // ANTES: Secuencial (~1000ms)
       // DESPUÉS: Paralelo (~500ms)

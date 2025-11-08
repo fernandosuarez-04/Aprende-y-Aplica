@@ -135,11 +135,9 @@ export async function POST(
         .rpc('refresh_post_reaction_stats');
 
       if (refreshError) {
-        console.warn('Error refreshing materialized view:', refreshError);
-      }
+        }
     } catch (error) {
-      console.warn('Could not refresh materialized view:', error);
-    }
+      }
 
     // Obtener estadísticas actualizadas
     const { data: stats, error: statsError } = await supabase

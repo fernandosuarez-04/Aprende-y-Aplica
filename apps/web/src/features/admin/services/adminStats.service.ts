@@ -21,10 +21,7 @@ export interface AdminStatsWithChanges extends AdminStats {
 export class AdminStatsService {
   static async getStats(): Promise<AdminStatsWithChanges> {
     try {
-      console.log('🔍 AdminStatsService: Iniciando consultas a la base de datos...')
       const supabase = await createClient()
-      console.log('✅ AdminStatsService: Cliente de Supabase creado')
-
       // ✅ OPTIMIZACIÓN: Paralelizar todas las consultas independientes con Promise.all()
       // ANTES: 11 consultas secuenciales (~1 segundo cada una = 11 segundos total)
       // DESPUÉS: 11 consultas paralelas (~1 segundo total = 11x más rápido)
@@ -34,8 +31,6 @@ export class AdminStatsService {
 
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-      console.log('📊 AdminStatsService: Ejecutando todas las consultas en paralelo...')
 
       const [
         usersResult,
@@ -72,17 +67,6 @@ export class AdminStatsService {
         supabase.from('user_session').select('user_id').gte('issued_at', sevenDaysAgo.toISOString()).eq('revoked', false),
       ])
 
-      console.log('📊 Resultados de consultas paralelas:')
-      console.log('👥 Usuarios:', usersResult.count)
-      console.log('📚 Cursos:', coursesResult.count)
-      console.log('🤖 Apps de IA:', aiAppsResult.count, 'Error:', aiAppsResult.error)
-      console.log('📰 Noticias:', newsResult.count)
-      console.log('🎬 Reels:', reelsResult.count)
-      console.log('❤️ Favoritos:', favoritesResult.count)
-
-
-      console.log('📊 AdminStatsService: Engagement consultado:', activeUsersResult.data?.length || 0, 'usuarios activos')
-
       const totalUsers = usersResult.count || 0
       const activeUsers = new Set(activeUsersResult.data?.map(session => session.user_id)).size
       const engagementRate = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0
@@ -115,11 +99,7 @@ export class AdminStatsService {
         engagementGrowth: calculateGrowthPercentage(favoritesResult.count || 0, favoritesGrowthResult.count || 0)
       }
 
-      console.log('📊 AdminStats - Apps de IA encontradas:', aiAppsResult.count || 0)
-      console.log('📊 AdminStats - Apps de IA crecimiento (30 días):', aiAppsGrowthResult.count || 0)
-      console.log('📊 AdminStats - Datos completos:', stats)
-      console.log('✅ AdminStatsService: Estadísticas calculadas exitosamente')
-
+      :', aiAppsGrowthResult.count || 0)
       return stats
     } catch (error) {
       console.error('❌ AdminStatsService: Error completo:', error)
@@ -141,7 +121,6 @@ export class AdminStatsService {
         engagementGrowth: 0
       }
       
-      console.log('⚠️ AdminStatsService: Retornando datos por defecto:', defaultStats)
       return defaultStats
     }
   }

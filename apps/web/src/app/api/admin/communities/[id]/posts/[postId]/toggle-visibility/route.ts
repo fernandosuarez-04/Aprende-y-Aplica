@@ -12,7 +12,6 @@ export async function PATCH(
     if (auth instanceof NextResponse) return auth
     
     const { id: communityId, postId } = await params
-    console.log('🔍 Toggle Post Visibility API - communityId:', communityId, 'postId:', postId)
     const supabase = await createClient()
 
     // Obtener datos actuales del post
@@ -30,8 +29,6 @@ export async function PATCH(
         message: 'Post no encontrado' 
       }, { status: 404 })
     }
-
-    console.log('✅ Post found:', currentPost)
 
     // Toggle la visibilidad del post
     const newVisibility = !currentPost.is_hidden
@@ -72,7 +69,7 @@ export async function PATCH(
         user_agent: userAgent
       })
     } catch (auditError) {
-      console.warn('Error en log de auditoría (no crítico):', auditError)
+      :', auditError)
       // No fallar la operación por esto
     }
 
