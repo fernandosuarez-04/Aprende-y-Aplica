@@ -577,5 +577,595 @@ export class AutoNotificationsService {
       // No lanzar error para no afectar el flujo principal
     }
   }
+
+  /**
+   * Crea una notificación cuando se comenta un post de comunidad
+   * Notifica al autor del post (no al que comenta)
+   */
+  static async notifyCommunityPostComment(
+    postId: string,
+    commentId: string,
+    postAuthorId: string,
+    commentAuthorId: string,
+    commentPreview: string,
+    communityId: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      // No notificar si el autor del comentario es el mismo que el autor del post
+      if (postAuthorId === commentAuthorId) {
+        return
+      }
+
+      const supabase = await createClient()
+
+      // Obtener información del autor del comentario
+      const { data: commentAuthor } = await supabase
+        .from('users')
+        .select('username, display_name, first_name')
+        .eq('id', commentAuthorId)
+        .single()
+
+      const commentAuthorName = commentAuthor?.display_name || commentAuthor?.first_name || commentAuthor?.username || 'Un usuario'
+
+      // Obtener información del post
+      const { data: post } = await supabase
+        .from('community_posts')
+        .select('title')
+        .eq('id', postId)
+        .single()
+
+      const postTitle = post?.title || 'tu post'
+
+      // Truncar preview del comentario si es muy largo
+      const truncatedPreview = commentPreview.length > 100 
+        ? commentPreview.substring(0, 100) + '...'
+        : commentPreview
+
+      await NotificationService.createNotification({
+        userId: postAuthorId,
+        notificationType: 'community_post_comment',
+        title: 'Nuevo comentario en tu post',
+        message: `${commentAuthorName} comentó en "${postTitle}": "${truncatedPreview}"`,
+        metadata: {
+          ...metadata,
+          post_id: postId,
+          comment_id: commentId,
+          community_id: communityId,
+          comment_author_id: commentAuthorId,
+          comment_preview: truncatedPreview,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('community_post_comment')
+      })
+
+      logger.info('✅ Notificación de comentario en post creada', {
+        postId,
+        commentId,
+        postAuthorId,
+        commentAuthorId
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de comentario en post:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando se reacciona a un post de comunidad
+   * Notifica al autor del post
+   */
+  static async notifyCommunityPostReaction(
+    postId: string,
+    postAuthorId: string,
+    reactionAuthorId: string,
+    reactionType: string,
+    communityId: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      // No notificar si el autor de la reacción es el mismo que el autor del post
+      if (postAuthorId === reactionAuthorId) {
+        return
+      }
+
+      const supabase = await createClient()
+
+      // Obtener información del autor de la reacción
+      const { data: reactionAuthor } = await supabase
+        .from('users')
+        .select('username, display_name, first_name')
+        .eq('id', reactionAuthorId)
+        .single()
+
+      const reactionAuthorName = reactionAuthor?.display_name || reactionAuthor?.first_name || reactionAuthor?.username || 'Un usuario'
+
+      // Mapeo de tipos de reacción a texto amigable
+      const reactionText: Record<string, string> = {
+        'like': 'le gustó',
+        'love': 'le encantó',
+        'laugh': 'se rió de',
+        'wow': 'se sorprendió con',
+        'sad': 'se entristeció con',
+        'angry': 'se enojó con'
+      }
+
+      const reactionVerb = reactionText[reactionType] || 'reaccionó a'
+
+      // Obtener información del post
+      const { data: post } = await supabase
+        .from('community_posts')
+        .select('title')
+        .eq('id', postId)
+        .single()
+
+      const postTitle = post?.title || 'tu post'
+
+      await NotificationService.createNotification({
+        userId: postAuthorId,
+        notificationType: 'community_post_reaction',
+        title: 'Nueva reacción en tu post',
+        message: `${reactionAuthorName} ${reactionVerb} "${postTitle}"`,
+        metadata: {
+          ...metadata,
+          post_id: postId,
+          community_id: communityId,
+          reaction_author_id: reactionAuthorId,
+          reaction_type: reactionType,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('community_post_reaction')
+      })
+
+      logger.info('✅ Notificación de reacción en post creada', {
+        postId,
+        postAuthorId,
+        reactionAuthorId,
+        reactionType
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de reacción en post:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando se da like a un reel
+   * Notifica al autor del reel (no al que da like)
+   */
+  static async notifyReelLiked(
+    reelId: string,
+    reelAuthorId: string,
+    likeAuthorId: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      // No notificar si el autor del like es el mismo que el autor del reel
+      if (reelAuthorId === likeAuthorId) {
+        return
+      }
+
+      const supabase = await createClient()
+
+      // Obtener información del autor del like
+      const { data: likeAuthor } = await supabase
+        .from('users')
+        .select('username, display_name, first_name')
+        .eq('id', likeAuthorId)
+        .single()
+
+      const likeAuthorName = likeAuthor?.display_name || likeAuthor?.first_name || likeAuthor?.username || 'Un usuario'
+
+      // Obtener información del reel
+      const { data: reel } = await supabase
+        .from('reels')
+        .select('title')
+        .eq('id', reelId)
+        .single()
+
+      const reelTitle = reel?.title || 'tu reel'
+
+      await NotificationService.createNotification({
+        userId: reelAuthorId,
+        notificationType: 'reel_liked',
+        title: 'Nuevo like en tu reel',
+        message: `${likeAuthorName} le dio like a "${reelTitle}"`,
+        metadata: {
+          ...metadata,
+          reel_id: reelId,
+          like_author_id: likeAuthorId,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('reel_liked')
+      })
+
+      logger.info('✅ Notificación de like en reel creada', {
+        reelId,
+        reelAuthorId,
+        likeAuthorId
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de like en reel:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando se comenta un reel
+   * Notifica al autor del reel
+   */
+  static async notifyReelComment(
+    reelId: string,
+    commentId: string,
+    reelAuthorId: string,
+    commentAuthorId: string,
+    commentPreview: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      // No notificar si el autor del comentario es el mismo que el autor del reel
+      if (reelAuthorId === commentAuthorId) {
+        return
+      }
+
+      const supabase = await createClient()
+
+      // Obtener información del autor del comentario
+      const { data: commentAuthor } = await supabase
+        .from('users')
+        .select('username, display_name, first_name')
+        .eq('id', commentAuthorId)
+        .single()
+
+      const commentAuthorName = commentAuthor?.display_name || commentAuthor?.first_name || commentAuthor?.username || 'Un usuario'
+
+      // Obtener información del reel
+      const { data: reel } = await supabase
+        .from('reels')
+        .select('title')
+        .eq('id', reelId)
+        .single()
+
+      const reelTitle = reel?.title || 'tu reel'
+
+      // Truncar preview del comentario si es muy largo
+      const truncatedPreview = commentPreview.length > 100 
+        ? commentPreview.substring(0, 100) + '...'
+        : commentPreview
+
+      await NotificationService.createNotification({
+        userId: reelAuthorId,
+        notificationType: 'reel_comment',
+        title: 'Nuevo comentario en tu reel',
+        message: `${commentAuthorName} comentó en "${reelTitle}": "${truncatedPreview}"`,
+        metadata: {
+          ...metadata,
+          reel_id: reelId,
+          comment_id: commentId,
+          comment_author_id: commentAuthorId,
+          comment_preview: truncatedPreview,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('reel_comment')
+      })
+
+      logger.info('✅ Notificación de comentario en reel creada', {
+        reelId,
+        commentId,
+        reelAuthorId,
+        commentAuthorId
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de comentario en reel:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando se completa una lección de un curso
+   */
+  static async notifyCourseLessonCompleted(
+    userId: string,
+    courseId: string,
+    courseTitle: string,
+    lessonId: string,
+    lessonTitle: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      await NotificationService.createNotification({
+        userId,
+        notificationType: 'course_lesson_completed',
+        title: 'Lección completada',
+        message: `Has completado la lección "${lessonTitle}" del curso "${courseTitle}". ¡Sigue así!`,
+        metadata: {
+          ...metadata,
+          course_id: courseId,
+          lesson_id: lessonId,
+          course_title: courseTitle,
+          lesson_title: lessonTitle,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('course_lesson_completed')
+      })
+
+      logger.info('✅ Notificación de lección completada creada', {
+        userId,
+        courseId,
+        lessonId
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de lección completada:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando se completa un curso completo
+   */
+  static async notifyCourseCompleted(
+    userId: string,
+    courseId: string,
+    courseTitle: string,
+    hasCertificate: boolean = false,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      const message = hasCertificate
+        ? `¡Felicidades! Has completado el curso "${courseTitle}". Tu certificado está disponible.`
+        : `¡Felicidades! Has completado el curso "${courseTitle}". ¡Excelente trabajo!`
+
+      await NotificationService.createNotification({
+        userId,
+        notificationType: 'course_completed',
+        title: 'Curso completado',
+        message,
+        metadata: {
+          ...metadata,
+          course_id: courseId,
+          course_title: courseTitle,
+          has_certificate: hasCertificate,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('course_completed')
+      })
+
+      logger.info('✅ Notificación de curso completado creada', {
+        userId,
+        courseId,
+        hasCertificate
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de curso completado:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando se responde una pregunta del curso
+   * Notifica al autor de la pregunta
+   */
+  static async notifyCourseQuestionAnswered(
+    questionId: string,
+    questionAuthorId: string,
+    answerAuthorId: string,
+    courseId: string,
+    courseTitle: string,
+    answerPreview: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      // No notificar si el autor de la respuesta es el mismo que el autor de la pregunta
+      if (questionAuthorId === answerAuthorId) {
+        return
+      }
+
+      const supabase = await createClient()
+
+      // Obtener información del autor de la respuesta
+      const { data: answerAuthor } = await supabase
+        .from('users')
+        .select('username, display_name, first_name')
+        .eq('id', answerAuthorId)
+        .single()
+
+      const answerAuthorName = answerAuthor?.display_name || answerAuthor?.first_name || answerAuthor?.username || 'Un usuario'
+
+      // Truncar preview de la respuesta si es muy largo
+      const truncatedPreview = answerPreview.length > 100 
+        ? answerPreview.substring(0, 100) + '...'
+        : answerPreview
+
+      await NotificationService.createNotification({
+        userId: questionAuthorId,
+        notificationType: 'course_question_answered',
+        title: 'Nueva respuesta a tu pregunta',
+        message: `${answerAuthorName} respondió a tu pregunta en "${courseTitle}": "${truncatedPreview}"`,
+        metadata: {
+          ...metadata,
+          question_id: questionId,
+          course_id: courseId,
+          course_title: courseTitle,
+          answer_author_id: answerAuthorId,
+          answer_preview: truncatedPreview,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('course_question_answered')
+      })
+
+      logger.info('✅ Notificación de pregunta respondida creada', {
+        questionId,
+        questionAuthorId,
+        answerAuthorId
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de pregunta respondida:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando se marca un prompt como favorito
+   * Notifica al autor del prompt
+   */
+  static async notifyPromptFavorited(
+    promptId: string,
+    promptAuthorId: string,
+    favoritedByUserId: string,
+    promptTitle: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      // No notificar si el usuario que marca como favorito es el mismo que el autor
+      if (promptAuthorId === favoritedByUserId) {
+        return
+      }
+
+      const supabase = await createClient()
+
+      // Obtener información del usuario que marcó como favorito
+      const { data: favoritedBy } = await supabase
+        .from('users')
+        .select('username, display_name, first_name')
+        .eq('id', favoritedByUserId)
+        .single()
+
+      const favoritedByName = favoritedBy?.display_name || favoritedBy?.first_name || favoritedBy?.username || 'Un usuario'
+
+      await NotificationService.createNotification({
+        userId: promptAuthorId,
+        notificationType: 'prompt_favorited',
+        title: 'Tu prompt fue marcado como favorito',
+        message: `${favoritedByName} marcó como favorito tu prompt "${promptTitle}"`,
+        metadata: {
+          ...metadata,
+          prompt_id: promptId,
+          prompt_title: promptTitle,
+          favorited_by_user_id: favoritedByUserId,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('prompt_favorited')
+      })
+
+      logger.info('✅ Notificación de prompt favorited creada', {
+        promptId,
+        promptAuthorId,
+        favoritedByUserId
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de prompt favorited:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea una notificación cuando una noticia es destacada
+   * Notifica al autor de la noticia
+   */
+  static async notifyNewsFeatured(
+    newsId: string,
+    newsAuthorId: string,
+    newsTitle: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      await NotificationService.createNotification({
+        userId: newsAuthorId,
+        notificationType: 'news_featured',
+        title: 'Tu noticia fue destacada',
+        message: `Tu noticia "${newsTitle}" ha sido destacada. ¡Felicidades!`,
+        metadata: {
+          ...metadata,
+          news_id: newsId,
+          news_title: newsTitle,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('news_featured')
+      })
+
+      logger.info('✅ Notificación de noticia destacada creada', {
+        newsId,
+        newsAuthorId
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificación de noticia destacada:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
+
+  /**
+   * Crea notificaciones cuando un nuevo miembro se une a una comunidad
+   * Notifica a los administradores y moderadores de la comunidad
+   */
+  static async notifyCommunityMemberJoined(
+    communityId: string,
+    newMemberId: string,
+    communityName: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      const supabase = await createClient()
+
+      // Obtener información del nuevo miembro
+      const { data: newMember } = await supabase
+        .from('users')
+        .select('username, display_name, first_name')
+        .eq('id', newMemberId)
+        .single()
+
+      const newMemberName = newMember?.display_name || newMember?.first_name || newMember?.username || 'Un nuevo usuario'
+
+      // Obtener administradores y moderadores de la comunidad
+      const { data: adminsAndMods, error } = await supabase
+        .from('community_members')
+        .select('user_id, role')
+        .eq('community_id', communityId)
+        .eq('is_active', true)
+        .in('role', ['admin', 'moderator'])
+
+      if (error) {
+        logger.error('Error obteniendo administradores/moderadores:', error)
+        return
+      }
+
+      if (!adminsAndMods || adminsAndMods.length === 0) {
+        logger.info('No hay administradores/moderadores para notificar sobre nuevo miembro', {
+          communityId,
+          newMemberId
+        })
+        return
+      }
+
+      // Crear notificaciones para cada administrador/moderador
+      const notifications = adminsAndMods.map(member => ({
+        userId: member.user_id,
+        notificationType: 'community_member_joined',
+        title: 'Nuevo miembro en la comunidad',
+        message: `${newMemberName} se unió a la comunidad "${communityName}"`,
+        metadata: {
+          ...metadata,
+          community_id: communityId,
+          community_name: communityName,
+          new_member_id: newMemberId,
+          timestamp: new Date().toISOString()
+        },
+        priority: getNotificationPriority('community_member_joined')
+      }))
+
+      // Crear notificaciones en batch
+      for (const notification of notifications) {
+        await NotificationService.createNotification(notification)
+      }
+
+      logger.info('✅ Notificaciones de nuevo miembro en comunidad creadas', {
+        communityId,
+        newMemberId,
+        count: notifications.length
+      })
+    } catch (error) {
+      logger.error('❌ Error creando notificaciones de nuevo miembro en comunidad:', error)
+      // No lanzar error para no afectar el flujo principal
+    }
+  }
 }
 

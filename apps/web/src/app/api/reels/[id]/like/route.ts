@@ -124,6 +124,29 @@ export async function POST(
         return NextResponse.json({ error: 'Error interno' }, { status: 500 })
       }
 
+      // Crear notificación para el autor del reel (en background)
+      (async () => {
+        try {
+          // Obtener información del reel para saber quién es el autor
+          const { data: reel } = await supabase
+            .from('reels')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
+          if (reel && reel.user_id && reel.user_id !== userId) {
+            const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service');
+            await AutoNotificationsService.notifyReelLiked(
+              id,
+              reel.user_id,
+              userId
+            );
+          }
+        } catch (notificationError) {
+          // Error silenciado para no afectar el flujo principal
+        }
+      })().catch(() => {}); // Fire and forget
+
       logger.log(`✅ Like agregado por usuario ${userId} al reel ${id}`)
       return NextResponse.json({ liked: true })
     }
