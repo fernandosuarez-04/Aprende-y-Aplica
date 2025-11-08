@@ -182,7 +182,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         console.log('🛑 Deteniendo grabación antes de enviar...');
         const session = stopRecording();
         
-        if (session) {
+        if (session && session.endTime) {
           sessionRecording = exportSessionBase64();
           recordingDuration = session.endTime - session.startTime;
           console.log(`✅ Grabación capturada: ${recordingSize}, ${recordingDuration}ms`);

@@ -1,9 +1,22 @@
 'use client'
 
-import { Fragment } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, UserIcon, ComputerDesktopIcon, PhotoIcon, LinkIcon, CalendarIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, UserIcon, ComputerDesktopIcon, PhotoIcon, LinkIcon, CalendarIcon, PencilIcon, PlayIcon, VideoCameraIcon } from '@heroicons/react/24/outline'
 import { AdminReporte } from '../services/adminReportes.service'
+import dynamic from 'next/dynamic'
+import type { RecordingSession } from '../../../lib/rrweb/session-recorder'
+
+// Lazy load del SessionPlayer para evitar problemas de SSR
+const SessionPlayer = dynamic<any>(
+  () => import('../../../core/components/SessionPlayer/SessionPlayer').then(mod => mod.SessionPlayer),
+  { ssr: false }
+)
+
+const SessionInfo = dynamic<any>(
+  () => import('../../../core/components/SessionPlayer/SessionPlayer').then(mod => mod.SessionInfo),
+  { ssr: false }
+)
 
 interface ViewReporteModalProps {
   reporte: AdminReporte
@@ -13,6 +26,28 @@ interface ViewReporteModalProps {
 }
 
 export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewReporteModalProps) {
+  const [showPlayer, setShowPlayer] = useState(false)
+
+  // Parsear la sesión grabada
+  const session = useMemo<RecordingSession | null>(() => {
+    if (!reporte.session_recording) return null
+    
+    try {
+      // Decodificar base64 manejando UTF-8 correctamente
+      const binaryString = atob(reporte.session_recording)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const decoder = new TextDecoder('utf-8')
+      const jsonString = decoder.decode(bytes)
+      return JSON.parse(jsonString)
+    } catch (error) {
+      console.error('Error al parsear sesión:', error)
+      return null
+    }
+  }, [reporte.session_recording])
+
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'pendiente':
@@ -271,6 +306,66 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
                           }}
                         />
                       </div>
+                    </div>
+                  )}
+
+                  {/* 🎬 NUEVO: Grabación de Sesión con rrweb */}
+                  {session && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <VideoCameraIcon className="h-5 w-5 text-purple-600" />
+                          Grabación de Sesión
+                        </h3>
+                        {!showPlayer && (
+                          <button
+                            onClick={() => setShowPlayer(true)}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                          >
+                            <PlayIcon className="h-4 w-4" />
+                            Reproducir
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Info de la grabación */}
+                      <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <SessionInfo session={session} showSize={true} />
+                        <div className="mt-3 text-sm text-purple-700 dark:text-purple-300">
+                          <p className="flex items-center gap-1">
+                            💡 <strong>Tip:</strong> Esta grabación muestra exactamente lo que hizo el usuario
+                            antes de reportar el problema. Incluye clicks, scrolls, inputs y navegación.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Reproductor */}
+                      {showPlayer && (
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-lg">
+                          <SessionPlayer
+                            session={session}
+                            width="100%"
+                            height="600px"
+                            autoPlay={true}
+                            showController={true}
+                            skipInactive={true}
+                            speed={1}
+                          />
+                        </div>
+                      )}
+
+                      {!showPlayer && (
+                        <div className="p-8 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-lg text-center">
+                          <VideoCameraIcon className="h-16 w-16 mx-auto mb-3 text-purple-400" />
+                          <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            Haz clic en "Reproducir" para ver la grabación de la sesión
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-500">
+                            Tamaño: {reporte.recording_size || 'Desconocido'} • 
+                            Duración: {reporte.recording_duration ? `${Math.round(reporte.recording_duration / 1000)}s` : 'Desconocida'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 

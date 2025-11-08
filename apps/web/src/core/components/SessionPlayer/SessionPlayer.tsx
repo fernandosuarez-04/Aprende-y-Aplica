@@ -5,13 +5,12 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import rrwebPlayer from 'rrweb-player';
-import 'rrweb-player/dist/style.css';
-import type { RecordingSession } from '@/lib/rrweb/session-recorder';
+import type { RecordingSession } from '../../../lib/rrweb/session-recorder';
 
 interface SessionPlayerProps {
   session: RecordingSession;
-  width?: string;
-  height?: string;
+  width?: string | number;
+  height?: string | number;
   autoPlay?: boolean;
   showController?: boolean;
   skipInactive?: boolean;
@@ -28,7 +27,7 @@ export function SessionPlayer({
   speed = 1,
 }: SessionPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<rrwebPlayer | null>(null);
+  const playerRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,8 +52,8 @@ export function SessionPlayer({
         target: containerRef.current,
         props: {
           events: session.events,
-          width: width,
-          height: height,
+          width: typeof width === 'number' ? width : undefined,
+          height: typeof height === 'number' ? height : undefined,
           autoPlay: autoPlay,
           showController: showController,
           skipInactive: skipInactive,

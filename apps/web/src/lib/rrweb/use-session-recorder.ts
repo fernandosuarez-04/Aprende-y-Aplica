@@ -3,8 +3,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { sessionRecorder } from '@/lib/rrweb/session-recorder';
-import type { RecordingSession } from '@/lib/rrweb/session-recorder';
+import { sessionRecorder } from './session-recorder';
+import type { RecordingSession } from './session-recorder';
 
 interface UseSessionRecorderOptions {
   autoStart?: boolean;

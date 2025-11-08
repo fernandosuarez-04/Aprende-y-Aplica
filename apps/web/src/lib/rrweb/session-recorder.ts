@@ -15,7 +15,7 @@ export interface RecordingSession {
 export class SessionRecorder {
   private static instance: SessionRecorder;
   private events: eventWithTime[] = [];
-  private stopRecording: (() => void) | null = null;
+  private stopRecording: (() => void) | undefined | null = null;
   private isRecording = false;
   private maxEvents = 500; // Limitar eventos para no consumir mucha memoria
   private maxDuration = 60000; // 60 segundos máximo
@@ -159,10 +159,22 @@ export class SessionRecorder {
 
   /**
    * Exporta la sesión a base64 (para enviar en requests)
+   * Usa Buffer para manejar correctamente caracteres UTF-8
    */
   exportSessionBase64(session: RecordingSession): string {
     const json = this.exportSession(session);
-    return btoa(json);
+    
+    // Convertir a base64 manejando correctamente UTF-8
+    if (typeof window !== 'undefined') {
+      // En el navegador, usar TextEncoder y btoa con escape
+      const encoder = new TextEncoder();
+      const data = encoder.encode(json);
+      const binaryString = Array.from(data, byte => String.fromCharCode(byte)).join('');
+      return btoa(binaryString);
+    } else {
+      // En Node.js, usar Buffer
+      return Buffer.from(json, 'utf-8').toString('base64');
+    }
   }
 
   /**
