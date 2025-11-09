@@ -17,7 +17,7 @@ export class SessionRecorder {
   private events: eventWithTime[] = [];
   private stopRecording: (() => void) | undefined | null = null;
   private isRecording = false;
-  private maxEvents = 5000; // Aumentado de 1000 a 5000 para capturar más contexto (~30-60s)
+  private maxEvents = 20000; // Aumentado a 20000 para capturar ~3 minutos de contexto
   private maxDuration = 60000; // 60 segundos máximo
   private initialSnapshot: eventWithTime | null = null; // Guardar snapshot inicial
 

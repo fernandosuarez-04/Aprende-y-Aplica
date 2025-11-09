@@ -52,6 +52,7 @@ import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
 import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
+import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
@@ -1186,6 +1187,28 @@ Antes de cada respuesta, pregúntate:
   }
 
   return (
+    <WorkshopLearningProvider
+      workshopId={course?.id || course?.course_id || slug}
+      activityId={currentLesson?.lesson_id || 'no-lesson'}
+      enabled={!!course && !!currentLesson}
+      checkInterval={30000}
+      assistantPosition="bottom-right"
+      assistantCompact={false}
+      onDifficultyDetected={(analysis) => {
+        console.log('🚨 Dificultad detectada en taller:', {
+          workshop: course?.title || course?.course_title,
+          lesson: currentLesson?.lesson_title,
+          patterns: analysis.patterns,
+          score: analysis.overallScore
+        });
+      }}
+      onHelpAccepted={(analysis) => {
+        console.log('✅ Usuario aceptó ayuda proactiva:', {
+          lesson: currentLesson?.lesson_title,
+          patterns: analysis.patterns
+        });
+      }}
+    >
     <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
       {/* Header superior con nueva estructura - Responsive */}
       <motion.div
@@ -2330,6 +2353,7 @@ Antes de cada respuesta, pregúntate:
         )}
       </AnimatePresence>
     </div>
+    </WorkshopLearningProvider>
   );
 }
 
