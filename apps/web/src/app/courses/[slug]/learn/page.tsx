@@ -1832,7 +1832,12 @@ Antes de cada respuesta, pregúntate:
                 </AnimatePresence>
 
                 {/* Área de entrada */}
-                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'pb-20' : ''}`}>
+                <div
+                  className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
+                  style={isMobile ? {
+                    paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 70px)'
+                  } : undefined}
+                >
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
