@@ -17,6 +17,8 @@ import {
   Link,
   Play,
   BarChart3,
+  Info,
+  Trophy,
   Send,
   Clock,
   CheckCircle,
@@ -1323,6 +1325,9 @@ const cardVariants = {
   hover: { y: -2, scale: 1.01 }
 };
 
+const MOBILE_BOTTOM_NAV_HEIGHT = 72;
+const MOBILE_CONTENT_EXTRA_PADDING = 24;
+
 export default function CommunityDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -1347,6 +1352,9 @@ export default function CommunityDetailPage() {
   const [showReactionDetails, setShowReactionDetails] = useState<Record<string, boolean>>({});
   const [selectedReactionType, setSelectedReactionType] = useState<string | null>(null);
   const [postReactionStats, setPostReactionStats] = useState<Record<string, any>>({});
+  const communityHeaderRef = useRef<HTMLElement | null>(null);
+  const feedSectionRef = useRef<HTMLElement | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -1365,6 +1373,51 @@ export default function CommunityDetailPage() {
       });
     }
   }, [slug]);
+
+  useEffect(() => {
+    const checkViewport = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
+
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
+
+  const communityTabs = [
+    { id: 'comunidad', label: 'Comunidad', icon: MessageSquare },
+    { id: 'miembros', label: 'Miembros', icon: Users, href: `/communities/${slug}/members` },
+    { id: 'ligas', label: 'Ligas', icon: Trophy, href: `/communities/${slug}/leagues` },
+    { id: 'acerca', label: 'Acerca', icon: Info },
+  ];
+
+  const handleTabNavigation = (tabId: string) => {
+    setActiveTab(tabId);
+
+    if (tabId === 'miembros') {
+      router.push(`/communities/${slug}/members`);
+      return;
+    }
+
+    if (tabId === 'ligas') {
+      router.push(`/communities/${slug}/leagues`);
+      return;
+    }
+
+    if (tabId === 'acerca') {
+      if (communityHeaderRef.current) {
+        communityHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    if (tabId === 'comunidad' && feedSectionRef.current) {
+      feedSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const fetchCommunityDetail = async () => {
     try {
@@ -1721,7 +1774,7 @@ export default function CommunityDetailPage() {
     if (community.is_member) {
       return (
         <Button
-          className="bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+          className="w-full sm:w-auto bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
           disabled
         >
           <CheckCircle className="w-4 h-4 mr-2" />
@@ -1733,7 +1786,7 @@ export default function CommunityDetailPage() {
     if (community.has_pending_request) {
       return (
         <Button
-          className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30"
+          className="w-full sm:w-auto bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30"
           disabled
         >
           <Clock className="w-4 h-4 mr-2" />
@@ -1748,7 +1801,7 @@ export default function CommunityDetailPage() {
           <div className="text-center">
             <div className="text-slate-400 text-sm mb-2">Ya perteneces a otra comunidad</div>
             <Button
-              className="bg-slate-600/50 text-slate-400 border border-slate-600/50"
+              className="w-full sm:w-auto bg-slate-600/50 text-slate-400 border border-slate-600/50"
               disabled
             >
               <Lock className="w-4 h-4 mr-2" />
@@ -1762,7 +1815,7 @@ export default function CommunityDetailPage() {
         <Button
           onClick={handleJoinCommunity}
           disabled={isJoining}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
+          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white"
         >
           {isJoining ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1778,7 +1831,7 @@ export default function CommunityDetailPage() {
       <Button
         onClick={handleJoinCommunity}
         disabled={isJoining}
-        className="bg-purple-500 hover:bg-purple-600 text-white"
+        className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white"
       >
         {isJoining ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1821,17 +1874,26 @@ export default function CommunityDetailPage() {
   const needsAuth = !community.is_member && community.access_type === 'invitation_only';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+    <div
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900"
+      style={
+        isMobile
+          ? {
+              paddingBottom: `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+            }
+          : undefined
+      }
+    >
       {/* Navigation Bar */}
       <motion.nav
-        className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
+        className="hidden md:block bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4 flex-wrap">
               <Button
                 onClick={() => router.push('/communities')}
                 className="bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white border border-gray-300 dark:border-slate-600/50"
@@ -1840,26 +1902,18 @@ export default function CommunityDetailPage() {
                 Volver
               </Button>
               
-              <div className="flex items-center gap-1">
-                {['comunidad', 'miembros', 'ligas', 'acerca'].map((tab) => (
+              <div className="flex items-center gap-2 flex-wrap">
+                {communityTabs.map((tab) => (
                   <button
-                    key={tab}
-                    onClick={() => {
-                      if (tab === 'miembros') {
-                        router.push(`/communities/${slug}/members`);
-                      } else if (tab === 'ligas') {
-                        router.push(`/communities/${slug}/leagues`);
-                      } else {
-                        setActiveTab(tab);
-                      }
-                    }}
+                    key={tab.id}
+                    onClick={() => handleTabNavigation(tab.id)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      activeTab === tab
+                      activeTab === tab.id
                         ? 'bg-blue-500 text-white'
                         : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
                     }`}
                   >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    {tab.label}
                   </button>
                 ))}
               </div>
@@ -1881,6 +1935,7 @@ export default function CommunityDetailPage() {
 
       {/* Community Header */}
       <motion.section
+        ref={communityHeaderRef}
         className={`relative py-16 px-6 overflow-hidden ${communityStyle.background}`}
         variants={containerVariants}
         initial="hidden"
@@ -1915,10 +1970,20 @@ export default function CommunityDetailPage() {
         
         <div className="relative max-w-7xl mx-auto z-10">
           <motion.div
-            className="flex items-start justify-between"
+            className="flex flex-col lg:flex-row items-start justify-between gap-8"
             variants={itemVariants}
           >
-            <div className="flex items-start gap-6">
+            <div className="w-full flex mb-4 md:hidden">
+              <Button
+                onClick={() => router.push('/communities')}
+                className="bg-white/70 dark:bg-slate-800/70 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Comunidades
+              </Button>
+            </div>
+
+            <div className="flex items-start gap-6 w-full">
               {/* Community Avatar - solo si no hay imagen de fondo */}
               {!community.image_url && (
                 <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
@@ -1927,14 +1992,14 @@ export default function CommunityDetailPage() {
               )}
 
               <div className="flex-1">
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
                   {community.name}
                 </h1>
-                <p className="text-xl text-gray-800 dark:text-white/90 mb-4 max-w-2xl">
+                <p className="text-lg md:text-xl text-gray-800 dark:text-white/90 mb-4 max-w-2xl">
                   {community.description}
                 </p>
                 
-                <div className="flex items-center gap-6 text-sm">
+                <div className="flex flex-wrap items-center gap-4 text-sm">
                   <div className="flex items-center gap-2 text-gray-700 dark:text-white/80">
                     <Users className="w-4 h-4" />
                     {community.member_count} Miembros
@@ -1951,20 +2016,22 @@ export default function CommunityDetailPage() {
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-4">
-              {getAccessButton()}
+            <div className="w-full lg:w-auto flex flex-col lg:items-end gap-4">
+              <div className="w-full lg:w-auto">{getAccessButton()}</div>
               
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">POSTS</div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">7</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">COMENTARIOS</div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">11</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">REACCIONES</div>
+              <div className="flex flex-wrap gap-4 text-gray-600 dark:text-slate-400">
+                <div className="min-w-[90px]">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
+                  <div className="text-xs font-medium uppercase tracking-wide">Posts</div>
+                </div>
+                <div className="min-w-[90px]">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">7</div>
+                  <div className="text-xs font-medium uppercase tracking-wide">Comentarios</div>
+                </div>
+                <div className="min-w-[90px]">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">11</div>
+                  <div className="text-xs font-medium uppercase tracking-wide">Reacciones</div>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -1973,7 +2040,13 @@ export default function CommunityDetailPage() {
 
       {/* Main Content */}
       <motion.section
-        className="px-6 py-8"
+        ref={feedSectionRef}
+        className="px-4 md:px-6 pt-8"
+        style={{
+          paddingBottom: isMobile
+            ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + ${MOBILE_CONTENT_EXTRA_PADDING}px)`
+            : '4rem',
+        }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -2026,17 +2099,17 @@ export default function CommunityDetailPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-4 gap-4">
-                        <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-4 gap-4">
+                        <div className="w-full sm:flex-1">
                           <InlineAttachmentButtons
                             onAttachmentSelect={handleAttachmentSelect}
                           />
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 sm:w-auto w-full">
                           <Button
                             onClick={handleCreatePost}
                             disabled={!newPostContent.trim() || isCreatingPost || isProcessingAttachment}
-                            className="btn-primary disabled:opacity-50"
+                            className="btn-primary disabled:opacity-50 w-full sm:w-auto justify-center"
                           >
                             {(isCreatingPost || isProcessingAttachment) ? (
                               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -2122,7 +2195,7 @@ export default function CommunityDetailPage() {
                     )}
 
                     {/* Facebook-style Post Stats Bar - Reacciones y comentarios */}
-                    <div className="flex items-center justify-between py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30">
                       {/* Reacciones */}
                       {(() => {
                         const totalReactions = postReactions[post.id]?.count || post.reaction_count || 0;
@@ -2177,15 +2250,17 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Facebook-style Action Buttons */}
-                    <div className="flex items-center justify-around py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 py-2 px-2 border-t border-gray-200 dark:border-slate-700/30">
                       {/* Botón de Reacciones */}
-                      <ReactionButton
-                        postId={post.id}
-                        currentReaction={userReactions[post.id] || null}
-                        reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
-                        onReaction={handleReaction}
-                        isFacebookStyle={true}
-                      />
+                      <div className="flex-1 min-w-[150px]">
+                        <ReactionButton
+                          postId={post.id}
+                          currentReaction={userReactions[post.id] || null}
+                          reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
+                          onReaction={handleReaction}
+                          isFacebookStyle={true}
+                        />
+                      </div>
                       <button 
                         onClick={() => {
                           const isCurrentlyShowing = showCommentsForPost[post.id] || false;
@@ -2202,18 +2277,20 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+                        className="flex-1 min-w-[150px] flex items-center justify-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
                       >
                         <MessageSquare className="w-5 h-5" />
                         <span>Comentar</span>
                       </button>
-                      <ShareButton
-                        postId={post.id}
-                        postContent={post.content}
-                        communityName={community.name}
-                        communitySlug={slug}
-                        isFacebookStyle={true}
-                      />
+                      <div className="flex-1 min-w-[150px] flex justify-center">
+                        <ShareButton
+                          postId={post.id}
+                          postContent={post.content}
+                          communityName={community.name}
+                          communitySlug={slug}
+                          isFacebookStyle={true}
+                        />
+                      </div>
                     </div>
 
                     {/* Sección de comentarios */}
@@ -2265,6 +2342,41 @@ export default function CommunityDetailPage() {
           )}
         </div>
       </motion.section>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <motion.nav
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          style={{
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <div className="flex items-center justify-around px-4 py-3">
+            {communityTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabNavigation(tab.id)}
+                  className={`flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all ${
+                    isActive
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.nav>
+      )}
 
       {/* Modales de detalles de reacciones */}
       {posts.map((post) => (

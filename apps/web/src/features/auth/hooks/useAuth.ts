@@ -17,24 +17,31 @@ interface User {
 
 // Fetcher optimizado para autenticación
 const authFetcher = async (url: string): Promise<User | null> => {
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
 
-  if (!response.ok) {
-    // Si no está autenticado, no es un error - simplemente no hay usuario
-    if (response.status === 401 || response.status === 403) {
-      return null
+    if (!response.ok) {
+      // Si no está autenticado, no es un error - simplemente no hay usuario
+      if (response.status === 401 || response.status === 403) {
+        return null
+      }
+      throw new Error('Error fetching user')
     }
-    throw new Error('Error fetching user')
-  }
 
-  const data = await response.json()
-  return data.success && data.user ? data.user : null
+    const data = await response.json()
+    return data.success && data.user ? data.user : null
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      // console.warn('useAuth fetcher error:', error)
+    }
+    return null
+  }
 }
 
 export function useAuth() {

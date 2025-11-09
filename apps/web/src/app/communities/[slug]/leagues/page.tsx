@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft,
@@ -15,10 +15,6 @@ import {
   TrendingUp,
   Users,
   Award,
-  ChevronRight,
-  Play,
-  Pause,
-  RotateCcw,
   Sparkles,
   Flame,
   Sword,
@@ -29,7 +25,8 @@ import {
   Timer,
   BarChart3,
   Brain,
-  Puzzle
+  Puzzle,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
@@ -173,10 +170,10 @@ export default function LeaguesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'gold' | 'platinum' | 'diamond'>('all');
   const [filteredMembers, setFilteredMembers] = useState<LeagueMember[]>([]);
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
-  const [gameScore, setGameScore] = useState(0);
-  const [gameTime, setGameTime] = useState(0);
-  const [isGameActive, setIsGameActive] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeTab, setActiveTab] = useState<'comunidad' | 'miembros' | 'ligas' | 'acerca'>('ligas');
+  const headerSectionRef = useRef<HTMLElement | null>(null);
+  const standingsSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -187,6 +184,49 @@ export default function LeaguesPage() {
   useEffect(() => {
     filterMembers();
   }, [members, activeFilter]);
+
+  useEffect(() => {
+    const checkViewport = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
+
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
+
+  const memberTabs = [
+    { id: 'comunidad' as const, label: 'Comunidad', icon: MessageSquare },
+    { id: 'miembros' as const, label: 'Miembros', icon: Users },
+    { id: 'ligas' as const, label: 'Ligas', icon: Trophy },
+    { id: 'acerca' as const, label: 'Acerca', icon: Award },
+  ];
+
+  const handleTabNavigation = (tab: 'comunidad' | 'miembros' | 'ligas' | 'acerca') => {
+    setActiveTab(tab);
+
+    switch (tab) {
+      case 'comunidad':
+        router.push(`/communities/${slug}`);
+        return;
+      case 'miembros':
+        router.push(`/communities/${slug}/members`);
+        return;
+      case 'acerca':
+        if (headerSectionRef.current) {
+          headerSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      case 'ligas':
+      default:
+        if (standingsSectionRef.current) {
+          standingsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+  };
 
   const fetchLeaguesData = async () => {
     try {
@@ -245,18 +285,6 @@ export default function LeaguesPage() {
     return Math.min((progress / currentRange) * 100, 100);
   };
 
-  const startGame = (gameType: string) => {
-    setSelectedGame(gameType);
-    setGameScore(0);
-    setGameTime(0);
-    setIsGameActive(true);
-  };
-
-  const stopGame = () => {
-    setIsGameActive(false);
-    setSelectedGame(null);
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
@@ -287,16 +315,25 @@ export default function LeaguesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+    <div
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900"
+      style={
+        isMobile
+          ? {
+              paddingBottom: `calc(72px + env(safe-area-inset-bottom, 0px))`,
+            }
+          : undefined
+      }
+    >
       {/* Navigation Bar */}
       <motion.nav
-        className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
+        className="hidden md:block bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <Button
                 onClick={() => router.push(`/communities/${slug}`)}
@@ -306,71 +343,103 @@ export default function LeaguesPage() {
                 Volver
               </Button>
               
-              <div className="flex items-center gap-1">
-                {['comunidad', 'miembros', 'ligas', 'acerca'].map((tab) => (
+              <div className="flex items-center gap-2">
+                {memberTabs.map((tab) => (
                   <button
-                    key={tab}
-                    onClick={() => {
-                      if (tab === 'comunidad') {
-                        router.push(`/communities/${slug}`);
-                      } else if (tab === 'miembros') {
-                        router.push(`/communities/${slug}/members`);
-                      } else if (tab === 'ligas') {
-                        // Ya estamos aquí
-                      }
-                    }}
+                    key={tab.id}
+                    onClick={() => handleTabNavigation(tab.id)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      tab === 'ligas'
+                      activeTab === tab.id
                         ? 'bg-blue-500 text-white'
                         : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
                     }`}
                   >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    {tab.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Buscar en esta comunidad..."
-                  className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
-                />
-              </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Buscar miembros..."
+                className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+              />
             </div>
           </div>
         </div>
       </motion.nav>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Header Section */}
+      <motion.section
+        ref={headerSectionRef}
+        className="relative py-16 px-4 md:px-6 overflow-hidden"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+        
+        <div className="relative max-w-7xl mx-auto">
+          {/* Mobile Controls */}
+          <div className="md:hidden mb-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => router.push(`/communities/${slug}`)}
+                className="bg-white/80 border border-gray-200 text-gray-900"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Comunidades
+              </Button>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar miembros..."
+                  className="w-full pl-10 pr-4 py-2 bg-white/80 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          <motion.div
+            className="text-center mb-12"
+            variants={itemVariants}
+          >
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+              Sistema de{' '}
+              <span className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 dark:from-yellow-400 dark:via-orange-400 dark:to-red-400 bg-clip-text text-transparent">
+                Ligas
+              </span>
+            </h1>
+            <p className="text-xl text-gray-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
+              Gana puntos participando y sube de liga para competir con los mejores
+            </p>
+          </motion.div>
+        </div>
+      </motion.section>
+
+      <motion.section
+        ref={standingsSectionRef}
+        className="px-4 md:px-6 pt-8"
+        style={{
+          paddingBottom: isMobile
+            ? `calc(72px + env(safe-area-inset-bottom, 0px) + 32px)`
+            : '4rem',
+        }}
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Left Column - Main Content */}
           <div className="lg:col-span-3 space-y-8">
-            
-            {/* Header Section */}
-            <motion.section
-              className="text-center"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <motion.div variants={itemVariants}>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-                  Sistema de{' '}
-                  <span className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 dark:from-yellow-400 dark:via-orange-400 dark:to-red-400 bg-clip-text text-transparent">
-                    Ligas
-                  </span>
-                </h1>
-                <p className="text-xl text-gray-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                  Gana puntos participando y sube de liga para competir con los mejores
-                </p>
-              </motion.div>
-            </motion.section>
 
             {/* Current User League Status */}
             {currentUser && (
@@ -423,8 +492,10 @@ export default function LeaguesPage() {
                       <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                         #{currentUser.rank}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-slate-400">
-                        de {currentUser.total_members} miembros
+                      <div className="text-sm text-gray-600 dark:text-slate-400 flex flex-col items-end gap-1">
+                        <span className="text-xs font-medium px-2 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-300 rounded-full">
+                          {currentUser.total_members} miembros
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -645,7 +716,6 @@ export default function LeaguesPage() {
                 </h3>
                 
                 <div className="space-y-4">
-                  {/* Game Selection */}
                   <div className="space-y-3">
                     {[
                       { id: 'memory', name: 'Memoria', icon: Brain, description: 'Entrena tu memoria', points: 5 },
@@ -653,12 +723,9 @@ export default function LeaguesPage() {
                       { id: 'puzzle', name: 'Puzzle', icon: Puzzle, description: 'Resuelve acertijos', points: 8 },
                       { id: 'speed', name: 'Velocidad', icon: Zap, description: 'Prueba tu rapidez', points: 12 }
                     ].map((game) => (
-                      <motion.button
+                      <div
                         key={game.id}
-                        onClick={() => startGame(game.id)}
-                        className="w-full p-4 bg-gray-50 dark:bg-slate-700/30 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600/30 transition-colors text-left"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="w-full p-4 bg-gray-50 dark:bg-slate-700/30 rounded-lg border border-transparent hover:border-purple-400/40 transition-all"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-purple-500/20 dark:bg-purple-500/20 rounded-lg flex items-center justify-center">
@@ -672,82 +739,56 @@ export default function LeaguesPage() {
                             <div className="text-sm text-yellow-600 dark:text-yellow-400">+{game.points} pts</div>
                           </div>
                         </div>
-                      </motion.button>
+                      </div>
                     ))}
                   </div>
 
-                  {/* Active Game */}
-                  {selectedGame && (
-                    <motion.div
-                      className="mt-6 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                    >
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-white mb-2">
-                          {selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1)}
-                        </div>
-                        <div className="text-3xl font-bold text-purple-400 mb-2">
-                          {gameScore}
-                        </div>
-                        <div className="text-sm text-slate-400 mb-4">
-                          Puntos obtenidos
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => setIsGameActive(!isGameActive)}
-                            className="flex-1"
-                            size="sm"
-                          >
-                            {isGameActive ? (
-                              <>
-                                <Pause className="w-4 h-4 mr-2" />
-                                Pausar
-                              </>
-                            ) : (
-                              <>
-                                <Play className="w-4 h-4 mr-2" />
-                                Jugar
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            onClick={stopGame}
-                            variant="outline"
-                            size="sm"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Game Stats */}
-                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700/50">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Estadísticas</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-slate-400">Juegos jugados</span>
-                        <span className="text-gray-900 dark:text-white">0</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-slate-400">Puntos ganados</span>
-                        <span className="text-gray-900 dark:text-white">0</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-slate-400">Mejor puntuación</span>
-                        <span className="text-gray-900 dark:text-white">0</span>
-                      </div>
-                    </div>
+                  <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30 text-center">
+                    <Sparkles className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                    <p className="text-sm text-slate-200">
+                      Pronto podrás jugar mini-retos directamente aquí para ganar puntos extra.
+                    </p>
                   </div>
                 </div>
               </motion.div>
             </motion.section>
           </div>
         </div>
-      </div>
+      </motion.section>
+
+      {isMobile && (
+        <motion.nav
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          style={{
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <div className="flex items-center justify-around px-4 py-3">
+            {memberTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabNavigation(tab.id)}
+                  className={`flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all ${
+                    isActive
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.nav>
+      )}
     </div>
   );
 }
