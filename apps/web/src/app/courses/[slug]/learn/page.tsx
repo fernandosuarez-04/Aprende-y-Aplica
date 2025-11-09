@@ -64,6 +64,9 @@ const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlaye
   ssr: false
 });
 
+const MOBILE_BOTTOM_NAV_HEIGHT_PX = 80;
+const CONTENT_BOTTOM_PADDING_MOBILE = 32;
+
 interface Lesson {
   lesson_id: string;
   lesson_title: string;
@@ -115,6 +118,10 @@ export default function CourseLearnPage() {
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
+  const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
+  const mobileContentPaddingBottom = isMobileBottomNavVisible
+    ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`
+    : `calc(env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`;
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<{
     id: string;
@@ -1680,7 +1687,12 @@ Antes de cada respuesta, pregúntate:
               </div>
 
               {/* Contenido del tab activo */}
-              <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+              <div
+                className="flex-1 overflow-y-auto md:pb-0"
+                style={{
+                  paddingBottom: isMobile ? mobileContentPaddingBottom : undefined,
+                }}
+              >
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -1688,7 +1700,7 @@ Antes de cada respuesta, pregúntate:
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="h-full p-3 md:p-6"
+                  className="min-h-full p-3 md:p-6 flex flex-col gap-4"
                   >
                     {activeTab === 'video' && (
                       <VideoContent 
@@ -1753,13 +1765,22 @@ Antes de cada respuesta, pregúntate:
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                 className={`
                   ${isMobile 
-                    ? 'fixed inset-y-0 right-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
+                    ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
                     : 'relative'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
                   ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
                   border border-gray-200 dark:border-slate-700/50
                 `}
+                style={
+                  isMobile
+                    ? {
+                        bottom: isMobileBottomNavVisible
+                          ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`
+                          : `env(safe-area-inset-bottom, 0px)`,
+                      }
+                    : undefined
+                }
               >
                 {/* Header Lia con línea separadora alineada con panel central */}
                 <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
@@ -1815,7 +1836,14 @@ Antes de cada respuesta, pregúntate:
               {/* Chat de Lia expandido */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
-                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`} style={{ paddingBottom: isMobile ? 'calc(1rem + 80px)' : '1rem' }}>
+                <div
+                  className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`}
+                  style={{
+                    paddingBottom: isMobile
+                      ? `calc(1rem + env(safe-area-inset-bottom, 0px))`
+                      : '1rem',
+                  }}
+                >
                   {liaMessages.map((message) => (
                     <div
                       key={message.id}
@@ -1922,7 +1950,16 @@ Antes de cada respuesta, pregúntate:
                 </AnimatePresence>
 
                 {/* Área de entrada */}
-                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 z-10 ${isMobile ? 'pb-[calc(80px+1rem)]' : ''}`}>
+                <div
+                  className="border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 z-10"
+                  style={
+                    isMobile
+                      ? {
+                          paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`,
+                        }
+                      : undefined
+                  }
+                >
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
@@ -2001,7 +2038,7 @@ Antes de cada respuesta, pregúntate:
       </div>
 
       {/* Barra de navegación inferior flotante para móviles */}
-      {isMobile && (
+      {isMobileBottomNavVisible && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -2064,6 +2101,7 @@ Antes de cada respuesta, pregúntate:
           </div>
         </motion.div>
       )}
+
       <NotesModal
         isOpen={isNotesModalOpen}
         onClose={() => {
@@ -2388,7 +2426,7 @@ function VideoContent({
   // });
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16 md:pb-6">
       <div className="relative w-full">
         {hasVideo ? (
           <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative bg-black">
@@ -2672,7 +2710,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   
   if (!lesson) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
         </div>
@@ -2691,7 +2729,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2707,7 +2745,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2834,7 +2872,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2851,7 +2889,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
   if (!hasSummary) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2875,7 +2913,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -3942,7 +3980,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
 
   if (loading) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -3959,7 +3997,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
 
   if (!hasContent) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -3983,7 +4021,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -4705,7 +4743,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
         </div>
@@ -4720,7 +4758,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
