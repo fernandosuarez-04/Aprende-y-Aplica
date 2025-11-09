@@ -1207,6 +1207,13 @@ Antes de cada respuesta, pregúntate:
           lesson: currentLesson?.lesson_title,
           patterns: analysis.patterns
         });
+        
+        // Abrir el panel de LIA (panel derecho)
+        setIsRightPanelOpen(true);
+        
+        // Enviar mensaje automático a LIA con el contexto de la dificultad
+        const difficultyMessage = `Hola LIA, necesito ayuda con esta lección. ${analysis.interventionMessage}`;
+        sendLiaMessage(difficultyMessage);
       }}
     >
     <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
