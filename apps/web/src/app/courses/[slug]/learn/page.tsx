@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { dedupedFetch } from '@/lib/supabase/request-deduplication';
-import { 
-  Play, 
-  BookOpen, 
-  MessageSquare, 
-  FileText, 
+import {
+  Play,
+  BookOpen,
+  MessageSquare,
+  FileText,
   Activity,
   Layers,
   ChevronRight,
@@ -41,7 +41,10 @@ import {
   Minimize2,
   Trash2,
   Mic,
-  MicOff
+  MicOff,
+  AlertCircle,
+  XCircle,
+  Info,
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
@@ -193,6 +196,18 @@ export default function CourseLearnPage() {
   const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] = useState(false);
   const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
+  const [validationModal, setValidationModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    details?: string;
+    type: 'activity' | 'video' | 'quiz';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'activity',
+  });
 
   // Función para convertir HTML a texto plano con formato mejorado
   const htmlToPlainText = (html: string, addLineBreaks: boolean = true): string => {
@@ -772,27 +787,41 @@ Antes de cada respuesta, pregúntate:
     try {
       // ⚡ OPTIMIZACIÓN: Usar dedupedFetch para evitar requests duplicados
       const data = await dedupedFetch(`/api/courses/${courseSlug}/modules`);
-      setModules(data);
+      const modulesResponse: Module[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.modules)
+        ? data.modules
+        : [];
 
-      // Calcular progreso general del curso
-      const allLessons = data.flatMap((m: Module) => m.lessons);
-      const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
-      const totalProgress = allLessons.length > 0
-        ? Math.round((completedLessons.length / allLessons.length) * 100)
-        : 0;
-      setCourseProgress(totalProgress);
+      setModules(modulesResponse);
 
-      // Actualizar estadísticas de notas con el total de lecciones
+      const allLessons = modulesResponse.flatMap((module) => module.lessons);
+      const completedLessons = allLessons.filter((lesson) => lesson.is_completed);
+      const fallbackProgress =
+        allLessons.length > 0
+          ? Math.round((completedLessons.length / allLessons.length) * 100)
+          : 0;
+
+      const serverProgress =
+        !Array.isArray(data) && data?.overall_progress_percentage !== undefined
+          ? Math.round(Number(data.overall_progress_percentage))
+          : null;
+
+      if (serverProgress !== null && !Number.isNaN(serverProgress)) {
+        setCourseProgress(serverProgress);
+      } else {
+        setCourseProgress(fallbackProgress);
+      }
+
       const totalLessons = allLessons.length;
-      setNotesStats(prev => ({
+      setNotesStats((prev) => ({
         ...prev,
-        lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0'
+        lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0',
       }));
 
-      // Seleccionar la primera lección disponible o la siguiente no completada
-      if (data.length > 0 && data[0].lessons.length > 0) {
-        const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
-        const selectedLesson = nextIncomplete || data[0].lessons[0];
+      if (modulesResponse.length > 0 && modulesResponse[0].lessons.length > 0) {
+        const nextIncomplete = allLessons.find((lesson) => !lesson.is_completed);
+        const selectedLesson = nextIncomplete || modulesResponse[0].lessons[0];
         setCurrentLesson(selectedLesson);
       }
     } catch (error) {
@@ -869,6 +898,39 @@ Antes de cada respuesta, pregúntate:
     return previousLesson.is_completed;
   };
 
+  // Función para verificar el estado de los quizzes obligatorios
+  const checkQuizStatus = async (lessonId: string): Promise<{ canComplete: boolean; error?: string; details?: any }> => {
+    try {
+      const response = await fetch(`/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`);
+      if (!response.ok) {
+        return { canComplete: true }; // Si hay error, permitir completar (retrocompatibilidad)
+      }
+
+      const data = await response.json();
+      
+      if (!data.hasRequiredQuizzes) {
+        return { canComplete: true }; // No hay quizzes obligatorios
+      }
+
+      if (data.allQuizzesPassed) {
+        return { canComplete: true };
+      }
+
+      return {
+        canComplete: false,
+        error: 'Hace falta realizar actividad',
+        details: {
+          totalRequired: data.totalRequiredQuizzes,
+          passed: data.passedQuizzes,
+          message: `Debes completar y aprobar todos los quizzes obligatorios (${data.passedQuizzes}/${data.totalRequiredQuizzes} completados)`,
+        },
+      };
+    } catch (error) {
+      console.error('Error verificando estado de quizzes:', error);
+      return { canComplete: true }; // En caso de error, permitir completar
+    }
+  };
+
   // Función para marcar una lección como completada (local y BD)
   const markLessonAsCompleted = async (lessonId: string): Promise<boolean> => {
     if (!canCompleteLesson(lessonId)) {
@@ -876,9 +938,26 @@ Antes de cada respuesta, pregúntate:
       return false;
     }
 
-    // Actualizar estado local primero (optimistic update)
+    // Verificar estado de quizzes obligatorios
+    const quizStatus = await checkQuizStatus(lessonId);
+    if (!quizStatus.canComplete) {
+      // Mostrar modal de validación
+      setValidationModal({
+        isOpen: true,
+        title: 'Hace falta realizar actividad',
+        message: quizStatus.details?.message || quizStatus.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
+        details: quizStatus.details 
+          ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
+          : undefined,
+        type: 'activity',
+      });
+      return false;
+    }
+
+    // NO hacer optimistic update del progreso - esperar confirmación del servidor
+    // Solo actualizar el estado visual de la lección
     setModules((prevModules) => {
-      const updatedModules = prevModules.map((module) => ({
+      return prevModules.map((module) => ({
         ...module,
         lessons: module.lessons.map((lesson) =>
           lesson.lesson_id === lessonId
@@ -886,18 +965,6 @@ Antes de cada respuesta, pregúntate:
             : lesson
         ),
       }));
-
-      // Recalcular el progreso del curso con los módulos actualizados
-      const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
-      const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
-      const totalProgress = allLessons.length > 0 
-        ? Math.round((completedLessons.length / allLessons.length) * 100)
-        : 0;
-      
-      // Actualizar progreso del curso
-      setCourseProgress(totalProgress);
-
-      return updatedModules;
     });
 
     // Actualizar currentLesson si es la lección actual
@@ -954,6 +1021,46 @@ Antes de cada respuesta, pregúntate:
           }
 
           // console.error('Error del servidor:', responseData?.error || responseData);
+          return false;
+        }
+
+        // Si el error es que falta realizar actividad (quiz obligatorio)
+        if (responseData?.code === 'REQUIRED_QUIZ_NOT_PASSED') {
+          // Revertir el estado local (solo el estado de la lección, NO el progreso)
+          setModules((prevModules) => {
+            return prevModules.map((module) => ({
+              ...module,
+              lessons: module.lessons.map((lesson) =>
+                lesson.lesson_id === lessonId
+                  ? { ...lesson, is_completed: false }
+                  : lesson
+              ),
+            }));
+          });
+
+          if (currentLesson?.lesson_id === lessonId) {
+            setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+          }
+
+          // Mostrar modal de validación según el tipo de error
+          if (responseData?.code === 'REQUIRED_QUIZ_NOT_PASSED') {
+            setValidationModal({
+              isOpen: true,
+              title: 'Hace falta realizar actividad',
+              message: responseData?.details?.message || responseData?.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
+              details: responseData?.details 
+                ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
+                : undefined,
+              type: 'activity',
+            });
+          } else {
+            setValidationModal({
+              isOpen: true,
+              title: 'No se puede completar',
+              message: responseData?.details?.message || responseData?.error || 'No se puede completar la lección en este momento.',
+              type: 'activity',
+            });
+          }
           return false;
         }
 
@@ -1087,7 +1194,7 @@ Antes de cada respuesta, pregúntate:
         className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
       >
         <div className="flex items-center justify-between w-full gap-2">
-          {/* Sección izquierda: Botón regresar | Logo | Nombre del taller */}
+          {/* Sección izquierda: Botón regresar | Nombre del taller */}
           <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
             {/* Botón de regreso */}
             <button
@@ -1096,26 +1203,6 @@ Antes de cada respuesta, pregúntate:
             >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
             </button>
-
-            {/* Logo de la empresa - Oculto en móviles muy pequeños */}
-            <div className="hidden sm:block w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shrink-0">
-              <img 
-                src="/icono.png" 
-                alt="Aprende y Aplica" 
-                className="w-5 h-5 md:w-6 md:h-6 rounded"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="w-5 h-5 md:w-6 md:h-6 bg-white rounded flex items-center justify-center"><span class="text-blue-600 font-bold text-xs">A&A</span></div>';
-                  }
-                }}
-              />
-            </div>
-
-            {/* Separador visual - Oculto en móviles */}
-            <div className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-slate-600/50"></div>
 
             {/* Nombre del taller */}
             <div className="min-w-0 flex-1">
@@ -1554,39 +1641,42 @@ Antes de cada respuesta, pregúntate:
           ) : currentLesson ? (
             <>
               {/* Tabs mejorados - Responsive */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-lg h-[56px] items-center overflow-x-auto scrollbar-hide">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  const shouldHideText = isLiaExpanded && !isActive && !isMobile;
+              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-lg h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth" style={{ scrollPaddingLeft: '0.5rem', scrollPaddingRight: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                <div className="flex gap-1 md:gap-2 items-center min-w-max">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    const shouldHideText = isLiaExpanded && !isActive && !isMobile;
 
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
-                        shouldHideText
-                          ? 'px-2 py-2 hover:px-3 hover:gap-2'
-                          : 'px-3 md:px-4 py-2 gap-1 md:gap-2'
-                      } ${
-                        isActive
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
-                          : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span 
-                        className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
                           shouldHideText
-                            ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
-                            : ''
+                            ? 'px-2 py-2 hover:px-3 hover:gap-2'
+                            : 'px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit'
+                        } ${
+                          isActive
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
+                            : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
                         }`}
+                        style={{ scrollSnapAlign: 'start' }}
                       >
-                        {tab.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span 
+                          className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                            shouldHideText
+                              ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
+                              : ''
+                          }`}
+                        >
+                          {tab.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Contenido del tab activo */}
@@ -1725,7 +1815,7 @@ Antes de cada respuesta, pregúntate:
               {/* Chat de Lia expandido */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
-                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`}>
+                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`} style={{ paddingBottom: isMobile ? 'calc(1rem + 80px)' : '1rem' }}>
                   {liaMessages.map((message) => (
                     <div
                       key={message.id}
@@ -1832,7 +1922,7 @@ Antes de cada respuesta, pregúntate:
                 </AnimatePresence>
 
                 {/* Área de entrada */}
-                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'pb-20' : ''}`}>
+                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 z-10 ${isMobile ? 'pb-[calc(80px+1rem)]' : ''}`}>
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={liaTextareaRef}
@@ -2095,7 +2185,83 @@ Antes de cada respuesta, pregúntate:
         )}
       </AnimatePresence>
 
-      {/* Modal de Confirmación para Limpiar Historial de Lia */}
+      {/* Modal de Validación (Actividades/Video/Quiz) */}
+      <AnimatePresence>
+        {validationModal.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setValidationModal({ ...validationModal, isOpen: false })}
+          >
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+            >
+              {/* Icono según el tipo de validación */}
+              <div className="flex justify-center mb-4">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+                  validationModal.type === 'activity' || validationModal.type === 'quiz'
+                    ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25'
+                    : validationModal.type === 'video'
+                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-blue-500/25'
+                    : 'bg-gradient-to-br from-yellow-500 to-orange-500 shadow-yellow-500/25'
+                }`}>
+                  {validationModal.type === 'activity' || validationModal.type === 'quiz' ? (
+                    <AlertCircle className="w-10 h-10 text-white" />
+                  ) : validationModal.type === 'video' ? (
+                    <Info className="w-10 h-10 text-white" />
+                  ) : (
+                    <XCircle className="w-10 h-10 text-white" />
+                  )}
+                </div>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-2xl font-bold text-white text-center mb-2">
+                {validationModal.title}
+              </h3>
+
+              {/* Mensaje */}
+              <p className="text-slate-300 text-center mb-4">
+                {validationModal.message}
+              </p>
+
+              {/* Detalles adicionales si existen */}
+              {validationModal.details && (
+                <div className="mb-6 p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                  <p className="text-slate-200 text-sm text-center font-medium">
+                    {validationModal.details}
+                  </p>
+                </div>
+              )}
+
+              {/* Botón de cerrar */}
+              <button
+                onClick={() => setValidationModal({ ...validationModal, isOpen: false })}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+              >
+                Entendido
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Confirmación para Limpiar Historial de LIA */}
       <AnimatePresence>
         {isClearHistoryModalOpen && (
           <motion.div
@@ -2223,9 +2389,9 @@ function VideoContent({
   
   return (
     <div className="space-y-6">
-      <div className="relative">
+      <div className="relative w-full">
         {hasVideo ? (
-          <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative">
+          <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative bg-black">
             <VideoPlayer
               videoProvider={lesson.video_provider!}
               videoProviderId={lesson.video_provider_id!}
@@ -2745,7 +2911,14 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 }
 
 // Componente para renderizar quizzes
-function QuizRenderer({ quizData, totalPoints }: {
+function QuizRenderer({ 
+  quizData, 
+  totalPoints,
+  lessonId,
+  slug,
+  materialId,
+  activityId
+}: {
   quizData: Array<{
     id: string;
     question: string;
@@ -2756,11 +2929,18 @@ function QuizRenderer({ quizData, totalPoints }: {
     questionType?: string;
   }>;
   totalPoints?: number;
+  lessonId?: string;
+  slug?: string;
+  materialId?: string;
+  activityId?: string;
 }) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [pointsEarned, setPointsEarned] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [serverMessage, setServerMessage] = useState<string | null>(null);
 
   const handleAnswerSelect = (questionId: string, answer: string | number) => {
     setSelectedAnswers(prev => ({
@@ -2777,11 +2957,44 @@ function QuizRenderer({ quizData, totalPoints }: {
       .toLowerCase();
   };
 
+  // Función para convertir entre "true"/"false" y "Verdadero"/"Falso"
+  const normalizeTrueFalse = (value: string): string => {
+    const normalized = normalizeOption(value);
+    if (normalized === 'true' || normalized === 'verdadero') return 'verdadero';
+    if (normalized === 'false' || normalized === 'falso') return 'falso';
+    return normalized;
+  };
+
   // Función para verificar si una respuesta es correcta
   const isAnswerCorrect = (question: any, selectedAnswer: string | number): boolean => {
     const correctAnswer = question.correctAnswer;
     const options = question.options;
 
+    // Si es pregunta de verdadero/falso, usar normalización especial
+    if (question.questionType === 'true_false') {
+      // Si la respuesta seleccionada es un índice
+      if (typeof selectedAnswer === 'number') {
+        const selectedOption = options[selectedAnswer];
+        if (typeof correctAnswer === 'string') {
+          return normalizeTrueFalse(selectedOption) === normalizeTrueFalse(correctAnswer);
+        }
+        if (typeof correctAnswer === 'number') {
+          return selectedAnswer === correctAnswer;
+        }
+      }
+      // Si la respuesta seleccionada es un string
+      if (typeof selectedAnswer === 'string') {
+        if (typeof correctAnswer === 'string') {
+          return normalizeTrueFalse(selectedAnswer) === normalizeTrueFalse(correctAnswer);
+        }
+        if (typeof correctAnswer === 'number') {
+          return normalizeTrueFalse(selectedAnswer) === normalizeTrueFalse(options[correctAnswer]);
+        }
+      }
+      return false;
+    }
+
+    // Para otros tipos de preguntas, usar la lógica original
     // Si la respuesta seleccionada es un índice
     if (typeof selectedAnswer === 'number') {
       // Caso 1: correctAnswer es también un índice
@@ -2810,22 +3023,97 @@ function QuizRenderer({ quizData, totalPoints }: {
     return false;
   };
 
-  const handleSubmit = () => {
-    let correct = 0;
-    let points = 0;
-    quizData.forEach(question => {
-      const selectedAnswer = selectedAnswers[question.id];
-      if (selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer)) {
-        correct++;
-        points += question.points || 1;
+  // Normalizar preguntas: asegurar que las de verdadero/falso tengan las opciones correctas
+  const normalizedQuizData = quizData.map((question) => {
+    if (question.questionType === 'true_false') {
+      // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
+      if (!question.options || question.options.length !== 2 || 
+          (question.options[0] !== 'Verdadero' && question.options[0] !== 'Falso') ||
+          (question.options[1] !== 'Verdadero' && question.options[1] !== 'Falso')) {
+        return {
+          ...question,
+          options: ['Verdadero', 'Falso']
+        };
       }
-    });
-    setScore(correct);
-    setPointsEarned(points);
-    setShowResults(true);
+    }
+    return question;
+  });
+
+  const handleSubmit = async () => {
+    // Validar que todas las preguntas tengan respuesta
+    const unansweredQuestions = normalizedQuizData.filter(
+      (q) => selectedAnswers[q.id] === undefined
+    );
+
+    if (unansweredQuestions.length > 0) {
+      setSubmitError(`Por favor responde todas las preguntas (${unansweredQuestions.length} sin responder)`);
+      return;
+    }
+
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    try {
+      // Calcular puntuación localmente primero
+      let correct = 0;
+      let points = 0;
+      normalizedQuizData.forEach(question => {
+        const selectedAnswer = selectedAnswers[question.id];
+        if (selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer)) {
+          correct++;
+          points += question.points || 1;
+        }
+      });
+      setScore(correct);
+      setPointsEarned(points);
+      setShowResults(true);
+
+      // Si tenemos lessonId y slug, guardar en la base de datos
+      if (lessonId && slug) {
+        try {
+          const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/quiz/submit`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              answers: selectedAnswers,
+              quizData: normalizedQuizData,
+              materialId: materialId || null,
+              activityId: activityId || null,
+              totalPoints: totalPoints,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            console.error('Error guardando quiz:', result.error);
+            setSubmitError(result.error || 'Error al guardar las respuestas');
+          } else {
+            // Quiz guardado exitosamente o no se guardó porque no mejoró
+            console.log('Quiz procesado:', result);
+            
+            // Guardar mensaje del servidor para mostrarlo en los resultados
+            if (result.message) {
+              setServerMessage(result.message);
+            }
+          }
+        } catch (error) {
+          console.error('Error al enviar quiz:', error);
+          // No mostrar error al usuario si el cálculo local fue exitoso
+          // Solo loguear el error
+        }
+      }
+    } catch (error) {
+      console.error('Error procesando quiz:', error);
+      setSubmitError('Error al procesar el quiz');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const totalQuestions = quizData.length;
+  const totalQuestions = normalizedQuizData.length;
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const passingThreshold = 80;
   const passed = percentage >= passingThreshold;
@@ -2889,7 +3177,7 @@ function QuizRenderer({ quizData, totalPoints }: {
 
       {/* Preguntas */}
       <div className="space-y-6">
-        {quizData.map((question, index) => {
+        {normalizedQuizData.map((question, index) => {
           const selectedAnswer = selectedAnswers[question.id];
           const isCorrect = selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer);
           const showExplanation = showResults && selectedAnswer !== undefined;
@@ -2935,10 +3223,20 @@ function QuizRenderer({ quizData, totalPoints }: {
 
                       // Determinar si esta opción es la correcta
                       let isCorrectOption = false;
-                      if (typeof question.correctAnswer === 'number') {
-                        isCorrectOption = optIndex === question.correctAnswer;
-                      } else if (typeof question.correctAnswer === 'string') {
-                        isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                      if (question.questionType === 'true_false') {
+                        // Para preguntas de verdadero/falso, usar normalización especial
+                        if (typeof question.correctAnswer === 'number') {
+                          isCorrectOption = optIndex === question.correctAnswer;
+                        } else if (typeof question.correctAnswer === 'string') {
+                          isCorrectOption = normalizeTrueFalse(option) === normalizeTrueFalse(question.correctAnswer);
+                        }
+                      } else {
+                        // Para otros tipos de preguntas, usar normalización estándar
+                        if (typeof question.correctAnswer === 'number') {
+                          isCorrectOption = optIndex === question.correctAnswer;
+                        } else if (typeof question.correctAnswer === 'string') {
+                          isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                        }
                       }
                       
                       return (
@@ -3004,15 +3302,29 @@ function QuizRenderer({ quizData, totalPoints }: {
         })}
       </div>
 
+      {/* Mensaje de error */}
+      {submitError && (
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
+          <p className="text-red-600 dark:text-red-400 text-sm">{submitError}</p>
+        </div>
+      )}
+
       {/* Botón de envío */}
       {!showResults && (
         <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-carbon-600/50">
           <button
             onClick={handleSubmit}
-            disabled={Object.keys(selectedAnswers).length < totalQuestions}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            disabled={Object.keys(selectedAnswers).length < totalQuestions || isSubmitting}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2"
           >
-            Enviar Respuestas
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              'Enviar Respuestas'
+            )}
           </button>
         </div>
       )}
@@ -3025,6 +3337,26 @@ function QuizRenderer({ quizData, totalPoints }: {
             : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/50'
         }`}>
           <div className="text-center">
+            {/* Mensaje informativo del servidor */}
+            {serverMessage && (
+              <div className={`mb-4 p-3 rounded-lg border ${
+                serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
+                  ? 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/30'
+                  : passed
+                  ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30'
+                  : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30'
+              }`}>
+                <p className={`text-sm ${
+                  serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
+                    ? 'text-yellow-800 dark:text-yellow-300'
+                    : passed
+                    ? 'text-green-800 dark:text-green-300'
+                    : 'text-blue-800 dark:text-blue-300'
+                }`}>
+                  {serverMessage}
+                </p>
+              </div>
+            )}
             <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
             </h3>
@@ -3492,6 +3824,21 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
     is_downloadable: boolean;
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [quizStatus, setQuizStatus] = useState<{
+    hasRequiredQuizzes: boolean;
+    totalRequiredQuizzes: number;
+    completedQuizzes: number;
+    passedQuizzes: number;
+    allQuizzesPassed: boolean;
+    quizzes: Array<{
+      id: string;
+      title: string;
+      type: string;
+      isCompleted: boolean;
+      isPassed: boolean;
+      percentage: number;
+    }>;
+  } | null>(null);
 
   useEffect(() => {
     async function loadActivitiesAndMaterials() {
@@ -3503,10 +3850,11 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
       try {
         setLoading(true);
         
-        // Cargar actividades y materiales en paralelo para mejorar el rendimiento
-        const [activitiesResponse, materialsResponse] = await Promise.all([
+        // Cargar actividades, materiales y estado de quizzes en paralelo
+        const [activitiesResponse, materialsResponse, quizStatusResponse] = await Promise.all([
           fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`),
-          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`)
+          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`),
+          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/quiz/status`)
         ]);
 
         // Procesar actividades
@@ -3523,6 +3871,12 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           setMaterials(materialsData || []);
         } else {
           setMaterials([]);
+        }
+
+        // Procesar estado de quizzes
+        if (quizStatusResponse.ok) {
+          const quizStatusData = await quizStatusResponse.json();
+          setQuizStatus(quizStatusData);
         }
       } catch (error) {
         // console.error('Error loading activities and materials:', error);
@@ -3660,7 +4014,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
                       {activity.is_required && (
                         <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
@@ -3670,6 +4024,35 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                       <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
                         {activity.activity_type}
                       </span>
+                      {/* Indicador de quiz obligatorio */}
+                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && (() => {
+                        const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                        if (quizInfo) {
+                          if (quizInfo.isPassed) {
+                            return (
+                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" />
+                                Aprobado
+                              </span>
+                            );
+                          } else if (quizInfo.isCompleted) {
+                            return (
+                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 flex items-center gap-1">
+                                <X className="w-3 h-3" />
+                                Reprobado ({quizInfo.percentage}%)
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30 flex items-center gap-1">
+                                <Activity className="w-3 h-3" />
+                                Pendiente
+                              </span>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
                     </div>
                     {activity.activity_description && (
                       <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{activity.activity_description}</p>
@@ -3771,7 +4154,15 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         );
 
                         if (hasValidStructure) {
-                          return <QuizRenderer quizData={questionsArray} totalPoints={totalPoints} />;
+                          return (
+                            <QuizRenderer 
+                              quizData={questionsArray} 
+                              totalPoints={totalPoints}
+                              lessonId={lesson.lesson_id}
+                              slug={slug}
+                              activityId={activity.activity_id}
+                            />
+                          );
                         }
                       }
 
@@ -3847,7 +4238,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{material.material_title}</h4>
                       <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 capitalize">
                         {material.material_type}
@@ -3857,6 +4248,35 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                           Descargable
                         </span>
                       )}
+                      {/* Indicador de quiz obligatorio */}
+                      {material.material_type === 'quiz' && quizStatus && (() => {
+                        const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
+                        if (quizInfo) {
+                          if (quizInfo.isPassed) {
+                            return (
+                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" />
+                                Aprobado
+                              </span>
+                            );
+                          } else if (quizInfo.isCompleted) {
+                            return (
+                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 flex items-center gap-1">
+                                <X className="w-3 h-3" />
+                                Reprobado ({quizInfo.percentage}%)
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30 flex items-center gap-1">
+                                <Activity className="w-3 h-3" />
+                                Pendiente
+                              </span>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
                     </div>
                     {material.material_description && material.material_type !== 'reading' && (
                       <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{material.material_description}</p>
@@ -3900,7 +4320,15 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                           );
 
                           if (hasValidStructure) {
-                            return <QuizRenderer quizData={questionsArray} totalPoints={totalPoints} />;
+                            return (
+                              <QuizRenderer 
+                                quizData={questionsArray} 
+                                totalPoints={totalPoints}
+                                lessonId={lesson.lesson_id}
+                                slug={slug}
+                                materialId={material.material_id}
+                              />
+                            );
                           }
                         }
                       } catch (e) {

@@ -33,9 +33,30 @@ export function QuizBuilder({ questions, onChange }: QuizBuilderProps) {
   }
 
   const updateQuestion = (id: string, field: keyof QuizQuestion, value: any) => {
-    onChange(questions.map(q => 
-      q.id === id ? { ...q, [field]: value } : q
-    ))
+    onChange(questions.map(q => {
+      if (q.id === id) {
+        const updated = { ...q, [field]: value }
+        
+        // Si se cambia el tipo a true_false, inicializar opciones automáticamente
+        if (field === 'questionType' && value === 'true_false') {
+          updated.options = ['Verdadero', 'Falso']
+          // Si no hay respuesta correcta, establecerla vacía
+          if (!updated.correctAnswer) {
+            updated.correctAnswer = ''
+          }
+        }
+        
+        // Si se cambia de true_false a otro tipo, limpiar opciones si es necesario
+        if (field === 'questionType' && value !== 'true_false' && q.questionType === 'true_false') {
+          if (value === 'multiple_choice' && (!updated.options || updated.options.length === 0)) {
+            updated.options = ['']
+          }
+        }
+        
+        return updated
+      }
+      return q
+    }))
   }
 
   const deleteQuestion = (id: string) => {

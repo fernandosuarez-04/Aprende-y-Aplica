@@ -60,94 +60,111 @@ export async function GET(
 
     // ⚡ OPTIMIZACIÓN: Obtener user y enrollment UNA SOLA VEZ antes del loop
     const currentUser = await SessionService.getCurrentUser();
-    let userEnrollment = null;
+    let userEnrollment: {
+      enrollment_id: string;
+      overall_progress_percentage?: number;
+    } | null = null;
 
     if (currentUser) {
       const { data: enrollment } = await supabase
         .from('user_course_enrollments')
-        .select('enrollment_id')
+        .select('enrollment_id, overall_progress_percentage')
         .eq('user_id', currentUser.id)
         .eq('course_id', courseId)
         .single();
 
-      userEnrollment = enrollment;
+      userEnrollment = enrollment ?? null;
     }
 
-    // ⚡ OPTIMIZACIÓN: Obtener TODAS las lecciones en una sola query con JOIN
-    const { data: allLessonsData } = await supabase
-      .from('course_lessons')
-      .select(`
-        lesson_id,
-        lesson_title,
-        lesson_description,
-        lesson_order_index,
-        duration_seconds,
-        video_provider_id,
-        video_provider,
-        is_published,
-        module_id
-      `)
-      .in('module_id', modules.map(m => m.module_id))
-      .order('lesson_order_index', { ascending: true });
+    let allLessonsData: Array<{
+      lesson_id: string;
+      lesson_title: string;
+      lesson_description?: string;
+      lesson_order_index: number;
+      duration_seconds: number;
+      video_provider_id?: string;
+      video_provider?: string;
+      is_published: boolean;
+      module_id: string;
+    }> = [];
 
-    // ⚡ OPTIMIZACIÓN: Obtener TODO el progreso en una sola query
-    let progressMap = new Map();
-    if (userEnrollment && allLessonsData && allLessonsData.length > 0) {
+    if (modules.length > 0) {
+      const { data: lessonsData } = await supabase
+        .from('course_lessons')
+        .select(`
+          lesson_id,
+          lesson_title,
+          lesson_description,
+          lesson_order_index,
+          duration_seconds,
+          video_provider_id,
+          video_provider,
+          is_published,
+          module_id
+        `)
+        .in('module_id', modules.map((m) => m.module_id))
+        .order('lesson_order_index', { ascending: true });
+
+      allLessonsData = lessonsData ?? [];
+    }
+
+    let progressMap = new Map<
+      string,
+      { is_completed?: boolean; video_progress_percentage?: number }
+    >();
+
+    if (userEnrollment && allLessonsData.length > 0) {
       const { data: progressData } = await supabase
         .from('user_lesson_progress')
         .select('lesson_id, is_completed, lesson_status, video_progress_percentage')
         .eq('enrollment_id', userEnrollment.enrollment_id)
-        .in('lesson_id', allLessonsData.map(l => l.lesson_id));
+        .in(
+          'lesson_id',
+          allLessonsData.map((lesson) => lesson.lesson_id)
+        );
 
       progressMap = new Map(
-        (progressData || []).map(p => [p.lesson_id, p])
+        (progressData || []).map((p) => [p.lesson_id, p])
       );
     }
 
-    // Agrupar lecciones por módulo
-    const lessonsByModule = new Map<string, any[]>();
-    (allLessonsData || []).forEach((lesson: any) => {
+    const lessonsByModule = new Map<string, typeof allLessonsData>();
+    allLessonsData.forEach((lesson) => {
       if (!lessonsByModule.has(lesson.module_id)) {
         lessonsByModule.set(lesson.module_id, []);
       }
       lessonsByModule.get(lesson.module_id)!.push(lesson);
     });
 
-    // Construir módulos con sus lecciones (sin queries adicionales)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
-    const modulesWithLessons = modules.map((module: {
-      module_id: string;
-      module_title: string;
-      module_order_index: number;
-      module_duration_minutes?: number;
-      is_published: boolean;
-    }) => {
-      // Obtener lecciones de este módulo desde el Map
+    const modulesWithLessons = modules.map((module) => {
       const moduleLessons = lessonsByModule.get(module.module_id) || [];
+      const publishedLessons = moduleLessons.filter(
+        (lesson) => lesson.is_published === true
+      );
+      const lessons =
+        publishedLessons.length > 0 ? publishedLessons : moduleLessons;
 
-      // Filtrar publicadas si existen, sino mostrar todas
-      const publishedLessons = moduleLessons.filter(l => l.is_published === true);
-      const lessons = publishedLessons.length > 0 ? publishedLessons : moduleLessons;
-
-      // Procesar URLs de videos y agregar progreso
-      const lessonsWithProgress = lessons.map((lesson: any) => {
-        // Reconstruir URLs completas de Supabase para videos directos
+      const lessonsWithProgress = lessons.map((lesson) => {
         let videoUrl = lesson.video_provider_id;
-        if (lesson.video_provider === 'direct' && videoUrl && !videoUrl.startsWith('http')) {
-          if (supabaseUrl) {
-            if (!videoUrl.includes('/')) {
-              videoUrl = `${supabaseUrl}/storage/v1/object/public/course-videos/videos/${videoUrl}`;
-            } else if (!videoUrl.startsWith('course-videos/')) {
-              videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
-            } else {
-              videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
-            }
+
+        if (
+          lesson.video_provider === 'direct' &&
+          videoUrl &&
+          !videoUrl.startsWith('http')
+        ) {
+          if (!videoUrl.includes('/')) {
+            videoUrl = `${supabaseUrl}/storage/v1/object/public/course-videos/videos/${videoUrl}`;
+          } else if (!videoUrl.startsWith('course-videos/')) {
+            videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
+          } else {
+            videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
           }
         }
 
-        // Obtener progreso desde el Map
-        const progress = progressMap.get(lesson.lesson_id) as { is_completed?: boolean; video_progress_percentage?: number } | undefined;
+        const progress =
+          progressMap.get(lesson.lesson_id) || ({} as { is_completed?: boolean; video_progress_percentage?: number });
 
         return {
           lesson_id: lesson.lesson_id,
@@ -166,13 +183,23 @@ export async function GET(
         module_id: module.module_id,
         module_title: module.module_title,
         module_order_index: module.module_order_index,
+        module_duration_minutes: module.module_duration_minutes,
+        is_published: module.is_published,
         lessons: lessonsWithProgress,
       };
     });
 
-    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+    const overallProgress = userEnrollment?.overall_progress_percentage
+      ? Number(userEnrollment.overall_progress_percentage)
+      : 0;
+
+    const responseBody = {
+      modules: modulesWithLessons,
+      overall_progress_percentage: overallProgress,
+    };
+
     return withCacheHeaders(
-      NextResponse.json(modulesWithLessons),
+      NextResponse.json(responseBody),
       cacheHeaders.semiStatic
     );
   } catch (error) {

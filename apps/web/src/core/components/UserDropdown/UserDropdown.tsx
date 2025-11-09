@@ -295,12 +295,12 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                 duration: 0.2,
                 ease: "easeOut"
               }}
-              className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-8rem)] bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-none border-2 border-gray-200 dark:border-gray-700 z-[10000] flex flex-col"
+              className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-6rem)] bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-none border-2 border-gray-200 dark:border-gray-700 z-[10000] flex flex-col"
             >
             {/* Header del usuario */}
-            <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
-              <div className="flex items-center space-x-5">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center dark:shadow-none overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center dark:shadow-none overflow-hidden flex-shrink-0">
                   {userProfile?.profile_picture_url ? (
                     <img 
                       src={userProfile.profile_picture_url} 
@@ -308,17 +308,17 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <User className="w-8 h-8 text-primary dark:text-white" />
+                    <User className="w-6 h-6 text-primary dark:text-white" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 
-                    className="text-lg font-semibold truncate text-gray-900 dark:text-white"
+                    className="text-base font-semibold truncate text-gray-900 dark:text-white"
                   >
                     {userProfile?.display_name || userProfile?.first_name || user?.display_name || user?.username || 'Usuario'}
                   </h3>
                   <p 
-                    className="text-sm truncate text-gray-700 dark:text-gray-300"
+                    className="text-xs truncate text-gray-700 dark:text-gray-300"
                   >
                     {truncateEmail(userProfile?.email || user?.email || 'usuario@ejemplo.com')}
                   </p>
@@ -327,14 +327,14 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
             </div>
 
             {/* Items del menú - Con scroll invisible */}
-            <div className="py-3 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
+            <div className="py-2 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
               {menuItems.map((item, index) => {
                 // Renderizar separador
                 if ((item as any).isSeparator) {
                   return (
                     <div
                       key={item.id}
-                      className="h-px bg-gray-200 dark:bg-gray-700 my-2 mx-6"
+                      className="h-px bg-gray-200 dark:bg-gray-700 my-1.5 mx-4"
                     />
                   )
                 }
@@ -344,7 +344,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                   <React.Fragment key={item.id}>
                     <motion.button
                       onClick={item.onClick}
-                    className={`w-full flex items-center space-x-4 px-6 py-4 text-left transition-colors ${
+                    className={`w-full flex items-center space-x-3 px-4 py-2.5 text-left transition-colors ${
                       item.isDestructive 
                         ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300' 
                         : item.isAdmin
@@ -373,13 +373,13 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                       }}
                       transition={{ duration: 0.2 }}
                     >
-                      <Icon className={`w-6 h-6 ${
+                      <Icon className={`w-5 h-5 flex-shrink-0 ${
                         item.isDestructive || item.isAdmin ? 'text-red-400' : 'text-primary'
                       }`} />
                       </motion.div>
-                      <span className="font-medium text-base flex-1">{item.label}</span>
+                      <span className="font-medium text-sm flex-1">{item.label}</span>
                       {item.id === 'theme' && (
-                        <ChevronDown className={`w-4 h-4 text-text-secondary dark:text-text-secondary transition-transform ${
+                        <ChevronDown className={`w-4 h-4 text-text-secondary dark:text-text-secondary transition-transform flex-shrink-0 ${
                           isThemeSubmenuOpen ? 'rotate-180' : ''
                         }`} />
                       )}
@@ -389,7 +389,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                     {item.id === 'theme' && isThemeSubmenuOpen && (
                       <div 
                         ref={themeSubmenuRef}
-                        className="mt-1 ml-6 border-l-2 border-gray-300 dark:border-gray-700 pl-2"
+                        className="mt-1 ml-4 border-l-2 border-gray-300 dark:border-gray-700 pl-2"
                       >
                         {[
                           { value: 'light' as Theme, label: 'Claro', icon: Sun },
@@ -405,7 +405,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                                 setTheme(themeOption.value)
                                 setIsThemeSubmenuOpen(false)
                               }}
-                              className={`w-full flex items-center space-x-3 px-4 py-3 text-left transition-colors rounded-lg ${
+                              className={`w-full flex items-center space-x-2 px-3 py-2 text-left transition-colors rounded-lg ${
                                 isActive
                                   ? 'bg-primary/20 dark:bg-primary/20 text-primary dark:text-primary'
                                   : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
@@ -416,10 +416,10 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                               whileHover={{ x: 4 }}
                               whileTap={{ scale: 0.98 }}
                             >
-                              <ThemeIcon className={`w-5 h-5 ${
+                              <ThemeIcon className={`w-4 h-4 flex-shrink-0 ${
                                 isActive ? 'text-primary dark:text-primary' : 'text-text-tertiary dark:text-text-tertiary'
                               }`} />
-                              <span className={`text-sm font-medium ${
+                              <span className={`text-xs font-medium ${
                                 isActive ? 'text-primary dark:text-primary' : 'text-text-secondary dark:text-text-secondary'
                               }`}>
                                 {themeOption.label}
@@ -427,7 +427,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                               {isActive && (
                                 <motion.div
                                   layoutId="activeThemeIndicator"
-                                  className="ml-auto w-2 h-2 rounded-full bg-primary"
+                                  className="ml-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
                                   transition={{ duration: 0.2 }}

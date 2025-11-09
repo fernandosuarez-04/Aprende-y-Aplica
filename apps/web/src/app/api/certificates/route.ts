@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
       .map((cert: any) => cert.courses?.instructor_id)
       .filter(Boolean))]
 
-    // Obtener información de instructores
+    // Obtener información de instructores (incluyendo firma)
     const instructorMap = new Map()
     if (instructorIds.length > 0) {
       const { data: instructors } = await supabase
         .from('users')
-        .select('id, first_name, last_name, username')
+        .select('id, first_name, last_name, username, signature_url, signature_name')
         .in('id', instructorIds)
 
       if (instructors) {
@@ -74,11 +74,25 @@ export async function GET(request: NextRequest) {
           const fullName = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim()
           instructorMap.set(instructor.id, {
             name: fullName || instructor.username || 'Instructor',
-            username: instructor.username
+            username: instructor.username,
+            signature_url: instructor.signature_url,
+            signature_name: instructor.signature_name
           })
         })
       }
     }
+
+    // Obtener información del usuario actual
+    const { data: currentUserData } = await supabase
+      .from('users')
+      .select('first_name, last_name, username, display_name')
+      .eq('id', currentUser.id)
+      .single()
+
+    const userName = currentUserData?.display_name || 
+      (currentUserData?.first_name && currentUserData?.last_name 
+        ? `${currentUserData.first_name} ${currentUserData.last_name}`.trim()
+        : currentUserData?.username || 'Estudiante')
 
     // Enriquecer certificados con datos del curso e instructor
     const enrichedCertificates = (certificates || []).map((cert: any) => {
@@ -98,7 +112,10 @@ export async function GET(request: NextRequest) {
         course_slug: course.slug || '',
         course_thumbnail: course.thumbnail_url || null,
         instructor_name: instructor?.name || 'Instructor',
-        instructor_username: instructor?.username || null
+        instructor_username: instructor?.username || null,
+        instructor_signature_url: instructor?.signature_url || null,
+        instructor_signature_name: instructor?.signature_name || null,
+        user_name: userName
       }
     })
 

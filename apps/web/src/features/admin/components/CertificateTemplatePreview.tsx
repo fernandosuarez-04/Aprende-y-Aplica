@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { X, Check, Maximize2, ArrowLeft } from 'lucide-react'
+import { getFullUrl } from '@/lib/env'
 
 // Importación dinámica de QRCode para evitar problemas con SSR
 const QRCode = dynamic(() => import('react-qr-code').then(mod => mod.default), {
@@ -153,10 +154,10 @@ export function CertificateTemplatePreview({
       >
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
           {/* Preview del Certificado */}
-          <div className={`relative overflow-hidden ${isExpanded ? 'w-full h-[800px]' : 'aspect-[4/3]'}`}>
+          <div className={`relative ${isExpanded ? 'w-full' : 'aspect-[8.5/11] overflow-hidden'}`} style={isExpanded ? { aspectRatio: '8.5 / 11', maxWidth: '816px', margin: '0 auto', minHeight: '1056px' } : {}}>
             {/* Certificado Clásico - Diseño Profesional con Bordes Decorativos */}
             {style === 'default' && (
-              <div className={`w-full ${isExpanded ? 'h-[800px]' : 'h-full'} flex relative bg-gradient-to-br from-gray-50 to-white`}>
+              <div className={`w-full ${isExpanded ? '' : 'h-full'} flex relative bg-gradient-to-br from-gray-50 to-white`} style={isExpanded ? { aspectRatio: '8.5 / 11', minHeight: '1056px', height: '100%' } : {}}>
                 {/* Bordes decorativos externos */}
                 <div className="absolute inset-0 border-8" style={{ borderColor: primaryColor }}></div>
                 <div className="absolute inset-2 border-4" style={{ borderColor: secondaryColor }}></div>
@@ -246,8 +247,8 @@ export function CertificateTemplatePreview({
                         <div className="bg-white p-3 rounded-lg border-2 shadow-lg" style={{ borderColor: primaryColor }}>
                           <QRCode
                             value={certificateHash 
-                              ? `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/${certificateHash}`
-                              : `${typeof window !== 'undefined' ? window.location.origin : ''}/certificates/verify/[hash]`
+                              ? getFullUrl(`/certificates/verify/${certificateHash}`)
+                              : getFullUrl('/certificates/verify/[hash]')
                             }
                             size={110}
                             style={{ height: "auto", maxWidth: "100%", width: "100%" }}
@@ -322,7 +323,7 @@ export function CertificateTemplatePreview({
     if (isExpanded) {
       return (
         <div className="fixed inset-0 bg-black/80 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[98vh] flex flex-col border border-gray-200 dark:border-gray-700">
             {/* Header de vista expandida */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-4">
@@ -361,8 +362,8 @@ export function CertificateTemplatePreview({
 
 // 
             {/* Certificado completo */}
-            <div className="p-6 overflow-auto flex-1 flex items-center justify-center">
-              <div className="w-full max-w-4xl">
+            <div className="p-6 overflow-auto flex-1 flex items-start justify-center">
+              <div className="w-full" style={{ maxWidth: '816px', width: '100%' }}>
                 {certificateContent}
               </div>
             </div>

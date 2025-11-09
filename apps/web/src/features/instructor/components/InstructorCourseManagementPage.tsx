@@ -195,7 +195,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       else {
         next.add(lessonId)
         // Obtener el moduleId de la lección
-        const lesson = lessons.find(l => l.lesson_id === lessonId)
+        const lesson = lessons.find((l: AdminLesson) => l.lesson_id === lessonId)
         if (lesson && lesson.module_id) {
           fetchMaterials(lessonId, courseId, lesson.module_id)
           fetchActivities(lessonId, courseId, lesson.module_id)
@@ -276,7 +276,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 No hay módulos aún
               </div>
             ) : (
-              modules.map(module => (
+              modules.map((module: AdminModule) => (
                 <div key={module.module_id} className="rounded-xl border border-purple-800/30 bg-gray-900/60 overflow-hidden">
                   <div className="p-6 flex items-center justify-between border-b border-purple-800/30">
                     <div className="flex items-center space-x-4 flex-1">
@@ -332,13 +332,13 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
 
                   {expandedModules.has(module.module_id) && (
                     <div className="p-6">
-                      {(lessons.filter(l => l.module_id === module.module_id).length === 0) ? (
+                      {(lessons.filter((l: AdminLesson) => l.module_id === module.module_id).length === 0) ? (
                         <div className="text-center py-10 text-purple-200/80 border border-dashed border-purple-800/30 rounded-xl">
                           No hay lecciones aún
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {lessons.filter(l => l.module_id === module.module_id).map(lesson => (
+                          {lessons.filter((l: AdminLesson) => l.module_id === module.module_id).map((lesson: AdminLesson) => (
                             <div key={lesson.lesson_id} className="rounded-xl border border-purple-800/30 bg-gray-900/40">
                               <div className="p-4 flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
@@ -410,11 +410,11 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                                         + Agregar
                                       </button>
                                     </div>
-                                    {(materials.filter(m => m.lesson_id === lesson.lesson_id).length === 0) ? (
+                                    {(materials.filter((m: any) => m.lesson_id === lesson.lesson_id).length === 0) ? (
                                       <p className="text-xs text-purple-300/70">No hay materiales</p>
                                     ) : (
                                       <div className="space-y-2 text-xs text-purple-200">
-                                        {materials.filter(m => m.lesson_id === lesson.lesson_id).map(m => (
+                                        {materials.filter((m: any) => m.lesson_id === lesson.lesson_id).map((m: any) => (
                                           <div key={m.material_id} className="p-3 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
                                             <div className="font-medium text-white">{m.material_title}</div>
                                             <div className="text-purple-300/80 mt-1">{m.material_type}</div>
@@ -437,11 +437,11 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                                         + Agregar
                                       </button>
                                     </div>
-                                    {(activities.filter(a => a.lesson_id === lesson.lesson_id).length === 0) ? (
+                                    {(activities.filter((a: any) => a.lesson_id === lesson.lesson_id).length === 0) ? (
                                       <p className="text-xs text-purple-300/70">No hay actividades</p>
                                     ) : (
                                       <div className="space-y-2 text-xs">
-                                        {activities.filter(a => a.lesson_id === lesson.lesson_id).map(a => (
+                                        {activities.filter((a: any) => a.lesson_id === lesson.lesson_id).map((a: any) => (
                                           <div key={a.activity_id} className="p-3 rounded-lg bg-gray-900/60 border border-purple-700/40 flex items-center justify-between">
                                             <div>
                                               <div className="font-semibold text-white">{a.activity_title}</div>
@@ -650,7 +650,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               </div>
             </div>
 
-// 
             {/* Estadísticas de Certificados */}
             <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
               <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -658,7 +657,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 Certificados Emitidos
               </h2>
               
-// 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                 <div className="rounded-xl border border-purple-800/30 bg-gray-800/40 p-6">
                   <div className="text-sm text-purple-300/80 mb-2">Total Emitidos</div>
@@ -682,7 +680,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
-// 
         {/* Vista previa */}
         {activeTab === 'preview' && (
           <div className="mt-6">
@@ -728,7 +725,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
-// 
         {/* Estadísticas */}
         {activeTab === 'stats' && (
           <div className="mt-6 space-y-6">
@@ -746,7 +742,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                     <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                       <div className="text-sm text-purple-300/80 mb-2">Módulos</div>
                       <div className="text-3xl font-bold text-white">{modules.length}</div>
-                      <div className="text-xs text-purple-400/60 mt-1">{modules.filter(m => m.is_published).length} publicados</div>
+                      <div className="text-xs text-purple-400/60 mt-1">{modules.filter((m: AdminModule) => m.is_published).length} publicados</div>
                     </div>
                     <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                       <div className="text-sm text-purple-300/80 mb-2">Lecciones</div>
@@ -754,7 +750,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                     </div>
                     <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                       <div className="text-sm text-purple-300/80 mb-2">Duración total</div>
-                      <div className="text-3xl font-bold text-white">{modules.reduce((acc, m: any) => acc + (m.module_duration_minutes || 0), 0)} min</div>
+                      <div className="text-3xl font-bold text-white">{modules.reduce((acc: number, m: AdminModule) => acc + (m.module_duration_minutes || 0), 0)} min</div>
                     </div>
                     <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                       <div className="text-sm text-purple-300/80 mb-2">Materiales</div>
@@ -772,7 +768,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
-// 
                 {/* Estadísticas de Usuarios */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -815,7 +810,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
-// 
                 {/* Estadísticas Financieras */}
                 {(userStats?.total_purchases > 0 || userStats?.total_revenue_cents > 0) && (
                   <div>
@@ -837,7 +831,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 )}
 
-// 
                 {/* Estadísticas de Reseñas */}
                 {userStats?.total_reviews > 0 && (
                   <div>
@@ -858,7 +851,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 )}
 
-// 
                 {/* Análisis Estadístico Profundo */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -908,7 +900,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
-// 
                 {/* Métricas de RRHH */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -938,7 +929,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 </div>
 
-// 
                 {/* Gráficas Avanzadas */}
                 {chartData && (
                   <div className="space-y-6">
@@ -947,31 +937,26 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       Visualizaciones Avanzadas
                     </h2>
                     
-// 
                     {/* Gráfica de Tendencia de Inscripciones */}
                     {chartData.enrollment_trend && chartData.enrollment_trend.length > 0 && (
                       <EnrollmentTrendChart data={chartData.enrollment_trend} />
                     )}
 
-// 
                     {/* Gráfica de Distribución de Progreso */}
                     {chartData.progress_distribution && chartData.progress_distribution.length > 0 && (
                       <ProgressDistributionChart data={chartData.progress_distribution} />
                     )}
 
-// 
                     {/* Gráfica de Dispersión: Engagement */}
                     {chartData.engagement_data && chartData.engagement_data.length > 0 && (
                       <EngagementScatterChart data={chartData.engagement_data} />
                     )}
 
-// 
                     {/* Gráfica de Tasas de RRHH */}
                     {chartData.enrollment_rates && chartData.enrollment_rates.length > 0 && (
                       <CompletionRateChart data={chartData.enrollment_rates} />
                     )}
 
-// 
                     {/* Gráficas de pastel: Roles y Áreas */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {chartData.user_roles_pie && chartData.user_roles_pie.length > 0 && (
@@ -984,7 +969,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   </div>
                 )}
 
-// 
                 {/* Lista de Usuarios Inscritos */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4 inline-flex items-center gap-2">
@@ -1070,7 +1054,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
-// 
         {showModuleModal && (
           <ModuleModal
             module={selectedModule}
@@ -1078,7 +1061,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               setShowModuleModal(false)
               setSelectedModule(null)
             }}
-            onSave={async (data) => {
+            onSave={async (data: any) => {
               if (selectedModule) await updateModule(courseId, selectedModule.module_id, data)
               else await createModule(courseId, data)
               setShowModuleModal(false)
@@ -1086,7 +1069,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           />
         )}
 
-// 
         {showDeleteModuleModal && deletingModule && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -1126,7 +1108,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
-// 
         {showDeleteLessonModal && deletingLesson && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -1169,7 +1150,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           </div>
         )}
 
-// 
         {showLessonModal && editingModuleId && (
           <LessonModal
             moduleId={editingModuleId}
@@ -1179,7 +1159,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               setSelectedLesson(null)
               setEditingModuleId(null)
             }}
-            onSave={async (data) => {
+            onSave={async (data: any) => {
               if (selectedLesson) {
                 await updateLesson(selectedLesson.lesson_id, data, courseId)
                 // Recargar lecciones del módulo después de actualizar
@@ -1199,9 +1179,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           />
         )}
 
-// 
         {showMaterialModal && editingLessonId && (() => {
-          const lesson = lessons.find(l => l.lesson_id === editingLessonId)
+          const lesson = lessons.find((l: AdminLesson) => l.lesson_id === editingLessonId)
           if (!lesson || !lesson.module_id) return null
           return (
             <MaterialModal
@@ -1211,7 +1190,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 setShowMaterialModal(false)
                 setEditingLessonId(null)
               }}
-              onSave={async (data) => {
+              onSave={async (data: any) => {
                 await createMaterial(editingLessonId, courseId, lesson.module_id, data)
                 setShowMaterialModal(false)
                 setEditingLessonId(null)
@@ -1220,20 +1199,19 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           )
         })()}
 
-// 
         {showActivityModal && editingLessonId && (() => {
-          const lesson = lessons.find(l => l.lesson_id === editingLessonId)
+          const lesson = lessons.find((l: AdminLesson) => l.lesson_id === editingLessonId)
           if (!lesson || !lesson.module_id) return null
           return (
             <ActivityModal
-              activity={editingActivityId ? activities.find(a => a.activity_id === editingActivityId) || null : null}
+              activity={editingActivityId ? activities.find((a: any) => a.activity_id === editingActivityId) || null : null}
               lessonId={editingLessonId}
               onClose={() => {
                 setShowActivityModal(false)
                 setEditingLessonId(null)
                 setEditingActivityId(null)
               }}
-              onSave={async (data) => {
+              onSave={async (data: any) => {
                 if (editingActivityId) {
                   await updateActivity(editingActivityId, courseId, lesson.module_id, editingLessonId, data)
                 } else {
@@ -1247,14 +1225,13 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           )
         })()}
 
-// 
         {/* Modal de Preview de Plantillas de Certificados */}
         <CertificateTemplatePreview
           key={`cert-preview-${instructorSignatureName || 'no-name'}-${instructorSignatureUrl || 'no-url'}`}
           isOpen={showTemplatePreview}
           onClose={() => setShowTemplatePreview(false)}
           selectedTemplate={selectedCertificateTemplate}
-          onSelectTemplate={(templateId) => {
+          onSelectTemplate={(templateId: string) => {
             setSelectedCertificateTemplate(templateId)
           }}
           instructorSignatureUrl={instructorSignatureUrl}
@@ -1269,10 +1246,4 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   )
 }
 
-// 
 export default InstructorCourseManagementPage
-
-// 
-
-// 
-// 

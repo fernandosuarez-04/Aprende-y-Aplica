@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
           // Obtener información del usuario y su organización
           const { data: user } = await supabase
             .from('users')
-            .select('organization_id')
+            .select('organization_id, cargo_rol')
             .eq('id', sessionData.user_id)
             .single()
 
@@ -71,6 +71,27 @@ export async function middleware(request: NextRequest) {
                 // console.log('🔄 Redirigiendo usuario de organización a login personalizado')
                 return NextResponse.redirect(new URL(`/auth/${organization.slug}`, request.url))
               }
+            }
+          }
+
+          // Si el usuario está autenticado pero NO tiene organización válida,
+          // redirigirlo al dashboard apropiado según su rol
+          if (user) {
+            const normalizedRole = user.cargo_rol?.toLowerCase().trim()
+            
+            logger.log('🔄 Usuario autenticado en /auth sin organización válida, redirigiendo según rol:', normalizedRole)
+            
+            if (normalizedRole === 'administrador') {
+              return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+            } else if (normalizedRole === 'instructor') {
+              return NextResponse.redirect(new URL('/instructor/dashboard', request.url))
+            } else if (normalizedRole === 'business') {
+              return NextResponse.redirect(new URL('/business-panel/dashboard', request.url))
+            } else if (normalizedRole === 'business user') {
+              return NextResponse.redirect(new URL('/business-user/dashboard', request.url))
+            } else {
+              // Usuario regular o sin rol específico
+              return NextResponse.redirect(new URL('/dashboard', request.url))
             }
           }
         }

@@ -94,6 +94,64 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
     }
   }, [isOpen]);
 
+  // Inyectar estilos CSS para el editor
+  useEffect(() => {
+    const styleId = 'notes-editor-styles';
+    // Verificar si los estilos ya existen
+    if (document.getElementById(styleId)) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .notes-editor h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+        color: inherit;
+      }
+      .notes-editor h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0.875rem 0 0.5rem 0;
+        color: inherit;
+      }
+      .notes-editor h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0.75rem 0 0.5rem 0;
+        color: inherit;
+      }
+      .notes-editor p {
+        margin: 0.5rem 0;
+      }
+      .notes-editor ul,
+      .notes-editor ol {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+      }
+      .notes-editor strong {
+        font-weight: 700;
+      }
+      .notes-editor em {
+        font-style: italic;
+      }
+      .notes-editor u {
+        text-decoration: underline;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Limpiar al desmontar
+    return () => {
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
   // Actualizar contenido y guardar en historial
   const updateContent = () => {
     const newContent = editorRef.current?.innerHTML || '';
@@ -568,8 +626,9 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
           }
           
           // Dibujar fondo azul para la etiqueta
+          // Rectángulo movido hacia abajo para alinearse con el texto
           pdf.setFillColor(59, 130, 246); // #3b82f6
-          pdf.roundedRect(tagX, y - 5, tagWidth, 6, 2, 2, 'F');
+          pdf.roundedRect(tagX, y - 4, tagWidth, 6, 2, 2, 'F');
           
           // Texto de la etiqueta
           pdf.text(tag, tagX + 3, y);

@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/utils/logger';
-import { createClient } from '../../../../lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+import { SessionService } from '../../../../features/auth/services/session.service'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Obtener el usuario de las cookies
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Usar SessionService para obtener el usuario actual (sistema de autenticación personalizado)
+    const user = await SessionService.getCurrentUser()
 
-    if (userError || !user) {
-      logger.error('Auth error:', userError)
+    if (!user) {
+      logger.error('Auth error: No user found in session')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    
+    // Crear cliente con service role key para bypass de RLS
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -21,16 +26,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validar tipo de archivo
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    // Validar tipo de archivo (coincide con configuración del bucket: image/png, image/jpeg, image/jpg, image/gif)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+      return NextResponse.json({ 
+        error: 'Tipo de archivo no válido. Solo se permiten PNG, JPEG, JPG y GIF.' 
+      }, { status: 400 })
     }
 
-    // Validar tamaño (máximo 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    // Validar tamaño (máximo 10MB según configuración del bucket)
+    const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File too large' }, { status: 400 })
+      return NextResponse.json({ 
+        error: 'El archivo es demasiado grande. Máximo 10MB.' 
+      }, { status: 400 })
     }
 
     // Generar nombre único para el archivo
@@ -38,14 +47,28 @@ export async function POST(request: NextRequest) {
     const fileName = `${user.id}-${Date.now()}.${fileExt}`
     const filePath = `profile-pictures/${fileName}`
 
-    // Subir archivo a Supabase Storage
+    logger.info('Uploading profile picture', {
+      userId: user.id,
+      fileName,
+      filePath,
+      fileSize: file.size
+    })
+
+    // Subir archivo a Supabase Storage usando service role key (bypass RLS)
     const { data, error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(filePath, file)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type
+      })
 
     if (uploadError) {
       logger.error('Error uploading profile picture:', uploadError)
-      return NextResponse.json({ error: 'Error uploading file' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Error uploading file',
+        message: uploadError.message 
+      }, { status: 500 })
     }
 
     // Obtener URL pública

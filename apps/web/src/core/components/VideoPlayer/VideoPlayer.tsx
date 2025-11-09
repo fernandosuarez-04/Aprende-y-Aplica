@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Settings, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -23,6 +23,40 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [preloadStrategy, setPreloadStrategy] = useState<'none' | 'metadata' | 'auto'>('metadata'); // Cambiado a 'metadata' por defecto
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Detectar si estamos en móvil y ajustar estrategia de preload
+  useEffect(() => {
+    const checkMobile = () => {
+      return window.innerWidth < 768;
+    };
+    
+    // En móviles, usar 'metadata' para que el video empiece a cargar inmediatamente
+    // Esto reduce el tiempo de espera cuando el usuario hace clic en play
+    if (checkMobile()) {
+      setPreloadStrategy('metadata');
+    } else {
+      setPreloadStrategy('metadata');
+    }
+  }, []);
+
+  // Timeout para ocultar el loader si el video tarda mucho en cargar
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setIsLoading(false);
+      }, 5000); // Ocultar loader después de 5 segundos máximo
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading]);
+
+  // Manejar interacción del usuario
+  const handleUserInteraction = () => {
+    setHasUserInteracted(true);
+  };
 
   // Debug logging
   // Validar datos de entrada
@@ -170,28 +204,62 @@ export function VideoPlayer({
     // Esto evita problemas de CSP y es más eficiente para videos de Supabase
     if (videoProvider === 'direct' || videoProvider === 'custom') {
       return (
-        <div className="relative w-full h-full">
+        <div className="relative w-full h-full min-h-[200px]">
+          {/* Overlay de carga - se muestra sobre el video mientras carga */}
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 dark:bg-gray-800/90 rounded-lg z-10 backdrop-blur-sm">
+              <div className="text-center">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-2" />
+                <p className="text-white text-sm">Cargando video...</p>
+              </div>
             </div>
           )}
           
+          {/* Video - siempre visible pero con opacidad reducida mientras carga */}
           <video
+            ref={videoRef}
             src={videoUrl}
             controls
-            className="w-full h-full rounded-lg"
-            preload="metadata"
-            onLoadedData={() => {
+            className={`w-full h-full rounded-lg transition-opacity duration-300 ${
+              isLoading ? 'opacity-30' : 'opacity-100'
+            }`}
+            preload={preloadStrategy}
+            playsInline
+            onLoadedMetadata={() => {
+              // El video ha cargado los metadatos (duración, dimensiones, etc.)
               setIsLoading(false);
               setError(null);
             }}
+            onLoadedData={() => {
+              // El video ha cargado suficientes datos para empezar a reproducir
+              setIsLoading(false);
+              setError(null);
+            }}
+            onCanPlay={() => {
+              // El video puede empezar a reproducirse
+              setIsLoading(false);
+              setError(null);
+            }}
+            onCanPlayThrough={() => {
+              // El video puede reproducirse hasta el final sin interrupciones
+              setIsLoading(false);
+              setError(null);
+            }}
+            onPlay={handleUserInteraction}
+            onClick={handleUserInteraction}
             onError={(e) => {
               // console.error('VideoPlayer video error:', e);
               setIsLoading(false);
               setError('Error al cargar el video');
             }}
-            style={{ display: isLoading ? 'none' : 'block' }}
+            onWaiting={() => {
+              // El video está esperando más datos (buffering)
+              setIsLoading(true);
+            }}
+            onPlaying={() => {
+              // El video está reproduciéndose
+              setIsLoading(false);
+            }}
           >
             Tu navegador no soporta la reproducción de video.
           </video>

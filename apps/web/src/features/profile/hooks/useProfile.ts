@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { createClient } from '../../../lib/supabase/client'
 import type { Database } from '../../../lib/supabase/types'
-import { createBrowserClient } from '@supabase/ssr'
 
 export interface UserProfile {
   id: string
@@ -191,15 +190,15 @@ export function useProfile(): UseProfileReturn {
       
       // console.log('🔍 Usuario autenticado:', currentUser.id)
       
-      // Validar archivo
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+      // Validar archivo (coincide con configuración del bucket: image/png, image/jpeg, image/jpg, image/gif)
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
       if (!allowedTypes.includes(file.type)) {
-        throw new Error('Tipo de archivo no válido. Solo se permiten JPG, PNG y WebP.')
+        throw new Error('Tipo de archivo no válido. Solo se permiten PNG, JPEG, JPG y GIF.')
       }
 
-      const maxSize = 5 * 1024 * 1024 // 5MB
+      const maxSize = 10 * 1024 * 1024 // 10MB (según configuración del bucket)
       if (file.size > maxSize) {
-        throw new Error('El archivo es demasiado grande. Máximo 5MB.')
+        throw new Error('El archivo es demasiado grande. Máximo 10MB.')
       }
       
       // console.log('📁 Archivo válido:', file.name, file.type, file.size)
@@ -211,49 +210,35 @@ export function useProfile(): UseProfileReturn {
 
       // console.log('📤 Subiendo archivo:', filePath)
 
-      // Subir archivo a Supabase Storage
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { data, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file)
+      // Subir archivo usando API REST (mejor manejo de autenticación y RLS)
+      const formData = new FormData()
+      formData.append('file', file)
 
-      if (uploadError) {
-        // console.error('❌ Error uploading profile picture:', uploadError)
-        throw new Error(`Error al subir imagen: ${uploadError.message}`)
+      console.log('📤 Subiendo archivo vía API REST...')
+
+      const response = await fetch('/api/profile/upload-picture', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include' // Incluir cookies de sesión
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || errorData.message || `Error al subir imagen: ${response.statusText}`)
       }
 
-      // console.log('✅ Upload exitoso directo a Supabase')
+      const { imageUrl } = await response.json()
 
-      // Obtener URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
-
-      // console.log('🔗 URL pública:', publicUrl)
-
-      // Actualizar perfil en la base de datos
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ 
-          profile_picture_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentUser.id)
-
-      if (updateError) {
-        // console.error('❌ Error updating profile:', updateError)
-        throw new Error(`Error al actualizar perfil: ${updateError.message}`)
+      if (!imageUrl) {
+        throw new Error('No se recibió la URL de la imagen')
       }
-      
-      // console.log('✅ Perfil actualizado en base de datos')
-      
+
+      console.log('✅ Upload exitoso vía API REST:', imageUrl)
+
       // Actualizar perfil local con nueva URL
-      setProfile(prev => prev ? { ...prev, profile_picture_url: publicUrl } : null)
+      setProfile(prev => prev ? { ...prev, profile_picture_url: imageUrl } : null)
       
-      return publicUrl
+      return imageUrl
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
@@ -300,10 +285,8 @@ export function useProfile(): UseProfileReturn {
       const filePath = `curriculums/${fileName}`
 
       // Subir archivo a Supabase Storage
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Usar createClient() que maneja la sesión del usuario correctamente
+      const supabase = createClient()
       const { data, error: uploadError } = await supabase.storage
         .from('curriculums')
         .upload(filePath, file)

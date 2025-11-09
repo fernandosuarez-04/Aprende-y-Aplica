@@ -191,7 +191,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                       onClick={() => handleNavigation(item.id)}
                       className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                         isActive || isDirectoryDropdownOpen
-                          ? 'text-white'
+                          ? 'text-black dark:text-white'
                           : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                       }`}
                       initial={{ opacity: 0, y: -10 }}
@@ -218,11 +218,11 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                         />
                       )}
                       
-                      <Icon className={`relative z-10 w-4 h-4 ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
-                      <span className={`relative z-10 ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
+                      <Icon className={`relative z-10 w-4 h-4 ${isActive || isDirectoryDropdownOpen ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+                      <span className={`relative z-10 ${isActive || isDirectoryDropdownOpen ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
                       <ChevronDown className={`relative z-10 w-4 h-4 transition-transform duration-200 ${
                         isDirectoryDropdownOpen ? 'rotate-180' : ''
-                      } ${isActive || isDirectoryDropdownOpen ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+                      } ${isActive || isDirectoryDropdownOpen ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`} />
                     </motion.button>
                     
                     {/* Dropdown Menu */}
@@ -234,6 +234,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
                           className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-[100]"
+                          suppressHydrationWarning
                         >
                           <div className="p-2">
                             <motion.button
@@ -242,17 +243,18 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 setIsDirectoryDropdownOpen(false)
                               }}
                               {...prefetchOnHover('/prompt-directory')}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group w-full text-left"
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group w-full text-left active:bg-gray-100 dark:active:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
                               whileHover={{ x: 4 }}
+                              style={{ color: 'inherit' }}
                             >
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                                 <Sparkles className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <div className="font-medium text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                                <div className="font-medium !text-black dark:!text-white group-hover:!text-purple-600 dark:group-hover:!text-purple-300 transition-colors">
                                   Prompt Directory
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-text-secondary">
+                                <div className="text-xs !text-gray-700 dark:!text-gray-400">
                                   Colección de prompts de IA
                                 </div>
                               </div>
@@ -264,17 +266,18 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 setIsDirectoryDropdownOpen(false)
                               }}
                               {...prefetchOnHover('/apps-directory')}
-                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group w-full text-left"
+                              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group w-full text-left active:bg-gray-100 dark:active:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
                               whileHover={{ x: 4 }}
+                              style={{ color: 'inherit' }}
                             >
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                                 <Grid3X3 className="w-4 h-4 text-white" />
                               </div>
                               <div>
-                                <div className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
+                                <div className="font-medium !text-black dark:!text-white group-hover:!text-blue-600 dark:group-hover:!text-blue-300 transition-colors">
                                   Apps Directory
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-text-secondary">
+                                <div className="text-xs !text-gray-700 dark:!text-gray-400">
                                   Herramientas de IA disponibles
                                 </div>
                               </div>
@@ -302,7 +305,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                   {...(href && prefetchOnHover(href))}
                   className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                     isActive
-                      ? 'text-white'
+                      ? 'text-black dark:text-white'
                       : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                   }`}
                   initial={{ opacity: 0, y: -10 }}
@@ -329,8 +332,8 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                     />
                   )}
                   
-                  <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
-                  <span className={`relative z-10 ${isActive ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
+                  <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+                  <span className={`relative z-10 ${isActive ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
                   
                   {/* Indicador de notificación */}
                   {item.id === 'community' && (
@@ -448,6 +451,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
                           className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden"
+                          suppressHydrationWarning
                         >
                           {directoryOptions.map((option, index) => {
                             const OptionIcon = option.icon
@@ -459,20 +463,21 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                   setIsMobileDirectoryDropdownOpen(false)
                                 }}
                                 {...prefetchOnHover(option.route)}
-                                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full text-left first:border-b border-gray-200 dark:border-gray-700"
+                                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full text-left first:border-b border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-800 focus:bg-gray-50 dark:focus:bg-gray-800"
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.05 }}
                                 whileHover={{ x: 2 }}
+                                style={{ color: 'inherit' }}
                               >
                                 <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${option.gradient} flex items-center justify-center flex-shrink-0`}>
                                   <OptionIcon className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-sm text-gray-900 dark:text-white">
+                                  <div className="font-medium text-sm !text-black dark:!text-white">
                                     {option.name}
                                   </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                  <div className="text-xs !text-gray-700 dark:!text-gray-400 truncate">
                                     {option.description}
                                   </div>
                                 </div>

@@ -52,9 +52,56 @@ export interface NotificationFilters {
 }
 
 /**
+ * Tipos de notificaciones que no deberían duplicarse en un período corto
+ * Mapeo: tipo de notificación -> minutos de ventana para considerar duplicado
+ */
+const NON_DUPLICATE_NOTIFICATION_TYPES: Record<string, number> = {
+  'system_login_success': 5, // 5 minutos para login
+  'system_login_failed': 1, // 1 minuto para intentos fallidos
+  'system_password_changed': 1, // 1 minuto para cambio de contraseña
+  'system_email_verified': 1, // 1 minuto para verificación de email
+}
+
+/**
  * Servicio para gestionar notificaciones
  */
 export class NotificationService {
+  /**
+   * Verifica si existe una notificación duplicada del mismo tipo para el mismo usuario
+   * en el período de tiempo especificado
+   */
+  private static async checkDuplicateNotification(
+    userId: string,
+    notificationType: string,
+    minutesWindow: number
+  ): Promise<boolean> {
+    try {
+      const supabase = await createClient()
+      const now = new Date()
+      const windowStart = new Date(now.getTime() - minutesWindow * 60 * 1000)
+
+      const { data, error } = await supabase
+        .from('user_notifications')
+        .select('notification_id')
+        .eq('user_id', userId)
+        .eq('notification_type', notificationType)
+        .gte('created_at', windowStart.toISOString())
+        .limit(1)
+
+      if (error) {
+        logger.warn('Error verificando duplicados:', error)
+        // Si hay error, permitir crear la notificación (fail open)
+        return false
+      }
+
+      return (data?.length || 0) > 0
+    } catch (error) {
+      logger.warn('Error en checkDuplicateNotification:', error)
+      // Si hay error, permitir crear la notificación (fail open)
+      return false
+    }
+  }
+
   /**
    * Crea una nueva notificación
    */
@@ -78,6 +125,27 @@ export class NotificationService {
       // Validaciones básicas
       if (!userId || !notificationType || !title || !message) {
         throw new Error('Faltan campos requeridos para crear la notificación')
+      }
+
+      // Verificar duplicados para tipos de notificaciones que no deberían duplicarse
+      const duplicateWindow = NON_DUPLICATE_NOTIFICATION_TYPES[notificationType]
+      if (duplicateWindow) {
+        const isDuplicate = await this.checkDuplicateNotification(
+          userId,
+          notificationType,
+          duplicateWindow
+        )
+        
+        if (isDuplicate) {
+          logger.info('⏭️ Notificación duplicada evitada', {
+            userId,
+            notificationType,
+            window: `${duplicateWindow} minutos`
+          })
+          // Retornar null o lanzar un error específico, pero por ahora solo logueamos
+          // y no creamos la notificación
+          throw new Error('Notificación duplicada evitada')
+        }
       }
 
       // Crear la notificación en la base de datos
@@ -530,12 +598,35 @@ export class NotificationService {
 
   /**
    * Fallback para markAllAsRead (sin RPC)
+   * ✅ OPTIMIZACIÓN: Usa COUNT para obtener el número de actualizadas sin traer datos
    */
   private static async markAllAsReadFallback(userId: string): Promise<{ updated: number }> {
     const supabase = await createClient()
     const now = new Date().toISOString()
 
-    const { data, error } = await supabase
+    // Primero contar cuántas notificaciones se van a actualizar
+    const { count, error: countError } = await supabase
+      .from('user_notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'unread')
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+
+    if (countError) {
+      logger.error('Error contando notificaciones en fallback:', countError)
+      throw new Error(`Error al contar notificaciones: ${countError.message}`)
+    }
+
+    const totalToUpdate = count || 0
+
+    // Si no hay notificaciones para actualizar, retornar inmediatamente
+    if (totalToUpdate === 0) {
+      logger.info('✅ No hay notificaciones para marcar como leídas', { userId })
+      return { updated: 0 }
+    }
+
+    // Actualizar sin traer datos (más eficiente)
+    const { error } = await supabase
       .from('user_notifications')
       .update({
         status: 'read',
@@ -545,21 +636,18 @@ export class NotificationService {
       .eq('user_id', userId)
       .eq('status', 'unread')
       .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .select('notification_id')
 
     if (error) {
       logger.error('Error en fallback markAllAsRead:', error)
       throw new Error(`Error al marcar todas como leídas: ${error.message}`)
     }
 
-    const updated = data?.length || 0
-
     logger.info('✅ Todas las notificaciones marcadas como leídas (fallback)', {
-      count: updated,
+      count: totalToUpdate,
       userId
     })
 
-    return { updated }
+    return { updated: totalToUpdate }
   }
 
   /**

@@ -851,7 +851,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
               </div>
             </div>
 
-// 
             {/* Estadísticas de Certificados */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
@@ -859,7 +858,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                 Certificados Emitidos
               </h2>
               
-// 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Total Emitidos</div>
@@ -883,7 +881,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           </div>
         )}
 
-// 
         {/* Vista Previa */}
         {activeTab === 'preview' && (
           <div className="space-y-6">
@@ -929,7 +926,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           </div>
         )}
 
-// 
         {activeTab === 'stats' && (
           <div className="space-y-6">
             {statsLoading ? (
@@ -972,7 +968,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   </div>
                 </div>
 
-// 
                 {/* Estadísticas de Usuarios */}
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
@@ -1015,7 +1010,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   </div>
                 </div>
 
-// 
                 {/* Estadísticas Financieras */}
                 {(userStats?.total_purchases > 0 || userStats?.total_revenue_cents > 0) && (
                   <div>
@@ -1037,7 +1031,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   </div>
                 )}
 
-// 
                 {/* Estadísticas de Reseñas */}
                 {userStats?.total_reviews > 0 && (
                   <div>
@@ -1058,7 +1051,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   </div>
                 )}
 
-// 
                 {/* Análisis Estadístico Profundo */}
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
@@ -1108,7 +1100,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   </div>
                 </div>
 
-// 
                 {/* Métricas de RRHH */}
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
@@ -1142,7 +1133,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   </div>
                 </div>
 
-// 
                 {/* Gráficas Avanzadas */}
                 {chartData && (
                   <div className="space-y-6">
@@ -1151,27 +1141,22 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       Visualizaciones Avanzadas
                     </h2>
                     
-// 
                     {chartData.enrollment_trend && chartData.enrollment_trend.length > 0 && (
                       <EnrollmentTrendChart data={chartData.enrollment_trend} darkMode={false} />
                     )}
 
-// 
                     {chartData.progress_distribution && chartData.progress_distribution.length > 0 && (
                       <ProgressDistributionChart data={chartData.progress_distribution} darkMode={false} />
                     )}
 
-// 
                     {chartData.engagement_data && chartData.engagement_data.length > 0 && (
                       <EngagementScatterChart data={chartData.engagement_data} darkMode={false} />
                     )}
 
-// 
                     {chartData.enrollment_rates && chartData.enrollment_rates.length > 0 && (
                       <CompletionRateChart data={chartData.enrollment_rates} darkMode={false} />
                     )}
 
-// 
                     {/* Gráficas de pastel: Roles y Áreas */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {chartData.user_roles_pie && chartData.user_roles_pie.length > 0 && (
@@ -1184,7 +1169,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   </div>
                 )}
 
-// 
                 {/* Lista de Usuarios Inscritos */}
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 inline-flex items-center gap-2">
@@ -1270,7 +1254,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           </div>
         )}
 
-// 
         {/* Modales */}
         {showModuleModal && (
           <ModuleModal
@@ -1290,7 +1273,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           />
         )}
 
-// 
         {showLessonModal && editingModuleId && (
           <LessonModal
             moduleId={editingModuleId}
@@ -1317,7 +1299,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           />
         )}
 
-// 
         {showMaterialModal && editingLessonId && (
           <MaterialModal
             material={editingMaterial}
@@ -1344,7 +1325,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           />
         )}
 
-// 
         {showActivityModal && editingLessonId && (
           <ActivityModal
             activity={editingActivity}
@@ -1371,7 +1351,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           />
         )}
 
-// 
         {/* Modal de Preview de Plantillas de Certificados */}
         <CertificateTemplatePreview
           key={`cert-preview-${instructorSignatureName || 'no-name'}-${instructorSignatureUrl || 'no-url'}`}
@@ -1391,7 +1370,4 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       </div>
     </div>
   )
-}
-
-// 
-// 
+} 

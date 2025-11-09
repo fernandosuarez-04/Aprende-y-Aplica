@@ -651,11 +651,15 @@ function CertificatePreview({ template }: { template: CertificateTemplate }) {
     <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
       <h3 className="text-lg font-semibold text-white mb-4">Vista Previa del Certificado</h3>
       <div
-        className="w-full aspect-[4/3] rounded-lg border-4 shadow-2xl p-8"
+        className="w-full rounded-lg border-4 shadow-2xl p-8"
         style={{
           backgroundColor: colors.background,
           color: colors.text,
-          fontFamily: fonts.body
+          fontFamily: fonts.body,
+          aspectRatio: '8.5 / 11',
+          minHeight: '1056px',
+          maxWidth: '816px',
+          margin: '0 auto'
         }}
       >
         <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
