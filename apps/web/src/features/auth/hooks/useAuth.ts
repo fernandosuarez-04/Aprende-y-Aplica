@@ -37,6 +37,13 @@ const authFetcher = async (url: string): Promise<User | null> => {
     const data = await response.json()
     return data.success && data.user ? data.user : null
   } catch (error) {
+    // Manejar errores de red de forma silenciosa
+    // "Failed to fetch" puede ocurrir cuando el componente se desmonta durante la navegación
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      // Error de red esperado durante navegación - retornar null silenciosamente
+      return null
+    }
+    
     if (process.env.NODE_ENV === 'development') {
       // console.warn('useAuth fetcher error:', error)
     }
@@ -60,6 +67,12 @@ export function useAuth() {
       shouldRetryOnError: false, // No reintentar en errores (si no está autenticado, no hay que reintentar)
       errorRetryCount: 0, // No reintentar
       fallbackData: null, // Valor por defecto mientras carga
+      onError: (error) => {
+        // Ignorar errores de red esperados (Failed to fetch durante navegación)
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          return // No hacer nada, el fetcher ya retorna null
+        }
+      },
     }
   )
 

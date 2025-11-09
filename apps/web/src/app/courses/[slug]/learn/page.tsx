@@ -64,7 +64,7 @@ const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlaye
   ssr: false
 });
 
-const MOBILE_BOTTOM_NAV_HEIGHT_PX = 80;
+const MOBILE_BOTTOM_NAV_HEIGHT_PX = 104; // Altura real: 70px base + 34px safe-area máximo en iPhone
 const CONTENT_BOTTOM_PADDING_MOBILE = 32;
 
 interface Lesson {
@@ -1953,7 +1953,7 @@ Antes de cada respuesta, pregúntate:
                 <div
                   className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
                   style={isMobile ? {
-                    paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 70px)'
+                    paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 104px)'
                   } : undefined}
                 >
                   <div className="flex gap-2 items-end">
@@ -2039,6 +2039,10 @@ Antes de cada respuesta, pregúntate:
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          style={{
+            paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+            height: 'calc(70px + max(env(safe-area-inset-bottom), 8px))'
+          }}
         >
           <div className="flex items-center justify-around px-4 py-3">
             {/* Botón Material del Curso */}
