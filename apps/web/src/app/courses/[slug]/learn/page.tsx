@@ -1687,7 +1687,8 @@ Antes de cada respuesta, pregúntate:
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
-                    const shouldHideText = isLiaExpanded && !isActive && !isMobile;
+                    // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
+                    const shouldHideText = !isActive && (isMobile || (isLiaExpanded && !isMobile));
 
                     return (
                       <button
@@ -1871,12 +1872,7 @@ Antes de cada respuesta, pregúntate:
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
                 <div
-                  className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`}
-                  style={{
-                    paddingBottom: isMobile
-                      ? `calc(1rem + env(safe-area-inset-bottom, 0px))`
-                      : '1rem',
-                  }}
+                  className="flex-1 overflow-y-auto p-4 space-y-4 pb-4"
                 >
                   {liaMessages.map((message) => (
                     <div
@@ -1987,7 +1983,7 @@ Antes de cada respuesta, pregúntate:
                 <div
                   className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
                   style={isMobile ? {
-                    paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 104px)'
+                    paddingBottom: `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`
                   } : undefined}
                 >
                   <div className="flex gap-2 items-end">
