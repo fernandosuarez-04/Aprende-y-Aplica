@@ -1262,6 +1262,8 @@ Antes de cada respuesta, pregúntate:
             <button
               onClick={() => router.back()}
               className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+              aria-label="Volver atrás"
+              title="Volver atrás"
             >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
             </button>
@@ -1612,7 +1614,7 @@ Antes de cada respuesta, pregúntate:
 
         {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
         {!isLeftPanelOpen && (
-          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:flex w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
               <button
                 onClick={() => {
@@ -2040,7 +2042,7 @@ Antes de cada respuesta, pregúntate:
                           // Aquí se implementaría la lógica de reconocimiento de voz
                         }
                       }}
-                      disabled={isLiaLoading && liaMessage.trim()}
+                      disabled={isLiaLoading && !!liaMessage.trim()}
                       className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${
                         liaMessage.trim()
                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-blue-500/50'
@@ -2069,7 +2071,7 @@ Antes de cada respuesta, pregúntate:
 
         {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
         {!isRightPanelOpen && (
-          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:flex w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => {
@@ -3247,7 +3249,7 @@ function QuizRenderer({
 
     // Verificar si la explicación tiene el formato con "---"
     if (explanation.includes('---')) {
-      const parts = explanation.split('---').map(p => p.trim());
+      const parts = explanation.split('---').map((p: string) => p.trim());
 
       // Obtener el texto de la opción seleccionada
       let selectedOptionText = '';
@@ -3622,7 +3624,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700">
       <div className="prose prose-lg dark:prose-invert max-w-none">
         <div className="text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
-          {lines.map((line, index) => {
+          {lines.map((line: string, index: number) => {
             const trimmedLine = line.trim();
             
             // Si la línea está vacía, renderizar un espacio para separar párrafos
@@ -3733,14 +3735,14 @@ function FormattedContentRenderer({ content }: { content: any }) {
   }
 
   // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
-  const lines = readingContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const lines = readingContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
   const formattedContent: Array<{ 
     type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
     content: string;
     level?: number;
   }> = [];
 
-  lines.forEach((line, index) => {
+  lines.forEach((line: string, index: number) => {
     const trimmedLine = line.trim();
     
     // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
@@ -4258,13 +4260,14 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                       }
 
                       // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                      let questionsArray = quizData;
-                      let totalPoints = undefined;
+                      let questionsArray: any = quizData;
+                      let totalPoints: number | undefined = undefined;
 
                       if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                        if (quizData.questions && Array.isArray(quizData.questions)) {
-                          questionsArray = quizData.questions;
-                          totalPoints = quizData.totalPoints;
+                        const quizObj = quizData as { questions?: any[]; totalPoints?: number };
+                        if (quizObj.questions && Array.isArray(quizObj.questions)) {
+                          questionsArray = quizObj.questions;
+                          totalPoints = quizObj.totalPoints;
                         }
                       }
 
@@ -5598,6 +5601,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                               setReplyContent('');
                             }}
                             className="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 text-gray-900 dark:text-white rounded-lg transition-colors"
+                            aria-label="Cancelar respuesta"
+                            title="Cancelar respuesta"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -5697,6 +5702,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                           setReplyToReplyContent('');
                                         }}
                                         className="px-3 py-1.5 bg-gray-300 dark:bg-slate-500 hover:bg-gray-400 dark:hover:bg-slate-400 text-gray-900 dark:text-white rounded-lg transition-colors text-sm"
+                                        aria-label="Cancelar respuesta"
+                                        title="Cancelar respuesta"
                                       >
                                         <X className="w-3.5 h-3.5" />
                                       </button>
