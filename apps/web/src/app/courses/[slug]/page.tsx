@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { CourseService, CourseWithInstructor } from '../../../features/courses/services/course.service';
+import { StarRating } from '../../../features/courses/components/StarRating';
 import { createClient } from '../../../lib/supabase/client';
 
 export default function CourseDetailPage() {
@@ -365,8 +366,12 @@ export default function CourseDetailPage() {
                   <div className="flex items-center gap-6 flex-wrap">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1">
-                        <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                        <span className="text-white font-bold text-lg">{course.rating?.toFixed(1) || '0.0'}</span>
+                        <StarRating
+                          rating={course.rating || 0}
+                          size="md"
+                          showRatingNumber={true}
+                          reviewCount={course.review_count}
+                        />
                       </div>
                       {course.review_count && course.review_count > 0 && (
                         <span className="text-white/80 dark:text-carbon-300 text-sm">
@@ -875,29 +880,13 @@ export default function CourseDetailPage() {
               {/* Rating Summary */}
               {course.rating && course.rating > 0 && (
                 <div className="pt-4 border-t border-gray-200 dark:border-carbon-600">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-                      <span className="text-2xl font-bold text-gray-900 dark:text-white">{course.rating.toFixed(1)}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-1 mb-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(course.rating || 0)
-                                ? 'text-yellow-400 fill-yellow-400'
-                                : 'text-gray-300 dark:text-carbon-600'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-gray-600 dark:text-carbon-200 text-xs">
-                        {course.review_count || 0} {course.review_count === 1 ? 'reseña' : 'reseñas'}
-                      </p>
-                    </div>
-                  </div>
+                  <StarRating
+                    rating={course.rating}
+                    size="lg"
+                    showRatingNumber={true}
+                    reviewCount={course.review_count}
+                    className="justify-center"
+                  />
                 </div>
               )}
             </div>
