@@ -111,6 +111,8 @@ export default function CourseLearnPage() {
   
   // Estado para detectar si estamos en móvil
   const [isMobile, setIsMobile] = useState(false);
+  // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
+  const [screenHeight, setScreenHeight] = useState(0);
   
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
@@ -162,6 +164,7 @@ export default function CourseLearnPage() {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768; // md breakpoint
       setIsMobile(mobile);
+      setScreenHeight(window.innerHeight);
     };
 
     // Verificar al montar
@@ -171,6 +174,24 @@ export default function CourseLearnPage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []); // Solo ejecutar al montar
+
+  // Calcular padding dinámico para el área de entrada según altura de pantalla
+  const getInputAreaPadding = (): string => {
+    if (!isMobile) return '1rem';
+    
+    // Para pantallas muy pequeñas (menos de 600px de altura), usar padding mínimo
+    if (screenHeight < 600) {
+      return `calc(0.75rem + max(env(safe-area-inset-bottom, 0px), 4px))`;
+    }
+    
+    // Para pantallas pequeñas (600-800px), usar padding moderado
+    if (screenHeight < 800) {
+      return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+    }
+    
+    // Para pantallas normales y grandes, usar padding estándar
+    return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+  };
 
   // Ajustar paneles cuando cambia isMobile
   useEffect(() => {
@@ -1812,7 +1833,9 @@ Antes de cada respuesta, pregúntate:
                     ? {
                         bottom: isMobileBottomNavVisible
                           ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`
-                          : `env(safe-area-inset-bottom, 0px)`,
+                          : `max(env(safe-area-inset-bottom, 0px), 0px)`,
+                        // Asegurar que el panel se adapte a diferentes alturas de pantalla
+                        maxHeight: screenHeight > 0 ? `${screenHeight}px` : '100vh',
                       }
                     : undefined
                 }
@@ -1983,7 +2006,7 @@ Antes de cada respuesta, pregúntate:
                 <div
                   className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
                   style={isMobile ? {
-                    paddingBottom: `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`
+                    paddingBottom: getInputAreaPadding()
                   } : undefined}
                 >
                   <div className="flex gap-2 items-end">
