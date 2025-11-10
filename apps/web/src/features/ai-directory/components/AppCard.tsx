@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star, Eye, ExternalLink, Sparkles, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { StarRating } from '@/features/courses/components/StarRating';
 
 interface App {
   app_id: string;
@@ -34,8 +35,8 @@ interface App {
   is_verified: boolean;
   view_count: number;
   like_count: number;
-  rating: number;
-  rating_count: number;
+  rating?: number | null;
+  rating_count?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -199,10 +200,20 @@ export function AppCard({ app }: AppCardProps) {
           <span>{app.view_count.toLocaleString()}</span>
         </div>
         
-        <div className="flex items-center gap-1">
-          <Star className="w-3 h-3" />
-          <span>{app.rating.toFixed(1)} ({app.rating_count})</span>
-        </div>
+        {app.rating && app.rating > 0 ? (
+          <div className="flex items-center gap-1">
+            <StarRating
+              rating={app.rating}
+              size="sm"
+              showRatingNumber={true}
+              reviewCount={app.rating_count || 0}
+            />
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500 dark:text-gray-500">
+            Sin calificaciones
+          </div>
+        )}
       </div>
 
       {/* Actions */}

@@ -7,6 +7,8 @@ import { ArrowLeft, Copy, Check, Star, Eye, Download, Clock, Sparkles, ExternalL
 import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { LoadingSpinner } from '../../../features/ai-directory/components/LoadingSpinner';
+import { PromptRatingInline } from '../../../features/ai-directory/components/PromptRatingInline';
+import { StarRating } from '../../../features/courses/components/StarRating';
 
 interface Prompt {
   prompt_id: string;
@@ -26,8 +28,8 @@ interface Prompt {
   view_count: number;
   like_count: number;
   download_count: number;
-  rating: number;
-  rating_count: number;
+  rating?: number | null;
+  rating_count?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -58,28 +60,30 @@ export default function PromptDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const fetchPrompt = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/ai-directory/prompts/${params.slug}`);
-        
-        if (!response.ok) {
-          throw new Error('Prompt not found');
-        }
-
-        const data = await response.json();
-        setPrompt(data.prompt);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+  const fetchPrompt = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/ai-directory/prompts/${params.slug}`);
+      
+      if (!response.ok) {
+        throw new Error('Prompt not found');
       }
-    };
 
+      const data = await response.json();
+      setPrompt(data.prompt);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (params.slug) {
       fetchPrompt();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.slug]);
 
   const handleCopyPrompt = async () => {
@@ -220,10 +224,20 @@ export default function PromptDetailPage() {
                 <span>{prompt.view_count.toLocaleString()} visualizaciones</span>
               </div>
               
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Star className="w-4 h-4" />
-                <span>{prompt.rating.toFixed(1)} ({prompt.rating_count} reseñas)</span>
-              </div>
+              {prompt.rating && prompt.rating > 0 ? (
+                <div className="flex items-center gap-2">
+                  <StarRating
+                    rating={prompt.rating}
+                    size="sm"
+                    showRatingNumber={true}
+                    reviewCount={prompt.rating_count || 0}
+                  />
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 dark:text-gray-500">
+                  Sin calificaciones
+                </div>
+              )}
             </div>
 
           </motion.div>
@@ -269,6 +283,26 @@ export default function PromptDetailPage() {
                 </div>
               </div>
 
+              {/* Rating Section */}
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Calificación</h3>
+                <PromptRatingInline
+                  promptSlug={prompt.slug}
+                  currentRating={prompt.rating || 0}
+                  currentRatingCount={prompt.rating_count || 0}
+                  onRatingSubmitted={async (newRating, newRatingCount) => {
+                    // Actualizar solo los datos de rating sin recargar toda la página
+                    if (prompt) {
+                      setPrompt({
+                        ...prompt,
+                        rating: newRating,
+                        rating_count: newRatingCount,
+                      });
+                    }
+                  }}
+                />
+              </div>
+
               {/* Stats */}
               <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estadísticas</h3>
@@ -280,17 +314,6 @@ export default function PromptDetailPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Descargas</span>
                     <span className="text-gray-900 dark:text-white font-medium">{prompt.download_count}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Calificación</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-                      <span className="text-gray-900 dark:text-white font-medium">{prompt.rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Reseñas</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{prompt.rating_count}</span>
                   </div>
                 </div>
               </div>
