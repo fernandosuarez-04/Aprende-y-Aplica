@@ -114,10 +114,11 @@ function getReactionEmoji(type: string): string {
   const emojiMap: Record<string, string> = {
     'like': '👍',
     'love': '❤️',
+    'laugh': '😂',
     'haha': '😂',
     'wow': '😮',
     'sad': '😢',
-    'angry': '😠',
+    'angry': '😡',
     'clap': '👏',
     'fire': '🔥',
     'rocket': '🚀',

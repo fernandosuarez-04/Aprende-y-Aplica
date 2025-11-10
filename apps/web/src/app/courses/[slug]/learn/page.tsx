@@ -52,6 +52,8 @@ import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
 import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
+import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
+import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
@@ -109,6 +111,8 @@ export default function CourseLearnPage() {
   
   // Estado para detectar si estamos en móvil
   const [isMobile, setIsMobile] = useState(false);
+  // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
+  const [screenHeight, setScreenHeight] = useState(0);
   
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
@@ -160,6 +164,7 @@ export default function CourseLearnPage() {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768; // md breakpoint
       setIsMobile(mobile);
+      setScreenHeight(window.innerHeight);
     };
 
     // Verificar al montar
@@ -169,6 +174,24 @@ export default function CourseLearnPage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []); // Solo ejecutar al montar
+
+  // Calcular padding dinámico para el área de entrada según altura de pantalla
+  const getInputAreaPadding = (): string => {
+    if (!isMobile) return '1rem';
+    
+    // Para pantallas muy pequeñas (menos de 600px de altura), usar padding mínimo
+    if (screenHeight < 600) {
+      return `calc(0.75rem + max(env(safe-area-inset-bottom, 0px), 4px))`;
+    }
+    
+    // Para pantallas pequeñas (600-800px), usar padding moderado
+    if (screenHeight < 800) {
+      return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+    }
+    
+    // Para pantallas normales y grandes, usar padding estándar
+    return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+  };
 
   // Ajustar paneles cuando cambia isMobile
   useEffect(() => {
@@ -203,6 +226,8 @@ export default function CourseLearnPage() {
   const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] = useState(false);
   const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [hasUserRated, setHasUserRated] = useState(false);
   const [validationModal, setValidationModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -778,6 +803,36 @@ Antes de cada respuesta, pregúntate:
       loadCourse();
     }
   }, [slug]);
+
+  // Verificar si el usuario ya calificó el curso al cargar
+  useEffect(() => {
+    async function checkUserRating() {
+      if (!slug || hasUserRated) return;
+
+      try {
+        const ratingCheck = await CourseRatingService.checkUserRating(slug);
+        if (ratingCheck.hasRating) {
+          setHasUserRated(true);
+        } else {
+          // Mostrar modal de rating después de 2-3 segundos si el usuario está inscrito
+          // Verificar que haya módulos cargados (usuario está inscrito)
+          if (modules.length > 0) {
+            setTimeout(() => {
+              setIsRatingModalOpen(true);
+            }, 2500);
+          }
+        }
+      } catch (error) {
+        // Si hay error (ej: no autenticado), no mostrar el modal
+        console.error('Error checking rating:', error);
+      }
+    }
+
+    // Solo verificar después de que los módulos se hayan cargado
+    if (slug && modules.length > 0 && !loading) {
+      checkUserRating();
+    }
+  }, [slug, modules.length, loading, hasUserRated]);
 
   // Cargar notas cuando cambia la lección actual
   useEffect(() => {
@@ -1653,7 +1708,8 @@ Antes de cada respuesta, pregúntate:
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
-                    const shouldHideText = isLiaExpanded && !isActive && !isMobile;
+                    // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
+                    const shouldHideText = !isActive && (isMobile || (isLiaExpanded && !isMobile));
 
                     return (
                       <button
@@ -1777,7 +1833,9 @@ Antes de cada respuesta, pregúntate:
                     ? {
                         bottom: isMobileBottomNavVisible
                           ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`
-                          : `env(safe-area-inset-bottom, 0px)`,
+                          : `max(env(safe-area-inset-bottom, 0px), 0px)`,
+                        // Asegurar que el panel se adapte a diferentes alturas de pantalla
+                        maxHeight: screenHeight > 0 ? `${screenHeight}px` : '100vh',
                       }
                     : undefined
                 }
@@ -1837,12 +1895,7 @@ Antes de cada respuesta, pregúntate:
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
                 <div
-                  className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`}
-                  style={{
-                    paddingBottom: isMobile
-                      ? `calc(1rem + env(safe-area-inset-bottom, 0px))`
-                      : '1rem',
-                  }}
+                  className="flex-1 overflow-y-auto p-4 space-y-4 pb-4"
                 >
                   {liaMessages.map((message) => (
                     <div
@@ -1953,7 +2006,7 @@ Antes de cada respuesta, pregúntate:
                 <div
                   className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
                   style={isMobile ? {
-                    paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 104px)'
+                    paddingBottom: getInputAreaPadding()
                   } : undefined}
                 >
                   <div className="flex gap-2 items-end">
@@ -2158,7 +2211,26 @@ Antes de cada respuesta, pregúntate:
 
               {/* Botón de cerrar */}
               <button
-                onClick={() => setIsCourseCompletedModalOpen(false)}
+                onClick={async () => {
+                  setIsCourseCompletedModalOpen(false);
+                  // Verificar si el usuario ya calificó después de cerrar el modal de completado
+                  if (!hasUserRated && slug) {
+                    try {
+                      const ratingCheck = await CourseRatingService.checkUserRating(slug);
+                      if (!ratingCheck.hasRating) {
+                        // Mostrar modal de rating después de un breve delay
+                        setTimeout(() => {
+                          setIsRatingModalOpen(true);
+                        }, 500);
+                      } else {
+                        setHasUserRated(true);
+                      }
+                    } catch (error) {
+                      // Si hay error, no mostrar el modal
+                      console.error('Error checking rating:', error);
+                    }
+                  }
+                }}
                 className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
               >
                 Aceptar
@@ -2367,6 +2439,18 @@ Antes de cada respuesta, pregúntate:
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal de Rating */}
+      <CourseRatingModal
+        isOpen={isRatingModalOpen}
+        onClose={() => setIsRatingModalOpen(false)}
+        courseSlug={slug}
+        courseTitle={course?.title || course?.course_title}
+        onRatingSubmitted={() => {
+          setHasUserRated(true);
+          setIsRatingModalOpen(false);
+        }}
+      />
     </div>
   );
 }

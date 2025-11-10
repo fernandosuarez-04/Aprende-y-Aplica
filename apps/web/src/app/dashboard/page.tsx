@@ -28,6 +28,7 @@ import { UserDropdown } from '../../core/components/UserDropdown';
 import { useRouter } from 'next/navigation';
 import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
 import { formatRelativeTime } from '../../core/utils/date-utils';
+import { StarRating } from '../../features/courses/components/StarRating';
 
 // 🚀 Lazy Loading - AIChatAgent pesado
 const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
@@ -161,7 +162,7 @@ export default function DashboardPage() {
       id: course.id,
       title: course.title,
       instructor: course.instructor_name || 'Instructor',
-      rating: course.rating || 4.5,
+      rating: course.rating || 0,
       price: course.price || 'MX$0',
       status: course.status || 'Disponible',
       image: course.thumbnail || null,
@@ -330,10 +331,19 @@ export default function DashboardPage() {
                       </p>
                       
                       <div className="flex items-center justify-between mb-4 h-6">
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">{workshop.rating}</span>
-                        </div>
+                        {workshop.rating > 0 ? (
+                          <div className="flex items-center space-x-1">
+                            <StarRating
+                              rating={workshop.rating}
+                              size="sm"
+                              showRatingNumber={true}
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            Sin calificaciones
+                          </div>
+                        )}
                         <span className="text-lg font-bold text-primary">{workshop.price}</span>
                       </div>
                     </div>

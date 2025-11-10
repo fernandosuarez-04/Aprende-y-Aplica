@@ -84,6 +84,26 @@ import { formatRelativeTime } from '../../../core/utils/date-utils';
 // Componentes completos para la comunidad
 // ReactionButton component is now imported from features/communities/components
 
+/**
+ * Helper para obtener el emoji correspondiente a cada tipo de reacción
+ */
+function getReactionEmoji(type: string): string {
+  const emojiMap: Record<string, string> = {
+    'like': '👍',
+    'love': '❤️',
+    'laugh': '😂',
+    'haha': '😂',
+    'wow': '😮',
+    'sad': '😢',
+    'angry': '😡',
+    'clap': '👏',
+    'fire': '🔥',
+    'rocket': '🚀',
+    'eyes': '👀'
+  };
+  return emojiMap[type] || '👍';
+}
+
 function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComments, setShowComments }: any) {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -273,12 +293,12 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       <div className="relative" ref={buttonRef}>
         <motion.button
           onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+          className="flex items-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Share2 className="w-5 h-5" />
-          <span>Compartir</span>
+          <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="text-xs sm:text-sm">Compartir</span>
         </motion.button>
 
         <AnimatePresence>
@@ -1498,14 +1518,36 @@ export default function CommunityDetailPage() {
       // Mapear los datos recibidos al formato esperado
       const userReactionsMap: Record<string, string | null> = {};
       const reactionStatsMap: Record<string, any> = {};
+      const postReactionsMap: Record<string, { type: string | null; count: number }> = {};
       
       Object.entries(data.reactionsByPost).forEach(([postId, postData]: [string, any]) => {
         userReactionsMap[postId] = postData.userReaction;
-        reactionStatsMap[postId] = postData.reactions;
+        
+        // Normalizar las estadísticas de reacciones y asegurar que tengan emoji
+        const normalizedReactions: Record<string, any> = {};
+        Object.entries(postData.reactions || {}).forEach(([reactionType, reactionData]: [string, any]) => {
+          const normalizedType = reactionType === 'haha' ? 'laugh' : reactionType;
+          normalizedReactions[normalizedType] = {
+            type: normalizedType,
+            reaction_type: normalizedType,
+            count: reactionData.count || 0,
+            emoji: reactionData.emoji || getReactionEmoji(normalizedType),
+            hasUserReacted: reactionData.hasUserReacted || false
+          };
+        });
+        
+        reactionStatsMap[postId] = normalizedReactions;
+        
+        // Actualizar también postReactions con el conteo total
+        postReactionsMap[postId] = {
+          type: postData.userReaction,
+          count: postData.totalReactions || 0
+        };
       });
 
       setUserReactions(userReactionsMap);
       setPostReactionStats(reactionStatsMap);
+      setPostReactions(prev => ({ ...prev, ...postReactionsMap }));
 
     } catch (error) {
       // console.error('Error loading user reactions:', error);
@@ -2200,20 +2242,16 @@ export default function CommunityDetailPage() {
                       {(() => {
                         const totalReactions = postReactions[post.id]?.count || post.reaction_count || 0;
                         const reactionStats = postReactionStats[post.id] || {};
-                        const topReactions = Object.values(reactionStats).map((reaction: any) => ({
-                          reaction_type: reaction.type,
-                          count: reaction.count,
-                          emoji: reaction.emoji
-                        }));
                         
-                        // console.log('Post reaction data:', {
-                        //   postId: post.id,
-                        //   totalReactions,
-                        //   reactionStats,
-                        //   topReactions,
-                        //   postReactions: postReactions[post.id],
-                        //   postReactionCount: post.reaction_count
-                        // });
+                        // Convertir las estadísticas a topReactions y ordenar por conteo (mayor a menor)
+                        const topReactions = Object.values(reactionStats)
+                          .map((reaction: any) => ({
+                            reaction_type: reaction.type || reaction.reaction_type,
+                            count: reaction.count || 0,
+                            emoji: reaction.emoji || getReactionEmoji(reaction.type || reaction.reaction_type)
+                          }))
+                          .filter((reaction: any) => reaction.count > 0) // Solo incluir reacciones con conteo > 0
+                          .sort((a: any, b: any) => b.count - a.count); // Ordenar por conteo descendente
                         
                         return (
                           <ReactionBanner
@@ -2250,9 +2288,9 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Facebook-style Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 py-2 px-2 border-t border-gray-200 dark:border-slate-700/30">
+                    <div className="flex flex-nowrap items-center justify-between gap-1 sm:gap-2 py-1.5 sm:py-2 px-1 sm:px-2 border-t border-gray-200 dark:border-slate-700/30">
                       {/* Botón de Reacciones */}
-                      <div className="flex-1 min-w-[150px]">
+                      <div className="flex-1 min-w-0 flex justify-center">
                         <ReactionButton
                           postId={post.id}
                           currentReaction={userReactions[post.id] || null}
@@ -2277,12 +2315,12 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex-1 min-w-[150px] flex items-center justify-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+                        className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
                       >
-                        <MessageSquare className="w-5 h-5" />
-                        <span>Comentar</span>
+                        <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm">Comentar</span>
                       </button>
-                      <div className="flex-1 min-w-[150px] flex justify-center">
+                      <div className="flex-1 min-w-0 flex justify-center">
                         <ShareButton
                           postId={post.id}
                           postContent={post.content}

@@ -8,6 +8,7 @@ import { Button } from '@aprende-y-aplica/ui';
 import { usePromptFavorites } from '../context/PromptFavoritesContext';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { StarRating } from '@/features/courses/components/StarRating';
 
 interface Prompt {
   prompt_id: string;
@@ -27,8 +28,8 @@ interface Prompt {
   view_count: number;
   like_count: number;
   download_count: number;
-  rating: number;
-  rating_count: number;
+  rating?: number | null;
+  rating_count?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -182,10 +183,20 @@ export function PromptCard({ prompt }: PromptCardProps) {
           <span>{prompt.view_count.toLocaleString()}</span>
         </div>
         
-        <div className="flex items-center gap-1">
-          <Star className="w-3 h-3" />
-          <span>{prompt.rating.toFixed(1)} ({prompt.rating_count})</span>
-        </div>
+        {prompt.rating && prompt.rating > 0 ? (
+          <div className="flex items-center gap-1">
+            <StarRating
+              rating={prompt.rating}
+              size="sm"
+              showRatingNumber={true}
+              reviewCount={prompt.rating_count || 0}
+            />
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500 dark:text-gray-500">
+            Sin calificaciones
+          </div>
+        )}
         
         <div className="flex items-center gap-1">
           <Download className="w-3 h-3" />

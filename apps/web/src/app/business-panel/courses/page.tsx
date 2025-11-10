@@ -18,6 +18,7 @@ import { useBusinessCourses, BusinessCourse } from '@/features/business-panel/ho
 import Image from 'next/image'
 import { Button } from '@aprende-y-aplica/ui'
 import { useRouter } from 'next/navigation'
+import { StarRating } from '@/features/courses/components/StarRating'
 
 export default function BusinessPanelCoursesPage() {
   const { courses, stats, isLoading, error, refetch } = useBusinessCourses()
@@ -259,10 +260,11 @@ export default function BusinessPanelCoursesPage() {
                     <Users className="w-4 h-4" />
                     <span>{course.student_count || 0}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <span>{course.rating.toFixed(1)}</span>
-                  </div>
+                  <StarRating
+                    rating={course.rating || 0}
+                    size="sm"
+                    showRatingNumber={true}
+                  />
                 </div>
 
                 {/* Category */}

@@ -159,43 +159,43 @@ export function ReactionDetailsModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.95, y: 20, opacity: 0 }}
+          animate={{ scale: 1, y: 0, opacity: 1 }}
+          exit={{ scale: 0.95, y: 20, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+          className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                <Users className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 border-b border-slate-700 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                <Users className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Reacciones</h2>
-                <p className="text-slate-400 text-sm">
+                <h2 className="text-lg sm:text-xl font-bold text-white">Reacciones</h2>
+                <p className="text-slate-400 text-xs sm:text-sm">
                   {getTotalReactions()} reacciones totales
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-slate-700 transition-colors"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-slate-700 transition-colors"
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-slate-700">
+          <div className="flex border-b border-slate-700 overflow-x-auto flex-shrink-0 scrollbar-hide">
             <button
               onClick={() => setActiveTab('all')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex-1 min-w-fit px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'all'
                   ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/10'
                   : 'text-slate-400 hover:text-slate-300'
@@ -209,13 +209,13 @@ export function ReactionDetailsModal({
                 <button
                   key={stat.reaction_type}
                   onClick={() => setActiveTab(stat.reaction_type)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                     activeTab === stat.reaction_type
                       ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/10'
                       : 'text-slate-400 hover:text-slate-300'
                   }`}
                 >
-                  <span className="text-lg">{emoji}</span>
+                  <span className="text-base sm:text-lg">{emoji}</span>
                   {stat.count}
                 </button>
               );
@@ -223,36 +223,36 @@ export function ReactionDetailsModal({
           </div>
 
           {/* Content */}
-          <div className="p-6 max-h-96 overflow-y-auto">
+          <div className="p-4 sm:p-5 md:p-6 overflow-y-auto flex-1 min-h-0">
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {getActiveReactionStats().map((stat) => (
-                  <div key={stat.reaction_type} className="space-y-3">
+                  <div key={stat.reaction_type} className="space-y-2 sm:space-y-3">
                     {activeTab === 'all' && (
-                      <div className="flex items-center gap-3 pb-2 border-b border-slate-700">
-                        <span className="text-2xl">{stat.emoji}</span>
+                      <div className="flex items-center gap-2 sm:gap-3 pb-2 border-b border-slate-700">
+                        <span className="text-xl sm:text-2xl">{stat.emoji}</span>
                         <div>
-                          <h3 className="font-semibold text-white">
+                          <h3 className="font-semibold text-white text-sm sm:text-base">
                             {reactionLabels[stat.reaction_type as keyof typeof reactionLabels]}
                           </h3>
-                          <p className="text-sm text-slate-400">{stat.count} reacciones</p>
+                          <p className="text-xs sm:text-sm text-slate-400">{stat.count} reacciones</p>
                         </div>
                       </div>
                     )}
                     
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 sm:space-y-2">
                       {stat.users.map((user) => (
                         <motion.div
                           key={user.id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+                          className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
                         >
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {user.avatar ? (
                               <img 
                                 src={user.avatar} 
@@ -260,20 +260,20 @@ export function ReactionDetailsModal({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <span className="text-white font-semibold text-sm">
+                              <span className="text-white font-semibold text-xs sm:text-sm">
                                 {formatUserName(user).charAt(0).toUpperCase()}
                               </span>
                             )}
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-white">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-white text-sm sm:text-base truncate">
                               {formatUserName(user)}
                             </p>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-xs sm:text-sm text-slate-400">
                               {formatDate(user.created_at)}
                             </p>
                           </div>
-                          <span className="text-lg">
+                          <span className="text-base sm:text-lg flex-shrink-0">
                             {stat.emoji}
                           </span>
                         </motion.div>
@@ -283,11 +283,11 @@ export function ReactionDetailsModal({
                 ))}
                 
                 {getActiveReactionStats().length === 0 && (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
-                      <Users className="w-8 h-8 text-slate-400" />
+                  <div className="text-center py-6 sm:py-8">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
+                      <Users className="w-6 h-6 sm:w-8 sm:h-8 text-slate-400" />
                     </div>
-                    <p className="text-slate-400">No hay reacciones para mostrar</p>
+                    <p className="text-slate-400 text-sm sm:text-base">No hay reacciones para mostrar</p>
                   </div>
                 )}
               </div>
