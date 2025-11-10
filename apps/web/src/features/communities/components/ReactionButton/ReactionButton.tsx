@@ -46,55 +46,89 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
   const [showMenu, setShowMenu] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isHoveringMenu, setIsHoveringMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasLongPressedRef = useRef(false);
 
-  // Cerrar menú al hacer click fuera
+  // Detectar si es móvil
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Cerrar menú al hacer click fuera (solo en móvil)
+  useEffect(() => {
+    if (!isMobile) return; // No usar en desktop, el hover maneja todo
+    
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
       if (
         buttonRef.current && 
         menuRef.current &&
-        !buttonRef.current.contains(event.target as Node) &&
-        !menuRef.current.contains(event.target as Node)
+        !buttonRef.current.contains(target) &&
+        !menuRef.current.contains(target)
       ) {
         setShowMenu(false);
+        hasLongPressedRef.current = false;
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMobile]);
 
   // Manejar hover con delay para evitar cierre accidental
   const handleMouseEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
+    if (!isMobile) {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+      setIsHovering(true);
+      setShowMenu(true);
     }
-    setIsHovering(true);
-    setShowMenu(true);
   };
 
   const handleMouseLeave = () => {
-    setIsHovering(false);
-    hoverTimeoutRef.current = setTimeout(() => {
-      if (!isHoveringMenu) {
-        setShowMenu(false);
-      }
-    }, 150); // Pequeño delay para permitir mover el cursor al menú
+    if (!isMobile) {
+      setIsHovering(false);
+      // Delay más largo para permitir mover el cursor al menú
+      hoverTimeoutRef.current = setTimeout(() => {
+        if (!isHoveringMenu) {
+          setShowMenu(false);
+        }
+      }, 300); // Aumentado a 300ms para dar más tiempo
+    }
   };
 
   const handleMenuMouseEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
+    if (!isMobile) {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+      setIsHoveringMenu(true);
     }
-    setIsHoveringMenu(true);
   };
 
   const handleMenuMouseLeave = () => {
-    setIsHoveringMenu(false);
-    setShowMenu(false);
+    if (!isMobile) {
+      setIsHoveringMenu(false);
+      // Delay antes de cerrar el menú
+      hoverTimeoutRef.current = setTimeout(() => {
+        setShowMenu(false);
+      }, 200);
+    }
   };
 
   const handleReaction = (reactionType: string) => {
@@ -106,13 +140,60 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
       onReaction(postId, reactionType);
     }
     setShowMenu(false);
+    hasLongPressedRef.current = false;
   };
 
-  // Limpiar timeout al desmontar
+  // Handlers para móvil: long press para abrir menú
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Verificar si es móvil o dispositivo táctil
+    const isTouchDevice = 'ontouchstart' in window || window.innerWidth < 768;
+    if (!isTouchDevice) return;
+    
+    hasLongPressedRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      hasLongPressedRef.current = true;
+      setShowMenu(true);
+    }, 500); // 500ms para long press
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // Verificar si es móvil o dispositivo táctil
+    const isTouchDevice = 'ontouchstart' in window || window.innerWidth < 768;
+    if (!isTouchDevice) return;
+    
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    // Si fue un long press, no hacer nada (el menú ya está abierto)
+    if (hasLongPressedRef.current) {
+      return;
+    }
+
+    // Si no fue un long press, el onClick se encargará de ejecutar el like
+  };
+
+  const handleTouchCancel = () => {
+    // Verificar si es móvil o dispositivo táctil
+    const isTouchDevice = 'ontouchstart' in window || window.innerWidth < 768;
+    if (!isTouchDevice) return;
+    
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    hasLongPressedRef.current = false;
+  };
+
+  // Limpiar timeouts al desmontar
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
+      }
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
       }
     };
   }, []);
@@ -128,19 +209,57 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
     return (
       <div className="relative" ref={buttonRef}>
         <motion.button
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onClick={() => {
-            // Si ya tiene una reacción, quitarla al hacer click
-            if (currentReaction) {
-              onReaction(postId, currentReaction);
-            } else {
-              // Si no tiene reacción, agregar "Me gusta"
-              onReaction(postId, 'like');
+          onMouseEnter={!isMobile ? handleMouseEnter : undefined}
+          onMouseLeave={!isMobile ? handleMouseLeave : undefined}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+          onClick={(e) => {
+            // Verificar si es móvil o dispositivo táctil
+            const isTouchDevice = 'ontouchstart' in window || window.innerWidth < 768;
+            
+            // En desktop, el click solo debe ejecutarse si no hay hover activo
+            if (!isTouchDevice && !isMobile) {
+              // Si el menú está abierto por hover, no hacer nada con el click
+              // Solo aplicar la reacción si no hay hover
+              if (!isHovering && !isHoveringMenu) {
+                // Si ya tiene una reacción, quitarla al hacer click
+                if (currentReaction) {
+                  onReaction(postId, currentReaction);
+                } else {
+                  // Si no tiene reacción, agregar "Me gusta"
+                  onReaction(postId, 'like');
+                }
+              }
+              return;
+            }
+            
+            // En móvil, prevenir el click si fue un long press
+            if (isTouchDevice && hasLongPressedRef.current) {
+              e.preventDefault();
+              e.stopPropagation();
+              hasLongPressedRef.current = false; // Resetear para el próximo click
+              return;
+            }
+            
+            // En móvil, click normal (sin long press)
+            if (isTouchDevice && !hasLongPressedRef.current) {
+              // Pequeño delay para asegurar que el touchEnd se procese primero
+              setTimeout(() => {
+                if (!hasLongPressedRef.current) {
+                  // Si ya tiene una reacción, quitarla al hacer click
+                  if (currentReaction) {
+                    onReaction(postId, currentReaction);
+                  } else {
+                    // Si no tiene reacción, agregar "Me gusta"
+                    onReaction(postId, 'like');
+                  }
+                }
+              }, 50);
             }
           }}
           className={`
-            flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30
+            flex items-center gap-1 sm:gap-1.5 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30
             ${currentReactionData 
               ? currentReactionData.type === 'like' ? 'text-blue-600 dark:text-blue-400' :
                 currentReactionData.type === 'love' ? 'text-red-600 dark:text-red-400' :
@@ -158,14 +277,14 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
             <>
               {(() => {
                 const IconComponent = currentReactionData.icon;
-                return <IconComponent className="w-5 h-5" />;
+                return <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4" />;
               })()}
-              <span>{currentReactionData.label}</span>
+              <span className="text-xs sm:text-sm">{currentReactionData.label}</span>
             </>
           ) : (
             <>
-              <ThumbsUp className="w-5 h-5" />
-              <span>Me gusta</span>
+              <ThumbsUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">Me gusta</span>
             </>
           )}
         </motion.button>
@@ -173,63 +292,104 @@ export function ReactionButton({ postId, currentReaction, reactionCount, onReact
         {/* Menú de reacciones para Facebook style */}
         <AnimatePresence>
           {showMenu && (
-            <motion.div
-              ref={menuRef}
-              onMouseEnter={handleMenuMouseEnter}
-              onMouseLeave={handleMenuMouseLeave}
-              initial={{ opacity: 0, scale: 0.8, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 10 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="absolute bottom-full left-0 mb-3 bg-white dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-slate-600/50 rounded-2xl p-4 shadow-2xl z-50"
-            >
-              <div className="flex items-center gap-2">
-                {reactions.map((reaction, index) => {
-                  const IconComponent = reaction.icon;
-                  const isCurrentReaction = currentReaction === reaction.type;
-                  
-                  return (
-                    <motion.button
-                      key={reaction.type}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05, duration: 0.2 }}
-                      onClick={() => handleReaction(reaction.type)}
-                      className={`
-                        relative group p-3 rounded-full transition-all duration-300
-                        ${isCurrentReaction 
-                          ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30 dark:border-blue-400/30' 
-                          : 'hover:bg-gray-100 dark:hover:bg-slate-700/50 border border-transparent hover:border-gray-300 dark:hover:border-slate-600/30'
-                        }
-                      `}
-                      whileHover={{ scale: 1.2, y: -2 }}
-                      whileTap={{ scale: 0.9 }}
-                      title={isCurrentReaction ? `Quitar ${reaction.label}` : reaction.label}
-                    >
-                      <IconComponent 
-                        className={`w-6 h-6 group-hover:scale-110 transition-transform duration-200 ${
-                          reaction.type === 'like' ? 'text-blue-400' :
-                          reaction.type === 'love' ? 'text-red-400' :
-                          reaction.type === 'laugh' ? 'text-yellow-400' :
-                          reaction.type === 'wow' ? 'text-purple-400' :
-                          reaction.type === 'sad' ? 'text-gray-400' :
-                          reaction.type === 'angry' ? 'text-red-500' : 'text-slate-400'
-                        }`}
-                      />
-                      
-                      {/* Indicador visual para la reacción actual */}
-                      {isCurrentReaction && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-white dark:border-slate-800"
+            <>
+              {/* Overlay para cerrar el menú - solo en móvil */}
+              {isMobile && (
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => {
+                    setShowMenu(false);
+                    hasLongPressedRef.current = false;
+                  }}
+                  onTouchStart={(e) => {
+                    // Solo cerrar si el touch no es en el menú
+                    if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                      setShowMenu(false);
+                      hasLongPressedRef.current = false;
+                    }
+                  }}
+                />
+              )}
+              {/* Área invisible para conectar el botón con el menú en desktop */}
+              {!isMobile && (
+                <div 
+                  className="absolute bottom-full left-0 w-full h-2 pointer-events-auto"
+                  onMouseEnter={handleMenuMouseEnter}
+                  onMouseLeave={() => {
+                    setIsHoveringMenu(false);
+                    hoverTimeoutRef.current = setTimeout(() => {
+                      if (!isHovering) {
+                        setShowMenu(false);
+                      }
+                    }, 200);
+                  }}
+                  style={{ zIndex: 49 }}
+                />
+              )}
+              <motion.div
+                ref={menuRef}
+                onMouseEnter={!isMobile ? handleMenuMouseEnter : undefined}
+                onMouseLeave={!isMobile ? handleMenuMouseLeave : undefined}
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="absolute bottom-full left-0 bg-white dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-slate-600/50 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 md:p-3 shadow-2xl z-50"
+                style={{ 
+                  maxWidth: isMobile ? 'calc(100vw - 1rem)' : 'none',
+                  left: isMobile ? '50%' : '0',
+                  transform: isMobile ? 'translateX(-50%)' : 'none',
+                  marginBottom: isMobile ? '0.5rem' : '0.25rem' // Gap más pequeño en desktop
+                }}
+              >
+                <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 flex-nowrap">
+                  {reactions.map((reaction, index) => {
+                    const IconComponent = reaction.icon;
+                    const isCurrentReaction = currentReaction === reaction.type;
+                    
+                    return (
+                      <motion.button
+                        key={reaction.type}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05, duration: 0.2 }}
+                        onClick={() => handleReaction(reaction.type)}
+                        className={`
+                          relative group p-1.5 sm:p-2 md:p-2.5 rounded-full transition-all duration-300 flex-shrink-0
+                          ${isCurrentReaction 
+                            ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-400/30 dark:border-blue-400/30' 
+                            : 'hover:bg-gray-100 dark:hover:bg-slate-700/50 border border-transparent hover:border-gray-300 dark:hover:border-slate-600/30'
+                          }
+                        `}
+                        whileHover={{ scale: 1.1, y: -2 }}
+                        whileTap={{ scale: 0.9 }}
+                        title={isCurrentReaction ? `Quitar ${reaction.label}` : reaction.label}
+                      >
+                        <IconComponent 
+                          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-200 ${
+                            reaction.type === 'like' ? 'text-blue-400' :
+                            reaction.type === 'love' ? 'text-red-400' :
+                            reaction.type === 'laugh' ? 'text-yellow-400' :
+                            reaction.type === 'wow' ? 'text-purple-400' :
+                            reaction.type === 'sad' ? 'text-gray-400' :
+                            reaction.type === 'angry' ? 'text-red-500' : 'text-slate-400'
+                          }`}
                         />
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
+                        
+                        {/* Indicador visual para la reacción actual */}
+                        {isCurrentReaction && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-2.5 md:h-2.5 bg-blue-400 rounded-full border-2 border-white dark:border-slate-800"
+                          />
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </div>

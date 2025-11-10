@@ -273,12 +273,12 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       <div className="relative" ref={buttonRef}>
         <motion.button
           onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+          className="flex items-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Share2 className="w-5 h-5" />
-          <span>Compartir</span>
+          <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="text-xs sm:text-sm">Compartir</span>
         </motion.button>
 
         <AnimatePresence>
@@ -2250,9 +2250,9 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Facebook-style Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 py-2 px-2 border-t border-gray-200 dark:border-slate-700/30">
+                    <div className="flex flex-nowrap items-center justify-between gap-1 sm:gap-2 py-1.5 sm:py-2 px-1 sm:px-2 border-t border-gray-200 dark:border-slate-700/30">
                       {/* Botón de Reacciones */}
-                      <div className="flex-1 min-w-[150px]">
+                      <div className="flex-1 min-w-0 flex justify-center">
                         <ReactionButton
                           postId={post.id}
                           currentReaction={userReactions[post.id] || null}
@@ -2277,12 +2277,12 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex-1 min-w-[150px] flex items-center justify-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+                        className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
                       >
-                        <MessageSquare className="w-5 h-5" />
-                        <span>Comentar</span>
+                        <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm">Comentar</span>
                       </button>
-                      <div className="flex-1 min-w-[150px] flex justify-center">
+                      <div className="flex-1 min-w-0 flex justify-center">
                         <ShareButton
                           postId={post.id}
                           postContent={post.content}
