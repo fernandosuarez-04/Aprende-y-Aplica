@@ -646,7 +646,12 @@ export function AIChatAgent({
     <>
       {/* Botones flotantes */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2 items-end">
+        <div
+          className="fixed right-6 z-40 flex flex-col gap-2 items-end bottom-6 md:bottom-6"
+          style={{
+            bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           <AnimatePresence>
             {/* Botones expandidos: Ayuda y Reportar Problema */}
             {areButtonsExpanded && (
@@ -793,14 +798,17 @@ export function AIChatAgent({
         {isOpen && (
           <motion.div
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
-            animate={{ 
-              scale: 1, 
+            animate={{
+              scale: 1,
               opacity: 1,
               y: 0
             }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-3rem)] z-[99999]"
+            className="fixed right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-3rem)] z-[99999]"
+            style={{
+              bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+            }}
           >
         <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
           {/* Header con gradiente */}

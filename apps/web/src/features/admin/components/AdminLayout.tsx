@@ -15,6 +15,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('admin-sidebar-collapsed') === 'true'
@@ -33,19 +34,31 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const isLoading = typeof authLoading === 'boolean' ? authLoading : true;
 
   useEffect(() => {
+    // Evitar redirecciones múltiples o durante desmontaje
+    if (isRedirecting) return
+
     // Solo ejecutar lógica de redirección cuando loading sea explícitamente false
     if (isLoading === false) {
       if (!user) {
-        router.push('/auth')
+        setIsRedirecting(true)
+        // Usar replace en lugar de push para evitar problemas de navegación
+        router.replace('/auth')
         return
       }
       
       if (user.cargo_rol !== 'Administrador') {
-        router.push('/dashboard')
+        setIsRedirecting(true)
+        // Usar replace en lugar de push para evitar problemas de navegación
+        router.replace('/dashboard')
         return
       }
     }
-  }, [user, isLoading, router])
+
+    // Cleanup: resetear estado de redirección si el componente se desmonta
+    return () => {
+      setIsRedirecting(false)
+    }
+  }, [user, isLoading, router, isRedirecting])
 
   // Guardar estado de colapso en localStorage
   useEffect(() => {

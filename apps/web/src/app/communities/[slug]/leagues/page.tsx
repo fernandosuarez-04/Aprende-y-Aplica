@@ -138,6 +138,10 @@ const cardVariants = {
   }
 };
 
+// Constantes de padding móvil (consistentes con Miembros)
+const MOBILE_BOTTOM_NAV_HEIGHT = 72;
+const MOBILE_CONTENT_EXTRA_PADDING = 24;
+
 const getLeagueIcon = (league: string) => {
   switch (league) {
     case 'gold': return '🥇';
@@ -412,14 +416,37 @@ export default function LeaguesPage() {
             variants={itemVariants}
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              Sistema de{' '}
+              Sistema de Ligas de{' '}
               <span className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 dark:from-yellow-400 dark:via-orange-400 dark:to-red-400 bg-clip-text text-transparent">
-                Ligas
+                {community.name}
               </span>
             </h1>
             <p className="text-xl text-gray-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
               Gana puntos participando y sube de liga para competir con los mejores
             </p>
+          </motion.div>
+
+          {/* Statistics */}
+          <motion.div
+            className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 mb-12"
+            variants={itemVariants}
+          >
+            <div className="text-center">
+              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                {members.length}
+              </div>
+              <div className="text-gray-600 dark:text-slate-400">PARTICIPANTES</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                {members.reduce((sum, m) => sum + (m.points || 0), 0)}
+              </div>
+              <div className="text-gray-600 dark:text-slate-400">PUNTOS TOTALES</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">3</div>
+              <div className="text-gray-600 dark:text-slate-400">LIGAS</div>
+            </div>
           </motion.div>
         </div>
       </motion.section>
@@ -429,17 +456,14 @@ export default function LeaguesPage() {
         className="px-4 md:px-6 pt-8"
         style={{
           paddingBottom: isMobile
-            ? `calc(72px + env(safe-area-inset-bottom, 0px) + 32px)`
+            ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + ${MOBILE_CONTENT_EXTRA_PADDING}px)`
             : '4rem',
         }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
-          {/* Left Column - Main Content */}
-          <div className="lg:col-span-3 space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
 
             {/* Current User League Status */}
             {currentUser && (
@@ -449,11 +473,12 @@ export default function LeaguesPage() {
                 animate="visible"
               >
                 <motion.div
-                  className="bg-white dark:bg-gradient-to-r dark:from-slate-800/50 dark:to-slate-700/50 backdrop-blur-sm border border-gray-200 dark:border-slate-600/50 rounded-2xl p-8 shadow-lg dark:shadow-xl"
+                  className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-600/50 rounded-2xl p-4 sm:p-6 shadow-lg dark:shadow-xl"
                   variants={cardVariants}
                   whileHover="hover"
                 >
-                  <div className="flex items-center justify-between">
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:flex items-center justify-between">
                     <div className="flex items-center gap-6">
                       <div className="relative">
                         <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
@@ -469,7 +494,7 @@ export default function LeaguesPage() {
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-2 border-white dark:border-slate-800 animate-pulse" />
                       </div>
-                      
+
                       <div>
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                           {currentUser.first_name && currentUser.last_name
@@ -487,7 +512,7 @@ export default function LeaguesPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="text-right">
                       <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                         #{currentUser.rank}
@@ -499,7 +524,54 @@ export default function LeaguesPage() {
                       </div>
                     </div>
                   </div>
-                  
+
+                  {/* Mobile Layout */}
+                  <div className="flex flex-col sm:hidden space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                          {currentUser.profile_picture_url ? (
+                            <img
+                              src={currentUser.profile_picture_url}
+                              alt={currentUser.username}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Users className="w-8 h-8 text-white" />
+                          )}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white dark:border-slate-800 animate-pulse" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                          {currentUser.first_name && currentUser.last_name
+                            ? `${currentUser.first_name} ${currentUser.last_name}`
+                            : currentUser.username
+                          }
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-bold text-blue-600 dark:text-blue-400">
+                            {currentUser.points} pts
+                          </span>
+                          <span className="text-gray-400 dark:text-slate-500">•</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            #{currentUser.rank}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <div className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-gradient-to-r ${getLeagueColor(currentUser.league)} text-white text-center`}>
+                        {getLeagueIcon(currentUser.league)} {currentUser.league_info.name}
+                      </div>
+                      <div className="px-3 py-2 bg-blue-500/10 text-blue-600 dark:text-blue-300 rounded-lg text-xs font-medium">
+                        {currentUser.total_members} miembros
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Progress Bar */}
                   <div className="mt-6">
                     <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400 mb-2">
@@ -697,62 +769,59 @@ export default function LeaguesPage() {
                 </div>
               </motion.div>
             </motion.section>
-          </div>
 
-          {/* Right Column - Games Panel */}
-          <div className="lg:col-span-1">
-            <motion.section
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
+          {/* Games Panel - Full Width Section */}
+          <motion.section
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="w-full"
+          >
+            <motion.div
+              className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-lg dark:shadow-xl"
+              variants={cardVariants}
             >
-              <motion.div
-                className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 sticky top-8 shadow-lg dark:shadow-xl"
-                variants={cardVariants}
-              >
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                  <Gamepad2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                  Zona de Juegos
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    {[
-                      { id: 'memory', name: 'Memoria', icon: Brain, description: 'Entrena tu memoria', points: 5 },
-                      { id: 'quiz', name: 'Quiz', icon: Target, description: 'Pon a prueba tus conocimientos', points: 10 },
-                      { id: 'puzzle', name: 'Puzzle', icon: Puzzle, description: 'Resuelve acertijos', points: 8 },
-                      { id: 'speed', name: 'Velocidad', icon: Zap, description: 'Prueba tu rapidez', points: 12 }
-                    ].map((game) => (
-                      <div
-                        key={game.id}
-                        className="w-full p-4 bg-gray-50 dark:bg-slate-700/30 rounded-lg border border-transparent hover:border-purple-400/40 transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-purple-500/20 dark:bg-purple-500/20 rounded-lg flex items-center justify-center">
-                            <game.icon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-900 dark:text-white">{game.name}</div>
-                            <div className="text-sm text-gray-600 dark:text-slate-400">{game.description}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm text-yellow-600 dark:text-yellow-400">+{game.points} pts</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <Gamepad2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                Zona de Juegos
+              </h3>
 
-                  <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30 text-center">
-                    <Sparkles className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                    <p className="text-sm text-slate-200">
-                      Pronto podrás jugar mini-retos directamente aquí para ganar puntos extra.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.section>
-          </div>
+              {/* Games Grid - Responsive 1/2/4 columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { id: 'memory', name: 'Memoria', icon: Brain, description: 'Entrena tu memoria', points: 5 },
+                  { id: 'quiz', name: 'Quiz', icon: Target, description: 'Pon a prueba tus conocimientos', points: 10 },
+                  { id: 'puzzle', name: 'Puzzle', icon: Puzzle, description: 'Resuelve acertijos', points: 8 },
+                  { id: 'speed', name: 'Velocidad', icon: Zap, description: 'Prueba tu rapidez', points: 12 }
+                ].map((game) => (
+                  <motion.div
+                    key={game.id}
+                    className="w-full p-4 bg-gray-50 dark:bg-slate-700/30 rounded-lg border border-transparent hover:border-purple-400/40 transition-all cursor-pointer"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="flex flex-col items-center text-center gap-3">
+                      <div className="w-12 h-12 bg-purple-500/20 dark:bg-purple-500/20 rounded-lg flex items-center justify-center">
+                        <game.icon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900 dark:text-white">{game.name}</div>
+                        <div className="text-sm text-gray-600 dark:text-slate-400">{game.description}</div>
+                      </div>
+                      <div className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">+{game.points} pts</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30 text-center">
+                <Sparkles className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-700 dark:text-slate-200">
+                  Pronto podrás jugar mini-retos directamente aquí para ganar puntos extra.
+                </p>
+              </div>
+            </motion.div>
+          </motion.section>
         </div>
       </motion.section>
 
