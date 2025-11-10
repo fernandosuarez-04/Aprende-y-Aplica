@@ -83,6 +83,16 @@ export default function AppDetailPage() {
       const data = await response.json();
       setApp(data.app);
       setError(null);
+
+      // Incrementar contador de visualizaciones
+      try {
+        await fetch(`/api/ai-directory/apps/${params.slug}/view`, {
+          method: 'POST',
+        });
+      } catch (viewError) {
+        // No fallar si el incremento de vistas falla
+        console.error('Error incrementing view count:', viewError);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
