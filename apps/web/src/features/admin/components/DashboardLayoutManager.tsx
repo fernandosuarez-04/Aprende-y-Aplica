@@ -200,7 +200,7 @@ export function DashboardLayoutManager({
       {/* Contenedor con react-grid-layout */}
       {typeof window !== 'undefined' && ResponsiveGridLayout && WidthProvider && widgets.length > 0 && currentLayout.length > 0 ? (
         <div className="w-full">
-          <WidthProvider className="layout" cols={12} rowHeight={60}>
+          <WidthProvider className="layout" cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={60}>
             <ResponsiveGridLayout
               className="layout"
               layouts={{ lg: currentLayout }}
