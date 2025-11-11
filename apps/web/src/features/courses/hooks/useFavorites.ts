@@ -54,6 +54,9 @@ export function useFavorites(): UseFavoritesReturn {
       return false
     }
 
+    // Guardar el valor anterior ANTES del optimistic update
+    const previousFavorites = [...favorites]
+
     try {
       // ⚡ Optimistic update
       const isCurrentlyFavorite = favorites.includes(courseId)
@@ -72,8 +75,8 @@ export function useFavorites(): UseFavoritesReturn {
       })
 
       if (!response.ok) {
-        // Rollback on error
-        mutate(favorites, false)
+        // Rollback usando el valor guardado anteriormente
+        mutate(previousFavorites, false)
         throw new Error(`Error ${response.status}`)
       }
 
@@ -84,8 +87,8 @@ export function useFavorites(): UseFavoritesReturn {
 
       return newFavoriteStatus
     } catch (err) {
-      // Rollback on error
-      mutate(favorites, false)
+      // Rollback usando el valor guardado anteriormente
+      mutate(previousFavorites, false)
       return false
     }
   }

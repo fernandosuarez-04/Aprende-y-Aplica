@@ -23,9 +23,12 @@ export default function PaymentMethodsPage() {
                 Gestiona tus tarjetas y métodos de pago
               </p>
             </div>
-            <button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-medium px-6 py-3 rounded-lg transition-colors">
+            <button 
+              disabled
+              className="flex items-center gap-2 bg-gray-400 dark:bg-gray-600 text-white font-medium px-6 py-3 rounded-lg transition-colors cursor-not-allowed opacity-60"
+            >
               <Plus className="w-4 h-4" />
-              Agregar método
+              Próximamente
             </button>
           </div>
 

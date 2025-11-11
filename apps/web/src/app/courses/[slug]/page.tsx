@@ -408,7 +408,7 @@ export default function CourseDetailPage() {
         {/* Left Column - Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Tabs */}
-          <div className="bg-white dark:bg-gradient-to-br dark:from-carbon-700 dark:to-carbon-800 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-carbon-800/90 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden shadow-sm dark:shadow-none">
             <div className="flex border-b border-gray-200 dark:border-carbon-600">
               {[
                 { id: 'info', label: 'Información', icon: BookOpen },
@@ -472,28 +472,28 @@ export default function CourseDetailPage() {
 
                       {/* Course Stats */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-carbon-800/80 rounded-xl p-4 border border-gray-200 dark:border-carbon-600 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <FileText className="w-5 h-5 text-primary" />
                             <span className="text-gray-600 dark:text-carbon-200 text-sm">Módulos</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalModules || '0'}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-carbon-800/80 rounded-xl p-4 border border-gray-200 dark:border-carbon-600 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <Video className="w-5 h-5 text-primary" />
                             <span className="text-gray-600 dark:text-carbon-200 text-sm">Lecciones</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalLessons || '0'}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-carbon-800/80 rounded-xl p-4 border border-gray-200 dark:border-carbon-600 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <Clock className="w-5 h-5 text-primary" />
                             <span className="text-gray-600 dark:text-carbon-200 text-sm">Duración</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatDuration(totalDuration)}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-carbon-800/80 rounded-xl p-4 border border-gray-200 dark:border-carbon-600 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <Users className="w-5 h-5 text-primary" />
                             <span className="text-gray-600 dark:text-carbon-200 text-sm">Estudiantes</span>
@@ -539,7 +539,7 @@ export default function CourseDetailPage() {
                             return (
                               <div
                                 key={module.module_id || module.id}
-                                className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden"
+                                className="bg-white dark:bg-carbon-800/80 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden shadow-sm dark:shadow-none"
                               >
                                 <button
                                   onClick={() => toggleModule(module.module_id || module.id)}
@@ -582,7 +582,7 @@ export default function CourseDetailPage() {
                                         {moduleLessons.map((lesson: any, lessonIndex: number) => (
                                           <div
                                             key={lesson.lesson_id || lesson.id}
-                                            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-carbon-700/30 hover:bg-gray-50 dark:hover:bg-carbon-700/50 transition-colors border border-gray-200 dark:border-carbon-600"
+                                            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-carbon-800/60 hover:bg-gray-50 dark:hover:bg-carbon-700/50 transition-colors border border-gray-200 dark:border-carbon-600"
                                           >
                                             <Play className="w-4 h-4 text-gray-600 dark:text-carbon-200 flex-shrink-0" />
                                             <div className="flex-1 min-w-0">
@@ -630,7 +630,7 @@ export default function CourseDetailPage() {
                         reviews.map((review) => (
                           <div
                             key={review.id}
-                            className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-6 border border-gray-200 dark:border-carbon-600"
+                            className="bg-white dark:bg-carbon-800/80 rounded-xl p-6 border border-gray-200 dark:border-carbon-600 shadow-sm dark:shadow-none"
                           >
                             <div className="flex items-start gap-4 mb-4">
                               <div className="w-12 h-12 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -762,7 +762,7 @@ export default function CourseDetailPage() {
 
                       {/* Email */}
                       {course.instructor_email && (
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-carbon-800/80 rounded-xl p-4 border border-gray-200 dark:border-carbon-600 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
                               <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -804,7 +804,7 @@ export default function CourseDetailPage() {
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
           {/* Course Info Card */}
-          <div className="bg-white dark:bg-gradient-to-br dark:from-carbon-700 dark:to-carbon-800 rounded-xl p-6 border border-gray-200 dark:border-carbon-600 sticky top-6 shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-carbon-800/90 rounded-xl p-6 border border-gray-200 dark:border-carbon-600 sticky top-6 shadow-sm dark:shadow-none">
             <div className="space-y-6">
               {/* Price */}
               <div>

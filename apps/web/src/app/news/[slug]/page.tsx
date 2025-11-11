@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import { 
   ArrowLeft, 
   Calendar, 
@@ -29,6 +30,7 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
   const router = useRouter()
   const resolvedParams = React.use(params)
   const { news, loading, error } = useNewsDetail(resolvedParams.slug)
+  const [imageError, setImageError] = useState(false)
 
   if (loading) {
     return (
@@ -329,7 +331,7 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
     <div className="min-h-screen bg-gradient-to-br from-carbon-950 via-carbon-900 to-carbon-800">
       {/* Header */}
       <motion.div 
-        className="sticky top-0 z-50 bg-carbon-900/80 backdrop-blur-sm border-b border-carbon-700/50"
+        className="sticky top-0 z-40 bg-carbon-900/80 backdrop-blur-sm border-b border-carbon-700/50"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
@@ -366,19 +368,35 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
             className="space-y-8"
           >
             {/* Hero Image */}
-            {news.hero_image_url && (
+            {news.hero_image_url && !imageError && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8 }}
-                className="relative h-64 lg:h-96 rounded-2xl overflow-hidden"
+                className="relative h-64 lg:h-96 rounded-2xl overflow-hidden bg-carbon-800"
               >
-                <img
+                <Image
                   src={news.hero_image_url}
                   alt={news.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 896px"
+                  onError={() => setImageError(true)}
+                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-carbon-900/60 to-transparent" />
+              </motion.div>
+            )}
+            {imageError && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="relative h-64 lg:h-96 rounded-2xl overflow-hidden bg-carbon-800 flex items-center justify-center"
+              >
+                <div className="text-center text-text-tertiary">
+                  <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Imagen no disponible</p>
+                </div>
               </motion.div>
             )}
 

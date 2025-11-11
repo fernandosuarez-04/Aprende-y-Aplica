@@ -34,6 +34,7 @@ export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<'news' | 'reels'>('news')
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
   
   const { news, loading, error, loadMore, hasMore } = useNews({
     language: selectedCategory === 'all' ? undefined : selectedCategory
@@ -238,7 +239,7 @@ export default function NewsPage() {
                   <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20">
                     {/* Hero Image */}
                     <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20 flex items-center justify-center overflow-hidden">
-                      {item.hero_image_url ? (
+                      {item.hero_image_url && !imageErrors.has(item.id) ? (
                         <Image 
                           src={item.hero_image_url} 
                           alt={item.title}
@@ -248,6 +249,7 @@ export default function NewsPage() {
                           loading="lazy"
                           quality={75}
                           unoptimized={item.hero_image_url?.includes('supabase')}
+                          onError={() => setImageErrors(prev => new Set(prev).add(item.id))}
                         />
                       ) : (
                         <Newspaper className="w-16 h-16 text-primary/70 dark:text-primary/50" />
@@ -385,7 +387,7 @@ export default function NewsPage() {
                     }`}>
                       {/* Hero Image */}
                       <div className={`${viewMode === 'list' ? 'w-48 h-32' : 'h-48'} bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
-                        {item.hero_image_url ? (
+                        {item.hero_image_url && !imageErrors.has(item.id) ? (
                           <Image 
                             src={item.hero_image_url} 
                             alt={item.title}
@@ -395,6 +397,7 @@ export default function NewsPage() {
                             loading="lazy"
                             quality={75}
                             unoptimized={item.hero_image_url?.includes('supabase')}
+                            onError={() => setImageErrors(prev => new Set(prev).add(item.id))}
                           />
                         ) : (
                           <Newspaper className="w-8 h-8 text-primary/70 dark:text-primary/50" />

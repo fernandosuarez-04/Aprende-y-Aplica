@@ -69,6 +69,7 @@ export default function DashboardPage() {
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
 
   // Ref para almacenar el valor anterior de favorites y evitar bucles infinitos
   const prevFavoritesRef = React.useRef<string[]>([]);
@@ -138,13 +139,18 @@ export default function DashboardPage() {
 
 
   const handleToggleFavorite = async (courseId: string) => {
+    if (togglingFavorite === courseId) return; // Ya está procesando
+    
     try {
+      setTogglingFavorite(courseId);
       await toggleFavorite(courseId);
     } catch (error) {
       // Mostrar mensaje de error al usuario si es necesario
       if (error instanceof Error && error.message.includes('Variables de entorno')) {
         alert('Error: Supabase no está configurado. Por favor, configura las variables de entorno.');
       }
+    } finally {
+      setTogglingFavorite(null);
     }
   };
 
@@ -169,7 +175,7 @@ export default function DashboardPage() {
       category: course.category || 'General',
       isFavorite: isFavorite(course.id),
     }));
-  }, [filteredCourses, isFavorite]);
+  }, [filteredCourses, isFavorite, favorites]);
 
   // Mostrar loading mientras se obtienen los datos del usuario
   if (loading) {
@@ -310,7 +316,10 @@ export default function DashboardPage() {
                     
                     <button
                       onClick={() => handleToggleFavorite(workshop.id)}
-                      className="absolute top-3 right-3 p-2 bg-white/80 dark:bg-carbon-800/80 rounded-full hover:bg-gray-100 dark:hover:bg-carbon-700 transition-colors z-10"
+                      disabled={togglingFavorite === workshop.id}
+                      className={`absolute top-3 right-3 p-2 bg-white/80 dark:bg-carbon-800/80 rounded-full hover:bg-gray-100 dark:hover:bg-carbon-700 transition-colors z-10 ${
+                        togglingFavorite === workshop.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
                       <Heart 
                         className={`w-4 h-4 ${
