@@ -181,12 +181,44 @@ export function AIChatAgent({
   context = 'general'
 }: AIChatAgentProps) {
   const pathname = usePathname();
-  
+
   // Detectar automáticamente el contexto basado en la URL
   const detectedContext = detectContextFromURL(pathname);
   const activeContext = context === 'general' ? detectedContext : context;
   const pageContextInfo = getPageContextInfo(pathname);
-  
+
+  // Detectar si estamos en página de comunidades
+  const isCommunitiesPage = pathname?.includes('/communities');
+
+  // Estado para detectar si es desktop (≥ 1024px, breakpoint lg de Tailwind)
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detectar tamaño de pantalla con media query
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+
+    // Establecer valor inicial
+    setIsDesktop(mediaQuery.matches);
+
+    // Listener para cambios en el tamaño de pantalla
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDesktop(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  // Determinar posición bottom según la página y el tamaño de pantalla
+  // En /communities: arriba (5.5rem) solo en móvil, abajo (1.5rem) en desktop
+  // En otras páginas: siempre abajo (1.5rem)
+  const bottomPosition = isCommunitiesPage && !isDesktop
+    ? 'calc(5.5rem + env(safe-area-inset-bottom, 0px))'
+    : 'calc(1.5rem + env(safe-area-inset-bottom, 0px))';
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -649,7 +681,7 @@ export function AIChatAgent({
         <div
           className="fixed right-6 z-40 flex flex-col gap-2 items-end bottom-6 md:bottom-6"
           style={{
-            bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+            bottom: bottomPosition,
           }}
         >
           <AnimatePresence>
@@ -807,7 +839,7 @@ export function AIChatAgent({
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className="fixed right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-3rem)] z-[99999]"
             style={{
-              bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+              bottom: bottomPosition,
             }}
           >
         <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">

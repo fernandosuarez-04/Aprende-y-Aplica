@@ -41,6 +41,7 @@ export function CourseRatingModal({
   const [reviewContent, setReviewContent] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -80,13 +81,32 @@ export function CourseRatingModal({
 
   const handleClose = () => {
     if (!isSubmitting) {
-      // Reset form when closing
-      setRating(0);
-      setReviewTitle('');
-      setReviewContent('');
-      setError(null);
-      onClose();
+      // Mostrar confirmación si intenta cerrar sin calificar
+      if (rating === 0) {
+        setShowCloseConfirmation(true);
+      } else {
+        // Si ya calificó, permitir cerrar
+        setRating(0);
+        setReviewTitle('');
+        setReviewContent('');
+        setError(null);
+        onClose();
+      }
     }
+  };
+
+  const handleConfirmClose = () => {
+    // Cerrar sin guardar
+    setRating(0);
+    setReviewTitle('');
+    setReviewContent('');
+    setError(null);
+    setShowCloseConfirmation(false);
+    onClose();
+  };
+
+  const handleCancelClose = () => {
+    setShowCloseConfirmation(false);
   };
 
   return (
@@ -113,15 +133,15 @@ export function CourseRatingModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+            className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700/50 shadow-2xl max-w-md w-full p-6"
           >
             {/* Close Button */}
             <button
               onClick={handleClose}
               disabled={isSubmitting}
-              className="absolute top-4 right-4 p-2 hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <X className="w-5 h-5 text-slate-300" />
+              <X className="w-5 h-5 text-gray-700 dark:text-slate-300" />
             </button>
 
             {/* Header */}
@@ -131,19 +151,25 @@ export function CourseRatingModal({
                   <Star className="w-10 h-10 text-white fill-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-white text-center mb-2">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
                 Califica este curso
               </h3>
               {courseTitle && (
-                <p className="text-slate-400 text-center text-sm">
+                <p className="text-gray-600 dark:text-slate-400 text-center text-sm mb-3">
                   {courseTitle}
                 </p>
               )}
+              {/* Mensaje informativo */}
+              <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-3 mt-4">
+                <p className="text-blue-700 dark:text-blue-300 text-center text-sm font-medium">
+                  📜 Para ver tu certificado, completa esta encuesta
+                </p>
+              </div>
             </div>
 
             {/* Rating Stars */}
             <div className="mb-6">
-              <label className="block text-slate-300 text-sm font-medium mb-3 text-center">
+              <label className="block text-gray-700 dark:text-slate-300 text-sm font-medium mb-3 text-center">
                 ¿Cómo calificarías este curso?
               </label>
               <div className="flex justify-center">
@@ -158,7 +184,7 @@ export function CourseRatingModal({
 
             {/* Review Title (Optional) */}
             <div className="mb-4">
-              <label className="block text-slate-300 text-sm font-medium mb-2">
+              <label className="block text-gray-700 dark:text-slate-300 text-sm font-medium mb-2">
                 Título de tu reseña (opcional)
               </label>
               <input
@@ -167,14 +193,14 @@ export function CourseRatingModal({
                 onChange={(e) => setReviewTitle(e.target.value)}
                 placeholder="Ej: Excelente curso"
                 disabled={isSubmitting}
-                className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 maxLength={100}
               />
             </div>
 
             {/* Review Content (Optional) */}
             <div className="mb-6">
-              <label className="block text-slate-300 text-sm font-medium mb-2">
+              <label className="block text-gray-700 dark:text-slate-300 text-sm font-medium mb-2">
                 Comentarios (opcional)
               </label>
               <textarea
@@ -183,10 +209,10 @@ export function CourseRatingModal({
                 placeholder="Comparte tu experiencia con este curso..."
                 disabled={isSubmitting}
                 rows={4}
-                className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
                 maxLength={1000}
               />
-              <p className="text-xs text-slate-500 mt-1 text-right">
+              <p className="text-xs text-gray-500 dark:text-slate-500 mt-1 text-right">
                 {reviewContent.length}/1000
               </p>
             </div>
@@ -196,9 +222,9 @@ export function CourseRatingModal({
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg"
+                className="mb-4 p-3 bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 rounded-lg"
               >
-                <p className="text-red-400 text-sm">{error}</p>
+                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
               </motion.div>
             )}
 
@@ -217,6 +243,67 @@ export function CourseRatingModal({
                 <span>Enviar calificación</span>
               )}
             </button>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Modal de Confirmación de Cierre */}
+      {showCloseConfirmation && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          onClick={handleCancelClose}
+        >
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          />
+
+          {/* Modal Content */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700/50 shadow-2xl max-w-sm w-full p-6"
+          >
+            {/* Icono de advertencia */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-500/20 flex items-center justify-center">
+                <X className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
+              </div>
+            </div>
+
+            {/* Título */}
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
+              ¿Salir sin completar?
+            </h3>
+
+            {/* Mensaje */}
+            <p className="text-gray-700 dark:text-slate-300 text-center mb-6 text-sm">
+              Necesitas completar la encuesta para acceder a tu certificado. ¿Estás seguro de que quieres salir?
+            </p>
+
+            {/* Botones */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelClose}
+                className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+              >
+                Continuar encuesta
+              </button>
+              <button
+                onClick={handleConfirmClose}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-slate-300 font-medium rounded-lg transition-colors"
+              >
+                Salir
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}

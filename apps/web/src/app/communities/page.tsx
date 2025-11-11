@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -35,9 +35,6 @@ import { Button } from '@aprende-y-aplica/ui';
 import { useRouter } from 'next/navigation';
 import { usePrefetchOnHover } from '../../core/hooks/usePrefetch';
 import { useCommunities } from '../../core/hooks/useCommunities';
-
-// 🚀 Lazy Loading - Cargar componentes pesados solo cuando se necesitan
-const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
 
 interface Community {
   id: string;
@@ -767,16 +764,6 @@ export default function CommunitiesPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* AI Chat Agent - Lazy loaded */}
-      <Suspense fallback={null}>
-        <AIChatAgent
-          assistantName="Lia"
-          initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre nuestras comunidades, cómo unirte y participar. ¿En qué puedo asistirte?"
-          promptPlaceholder="Pregunta sobre comunidades..."
-          context="communities"
-        />
-      </Suspense>
     </div>
   );
 }

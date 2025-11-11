@@ -804,36 +804,6 @@ Antes de cada respuesta, pregúntate:
     }
   }, [slug]);
 
-  // Verificar si el usuario ya calificó el curso al cargar
-  useEffect(() => {
-    async function checkUserRating() {
-      if (!slug || hasUserRated) return;
-
-      try {
-        const ratingCheck = await CourseRatingService.checkUserRating(slug);
-        if (ratingCheck.hasRating) {
-          setHasUserRated(true);
-        } else {
-          // Mostrar modal de rating después de 2-3 segundos si el usuario está inscrito
-          // Verificar que haya módulos cargados (usuario está inscrito)
-          if (modules.length > 0) {
-            setTimeout(() => {
-              setIsRatingModalOpen(true);
-            }, 2500);
-          }
-        }
-      } catch (error) {
-        // Si hay error (ej: no autenticado), no mostrar el modal
-        console.error('Error checking rating:', error);
-      }
-    }
-
-    // Solo verificar después de que los módulos se hayan cargado
-    if (slug && modules.length > 0 && !loading) {
-      checkUserRating();
-    }
-  }, [slug, modules.length, loading, hasUserRated]);
-
   // Cargar notas cuando cambia la lección actual
   useEffect(() => {
     if (currentLesson && slug) {
@@ -2207,9 +2177,16 @@ Antes de cada respuesta, pregúntate:
               </h3>
 
               {/* Mensaje */}
-              <p className="text-slate-300 text-center mb-6">
+              <p className="text-slate-300 text-center mb-4">
                 Has completado el curso exitosamente. ¡Buen trabajo!
               </p>
+
+              {/* Mensaje informativo sobre certificado */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
+                <p className="text-blue-300 text-center text-sm">
+                  📜 A continuación, completa una breve encuesta para acceder a tu certificado
+                </p>
+              </div>
 
               {/* Botón de cerrar */}
               <button
@@ -2451,6 +2428,8 @@ Antes de cada respuesta, pregúntate:
         onRatingSubmitted={() => {
           setHasUserRated(true);
           setIsRatingModalOpen(false);
+          // Redirigir a la página de certificados después de completar la encuesta
+          router.push('/certificates');
         }}
       />
     </div>
