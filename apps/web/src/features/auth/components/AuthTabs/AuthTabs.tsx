@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -27,6 +27,9 @@ export function AuthTabs() {
   const [activeTab, setActiveTab] = useState<AuthTab>(
     tabParam === 'register' ? 'register' : 'login'
   );
+  const [height, setHeight] = useState<number | 'auto'>('auto');
+  const contentRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
   // Sincronizar el tab activo con el query parameter
   useEffect(() => {
@@ -37,8 +40,89 @@ export function AuthTabs() {
     }
   }, [tabParam]);
 
+  // Medir altura del nuevo contenido antes de animar
+  useEffect(() => {
+    if (measureRef.current) {
+      // Función para medir altura
+      const measureHeight = () => {
+        if (measureRef.current) {
+          const newHeight = measureRef.current.scrollHeight;
+          if (newHeight > 0) {
+            setHeight(newHeight);
+          }
+        }
+      };
+
+      // Múltiples intentos para asegurar que el contenido lazy-loaded se haya cargado
+      const timeout1 = setTimeout(measureHeight, 50);
+      const timeout2 = setTimeout(measureHeight, 200);
+      const timeout3 = setTimeout(measureHeight, 500);
+
+      // También usar ResizeObserver para detectar cuando el contenido se carga
+      const resizeObserver = new ResizeObserver(() => {
+        measureHeight();
+      });
+
+      if (measureRef.current) {
+        resizeObserver.observe(measureRef.current);
+      }
+
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        clearTimeout(timeout3);
+        resizeObserver.disconnect();
+      };
+    }
+  }, [activeTab]);
+
+  // Medir altura inicial y cuando el contenido visible cambia (fallback)
+  useEffect(() => {
+    if (contentRef.current) {
+      const measureVisibleHeight = () => {
+        if (contentRef.current) {
+          const currentHeight = contentRef.current.scrollHeight;
+          if (currentHeight > 0) {
+            setHeight((prevHeight) => {
+              // Si la altura previa es 'auto' o 0, establecer directamente
+              if (prevHeight === 'auto' || (typeof prevHeight === 'number' && prevHeight === 0)) {
+                return currentHeight;
+              }
+              // Solo actualizar si es significativamente diferente (más de 20px)
+              if (typeof prevHeight === 'number' && Math.abs(currentHeight - prevHeight) > 20) {
+                return currentHeight;
+              }
+              return prevHeight;
+            });
+          }
+        }
+      };
+
+      // Medir después de que el contenido se renderice (múltiples intentos para lazy loading)
+      const timeout1 = setTimeout(measureVisibleHeight, 150);
+      const timeout2 = setTimeout(measureVisibleHeight, 400);
+      const timeout3 = setTimeout(measureVisibleHeight, 700);
+
+      // ResizeObserver para el contenido visible
+      const resizeObserver = new ResizeObserver(() => {
+        measureVisibleHeight();
+      });
+
+      if (contentRef.current) {
+        resizeObserver.observe(contentRef.current);
+      }
+
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        clearTimeout(timeout3);
+        resizeObserver.disconnect();
+      };
+    }
+  }, [activeTab]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 relative">
       {/* Tabs - Animaciones reducidas */}
       <div className="flex gap-4 relative">
         {/* Indicador de Tab Activo - Simplificado */}
@@ -80,21 +164,67 @@ export function AuthTabs() {
         </button>
       </div>
 
-      {/* Form Content - Animación simplificada */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
+      {/* Contenedor invisible para medir altura del nuevo contenido */}
+      <div 
+        ref={measureRef}
+        style={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          visibility: 'hidden',
+          height: 'auto',
+          width: '100%',
+          maxWidth: '100%',
+          pointerEvents: 'none',
+          opacity: 0,
+          zIndex: -1,
+          overflow: 'hidden'
+        }}
+      >
+        <div style={{ width: '100%' }}>
           {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Form Content - Animación suave de altura */}
+      <motion.div
+        animate={{ 
+          height: height === 'auto' || (typeof height === 'number' && height === 0) 
+            ? 'auto' 
+            : `${height}px` 
+        }}
+        transition={{ 
+          duration: 0.5, 
+          ease: [0.4, 0, 0.2, 1]
+        }}
+        style={{ 
+          overflow: height === 'auto' || (typeof height === 'number' && height === 0) ? 'visible' : 'hidden',
+          position: 'relative',
+          minHeight: height === 'auto' || (typeof height === 'number' && height === 0) ? 'auto' : '0px'
+        }}
+        className="relative"
+      >
+        <div ref={contentRef}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ 
+                duration: 0.3,
+                ease: [0.4, 0, 0.2, 1]
+              }}
+            >
+              {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.div>
 
       {/* Footer Link - Sin animaciones innecesarias */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-1 pt-2">
         {activeTab === 'login' ? (
           <>
             <p className="text-sm text-text-secondary">
