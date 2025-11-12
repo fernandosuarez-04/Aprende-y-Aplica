@@ -123,6 +123,7 @@ export default function CourseLearnPage() {
   const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
   const mobileContentPaddingBottom = isMobileBottomNavVisible
     ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`
@@ -788,7 +789,7 @@ Antes de cada respuesta, pregúntate:
         source_type: 'manual' // Siempre manual desde el modal
       };
 
-      if (editingNote) {
+      if (editingNote && editingNote.id && editingNote.id.trim() !== '') {
         // Editar nota existente
         const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${editingNote.id}`, {
           method: 'PUT',
@@ -804,10 +805,18 @@ Antes de cada respuesta, pregúntate:
         
         // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
         const updatedNote = await response.json();
-        addNoteToLocalState(updatedNote, currentLesson.lesson_id);
-        
-        // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
-        await updateNotesStatsOptimized('update', currentLesson.lesson_id);
+        if (updatedNote && updatedNote.note_id) {
+          addNoteToLocalState(updatedNote, currentLesson.lesson_id);
+          
+          // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+          await updateNotesStatsOptimized('update', currentLesson.lesson_id);
+          
+          // Cerrar modal solo después de que todo se haya guardado correctamente
+          setIsNotesModalOpen(false);
+          setEditingNote(null);
+        } else {
+          throw new Error('La respuesta del servidor no contiene los datos esperados de la nota');
+        }
       } else {
         // Crear nueva nota
         const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
@@ -818,20 +827,26 @@ Antes de cada respuesta, pregúntate:
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-          alert(`Error al guardar la nota: ${errorData.error || 'Error desconocido'}`);
-          return;
+          const errorMessage = errorData.error || errorData.message || 'Error desconocido';
+          alert(`Error al guardar la nota: ${errorMessage}`);
+          throw new Error(errorMessage);
         }
         
         // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
         const newNote = await response.json();
-        addNoteToLocalState(newNote, currentLesson.lesson_id);
-        
-        // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
-        await updateNotesStatsOptimized('create', currentLesson.lesson_id);
+        if (newNote && newNote.note_id) {
+          addNoteToLocalState(newNote, currentLesson.lesson_id);
+          
+          // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+          await updateNotesStatsOptimized('create', currentLesson.lesson_id);
+          
+          // Cerrar modal solo después de que todo se haya guardado correctamente
+          setIsNotesModalOpen(false);
+          setEditingNote(null);
+        } else {
+          throw new Error('La respuesta del servidor no contiene los datos esperados de la nota');
+        }
       }
-      
-      setIsNotesModalOpen(false);
-      setEditingNote(null);
     } catch (error) {
       // console.error('Error al guardar nota:', error);
       // En caso de error, recargar desde el servidor para asegurar consistencia
@@ -2039,19 +2054,71 @@ Antes de cada respuesta, pregúntate:
                       className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 ${
+                        className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 relative group ${
                           message.role === 'user'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                             : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                        <p className="text-xs mt-1 opacity-70">
-                          {message.timestamp.toLocaleTimeString('es-ES', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">{message.content}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs opacity-70">
+                            {message.timestamp.toLocaleTimeString('es-ES', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </p>
+                          {message.role === 'assistant' && (
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(message.content);
+                                    setCopiedMessageId(message.id);
+                                    setTimeout(() => setCopiedMessageId(null), 2000);
+                                  } catch (err) {
+                                    // Fallback para navegadores que no soportan clipboard API
+                                    const textArea = document.createElement('textarea');
+                                    textArea.value = message.content;
+                                    textArea.style.position = 'fixed';
+                                    textArea.style.opacity = '0';
+                                    document.body.appendChild(textArea);
+                                    textArea.select();
+                                    document.execCommand('copy');
+                                    document.body.removeChild(textArea);
+                                    setCopiedMessageId(message.id);
+                                    setTimeout(() => setCopiedMessageId(null), 2000);
+                                  }
+                                }}
+                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                                title="Copiar mensaje"
+                              >
+                                {copiedMessageId === message.id ? (
+                                  <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                ) : (
+                                  <Copy className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  // Crear nota automáticamente con el contenido del mensaje
+                                  const noteTitle = message.content.substring(0, 50).replace(/\n/g, ' ').trim() + (message.content.length > 50 ? '...' : '');
+                                  setEditingNote({
+                                    id: '',
+                                    title: noteTitle,
+                                    content: message.content,
+                                    tags: ['Lia', 'Chat']
+                                  });
+                                  setIsNotesModalOpen(true);
+                                }}
+                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                                title="Crear nota"
+                              >
+                                <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
