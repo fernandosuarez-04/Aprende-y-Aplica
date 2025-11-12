@@ -1,6 +1,6 @@
  'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -120,6 +120,7 @@ export default function CourseLearnPage() {
   
   const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
+  const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
   const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
@@ -151,13 +152,35 @@ export default function CourseLearnPage() {
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
+  const prevPromptsLengthRef = useRef<number>(0);
 
   // Limpiar prompts cuando se cambia de tab
   useEffect(() => {
     if (activeTab !== 'activities') {
       setCurrentActivityPrompts([]);
+      setIsPromptsCollapsed(false);
+      prevPromptsLengthRef.current = 0;
     }
   }, [activeTab]);
+
+  // Resetear estado de colapsado cuando se establecen nuevos prompts (solo si cambió de 0 a >0)
+  useEffect(() => {
+    const prevLength = prevPromptsLengthRef.current;
+    const currentLength = currentActivityPrompts.length;
+    
+    // Solo resetear si cambió de 0 a tener prompts (nuevos prompts)
+    if (prevLength === 0 && currentLength > 0) {
+      setIsPromptsCollapsed(false);
+    }
+    
+    prevPromptsLengthRef.current = currentLength;
+  }, [currentActivityPrompts.length]);
+
+  // Callback memoizado para evitar loops infinitos
+  const handlePromptsChange = useCallback((prompts: string[]) => {
+    setCurrentActivityPrompts(prompts);
+  }, []);
 
   // Detectar tamaño de pantalla y ajustar estado inicial de paneles
   useEffect(() => {
@@ -615,6 +638,12 @@ Vas a guiar al usuario a través de la actividad: "${activityTitle}"
 
 ## TU ROL
 Eres Lia, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
+
+## PERSONALIZACIÓN
+- Si conoces el nombre del usuario (te será proporcionado en el contexto), DEBES usarlo en tu saludo inicial
+- Comienza tu primer mensaje con "Hola [nombre del usuario]!" seguido del contenido del guión
+- Si no conoces el nombre del usuario, simplemente usa "Hola!" como saludo
+- Usa el nombre del usuario de manera natural y amigable a lo largo de la conversación cuando sea apropiado
 
 ## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
 
@@ -1880,7 +1909,7 @@ Antes de cada respuesta, pregúntate:
                       <ActivitiesContent
                         lesson={currentLesson}
                         slug={slug}
-                        onPromptsChange={setCurrentActivityPrompts}
+                        onPromptsChange={handlePromptsChange}
                         onStartInteraction={handleStartActivityInteraction}
                       />
                     )}
@@ -1997,7 +2026,12 @@ Antes de cada respuesta, pregúntate:
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
                 <div
-                  className="flex-1 overflow-y-auto p-4 space-y-4 pb-4"
+                  className="flex-1 overflow-y-auto p-4 space-y-4"
+                  style={{
+                    paddingBottom: currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen
+                      ? (isPromptsCollapsed ? '5.5rem' : '6rem')
+                      : '1rem'
+                  }}
                 >
                   {liaMessages.map((message) => (
                     <div
@@ -2047,59 +2081,91 @@ Antes de cada respuesta, pregúntate:
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute bottom-20 left-4 right-4 z-10"
+                      className={`absolute ${isPromptsCollapsed ? 'bottom-24' : 'bottom-20'} left-4 right-4 z-10`}
                     >
-                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 p-4 max-h-[300px] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
-                              <HelpCircle className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
-                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
-                            </div>
-                          </div>
+                      {isPromptsCollapsed ? (
+                        // Versión colapsada - más compacta
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-xl shadow-lg border border-purple-200/50 dark:border-purple-500/30 p-2"
+                        >
                           <button
-                            onClick={() => setCurrentActivityPrompts([])}
-                            className="p-1.5 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
-                            title="Cerrar prompts"
+                            onClick={() => setIsPromptsCollapsed(false)}
+                            className="w-full flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg px-2 py-1.5 transition-colors group"
                           >
-                            <X className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                          </button>
-                        </div>
-
-                        <div className="space-y-2">
-                          {currentActivityPrompts.map((prompt, index) => (
-                            <motion.button
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              onClick={() => {
-                                setLiaMessage(prompt);
-                                setTimeout(() => {
-                                  handleSendLiaMessage();
-                                  setCurrentActivityPrompts([]);
-                                }, 100);
-                              }}
-                              className="w-full text-left px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-purple-200/50 dark:border-purple-500/30 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-200 dark:group-hover:bg-purple-500/30 transition-colors">
-                                  <span className="text-purple-600 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                                    {prompt}
-                                  </p>
-                                </div>
-                                <Send className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md shrink-0">
+                                <HelpCircle className="w-3 h-3 text-white" />
                               </div>
-                            </motion.button>
-                          ))}
-                        </div>
-                      </div>
+                              <div className="min-w-0">
+                                <h4 className="font-semibold text-xs text-gray-900 dark:text-white truncate">Prompts Sugeridos</h4>
+                                <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
+                              </div>
+                            </div>
+                            <ChevronUp className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors shrink-0 ml-2" />
+                          </button>
+                        </motion.div>
+                      ) : (
+                        // Versión expandida
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 p-4 max-h-[300px] overflow-y-auto"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
+                                <HelpCircle className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
+                                <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setIsPromptsCollapsed(true)}
+                              className="p-1.5 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
+                              title="Minimizar prompts"
+                            >
+                              <ChevronDown className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                            </button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {currentActivityPrompts.map((prompt, index) => (
+                              <motion.button
+                                key={index}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                onClick={() => {
+                                  setLiaMessage(prompt);
+                                  setTimeout(() => {
+                                    handleSendLiaMessage();
+                                    setIsPromptsCollapsed(true);
+                                  }, 100);
+                                }}
+                                className="w-full text-left px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-purple-200/50 dark:border-purple-500/30 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-200 dark:group-hover:bg-purple-500/30 transition-colors">
+                                    <span className="text-purple-600 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                      {prompt}
+                                    </p>
+                                  </div>
+                                  <Send className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                                </div>
+                              </motion.button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

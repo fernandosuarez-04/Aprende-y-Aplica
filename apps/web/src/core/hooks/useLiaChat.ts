@@ -67,7 +67,11 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
             role: m.role,
             content: m.content
           })),
-          userName: user?.username || user?.first_name || undefined,
+          userName: user?.display_name || 
+                    (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+                    user?.first_name || 
+                    user?.username || 
+                    undefined,
           courseContext: courseContext || undefined,
           isSystemMessage: isSystemMessage,
           // ✅ ANALYTICS: Enviar conversationId existente si lo hay
