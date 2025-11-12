@@ -1,10 +1,10 @@
-'use client';
+ 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { dedupedFetch } from '@/lib/supabase/request-deduplication';
+import { dedupedFetch } from '../../../../lib/supabase/request-deduplication';
 import {
   Play,
   BookOpen,
@@ -427,6 +427,94 @@ export default function CourseLearnPage() {
     }
   };
 
+  // ⚡ OPTIMIZACIÓN: Función para actualizar estadísticas de manera optimizada
+  // Calcula las estadísticas localmente cuando es posible, evitando llamadas al servidor
+  const updateNotesStatsOptimized = async (operation: 'create' | 'update' | 'delete', lessonId?: string) => {
+    if (!slug) return;
+
+    const allLessons = modules.flatMap((m: Module) => m.lessons);
+    const totalLessons = allLessons.length;
+
+    // Para operaciones de creación/eliminación, podemos actualizar optimistamente
+    if (operation === 'create' || operation === 'delete') {
+      // Actualizar total de notas optimistamente
+      setNotesStats((prev) => {
+        const currentTotal = prev.totalNotes || 0;
+        const newTotal = operation === 'create' ? currentTotal + 1 : Math.max(0, currentTotal - 1);
+        
+        // Para lecciones con notas, usar el valor anterior y ajustar optimistamente
+        // La recarga del servidor corregirá cualquier discrepancia
+        const prevLessonsWithNotes = parseInt(prev.lessonsWithNotes.split('/')[0]) || 0;
+        let lessonsWithNotes = prevLessonsWithNotes;
+        
+        if (lessonId && operation === 'create') {
+          // Si creamos una nota, asumimos que la lección no tenía notas antes
+          // (será corregido por la recarga del servidor si es incorrecto)
+          lessonsWithNotes = Math.min(prevLessonsWithNotes + 1, totalLessons);
+        } else if (lessonId && operation === 'delete') {
+          // Si eliminamos una nota, asumimos que era la última de la lección
+          // (será corregido por la recarga del servidor si es incorrecto)
+          lessonsWithNotes = Math.max(0, prevLessonsWithNotes - 1);
+        }
+        
+        return {
+          ...prev,
+          totalNotes: newTotal,
+          lessonsWithNotes: `${lessonsWithNotes}/${totalLessons}`,
+          lastUpdate: 'Ahora' // Actualizar timestamp inmediatamente
+        };
+      });
+
+      // Recargar estadísticas completas del servidor en background (sin bloquear UI)
+      // Usamos un pequeño delay para evitar múltiples llamadas si hay varias operaciones rápidas
+      // y para dar tiempo a que el estado local se actualice
+      setTimeout(async () => {
+        await loadNotesStats(slug);
+      }, 500);
+    } else {
+      // Para actualizaciones, solo actualizar el timestamp y recargar en background
+      setNotesStats((prev) => ({
+        ...prev,
+        lastUpdate: 'Ahora'
+      }));
+      
+      setTimeout(async () => {
+        await loadNotesStats(slug);
+      }, 500);
+    }
+  };
+
+  // ⚡ OPTIMIZACIÓN: Función para agregar una nota al estado local inmediatamente
+  const addNoteToLocalState = (noteData: any, lessonId: string) => {
+    const preview = generateNotePreview(noteData.note_content || noteData.noteContent, 50);
+    const newNote = {
+      id: noteData.note_id || noteData.id,
+      title: noteData.note_title || noteData.title,
+      content: preview,
+      timestamp: 'Ahora',
+      lessonId: lessonId,
+      fullContent: noteData.note_content || noteData.content,
+      tags: noteData.note_tags || noteData.tags || []
+    };
+
+    setSavedNotes((prev) => {
+      // Si la nota ya existe (por ID), reemplazarla; si no, agregarla al inicio
+      const existingIndex = prev.findIndex(n => n.id === newNote.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = newNote;
+        return updated;
+      } else {
+        return [newNote, ...prev];
+      }
+    });
+  };
+
+  // ⚡ OPTIMIZACIÓN: Función para eliminar una nota del estado local inmediatamente
+  const removeNoteFromLocalState = (noteId: string) => {
+    setSavedNotes((prev) => prev.filter(note => note.id !== noteId));
+  };
+
 
   // Función para construir el contexto de la lección actual
   const getLessonContext = (): CourseLessonContext | undefined => {
@@ -656,7 +744,7 @@ Antes de cada respuesta, pregúntate:
     setIsNotesModalOpen(true);
   };
 
-  // Función para guardar nota (nueva o editada)
+  // ⚡ OPTIMIZADO: Función para guardar nota (nueva o editada) con actualización optimista
   const handleSaveNote = async (noteData: { title: string; content: string; tags: string[] }) => {
     try {
       if (!currentLesson?.lesson_id || !slug) {
@@ -685,11 +773,12 @@ Antes de cada respuesta, pregúntate:
           return;
         }
         
-        // Recargar notas desde el servidor para asegurar consistencia
-        await loadLessonNotes(currentLesson.lesson_id, slug);
+        // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+        const updatedNote = await response.json();
+        addNoteToLocalState(updatedNote, currentLesson.lesson_id);
         
-        // Actualizar estadísticas desde el servidor
-        await updateNotesStats();
+        // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+        await updateNotesStatsOptimized('update', currentLesson.lesson_id);
       } else {
         // Crear nueva nota
         const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
@@ -704,21 +793,27 @@ Antes de cada respuesta, pregúntate:
           return;
         }
         
-        // Recargar notas desde el servidor para asegurar consistencia
-        await loadLessonNotes(currentLesson.lesson_id, slug);
+        // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+        const newNote = await response.json();
+        addNoteToLocalState(newNote, currentLesson.lesson_id);
         
-        // Actualizar estadísticas desde el servidor
-        await updateNotesStats();
+        // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+        await updateNotesStatsOptimized('create', currentLesson.lesson_id);
       }
       
       setIsNotesModalOpen(false);
       setEditingNote(null);
     } catch (error) {
       // console.error('Error al guardar nota:', error);
+      // En caso de error, recargar desde el servidor para asegurar consistencia
+      if (currentLesson?.lesson_id && slug) {
+        await loadLessonNotes(currentLesson.lesson_id, slug);
+        await loadNotesStats(slug);
+      }
     }
   };
 
-  // Función para eliminar nota
+  // ⚡ OPTIMIZADO: Función para eliminar nota con actualización optimista
   const handleDeleteNote = async (noteId: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) return;
     
@@ -728,27 +823,38 @@ Antes de cada respuesta, pregúntate:
         return;
       }
 
+      // ⚡ OPTIMIZACIÓN: Eliminar del estado local inmediatamente (actualización optimista)
+      removeNoteFromLocalState(noteId);
+      
+      // ⚡ OPTIMIZACIÓN: Actualizar estadísticas optimistamente
+      await updateNotesStatsOptimized('delete', currentLesson.lesson_id);
+
       const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`, {
         method: 'DELETE'
       });
       
-      if (response.ok) {
-        // Recargar notas desde el servidor para asegurar consistencia
+      if (!response.ok) {
+        // Si falla, recargar desde el servidor para revertir el cambio optimista
         await loadLessonNotes(currentLesson.lesson_id, slug);
+        await loadNotesStats(slug);
         
-        // Actualizar estadísticas desde el servidor
-        await updateNotesStats();
-      } else {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         alert(`Error al eliminar la nota: ${errorData.error || 'Error desconocido'}`);
       }
+      // Si tiene éxito, el estado ya fue actualizado optimistamente
     } catch (error) {
       // console.error('Error al eliminar nota:', error);
+      // En caso de error, recargar desde el servidor para revertir el cambio optimista
+      if (currentLesson?.lesson_id && slug) {
+        await loadLessonNotes(currentLesson.lesson_id, slug);
+        await loadNotesStats(slug);
+      }
       alert('Error al eliminar la nota. Por favor, intenta de nuevo.');
     }
   };
 
   // Función para actualizar estadísticas de notas desde el servidor
+  // ⚡ DEPRECATED: Usar updateNotesStatsOptimized en su lugar
   const updateNotesStats = async () => {
     if (!slug) return;
     await loadNotesStats(slug);
@@ -1761,7 +1867,14 @@ Antes de cada respuesta, pregúntate:
                         onCannotComplete={() => setIsCannotCompleteModalOpen(true)}
                       />
                     )}
-                    {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
+                    {activeTab === 'transcript' && (
+                      <TranscriptContent 
+                        lesson={currentLesson} 
+                        slug={slug}
+                        onNoteCreated={addNoteToLocalState}
+                        onStatsUpdate={updateNotesStatsOptimized}
+                      />
+                    )}
                     {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'activities' && (
                       <ActivitiesContent
@@ -2669,7 +2782,17 @@ function VideoContent({
   );
 }
 
-function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: string }) {
+function TranscriptContent({ 
+  lesson, 
+  slug,
+  onNoteCreated,
+  onStatsUpdate
+}: { 
+  lesson: Lesson | null; 
+  slug: string;
+  onNoteCreated: (noteData: any, lessonId: string) => void;
+  onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
+}) {
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [transcriptContent, setTranscriptContent] = useState<string | null>(null);
@@ -2796,11 +2919,14 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
       // console.log('Nota creada exitosamente:', newNote);
       // console.log('=== FIN DEBUG ===');
       
+      // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+      if (lesson?.lesson_id) {
+        onNoteCreated(newNote, lesson.lesson_id);
+        await onStatsUpdate('create', lesson.lesson_id);
+      }
+      
       // Mostrar mensaje de éxito
       alert('✅ Transcripción guardada exitosamente en notas');
-      
-      // Aquí podrías actualizar la lista de notas si es necesario
-      // loadLessonNotes(lesson.lesson_id, slug);
       
     } catch (error) {
       // console.error('Error al guardar transcripción en notas:', error);
