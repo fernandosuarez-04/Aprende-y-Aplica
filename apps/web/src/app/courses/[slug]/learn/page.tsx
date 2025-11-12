@@ -234,11 +234,13 @@ export default function CourseLearnPage() {
     message: string;
     details?: string;
     type: 'activity' | 'video' | 'quiz';
+    lessonId?: string; // ID de la lección que se intentó completar
   }>({
     isOpen: false,
     title: '',
     message: '',
     type: 'activity',
+    lessonId: undefined,
   });
 
   // Función para convertir HTML a texto plano con formato mejorado
@@ -973,7 +975,7 @@ Antes de cada respuesta, pregúntate:
     // Verificar estado de quizzes obligatorios
     const quizStatus = await checkQuizStatus(lessonId);
     if (!quizStatus.canComplete) {
-      // Mostrar modal de validación
+      // Mostrar modal de validación con el ID de la lección que se intentó completar
       setValidationModal({
         isOpen: true,
         title: 'Hace falta realizar actividad',
@@ -982,6 +984,7 @@ Antes de cada respuesta, pregúntate:
           ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
           : undefined,
         type: 'activity',
+        lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
       });
       return false;
     }
@@ -1084,6 +1087,7 @@ Antes de cada respuesta, pregúntate:
                 ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
                 : undefined,
               type: 'activity',
+              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
             });
           } else {
             setValidationModal({
@@ -1091,6 +1095,7 @@ Antes de cada respuesta, pregúntate:
               title: 'No se puede completar',
               message: responseData?.details?.message || responseData?.error || 'No se puede completar la lección en este momento.',
               type: 'activity',
+              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
             });
           }
           return false;
@@ -1136,48 +1141,60 @@ Antes de cada respuesta, pregúntate:
   };
 
   // Función para navegar a la lección siguiente
-  const navigateToNextLesson = () => {
+  const navigateToNextLesson = async () => {
     const nextLesson = getNextLesson();
-    if (nextLesson) {
-      // Cambiar inmediatamente (no bloqueante)
-      setCurrentLesson(nextLesson);
-      setActiveTab('video');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (nextLesson && currentLesson) {
+      // Guardar la lección anterior antes de cambiar
+      const previousLesson = currentLesson;
       
-      // Marcar lección anterior como completada en segundo plano (no bloqueante)
-      if (currentLesson) {
-        markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
-          // console.error('Error al marcar lección como completada:', error);
-        });
+      // Intentar marcar la lección anterior como completada ANTES de cambiar
+      const canComplete = await markLessonAsCompleted(previousLesson.lesson_id);
+      
+      // Solo cambiar de lección si se pudo completar la anterior
+      if (canComplete) {
+        setCurrentLesson(nextLesson);
+        setActiveTab('video');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
     }
   };
 
 
   // Función para manejar el cambio de lección desde el panel
-  const handleLessonChange = (selectedLesson: Lesson) => {
-    // Cambiar inmediatamente (no bloqueante)
-    setCurrentLesson(selectedLesson);
-    setActiveTab('video');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Si hay una lección actual y se está avanzando (seleccionando una lección posterior), 
-    // marcar como completada la actual en segundo plano (no bloqueante)
-    if (currentLesson) {
-      const allLessons = getAllLessonsOrdered();
-      const currentIndex = allLessons.findIndex(
-        (item) => item.lesson.lesson_id === currentLesson.lesson_id
-      );
-      const selectedIndex = allLessons.findIndex(
-        (item) => item.lesson.lesson_id === selectedLesson.lesson_id
-      );
+  const handleLessonChange = async (selectedLesson: Lesson) => {
+    if (!currentLesson) {
+      // Si no hay lección actual, cambiar directamente
+      setCurrentLesson(selectedLesson);
+      setActiveTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
-      // Si se está avanzando, marcar como completada en segundo plano
-      if (selectedIndex > currentIndex) {
-        markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
-          // console.error('Error al marcar lección como completada:', error);
-        });
+    const allLessons = getAllLessonsOrdered();
+    const currentIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === currentLesson.lesson_id
+    );
+    const selectedIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === selectedLesson.lesson_id
+    );
+
+    // Si se está avanzando, validar antes de cambiar
+    if (selectedIndex > currentIndex) {
+      const canComplete = await markLessonAsCompleted(currentLesson.lesson_id);
+      
+      // Solo cambiar de lección si se pudo completar la actual
+      if (canComplete) {
+        setCurrentLesson(selectedLesson);
+        setActiveTab('video');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
+    } else {
+      // Si se está retrocediendo o es la misma, cambiar directamente
+      setCurrentLesson(selectedLesson);
+      setActiveTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -2340,7 +2357,28 @@ Antes de cada respuesta, pregúntate:
 
               {/* Botón de cerrar */}
               <button
-                onClick={() => setValidationModal({ ...validationModal, isOpen: false })}
+                onClick={() => {
+                  // Cerrar el modal
+                  const lessonIdToShow = validationModal.lessonId;
+                  setValidationModal({ ...validationModal, isOpen: false });
+                  
+                  // Si hay una lección guardada, cambiar a esa lección y abrir actividades
+                  if (lessonIdToShow) {
+                    // Buscar la lección en todos los módulos
+                    const allLessons = getAllLessonsOrdered();
+                    const lessonToShow = allLessons.find(
+                      (item) => item.lesson.lesson_id === lessonIdToShow
+                    );
+                    
+                    if (lessonToShow) {
+                      // Cambiar a la lección correspondiente
+                      setCurrentLesson(lessonToShow.lesson);
+                      // Cambiar al tab de actividades
+                      setActiveTab('activities');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }
+                }}
                 className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
               >
                 Entendido
@@ -2452,7 +2490,7 @@ function VideoContent({
   lesson: Lesson;
   modules: Module[];
   onNavigatePrevious: () => void;
-  onNavigateNext: () => void;
+  onNavigateNext: () => void | Promise<void>;
   getPreviousLesson: () => Lesson | null;
   getNextLesson: () => Lesson | null;
   markLessonAsCompleted: (lessonId: string) => Promise<boolean>;
