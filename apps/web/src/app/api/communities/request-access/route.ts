@@ -14,6 +14,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar si el usuario necesita completar el cuestionario
+    const { QuestionnaireValidationService } = await import('../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de perfil profesional antes de solicitar acceso a comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
+    }
+
     const { communityId, note } = await request.json();
 
     if (!communityId) {

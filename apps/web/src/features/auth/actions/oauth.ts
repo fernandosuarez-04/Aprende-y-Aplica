@@ -13,6 +13,7 @@ import { RefreshTokenService } from '../../../lib/auth/refreshToken.service';
 import { SECURE_COOKIE_OPTIONS, getCustomCookieOptions } from '../../../lib/auth/cookie-config';
 import { AuthService } from '../services/auth.service';
 import { OAuthCallbackParams } from '../types/oauth.types';
+import { QuestionnaireValidationService } from '../services/questionnaire-validation.service';
 
 /**
  * Inicia el flujo de autenticación con Google
@@ -213,13 +214,22 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     await AuthService.clearExpiredSessions();
     logger.debug('Sesiones expiradas limpiadas');
 
-    // PASO 8: Redirigir según sea usuario nuevo o existente
+    // PASO 8: Verificar si necesita cuestionario y redirigir apropiadamente
     logger.info('OAuth: Proceso completado', { isNewUser });
 
+    // Verificar si el usuario necesita completar el cuestionario
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(userId);
+
     if (isNewUser) {
-      logger.info('Redirigiendo a dashboard con bienvenida');
-      redirect('/dashboard?welcome=true');
+      // Usuario nuevo de Google OAuth siempre necesita cuestionario
+      logger.info('Redirigiendo usuario nuevo OAuth a pantalla de bienvenida');
+      redirect('/welcome?oauth=google');
+    } else if (requiresQuestionnaire) {
+      // Usuario existente sin cuestionario completado
+      logger.info('Redirigiendo usuario existente OAuth sin cuestionario a bienvenida');
+      redirect('/welcome?oauth=google');
     } else {
+      // Usuario existente con cuestionario completado
       logger.info('Redirigiendo a dashboard');
       redirect('/dashboard');
     }
