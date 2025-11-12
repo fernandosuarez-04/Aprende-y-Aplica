@@ -158,6 +158,18 @@ export class UserStatsService {
     }
   }
 
+  static async deleteAllQuestions(): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/questions`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete all questions')
+    } catch (error) {
+      // console.error('Error deleting all questions:', error)
+      throw error
+    }
+  }
+
   // ===== ANSWERS =====
   static async getAnswers(): Promise<Answer[]> {
     try {
