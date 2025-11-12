@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthTab } from '../../types/auth.types';
@@ -21,7 +22,20 @@ const RegisterForm = dynamic(
 );
 
 export function AuthTabs() {
-  const [activeTab, setActiveTab] = useState<AuthTab>('login');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<AuthTab>(
+    tabParam === 'register' ? 'register' : 'login'
+  );
+
+  // Sincronizar el tab activo con el query parameter
+  useEffect(() => {
+    if (tabParam === 'register') {
+      setActiveTab('register');
+    } else if (tabParam === 'login' || !tabParam) {
+      setActiveTab('login');
+    }
+  }, [tabParam]);
 
   return (
     <div className="space-y-6">

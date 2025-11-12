@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 
@@ -66,8 +66,14 @@ export default function AuthPage() {
             </div>
           </div>
 
-          {/* Auth Tabs - Con lazy loading */}
-          <AuthTabs />
+          {/* Auth Tabs - Con lazy loading y Suspense para useSearchParams */}
+          <Suspense fallback={
+            <div className="w-full h-64 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            </div>
+          }>
+            <AuthTabs />
+          </Suspense>
         </div>
       </div>
     </div>
