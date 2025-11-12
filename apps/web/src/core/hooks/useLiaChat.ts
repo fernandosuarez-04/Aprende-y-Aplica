@@ -12,16 +12,20 @@ export interface UseLiaChatReturn {
   clearHistory: () => void;
 }
 
-export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
+export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<LiaMessage[]>([
-    {
-      id: 'initial',
-      role: 'assistant',
-      content: initialMessage || '¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<LiaMessage[]>(
+    initialMessage !== null && initialMessage !== undefined && initialMessage !== ''
+      ? [
+          {
+            id: 'initial',
+            role: 'assistant',
+            content: initialMessage,
+            timestamp: new Date()
+          }
+        ]
+      : []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
@@ -131,14 +135,18 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
       conversationIdRef.current = null;
     }
     
-    setMessages([
-      {
-        id: 'initial',
-        role: 'assistant',
-        content: initialMessage || '¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?',
-        timestamp: new Date()
-      }
-    ]);
+    setMessages(
+      initialMessage !== null && initialMessage !== undefined && initialMessage !== ''
+        ? [
+            {
+              id: 'initial',
+              role: 'assistant',
+              content: initialMessage,
+              timestamp: new Date()
+            }
+          ]
+        : []
+    );
     setError(null);
   }, [initialMessage, user]);
 

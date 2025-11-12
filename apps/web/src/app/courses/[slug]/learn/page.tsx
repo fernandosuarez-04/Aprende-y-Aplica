@@ -136,13 +136,13 @@ export default function CourseLearnPage() {
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(6);
   
-  // Hook de LIA con mensaje inicial personalizado
+  // Hook de LIA sin mensaje inicial
   const {
     messages: liaMessages,
     isLoading: isLiaLoading,
     sendMessage: sendLiaMessage,
     clearHistory: clearLiaHistory
-  } = useLiaChat('¡Hola! Soy Lia, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?');
+  } = useLiaChat(null);
   
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
