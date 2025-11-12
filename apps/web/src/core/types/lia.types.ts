@@ -9,6 +9,7 @@ export interface CourseLessonContext {
   summaryContent?: string;
   videoTime?: number;
   durationSeconds?: number;
+  userRole?: string;
 }
 
 export interface LiaMessage {

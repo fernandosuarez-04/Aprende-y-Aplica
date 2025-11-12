@@ -54,6 +54,7 @@ import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
 import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
+import { useAuth } from '../../../../features/auth/hooks/useAuth';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
@@ -103,6 +104,9 @@ export default function CourseLearnPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+
+  // Obtener usuario y su rol
+  const { user } = useAuth();
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -555,7 +559,8 @@ export default function CourseLearnPage() {
       moduleTitle: currentModule?.module_title,
       lessonTitle: currentLesson.lesson_title,
       lessonDescription: currentLesson.lesson_description,
-      durationSeconds: currentLesson.duration_seconds
+      durationSeconds: currentLesson.duration_seconds,
+      userRole: user?.type_rol || undefined
       // transcriptContent y summaryContent se cargan bajo demanda desde sus respectivos endpoints
     };
   };
@@ -625,6 +630,129 @@ export default function CourseLearnPage() {
     await sendLiaMessage(message, lessonContext);
   };
 
+  // Función para generar prompts sugeridos adaptados por rol (memoizada para evitar loops)
+  const generateRoleBasedPrompts = useCallback(async (
+    basePrompts: string[],
+    activityContent: string,
+    activityTitle: string,
+    userRole?: string
+  ): Promise<string[]> => {
+    if (!userRole || basePrompts.length === 0) {
+      return basePrompts; // Retornar prompts originales si no hay rol
+    }
+
+    try {
+      const promptGenerationRequest = `Eres un asistente que adapta prompts educativos según el rol profesional del usuario.
+
+ROL DEL USUARIO: ${userRole}
+TÍTULO DE LA ACTIVIDAD: ${activityTitle}
+CONTENIDO DE LA ACTIVIDAD: ${activityContent.substring(0, 500)}${activityContent.length > 500 ? '...' : ''}
+
+PROMPTS BASE (como referencia):
+${basePrompts.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+INSTRUCCIONES:
+- Genera ${basePrompts.length} prompts nuevos adaptados específicamente para el rol "${userRole}"
+- Los prompts deben ser relevantes para este rol profesional
+- Mantén la misma estructura y propósito educativo que los prompts base
+- Adapta ejemplos y casos de uso al contexto profesional del rol
+- Retorna SOLO los prompts, uno por línea, sin numeración ni formato adicional
+- Cada prompt debe ser una pregunta o instrucción clara y directa
+
+PROMPTS ADAPTADOS:`;
+
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: promptGenerationRequest,
+          context: 'general',
+          conversationHistory: [],
+          isSystemMessage: true,
+        }),
+      });
+
+      if (!response.ok) {
+        return basePrompts; // Fallback a prompts originales
+      }
+
+      const data = await response.json();
+      const generatedText = data.response || '';
+
+      // Extraer prompts de la respuesta (cada línea es un prompt)
+      const adaptedPrompts = generatedText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
+        .slice(0, basePrompts.length); // Limitar al número de prompts originales
+
+      return adaptedPrompts.length > 0 ? adaptedPrompts : basePrompts;
+    } catch (error) {
+      console.error('Error generando prompts adaptados:', error);
+      return basePrompts; // Fallback a prompts originales
+    }
+  }, []); // Sin dependencias ya que no usa variables del scope
+
+  // Función para adaptar contenido de actividad según el rol
+  const adaptActivityContentForRole = async (
+    activityContent: string,
+    activityTitle: string,
+    userRole?: string
+  ): Promise<string> => {
+    if (!userRole) {
+      return activityContent; // Retornar contenido original si no hay rol
+    }
+
+    try {
+      const adaptationRequest = `Eres un asistente que adapta contenido educativo según el rol profesional del usuario.
+
+ROL DEL USUARIO: ${userRole}
+TÍTULO DE LA ACTIVIDAD: ${activityTitle}
+
+CONTENIDO ORIGINAL DE LA ACTIVIDAD:
+\`\`\`
+${activityContent}
+\`\`\`
+
+INSTRUCCIONES:
+- Adapta el contenido de la actividad para que sea relevante y aplicable al rol "${userRole}"
+- Mantén la estructura y formato original (incluyendo separadores "---")
+- Personaliza ejemplos, casos de uso y referencias al contexto profesional del rol
+- Asegúrate de que los ejercicios y preguntas sean relevantes para este rol
+- NO cambies la estructura general ni los separadores "---"
+- Retorna SOLO el contenido adaptado, sin explicaciones adicionales
+
+CONTENIDO ADAPTADO:`;
+
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: adaptationRequest,
+          context: 'general',
+          conversationHistory: [],
+          isSystemMessage: true,
+        }),
+      });
+
+      if (!response.ok) {
+        return activityContent; // Fallback a contenido original
+      }
+
+      const data = await response.json();
+      const adaptedContent = data.response || '';
+
+      return adaptedContent.trim() || activityContent;
+    } catch (error) {
+      console.error('Error adaptando contenido de actividad:', error);
+      return activityContent; // Fallback a contenido original
+    }
+  };
+
   // Función para iniciar interacción con LIA desde una actividad
   const handleStartActivityInteraction = async (activityContent: string, activityTitle: string) => {
     // Abrir el panel de LIA si está cerrado
@@ -632,7 +760,20 @@ export default function CourseLearnPage() {
       setIsRightPanelOpen(true);
     }
 
+    // Adaptar contenido de la actividad según el rol del usuario
+    const userRole = user?.type_rol;
+    const adaptedContent = await adaptActivityContentForRole(activityContent, activityTitle, userRole);
+
     // Construir el prompt profesional para LIA con GUARDRAILS
+    const roleInfo = userRole 
+      ? `\n## ROL DEL USUARIO
+- El usuario tiene el rol profesional: "${userRole}"
+- DEBES adaptar todos los ejemplos, casos de uso y referencias al contexto profesional de este rol
+- Personaliza las preguntas y ejercicios para que sean relevantes y aplicables a este rol
+- Usa terminología y ejemplos que el usuario pueda relacionar con su trabajo diario
+- Asegúrate de que las actividades sean prácticas y útiles para alguien con este rol profesional`
+      : '';
+
     const systemPrompt = `# SISTEMA: Inicio de Actividad Interactiva
 
 Vas a guiar al usuario a través de la actividad: "${activityTitle}"
@@ -644,7 +785,7 @@ Eres Lia, una tutora personalizada experta y amigable. Tu objetivo es guiar al u
 - Si conoces el nombre del usuario (te será proporcionado en el contexto), DEBES usarlo en tu saludo inicial
 - Comienza tu primer mensaje con "Hola [nombre del usuario]!" seguido del contenido del guión
 - Si no conoces el nombre del usuario, simplemente usa "Hola!" como saludo
-- Usa el nombre del usuario de manera natural y amigable a lo largo de la conversación cuando sea apropiado
+- Usa el nombre del usuario de manera natural y amigable a lo largo de la conversación cuando sea apropiado${roleInfo}
 
 ## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
 
@@ -670,7 +811,7 @@ Si el usuario:
 A continuación te proporciono el guión completo de la actividad. Los separadores "---" indican cambios de turno (tú hablas → esperas respuesta → continúas):
 
 \`\`\`
-${activityContent}
+${adaptedContent}
 \`\`\`
 
 ## INSTRUCCIONES DE EJECUCIÓN
@@ -1926,6 +2067,8 @@ Antes de cada respuesta, pregúntate:
                         slug={slug}
                         onPromptsChange={handlePromptsChange}
                         onStartInteraction={handleStartActivityInteraction}
+                        userRole={user?.type_rol}
+                        generateRoleBasedPrompts={generateRoleBasedPrompts}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -4196,11 +4339,20 @@ function FormattedContentRenderer({ content }: { content: any }) {
   );
 }
 
-function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }: {
+function ActivitiesContent({ 
+  lesson, 
+  slug, 
+  onPromptsChange, 
+  onStartInteraction,
+  userRole,
+  generateRoleBasedPrompts
+}: {
   lesson: Lesson;
   slug: string;
   onPromptsChange?: (prompts: string[]) => void;
   onStartInteraction?: (content: string, title: string) => void;
+  userRole?: string;
+  generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -4290,51 +4442,115 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
     loadActivitiesAndMaterials();
   }, [lesson?.lesson_id, slug]);
 
+  // Refs para almacenar las funciones y evitar loops infinitos
+  const generateRoleBasedPromptsRef = useRef(generateRoleBasedPrompts);
+  const onPromptsChangeRef = useRef(onPromptsChange);
+
+  // Actualizar refs cuando cambien las funciones
+  useEffect(() => {
+    generateRoleBasedPromptsRef.current = generateRoleBasedPrompts;
+  }, [generateRoleBasedPrompts]);
+
+  useEffect(() => {
+    onPromptsChangeRef.current = onPromptsChange;
+  }, [onPromptsChange]);
+
   // Extraer y actualizar prompts cuando cambien las actividades
   useEffect(() => {
-    const allPrompts: string[] = [];
+    let isMounted = true; // Flag para evitar actualizaciones si el componente se desmonta
 
-    activities.forEach(activity => {
-      if (activity.ai_prompts) {
-        try {
-          let promptsList: string[] = [];
+    const processPrompts = async () => {
+      const allPrompts: string[] = [];
+      const activityPromptsMap: Map<string, { prompts: string[], content: string, title: string }> = new Map();
 
-          // Si es string, intentar parsearlo como JSON
-          if (typeof activity.ai_prompts === 'string') {
-            try {
-              const parsed = JSON.parse(activity.ai_prompts);
-              if (Array.isArray(parsed)) {
-                promptsList = parsed;
-              } else {
+      // Primero, extraer todos los prompts base de las actividades
+      activities.forEach(activity => {
+        if (activity.ai_prompts) {
+          try {
+            let promptsList: string[] = [];
+
+            // Si es string, intentar parsearlo como JSON
+            if (typeof activity.ai_prompts === 'string') {
+              try {
+                const parsed = JSON.parse(activity.ai_prompts);
+                if (Array.isArray(parsed)) {
+                  promptsList = parsed;
+                } else {
+                  promptsList = [activity.ai_prompts];
+                }
+              } catch {
                 promptsList = [activity.ai_prompts];
               }
-            } catch {
-              promptsList = [activity.ai_prompts];
+            } else if (Array.isArray(activity.ai_prompts)) {
+              promptsList = activity.ai_prompts;
+            } else {
+              promptsList = [String(activity.ai_prompts)];
             }
-          } else if (Array.isArray(activity.ai_prompts)) {
-            promptsList = activity.ai_prompts;
-          } else {
-            promptsList = [String(activity.ai_prompts)];
+
+            // Limpiar prompts (remover comillas si las tiene)
+            const cleanPrompts: string[] = [];
+            promptsList.forEach(prompt => {
+              const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+              if (cleanPrompt) {
+                cleanPrompts.push(cleanPrompt);
+              }
+            });
+
+            if (cleanPrompts.length > 0) {
+              // Guardar prompts base junto con información de la actividad
+              activityPromptsMap.set(activity.activity_id, {
+                prompts: cleanPrompts,
+                content: activity.activity_content || '',
+                title: activity.activity_title || ''
+              });
+            }
+          } catch (error) {
+            // console.warn('Error parsing prompts:', error);
           }
-
-          // Limpiar prompts (remover comillas si las tiene)
-          promptsList.forEach(prompt => {
-            const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
-            if (cleanPrompt) {
-              allPrompts.push(cleanPrompt);
-            }
-          });
-        } catch (error) {
-          // console.warn('Error parsing prompts:', error);
         }
-      }
-    });
+      });
 
-    // Notificar cambios al componente padre
-    if (onPromptsChange) {
-      onPromptsChange(allPrompts);
-    }
-  }, [activities, onPromptsChange]);
+      // Si hay rol del usuario y función de generación, adaptar prompts
+      if (userRole && generateRoleBasedPromptsRef.current && activityPromptsMap.size > 0) {
+        try {
+          // Generar prompts adaptados para cada actividad
+          for (const [activityId, activityData] of activityPromptsMap.entries()) {
+            if (!isMounted) break; // Salir si el componente se desmontó
+            const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+              activityData.prompts,
+              activityData.content,
+              activityData.title,
+              userRole
+            );
+            allPrompts.push(...adaptedPrompts);
+          }
+        } catch (error) {
+          console.error('Error generando prompts adaptados:', error);
+          // Fallback: usar prompts originales
+          activityPromptsMap.forEach(activityData => {
+            allPrompts.push(...activityData.prompts);
+          });
+        }
+      } else {
+        // Sin rol o sin función de generación, usar prompts originales
+        activityPromptsMap.forEach(activityData => {
+          allPrompts.push(...activityData.prompts);
+        });
+      }
+
+      // Notificar cambios al componente padre solo si el componente sigue montado
+      if (isMounted && onPromptsChangeRef.current) {
+        onPromptsChangeRef.current(allPrompts);
+      }
+    };
+
+    processPrompts();
+
+    // Cleanup: marcar como desmontado
+    return () => {
+      isMounted = false;
+    };
+  }, [activities, userRole]); // Solo dependemos de activities y userRole
 
   const hasActivities = activities.length > 0;
   const hasMaterials = materials.length > 0;

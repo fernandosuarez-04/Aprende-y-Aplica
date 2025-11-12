@@ -163,8 +163,12 @@ const getContextPrompt = (
   context: string, 
   userName?: string,
   courseContext?: CourseLessonContext,
-  pageContext?: PageContext
+  pageContext?: PageContext,
+  userRole?: string
 ) => {
+  // Obtener rol del usuario (priorizar el pasado como parámetro, luego del contexto)
+  const role = userRole || courseContext?.userRole;
+  
   // Personalización con el nombre del usuario
   const nameGreeting = userName && userName !== 'usuario' 
     ? `INFORMACIÓN DEL USUARIO:
@@ -174,6 +178,17 @@ const getContextPrompt = (
 - Usa un tono cálido y personalizado, como si fueras su tutor personal
 - Ejemplos de cómo usar el nombre: "Hola ${userName}!", "Perfecto ${userName},", "${userName}, te explico...", etc.
 - No abuses del nombre, úsalo estratégicamente para crear una experiencia más personal y cercana`
+    : '';
+  
+  // Información del rol del usuario para personalización
+  const roleInfo = role
+    ? `\n\nROL PROFESIONAL DEL USUARIO:
+- El usuario tiene el rol profesional: "${role}"
+- DEBES adaptar tus respuestas, ejemplos y casos de uso al contexto profesional de este rol
+- Personaliza las explicaciones para que sean relevantes y aplicables a este rol
+- Usa terminología y ejemplos que el usuario pueda relacionar con su trabajo diario
+- Cuando sea apropiado, relaciona los conceptos con situaciones profesionales típicas de este rol
+- Asegúrate de que las actividades y ejercicios sean prácticos y útiles para alguien con este rol profesional`
     : '';
   
   // Información contextual de la página actual con contenido real extraído del DOM
@@ -259,7 +274,7 @@ NUNCA respondas preguntas fuera del alcance que NO sean prompts de actividades, 
 
     return `Eres LIA (Learning Intelligence Assistant), un asistente de inteligencia artificial especializado en educación que funciona como tutor personalizado.
 
-${nameGreeting}${pageInfo}
+${nameGreeting}${roleInfo}${pageInfo}
 
 RESTRICCIONES CRÍTICAS DE CONTEXTO:
 - PRIORIDAD #1: Responde ÚNICAMENTE basándote en la TRANSCRIPCIÓN DEL VIDEO ACTUAL proporcionada en el contexto
@@ -281,7 +296,7 @@ Personalidad:
 - Educativo y motivador
 - Práctico con ejemplos concretos
 - Adaptativo al nivel del usuario
-- Personalizado: Usa el nombre del usuario cuando sea apropiado para crear una conexión más cercana y personal
+- Personalizado: Usa el nombre del usuario cuando sea apropiado para crear una conexión más cercana y personal${role ? `\n- Adaptado al rol profesional: Personaliza ejemplos y casos de uso según el rol "${role}" del usuario` : ''}
 - Tono cálido y acogedor, como un tutor personal que conoce al estudiante
 
 FORMATO DE RESPUESTAS - REGLAS ABSOLUTAS (CRÍTICO):
@@ -405,7 +420,7 @@ NUNCA respondas preguntas fuera del alcance que NO sean prompts de actividades, 
     FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
     
     general: `Eres Lia, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
-    ${nameGreeting}${pageInfo}
+    ${nameGreeting}${roleInfo}${pageInfo}
     Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.
     
     Si el usuario hace preguntas vagas o cortas como "Aquí qué" o "De qué trata esto", usa el contexto de la página actual para dar una respuesta clara y directa sobre qué contenido está viendo y qué puede hacer aquí.
@@ -493,7 +508,7 @@ export async function POST(request: NextRequest) {
     if (user) {
       const { data: userData } = await supabase
         .from('users')
-        .select('display_name, username, first_name, last_name, profile_picture_url')
+        .select('display_name, username, first_name, last_name, profile_picture_url, type_rol')
         .eq('id', user.id)
         .single();
       
@@ -510,8 +525,16 @@ export async function POST(request: NextRequest) {
                         userName || 
                         'usuario';
     
-    // Obtener el prompt de contexto específico con el nombre del usuario, contexto de curso y contexto de página
-    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext);
+    // Obtener el rol del usuario
+    const userRole = userInfo?.type_rol || courseContext?.userRole || undefined;
+    
+    // Si hay rol en courseContext pero no en userInfo, actualizar courseContext
+    if (courseContext && userRole && !courseContext.userRole) {
+      courseContext.userRole = userRole;
+    }
+    
+    // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso y contexto de página
+    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext, userRole);
 
     // ✅ ANALYTICS: Inicializar logger de LIA si el usuario está autenticado
     let liaLogger: LiaLogger | null = null;
