@@ -1,0 +1,104 @@
+'use client';
+
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, AlertCircle, ArrowRight } from 'lucide-react';
+
+interface QuestionnaireRequiredModalProps {
+  isOpen: boolean;
+  onContinue: () => void;
+  onCancel: () => void;
+  isOAuthUser?: boolean;
+}
+
+export function QuestionnaireRequiredModal({
+  isOpen,
+  onContinue,
+  onCancel,
+  isOAuthUser = false,
+}: QuestionnaireRequiredModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={onCancel}
+        />
+
+        {/* Modal */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 z-10"
+        >
+          {/* Close button */}
+          <button
+            onClick={onCancel}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Icon */}
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Cuestionario Requerido
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              {isOAuthUser ? (
+                <>
+                  Para acceder a las comunidades, necesitas completar primero el cuestionario de perfil profesional.
+                  Este es un requisito obligatorio para usuarios registrados con Google.
+                </>
+              ) : (
+                <>
+                  Para acceder a las comunidades, necesitas completar primero el cuestionario de perfil profesional.
+                </>
+              )}
+            </p>
+            {isOAuthUser && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-4">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  El cuestionario es obligatorio y no puede ser postergado.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              Ahora no
+            </button>
+            <button
+              onClick={onContinue}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-lg font-medium hover:shadow-lg transition-all flex items-center justify-center space-x-2"
+            >
+              <span>Continuar</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}
+

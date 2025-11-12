@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../features/auth/hooks/useAuth';
+import { useQuestionnaireValidation } from '../../features/auth/hooks/useQuestionnaireValidation';
 
 interface ProfileData {
   cargo_titulo: string;
@@ -35,6 +36,10 @@ export default function StatisticsPage() {
   const [saving, setSaving] = useState(false);
   const [showProfileConfirmation, setShowProfileConfirmation] = useState(false);
   const [recommendedProfile, setRecommendedProfile] = useState<any>(null);
+  
+  // Validar cuestionario
+  const { status } = useQuestionnaireValidation(user?.id);
+  const isOAuthUser = status?.isGoogleOAuth || false;
 
   // Form data
   const [formData, setFormData] = useState<ProfileData>({
@@ -274,6 +279,13 @@ export default function StatisticsPage() {
                 <p className="text-lg text-gray-700 dark:text-white/70 max-w-2xl mx-auto">
                   Compártenos algunos datos sobre tu perfil profesional para personalizar tu experiencia de aprendizaje.
                 </p>
+                {isOAuthUser && (
+                  <div className="mt-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 max-w-2xl mx-auto">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Importante:</strong> Como usuario registrado con Google, este cuestionario es obligatorio para acceder a todas las funcionalidades de la plataforma.
+                    </p>
+                  </div>
+                )}
               </motion.div>
 
           {/* Form Container */}

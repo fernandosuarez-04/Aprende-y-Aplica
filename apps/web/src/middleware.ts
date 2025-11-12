@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from './lib/supabase/types'
+import { QuestionnaireValidationService } from './features/auth/services/questionnaire-validation.service'
 
 // ✅ Sistema de logging condicional - solo en desarrollo
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -102,12 +103,34 @@ export async function middleware(request: NextRequest) {
     }
   }
   
+  // Rutas que están exentas de la validación de cuestionario
+  const exemptRoutes = [
+    '/auth',
+    '/api',
+    '/statistics',
+    '/welcome',
+    '/questionnaire',
+    '/_next',
+    '/favicon.ico'
+  ]
+  
+  const isExemptRoute = exemptRoutes.some(route => 
+    request.nextUrl.pathname.startsWith(route)
+  )
+
   // Verificar si la ruta requiere autenticación
-  const protectedRoutes = ['/admin', '/instructor', '/dashboard']
+  const protectedRoutes = ['/admin', '/instructor', '/dashboard', '/communities']
   const isProtectedRoute = protectedRoutes.some(route => 
     request.nextUrl.pathname.startsWith(route)
   )
 
+  // Si es ruta exenta, continuar sin validación adicional
+  if (isExemptRoute) {
+    logger.log('✅ Ruta exenta, continuando...')
+    return NextResponse.next()
+  }
+
+  // Si no es ruta protegida, continuar
   if (!isProtectedRoute) {
     logger.log('✅ Ruta no protegida, continuando...')
     return NextResponse.next()
@@ -174,6 +197,19 @@ export async function middleware(request: NextRequest) {
     }
 
     logger.log('✅ Sesión válida para usuario:', sessionData.user_id)
+
+    // Verificar si usuario OAuth necesita cuestionario
+    try {
+      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(sessionData.user_id)
+      
+      if (requiresQuestionnaire) {
+        logger.log('📋 Usuario OAuth sin cuestionario detectado, redirigiendo a /statistics')
+        return NextResponse.redirect(new URL('/statistics', request.url))
+      }
+    } catch (questionnaireError) {
+      logger.error('❌ Error verificando cuestionario:', questionnaireError)
+      // Continuar con el flujo normal si hay error en la verificación
+    }
   } catch (error) {
     logger.error('❌ Error validando sesión:', error)
     return NextResponse.redirect(new URL('/auth', request.url))

@@ -114,6 +114,30 @@ export class AutoNotificationsService {
     try {
       const location = ip || 'Ubicación desconocida'
       
+      // Verificar si el usuario necesita completar el cuestionario
+      const { QuestionnaireValidationService } = await import('../../auth/services/questionnaire-validation.service')
+      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(userId)
+      
+      // Si necesita cuestionario, crear notificación específica
+      if (requiresQuestionnaire) {
+        await NotificationService.createNotification({
+          userId,
+          notificationType: 'questionnaire_required',
+          title: 'Cuestionario pendiente',
+          message: 'Para acceder a todas las funcionalidades, necesitas completar el cuestionario de perfil profesional. Haz clic aquí para comenzar.',
+          metadata: {
+            ...metadata,
+            ip,
+            userAgent,
+            timestamp: new Date().toISOString(),
+            actionUrl: '/statistics'
+          },
+          priority: 'high'
+        })
+        logger.info('✅ Notificación de cuestionario requerido creada', { userId })
+        return // No crear notificación de login si necesita cuestionario
+      }
+      
       await NotificationService.createNotification({
         userId,
         notificationType: 'system_login_success',
