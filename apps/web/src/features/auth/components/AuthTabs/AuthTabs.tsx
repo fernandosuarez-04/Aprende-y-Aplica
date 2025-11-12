@@ -28,8 +28,12 @@ export function AuthTabs() {
     tabParam === 'register' ? 'register' : 'login'
   );
   const [height, setHeight] = useState<number | 'auto'>('auto');
+  const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 });
   const contentRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+  const loginButtonRef = useRef<HTMLButtonElement>(null);
+  const registerButtonRef = useRef<HTMLButtonElement>(null);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   // Sincronizar el tab activo con el query parameter
   useEffect(() => {
@@ -39,6 +43,44 @@ export function AuthTabs() {
       setActiveTab('login');
     }
   }, [tabParam]);
+
+  // Calcular posición y tamaño del indicador basado en los botones reales
+  const updateIndicatorPosition = () => {
+    const activeButton = activeTab === 'login' ? loginButtonRef.current : registerButtonRef.current;
+    const container = tabsContainerRef.current;
+    
+    if (activeButton && container) {
+      const containerRect = container.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      
+      setIndicatorStyle({
+        width: buttonRect.width,
+        left: buttonRect.left - containerRect.left,
+      });
+    }
+  };
+
+  // Actualizar posición del indicador cuando cambia el tab o el tamaño de la ventana
+  useEffect(() => {
+    updateIndicatorPosition();
+    
+    const handleResize = () => {
+      updateIndicatorPosition();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    // También actualizar después de un pequeño delay para asegurar que los elementos estén renderizados
+    const timeoutId = setTimeout(updateIndicatorPosition, 10);
+    const timeoutId2 = setTimeout(updateIndicatorPosition, 100);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // Medir altura del nuevo contenido antes de animar
   useEffect(() => {
@@ -124,19 +166,30 @@ export function AuthTabs() {
   return (
     <div className="space-y-4 relative">
       {/* Tabs - Animaciones reducidas */}
-      <div className="flex gap-4 relative">
-        {/* Indicador de Tab Activo - Simplificado */}
+      <div ref={tabsContainerRef} className="flex gap-4 relative">
+        {/* Indicador de Tab Activo - Posicionado exactamente sobre el botón activo */}
         <motion.div
-          className="absolute inset-0 bg-primary rounded-lg"
+          className="absolute bg-primary rounded-lg"
           initial={false}
           animate={{
-            x: activeTab === 'login' ? 0 : '100%',
+            width: indicatorStyle.width,
+            left: indicatorStyle.left,
           }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          style={{ width: 'calc(50% - 0.5rem)' }}
+          transition={{ 
+            type: 'spring', 
+            stiffness: 300, 
+            damping: 30,
+            duration: 0.3
+          }}
+          style={{ 
+            top: 0,
+            bottom: 0,
+            height: '100%'
+          }}
         />
 
         <button
+          ref={loginButtonRef}
           onClick={() => setActiveTab('login')}
           className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all relative z-10 ${
             activeTab === 'login'
@@ -151,6 +204,7 @@ export function AuthTabs() {
         </button>
 
         <button
+          ref={registerButtonRef}
           onClick={() => setActiveTab('register')}
           className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all relative z-10 ${
             activeTab === 'register'
