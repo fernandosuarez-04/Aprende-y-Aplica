@@ -44,6 +44,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
+import { useQuestionnaireValidation } from '../../../features/auth/hooks/useQuestionnaireValidation';
+import { QuestionnaireRequiredModal } from '../../../features/auth/components/QuestionnaireRequiredModal';
 // Importaciones usando rutas relativas
 import { ReactionButton } from '../../../features/communities/components/ReactionButton';
 import { ReactionBanner } from '../../../features/communities/components/ReactionBanner';
@@ -1375,6 +1377,10 @@ export default function CommunityDetailPage() {
   const communityHeaderRef = useRef<HTMLElement | null>(null);
   const feedSectionRef = useRef<HTMLElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  
+  // Validar cuestionario
+  const { isRequired, isLoading: isLoadingValidation, status } = useQuestionnaireValidation(user?.id);
 
   useEffect(() => {
     if (slug) {
@@ -1393,6 +1399,13 @@ export default function CommunityDetailPage() {
       });
     }
   }, [slug]);
+
+  // Verificar si necesita cuestionario cuando el usuario está cargado
+  useEffect(() => {
+    if (user && !isLoadingValidation && isRequired) {
+      setShowQuestionnaireModal(true);
+    }
+  }, [user, isLoadingValidation, isRequired]);
 
   useEffect(() => {
     const checkViewport = () => {
@@ -2415,6 +2428,20 @@ export default function CommunityDetailPage() {
           </div>
         </motion.nav>
       )}
+
+      {/* Modal de cuestionario requerido */}
+      <QuestionnaireRequiredModal
+        isOpen={showQuestionnaireModal}
+        onContinue={() => {
+          setShowQuestionnaireModal(false);
+          router.push('/statistics');
+        }}
+        onCancel={() => {
+          setShowQuestionnaireModal(false);
+          router.push('/dashboard');
+        }}
+        isOAuthUser={status?.isGoogleOAuth || false}
+      />
 
       {/* Modales de detalles de reacciones */}
       {posts.map((post) => (
