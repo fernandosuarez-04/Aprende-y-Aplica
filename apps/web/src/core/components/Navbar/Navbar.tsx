@@ -103,7 +103,7 @@ export function Navbar() {
                   Iniciar Sesión
                 </Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/auth?tab=register">
                 <Button variant="primary" size="sm">
                   Registrarse
                 </Button>
@@ -158,7 +158,7 @@ export function Navbar() {
                     Iniciar Sesión
                   </Button>
                 </Link>
-                <Link href="/auth">
+                <Link href="/auth?tab=register">
                   <Button variant="primary" size="sm">
                     Registrarse
                   </Button>

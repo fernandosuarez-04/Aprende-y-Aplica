@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 
@@ -37,37 +37,43 @@ export default function AuthPage() {
       <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent z-0" />
 
       {/* Card Principal - Animación simplificada */}
-      <div className="auth-card-enhanced w-full max-w-md lg:max-w-4xl xl:max-w-5xl relative z-10 animate-fade-in">
+      <div className="auth-card-enhanced w-full max-w-md lg:max-w-lg xl:max-w-xl relative z-10 animate-fade-in">
         {/* Efecto de Brillo en el Borde */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/20 via-success/20 to-primary/20 blur-xl opacity-50 animate-pulse" />
 
-        <div className="relative bg-glass-enhanced backdrop-blur-2xl rounded-2xl p-8 lg:p-12 xl:p-20 border border-glass-light shadow-2xl">
+        <div className="relative bg-glass-enhanced backdrop-blur-2xl rounded-2xl p-6 lg:p-8 xl:p-10 border border-glass-light shadow-2xl">
           {/* Logo - Sin animaciones pesadas */}
-          <div className="flex flex-col items-center gap-6 mb-10">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg bg-gray-100/50 dark:bg-transparent transition-transform hover:scale-110">
+          <div className="flex flex-col items-center gap-3 mb-5">
+            <div className="w-14 h-14 rounded-xl overflow-hidden shadow-lg bg-gray-100/50 dark:bg-transparent transition-transform hover:scale-110">
               <Image
                 src="/icono.png"
                 alt="Aprende y Aplica"
-                width={64}
-                height={64}
+                width={56}
+                height={56}
                 priority={true}
                 className="w-full h-full object-contain"
               />
             </div>
 
-            <div className="text-center space-y-3">
-              <h1 className="text-2xl lg:text-3xl font-bold text-color-contrast">
+            <div className="text-center space-y-1">
+              <h1 className="text-xl lg:text-2xl font-bold text-color-contrast">
                 Aprende y Aplica
               </h1>
               {/* ⚡ OPTIMIZACIÓN: Eliminado Typewriter Effect (~15KB menos) */}
-              <div className="text-sm lg:text-base text-primary font-medium animate-pulse">
+              <div className="text-xs lg:text-sm text-primary font-medium animate-pulse">
                 Inteligencia Artificial
               </div>
             </div>
           </div>
 
-          {/* Auth Tabs - Con lazy loading */}
-          <AuthTabs />
+          {/* Auth Tabs - Con lazy loading y Suspense para useSearchParams */}
+          <Suspense fallback={
+            <div className="w-full h-64 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            </div>
+          }>
+            <AuthTabs />
+          </Suspense>
         </div>
       </div>
     </div>

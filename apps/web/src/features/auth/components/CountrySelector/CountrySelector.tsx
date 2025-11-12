@@ -42,16 +42,16 @@ export function CountrySelector({ value, onChange, error }: CountrySelectorProps
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`auth-input flex items-center justify-between gap-2 ${
+        className={`auth-input flex items-center justify-between gap-2 w-full ${
           error ? 'border-error' : ''
         }`}
       >
-        <span className="flex items-center gap-2">
-          <span className="text-xl">{selectedCountry.flag}</span>
-          <span className="font-medium">{selectedCountry.dialCode}</span>
+        <span className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className="text-lg flex-shrink-0">{selectedCountry.flag}</span>
+          <span className="font-medium text-sm truncate">{selectedCountry.dialCode}</span>
         </span>
         <ChevronDown
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -62,10 +62,10 @@ export function CountrySelector({ value, onChange, error }: CountrySelectorProps
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute top-full mt-2 left-0 auth-dropdown country-dropdown max-h-64 z-50 overflow-hidden rounded-lg"
+            className="absolute top-full mt-2 left-0 w-full min-w-[280px] max-h-64 z-50 overflow-hidden rounded-lg shadow-xl border border-glass-light bg-glass-enhanced backdrop-blur-xl"
           >
             {/* Barra de búsqueda */}
-            <div className="sticky top-0 bg-inherit border-b border-glass-light">
+            <div className="sticky top-0 bg-inherit border-b border-glass-light backdrop-blur-sm">
               <input
                 type="text"
                 placeholder="Buscar país..."
@@ -93,7 +93,7 @@ export function CountrySelector({ value, onChange, error }: CountrySelectorProps
                     }`}
                   >
                     <span className="text-xl flex-shrink-0 w-8">{country.flag}</span>
-                    <span className="flex-1 font-medium text-color-contrast text-sm leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{country.name}</span>
+                    <span className="flex-1 font-medium text-color-contrast text-sm leading-tight min-w-0">{country.name}</span>
                     <span className="text-text-secondary text-sm flex-shrink-0 ml-2">{country.dialCode}</span>
                   </button>
                 ))

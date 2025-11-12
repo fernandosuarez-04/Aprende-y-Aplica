@@ -86,16 +86,16 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Welcome Message */}
       <motion.div 
-        className="text-center space-y-2"
+        className="text-center space-y-1"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-3xl font-bold text-color-contrast">Bienvenido de vuelta</h2>
-        <p className="text-text-secondary">Ingresa a tu cuenta para continuar</p>
+        <h2 className="text-2xl font-bold text-color-contrast">Bienvenido de vuelta</h2>
+        <p className="text-sm text-text-secondary">Ingresa a tu cuenta para continuar</p>
       </motion.div>
 
       {/* Error Message */}
