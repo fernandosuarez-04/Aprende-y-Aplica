@@ -127,6 +127,20 @@ export default function CourseLearnPage() {
   const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [lessonsActivities, setLessonsActivities] = useState<Record<string, Array<{
+    activity_id: string;
+    activity_title: string;
+    activity_type: string;
+    is_required: boolean;
+  }>>>({});
+  const [lessonsMaterials, setLessonsMaterials] = useState<Record<string, Array<{
+    material_id: string;
+    material_title: string;
+    material_type: string;
+    is_required?: boolean;
+  }>>>({});
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
   const mobileContentPaddingBottom = isMobileBottomNavVisible
@@ -1200,6 +1214,121 @@ Antes de cada respuesta, pregúntate:
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Función para cargar actividades y materiales de una lección
+  const loadLessonActivitiesAndMaterials = async (lessonId: string) => {
+    if (!slug) return;
+    
+    // Solo cargar si no están ya cargados
+    if (lessonsActivities[lessonId] !== undefined && lessonsMaterials[lessonId] !== undefined) {
+      return; // Ya están cargados
+    }
+
+    try {
+      const [activitiesResponse, materialsResponse] = await Promise.all([
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/activities`),
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`)
+      ]);
+
+      if (activitiesResponse.ok) {
+        const activitiesData = await activitiesResponse.json();
+        setLessonsActivities(prev => ({
+          ...prev,
+          [lessonId]: (activitiesData || []).map((a: any) => ({
+            activity_id: a.activity_id,
+            activity_title: a.activity_title,
+            activity_type: a.activity_type,
+            is_required: a.is_required
+          }))
+        }));
+      } else {
+        // Si falla, establecer como array vacío para no intentar cargar de nuevo
+        setLessonsActivities(prev => ({
+          ...prev,
+          [lessonId]: []
+        }));
+      }
+
+      if (materialsResponse.ok) {
+        const materialsData = await materialsResponse.json();
+        setLessonsMaterials(prev => ({
+          ...prev,
+          [lessonId]: (materialsData || []).map((m: any) => ({
+            material_id: m.material_id,
+            material_title: m.material_title,
+            material_type: m.material_type,
+            is_required: m.is_required || m.material_type === 'quiz' // Los quizzes son requeridos por defecto
+          }))
+        }));
+      } else {
+        // Si falla, establecer como array vacío para no intentar cargar de nuevo
+        setLessonsMaterials(prev => ({
+          ...prev,
+          [lessonId]: []
+        }));
+      }
+    } catch (error) {
+      // En caso de error, establecer como arrays vacíos
+      setLessonsActivities(prev => ({
+        ...prev,
+        [lessonId]: []
+      }));
+      setLessonsMaterials(prev => ({
+        ...prev,
+        [lessonId]: []
+      }));
+    }
+  };
+
+  // Función para toggle de expandir/colapsar lección
+  const toggleLessonExpand = async (lessonId: string) => {
+    const isExpanded = expandedLessons.has(lessonId);
+    
+    if (!isExpanded) {
+      // Si se está expandiendo, cargar actividades y materiales
+      await loadLessonActivitiesAndMaterials(lessonId);
+    }
+    
+    setExpandedLessons(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(lessonId)) {
+        newSet.delete(lessonId);
+      } else {
+        newSet.add(lessonId);
+      }
+      return newSet;
+    });
+  };
+
+  // Función para toggle de expandir/colapsar módulo
+  const toggleModuleExpand = (moduleId: string) => {
+    setExpandedModules(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(moduleId)) {
+        newSet.delete(moduleId);
+      } else {
+        newSet.add(moduleId);
+      }
+      return newSet;
+    });
+  };
+
+  // Expandir automáticamente el módulo que contiene la lección actual
+  useEffect(() => {
+    if (currentLesson && modules.length > 0) {
+      const moduleWithCurrentLesson = modules.find(module => 
+        module.lessons.some(lesson => lesson.lesson_id === currentLesson.lesson_id)
+      );
+      
+      if (moduleWithCurrentLesson) {
+        setExpandedModules(prev => {
+          const newSet = new Set(prev);
+          newSet.add(moduleWithCurrentLesson.module_id);
+          return newSet;
+        });
+      }
+    }
+  }, [currentLesson, modules]);
+
   // Función para encontrar todas las lecciones ordenadas en una lista plana
   const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
     const allLessons: Array<{ lesson: Lesson; module: Module }> = [];
@@ -1704,82 +1833,194 @@ Antes de cada respuesta, pregúntate:
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                       >
-                {modules.map((module, moduleIndex) => (
-                  <div key={module.module_id} className="mb-8">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
+                {modules.map((module, moduleIndex) => {
+                  const isModuleExpanded = expandedModules.has(module.module_id);
+
+                  return (
+                    <div key={module.module_id} className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
+                          </div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
+                        </div>
+                        <button
+                          onClick={() => toggleModuleExpand(module.module_id)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
+                          title={isModuleExpanded ? "Colapsar módulo" : "Expandir módulo"}
+                        >
+                          {isModuleExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                          )}
+                        </button>
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
-                    </div>
 
-                    {/* Estadísticas del módulo mejoradas */}
-                    <div className="flex gap-3 mb-4">
-                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
-                        {module.lessons.filter(l => l.is_completed).length}/{module.lessons.length} completados
-                      </span>
-                      <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
-                        {Math.round((module.lessons.filter(l => l.is_completed).length / module.lessons.length) * 100)}% completado
-                      </span>
-                    </div>
+                      {/* Contenido del módulo - Colapsable */}
+                      <AnimatePresence>
+                        {isModuleExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            {/* Estadísticas del módulo mejoradas */}
+                            <div className="flex gap-3 mb-4">
+                              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
+                                {module.lessons.filter(l => l.is_completed).length}/{module.lessons.length} completados
+                              </span>
+                              <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
+                                {Math.round((module.lessons.filter(l => l.is_completed).length / module.lessons.length) * 100)}% completado
+                              </span>
+                            </div>
 
-                    {/* Lista de lecciones mejorada */}
-                    <div className="space-y-2">
+                            {/* Lista de lecciones mejorada - Estilo Minimalista */}
+                            <div className="space-y-2">
                       {module.lessons.map((lesson, lessonIndex) => {
                         const isActive = currentLesson?.lesson_id === lesson.lesson_id;
                         const isCompleted = lesson.is_completed;
+                        const isExpanded = expandedLessons.has(lesson.lesson_id);
+                        const activities = lessonsActivities[lesson.lesson_id] || [];
+                        const materials = lessonsMaterials[lesson.lesson_id] || [];
+                        const hasContent = activities.length > 0 || materials.length > 0;
+                        const isContentLoaded = lessonsActivities[lesson.lesson_id] !== undefined && lessonsMaterials[lesson.lesson_id] !== undefined;
 
                         return (
-                          <motion.button
-                            key={lesson.lesson_id}
-                            whileHover={{ x: 4, scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => handleLessonChange(lesson)}
-                            className={`w-full p-4 rounded-xl transition-all duration-200 ${
-                              isActive
-                                ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-blue-400/50 shadow-lg shadow-blue-500/20'
-                                : 'bg-gray-50 dark:bg-slate-700/50 border-2 border-transparent hover:bg-gray-100 dark:hover:bg-slate-700/70 hover:border-gray-300 dark:hover:border-slate-600/50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                isCompleted 
-                                  ? 'bg-green-500/20 text-green-400' 
-                                  : isActive 
-                                    ? 'bg-blue-500/20 text-blue-400' 
-                                    : 'bg-gray-200 dark:bg-slate-600/50 text-gray-600 dark:text-slate-400'
-                              }`}>
-                                {isCompleted ? (
-                                  <CheckCircle2 className="w-5 h-5" />
-                                ) : (
-                                  <Play className="w-4 h-4" />
-                                )}
-                              </div>
-                              
-                              <div className="flex-1 text-left">
-                                <p className={`text-sm font-medium ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/80'}`}>
-                                  {lesson.lesson_title}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Clock className="w-3 h-3 text-gray-500 dark:text-slate-400" />
-                                  <span className="text-xs text-gray-500 dark:text-slate-400">{formatDuration(lesson.duration_seconds)}</span>
+                          <div key={lesson.lesson_id} className="w-full">
+                            <div className="flex items-start gap-2">
+                              <motion.button
+                                whileHover={{ opacity: 0.8 }}
+                                whileTap={{ scale: 0.99 }}
+                                onClick={() => handleLessonChange(lesson)}
+                                className={`flex-1 flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ${
+                                  isActive
+                                    ? 'bg-blue-500/10 dark:bg-blue-500/15 border-l-2 border-blue-500'
+                                    : 'hover:bg-gray-50/50 dark:hover:bg-slate-700/30 border-l-2 border-transparent'
+                                }`}
+                              >
+                                <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${
+                                  isCompleted 
+                                    ? 'text-green-500 dark:text-green-400' 
+                                    : isActive 
+                                      ? 'text-blue-500 dark:text-blue-400' 
+                                      : 'text-gray-400 dark:text-slate-500'
+                                }`}>
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="w-5 h-5" />
+                                  ) : (
+                                    <Play className="w-4 h-4" />
+                                  )}
                                 </div>
-                              </div>
+                                
+                                <div className="flex-1 text-left min-w-0">
+                                  <p className={`text-sm leading-relaxed line-clamp-3 ${isActive ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-slate-300'}`}>
+                                    {lesson.lesson_title}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-2">
+                                    <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" />
+                                    <span className="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">{formatDuration(lesson.duration_seconds)}</span>
+                                  </div>
+                                </div>
+                              </motion.button>
 
-                              {isActive && (
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  className="w-3 h-3 bg-blue-400 rounded-full shadow-lg"
-                                />
-                              )}
+                              {/* Botón para expandir/colapsar actividades y materiales */}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  // Si no se han cargado las actividades y materiales, cargarlas primero
+                                  if (!isContentLoaded) {
+                                    await loadLessonActivitiesAndMaterials(lesson.lesson_id);
+                                  }
+                                  toggleLessonExpand(lesson.lesson_id);
+                                }}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
+                                title={isExpanded ? "Colapsar" : "Expandir actividades y materiales"}
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                                )}
+                              </button>
                             </div>
-                          </motion.button>
+
+                            {/* Actividades y Materiales desplegables */}
+                            <AnimatePresence>
+                              {isExpanded && isContentLoaded && hasContent && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="ml-9 mt-3 space-y-2 pl-4 border-l border-gray-200 dark:border-slate-700">
+                                    {/* Actividades */}
+                                    {activities.length > 0 && (
+                                      <div className="space-y-1.5">
+                                        {activities.map((activity) => (
+                                          <div
+                                            key={activity.activity_id}
+                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
+                                          >
+                                            <Activity className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500 dark:text-blue-400 opacity-70 group-hover:opacity-100" />
+                                            <div className="flex-1 min-w-0">
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{activity.activity_title}</span>
+                                            </div>
+                                            {activity.is_required && (
+                                              <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
+                                                Requerida
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Materiales */}
+                                    {materials.length > 0 && (
+                                      <div className="space-y-1.5">
+                                        {materials.map((material) => (
+                                          <div
+                                            key={material.material_id}
+                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
+                                          >
+                                            <FileText className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500 dark:text-green-400 opacity-70 group-hover:opacity-100" />
+                                            <div className="flex-1 min-w-0">
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{material.material_title}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                              {material.is_required && (
+                                                <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
+                                                  Requerida
+                                                </span>
+                                              )}
+                                              <span className="px-2 py-0.5 bg-green-500/10 text-green-500 dark:text-green-400 text-xs rounded-md capitalize flex-shrink-0 font-medium whitespace-nowrap">
+                                                {material.material_type}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         );
                       })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -4787,7 +5028,7 @@ function ActivitiesContent({
                       className="overflow-hidden"
                     >
                       <div className="px-5 pb-5">
-                        {/* Botón especial para actividades ai_chat */}
+                {/* Botón especial para actividades ai_chat */}
                 {activity.activity_type === 'ai_chat' ? (
                   <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/10 dark:to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 dark:border-purple-500/30 text-center">
                     <div className="flex flex-col items-center gap-4">
@@ -4926,16 +5167,16 @@ function ActivitiesContent({
                   </div>
                 )}
 
-                        {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                          <div className="mt-4 pt-4 border-t border-carbon-600/50">
-                            <div className="flex items-center gap-2 mb-4">
-                              <HelpCircle className="w-4 h-4 text-purple-400" />
-                              <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
-                            </div>
-                            <PromptsRenderer prompts={activity.ai_prompts} />
-                          </div>
-                        )}
-                      </div>
+                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
+                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
+                    <div className="flex items-center gap-2 mb-4">
+                      <HelpCircle className="w-4 h-4 text-purple-400" />
+                      <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
+                    </div>
+                    <PromptsRenderer prompts={activity.ai_prompts} />
+                  </div>
+                )}
+              </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -5059,96 +5300,96 @@ function ActivitiesContent({
                       className="overflow-hidden"
                     >
                       <div className="px-5 pb-5 pt-4">
-                        {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
+                {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
                           <div className="w-full">
-                            {material.material_type === 'quiz' && (() => {
-                              try {
-                                let quizData = material.content_data;
+                    {material.material_type === 'quiz' && (() => {
+                      try {
+                        let quizData = material.content_data;
 
-                                // Si es string, intentar parsearlo
-                                if (typeof quizData === 'string') {
-                                  try {
-                                    quizData = JSON.parse(quizData);
-                                  } catch (e) {
-                                    // console.warn('Quiz content is not valid JSON:', e);
-                                    return null;
-                                  }
-                                }
+                        // Si es string, intentar parsearlo
+                        if (typeof quizData === 'string') {
+                          try {
+                            quizData = JSON.parse(quizData);
+                          } catch (e) {
+                            // console.warn('Quiz content is not valid JSON:', e);
+                            return null;
+                          }
+                        }
 
-                                // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                                let questionsArray = quizData;
-                                let totalPoints = undefined;
+                        // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                        let questionsArray = quizData;
+                        let totalPoints = undefined;
 
-                                if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                                  if (quizData.questions && Array.isArray(quizData.questions)) {
-                                    questionsArray = quizData.questions;
-                                    totalPoints = quizData.totalPoints;
-                                  }
-                                }
+                        if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                          if (quizData.questions && Array.isArray(quizData.questions)) {
+                            questionsArray = quizData.questions;
+                            totalPoints = quizData.totalPoints;
+                          }
+                        }
 
-                                // Verificar que es un array con preguntas
-                                if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                                  // Verificar que cada elemento tiene la estructura de pregunta
-                                  const hasValidStructure = questionsArray.every((q: any) =>
-                                    q && typeof q === 'object' && (q.question || q.id)
-                                  );
+                        // Verificar que es un array con preguntas
+                        if (Array.isArray(questionsArray) && questionsArray.length > 0) {
+                          // Verificar que cada elemento tiene la estructura de pregunta
+                          const hasValidStructure = questionsArray.every((q: any) =>
+                            q && typeof q === 'object' && (q.question || q.id)
+                          );
 
-                                  if (hasValidStructure) {
-                                    return (
-                                      <QuizRenderer 
-                                        quizData={questionsArray} 
-                                        totalPoints={totalPoints}
-                                        lessonId={lesson.lesson_id}
-                                        slug={slug}
-                                        materialId={material.material_id}
-                                      />
-                                    );
-                                  }
-                                }
-                              } catch (e) {
-                                // console.warn('Error parsing quiz data:', e);
-                              }
-                              return null;
-                            })()}
-                            {material.material_type === 'reading' && (
-                              <ReadingContentRenderer 
-                                content={material.content_data || material.material_description} 
+                          if (hasValidStructure) {
+                            return (
+                              <QuizRenderer 
+                                quizData={questionsArray} 
+                                totalPoints={totalPoints}
+                                lessonId={lesson.lesson_id}
+                                slug={slug}
+                                materialId={material.material_id}
                               />
-                            )}
-                            {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
-                              <FormattedContentRenderer content={material.content_data} />
-                            )}
-                          </div>
-                        )}
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        // console.warn('Error parsing quiz data:', e);
+                      }
+                      return null;
+                    })()}
+                    {material.material_type === 'reading' && (
+                      <ReadingContentRenderer 
+                        content={material.content_data || material.material_description} 
+                      />
+                    )}
+                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
+                      <FormattedContentRenderer content={material.content_data} />
+                    )}
+                  </div>
+                )}
 
-                        {/* Enlaces y acciones */}
-                        {(material.external_url || material.file_url) && (
-                          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
-                            {material.external_url && (
-                              <a
-                                href={material.external_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
-                              >
-                                <FileDown className="w-4 h-4" />
-                                <span className="text-sm">Abrir enlace</span>
-                              </a>
-                            )}
-                            {material.file_url && (
-                              <a
-                                href={material.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
-                              >
-                                <FileDown className="w-4 h-4" />
-                                <span className="text-sm">Ver archivo</span>
-                              </a>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                {/* Enlaces y acciones */}
+                {(material.external_url || material.file_url) && (
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
+                    {material.external_url && (
+                      <a
+                        href={material.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Abrir enlace</span>
+                      </a>
+                    )}
+                    {material.file_url && (
+                      <a
+                        href={material.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span className="text-sm">Ver archivo</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
