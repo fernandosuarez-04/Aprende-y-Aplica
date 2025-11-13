@@ -10,7 +10,6 @@ import {
   MicOff,
   Loader2,
   User,
-  HelpCircle,
   ChevronUp,
   Bug
 } from 'lucide-react';
@@ -241,10 +240,6 @@ export function AIChatAgent({
     return () => clearTimeout(timer);
   }, [pathname, isOpen]); // Re-extraer cuando cambie la ruta o se abra el chat
 
-  // Debug: Log estado isOpen
-  useEffect(() => {
-    }, [isOpen]);
-
   // Estado para posición arrastrable
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -261,6 +256,8 @@ export function AIChatAgent({
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const prevPathnameRef = useRef<string>('');
+  const hasOpenedRef = useRef<boolean>(false);
 
   // Cargar posición guardada al montar
   useEffect(() => {
@@ -558,13 +555,7 @@ export function AIChatAgent({
     }, [isRecording]);
 
   // Función para solicitar ayuda contextual
-  const handleRequestHelp = async () => {
-    // Abrir el chat si no está abierto
-    if (!isOpen) {
-      setIsOpen(true);
-      setIsMinimized(false);
-    }
-    
+  const handleRequestHelp = useCallback(async () => {
     // Forzar extracción de contenido si no está disponible
     let currentPageContent = pageContent;
     if (!currentPageContent || !currentPageContent.title) {
@@ -579,6 +570,14 @@ export function AIChatAgent({
     setIsTyping(true);
 
     try {
+      // Usar setMessages con callback para obtener el estado actual de messages
+      // Esto asegura que siempre usemos el estado más reciente, incluso después de limpiar el chat
+      let currentMessages: Message[] = [];
+      setMessages(prev => {
+        currentMessages = prev;
+        return prev;
+      });
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -596,7 +595,7 @@ export function AIChatAgent({
             headings: currentPageContent?.headings || [],
             mainText: currentPageContent?.mainText || ''
           },
-          conversationHistory: messages.map(m => ({
+          conversationHistory: currentMessages.map(m => ({
             role: m.role,
             content: m.content
           })),
@@ -633,7 +632,63 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user]);
+
+  // Limpiar el chat cuando cambia la página
+  useEffect(() => {
+    // Inicializar prevPathnameRef en el primer render
+    if (prevPathnameRef.current === '') {
+      prevPathnameRef.current = pathname;
+      return;
+    }
+    
+    if (prevPathnameRef.current !== pathname) {
+      const wasOpen = isOpen;
+      const previousPathname = prevPathnameRef.current;
+      
+      // Limpiar mensajes cuando cambia la página
+      setMessages([]);
+      prevPathnameRef.current = pathname;
+      
+      // Si el chat está abierto, ejecutar la ayuda automáticamente en la nueva página
+      if (wasOpen) {
+        // Marcar que ya se abrió para evitar que el otro useEffect interfiera
+        hasOpenedRef.current = true;
+        // Esperar un poco más para asegurar que el estado se haya actualizado completamente
+        // y que el contenido de la nueva página esté disponible
+        const timer = setTimeout(async () => {
+          // Forzar extracción de contenido de la nueva página
+          const currentPageContent = extractPageContent();
+          setPageContent(currentPageContent);
+          
+          // Esperar un poco más para que el contenido se haya actualizado
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          // Ejecutar la ayuda con el estado actualizado
+          handleRequestHelp();
+        }, 600);
+        return () => clearTimeout(timer);
+      } else {
+        // Si el chat está cerrado, resetear el flag para que se ejecute cuando se abra
+        hasOpenedRef.current = false;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]); // Solo depender de pathname para evitar ejecuciones innecesarias
+
+  // Ejecutar automáticamente la función de ayuda cuando se abre la LIA (solo si no se ejecutó por cambio de página)
+  useEffect(() => {
+    // Solo ejecutar si el chat se acaba de abrir y no se ejecutó la ayuda por cambio de página
+    if (isOpen && !hasOpenedRef.current) {
+      // Ejecutar la ayuda automáticamente cuando se abre el chat
+      hasOpenedRef.current = true;
+      // Pequeño delay para asegurar que el chat esté completamente abierto
+      const timer = setTimeout(() => {
+        handleRequestHelp();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, handleRequestHelp]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
@@ -659,6 +714,8 @@ export function AIChatAgent({
     setIsOpen(false);
     setIsMinimized(false);
     setAreButtonsExpanded(false);
+    // Resetear el flag cuando se cierra para que se ejecute la ayuda al abrir de nuevo
+    hasOpenedRef.current = false;
   };
 
   return (
@@ -672,7 +729,7 @@ export function AIChatAgent({
           }}
         >
           <AnimatePresence>
-            {/* Botones expandidos: Ayuda y Reportar Problema */}
+            {/* Botones expandidos: Reportar Problema */}
             {areButtonsExpanded && (
               <motion.div
                 key="expanded-buttons"
@@ -682,31 +739,6 @@ export function AIChatAgent({
                 transition={{ duration: 0.2 }}
                 className="flex flex-col gap-2 overflow-hidden"
               >
-                {/* Botón de ayuda contextual */}
-                <motion.button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRequestHelp();
-                    setAreButtonsExpanded(false);
-                  }}
-                  initial={{ scale: 0, opacity: 0, y: 10 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.15, delay: 0.05 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
-                  title="¿Necesitas ayuda?"
-                >
-                  <HelpCircle className="w-6 h-6 text-white" />
-                  
-                  {/* Tooltip */}
-                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                    ¿Necesitas ayuda?
-                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
-                  </div>
-                </motion.button>
-
                 {/* Botón de reportar problema */}
                 <motion.button
                   onClick={(e) => {
