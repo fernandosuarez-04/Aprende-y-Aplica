@@ -112,30 +112,64 @@ export class AutoNotificationsService {
    */
   static async notifyLoginSuccess(userId: string, ip?: string, userAgent?: string, metadata?: Record<string, any>): Promise<void> {
     try {
+      logger.info('🔔 notifyLoginSuccess llamado', { userId, ip })
       const location = ip || 'Ubicación desconocida'
       
-      // Verificar si el usuario necesita completar el cuestionario
+      // Verificar si es usuario OAuth (no debe recibir notificación, ya es obligatorio)
       const { QuestionnaireValidationService } = await import('../../auth/services/questionnaire-validation.service')
-      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(userId)
+      const isOAuthUser = await QuestionnaireValidationService.isGoogleOAuthUser(userId)
       
-      // Si necesita cuestionario, crear notificación específica
-      if (requiresQuestionnaire) {
-        await NotificationService.createNotification({
-          userId,
-          notificationType: 'questionnaire_required',
-          title: 'Cuestionario pendiente',
-          message: 'Para acceder a todas las funcionalidades, necesitas completar el cuestionario de perfil profesional. Haz clic aquí para comenzar.',
-          metadata: {
-            ...metadata,
-            ip,
-            userAgent,
-            timestamp: new Date().toISOString(),
-            actionUrl: '/statistics'
-          },
-          priority: 'high'
-        })
-        logger.info('✅ Notificación de cuestionario requerido creada', { userId })
-        return // No crear notificación de login si necesita cuestionario
+      // Solo crear notificación para usuarios NORMALES (no OAuth) que necesiten cuestionario
+      if (!isOAuthUser) {
+        logger.info('🔍 Verificando si usuario normal necesita cuestionario', { userId })
+        const normalUserNeedsQuestionnaire = await QuestionnaireValidationService.normalUserNeedsQuestionnaire(userId)
+        logger.info('📋 Resultado de normalUserNeedsQuestionnaire', { userId, normalUserNeedsQuestionnaire })
+        
+        // Si es usuario normal y necesita cuestionario, crear notificación
+        if (normalUserNeedsQuestionnaire) {
+          logger.info('✅ Usuario normal requiere cuestionario, creando notificación', { userId })
+          try {
+            logger.info('📝 Llamando a NotificationService.createNotification', { 
+              userId, 
+              notificationType: 'questionnaire_required',
+              priority: 'critical'
+            })
+            const notification = await NotificationService.createNotification({
+              userId,
+              notificationType: 'questionnaire_required',
+              title: 'Cuestionario pendiente',
+              message: 'Para acceder a todas las funcionalidades, necesitas completar el cuestionario de perfil profesional. Haz clic aquí para comenzar.',
+              metadata: {
+                ...metadata,
+                ip,
+                userAgent,
+                timestamp: new Date().toISOString(),
+                actionUrl: '/statistics'
+              },
+              priority: 'critical'
+            })
+            logger.info('✅ Notificación de cuestionario requerido creada exitosamente', { 
+              userId, 
+              notificationId: notification?.notification_id || 'N/A'
+            })
+          } catch (notificationError) {
+            // Si hay error de duplicado, no es crítico - solo loguear
+            if (notificationError instanceof Error && notificationError.message.includes('duplicada')) {
+              logger.info('⏭️ Notificación de cuestionario duplicada evitada', { userId })
+            } else {
+              logger.error('❌ Error creando notificación de cuestionario:', {
+                userId,
+                error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+                stack: notificationError instanceof Error ? notificationError.stack : undefined
+              })
+            }
+          }
+          return // No crear notificación de login si necesita cuestionario
+        } else {
+          logger.info('ℹ️ Usuario normal no necesita cuestionario o ya lo completó', { userId })
+        }
+      } else {
+        logger.info('ℹ️ Usuario OAuth - no se crea notificación (ya es obligatorio)', { userId })
       }
       
       await NotificationService.createNotification({

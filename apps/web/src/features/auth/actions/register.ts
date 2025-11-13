@@ -21,6 +21,7 @@ const registerSchema = z.object({
   confirmPassword: z.string().min(1, 'Confirma la contraseña'),
   countryCode: z.string().min(1, 'Selecciona un país'),
   phoneNumber: z.string().min(1, 'El teléfono es requerido'),
+  cargo_titulo: z.string().max(100, 'El cargo no puede exceder 100 caracteres').optional(),
   acceptTerms: z.boolean().refine(val => val === true, {
     message: 'Debes aceptar los términos y condiciones',
   }),
@@ -95,6 +96,8 @@ export async function registerAction(formData: FormData) {
     const userId = crypto.randomUUID()
 
     // Crear usuario directamente en la tabla users (sin Supabase Auth)
+    const cargoTitulo = parsed.cargo_titulo?.trim() || 'Usuario';
+    
     const { data: user, error } = await supabase
       .from('users')
       .insert({
@@ -108,7 +111,7 @@ export async function registerAction(formData: FormData) {
         country_code: parsed.countryCode,
         phone: parsed.phoneNumber, // Campo phone para el número de teléfono (varchar en DB)
         cargo_rol: 'Usuario', // Rol por defecto para nuevos usuarios
-        type_rol: 'Usuario', // Tipo de rol por defecto para nuevos usuarios
+        type_rol: cargoTitulo, // Tipo de rol: cargo_titulo si se proporciona, 'Usuario' por defecto
         email_verified: false, // Se verificará después con email manual
         organization_id: organizationId || null, // Asignar organización si viene de registro personalizado
       })
@@ -120,6 +123,24 @@ export async function registerAction(formData: FormData) {
       // Limpiar cuenta de auth en caso de error
       // Nota: Esto requeriría service role key, por ahora solo logueamos
       return { error: 'Error al crear perfil de usuario' }
+    }
+
+    // Si se proporcionó cargo_titulo, crear perfil inicial en user_perfil
+    if (parsed.cargo_titulo && parsed.cargo_titulo.trim()) {
+      try {
+        await supabase
+          .from('user_perfil')
+          .insert({
+            user_id: user.id,
+            cargo_titulo: parsed.cargo_titulo.trim(),
+            creado_en: new Date().toISOString(),
+            actualizado_en: new Date().toISOString()
+          })
+      } catch (profileError) {
+        // No fallar el registro si hay error creando el perfil
+        // El perfil se puede crear después cuando complete el cuestionario
+        // console.error('Error creating initial profile:', profileError)
+      }
     }
 
     return { 

@@ -94,6 +94,34 @@ export class QuestionnaireValidationService {
   }
 
   /**
+   * Verifica si un usuario normal (no OAuth) necesita completar el cuestionario
+   * Retorna true si:
+   * 1. NO es usuario OAuth
+   * 2. No ha completado el cuestionario
+   * 
+   * Esta función es para usuarios que se registraron normalmente y pueden
+   * acceder a la plataforma sin completar el cuestionario, pero se les
+   * notifica que deberían completarlo.
+   */
+  static async normalUserNeedsQuestionnaire(userId: string): Promise<boolean> {
+    try {
+      const isGoogleUser = await this.isGoogleOAuthUser(userId);
+      
+      // Si es usuario OAuth, no necesita notificación (ya es obligatorio)
+      if (isGoogleUser) {
+        return false;
+      }
+
+      // Para usuarios normales, verificar si no han completado el cuestionario
+      const isCompleted = await this.isQuestionnaireCompleted(userId);
+      return !isCompleted;
+    } catch (error) {
+      logger.error('Error en normalUserNeedsQuestionnaire:', error);
+      return false;
+    }
+  }
+
+  /**
    * Obtiene el estado completo del cuestionario para un usuario
    */
   static async getQuestionnaireStatus(userId: string): Promise<{

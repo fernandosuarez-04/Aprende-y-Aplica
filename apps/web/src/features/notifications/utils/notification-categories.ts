@@ -56,6 +56,7 @@ export const NOTIFICATION_TYPE_CATEGORY_MAP: Record<string, NotificationCategory
   'system_login_failed': 'system',
   'system_email_verified': 'system',
   'system_security_alert': 'critical',
+  'questionnaire_required': 'critical',
   
   // Comunidad
   'community_post_created': 'community',
@@ -157,6 +158,7 @@ export const NOTIFICATION_TYPE_ICONS: Record<string, LucideIcon> = {
   'system_login_failed': AlertTriangle,
   'system_email_verified': Mail,
   'system_security_alert': Shield,
+  'questionnaire_required': AlertCircle,
   
   // Comunidad
   'community_post_created': MessageSquare,

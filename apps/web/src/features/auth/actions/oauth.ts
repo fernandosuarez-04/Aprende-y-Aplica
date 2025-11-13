@@ -214,7 +214,43 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     await AuthService.clearExpiredSessions();
     logger.debug('Sesiones expiradas limpiadas');
 
-    // PASO 8: Verificar si necesita cuestionario y redirigir apropiadamente
+    // PASO 8: Crear notificación de login (con timeout para no bloquear demasiado)
+    // Reutilizar ip y userAgent ya obtenidos en PASO 6
+    try {
+      logger.info('🔔 Iniciando creación de notificación de login OAuth', { userId });
+      const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service');
+      
+      // Usar Promise.race con timeout para no bloquear más de 2 segundos
+      await Promise.race([
+        AutoNotificationsService.notifyLoginSuccess(userId, ip, userAgent, {
+          isOAuth: true,
+          isNewUser,
+          timestamp: new Date().toISOString()
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 2000)
+        )
+      ]).catch((error) => {
+        // Si es timeout, continuar sin bloquear
+        if (error instanceof Error && error.message === 'Timeout') {
+          logger.warn('⏱️ Timeout en notificación de login OAuth, continuando', { userId });
+        } else {
+          logger.error('❌ Error en notificación de login OAuth:', {
+            userId,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      });
+      logger.info('✅ Notificación de login OAuth procesada', { userId });
+    } catch (notificationError) {
+      // Log del error pero no bloquear el flujo
+      logger.error('❌ Error en notificación de login OAuth:', {
+        userId,
+        error: notificationError instanceof Error ? notificationError.message : String(notificationError)
+      });
+    }
+
+    // PASO 9: Verificar si necesita cuestionario y redirigir apropiadamente
     logger.info('OAuth: Proceso completado', { isNewUser });
 
     // Verificar si el usuario necesita completar el cuestionario

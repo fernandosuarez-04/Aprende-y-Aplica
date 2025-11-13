@@ -33,6 +33,10 @@ export const registerSchema = z
       .regex(/[0-9]/, 'Debe contener al menos un número')
       .regex(/[^a-zA-Z0-9]/, 'Debe contener al menos un carácter especial'),
     confirmPassword: z.string(),
+    cargo_titulo: z
+      .string()
+      .max(100, 'El cargo no puede exceder 100 caracteres')
+      .optional(),
     acceptTerms: z.boolean().refine((val) => val === true, {
       message: 'Debes aceptar los términos y condiciones',
     }),

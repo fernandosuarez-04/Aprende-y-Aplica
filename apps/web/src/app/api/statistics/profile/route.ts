@@ -113,11 +113,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // También actualizar type_rol en la tabla users
+      // También actualizar type_rol en la tabla users con el cargo_titulo del cuestionario
+      // type_rol almacena el cargo profesional del usuario obtenido del cuestionario
       const { error: userError } = await supabase
         .from('users')
         .update({
-          type_rol: cargo_titulo
+          type_rol: cargo_titulo,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
@@ -155,11 +157,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // También actualizar type_rol en la tabla users
+      // También actualizar type_rol en la tabla users con el cargo_titulo del cuestionario
+      // type_rol almacena el cargo profesional del usuario obtenido del cuestionario
       const { error: userError } = await supabase
         .from('users')
         .update({
-          type_rol: cargo_titulo
+          type_rol: cargo_titulo,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
