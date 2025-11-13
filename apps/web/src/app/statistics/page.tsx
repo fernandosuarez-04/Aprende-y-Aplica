@@ -293,7 +293,7 @@ export default function StatisticsPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-gray-200 dark:border-white/10 shadow-2xl max-w-4xl mx-auto"
+            className="bg-white dark:bg-slate-800 rounded-2xl p-8 md:p-12 border border-gray-200 dark:border-slate-700 shadow-2xl max-w-4xl mx-auto"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left Column */}
@@ -311,7 +311,7 @@ export default function StatisticsPage() {
                     type="text"
                     value={formData.cargo_titulo}
                     onChange={(e) => handleInputChange('cargo_titulo', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
                     placeholder="Ej: Gerente de Marketing, CEO, Desarrollador..."
                   />
                 </motion.div>
@@ -328,11 +328,11 @@ export default function StatisticsPage() {
                   <select
                     value={formData.nivel_id}
                     onChange={(e) => handleInputChange('nivel_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu nivel</option>
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu nivel</option>
                     {referenceData?.niveles.map(nivel => (
-                      <option key={nivel.id} value={nivel.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
+                      <option key={nivel.id} value={nivel.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {nivel.nombre}
                       </option>
                     ))}
@@ -351,11 +351,11 @@ export default function StatisticsPage() {
                   <select
                     value={formData.sector_id}
                     onChange={(e) => handleInputChange('sector_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu sector</option>
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu sector</option>
                     {referenceData?.sectores.map(sector => (
-                      <option key={sector.id} value={sector.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
+                      <option key={sector.id} value={sector.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {sector.nombre}
                       </option>
                     ))}
@@ -377,11 +377,11 @@ export default function StatisticsPage() {
                   <select
                     value={formData.area_id}
                     onChange={(e) => handleInputChange('area_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu área</option>
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu área</option>
                     {referenceData?.areas.map(area => (
-                      <option key={area.id} value={area.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
+                      <option key={area.id} value={area.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {area.nombre}
                       </option>
                     ))}
@@ -400,11 +400,11 @@ export default function StatisticsPage() {
                   <select
                     value={formData.relacion_id}
                     onChange={(e) => handleInputChange('relacion_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona tu relación</option>
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu relación</option>
                     {referenceData?.relaciones.map(relacion => (
-                      <option key={relacion.id} value={relacion.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
+                      <option key={relacion.id} value={relacion.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {relacion.nombre}
                       </option>
                     ))}
@@ -423,11 +423,11 @@ export default function StatisticsPage() {
                   <select
                     value={formData.tamano_id}
                     onChange={(e) => handleInputChange('tamano_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
-                    <option value={0} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">Selecciona el tamaño</option>
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona el tamaño</option>
                     {referenceData?.tamanos_empresa.map(tamano => (
-                      <option key={tamano.id} value={tamano.id} className="bg-white dark:bg-carbon-800 text-gray-900 dark:text-white">
+                      <option key={tamano.id} value={tamano.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {tamano.nombre}
                       </option>
                     ))}
@@ -447,7 +447,7 @@ export default function StatisticsPage() {
                     type="text"
                     value={formData.pais}
                     onChange={(e) => handleInputChange('pais', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
                     placeholder="Ej: México, España, Colombia..."
                   />
                 </motion.div>
@@ -606,7 +606,7 @@ function ProfileConfirmationSection({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
-        className="bg-white dark:bg-carbon-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary/30 dark:border-primary/30 shadow-2xl mb-8"
+        className="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-primary/30 dark:border-slate-700 shadow-2xl mb-8"
       >
         <div className="flex items-start space-x-4">
           <motion.div
@@ -733,7 +733,7 @@ function ProfileConfirmationSection({
                 className={`p-3 border rounded-lg text-sm transition-all duration-200 ${
                   selectedProfile?.cargo === profileName
                     ? 'bg-primary/30 dark:bg-primary/30 border-primary dark:border-primary text-gray-900 dark:text-white'
-                    : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-300 dark:border-white/20 text-gray-700 dark:text-white hover:bg-primary/20 dark:hover:bg-primary/20 hover:border-primary/50 dark:hover:border-primary/50'
+                    : 'bg-gray-100 dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-white hover:bg-primary/20 dark:hover:bg-primary/20 hover:border-primary/50 dark:hover:border-primary/50'
                 }`}
               >
                 {profileName}
@@ -764,7 +764,7 @@ function ProfileConfirmationSection({
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={onModifyInformation}
-          className="bg-gray-200 dark:bg-carbon-700/50 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white font-semibold py-4 px-8 rounded-lg hover:bg-gray-300 dark:hover:bg-carbon-600/50 hover:border-gray-400 dark:hover:border-white/30 transition-all duration-200"
+          className="bg-gray-200 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white font-semibold py-4 px-8 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 hover:border-gray-400 dark:hover:border-slate-500 transition-all duration-200"
         >
           Modificar Información
         </motion.button>

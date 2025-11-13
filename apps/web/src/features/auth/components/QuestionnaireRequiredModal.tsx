@@ -36,12 +36,12 @@ export function QuestionnaireRequiredModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 z-10"
+          className="relative bg-white dark:bg-carbon-800/95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 z-10 border border-gray-200 dark:border-white/10"
         >
           {/* Close button */}
           <button
             onClick={onCancel}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
@@ -59,7 +59,7 @@ export function QuestionnaireRequiredModal({
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
               Cuestionario Requerido
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="text-gray-600 dark:text-white/70 mb-4">
               {isOAuthUser ? (
                 <>
                   Para acceder a las comunidades, necesitas completar primero el cuestionario de perfil profesional.
@@ -84,7 +84,7 @@ export function QuestionnaireRequiredModal({
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-white/20 text-gray-700 dark:text-white/90 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-carbon-700/50 transition-colors bg-white dark:bg-carbon-700/30"
             >
               Ahora no
             </button>
