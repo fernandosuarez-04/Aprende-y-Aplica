@@ -49,7 +49,19 @@ export default function PromptDirectoryPage() {
   // Asegurar que el componente esté montado antes de renderizar contenido dependiente del cliente
   useEffect(() => {
     setMounted(true);
+    // Cargar el modo de vista guardado después del montaje
+    const saved = localStorage.getItem('prompts-view-mode')
+    if (saved === 'grid' || saved === 'list') {
+      setViewMode(saved)
+    }
   }, []);
+  
+  // Guardar el modo de vista en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('prompts-view-mode', viewMode)
+    }
+  }, [viewMode, mounted])
 
   const { prompts, loading, error, pagination, refetch } = usePrompts({
     search: searchQuery,

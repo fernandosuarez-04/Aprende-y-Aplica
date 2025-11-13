@@ -219,14 +219,8 @@ export function AIChatAgent({
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'initial',
-      role: 'assistant',
-      content: initialMessage,
-      timestamp: new Date()
-    }
-  ]);
+  // Mensaje de bienvenida eliminado - el chat inicia vacío
+  const [messages, setMessages] = useState<Message[]>([]);
 
   // Estado para almacenar el contenido extraído del DOM
   const [pageContent, setPageContent] = useState<{
@@ -578,15 +572,10 @@ export function AIChatAgent({
       setPageContent(currentPageContent);
     }
 
-    // Crear mensaje de ayuda automático
-    const helpMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: '¿Qué puedo hacer aquí? Ayúdame',
-      timestamp: new Date()
-    };
+    // Mensaje de ayuda automático - NO se muestra en el chat (isSystemMessage: true)
+    const helpMessageContent = '¿Qué puedo hacer aquí? Ayúdame';
 
-    setMessages(prev => [...prev, helpMessage]);
+    // NO agregar el mensaje al estado - solo enviarlo como mensaje del sistema
     setIsTyping(true);
 
     try {
@@ -596,7 +585,7 @@ export function AIChatAgent({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: helpMessage.content,
+          message: helpMessageContent,
           context: activeContext,
           pageContext: {
             pathname: pathname,
@@ -611,7 +600,8 @@ export function AIChatAgent({
             role: m.role,
             content: m.content
           })),
-          userName: user?.display_name || user?.username || user?.first_name
+          userName: user?.display_name || user?.username || user?.first_name,
+          isSystemMessage: true // El mensaje del sistema no se mostrará en el chat
         }),
       });
 

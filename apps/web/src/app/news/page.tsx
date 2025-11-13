@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -31,10 +31,27 @@ const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatA
 export default function NewsPage() {
   const router = useRouter()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<'news' | 'reels'>('news')
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+  
+  // Cargar el modo de vista guardado después del montaje
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('news-view-mode')
+    if (saved === 'grid' || saved === 'list') {
+      setViewMode(saved)
+    }
+  }, []);
+  
+  // Guardar el modo de vista en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('news-view-mode', viewMode)
+    }
+  }, [viewMode, mounted])
   
   const { news, loading, error, loadMore, hasMore } = useNews({
     language: selectedCategory === 'all' ? undefined : selectedCategory
