@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Sparkles, Star, Wand2, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Sparkles, Star, Wand2, Heart, Grid3X3, List } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { PromptCard } from '../../features/ai-directory/components/PromptCard';
 import { SearchBar } from '../../features/ai-directory/components/SearchBar';
@@ -44,6 +44,7 @@ export default function PromptDirectoryPage() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Asegurar que el componente esté montado antes de renderizar contenido dependiente del cliente
   useEffect(() => {
@@ -80,18 +81,19 @@ export default function PromptDirectoryPage() {
 
   return (
     <PromptFavoritesProvider>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative pb-12">
+        {/* Background Effects - Applied to entire page */}
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 z-0" />
+        <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-10 pointer-events-none z-0" />
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl pointer-events-none z-0" />
+        
       {/* Hero Section */}
       <motion.div
-        className="relative pt-24 pb-16 overflow-hidden"
+        className="relative pt-24 pb-16 overflow-hidden z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl" />
-        
         <div className="container mx-auto px-4 relative z-10" suppressHydrationWarning>
           <motion.div
             className="text-center max-w-4xl mx-auto"
@@ -192,7 +194,7 @@ export default function PromptDirectoryPage() {
 
       {/* Results Section */}
       <motion.div
-        className="container mx-auto px-4"
+        className="container mx-auto px-4 relative z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
@@ -210,6 +212,30 @@ export default function PromptDirectoryPage() {
                 {showFavorites && ' • Favoritos'}
               </p>
             )}
+          </div>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'grid' 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <Grid3X3 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'list' 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <List className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -230,25 +256,35 @@ export default function PromptDirectoryPage() {
           </div>
         )}
 
-        {/* Prompts Grid */}
+        {/* Prompts Grid/List */}
         {!loading && !error && (
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {prompts.map((prompt, index) => (
-              <motion.div
-                key={prompt.prompt_id}
-                variants={itemVariants}
-                custom={index}
-                className="h-full"
-              >
-                <PromptCard prompt={prompt} />
-              </motion.div>
-            ))}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className={viewMode === 'grid' 
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch'
+                : 'space-y-4 mb-12'
+              }
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {prompts.map((prompt, index) => (
+                <motion.div
+                  key={prompt.prompt_id}
+                  variants={itemVariants}
+                  custom={index}
+                  className={viewMode === 'list' ? 'w-full' : 'h-full'}
+                >
+                  <PromptCard prompt={prompt} viewMode={viewMode} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         )}
 
         {/* Empty State */}

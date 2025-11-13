@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Grid3X3, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Grid3X3, Star, List } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { AppCard } from '../../features/ai-directory/components/AppCard';
 import { SearchBar } from '../../features/ai-directory/components/SearchBar';
@@ -37,6 +37,7 @@ export default function AppsDirectoryPage() {
   const [showFeatured, setShowFeatured] = useState(false);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { apps, loading, error, pagination, refetch } = useApps({
     search: searchQuery,
@@ -61,17 +62,19 @@ export default function AppsDirectoryPage() {
   const hasActiveFilters = searchQuery || showFeatured;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative pb-12">
+      {/* Background Effects - Applied to entire page */}
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 z-0" />
+      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-10 pointer-events-none z-0" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl pointer-events-none z-0" />
+      
       {/* Hero Section */}
       <motion.div
-        className="relative pt-24 pb-16 overflow-hidden"
+        className="relative pt-24 pb-16 overflow-hidden z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-100 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl" />
         
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -136,7 +139,7 @@ export default function AppsDirectoryPage() {
 
       {/* Results Section */}
       <motion.div
-        className="container mx-auto px-4"
+        className="container mx-auto px-4 relative z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
@@ -153,6 +156,30 @@ export default function AppsDirectoryPage() {
                 {showFeatured && ' • Destacados'}
               </p>
             )}
+          </div>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'grid' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <Grid3X3 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'list' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <List className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -173,25 +200,35 @@ export default function AppsDirectoryPage() {
           </div>
         )}
 
-        {/* Apps Grid */}
+        {/* Apps Grid/List */}
         {!loading && !error && (
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {apps.map((app, index) => (
-              <motion.div
-                key={app.app_id}
-                variants={itemVariants}
-                custom={index}
-                className="h-full"
-              >
-                <AppCard app={app} />
-              </motion.div>
-            ))}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className={viewMode === 'grid' 
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch'
+                : 'space-y-6 mb-12'
+              }
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {apps.map((app, index) => (
+                <motion.div
+                  key={app.app_id}
+                  variants={itemVariants}
+                  custom={index}
+                  className={viewMode === 'list' ? 'w-full' : 'h-full'}
+                >
+                  <AppCard app={app} viewMode={viewMode} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         )}
 
         {/* Empty State */}
