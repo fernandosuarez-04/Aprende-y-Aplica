@@ -464,6 +464,7 @@ export async function POST(request: NextRequest) {
       context = 'general', 
       conversationHistory = [], 
       userName,
+      userInfo: userInfoFromRequest,
       courseContext,
       pageContext,
       isSystemMessage = false,
@@ -473,6 +474,13 @@ export async function POST(request: NextRequest) {
       context?: string;
       conversationHistory?: Array<{ role: string; content: string }>;
       userName?: string;
+      userInfo?: {
+        display_name?: string;
+        first_name?: string;
+        last_name?: string;
+        username?: string;
+        type_rol?: string;
+      };
       courseContext?: CourseLessonContext;
       pageContext?: PageContext;
       isSystemMessage?: boolean;
@@ -503,9 +511,13 @@ export async function POST(request: NextRequest) {
       limitedHistory = conversationHistory.slice(-MAX_HISTORY_LENGTH);
     }
 
-    // Obtener información del usuario desde la base de datos
+    // ✅ OPTIMIZACIÓN: Usar información del usuario del request body si está disponible, evitando consulta a BD
     let userInfo: Database['public']['Tables']['users']['Row'] | null = null;
-    if (user) {
+    if (userInfoFromRequest) {
+      // Usar información del frontend (más rápido, no requiere consulta a BD)
+      userInfo = userInfoFromRequest as any;
+    } else if (user) {
+      // Fallback: consultar BD solo si no viene información del frontend
       const { data: userData } = await supabase
         .from('users')
         .select('display_name, username, first_name, last_name, profile_picture_url, type_rol')
@@ -536,17 +548,21 @@ export async function POST(request: NextRequest) {
     // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso y contexto de página
     const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext, userRole);
 
-    // ✅ ANALYTICS: Inicializar logger de LIA si el usuario está autenticado
-    let liaLogger: LiaLogger | null = null;
+    // ✅ OPTIMIZACIÓN: Inicializar analytics de forma asíncrona para no bloquear el procesamiento del mensaje
     let conversationId: string | null = existingConversationId || null;
     
-    if (user) {
+    // Función para inicializar analytics de forma asíncrona (no bloquea la respuesta)
+    const initializeAnalyticsAsync = async (): Promise<{ liaLogger: LiaLogger | null; conversationId: string | null }> => {
+      if (!user) {
+        return { liaLogger: null, conversationId: null };
+      }
+
       try {
-        liaLogger = new LiaLogger(user.id);
+        const liaLogger = new LiaLogger(user.id);
         
         // Si no hay conversationId existente, iniciar nueva conversación
         if (!conversationId) {
-          logger.info('Iniciando nueva conversación LIA', { userId: user.id, context });
+          logger.info('Iniciando nueva conversación LIA (async)', { userId: user.id, context });
           
           // Truncar browser para que no exceda el límite de 100 caracteres
           const userAgent = request.headers.get('user-agent') || undefined;
@@ -565,7 +581,7 @@ export async function POST(request: NextRequest) {
             clientIp = realIp.trim();
           }
           
-          conversationId = await liaLogger.startConversation({
+          const newConversationId = await liaLogger.startConversation({
             contextType: context as ContextType,
             courseContext: courseContext,
             deviceType: request.headers.get('sec-ch-ua-platform') || undefined,
@@ -573,62 +589,29 @@ export async function POST(request: NextRequest) {
             ipAddress: clientIp
           });
           
-          logger.info('✅ Nueva conversación LIA creada exitosamente', { conversationId, userId: user.id, context });
+          logger.info('✅ Nueva conversación LIA creada exitosamente (async)', { conversationId: newConversationId, userId: user.id, context });
+          return { liaLogger, conversationId: newConversationId };
         } else {
           // Si hay conversationId existente, establecerlo en el logger
-          logger.info('Continuando conversación LIA existente', { conversationId, userId: user.id });
+          logger.info('Continuando conversación LIA existente (async)', { conversationId, userId: user.id });
           liaLogger.setConversationId(conversationId);
+          return { liaLogger, conversationId };
         }
       } catch (error) {
-        logger.error('❌ Error inicializando LIA Analytics:', error);
-        // Log detallado del error para debugging en producción
-        // console.error('[LIA ERROR] Detalles completos del error:', JSON.stringify({
-        //   error: error instanceof Error ? {
-        //     message: error.message,
-        //     stack: error.stack,
-        //     name: error.name
-        //   } : error,
-        //   userId: user.id,
-        //   context,
-        //   hasConversationId: !!conversationId,
-        //   timestamp: new Date().toISOString()
-        // }, null, 2));
+        logger.error('❌ Error inicializando LIA Analytics (async):', error);
         // Continuar sin analytics si hay error
-        liaLogger = null;
-        conversationId = null;
+        return { liaLogger: null, conversationId: null };
       }
-    } else {
-      logger.info('Usuario no autenticado - LIA Analytics deshabilitado');
-    }
+    };
+
+    // Iniciar inicialización de analytics en background (no esperar)
+    const analyticsPromise = initializeAnalyticsAsync();
 
     // Intentar usar OpenAI si está disponible
     const openaiApiKey = process.env.OPENAI_API_KEY;
     let response: string;
     const hasCourseContext = context === 'course' && courseContext !== undefined;
     const userId = user?.id || null; // Obtener userId para registro de uso
-    
-    // ✅ ANALYTICS: Registrar mensaje del usuario (solo si no es mensaje del sistema invisible)
-    const startTime = Date.now();
-    if (liaLogger && conversationId && !isSystemMessage) {
-      try {
-        logger.info('Registrando mensaje de usuario', { conversationId, messageLength: message.length });
-        
-        await liaLogger.logMessage(
-          'user',
-          message,
-          false // no es mensaje del sistema
-          // metadata es opcional, no se envía para mensajes de usuario
-        );
-        
-        logger.info('✅ Mensaje de usuario registrado exitosamente', { conversationId });
-      } catch (error) {
-        logger.error('❌ Error registrando mensaje de usuario:', error);
-      }
-    } else {
-      if (!liaLogger) logger.info('No hay logger - saltando registro de mensaje usuario');
-      if (!conversationId) logger.info('No hay conversationId - saltando registro de mensaje usuario');
-      if (isSystemMessage) logger.info('Es mensaje del sistema - saltando registro visible');
-    }
 
     let responseMetadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
     
@@ -654,23 +637,39 @@ export async function POST(request: NextRequest) {
       response = cleanMarkdownFromResponse(response);
     }
 
-    // ✅ ANALYTICS: Registrar respuesta del asistente (solo si no es mensaje del sistema invisible)
-    if (liaLogger && conversationId && !isSystemMessage) {
+    // ✅ OPTIMIZACIÓN: Obtener analytics de forma asíncrona y registrar mensajes
+    // No bloquear la respuesta esperando analytics
+    analyticsPromise.then(async ({ liaLogger, conversationId: analyticsConversationId }) => {
+      if (!liaLogger || !analyticsConversationId || isSystemMessage) {
+        return;
+      }
+
       try {
-        logger.info('Registrando respuesta del asistente', { conversationId, responseLength: response.length });
+        // Registrar mensaje del usuario
+        await liaLogger.logMessage(
+          'user',
+          message,
+          false
+        );
         
+        // Registrar respuesta del asistente
         await liaLogger.logMessage(
           'assistant',
           response,
-          false, // no es mensaje del sistema
-          responseMetadata // incluir metadatos si están disponibles
+          false,
+          responseMetadata
         );
         
-        logger.info('✅ Respuesta del asistente registrada exitosamente', { conversationId });
+        // Actualizar conversationId si se creó una nueva
+        if (analyticsConversationId && !existingConversationId) {
+          conversationId = analyticsConversationId;
+        }
       } catch (error) {
-        logger.error('❌ Error registrando respuesta del asistente:', error);
+        logger.error('❌ Error registrando analytics (async):', error);
       }
-    }
+    }).catch((error) => {
+      logger.error('❌ Error en promesa de analytics:', error);
+    });
 
     // Guardar la conversación en la base de datos (opcional)
     // Solo guardar si el usuario está autenticado
@@ -696,9 +695,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ✅ OPTIMIZACIÓN: Obtener conversationId de analytics si está disponible (sin bloquear)
+    // Si hay un conversationId existente, usarlo; si no, intentar obtenerlo de la promesa rápidamente
+    let finalConversationId = conversationId;
+    
+    // Intentar obtener conversationId de analytics si se completó rápidamente (timeout de 100ms)
+    try {
+      const analyticsResult = await Promise.race([
+        analyticsPromise,
+        new Promise<{ liaLogger: LiaLogger | null; conversationId: string | null }>((resolve) => 
+          setTimeout(() => resolve({ liaLogger: null, conversationId: null }), 100)
+        )
+      ]);
+      
+      if (analyticsResult.conversationId && !finalConversationId) {
+        finalConversationId = analyticsResult.conversationId;
+      }
+    } catch (error) {
+      // Ignorar errores, usar conversationId existente
+    }
+
     return NextResponse.json({ 
       response,
-      conversationId: conversationId || undefined // Devolver conversationId para el frontend
+      conversationId: finalConversationId || undefined // Devolver conversationId para el frontend
     });
   } catch (error) {
     logger.error('Error en API de chat:', error);

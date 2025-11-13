@@ -774,9 +774,23 @@ CONTENIDO ADAPTADO:`;
       setIsRightPanelOpen(true);
     }
 
-    // Adaptar contenido de la actividad según el rol del usuario
+    // ✅ OPTIMIZACIÓN: Usar contenido original inmediatamente, adaptar en background si es necesario
     const userRole = user?.type_rol;
-    const adaptedContent = await adaptActivityContentForRole(activityContent, activityTitle, userRole);
+    let adaptedContent = activityContent; // Usar contenido original por defecto (más rápido)
+    
+    // Adaptar contenido en background si hay rol del usuario (no bloquea la interacción inicial)
+    if (userRole) {
+      adaptActivityContentForRole(activityContent, activityTitle, userRole)
+        .then((adapted) => {
+          // Si la adaptación se completa y es diferente, se puede usar en mensajes futuros
+          // Por ahora, usamos el contenido original para la primera interacción
+          adaptedContent = adapted;
+        })
+        .catch((error) => {
+          console.error('Error adaptando contenido (background):', error);
+          // Continuar con contenido original si falla
+        });
+    }
 
     // Construir el prompt profesional para LIA con GUARDRAILS
     const roleInfo = userRole 
@@ -2405,10 +2419,19 @@ Antes de cada respuesta, pregúntate:
                         bottom: isMobileBottomNavVisible
                           ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`
                           : `max(env(safe-area-inset-bottom, 0px), 0px)`,
-                        // Asegurar que el panel se adapte a diferentes alturas de pantalla
-                        maxHeight: screenHeight > 0 ? `${screenHeight}px` : '100vh',
+                        // Usar viewport height para máxima altura disponible
+                        height: isMobileBottomNavVisible
+                          ? `calc(100vh - ${MOBILE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`
+                          : '100vh',
+                        maxHeight: isMobileBottomNavVisible
+                          ? `calc(100vh - ${MOBILE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`
+                          : '100vh',
                       }
-                    : undefined
+                    : {
+                        // En desktop, usar toda la altura disponible del contenedor padre
+                        height: '100%',
+                        maxHeight: '100%',
+                      }
                 }
               >
                 {/* Header Lia con línea separadora alineada con panel central */}

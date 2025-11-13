@@ -67,6 +67,15 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
             role: m.role,
             content: m.content
           })),
+          // ✅ OPTIMIZACIÓN: Enviar información completa del usuario para evitar consulta a BD
+          userInfo: user ? {
+            display_name: user.display_name,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            username: user.username,
+            type_rol: user.type_rol
+          } : undefined,
+          // Mantener userName para compatibilidad con código existente
           userName: user?.display_name || 
                     (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
                     user?.first_name || 

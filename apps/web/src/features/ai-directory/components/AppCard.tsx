@@ -50,6 +50,7 @@ interface App {
 
 interface AppCardProps {
   app: App;
+  viewMode?: 'grid' | 'list';
 }
 
 const pricingColors = {
@@ -66,7 +67,7 @@ const pricingLabels = {
   subscription: 'Suscripción'
 };
 
-export function AppCard({ app }: AppCardProps) {
+export function AppCard({ app, viewMode = 'grid' }: AppCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -79,8 +80,10 @@ export function AppCard({ app }: AppCardProps) {
 
   return (
     <motion.div
-      className="group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl h-full flex flex-col"
-      whileHover={{ y: -4 }}
+      className={`group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl ${
+        viewMode === 'list' ? 'flex flex-row' : 'h-full flex flex-col'
+      }`}
+      whileHover={{ y: viewMode === 'grid' ? -4 : 0 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
     >
@@ -97,139 +100,181 @@ export function AppCard({ app }: AppCardProps) {
         </div>
       )}
 
-      {/* Category Badge */}
-      <div className="mb-4">
-        <div 
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border"
-          style={{ 
-            backgroundColor: `${app.ai_categories.color}20`,
-            color: app.ai_categories.color,
-            borderColor: `${app.ai_categories.color}30`
-          }}
-        >
-          <span>{app.ai_categories.name}</span>
-        </div>
-      </div>
-
-      {/* Logo and Title - Fixed height */}
-      <div className="flex items-start gap-4 mb-4 flex-shrink-0" style={{ minHeight: '5rem' }}>
-        <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+      {/* Logo - Different size for list mode */}
+      {viewMode === 'list' && (
+        <div className="w-24 h-24 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0 mr-6">
           {app.logo_url ? (
             <Image
               src={app.logo_url}
               alt={`${app.name} logo`}
-              width={64}
-              height={64}
+              width={96}
+              height={96}
               className="w-full h-full object-contain"
             />
           ) : (
             <div className="w-full h-full rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">
+              <span className="text-white font-bold text-2xl">
                 {app.name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
         </div>
-        
-        <div className="flex-1 min-w-0 flex flex-col justify-start">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors line-clamp-2">
-            {app.name}
-          </h3>
-          
-          {/* Pricing Badge */}
-          <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full border text-xs font-semibold ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
-            <span>{pricingLabels[app.pricing_model as keyof typeof pricingLabels]}</span>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {/* Description - Fixed height */}
-      <div className="mb-4 flex-shrink-0" style={{ minHeight: '4.5rem' }}>
-        <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
-          {app.description}
-        </p>
-      </div>
-
-      {/* Features - Fixed height */}
-      <div className="flex flex-wrap gap-2 mb-4 flex-shrink-0" style={{ minHeight: '2rem' }}>
-        {app.features.slice(0, 3).map((feature, index) => (
-          <span
-            key={index}
-            className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs"
+      <div className={`flex-1 flex flex-col ${viewMode === 'list' ? 'min-w-0' : ''}`}>
+        {/* Category Badge */}
+        <div className={viewMode === 'list' ? 'mb-2' : 'mb-4'}>
+          <div 
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border"
+            style={{ 
+              backgroundColor: `${app.ai_categories.color}20`,
+              color: app.ai_categories.color,
+              borderColor: `${app.ai_categories.color}30`
+            }}
           >
-            {feature}
-          </span>
-        ))}
-        {app.features.length > 3 && (
-          <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs">
-            +{app.features.length - 3}
-          </span>
-        )}
-      </div>
-
-      {/* Platform Availability - Fixed height */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-400 flex-shrink-0" style={{ minHeight: '1.5rem' }}>
-        {app.mobile_app && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span>Móvil</span>
+            <span>{app.ai_categories.name}</span>
           </div>
-        )}
-        {app.desktop_app && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span>Desktop</span>
-          </div>
-        )}
-        {app.browser_extension && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span>Extensión</span>
-          </div>
-        )}
-        {app.api_available && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span>API</span>
-          </div>
-        )}
-      </div>
-
-      {/* Stats - Fixed height to align ratings and views */}
-      <div className="flex items-center gap-4 mb-6 text-gray-600 dark:text-gray-400 text-xs flex-shrink-0">
-        <div className="flex items-center gap-1.5 h-[14px]">
-          <Eye className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="text-xs leading-none">{app.view_count.toLocaleString()}</span>
         </div>
-        
-        <div className="flex items-center h-[14px]">
-          {app.rating && app.rating > 0 ? (
-            <div className="flex items-center h-[14px]">
-              <StarRating
-                rating={app.rating}
-                size="sm"
-                showRatingNumber={true}
-                reviewCount={app.rating_count || 0}
-              />
+
+        {/* Logo and Title - Only for grid mode */}
+        {viewMode === 'grid' && (
+          <div className="flex items-start gap-4 mb-4 flex-shrink-0" style={{ minHeight: '5rem' }}>
+            <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {app.logo_url ? (
+                <Image
+                  src={app.logo_url}
+                  alt={`${app.name} logo`}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">
+                    {app.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
-          ) : (
-            <span className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap leading-none h-[14px] flex items-center">
-              Sin calificaciones
+            
+            <div className="flex-1 min-w-0 flex flex-col justify-start">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors line-clamp-2">
+                {app.name}
+              </h3>
+              
+              {/* Pricing Badge */}
+              <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full border text-xs font-semibold ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
+                <span>{pricingLabels[app.pricing_model as keyof typeof pricingLabels]}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Title and Pricing - For list mode */}
+        {viewMode === 'list' && (
+          <div className="mb-3">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors line-clamp-1">
+              {app.name}
+            </h3>
+            <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full border text-xs font-semibold ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
+              <span>{pricingLabels[app.pricing_model as keyof typeof pricingLabels]}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Description - Different height for list mode */}
+        <div className={`mb-4 flex-shrink-0 ${viewMode === 'grid' ? '' : 'mb-3'}`} style={viewMode === 'grid' ? { minHeight: '4.5rem' } : {}}>
+          <p className={`text-gray-600 dark:text-gray-400 text-sm ${viewMode === 'list' ? 'line-clamp-2' : 'line-clamp-3'}`}>
+            {app.description}
+          </p>
+        </div>
+
+        {/* Features - Different display for list mode */}
+        <div className={`flex flex-wrap gap-2 mb-4 flex-shrink-0 ${viewMode === 'list' ? 'mb-3' : ''}`} style={viewMode === 'grid' ? { minHeight: '2rem' } : {}}>
+          {app.features.slice(0, viewMode === 'list' ? 5 : 3).map((feature, index) => (
+            <span
+              key={index}
+              className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs"
+            >
+              {feature}
+            </span>
+          ))}
+          {app.features.length > (viewMode === 'list' ? 5 : 3) && (
+            <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs">
+              +{app.features.length - (viewMode === 'list' ? 5 : 3)}
             </span>
           )}
         </div>
-      </div>
 
-      {/* Actions - Always at the bottom */}
-      <div className="flex items-center gap-3 mt-auto" onClick={(e) => e.stopPropagation()}>
-        <Link href={`/apps-directory/${app.slug}`} className="w-full">
-          <Button
-            variant="primary"
-            className="w-full group-hover:bg-blue-600 transition-colors"
-          >
-            Descubrir
-          </Button>
-        </Link>
+        {/* Bottom section - Different layout for list mode */}
+        <div className={`${viewMode === 'list' ? 'flex items-center justify-between gap-4' : ''}`}>
+          <div className={viewMode === 'list' ? 'flex-1' : ''}>
+            {/* Platform Availability */}
+            <div className={`flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 flex-shrink-0 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`} style={viewMode === 'grid' ? { minHeight: '1.5rem' } : {}}>
+              {app.mobile_app && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>Móvil</span>
+                </div>
+              )}
+              {app.desktop_app && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>Desktop</span>
+                </div>
+              )}
+              {app.browser_extension && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>Extensión</span>
+                </div>
+              )}
+              {app.api_available && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>API</span>
+                </div>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className={`flex items-center gap-4 text-gray-600 dark:text-gray-400 text-xs flex-shrink-0 ${viewMode === 'list' ? 'mb-0' : 'mb-6'}`}>
+              <div className="flex items-center gap-1.5 h-[14px]">
+                <Eye className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="text-xs leading-none">{app.view_count.toLocaleString()}</span>
+              </div>
+              
+              <div className="flex items-center h-[14px]">
+                {app.rating && app.rating > 0 ? (
+                  <div className="flex items-center h-[14px]">
+                    <StarRating
+                      rating={app.rating}
+                      size="sm"
+                      showRatingNumber={true}
+                      reviewCount={app.rating_count || 0}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap leading-none h-[14px] flex items-center">
+                    Sin calificaciones
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className={`flex items-center gap-3 ${viewMode === 'list' ? 'mt-0' : 'mt-auto'}`} onClick={(e) => e.stopPropagation()}>
+            <Link href={`/apps-directory/${app.slug}`} className={viewMode === 'list' ? '' : 'w-full'}>
+              <Button
+                variant="primary"
+                className={`${viewMode === 'list' ? '' : 'w-full'} group-hover:bg-blue-600 transition-colors`}
+              >
+                Descubrir
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Hover Effect */}
