@@ -24,6 +24,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { QuestionnaireValidationService } from '@/features/auth/services/questionnaire-validation.service';
 
 /**
  * Resultado exitoso de autenticación
@@ -146,6 +147,38 @@ export async function requireAdmin(): Promise<AdminAuth | NextResponse> {
       );
     }
 
+    // PASO 7: Verificar cuestionario obligatorio para usuarios OAuth (INCLUSO ADMINISTRADORES)
+    try {
+      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+      
+      if (requiresQuestionnaire) {
+        logger.warn('OAuth admin user attempted to access admin route without completing questionnaire', { 
+          userId: user.id,
+          email: user.email 
+        });
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Debes completar el cuestionario obligatorio antes de acceder a esta funcionalidad. Por favor, completa el cuestionario en /statistics.' 
+          },
+          { status: 403 }
+        );
+      }
+    } catch (questionnaireError) {
+      // Fail-secure: Si hay error verificando cuestionario, denegar acceso
+      logger.error('Error verifying questionnaire for admin user', { 
+        userId: user.id,
+        error: questionnaireError instanceof Error ? questionnaireError.message : 'Unknown error'
+      });
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Error verificando requisitos de acceso. Por favor, intenta nuevamente.' 
+        },
+        { status: 500 }
+      );
+    }
+
     // ✅ AUTENTICACIÓN Y AUTORIZACIÓN EXITOSA
     logger.auth('Admin access granted', { 
       userId: user.id, 
@@ -238,6 +271,39 @@ export async function requireInstructor(): Promise<AdminAuth | NextResponse> {
           error: 'Permisos insuficientes. Se requiere rol de Instructor o Administrador.' 
         },
         { status: 403 }
+      );
+    }
+
+    // Verificar cuestionario obligatorio para usuarios OAuth (INCLUSO INSTRUCTORES Y ADMINISTRADORES)
+    try {
+      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+      
+      if (requiresQuestionnaire) {
+        logger.warn('OAuth instructor/admin user attempted to access instructor route without completing questionnaire', { 
+          userId: user.id,
+          email: user.email,
+          role: user.cargo_rol 
+        });
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Debes completar el cuestionario obligatorio antes de acceder a esta funcionalidad. Por favor, completa el cuestionario en /statistics.' 
+          },
+          { status: 403 }
+        );
+      }
+    } catch (questionnaireError) {
+      // Fail-secure: Si hay error verificando cuestionario, denegar acceso
+      logger.error('Error verifying questionnaire for instructor/admin user', { 
+        userId: user.id,
+        error: questionnaireError instanceof Error ? questionnaireError.message : 'Unknown error'
+      });
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Error verificando requisitos de acceso. Por favor, intenta nuevamente.' 
+        },
+        { status: 500 }
       );
     }
 

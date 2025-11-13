@@ -198,17 +198,22 @@ export async function middleware(request: NextRequest) {
 
     logger.log('✅ Sesión válida para usuario:', sessionData.user_id)
 
-    // Verificar si usuario OAuth necesita cuestionario
+    // Verificar si usuario OAuth necesita cuestionario (OBLIGATORIO - NO SE PUEDE ESQUIVAR)
+    // Esta validación se ejecuta ANTES de las validaciones de rol para asegurar que ningún usuario OAuth
+    // pueda acceder sin completar el cuestionario, incluso si es administrador o instructor
     try {
       const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(sessionData.user_id)
       
       if (requiresQuestionnaire) {
         logger.log('📋 Usuario OAuth sin cuestionario detectado, redirigiendo a /statistics')
+        // Redirigir a /statistics sin importar la ruta que intentó acceder
         return NextResponse.redirect(new URL('/statistics', request.url))
       }
     } catch (questionnaireError) {
-      logger.error('❌ Error verificando cuestionario:', questionnaireError)
-      // Continuar con el flujo normal si hay error en la verificación
+      // Fail-secure: Si hay error verificando cuestionario, denegar acceso por seguridad
+      // NO permitir acceso si no podemos verificar el estado del cuestionario
+      logger.error('❌ Error verificando cuestionario - DENEGANDO ACCESO por seguridad:', questionnaireError)
+      return NextResponse.redirect(new URL('/statistics', request.url))
     }
   } catch (error) {
     logger.error('❌ Error validando sesión:', error)
