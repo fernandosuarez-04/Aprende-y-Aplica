@@ -2419,10 +2419,19 @@ Antes de cada respuesta, pregúntate:
                         bottom: isMobileBottomNavVisible
                           ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`
                           : `max(env(safe-area-inset-bottom, 0px), 0px)`,
-                        // Asegurar que el panel se adapte a diferentes alturas de pantalla
-                        maxHeight: screenHeight > 0 ? `${screenHeight}px` : '100vh',
+                        // Usar viewport height para máxima altura disponible
+                        height: isMobileBottomNavVisible
+                          ? `calc(100vh - ${MOBILE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`
+                          : '100vh',
+                        maxHeight: isMobileBottomNavVisible
+                          ? `calc(100vh - ${MOBILE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`
+                          : '100vh',
                       }
-                    : undefined
+                    : {
+                        // En desktop, usar toda la altura disponible del contenedor padre
+                        height: '100%',
+                        maxHeight: '100%',
+                      }
                 }
               >
                 {/* Header Lia con línea separadora alineada con panel central */}

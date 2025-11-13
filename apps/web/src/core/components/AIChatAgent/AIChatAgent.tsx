@@ -216,6 +216,17 @@ export function AIChatAgent({
     ? 'calc(5.5rem + env(safe-area-inset-bottom, 0px))'
     : 'calc(1.5rem + env(safe-area-inset-bottom, 0px))';
 
+  // Calcular altura máxima disponible dinámicamente
+  const calculateMaxHeight = useMemo(() => {
+    // En móvil en communities, restar 5.5rem (bottom position) + 1.5rem de margen superior
+    if (isCommunitiesPage && !isDesktop) {
+      return 'calc(100vh - 5.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
+    }
+    
+    // En otras páginas, restar 1.5rem de margen inferior + safe area + 1.5rem de margen superior
+    return 'calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
+  }, [isCommunitiesPage, isDesktop]);
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   // Mensaje de bienvenida eliminado - el chat inicia vacío
@@ -856,9 +867,11 @@ export function AIChatAgent({
             }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-3rem)] z-[99999]"
+            className="fixed right-6 w-96 max-w-[calc(100vw-3rem)] z-[99999]"
             style={{
               bottom: bottomPosition,
+              height: calculateMaxHeight,
+              maxHeight: calculateMaxHeight,
             }}
           >
         <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
@@ -941,7 +954,6 @@ export function AIChatAgent({
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
               style={{ 
-                maxHeight: 'calc(600px - 200px)', // Altura total menos header e input
                 scrollBehavior: 'smooth'
               }}
             >
