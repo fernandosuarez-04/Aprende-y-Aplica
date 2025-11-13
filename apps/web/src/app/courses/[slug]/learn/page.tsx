@@ -1073,6 +1073,24 @@ Antes de cada respuesta, pregúntate:
             ? Math.round((completedLessons.length / allLessons.length) * 100)
             : 0;
           setCourseProgress(totalProgress);
+
+          // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
+          if (learnData.lastWatchedLessonId && allLessons.length > 0) {
+            const lastWatchedLesson = allLessons.find(
+              (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
+            );
+            if (lastWatchedLesson) {
+              setCurrentLesson(lastWatchedLesson);
+            } else if (allLessons.length > 0) {
+              // Fallback: primera lección no completada o primera lección
+              const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
+              setCurrentLesson(nextIncomplete || allLessons[0]);
+            }
+          } else if (allLessons.length > 0) {
+            // Si no hay último video visto, cargar primera lección no completada o primera lección
+            const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
+            setCurrentLesson(nextIncomplete || allLessons[0]);
+          }
         }
 
         if (learnData.notesStats) {
@@ -1083,6 +1101,14 @@ Antes de cada respuesta, pregúntate:
         if (learnData.currentLesson && lessonId) {
           // Los datos ya están cacheados en el navegador por el fetch
           // Cuando los tabs los soliciten, vendrán del cache
+        }
+
+        // ⚡ OPTIMIZACIÓN: Si hay último video visto, precargar sus datos en paralelo
+        if (learnData.lastWatchedLessonId && !lessonId && learnData.modules) {
+          // Precargar datos de la lección en segundo plano para acelerar cuando el usuario la vea
+          dedupedFetch(
+            `/api/courses/${slug}/learn-data?lessonId=${learnData.lastWatchedLessonId}`
+          ).catch(() => null); // Ignorar errores, es solo precarga
         }
 
       } catch (error) {
@@ -1101,6 +1127,19 @@ Antes de cada respuesta, pregúntate:
   useEffect(() => {
     if (currentLesson && slug) {
       loadLessonNotes(currentLesson.lesson_id, slug);
+    }
+  }, [currentLesson?.lesson_id, slug]);
+
+  // ⚡ OPTIMIZACIÓN: Actualizar last_accessed_at cuando se carga una lección
+  useEffect(() => {
+    if (currentLesson && slug) {
+      // Actualizar last_accessed_at en segundo plano (no bloquear UI)
+      fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(() => {
+        // Ignorar errores, es solo para tracking
+      });
     }
   }, [currentLesson?.lesson_id, slug]);
 
@@ -1144,6 +1183,7 @@ Antes de cada respuesta, pregúntate:
         lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0',
       }));
 
+      // Esta función ya no se usa frecuentemente, pero mantenemos la lógica por compatibilidad
       if (modulesResponse.length > 0 && modulesResponse[0].lessons.length > 0) {
         const nextIncomplete = allLessons.find((lesson) => !lesson.is_completed);
         const selectedLesson = nextIncomplete || modulesResponse[0].lessons[0];
@@ -2079,7 +2119,8 @@ Antes de cada respuesta, pregúntate:
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <p className="text-gray-600 dark:text-slate-400">No hay lecciones disponibles</p>
+                <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-slate-400">Cargando lección...</p>
               </div>
             </div>
           )}

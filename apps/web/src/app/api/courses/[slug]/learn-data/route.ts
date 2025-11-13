@@ -116,6 +116,7 @@ export async function GET(
       },
       modules: modulesResult.modules,
       courseProgress: modulesResult.progress,
+      lastWatchedLessonId: modulesResult.lastWatchedLessonId,
       currentLesson: lessonDataResult,
       questions: questionsResult,
       notesStats: notesStatsResult || {
@@ -206,16 +207,62 @@ async function loadModulesWithProgress(
 
   // Obtener progreso del usuario
   let progressMap = new Map()
+  let lastWatchedLessonId: string | null = null
   if (userEnrollment && allLessonsData && allLessonsData.length > 0) {
+    // ⚡ OPTIMIZACIÓN: Query optimizada para obtener progreso y último video visto en una sola consulta
     const { data: progressData } = await supabase
       .from('user_lesson_progress')
-      .select('lesson_id, is_completed, lesson_status, video_progress_percentage')
+      .select('lesson_id, is_completed, lesson_status, video_progress_percentage, last_accessed_at, started_at')
       .eq('enrollment_id', userEnrollment.enrollment_id)
       .in('lesson_id', allLessonsData.map((l: any) => l.lesson_id))
+      .order('last_accessed_at', { ascending: false, nullsFirst: false })
 
     progressMap = new Map(
       (progressData || []).map((p: any) => [p.lesson_id, p])
     )
+
+    // ⚡ OPTIMIZACIÓN: Encontrar el último video visto usando last_accessed_at (más preciso que updated_at)
+    if (progressData && progressData.length > 0) {
+      // Filtrar lecciones que han sido accedidas (tienen last_accessed_at)
+      const accessedLessons = progressData.filter((p: any) => 
+        p.last_accessed_at !== null && p.last_accessed_at !== undefined
+      )
+      
+      if (accessedLessons.length > 0) {
+        // Ordenar por last_accessed_at descendente (más reciente primero)
+        accessedLessons.sort((a: any, b: any) => {
+          const dateA = new Date(a.last_accessed_at).getTime()
+          const dateB = new Date(b.last_accessed_at).getTime()
+          return dateB - dateA
+        })
+        
+        // Priorizar lecciones en progreso sobre completadas
+        const inProgress = accessedLessons.find((p: any) => 
+          !p.is_completed && (p.video_progress_percentage > 0 || p.lesson_status === 'in_progress')
+        )
+        
+        if (inProgress) {
+          lastWatchedLessonId = inProgress.lesson_id
+        } else {
+          // Si no hay en progreso, usar la última accedida (puede estar completada)
+          lastWatchedLessonId = accessedLessons[0].lesson_id
+        }
+      } else {
+        // Si no hay last_accessed_at, usar started_at como fallback
+        const startedLessons = progressData.filter((p: any) => 
+          p.started_at !== null && p.started_at !== undefined
+        )
+        
+        if (startedLessons.length > 0) {
+          startedLessons.sort((a: any, b: any) => {
+            const dateA = new Date(a.started_at).getTime()
+            const dateB = new Date(b.started_at).getTime()
+            return dateB - dateA
+          })
+          lastWatchedLessonId = startedLessons[0].lesson_id
+        }
+      }
+    }
   }
 
   // Agrupar lecciones por módulo
@@ -276,7 +323,8 @@ async function loadModulesWithProgress(
 
   return {
     modules: modulesWithLessons,
-    progress: totalProgress
+    progress: totalProgress,
+    lastWatchedLessonId
   }
 }
 
