@@ -774,9 +774,23 @@ CONTENIDO ADAPTADO:`;
       setIsRightPanelOpen(true);
     }
 
-    // Adaptar contenido de la actividad según el rol del usuario
+    // ✅ OPTIMIZACIÓN: Usar contenido original inmediatamente, adaptar en background si es necesario
     const userRole = user?.type_rol;
-    const adaptedContent = await adaptActivityContentForRole(activityContent, activityTitle, userRole);
+    let adaptedContent = activityContent; // Usar contenido original por defecto (más rápido)
+    
+    // Adaptar contenido en background si hay rol del usuario (no bloquea la interacción inicial)
+    if (userRole) {
+      adaptActivityContentForRole(activityContent, activityTitle, userRole)
+        .then((adapted) => {
+          // Si la adaptación se completa y es diferente, se puede usar en mensajes futuros
+          // Por ahora, usamos el contenido original para la primera interacción
+          adaptedContent = adapted;
+        })
+        .catch((error) => {
+          console.error('Error adaptando contenido (background):', error);
+          // Continuar con contenido original si falla
+        });
+    }
 
     // Construir el prompt profesional para LIA con GUARDRAILS
     const roleInfo = userRole 
