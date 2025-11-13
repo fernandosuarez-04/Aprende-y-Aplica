@@ -79,7 +79,7 @@ export function AppCard({ app }: AppCardProps) {
 
   return (
     <motion.div
-      className="group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl"
+      className="group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl h-full flex flex-col"
       whileHover={{ y: -4 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
@@ -111,8 +111,8 @@ export function AppCard({ app }: AppCardProps) {
         </div>
       </div>
 
-      {/* Logo and Title */}
-      <div className="flex items-start gap-4 mb-4">
+      {/* Logo and Title - Fixed height */}
+      <div className="flex items-start gap-4 mb-4 flex-shrink-0" style={{ minHeight: '5rem' }}>
         <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
           {app.logo_url ? (
             <Image
@@ -123,7 +123,7 @@ export function AppCard({ app }: AppCardProps) {
               className="w-full h-full object-contain"
             />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+            <div className="w-full h-full rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
               <span className="text-white font-bold text-lg">
                 {app.name.charAt(0).toUpperCase()}
               </span>
@@ -131,25 +131,27 @@ export function AppCard({ app }: AppCardProps) {
           )}
         </div>
         
-        <div className="flex-1 min-w-0">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
+        <div className="flex-1 min-w-0 flex flex-col justify-start">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors line-clamp-2">
             {app.name}
           </h3>
           
           {/* Pricing Badge */}
-          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
+          <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full border text-xs font-semibold ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
             <span>{pricingLabels[app.pricing_model as keyof typeof pricingLabels]}</span>
           </div>
         </div>
       </div>
 
-      {/* Description */}
-      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-        {app.description}
-      </p>
+      {/* Description - Fixed height */}
+      <div className="mb-4 flex-shrink-0" style={{ minHeight: '4.5rem' }}>
+        <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
+          {app.description}
+        </p>
+      </div>
 
-      {/* Features */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      {/* Features - Fixed height */}
+      <div className="flex flex-wrap gap-2 mb-4 flex-shrink-0" style={{ minHeight: '2rem' }}>
         {app.features.slice(0, 3).map((feature, index) => (
           <span
             key={index}
@@ -165,8 +167,8 @@ export function AppCard({ app }: AppCardProps) {
         )}
       </div>
 
-      {/* Platform Availability */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-400">
+      {/* Platform Availability - Fixed height */}
+      <div className="flex items-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-400 flex-shrink-0" style={{ minHeight: '1.5rem' }}>
         {app.mobile_app && (
           <div className="flex items-center gap-1">
             <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
@@ -193,31 +195,33 @@ export function AppCard({ app }: AppCardProps) {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 mb-6 text-gray-600 dark:text-gray-400 text-xs">
-        <div className="flex items-center gap-1">
-          <Eye className="w-3 h-3" />
-          <span>{app.view_count.toLocaleString()}</span>
+      {/* Stats - Fixed height to align ratings and views */}
+      <div className="flex items-center gap-4 mb-6 text-gray-600 dark:text-gray-400 text-xs flex-shrink-0">
+        <div className="flex items-center gap-1.5 h-[14px]">
+          <Eye className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="text-xs leading-none">{app.view_count.toLocaleString()}</span>
         </div>
         
-        {app.rating && app.rating > 0 ? (
-          <div className="flex items-center gap-1">
-            <StarRating
-              rating={app.rating}
-              size="sm"
-              showRatingNumber={true}
-              reviewCount={app.rating_count || 0}
-            />
-          </div>
-        ) : (
-          <div className="text-xs text-gray-500 dark:text-gray-500">
-            Sin calificaciones
-          </div>
-        )}
+        <div className="flex items-center h-[14px]">
+          {app.rating && app.rating > 0 ? (
+            <div className="flex items-center h-[14px]">
+              <StarRating
+                rating={app.rating}
+                size="sm"
+                showRatingNumber={true}
+                reviewCount={app.rating_count || 0}
+              />
+            </div>
+          ) : (
+            <span className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap leading-none h-[14px] flex items-center">
+              Sin calificaciones
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+      {/* Actions - Always at the bottom */}
+      <div className="flex items-center gap-3 mt-auto" onClick={(e) => e.stopPropagation()}>
         <Link href={`/apps-directory/${app.slug}`} className="w-full">
           <Button
             variant="primary"

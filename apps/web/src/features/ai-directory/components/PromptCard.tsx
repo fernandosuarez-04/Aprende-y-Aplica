@@ -103,7 +103,7 @@ export function PromptCard({ prompt }: PromptCardProps) {
 
   return (
     <motion.div
-      className="group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl"
+      className="group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl h-full flex flex-col"
       whileHover={{ y: -4 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
@@ -135,18 +135,22 @@ export function PromptCard({ prompt }: PromptCardProps) {
         </div>
       </div>
 
-      {/* Title */}
-      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
-        {prompt.title}
-      </h3>
+      {/* Title - Fixed height */}
+      <div className="mb-3 flex-shrink-0" style={{ minHeight: '3rem' }}>
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors line-clamp-2">
+          {prompt.title}
+        </h3>
+      </div>
 
-      {/* Description */}
-      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-        {prompt.description}
-      </p>
+      {/* Description - Fixed height */}
+      <div className="mb-4 flex-shrink-0" style={{ minHeight: '4.5rem' }}>
+        <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
+          {prompt.description}
+        </p>
+      </div>
 
-      {/* Tags */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      {/* Tags - Fixed height */}
+      <div className="flex flex-wrap gap-2 mb-4 flex-shrink-0" style={{ minHeight: '2rem' }}>
         {prompt.tags.slice(0, 3).map((tag, index) => (
           <span
             key={index}
@@ -162,9 +166,9 @@ export function PromptCard({ prompt }: PromptCardProps) {
         )}
       </div>
 
-      {/* Difficulty and Time */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium ${difficultyColors[prompt.difficulty_level as keyof typeof difficultyColors]}`}>
+      {/* Difficulty and Time - Fixed height */}
+      <div className="flex items-center gap-4 mb-4 flex-shrink-0" style={{ minHeight: '1.75rem' }}>
+        <div className={`flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-semibold ${difficultyColors[prompt.difficulty_level as keyof typeof difficultyColors]}`}>
           <span>{difficultyLabels[prompt.difficulty_level as keyof typeof difficultyLabels]}</span>
         </div>
         
@@ -176,36 +180,38 @@ export function PromptCard({ prompt }: PromptCardProps) {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 mb-6 text-gray-600 dark:text-gray-400 text-xs">
-        <div className="flex items-center gap-1">
-          <Eye className="w-3 h-3" />
-          <span>{prompt.view_count.toLocaleString()}</span>
+      {/* Stats - Fixed height to align ratings and views */}
+      <div className="flex items-center gap-4 mb-6 text-gray-600 dark:text-gray-400 text-xs flex-shrink-0">
+        <div className="flex items-center gap-1.5 h-[14px]">
+          <Eye className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="text-xs leading-none">{prompt.view_count.toLocaleString()}</span>
         </div>
         
-        {prompt.rating && prompt.rating > 0 ? (
-          <div className="flex items-center gap-1">
-            <StarRating
-              rating={prompt.rating}
-              size="sm"
-              showRatingNumber={true}
-              reviewCount={prompt.rating_count || 0}
-            />
-          </div>
-        ) : (
-          <div className="text-xs text-gray-500 dark:text-gray-500">
-            Sin calificaciones
-          </div>
-        )}
+        <div className="flex items-center h-[14px]">
+          {prompt.rating && prompt.rating > 0 ? (
+            <div className="flex items-center h-[14px]">
+              <StarRating
+                rating={prompt.rating}
+                size="sm"
+                showRatingNumber={true}
+                reviewCount={prompt.rating_count || 0}
+              />
+            </div>
+          ) : (
+            <span className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap leading-none h-[14px] flex items-center">
+              Sin calificaciones
+            </span>
+          )}
+        </div>
         
-        <div className="flex items-center gap-1">
-          <Download className="w-3 h-3" />
-          <span>{prompt.download_count}</span>
+        <div className="flex items-center gap-1.5 h-[14px]">
+          <Download className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="text-xs leading-none">{prompt.download_count}</span>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 relative z-10">
+      {/* Actions - Always at the bottom */}
+      <div className="flex items-center gap-3 relative z-10 mt-auto">
         <Link href={`/prompt-directory/${prompt.slug}`} className="flex-1">
           <Button 
             variant="primary" 
