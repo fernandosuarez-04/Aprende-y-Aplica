@@ -4,7 +4,7 @@ import React, { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone } from 'lucide-react';
+import { User, Mail, Phone, Briefcase } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Button } from '@aprende-y-aplica/ui';
 import { RegisterFormData } from '../../types/auth.types';
@@ -44,6 +44,7 @@ export function RegisterForm() {
       confirmEmail: '',
       password: '',
       confirmPassword: '',
+      cargo_titulo: '',
       acceptTerms: false,
     },
   });
@@ -249,6 +250,38 @@ export function RegisterForm() {
                   transition={{ duration: 0.2 }}
                 >
                   {errors.username.message}
+                </motion.p>
+              )}
+            </motion.div>
+
+            {/* Cargo / Título */}
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.17, duration: 0.4 }}
+            >
+              <label htmlFor="cargo_titulo" className="auth-label">
+                Cargo / Título <span className="text-text-tertiary text-xs">(Opcional)</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="cargo_titulo"
+                  type="text"
+                  placeholder="Ej: Desarrollador, Gerente, CEO, etc."
+                  {...register('cargo_titulo')}
+                  className={`auth-input pr-12 ${errors.cargo_titulo ? 'border-error' : ''}`}
+                />
+                <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
+              </div>
+              {errors.cargo_titulo && (
+                <motion.p 
+                  className="auth-error"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {errors.cargo_titulo.message}
                 </motion.p>
               )}
             </motion.div>

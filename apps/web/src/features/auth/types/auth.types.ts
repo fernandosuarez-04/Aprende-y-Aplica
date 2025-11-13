@@ -14,6 +14,7 @@ export interface RegisterFormData {
   confirmEmail: string;
   password: string;
   confirmPassword: string;
+  cargo_titulo?: string;
   acceptTerms: boolean;
 }
 
