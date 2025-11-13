@@ -4417,6 +4417,34 @@ function ActivitiesContent({
     is_downloadable: boolean;
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [collapsedActivities, setCollapsedActivities] = useState<Set<string>>(new Set());
+  const [collapsedMaterials, setCollapsedMaterials] = useState<Set<string>>(new Set());
+  const [activitiesInitialized, setActivitiesInitialized] = useState(false);
+  const [materialsInitialized, setMaterialsInitialized] = useState(false);
+  
+  // Resetear estados de inicialización cuando cambia la lección
+  useEffect(() => {
+    setActivitiesInitialized(false);
+    setMaterialsInitialized(false);
+    setCollapsedActivities(new Set());
+    setCollapsedMaterials(new Set());
+  }, [lesson?.lesson_id]);
+  
+  // Inicializar todas las actividades como colapsadas cuando se cargan por primera vez
+  useEffect(() => {
+    if (activities.length > 0 && !activitiesInitialized) {
+      setCollapsedActivities(new Set(activities.map(a => a.activity_id)));
+      setActivitiesInitialized(true);
+    }
+  }, [activities, activitiesInitialized]);
+  
+  // Inicializar todos los materiales como colapsados cuando se cargan por primera vez
+  useEffect(() => {
+    if (materials.length > 0 && !materialsInitialized) {
+      setCollapsedMaterials(new Set(materials.map(m => m.material_id)));
+      setMaterialsInitialized(true);
+    }
+  }, [materials, materialsInitialized]);
   const [quizStatus, setQuizStatus] = useState<{
     hasRequiredQuizzes: boolean;
     totalRequiredQuizzes: number;
@@ -4664,12 +4692,16 @@ function ActivitiesContent({
           
           {/* Contenido de actividades */}
           <div className="p-6 space-y-4">
-            {activities.map((activity) => (
+            {activities.map((activity) => {
+              const isCollapsed = collapsedActivities.has(activity.activity_id);
+              
+              return (
               <div
                 key={activity.activity_id}
-                className="bg-gray-50 dark:bg-carbon-800 rounded-lg p-5 border border-gray-200 dark:border-carbon-600"
+                className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-3">
+                {/* Header de la actividad con botón de colapsar/expandir */}
+                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
@@ -4711,13 +4743,51 @@ function ActivitiesContent({
                         return null;
                       })()}
                     </div>
-                    {activity.activity_description && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{activity.activity_description}</p>
+                    {activity.activity_description && !isCollapsed && (
+                      <p className="text-gray-700 dark:text-slate-300 text-sm">{activity.activity_description}</p>
                     )}
                   </div>
+                  
+                  {/* Botón de colapsar/expandir */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsedActivities(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(activity.activity_id)) {
+                          newSet.delete(activity.activity_id);
+                        } else {
+                          newSet.add(activity.activity_id);
+                        }
+                        return newSet;
+                      });
+                    }}
+                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-carbon-600 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+                    title={isCollapsed ? "Expandir actividad" : "Colapsar actividad"}
+                  >
+                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+                      {isCollapsed ? 'Expandir' : 'Colapsar'}
+                    </span>
+                    {isCollapsed ? (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    )}
+                  </button>
                 </div>
 
-                {/* Botón especial para actividades ai_chat */}
+                {/* Contenido de la actividad (colapsable) */}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-5">
+                        {/* Botón especial para actividades ai_chat */}
                 {activity.activity_type === 'ai_chat' ? (
                   <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/10 dark:to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 dark:border-purple-500/30 text-center">
                     <div className="flex flex-col items-center gap-4">
@@ -4856,17 +4926,22 @@ function ActivitiesContent({
                   </div>
                 )}
 
-                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <HelpCircle className="w-4 h-4 text-purple-400" />
-                      <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
-                    </div>
-                    <PromptsRenderer prompts={activity.ai_prompts} />
-                  </div>
-                )}
+                        {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
+                          <div className="mt-4 pt-4 border-t border-carbon-600/50">
+                            <div className="flex items-center gap-2 mb-4">
+                              <HelpCircle className="w-4 h-4 text-purple-400" />
+                              <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
+                            </div>
+                            <PromptsRenderer prompts={activity.ai_prompts} />
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       )}
@@ -4889,12 +4964,16 @@ function ActivitiesContent({
           
           {/* Contenido de materiales */}
           <div className="p-6 space-y-4">
-            {materials.map((material) => (
+            {materials.map((material) => {
+              const isCollapsed = collapsedMaterials.has(material.material_id);
+              
+              return (
               <div
                 key={material.material_id}
-                className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-3">
+                {/* Header del material con botón de colapsar/expandir */}
+                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{material.material_title}</h4>
@@ -4936,104 +5015,161 @@ function ActivitiesContent({
                         return null;
                       })()}
                     </div>
-                    {material.material_description && material.material_type !== 'reading' && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{material.material_description}</p>
+                    {material.material_description && material.material_type !== 'reading' && !isCollapsed && (
+                      <p className="text-gray-700 dark:text-slate-300 text-sm">{material.material_description}</p>
                     )}
                   </div>
+                  
+                  {/* Botón de colapsar/expandir */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsedMaterials(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(material.material_id)) {
+                          newSet.delete(material.material_id);
+                        } else {
+                          newSet.add(material.material_id);
+                        }
+                        return newSet;
+                      });
+                    }}
+                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+                    title={isCollapsed ? "Expandir material" : "Colapsar material"}
+                  >
+                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+                      {isCollapsed ? 'Expandir' : 'Colapsar'}
+                    </span>
+                    {isCollapsed ? (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    )}
+                  </button>
                 </div>
                 
-                {/* Contenido del material */}
-                {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
-                  <div className="w-full mt-4">
-                    {material.material_type === 'quiz' && (() => {
-                      try {
-                        let quizData = material.content_data;
+                {/* Contenido del material (colapsable) */}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-5 pt-4">
+                        {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
+                          <div className="w-full">
+                            {material.material_type === 'quiz' && (() => {
+                              try {
+                                let quizData = material.content_data;
 
-                        // Si es string, intentar parsearlo
-                        if (typeof quizData === 'string') {
-                          try {
-                            quizData = JSON.parse(quizData);
-                          } catch (e) {
-                            // console.warn('Quiz content is not valid JSON:', e);
-                            return null;
-                          }
-                        }
+                                // Si es string, intentar parsearlo
+                                if (typeof quizData === 'string') {
+                                  try {
+                                    quizData = JSON.parse(quizData);
+                                  } catch (e) {
+                                    // console.warn('Quiz content is not valid JSON:', e);
+                                    return null;
+                                  }
+                                }
 
-                        // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                        let questionsArray = quizData;
-                        let totalPoints = undefined;
+                                // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                                let questionsArray = quizData;
+                                let totalPoints = undefined;
 
-                        if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                          if (quizData.questions && Array.isArray(quizData.questions)) {
-                            questionsArray = quizData.questions;
-                            totalPoints = quizData.totalPoints;
-                          }
-                        }
+                                if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                                  if (quizData.questions && Array.isArray(quizData.questions)) {
+                                    questionsArray = quizData.questions;
+                                    totalPoints = quizData.totalPoints;
+                                  }
+                                }
 
-                        // Verificar que es un array con preguntas
-                        if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                          // Verificar que cada elemento tiene la estructura de pregunta
-                          const hasValidStructure = questionsArray.every((q: any) =>
-                            q && typeof q === 'object' && (q.question || q.id)
-                          );
+                                // Verificar que es un array con preguntas
+                                if (Array.isArray(questionsArray) && questionsArray.length > 0) {
+                                  // Verificar que cada elemento tiene la estructura de pregunta
+                                  const hasValidStructure = questionsArray.every((q: any) =>
+                                    q && typeof q === 'object' && (q.question || q.id)
+                                  );
 
-                          if (hasValidStructure) {
-                            return (
-                              <QuizRenderer 
-                                quizData={questionsArray} 
-                                totalPoints={totalPoints}
-                                lessonId={lesson.lesson_id}
-                                slug={slug}
-                                materialId={material.material_id}
+                                  if (hasValidStructure) {
+                                    return (
+                                      <QuizRenderer 
+                                        quizData={questionsArray} 
+                                        totalPoints={totalPoints}
+                                        lessonId={lesson.lesson_id}
+                                        slug={slug}
+                                        materialId={material.material_id}
+                                      />
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                // console.warn('Error parsing quiz data:', e);
+                              }
+                              return null;
+                            })()}
+                            {material.material_type === 'reading' && (
+                              <ReadingContentRenderer 
+                                content={material.content_data || material.material_description} 
                               />
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        // console.warn('Error parsing quiz data:', e);
-                      }
-                      return null;
-                    })()}
-                    {material.material_type === 'reading' && (
-                      <ReadingContentRenderer 
-                        content={material.content_data || material.material_description} 
-                      />
-                    )}
-                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
-                      <FormattedContentRenderer content={material.content_data} />
-                    )}
-                  </div>
-                )}
+                            )}
+                            {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
+                              <FormattedContentRenderer content={material.content_data} />
+                            )}
+                          </div>
+                        )}
 
-                {/* Enlaces y acciones */}
-                {(material.external_url || material.file_url) && (
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
-                    {material.external_url && (
-                      <a
-                        href={material.external_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
-                      >
-                        <FileDown className="w-4 h-4" />
-                        <span className="text-sm">Abrir enlace</span>
-                      </a>
-                    )}
-                    {material.file_url && (
-                      <a
-                        href={material.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
-                      >
-                        <FileDown className="w-4 h-4" />
-                        <span className="text-sm">Ver archivo</span>
-                      </a>
-                    )}
-                  </div>
-                )}
+                        {/* Enlaces y acciones */}
+                        {(material.external_url || material.file_url) && (
+                          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
+                            {material.external_url && (
+                              <a
+                                href={material.external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                              >
+                                <FileDown className="w-4 h-4" />
+                                <span className="text-sm">Abrir enlace</span>
+                              </a>
+                            )}
+                            {material.file_url && (
+                              <a
+                                href={material.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                              >
+                                <FileDown className="w-4 h-4" />
+                                <span className="text-sm">Ver archivo</span>
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            ))}
+            );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Leyenda informativa sobre requisitos para avanzar */}
+      {(hasActivities || hasMaterials) && (
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">
+                Para avanzar a la siguiente lección, es necesario completar todas las actividades requeridas y aprobar los quizzes correspondientes. 
+                Te recomendamos revisar cada actividad y material con atención para asegurar una comprensión completa del contenido.
+              </p>
+            </div>
           </div>
         </div>
       )}
