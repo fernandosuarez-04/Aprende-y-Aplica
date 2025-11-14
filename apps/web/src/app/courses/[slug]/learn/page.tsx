@@ -1,6 +1,6 @@
  'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -216,6 +216,21 @@ export default function CourseLearnPage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []); // Solo ejecutar al montar
+
+  // Calcular altura máxima disponible para el panel de LIA dinámicamente
+  // Similar al sistema usado en AIChatAgent.tsx (LIA general)
+  // NOTA: En móvil, no usamos height cuando el contenedor ya tiene top y bottom,
+  // para evitar que se corte el área de entrada
+  const calculateLiaMaxHeight = useMemo(() => {
+    if (isMobile) {
+      // En móvil, no retornar height ya que usamos top: 0 y bottom para posicionamiento
+      // Esto permite que el contenedor se ajuste automáticamente y el área de entrada no se corte
+      return undefined;
+    }
+    
+    // En desktop, usar toda la altura disponible del contenedor padre
+    return '100%';
+  }, [isMobile, isMobileBottomNavVisible]);
 
   // Calcular padding dinámico para el área de entrada según altura de pantalla
   const getInputAreaPadding = (): string => {
@@ -2416,21 +2431,21 @@ Antes de cada respuesta, pregúntate:
                 style={
                   isMobile
                     ? {
+                        // En móvil, ajustar el bottom para respetar la navegación inferior
+                        // El contenedor tiene bottom-0 en la clase, pero necesitamos sobrescribirlo
+                        // cuando hay navegación inferior visible para evitar que se corte el textarea
                         bottom: isMobileBottomNavVisible
-                          ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`
-                          : `max(env(safe-area-inset-bottom, 0px), 0px)`,
-                        // Usar viewport height para máxima altura disponible
-                        height: isMobileBottomNavVisible
-                          ? `calc(100vh - ${MOBILE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`
-                          : '100vh',
-                        maxHeight: isMobileBottomNavVisible
-                          ? `calc(100vh - ${MOBILE_BOTTOM_NAV_HEIGHT_PX}px - env(safe-area-inset-bottom, 0px))`
-                          : '100vh',
+                          ? `${MOBILE_BOTTOM_NAV_HEIGHT_PX}px`
+                          : 0,
+                        // No establecer height para que se ajuste automáticamente entre top y bottom
+                        // Esto asegura que el área de entrada siempre esté visible y no se corte
                       }
                     : {
                         // En desktop, usar toda la altura disponible del contenedor padre
-                        height: '100%',
-                        maxHeight: '100%',
+                        ...(calculateLiaMaxHeight && {
+                          height: calculateLiaMaxHeight,
+                          maxHeight: calculateLiaMaxHeight,
+                        }),
                       }
                 }
               >
@@ -2685,14 +2700,16 @@ Antes de cada respuesta, pregúntate:
                   )}
                 </AnimatePresence>
 
-                {/* Área de entrada */}
+                {/* Área de entrada - Similar a LIA general con mejor manejo de altura */}
                 <div
                   className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
                   style={isMobile ? {
-                    paddingBottom: getInputAreaPadding()
+                    // Asegurar padding suficiente para safe area y evitar que se corte
+                    // El padding bottom debe incluir el safe area para dispositivos con notch
+                    paddingBottom: `calc(${getInputAreaPadding()} + max(env(safe-area-inset-bottom, 0px), 8px))`,
                   } : undefined}
                 >
-                  <div className="flex gap-2 items-end">
+                  <div className="flex gap-2 items-end min-w-0">
                     <textarea
                       ref={liaTextareaRef}
                       placeholder="Escribe tu pregunta a Lia..."
@@ -2709,7 +2726,7 @@ Antes de cada respuesta, pregúntate:
                         }
                       }}
                       disabled={isLiaLoading}
-                      className="flex-1 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none lia-textarea-scrollbar"
+                      className="flex-1 min-w-0 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none lia-textarea-scrollbar"
                       style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
                     />
                     <button

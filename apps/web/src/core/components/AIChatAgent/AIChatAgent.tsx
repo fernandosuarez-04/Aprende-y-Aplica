@@ -241,12 +241,20 @@ export function AIChatAgent({
   } | null>(null);
 
   // Extraer contenido del DOM cuando cambie la ruta o cuando se abra el chat
+  // NOTA: Cuando el chat está abierto y cambia la página, el contenido se maneja
+  // en el useEffect de cambio de página para evitar condiciones de carrera
   useEffect(() => {
+    // Si el chat está abierto, no actualizar aquí para evitar conflictos
+    // El useEffect de cambio de página se encargará de actualizar el contenido
+    if (isOpen) {
+      return;
+    }
+    
     // Extraer contenido después de un pequeño delay para asegurar que el DOM esté completamente cargado
     const timer = setTimeout(() => {
       const content = extractPageContent();
       setPageContent(content);
-      }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
+    }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
 
     return () => clearTimeout(timer);
   }, [pathname, isOpen]); // Re-extraer cuando cambie la ruta o se abra el chat
@@ -566,9 +574,15 @@ export function AIChatAgent({
     }, [isRecording]);
 
   // Función para solicitar ayuda contextual
-  const handleRequestHelp = useCallback(async () => {
-    // Forzar extracción de contenido si no está disponible
-    let currentPageContent = pageContent;
+  // Permite pasar contenido de página directamente para evitar problemas de sincronización
+  const handleRequestHelp = useCallback(async (overridePageContent?: {
+    title: string;
+    metaDescription: string;
+    headings: string[];
+    mainText: string;
+  } | null) => {
+    // Usar el contenido pasado como parámetro, o el del estado, o extraerlo si no está disponible
+    let currentPageContent = overridePageContent ?? pageContent;
     if (!currentPageContent || !currentPageContent.title) {
       currentPageContent = extractPageContent();
       setPageContent(currentPageContent);
@@ -657,27 +671,88 @@ export function AIChatAgent({
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
       
-      // Limpiar mensajes cuando cambia la página
+      // Limpiar mensajes y contenido de página cuando cambia la página
+      // Esto evita usar contenido de la página anterior
       setMessages([]);
+      setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
       
       // Si el chat está abierto, ejecutar la ayuda automáticamente en la nueva página
       if (wasOpen) {
         // Marcar que ya se abrió para evitar que el otro useEffect interfiera
         hasOpenedRef.current = true;
-        // Esperar un poco más para asegurar que el estado se haya actualizado completamente
-        // y que el contenido de la nueva página esté disponible
+        
+        // Función para esperar a que el contenido de la nueva página esté listo
+        const waitForNewPageContent = async (): Promise<{
+          title: string;
+          metaDescription: string;
+          headings: string[];
+          mainText: string;
+        }> => {
+          // Esperar múltiples frames para asegurar que React haya renderizado
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          
+          // Esperar un tiempo adicional para contenido dinámico (APIs, animaciones, etc.)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Extraer contenido y verificar que sea válido y estable
+          let attempts = 0;
+          const maxAttempts = 5;
+          let lastContent = '';
+          let stableCount = 0;
+          
+          while (attempts < maxAttempts) {
+            const currentPageContent = extractPageContent();
+            const contentHash = `${currentPageContent.title}-${currentPageContent.mainText.substring(0, 100)}`;
+            
+            // Verificar que el contenido sea válido
+            const isValid = currentPageContent.title && 
+                           currentPageContent.title === document.title && 
+                           currentPageContent.mainText.length > 50;
+            
+            if (isValid) {
+              // Si el contenido es el mismo que en el intento anterior, incrementar contador de estabilidad
+              if (contentHash === lastContent) {
+                stableCount++;
+                // Si el contenido es estable durante 2 intentos consecutivos, considerarlo listo
+                if (stableCount >= 2) {
+                  return currentPageContent;
+                }
+              } else {
+                // Si cambió, resetear el contador de estabilidad
+                stableCount = 0;
+              }
+            }
+            
+            lastContent = contentHash;
+            
+            // Esperar un poco más antes del siguiente intento
+            await new Promise(resolve => setTimeout(resolve, 300));
+            attempts++;
+          }
+          
+          // Si después de varios intentos no hay contenido válido, devolver lo que haya
+          return extractPageContent();
+        };
+        
+        // Ejecutar la espera y luego enviar la ayuda
         const timer = setTimeout(async () => {
-          // Forzar extracción de contenido de la nueva página
-          const currentPageContent = extractPageContent();
-          setPageContent(currentPageContent);
-          
-          // Esperar un poco más para que el contenido se haya actualizado
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-          // Ejecutar la ayuda con el estado actualizado
-          handleRequestHelp();
-        }, 600);
+          try {
+            const currentPageContent = await waitForNewPageContent();
+            setPageContent(currentPageContent);
+            
+            // Pasar el contenido directamente a handleRequestHelp para evitar problemas
+            // de sincronización con el estado de React
+            handleRequestHelp(currentPageContent);
+          } catch (error) {
+            // Si hay error, intentar de todas formas con el contenido actual
+            const fallbackContent = extractPageContent();
+            setPageContent(fallbackContent);
+            handleRequestHelp(fallbackContent);
+          }
+        }, 50); // Delay mínimo inicial
+        
         return () => clearTimeout(timer);
       } else {
         // Si el chat está cerrado, resetear el flag para que se ejecute cuando se abra
@@ -1078,7 +1153,7 @@ export function AIChatAgent({
                       toggleRecording();
                     }
                   }}
-                  disabled={isTyping && inputMessage.trim()}
+                  disabled={isTyping && !!inputMessage.trim()}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
