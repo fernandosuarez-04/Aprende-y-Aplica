@@ -117,6 +117,8 @@ export default function CourseLearnPage() {
   const [isMobile, setIsMobile] = useState(false);
   // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
   const [screenHeight, setScreenHeight] = useState(0);
+  // Estado para la altura del visualViewport (para manejar el teclado en móvil)
+  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
   
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
@@ -217,20 +219,66 @@ export default function CourseLearnPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []); // Solo ejecutar al montar
 
+  // Detectar cambios en visualViewport para manejar el teclado en móvil
+  // Similar a la implementación de LIA general
+  useEffect(() => {
+    if (!isMobile) {
+      setVisualViewportHeight(null);
+      return;
+    }
+
+    // Verificar si visualViewport está disponible
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      const updateViewportHeight = () => {
+        setVisualViewportHeight(window.visualViewport?.height || null);
+      };
+
+      // Establecer valor inicial
+      updateViewportHeight();
+
+      // Escuchar cambios en el visualViewport (cuando se abre/cierra el teclado)
+      window.visualViewport.addEventListener('resize', updateViewportHeight);
+      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+
+      return () => {
+        window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+        window.visualViewport?.removeEventListener('scroll', updateViewportHeight);
+      };
+    } else {
+      // Fallback: usar window.innerHeight si visualViewport no está disponible
+      const handleResize = () => {
+        setVisualViewportHeight(window.innerHeight);
+      };
+
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [isMobile]);
+
   // Calcular altura máxima disponible para el panel de LIA dinámicamente
   // Similar al sistema usado en AIChatAgent.tsx (LIA general)
-  // NOTA: En móvil, no usamos height cuando el contenedor ya tiene top y bottom,
-  // para evitar que se corte el área de entrada
+  // Ahora incluye soporte para visualViewport cuando el teclado está abierto
   const calculateLiaMaxHeight = useMemo(() => {
     if (isMobile) {
-      // En móvil, no retornar height ya que usamos top: 0 y bottom para posicionamiento
-      // Esto permite que el contenedor se ajuste automáticamente y el área de entrada no se corte
+      // En móvil, usar visualViewport height si está disponible (cuando el teclado está abierto)
+      if (visualViewportHeight !== null) {
+        // Calcular altura disponible: visualViewport height menos el header
+        // El safe-area-inset-bottom se maneja en el padding del área de entrada
+        const headerHeight = 56; // Altura del header de LIA
+        const bottomNavHeight = isMobileBottomNavVisible ? MOBILE_BOTTOM_NAV_HEIGHT_PX : 0;
+        
+        // Usar calc() para incluir safe-area-inset-bottom en el cálculo CSS
+        // Esto asegura que el textbox siempre esté visible cuando el teclado está abierto
+        return `calc(${visualViewportHeight - headerHeight - bottomNavHeight}px - env(safe-area-inset-bottom, 0px))`;
+      }
+      // Si no hay visualViewport, no retornar height para que se ajuste automáticamente
       return undefined;
     }
     
     // En desktop, usar toda la altura disponible del contenedor padre
     return '100%';
-  }, [isMobile, isMobileBottomNavVisible]);
+  }, [isMobile, isMobileBottomNavVisible, visualViewportHeight]);
 
   // Calcular padding dinámico para el área de entrada según altura de pantalla
   const getInputAreaPadding = (): string => {
@@ -2437,8 +2485,12 @@ Antes de cada respuesta, pregúntate:
                         bottom: isMobileBottomNavVisible
                           ? `${MOBILE_BOTTOM_NAV_HEIGHT_PX}px`
                           : 0,
-                        // No establecer height para que se ajuste automáticamente entre top y bottom
-                        // Esto asegura que el área de entrada siempre esté visible y no se corte
+                        // Usar height cuando visualViewport está disponible (teclado abierto)
+                        // para asegurar que el textbox siempre esté visible
+                        ...(calculateLiaMaxHeight && {
+                          height: calculateLiaMaxHeight,
+                          maxHeight: calculateLiaMaxHeight,
+                        }),
                       }
                     : {
                         // En desktop, usar toda la altura disponible del contenedor padre
@@ -2718,6 +2770,17 @@ Antes de cada respuesta, pregúntate:
                         setLiaMessage(e.target.value);
                         // Ajustar altura inmediatamente al cambiar el contenido
                         setTimeout(() => adjustLiaTextareaHeight(), 0);
+                      }}
+                      onFocus={(e) => {
+                        // En móvil, asegurar que el textarea sea visible cuando se enfoca
+                        // El visualViewport ya maneja el ajuste de altura, pero esto ayuda
+                        // a asegurar que el scroll se haga correctamente
+                        if (isMobile && window.visualViewport) {
+                          // Pequeño delay para permitir que el teclado se abra
+                          setTimeout(() => {
+                            e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          }, 300);
+                        }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !isLiaLoading) {
