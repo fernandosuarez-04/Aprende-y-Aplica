@@ -331,46 +331,57 @@ export default function LeaguesPage() {
     >
       {/* Navigation Bar */}
       <motion.nav
-        className="hidden md:block bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
-        initial={{ y: -100 }}
+        className="hidden md:block"
+        initial={{ y: -80 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <Button
+        <div className="max-w-7xl mx-auto px-6 pt-6">
+          <div className="flex items-center justify-between gap-6 rounded-[32px] bg-white/5 border border-white/10 shadow-xl backdrop-blur-xl px-6 py-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
                 onClick={() => router.push(`/communities/${slug}`)}
-                className="bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white border border-gray-300 dark:border-slate-600/50"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 text-slate-900 font-semibold shadow-lg shadow-slate-200 transition-all duration-300 hover:-translate-y-0.5 dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-500 dark:text-white dark:shadow-blue-500/30"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
                 Volver
-              </Button>
-              
-              <div className="flex items-center gap-2">
+              </button>
+
+              <div className="flex items-center gap-2 flex-wrap">
                 {memberTabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => handleTabNavigation(tab.id)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`group relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                       activeTab === tab.id
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white'
                     }`}
                   >
-                    {tab.label}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {tab.label}
+                    </span>
+                    <span
+                      className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 transition-opacity ${
+                        activeTab === tab.id
+                          ? 'opacity-100 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/30'
+                          : 'group-hover:opacity-30 bg-white/50 dark:bg-gradient-to-r dark:from-blue-500 dark:to-purple-500'
+                      }`}
+                    />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar miembros..."
-                className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
-              />
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-white/60 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar miembros..."
+                  className="pl-12 pr-4 py-2 rounded-full bg-white/90 border border-white/70 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-transparent transition-all dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -1954,7 +1954,7 @@ export default function CommunityDetailPage() {
                   <button
                     key={tab.id}
                     onClick={() => handleTabNavigation(tab.id)}
-                    className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                    className={`group relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                       activeTab === tab.id
                         ? 'text-slate-900 dark:text-white'
                         : 'text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white'

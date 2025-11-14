@@ -985,7 +985,9 @@ function CommunityDetailsModal({
 
   return (
     <motion.div
-      className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9995] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[9995] bg-black/70 backdrop-blur-md flex justify-center items-start sm:items-center p-4 sm:p-8 overflow-y-auto"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -995,30 +997,31 @@ function CommunityDetailsModal({
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="relative w-full max-w-6xl bg-gradient-to-br from-[#090a1c] via-[#060614] to-[#03020b] border border-white/10 rounded-[32px] shadow-[0_40px_160px_rgba(5,3,18,0.8)] overflow-hidden text-white"
+        className="relative w-full max-w-6xl rounded-[32px] border border-slate-200/70 bg-white text-slate-900 shadow-[0_40px_160px_rgba(15,23,42,0.25)] overflow-hidden flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] dark:border-white/10 dark:bg-gradient-to-br dark:from-[#090a1c] dark:via-[#060614] dark:to-[#03020b] dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+          aria-label="Cerrar detalles de comunidad"
+          className="absolute top-4 right-4 w-11 h-11 rounded-full bg-black/5 text-slate-600 hover:bg-black/10 flex items-center justify-center transition dark:bg-white/10 dark:hover:bg-white/20 dark:text-white"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="p-8 space-y-8">
+        <div className="flex-1 p-6 sm:p-8 space-y-8 overflow-y-auto">
           <div className="relative">
-            <div className="h-64 rounded-[32px] overflow-hidden border border-white/10 bg-slate-900/40 shadow-[0_25px_90px_rgba(0,0,0,0.45)]">
+            <div className="h-64 rounded-[32px] overflow-hidden border border-slate-200/70 bg-slate-100 shadow-[0_25px_90px_rgba(15,23,42,0.15)] dark:border-white/10 dark:bg-slate-900/40 dark:shadow-[0_25px_90px_rgba(0,0,0,0.45)]">
               {community.image_url ? (
                 <Image src={community.image_url} alt={community.name} fill className="object-cover" />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 via-purple-600/40 to-slate-900" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050414] via-[#050414]/30 to-transparent" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.35),_transparent_55%)] mix-blend-soft-light" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent dark:from-[#050414] dark:via-[#050414]/30 dark:to-transparent" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.35),_transparent_55%)] mix-blend-soft-light pointer-events-none" />
               <div className="absolute bottom-6 left-6 right-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.4em] text-white/70">Comunidad</p>
-                  <h2 className="text-3xl font-bold">{community.name}</h2>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-600 dark:text-white/70">Comunidad</p>
+                  <h2 className="text-3xl font-bold text-slate-900 dark:text-white">{community.name}</h2>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <InfoBadge icon={community.visibility === 'public' ? Globe : Shield} value={community.visibility === 'public' ? 'Pública' : 'Privada'} />
@@ -1035,7 +1038,7 @@ function CommunityDetailsModal({
 
           <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
             <section className="space-y-6">
-              <p className="text-white/85 leading-relaxed text-lg">
+              <p className="text-slate-600 dark:text-white/85 leading-relaxed text-lg">
                 {community.description}
               </p>
 
@@ -1057,8 +1060,8 @@ function CommunityDetailsModal({
                 />
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-[26px] p-6 space-y-4">
-                <p className="text-sm uppercase tracking-[0.35em] text-white/60">Información clave</p>
+              <div className="bg-white/80 border border-slate-200/80 rounded-[26px] p-6 space-y-4 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">Información clave</p>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <HighlightItem icon={Shield} title="Moderación activa" description="Un equipo dedicado mantiene conversaciones sanas y enfocadas." />
                   <HighlightItem icon={MessageSquareIcon} title="Colaboración constante" description="Comparte ideas, dudas y recursos con profesionales afines." />
@@ -1067,8 +1070,8 @@ function CommunityDetailsModal({
             </section>
 
             <aside className="space-y-6">
-              <section className="bg-white/5 border border-white/10 rounded-[26px] p-6 space-y-4">
-                <p className="text-sm uppercase tracking-[0.35em] text-white/60">Administradores</p>
+              <section className="bg-white/80 border border-slate-200/80 rounded-[26px] p-6 space-y-4 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">Administradores</p>
                 {isLoading ? (
                   <SkeletonList items={2} height="h-14" />
                 ) : (
@@ -1091,24 +1094,24 @@ function CommunityDetailsModal({
                       />
                     ))}
                     {!admins.length && (
-                      <p className="text-xs text-white/60">Aún no se asignan administradores adicionales.</p>
+                      <p className="text-xs text-slate-500 dark:text-white/60">Aún no se asignan administradores adicionales.</p>
                     )}
                   </div>
                 )}
               </section>
 
-              <section className="bg-white/5 border border-white/10 rounded-[26px] p-6 space-y-4">
-                <p className="text-sm uppercase tracking-[0.35em] text-white/60">Miembros recientes</p>
+              <section className="bg-white/80 border border-slate-200/80 rounded-[26px] p-6 space-y-4 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">Miembros recientes</p>
                 {isLoading ? (
                   <SkeletonList items={3} height="h-12" />
                 ) : recentMembers.length ? (
                   <div className="space-y-3 max-h-48 overflow-y-auto custom-scroll pr-1">
                     {recentMembers.map((member) => (
-                      <div key={member.id} className="flex items-center gap-3 bg-white/5 rounded-2xl px-3 py-2 border border-white/5">
+                      <div key={member.id} className="flex items-center gap-3 bg-white rounded-2xl px-3 py-2 border border-slate-200/80 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
                         <AvatarCircle name={member.display_name || 'Miembro'} src={member.profile_picture_url} />
                         <div className="flex-1">
                           <p className="text-sm font-medium">{member.display_name || 'Miembro'}</p>
-                          <p className="text-xs text-white/60">
+                          <p className="text-xs text-slate-500 dark:text-white/60">
                             {member.role === 'admin' ? 'Administrador' : member.role === 'moderator' ? 'Moderador' : 'Miembro'} ·{' '}
                             {member.joined_at ? new Date(member.joined_at).toLocaleDateString('es-MX') : ''}
                           </p>
@@ -1117,7 +1120,7 @@ function CommunityDetailsModal({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-white/60">Sé el primero en unirte a esta comunidad.</p>
+                  <p className="text-xs text-slate-500 dark:text-white/60">Sé el primero en unirte a esta comunidad.</p>
                 )}
               </section>
 
@@ -1131,14 +1134,14 @@ function CommunityDetailsModal({
                 <Button
                   onClick={onClose}
                   variant="ghost"
-                className="w-full border border-white/20 text-white rounded-2xl py-4 hover:bg-white/10 text-base"
+                  className="w-full border border-slate-200 text-slate-700 rounded-2xl py-4 hover:bg-slate-50 text-base dark:border-white/20 dark:text-white dark:hover:bg-white/10"
                 >
                   Cerrar
                 </Button>
               </div>
 
               {isError && (
-                <p className="text-xs text-red-300">
+                <p className="text-xs text-red-500 dark:text-red-300">
                   No se pudieron cargar todos los detalles. Intenta nuevamente más tarde.
                 </p>
               )}
@@ -1152,13 +1155,13 @@ function CommunityDetailsModal({
 
 function DetailStat({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
   return (
-    <div className="bg-white/5 rounded-3xl border border-white/10 px-4 py-4 flex items-center gap-4 shadow-inner shadow-black/10">
-      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
+    <div className="rounded-3xl border border-slate-200/80 bg-white px-4 py-4 flex items-center gap-4 shadow-inner shadow-slate-200/60 dark:border-white/10 dark:bg-white/5 dark:shadow-black/10">
+      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200/80 text-slate-600 dark:bg-white/10 dark:border-white/10 dark:text-white">
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.35em] text-white/60">{label}</p>
-        <p className="text-xl font-semibold">{value}</p>
+        <p className="text-xs uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">{label}</p>
+        <p className="text-xl font-semibold text-slate-900 dark:text-white">{value}</p>
       </div>
     </div>
   );
@@ -1166,11 +1169,11 @@ function DetailStat({ label, value, icon: Icon }: { label: string; value: string
 
 function AdminCard({ name, role, avatar }: { name: string; role: string; avatar: string | null }) {
   return (
-    <div className="flex items-center gap-3 bg-white/5 rounded-2xl px-3 py-2 border border-white/10">
+    <div className="flex items-center gap-3 bg-white rounded-2xl px-3 py-2 border border-slate-200/80 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
       <AvatarCircle name={name} src={avatar} />
       <div>
         <p className="text-sm font-semibold">{name}</p>
-        <p className="text-xs text-white/60">{role}</p>
+        <p className="text-xs text-slate-500 dark:text-white/60">{role}</p>
       </div>
     </div>
   );
@@ -1181,7 +1184,7 @@ function AvatarCircle({ name, src }: { name: string; src: string | null }) {
     return <Image src={src} alt={name} width={40} height={40} className="rounded-full object-cover" />;
   }
   return (
-    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-semibold">
+    <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-sm font-semibold dark:bg-white/10 dark:text-white">
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -1189,22 +1192,22 @@ function AvatarCircle({ name, src }: { name: string; src: string | null }) {
 
 function InfoBadge({ icon: Icon, value }: { icon: any; value: string }) {
   return (
-    <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur">
-      <Icon className="w-4 h-4 text-white/80" />
-      <span className="text-sm text-white/80">{value}</span>
+    <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 backdrop-blur dark:bg-white/10 dark:border-white/15 dark:text-white/80">
+      <Icon className="w-4 h-4 text-slate-600 dark:text-white/80" />
+      <span className="text-sm">{value}</span>
     </span>
   );
 }
 
 function HighlightItem({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
   return (
-    <div className="flex gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
-      <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
-        <Icon className="w-5 h-5 text-white/85" />
+    <div className="flex gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
+      <div className="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-600 dark:bg-white/10 dark:border-white/10 dark:text-white">
+        <Icon className="w-5 h-5" />
       </div>
       <div>
         <p className="text-sm font-semibold">{title}</p>
-        <p className="text-xs text-white/60">{description}</p>
+        <p className="text-xs text-slate-500 dark:text-white/60">{description}</p>
       </div>
     </div>
   );
@@ -1214,7 +1217,7 @@ function SkeletonList({ items, height }: { items: number; height: string }) {
   return (
     <div className="space-y-3">
       {[...Array(items)].map((_, idx) => (
-        <div key={idx} className={`${height} bg-white/5 rounded-2xl animate-pulse`} />
+        <div key={idx} className={`${height} bg-slate-200/60 rounded-2xl animate-pulse dark:bg-white/5`} />
       ))}
     </div>
   );

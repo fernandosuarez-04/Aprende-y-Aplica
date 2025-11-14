@@ -19,7 +19,8 @@ import {
   Wallet,
   Settings,
   Receipt,
-  Award
+  Award,
+  Languages as LanguagesIcon
 } from 'lucide-react'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
@@ -32,8 +33,11 @@ interface UserDropdownProps {
 export const UserDropdown = React.memo(function UserDropdown({ className = '' }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false)
+  const [isLanguageSubmenuOpen, setIsLanguageSubmenuOpen] = useState(false)
+  const [language, setLanguage] = useState<'es' | 'en' | 'pt'>('es')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const themeSubmenuRef = useRef<HTMLDivElement>(null)
+  const languageSubmenuRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
   const { userProfile, loading: profileLoading } = useUserProfile()
   const { theme, setTheme, resolvedTheme, initializeTheme } = useThemeStore()
@@ -50,9 +54,13 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
         setIsThemeSubmenuOpen(false)
+        setIsLanguageSubmenuOpen(false)
       }
       if (themeSubmenuRef.current && !themeSubmenuRef.current.contains(event.target as Node)) {
         setIsThemeSubmenuOpen(false)
+      }
+      if (languageSubmenuRef.current && !languageSubmenuRef.current.contains(event.target as Node)) {
+        setIsLanguageSubmenuOpen(false)
       }
     }
 
@@ -77,6 +85,27 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     await logout()
     setIsOpen(false)
   }, [logout])
+
+  useEffect(() => {
+    const savedLanguage = typeof window !== 'undefined' ? localStorage.getItem('app-language') : null
+    if (savedLanguage === 'es' || savedLanguage === 'en' || savedLanguage === 'pt') {
+      setLanguage(savedLanguage)
+    }
+  }, [])
+
+  const handleLanguageChange = useCallback((lang: 'es' | 'en' | 'pt') => {
+    setLanguage(lang)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('app-language', lang)
+    }
+    setIsLanguageSubmenuOpen(false)
+  }, [])
+
+  const languageLabelMap: Record<'es' | 'en' | 'pt', string> = {
+    es: 'Español',
+    en: 'English',
+    pt: 'Português'
+  }
 
   const truncateEmail = useCallback((email: string, maxLength: number = 20) => {
     if (email.length <= maxLength) return email
@@ -177,6 +206,16 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
       icon: resolvedTheme === 'light' ? Sun : resolvedTheme === 'dark' ? Moon : Monitor,
       onClick: () => {
         setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
+        setIsLanguageSubmenuOpen(false)
+      }
+    },
+    {
+      id: 'language',
+      label: `Idioma: ${languageLabelMap[language]}`,
+      icon: LanguagesIcon,
+      onClick: () => {
+        setIsLanguageSubmenuOpen(!isLanguageSubmenuOpen)
+        setIsThemeSubmenuOpen(false)
       }
     },
     {
@@ -378,9 +417,9 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                       }`} />
                       </motion.div>
                       <span className="font-medium text-sm flex-1">{item.label}</span>
-                      {item.id === 'theme' && (
+                      {(item.id === 'theme' || item.id === 'language') && (
                         <ChevronDown className={`w-4 h-4 text-text-secondary dark:text-text-secondary transition-transform flex-shrink-0 ${
-                          isThemeSubmenuOpen ? 'rotate-180' : ''
+                          (item.id === 'theme' && isThemeSubmenuOpen) || (item.id === 'language' && isLanguageSubmenuOpen) ? 'rotate-180' : ''
                         }`} />
                       )}
                     </motion.button>
@@ -432,6 +471,44 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                                   animate={{ scale: 1 }}
                                   transition={{ duration: 0.2 }}
                                 />
+                              )}
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {item.id === 'language' && isLanguageSubmenuOpen && (
+                      <div 
+                        ref={languageSubmenuRef}
+                        className="mt-1 ml-4 border-l-2 border-gray-300 dark:border-gray-700 pl-2"
+                      >
+                        {[
+                          { value: 'es' as const, label: 'Español' },
+                          { value: 'en' as const, label: 'English' },
+                          { value: 'pt' as const, label: 'Português' }
+                        ].map((langOption) => {
+                          const isActive = language === langOption.value
+                          return (
+                            <motion.button
+                              key={langOption.value}
+                              onClick={() => handleLanguageChange(langOption.value)}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                isActive
+                                  ? 'bg-primary/20 text-primary dark:bg-primary/20 dark:text-primary'
+                                  : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
+                              }`}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.15 }}
+                              whileHover={{ x: 4 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <span>{langOption.label}</span>
+                              {isActive && (
+                                <span className="text-xs uppercase tracking-wide text-primary dark:text-primary">
+                                  Activo
+                                </span>
                               )}
                             </motion.button>
                           )

@@ -9,6 +9,12 @@ export function useLogoEasterEgg() {
   const router = useRouter()
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null)
   const dashboardRedirectRef = useRef<NodeJS.Timeout | null>(null)
+  const clickCountRef = useRef(0)
+
+  const resetClickCount = useCallback(() => {
+    clickCountRef.current = 0
+    setClickCount(0)
+  }, [])
 
   const handleLogoClick = useCallback(() => {
     // Limpiar el temporizador anterior si existe
@@ -22,51 +28,46 @@ export function useLogoEasterEgg() {
       dashboardRedirectRef.current = null
     }
 
-    setClickCount(prev => {
-      const newCount = prev + 1
+    const newCount = clickCountRef.current + 1
+    clickCountRef.current = newCount
+    setClickCount(newCount)
+    
+    // Mostrar feedback discreto en consola
+    // console.log(`🥚 ${newCount}/5`)
+    
+    // Si llega a 5 clics consecutivos, redirigir a easteregg
+    if (newCount >= 5) {
+      // console.log('🎉 ¡Easter Egg!')
+      setIsActivated(true)
       
-      // Mostrar feedback discreto en consola
-      // console.log(`🥚 ${newCount}/5`)
-      
-      // Si llega a 5 clics consecutivos, redirigir a easteregg
-      if (newCount >= 5) {
-        // console.log('🎉 ¡Easter Egg!')
-        setIsActivated(true)
-        
-        // Pequeño delay para el efecto visual
-        setTimeout(() => {
-          router.push('/easteregg')
-          setClickCount(0) // Resetear contador después de redirigir
-        }, 500)
-        
-        return 0 // Resetear contador
-      }
-      
-      // Si es el primer clic, programar redirección a dashboard después de un delay
-      // Esto permite que el usuario pueda hacer más clics antes de que se ejecute la redirección
-      if (newCount === 1) {
-        dashboardRedirectRef.current = setTimeout(() => {
-          // Solo redirigir si el contador sigue en 1 (no se incrementó a 5)
-          setClickCount(current => {
-            if (current === 1) {
-              router.push('/dashboard')
-              return 0
-            }
-            return current
-          })
-          dashboardRedirectRef.current = null
-        }, 500) // Delay de 500ms para permitir más clics
-      }
-      
-      // Establecer un temporizador para resetear el contador si no hay otro clic en 500ms
-      clickTimerRef.current = setTimeout(() => {
-        setClickCount(0)
-        // console.log('🔄 Reset - clics no consecutivos')
+      // Pequeño delay para el efecto visual
+      setTimeout(() => {
+        router.push('/easteregg')
+        resetClickCount()
       }, 500)
       
-      return newCount
-    })
-  }, [router])
+      return
+    }
+    
+    // Si es el primer clic, programar redirección a dashboard después de un delay
+    // Esto permite que el usuario pueda hacer más clics antes de que se ejecute la redirección
+    if (newCount === 1) {
+      dashboardRedirectRef.current = setTimeout(() => {
+        // Solo redirigir si el contador sigue en 1 (no se incrementó a 5)
+        if (clickCountRef.current === 1) {
+          router.push('/dashboard')
+          resetClickCount()
+        }
+        dashboardRedirectRef.current = null
+      }, 500) // Delay de 500ms para permitir más clics
+    }
+    
+    // Establecer un temporizador para resetear el contador si no hay otro clic en 500ms
+    clickTimerRef.current = setTimeout(() => {
+      resetClickCount()
+      // console.log('🔄 Reset - clics no consecutivos')
+    }, 500)
+  }, [resetClickCount, router])
 
   // Resetear estado de activación después de navegar
   useEffect(() => {
