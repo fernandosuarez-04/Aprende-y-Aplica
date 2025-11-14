@@ -164,7 +164,16 @@ const getContextPrompt = (
   userName?: string,
   courseContext?: CourseLessonContext,
   pageContext?: PageContext,
-  userRole?: string
+  userRole?: string,
+  availableRoutes?: Array<{ 
+    path: string; 
+    name: string; 
+    description: string;
+    accessMethods?: string[];
+    menuLocation?: string;
+    dropdownLocation?: string;
+    accessInstructions?: string;
+  }>
 ) => {
   // Obtener rol del usuario (priorizar el pasado como parámetro, luego del contexto)
   const role = userRole || courseContext?.userRole;
@@ -221,7 +230,78 @@ const getContextPrompt = (
       pageInfo += `\n- Contenido visible: "${truncatedText}"`;
     }
     
-    pageInfo += `\n\nIMPORTANTE: El usuario está viendo esta página específica. Debes responder basándote en la información real extraída del DOM (título, descripción, encabezados y contenido visible) que se muestra arriba. Esta información se actualiza automáticamente para cada página, incluyendo nuevas páginas que se agreguen a la plataforma.`;
+    // Detectar el área/contexto de navegación actual
+    let navigationContext = 'general';
+    const currentPath = pageContext.pathname.toLowerCase();
+    
+    if (currentPath.startsWith('/admin')) {
+      navigationContext = 'admin';
+    } else if (currentPath.startsWith('/instructor')) {
+      navigationContext = 'instructor';
+    } else if (currentPath.startsWith('/business-panel')) {
+      navigationContext = 'business';
+    } else if (currentPath.startsWith('/profile') || currentPath.startsWith('/account-settings')) {
+      navigationContext = 'profile';
+    }
+    
+    pageInfo += `\n\nIMPORTANTE - CONTEXTO DE NAVEGACIÓN:
+- El usuario está viendo esta página específica (URL: ${pageContext.pathname})
+- Área de navegación detectada: ${navigationContext}
+- Debes responder basándote en la información real extraída del DOM (título, descripción, encabezados y contenido visible) que se muestra arriba
+- Esta información se actualiza automáticamente para cada página, incluyendo nuevas páginas que se agreguen a la plataforma
+
+CONTEXTO DE NAVEGACIÓN POR ÁREA:
+- "admin": El usuario está en el panel de administración, que tiene su PROPIO menú lateral (sidebar) con opciones específicas. NO tiene la navbar general de la plataforma.
+- "instructor": El usuario está en el panel de instructor, que tiene su PROPIO menú lateral (sidebar) con opciones específicas. NO tiene la navbar general de la plataforma.
+- "business": El usuario está en el panel business, que tiene su PROPIO menú lateral (sidebar) con opciones específicas. NO tiene la navbar general de la plataforma.
+- "profile": El usuario está en páginas de perfil/configuración, que pueden tener navegación diferente a la navbar general.
+- "general": El usuario está en páginas generales de la plataforma con la navbar estándar (menú superior, barra inferior móvil, menú de usuario).
+
+CUANDO EL USUARIO PREGUNTE SOBRE NAVEGACIÓN:
+1. PRIMERO identifica desde qué área está navegando (${navigationContext})
+2. Luego proporciona un PROCESO PASO A PASO desde la página actual (${pageContext.pathname})
+3. Si está en un área con sidebar propio (admin/instructor/business), explica cómo usar ese sidebar
+4. Si necesita salir del área actual para llegar a otra, explica cómo hacerlo paso a paso
+5. NO asumas que todas las páginas tienen la misma navegación - cada área tiene su propio sistema`;
+  }
+  
+  // ✅ NUEVO: Agregar información de rutas disponibles con instrucciones de acceso
+  let routesInfo = '';
+  if (availableRoutes && availableRoutes.length > 0) {
+    routesInfo = `\n\n📋 RUTAS DISPONIBLES EN LA PLATAFORMA:\n`;
+    routesInfo += `La plataforma tiene las siguientes páginas disponibles:\n`;
+    availableRoutes.forEach((route, index) => {
+      routesInfo += `${index + 1}. ${route.name} - ${route.path} (${route.description})\n`;
+      
+      // Agregar información de acceso si está disponible
+      if (route.accessInstructions) {
+        routesInfo += `   Formas de acceso:\n   - ${route.accessInstructions.split('\n- ').join('\n   - ')}\n`;
+      } else if (route.accessMethods && route.accessMethods.length > 0) {
+        const methods: string[] = [];
+        if (route.accessMethods.includes('menu-superior')) {
+          methods.push(`Menú superior${route.menuLocation ? `: "${route.menuLocation}"` : ''}`);
+        }
+        if (route.accessMethods.includes('menu-inferior')) {
+          methods.push(`Barra inferior móvil${route.menuLocation ? `: "${route.menuLocation}"` : ''}`);
+        }
+        if (route.accessMethods.includes('dropdown-directorio')) {
+          methods.push(`Dropdown "Directorio IA"${route.dropdownLocation ? ` > ${route.dropdownLocation}` : ''}`);
+        }
+        if (route.accessMethods.includes('dropdown-usuario')) {
+          methods.push(`Menú de usuario${route.dropdownLocation ? `: ${route.dropdownLocation.split('> ')[1] || route.dropdownLocation}` : ''}`);
+        }
+        if (route.accessMethods.includes('url-directa')) {
+          methods.push(`URL directa: ${route.path}`);
+        }
+        if (route.accessMethods.includes('búsqueda')) {
+          methods.push(`Búsqueda en la plataforma`);
+        }
+        if (methods.length > 0) {
+          routesInfo += `   Formas de acceso: ${methods.join(', ')}\n`;
+        }
+      }
+    });
+    routesInfo += `\nIMPORTANTE: Cuando el usuario pregunte cómo ir a una sección, PRIMERO busca en esta lista de rutas disponibles. Si encuentras una coincidencia (por nombre, descripción o path), proporciona la ruta exacta Y explica TODAS las formas de acceder (menú, URL directa, etc.), no solo el link. Si no encuentras una coincidencia exacta, INFIERE basándote en patrones comunes pero menciona que puedes consultar esta lista.`;
   }
   
   // Si hay contexto de curso/lección, crear prompt especializado
@@ -383,10 +463,91 @@ Lia es un asistente especializado en la plataforma "Aprende y Aplica" y puede ay
 - Cualquier tema que NO esté relacionado con educación, IA aplicada o la plataforma
 
 ✅ CUANDO EL USUARIO PREGUNTE SOBRE NAVEGACIÓN O FUNCIONALIDADES:
-Si el usuario pregunta cómo ir a una sección, acceder a funcionalidades, o navegar por la plataforma, DEBES ayudarle usando el contexto de la página actual. Por ejemplo:
-- "Para ir a comunidades, puedes hacer clic en el menú de navegación o ir directamente a /communities"
-- "Desde esta página puedes acceder a [funcionalidades disponibles según el contexto]"
-- Usa la información del contexto de página para dar instrucciones específicas
+Si el usuario pregunta cómo ir a una sección, acceder a funcionalidades, o navegar por la plataforma, DEBES ayudarle de la siguiente manera DETALLADA Y CONTEXTUAL:
+
+**PASO 1: IDENTIFICAR EL CONTEXTO ACTUAL**
+- El usuario está actualmente en: ${pageContext?.pathname || 'página desconocida'}
+- Área detectada: ${pageContext?.detectedArea || 'general'}
+- PRIMERO debes identificar si está en un área con navegación propia (admin, instructor, business, profile) o en el área general
+
+**PASO 2: PROPORCIONAR PROCESO PASO A PASO DESDE LA PÁGINA ACTUAL**
+NO solo digas las formas finales de llegar. SIEMPRE proporciona un PROCESO desde donde está ahora:
+
+Ejemplo CORRECTO:
+"Desde esta página (${pageContext?.pathname || 'actual'}), para ir a [destino], sigue estos pasos:
+1. [Primer paso desde la página actual]
+2. [Segundo paso]
+3. [Tercer paso hasta llegar al destino]"
+
+Ejemplo INCORRECTO (NO HAGAS ESTO):
+"Puedes ir a /ruta o hacer clic en el menú" (esto no explica el proceso desde donde está)
+
+**PASO 3: RECONOCER DIFERENCIAS DE NAVEGACIÓN**
+
+A) Si el usuario está en ADMIN (/admin/*):
+   - Tiene su PROPIO menú lateral (sidebar) a la izquierda
+   - NO tiene la navbar general de la plataforma
+   - Para ir a páginas fuera de admin, debe: "1) Usar el menú de usuario (avatar) en la esquina superior derecha, 2) O escribir la URL directamente"
+   - Para ir a otras páginas dentro de admin: "1) Busca en el menú lateral izquierdo, 2) Haz clic en [nombre de la opción]"
+
+B) Si el usuario está en INSTRUCTOR (/instructor/*):
+   - Tiene su PROPIO menú lateral (sidebar) a la izquierda
+   - NO tiene la navbar general de la plataforma
+   - Para ir a páginas fuera de instructor, debe: "1) Usar el menú de usuario (avatar) en la esquina superior derecha, 2) O escribir la URL directamente"
+   - Para ir a otras páginas dentro de instructor: "1) Busca en el menú lateral izquierdo, 2) Haz clic en [nombre de la opción]"
+
+C) Si el usuario está en BUSINESS (/business-panel/*):
+   - Tiene su PROPIO menú lateral (sidebar) a la izquierda
+   - NO tiene la navbar general de la plataforma
+   - Similar a admin/instructor
+
+D) Si el usuario está en PROFILE (/profile, /account-settings):
+   - Puede tener navegación diferente
+   - Para ir a otras páginas: "1) Usa el menú de usuario (avatar) en la esquina superior derecha, 2) O escribe la URL directamente"
+
+E) Si el usuario está en ÁREA GENERAL (dashboard, communities, news, etc.):
+   - Tiene la navbar general con menú superior y barra inferior móvil
+   - Puede usar: menú superior, barra inferior móvil, menú de usuario (avatar), o URL directa
+
+**PASO 4: ESTRUCTURA DE RESPUESTA OBLIGATORIA**
+
+SIEMPRE usa este formato cuando expliques navegación:
+
+"Desde esta página (${pageContext?.pathname || 'actual'}), para ir a [nombre de la página destino], sigue estos pasos:
+
+Paso 1: [Acción específica desde la página actual]
+Paso 2: [Siguiente acción]
+Paso 3: [Acción final para llegar al destino]
+
+Alternativa rápida: [Si hay una forma más directa, menciónala al final]"
+
+**EJEMPLOS CONCRETOS:**
+
+Ejemplo 1 - Desde /profile a /statistics:
+"Desde esta página (/profile), para ir a Mis Estadísticas, sigue estos pasos:
+Paso 1: Haz clic en tu imagen de perfil (avatar) en la esquina superior derecha de la página
+Paso 2: En el menú desplegable que aparece, busca y haz clic en 'Mis Estadísticas'
+Alternativa rápida: Escribe directamente en la barra de direcciones: /statistics"
+
+Ejemplo 2 - Desde /admin/dashboard a /communities:
+"Desde esta página (/admin/dashboard), para ir a Comunidades, sigue estos pasos:
+Paso 1: Haz clic en tu imagen de perfil (avatar) en la esquina superior derecha
+Paso 2: En el menú desplegable, busca 'Panel de Administración' o cualquier opción que te permita salir del panel de admin
+Paso 3: Una vez en la página principal, haz clic en 'Comunidad' en el menú de navegación superior
+Alternativa rápida: Escribe directamente en la barra de direcciones: /communities"
+
+Ejemplo 3 - Desde /admin/dashboard a /admin/users:
+"Desde esta página (/admin/dashboard), para ir a Usuarios del panel de administración, sigue estos pasos:
+Paso 1: Mira el menú lateral izquierdo (sidebar) de la página
+Paso 2: Busca la opción 'Usuarios' en ese menú
+Paso 3: Haz clic en 'Usuarios'"
+
+IMPORTANTE: 
+- NUNCA digas "no tengo información" sobre navegación
+- SIEMPRE proporciona un PROCESO paso a paso desde la página actual
+- RECONOCE que diferentes áreas tienen diferentes sistemas de navegación
+- NO asumas que todas las páginas tienen la misma navbar - cada área tiene su propio sistema
+- Sé ESPECÍFICO sobre dónde encontrar los elementos según el área actual
 
 ✅ CUANDO RECIBAS UNA PREGUNTA FUERA DEL ALCANCE (que NO sea sobre la plataforma):
 Debes responder de forma amigable pero firme:
@@ -405,10 +566,12 @@ NUNCA respondas preguntas fuera del alcance que NO sean sobre la plataforma, inc
 
   const contexts: Record<string, string> = {
     workshops: `Eres Lia, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
-    ${nameGreeting}${pageInfo}
+    ${nameGreeting}${pageInfo}${routesInfo}
     Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.
     
     ⚠️ IMPORTANTE - CONTEXTO DE PÁGINA: El contexto de página (${pageInfo ? 'proporcionado arriba' : 'NO disponible'}) se actualiza automáticamente en CADA mensaje. SIEMPRE usa el contexto de la página ACTUAL para responder, no asumas que el usuario está en la misma página que en mensajes anteriores.
+    
+    🧭 NAVEGACIÓN: ${routesInfo ? 'PRIMERO busca en la lista de rutas disponibles arriba. Si encuentras una coincidencia, proporciona la ruta exacta. Si no encuentras una coincidencia exacta, INFIERE basándote en patrones comunes (kebab-case).' : 'Si el usuario pregunta cómo ir a una sección, SIEMPRE proporciona ayuda inferiendo rutas basadas en patrones comunes (kebab-case).'} NUNCA digas "no tengo información" sobre navegación.
     
     Si el usuario hace preguntas vagas o cortas como "Aquí qué" o "De qué trata esto", usa el contexto de la página actual para dar una respuesta clara y directa sobre qué contenido está viendo y qué puede hacer aquí.
     
@@ -417,10 +580,12 @@ NUNCA respondas preguntas fuera del alcance que NO sean sobre la plataforma, inc
     FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
     
     communities: `Eres Lia, un asistente especializado en comunidades y networking. 
-    ${nameGreeting}${pageInfo}
+    ${nameGreeting}${pageInfo}${routesInfo}
     Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.
     
     ⚠️ IMPORTANTE - CONTEXTO DE PÁGINA: El contexto de página (${pageInfo ? 'proporcionado arriba' : 'NO disponible'}) se actualiza automáticamente en CADA mensaje. SIEMPRE usa el contexto de la página ACTUAL para responder, no asumas que el usuario está en la misma página que en mensajes anteriores.
+    
+    🧭 NAVEGACIÓN: ${routesInfo ? 'PRIMERO busca en la lista de rutas disponibles arriba. Si encuentras una coincidencia, proporciona la ruta exacta. Si no encuentras una coincidencia exacta, INFIERE basándote en patrones comunes (kebab-case).' : 'Si el usuario pregunta cómo ir a una sección, SIEMPRE proporciona ayuda inferiendo rutas basadas en patrones comunes (kebab-case).'} NUNCA digas "no tengo información" sobre navegación.
     
     Si el usuario hace preguntas vagas o cortas como "Aquí qué" o "De qué trata esto", usa el contexto de la página actual para dar una respuesta clara y directa sobre qué contenido está viendo y qué puede hacer aquí.
     
@@ -429,10 +594,12 @@ NUNCA respondas preguntas fuera del alcance que NO sean sobre la plataforma, inc
     FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
     
     news: `Eres Lia, un asistente especializado en noticias y actualidades sobre inteligencia artificial, tecnología y educación. 
-    ${nameGreeting}${pageInfo}
+    ${nameGreeting}${pageInfo}${routesInfo}
     Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.
     
     ⚠️ IMPORTANTE - CONTEXTO DE PÁGINA: El contexto de página (${pageInfo ? 'proporcionado arriba' : 'NO disponible'}) se actualiza automáticamente en CADA mensaje. SIEMPRE usa el contexto de la página ACTUAL para responder, no asumas que el usuario está en la misma página que en mensajes anteriores.
+    
+    🧭 NAVEGACIÓN: ${routesInfo ? 'PRIMERO busca en la lista de rutas disponibles arriba. Si encuentras una coincidencia, proporciona la ruta exacta. Si no encuentras una coincidencia exacta, INFIERE basándote en patrones comunes (kebab-case).' : 'Si el usuario pregunta cómo ir a una sección, SIEMPRE proporciona ayuda inferiendo rutas basadas en patrones comunes (kebab-case).'} NUNCA digas "no tengo información" sobre navegación.
     
     Si el usuario hace preguntas vagas o cortas como "Aquí qué" o "De qué trata esto", usa el contexto de la página actual para dar una respuesta clara y directa sobre qué contenido está viendo y qué puede hacer aquí.
     
@@ -441,10 +608,14 @@ NUNCA respondas preguntas fuera del alcance que NO sean sobre la plataforma, inc
     FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
     
     general: `Eres Lia, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
-    ${nameGreeting}${roleInfo}${pageInfo}
+    ${nameGreeting}${roleInfo}${pageInfo}${routesInfo}
     Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.
     
-    ⚠️ IMPORTANTE - CONTEXTO DE PÁGINA: El contexto de página (${pageInfo ? 'proporcionado arriba' : 'NO disponible'}) se actualiza automáticamente en CADA mensaje. SIEMPRE usa el contexto de la página ACTUAL para responder, no asumas que el usuario está en la misma página que en mensajes anteriores. Si el usuario pregunta sobre navegación o funcionalidades, usa el contexto de la página actual para dar instrucciones específicas.
+    ⚠️ IMPORTANTE - CONTEXTO DE PÁGINA: El contexto de página (${pageInfo ? 'proporcionado arriba' : 'NO disponible'}) se actualiza automáticamente en CADA mensaje. SIEMPRE usa el contexto de la página ACTUAL para responder, no asumas que el usuario está en la misma página que en mensajes anteriores.
+    
+    🧭 NAVEGACIÓN Y RUTAS:
+    ${routesInfo ? '- PRIMERO: Busca en la lista de rutas disponibles proporcionada arriba. Si encuentras una coincidencia exacta (por nombre, descripción o path), proporciona la ruta exacta de inmediato.\n- SEGUNDO: Si no encuentras una coincidencia exacta, INFIERE basándote en patrones comunes: nombres en kebab-case (test-metadata, metadata-test), sin espacios, descriptivos\n- SIEMPRE proporciona múltiples opciones: menú de navegación, URL directa, búsqueda\n- NUNCA digas "no tengo información" sobre navegación - siempre da opciones basadas en la lista de rutas o patrones' : '- Si el usuario pregunta cómo ir a una sección, SIEMPRE proporciona ayuda, incluso si no conoces la ruta exacta\n- INFIERE rutas basándote en patrones comunes: nombres en kebab-case (test-metadata, metadata-test), sin espacios, descriptivos\n- Proporciona múltiples opciones: menú de navegación, URL directa, búsqueda\n- NUNCA digas "no tengo información" sobre navegación - siempre da opciones basadas en patrones'}
+    - Ejemplo: Si preguntan por "test de metadata" y está en la lista, di la ruta exacta. Si no está, sugiere: "/test-metadata", "/metadata-test", "/test/metadata", o buscar en el menú
     
     Si el usuario hace preguntas vagas o cortas como "Aquí qué" o "De qué trata esto", usa el contexto de la página actual para dar una respuesta clara y directa sobre qué contenido está viendo y qué puede hacer aquí.
     
@@ -455,6 +626,44 @@ NUNCA respondas preguntas fuera del alcance que NO sean sobre la plataforma, inc
   
   return contexts[context] || contexts.general;
 };
+
+// Función para obtener rutas disponibles de la plataforma
+async function getAvailableRoutes(): Promise<Array<{ 
+  path: string; 
+  name: string; 
+  description: string;
+  accessMethods?: string[];
+  menuLocation?: string;
+  dropdownLocation?: string;
+  accessInstructions?: string;
+}>> {
+  try {
+    // Intentar obtener rutas con instrucciones desde el endpoint interno
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/routes?instructions=true`, {
+      cache: 'no-store' // No cachear para obtener rutas actualizadas
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.routes || [];
+    }
+  } catch (error) {
+    // Si falla, usar rutas hardcoded como fallback
+    // console.error('Error obteniendo rutas:', error);
+  }
+  
+  // Fallback: rutas básicas conocidas
+  return [
+    { path: '/dashboard', name: 'Dashboard', description: 'Panel principal', accessMethods: ['menu-superior', 'menu-inferior'], menuLocation: 'Talleres' },
+    { path: '/courses', name: 'Cursos', description: 'Catálogo de cursos', accessMethods: ['menu-superior', 'url-directa'] },
+    { path: '/communities', name: 'Comunidades', description: 'Comunidades disponibles', accessMethods: ['menu-superior', 'menu-inferior'], menuLocation: 'Comunidad' },
+    { path: '/news', name: 'Noticias', description: 'Últimas noticias', accessMethods: ['menu-superior', 'menu-inferior'], menuLocation: 'Noticias' },
+    { path: '/prompt-directory', name: 'Directorio de Prompts', description: 'Prompts de IA', accessMethods: ['menu-superior', 'dropdown-directorio'], dropdownLocation: 'Directorio IA > Prompt Directory' },
+    { path: '/apps-directory', name: 'Directorio de Apps', description: 'Herramientas de IA', accessMethods: ['menu-superior', 'dropdown-directorio'], dropdownLocation: 'Directorio IA > Apps Directory' },
+    { path: '/test-metadata', name: 'Test Metadata', description: 'Página de prueba para metadata', accessMethods: ['url-directa', 'búsqueda'] },
+  ];
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -568,8 +777,11 @@ export async function POST(request: NextRequest) {
       courseContext.userRole = userRole;
     }
     
+    // ✅ NUEVO: Obtener rutas disponibles de la plataforma para incluir en el prompt
+    const availableRoutes = await getAvailableRoutes();
+    
     // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso y contexto de página
-    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext, userRole);
+    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext, userRole, availableRoutes);
 
     // ✅ OPTIMIZACIÓN: Inicializar analytics de forma asíncrona para no bloquear el procesamiento del mensaje
     let conversationId: string | null = existingConversationId || null;
