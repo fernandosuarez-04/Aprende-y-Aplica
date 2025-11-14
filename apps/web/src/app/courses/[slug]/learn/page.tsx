@@ -171,6 +171,7 @@ export default function CourseLearnPage() {
   const [isLiaRecording, setIsLiaRecording] = useState(false);
   // Ref para hacer scroll automático al final de los mensajes de LIA
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
+  const liaPanelRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
@@ -256,6 +257,35 @@ export default function CourseLearnPage() {
     }
   }, [isMobile]);
 
+  const [desktopLiaHeight, setDesktopLiaHeight] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (isMobile || !isRightPanelOpen) {
+      setDesktopLiaHeight(undefined);
+      return;
+    }
+
+    const updateDesktopHeight = () => {
+      if (typeof window === 'undefined' || !liaPanelRef.current) {
+        return;
+      }
+      const rect = liaPanelRef.current.getBoundingClientRect();
+      const marginBottom = 24; // px
+      const available = window.innerHeight - rect.top - marginBottom;
+      const clamped = Math.max(available, 360); // asegurar altura mínima
+      setDesktopLiaHeight(`${clamped}px`);
+    };
+
+    updateDesktopHeight();
+    window.addEventListener('resize', updateDesktopHeight);
+    window.addEventListener('scroll', updateDesktopHeight, true);
+
+    return () => {
+      window.removeEventListener('resize', updateDesktopHeight);
+      window.removeEventListener('scroll', updateDesktopHeight, true);
+    };
+  }, [isMobile, isRightPanelOpen, activeTab, isLiaExpanded, currentLesson?.lesson_id]);
+
   // Calcular altura máxima disponible para el panel de LIA dinámicamente
   // Similar al sistema usado en AIChatAgent.tsx (LIA general)
   // Ahora incluye soporte para visualViewport cuando el teclado está abierto
@@ -276,9 +306,12 @@ export default function CourseLearnPage() {
       return undefined;
     }
     
-    // En desktop, usar toda la altura disponible del contenedor padre
-    return '100%';
-  }, [isMobile, isMobileBottomNavVisible, visualViewportHeight]);
+    // En desktop, usar altura calculada basada en el viewport para asegurar que se muestre el input
+    if (desktopLiaHeight) {
+      return desktopLiaHeight;
+    }
+    return 'calc(100vh - 3rem)';
+  }, [isMobile, isMobileBottomNavVisible, visualViewportHeight, desktopLiaHeight]);
 
   // Calcular padding dinámico para el área de entrada según altura de pantalla
   const getInputAreaPadding = (): string => {
@@ -2460,6 +2493,7 @@ Antes de cada respuesta, pregúntate:
               )}
               
               <motion.div
+                ref={liaPanelRef}
                 initial={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
                 animate={isMobile 
                   ? { x: 0 } 

@@ -187,8 +187,28 @@ export function AIChatAgent({
   // Detectar si estamos en página de comunidades
   const isCommunitiesPage = pathname?.includes('/communities');
   
-  // Detectar si estamos en página de dashboard (tiene navbar sticky)
-  const isDashboardPage = pathname?.includes('/dashboard');
+  // Detectar si la página usa el DashboardNavbar (sticky)
+  const hasDashboardNavbar = useMemo(() => {
+    if (!pathname) return false;
+    const dashboardPrefixes = [
+      '/dashboard',
+      '/my-courses',
+      '/courses',
+      '/prompt-directory',
+      '/apps-directory',
+      '/communities',
+      '/news',
+      '/statistics',
+      '/questionnaire',
+      '/cart',
+      '/subscriptions',
+      '/payment-methods',
+      '/purchase-history',
+      '/account-settings',
+      '/certificates'
+    ];
+    return dashboardPrefixes.some((prefix) => pathname.startsWith(prefix));
+  }, [pathname]);
 
   // Estado para detectar si es desktop (≥ 1024px, breakpoint lg de Tailwind)
   const [isDesktop, setIsDesktop] = useState(false);
@@ -219,28 +239,51 @@ export function AIChatAgent({
     ? 'calc(5.5rem + env(safe-area-inset-bottom, 0px))'
     : 'calc(1.5rem + env(safe-area-inset-bottom, 0px))';
 
+  const [widgetHeight, setWidgetHeight] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (typeof window === 'undefined') return;
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+
+      const topGap = hasDashboardNavbar
+        ? (!isDesktop ? 78 : 72) + 8 // navbar + margen extra
+        : 24;
+      const bottomGap = isCommunitiesPage && !isDesktop ? 88 : 24;
+
+      const computed = Math.max(viewportHeight - topGap - bottomGap, 360);
+      setWidgetHeight(`${computed}px`);
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    window.addEventListener('orientationchange', updateHeight);
+    window.visualViewport?.addEventListener('resize', updateHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+      window.removeEventListener('orientationchange', updateHeight);
+      window.visualViewport?.removeEventListener('resize', updateHeight);
+    };
+  }, [isCommunitiesPage, hasDashboardNavbar, isDesktop]);
+
   // Calcular altura máxima disponible dinámicamente
   const calculateMaxHeight = useMemo(() => {
-    // En móvil en communities, restar 5.5rem (bottom position) + 1.5rem de margen superior
+    if (widgetHeight) {
+      return widgetHeight;
+    }
+
     if (isCommunitiesPage && !isDesktop) {
       return 'calc(100vh - 5.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
     }
     
-    // En página de dashboard, restar la altura del navbar
-    // El navbar del dashboard tiene:
-    // - En móvil: h-[70px] = 4.375rem
-    // - En desktop: py-4 (1rem arriba + 1rem abajo) + contenido (~40px) = ~72px = 4.5rem
-    if (isDashboardPage) {
-      // En móvil, el navbar tiene exactamente 70px (4.375rem)
-      // Agregar un margen superior adicional (0.5rem) para evitar desbordamiento
-      // En desktop, usar 4.5rem (72px)
-      const navbarHeight = !isDesktop ? '4.875rem' : '4.5rem'; // 4.375rem navbar + 0.5rem margen
+    if (hasDashboardNavbar) {
+      const navbarHeight = !isDesktop ? '4.875rem' : '4.5rem';
       return `calc(100vh - ${navbarHeight} - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)`;
     }
     
-    // En otras páginas, restar 1.5rem de margen inferior + safe area + 1.5rem de margen superior
     return 'calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
-  }, [isCommunitiesPage, isDashboardPage, isDesktop]);
+  }, [isCommunitiesPage, hasDashboardNavbar, isDesktop, widgetHeight]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
