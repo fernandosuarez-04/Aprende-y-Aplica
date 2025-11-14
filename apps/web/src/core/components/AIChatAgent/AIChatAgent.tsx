@@ -1078,7 +1078,7 @@ export function AIChatAgent({
                       toggleRecording();
                     }
                   }}
-                  disabled={isTyping && inputMessage.trim()}
+                  disabled={isTyping && !!inputMessage.trim()}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
