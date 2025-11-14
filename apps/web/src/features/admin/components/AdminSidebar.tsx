@@ -18,7 +18,8 @@ import {
   ChevronRightIcon,
   ChevronLeftIcon,
   Bars3Icon,
-  MapPinIcon
+  MapPinIcon,
+  BuildingOffice2Icon
 } from '@heroicons/react/24/outline'
 import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
 
@@ -44,6 +45,7 @@ const navigation = [
   { name: 'Reels', href: '/admin/reels', icon: PlayIcon, current: false },
   { name: 'Estadísticas', href: '/admin/statistics', icon: ChartBarIcon, current: false },
   { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon, current: false },
+  { name: 'Empresas', href: '/admin/companies', icon: BuildingOffice2Icon, current: false },
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon, current: false },
 ]
 
