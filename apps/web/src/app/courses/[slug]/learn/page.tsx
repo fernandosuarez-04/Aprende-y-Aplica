@@ -2729,9 +2729,9 @@ Antes de cada respuesta, pregúntate:
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 p-4 max-h-[300px] overflow-y-auto"
+                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 max-h-[300px]"
                         >
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/40 dark:border-white/10 bg-white/20 dark:bg-white/5 rounded-t-2xl">
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
                                 <HelpCircle className="w-4 h-4 text-white" />
@@ -2749,8 +2749,7 @@ Antes de cada respuesta, pregúntate:
                               <ChevronDown className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                             </button>
                           </div>
-
-                          <div className="space-y-2">
+                          <div className="space-y-2 p-4 overflow-y-auto max-h-[210px] pr-2 custom-scroll">
                             {currentActivityPrompts.map((prompt, index) => (
                               <motion.button
                                 key={index}

@@ -389,11 +389,14 @@ export default function CommunitiesPage() {
   const handleCloseDetails = () => setSelectedCommunity(null);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050414] text-white">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#11092e] via-[#160c3d] to-[#09041d]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.35),_transparent_55%)]" />
-      <div className="absolute -bottom-32 right-0 w-[520px] h-[520px] bg-purple-600/20 blur-[220px]" />
-      <div className="relative">
+    <div className="relative min-h-screen overflow-hidden text-slate-900 bg-gradient-to-br from-blue-50 via-purple-50 to-white dark:text-white dark:bg-gradient-to-br dark:from-[#0a0d2c] dark:via-[#120827] dark:to-[#1c0635]">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(59,130,246,0.2),transparent_55%)] dark:bg-[radial-gradient(circle_at_10%_15%,_rgba(99,102,241,0.45),_transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_15%,rgba(236,72,153,0.15),transparent_60%)] dark:bg-[radial-gradient(circle_at_80%_10%,_rgba(236,72,153,0.35),_transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_80%,rgba(248,113,113,0.1),transparent_45%)] dark:bg-[radial-gradient(circle_at_50%_85%,_rgba(59,130,246,0.22),_transparent_50%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-[420px] bg-gradient-to-t from-white/70 via-transparent to-transparent dark:from-black/40" />
+      </div>
+      <div className="relative z-10">
       {/* Hero Section */}
       <motion.section
         className="relative py-16 px-6 overflow-visible"
@@ -401,23 +404,18 @@ export default function CommunitiesPage() {
         initial="hidden"
         animate="visible"
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/10 dark:to-purple-500/10" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/5 rounded-full blur-3xl" />
-        
         <div className="relative max-w-7xl mx-auto">
           <motion.div
             className="text-center mb-12"
             variants={itemVariants}
           >
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-6">
               Comunidad de{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent dark:from-blue-200 dark:to-purple-200">
                 Aprende y Aplica
               </span>
             </h1>
-            <p className="text-xl text-gray-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-slate-600 dark:text-white/80 max-w-3xl mx-auto leading-relaxed">
               Conecta con otros estudiantes, comparte conocimientos y participa en discusiones 
               sobre inteligencia artificial y tecnología educativa
             </p>
@@ -429,12 +427,12 @@ export default function CommunitiesPage() {
             variants={itemVariants}
           >
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalMembers}</div>
-              <div className="text-gray-600 dark:text-slate-400">MIEMBROS</div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-200">{totalMembers}</div>
+              <div className="text-slate-500 dark:text-white/60">MIEMBROS</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{totalCommunities}</div>
-              <div className="text-gray-600 dark:text-slate-400">COMUNIDADES</div>
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-200">{totalCommunities}</div>
+              <div className="text-slate-500 dark:text-white/60">COMUNIDADES</div>
             </div>
           </motion.div>
 
@@ -446,20 +444,20 @@ export default function CommunitiesPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-5 h-5" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-white/60 w-5 h-5" />
                   <input
                     type="text"
                     placeholder="Buscar comunidades o contenido..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800/60 border border-white/40 dark:border-slate-700/60 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all backdrop-blur-md shadow-lg shadow-purple-500/10"
+                    className="w-full pl-12 pr-4 py-4 bg-white/80 border border-white/60 rounded-2xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-transparent transition-all backdrop-blur-md shadow-lg shadow-purple-200/40 dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60 dark:focus:ring-blue-400/50"
                   />
                 </div>
               </div>
               <div className="relative lg:w-60" ref={filterRef}>
                 <button
                   onClick={() => setIsFilterOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium shadow-lg shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-white text-slate-900 font-medium shadow-lg shadow-purple-200/40 border border-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/30 dark:bg-gradient-to-r dark:from-blue-600 dark:to-purple-600 dark:text-white dark:shadow-blue-500/20 dark:border-transparent dark:focus:ring-blue-500/40"
                 >
                   <span className="flex items-center gap-2">
                     <Filter className="w-4 h-4" />
@@ -468,7 +466,7 @@ export default function CommunitiesPage() {
                   <ChevronDown className={`w-4 h-4 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isFilterOpen && (
-                  <div className="absolute top-full mt-3 min-w-full lg:w-72 bg-white/95 dark:bg-slate-900/95 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-2xl backdrop-blur-xl p-3 space-y-2 z-20 max-h-64 overflow-y-auto custom-scroll">
+                  <div className="absolute top-full mt-3 min-w-full lg:w-72 bg-white border border-gray-200 dark:bg-slate-900/95 dark:border-slate-700 rounded-2xl shadow-2xl backdrop-blur-xl p-3 space-y-2 z-20 max-h-64 overflow-y-auto custom-scroll">
                     {categories.map((category) => {
                       const Icon = category.icon;
                       const isActive = selectedCategory === category.id;
@@ -538,7 +536,7 @@ export default function CommunitiesPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     whileHover={{ y: -6, scale: 1.01 }}
-                    className={`relative group flex flex-col rounded-[28px] border ${cardStyle.border} bg-white/95 dark:bg-slate-950/60 shadow-xl ${cardStyle.shadow} overflow-hidden cursor-pointer`}
+                    className={`relative group flex flex-col rounded-[28px] border ${cardStyle.border} bg-white dark:bg-slate-950/60 shadow-xl ${cardStyle.shadow} overflow-hidden cursor-pointer`}
                     onClick={() => router.push(`/communities/${community.slug}`)}
                     {...prefetchOnHover(`/communities/${community.slug}`)}
                   >
@@ -565,7 +563,7 @@ export default function CommunitiesPage() {
 
                       <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                         {community.category && (
-                          <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 backdrop-blur dark:border-white/30 dark:bg-white/20 dark:text-white">
                             {categories.find(cat => cat.id === community.category)?.icon &&
                               React.createElement(categories.find(cat => cat.id === community.category)!.icon, { className: 'w-3.5 h-3.5' })
                             }
@@ -574,16 +572,11 @@ export default function CommunitiesPage() {
                         )}
                       </div>
 
-                      <div className="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-slate-900 shadow-lg">
+                      <div className="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-900 shadow-lg">
                         <AccessIcon className={`w-3.5 h-3.5 ${cardStyle.accent}`} />
                         {accessInfo.label}
                       </div>
 
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <p className="text-white/85 text-sm leading-relaxed line-clamp-2">
-                          {community.description}
-                        </p>
-                      </div>
                     </div>
 
                     {/* Body */}
@@ -606,6 +599,10 @@ export default function CommunitiesPage() {
                           </span>
                         </div>
                       </div>
+
+                      <p className="text-sm text-slate-500 dark:text-slate-300 line-clamp-2">
+                        {community.description}
+                      </p>
 
                       <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100/70 dark:border-white/5 bg-slate-50/70 dark:bg-white/5 px-4 py-3 text-sm text-slate-600 dark:text-slate-200">
                         <div className="flex items-center gap-2">

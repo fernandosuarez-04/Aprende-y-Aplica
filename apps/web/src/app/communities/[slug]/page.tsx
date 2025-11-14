@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -1791,37 +1791,6 @@ export default function CommunityDetailPage() {
     }
   };
 
-  const getCommunityStyle = (community: Community) => {
-    if (community.slug === 'profesionales') {
-      return {
-        background: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-slate-800/60',
-        headerBg: 'bg-gradient-to-r from-blue-600 to-blue-700',
-        accent: 'text-blue-600 dark:text-blue-400',
-        border: 'border-blue-500/30 dark:border-blue-500/30'
-      };
-    } else if (community.slug === 'ecos-liderazgo') {
-      return {
-        background: 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-slate-800/60',
-        headerBg: 'bg-gradient-to-r from-purple-600 to-purple-700',
-        accent: 'text-orange-600 dark:text-orange-400',
-        border: 'border-orange-500/30 dark:border-orange-500/30'
-      };
-    } else if (community.slug === 'openminder') {
-      return {
-        background: 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900/50 dark:to-black/60',
-        headerBg: 'bg-gradient-to-r from-slate-800 to-slate-900',
-        accent: 'text-yellow-600 dark:text-yellow-400',
-        border: 'border-yellow-500/30 dark:border-yellow-500/30'
-      };
-    }
-    
-    return {
-      background: 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-800/50 dark:to-slate-900/60',
-      headerBg: 'bg-gradient-to-r from-slate-700 to-slate-800',
-      accent: 'text-gray-600 dark:text-slate-400',
-      border: 'border-gray-300 dark:border-slate-600/30'
-    };
-  };
 
   const getAccessButton = () => {
     if (!community) return null;
@@ -1829,7 +1798,7 @@ export default function CommunityDetailPage() {
     if (community.is_member) {
       return (
         <Button
-          className="w-full sm:w-auto bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+          className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-100"
           disabled
         >
           <CheckCircle className="w-4 h-4 mr-2" />
@@ -1841,7 +1810,7 @@ export default function CommunityDetailPage() {
     if (community.has_pending_request) {
       return (
         <Button
-          className="w-full sm:w-auto bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30"
+          className="w-full sm:w-auto bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-400/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-100"
           disabled
         >
           <Clock className="w-4 h-4 mr-2" />
@@ -1854,9 +1823,9 @@ export default function CommunityDetailPage() {
       if (community.can_join === false) {
         return (
           <div className="text-center">
-            <div className="text-slate-400 text-sm mb-2">Ya perteneces a otra comunidad</div>
+            <div className="text-white/70 text-sm mb-2">Ya perteneces a otra comunidad</div>
             <Button
-              className="w-full sm:w-auto bg-slate-600/50 text-slate-400 border border-slate-600/50"
+              className="w-full sm:w-auto bg-white/15 text-white/70 border border-white/20 backdrop-blur disabled:opacity-80"
               disabled
             >
               <Lock className="w-4 h-4 mr-2" />
@@ -1870,7 +1839,7 @@ export default function CommunityDetailPage() {
         <Button
           onClick={handleJoinCommunity}
           disabled={isJoining}
-          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white"
+          className="w-full sm:w-auto bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
         >
           {isJoining ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1886,7 +1855,7 @@ export default function CommunityDetailPage() {
       <Button
         onClick={handleJoinCommunity}
         disabled={isJoining}
-        className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white"
+        className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
       >
         {isJoining ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1897,6 +1866,30 @@ export default function CommunityDetailPage() {
       </Button>
     );
   };
+
+  const postsCount = useMemo(() => posts.length, [posts]);
+  const commentsCount = useMemo(
+    () => posts.reduce((total, post) => total + (post.comment_count ?? 0), 0),
+    [posts]
+  );
+  const reactionsCount = useMemo(
+    () => posts.reduce((total, post) => total + (post.reaction_count ?? post.likes_count ?? 0), 0),
+    [posts]
+  );
+  const formattedUpdatedAt = useMemo(() => {
+    if (!community) return '';
+    return new Date(community.updated_at).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short'
+    });
+  }, [community?.updated_at]);
+  const communityCategoryLabel = useMemo(() => {
+    if (!community?.category) return 'Comunidad';
+    return community.category
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }, [community?.category]);
 
   if (isLoading) {
     return (
@@ -1924,7 +1917,6 @@ export default function CommunityDetailPage() {
     );
   }
 
-  const communityStyle = getCommunityStyle(community);
   const canViewContent = community.is_member || (community.access_type === 'free' && community.can_join !== false);
   const needsAuth = !community.is_member && community.access_type === 'invitation_only';
 
@@ -1941,46 +1933,55 @@ export default function CommunityDetailPage() {
     >
       {/* Navigation Bar */}
       <motion.nav
-        className="hidden md:block bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
-        initial={{ y: -100 }}
+        className="hidden md:block"
+        initial={{ y: -80 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-4 flex-wrap">
-              <Button
+        <div className="max-w-7xl mx-auto px-6 pt-6">
+          <div className="flex items-center justify-between gap-6 rounded-[32px] bg-white/5 border border-white/10 shadow-xl backdrop-blur-xl px-6 py-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
                 onClick={() => router.push('/communities')}
-                className="bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white border border-gray-300 dark:border-slate-600/50"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 text-slate-900 font-semibold shadow-lg shadow-slate-200 transition-all duration-300 hover:-translate-y-0.5 dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-500 dark:text-white dark:shadow-blue-500/30"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
                 Volver
-              </Button>
-              
+              </button>
+
               <div className="flex items-center gap-2 flex-wrap">
-                {communityTabs.map((tab) => (
+                {communityTabs.map((tab, index) => (
                   <button
                     key={tab.id}
                     onClick={() => handleTabNavigation(tab.id)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                       activeTab === tab.id
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white'
                     }`}
                   >
-                    {tab.label}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {tab.label}
+                    </span>
+                    <span
+                      className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 transition-opacity ${
+                        activeTab === tab.id
+                          ? 'opacity-100 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/30'
+                          : 'group-hover:opacity-30 bg-white/50 dark:bg-gradient-to-r dark:from-blue-500 dark:to-purple-500'
+                      }`}
+                    />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-4 h-4" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-white/60 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Buscar en esta comunidad..."
-                  className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                  className="pl-12 pr-4 py-2 rounded-full bg-white/90 border border-white/70 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-transparent transition-all dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60"
                 />
               </div>
             </div>
@@ -1991,102 +1992,109 @@ export default function CommunityDetailPage() {
       {/* Community Header */}
       <motion.section
         ref={communityHeaderRef}
-        className={`relative py-16 px-6 overflow-hidden ${communityStyle.background}`}
+        className="relative px-4 sm:px-6 lg:px-8 py-10"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Community Image as Background */}
-        {community.image_url ? (
-          <div className="absolute inset-0">
-            <img
-              src={community.image_url}
-              alt={community.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Si la imagen falla al cargar, mostrar el gradiente
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const gradient = target.nextElementSibling as HTMLElement;
-                if (gradient) gradient.style.display = 'block';
-              }}
-            />
-            {/* Overlay oscuro para mejorar legibilidad del texto */}
-            <div className="absolute inset-0 bg-black/50" />
-          </div>
-        ) : (
-          <>
-            {/* Background Effects - solo si no hay imagen */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/10 dark:to-purple-500/10" />
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/5 rounded-full blur-3xl" />
-          </>
-        )}
-        
-        <div className="relative max-w-7xl mx-auto z-10">
+        <div className="max-w-7xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
           <motion.div
-            className="flex flex-col lg:flex-row items-start justify-between gap-8"
+            className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl overflow-hidden backdrop-blur-xl"
             variants={itemVariants}
           >
-            <div className="w-full flex mb-4 md:hidden">
-              <Button
-                onClick={() => router.push('/communities')}
-                className="bg-white/70 dark:bg-slate-800/70 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Comunidades
-              </Button>
-            </div>
-
-            <div className="flex items-start gap-6 w-full">
-              {/* Community Avatar - solo si no hay imagen de fondo */}
-              {!community.image_url && (
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
+            <div className="relative h-52 sm:h-64 overflow-hidden">
+              {community.image_url ? (
+                <>
+                  <img
+                    src={community.image_url}
+                    alt={community.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
+                </>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30" />
               )}
-
-              <div className="flex-1">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+            </div>
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-900/5 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-white/80">
+                  <Globe className="w-3.5 h-3.5" />
+                  {communityCategoryLabel}
+                </span>
+                <div className="w-full md:hidden">
+                  {getAccessButton()}
+                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">
                   {community.name}
                 </h1>
-                <p className="text-lg md:text-xl text-gray-800 dark:text-white/90 mb-4 max-w-2xl">
+                <p className="text-slate-600 dark:text-white/80 text-base sm:text-lg leading-relaxed">
                   {community.description}
                 </p>
-                
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-700 dark:text-white/80">
-                    <Users className="w-4 h-4" />
-                    {community.member_count} Miembros
-                  </div>
-                  <div className={`flex items-center gap-2 ${communityStyle.accent} dark:${communityStyle.accent}`}>
-                    {community.access_type === 'free' ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Lock className="w-4 h-4" />
-                    )}
-                    {community.access_type === 'free' ? 'Acceso Gratuito' : 'Por Invitación'}
-                  </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-white/80">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  <Users className="w-4 h-4" />
+                  {community.member_count} Miembros
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  {community.access_type === 'free' ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <Lock className="w-4 h-4" />
+                  )}
+                  {community.access_type === 'free' ? 'Acceso gratuito' : 'Por invitación'}
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  <Clock className="w-4 h-4" />
+                  Actualizado {formattedUpdatedAt}
                 </div>
               </div>
             </div>
+          </motion.div>
 
-            <div className="w-full lg:w-auto flex flex-col lg:items-end gap-4">
-              <div className="w-full lg:w-auto">{getAccessButton()}</div>
-              
-              <div className="flex flex-wrap gap-4 text-gray-600 dark:text-slate-400">
-                <div className="min-w-[90px]">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
-                  <div className="text-xs font-medium uppercase tracking-wide">Posts</div>
-                </div>
-                <div className="min-w-[90px]">
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">7</div>
-                  <div className="text-xs font-medium uppercase tracking-wide">Comentarios</div>
-                </div>
-                <div className="min-w-[90px]">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">11</div>
-                  <div className="text-xs font-medium uppercase tracking-wide">Reacciones</div>
-                </div>
+          <motion.div className="space-y-4" variants={itemVariants}>
+            <div className="hidden md:block">
+              {getAccessButton()}
+            </div>
+            <div className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-slate-600 dark:text-white/60 uppercase tracking-[0.3em]">Actividad</p>
+                <div className="h-1 w-16 rounded-full bg-gradient-to-r from-blue-400 to-purple-400" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { label: 'Posts', value: postsCount, gradient: 'from-blue-500 to-cyan-500' },
+                  { label: 'Comentarios', value: commentsCount, gradient: 'from-purple-500 to-pink-500' },
+                  { label: 'Reacciones', value: reactionsCount, gradient: 'from-emerald-500 to-lime-500' },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl bg-white/70 border border-white/30 px-4 py-5 text-center dark:bg-white/5 dark:border-white/10"
+                  >
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                      {stat.value}
+                    </p>
+                    <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-white/70">
+                      {stat.label}
+                    </span>
+                    <div className={`mt-3 h-1 rounded-full bg-gradient-to-r ${stat.gradient}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white/70 border border-white/30 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-4 dark:bg-white/5 dark:border-white/10">
+              <p className="text-sm font-medium text-slate-600 dark:text-white/80">Comparte la comunidad</p>
+              <div className="flex gap-3">
+                <button className="flex-1 px-4 py-2 rounded-xl bg-slate-900/5 text-slate-700 hover:bg-slate-900/10 transition-colors dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
+                  <Share2 className="w-4 h-4 inline mr-2" />
+                  Copiar enlace
+                </button>
+                <button className="px-4 py-2 rounded-xl bg-slate-900/5 text-slate-700 hover:bg-slate-900/10 transition-colors dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
+                  <Heart className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </motion.div>
