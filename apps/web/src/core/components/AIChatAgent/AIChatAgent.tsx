@@ -186,6 +186,9 @@ export function AIChatAgent({
 
   // Detectar si estamos en página de comunidades
   const isCommunitiesPage = pathname?.includes('/communities');
+  
+  // Detectar si estamos en página de dashboard (tiene navbar sticky)
+  const isDashboardPage = pathname?.includes('/dashboard');
 
   // Estado para detectar si es desktop (≥ 1024px, breakpoint lg de Tailwind)
   const [isDesktop, setIsDesktop] = useState(false);
@@ -223,9 +226,21 @@ export function AIChatAgent({
       return 'calc(100vh - 5.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
     }
     
+    // En página de dashboard, restar la altura del navbar
+    // El navbar del dashboard tiene:
+    // - En móvil: h-[70px] = 4.375rem
+    // - En desktop: py-4 (1rem arriba + 1rem abajo) + contenido (~40px) = ~72px = 4.5rem
+    if (isDashboardPage) {
+      // En móvil, el navbar tiene exactamente 70px (4.375rem)
+      // Agregar un margen superior adicional (0.5rem) para evitar desbordamiento
+      // En desktop, usar 4.5rem (72px)
+      const navbarHeight = !isDesktop ? '4.875rem' : '4.5rem'; // 4.375rem navbar + 0.5rem margen
+      return `calc(100vh - ${navbarHeight} - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)`;
+    }
+    
     // En otras páginas, restar 1.5rem de margen inferior + safe area + 1.5rem de margen superior
     return 'calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
-  }, [isCommunitiesPage, isDesktop]);
+  }, [isCommunitiesPage, isDashboardPage, isDesktop]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
