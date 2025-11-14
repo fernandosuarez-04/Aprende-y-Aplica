@@ -33,20 +33,69 @@ interface AIChatAgentProps {
 }
 
 // Función para detectar automáticamente el contexto basado en la URL
+// ✅ MEJORADO: Detección automática flexible que funciona con nuevas páginas sin configuración manual
 function detectContextFromURL(pathname: string): string {
-  if (pathname.includes('/communities')) return 'communities';
-  if (pathname.includes('/courses')) return 'courses';
-  if (pathname.includes('/workshops')) return 'workshops';
-  if (pathname.includes('/news')) return 'news';
-  if (pathname.includes('/dashboard')) return 'dashboard';
-  if (pathname.includes('/prompt-directory')) return 'prompts';
-  if (pathname.includes('/business-panel')) return 'business';
-  if (pathname.includes('/profile')) return 'profile';
+  const pathLower = pathname.toLowerCase();
+  
+  // Detección automática por palabras clave en la URL
+  // Esto permite que nuevas páginas se detecten automáticamente si usan palabras clave conocidas
+  if (pathLower.includes('communities') || pathLower.includes('comunidades')) return 'communities';
+  if (pathLower.includes('courses') || pathLower.includes('cursos') || pathLower.includes('learn') || pathLower.includes('aprender')) return 'courses';
+  if (pathLower.includes('workshops') || pathLower.includes('talleres')) return 'workshops';
+  if (pathLower.includes('news') || pathLower.includes('noticias') || pathLower.includes('articles') || pathLower.includes('articulos')) return 'news';
+  if (pathLower.includes('dashboard') || pathLower.includes('panel') || pathLower.includes('inicio')) return 'dashboard';
+  if (pathLower.includes('prompt')) return 'prompts';
+  if (pathLower.includes('apps-directory') || (pathLower.includes('apps') && pathLower.includes('directorio'))) return 'apps';
+  if (pathLower.includes('business') || pathLower.includes('empresas') || pathLower.includes('negocios')) return 'business';
+  if (pathLower.includes('profile') || pathLower.includes('perfil') || pathLower.includes('account') || pathLower.includes('cuenta')) return 'profile';
+  if (pathLower.includes('admin') || pathLower.includes('administracion')) return 'admin';
+  if (pathLower.includes('instructor') || pathLower.includes('instructores')) return 'instructor';
+  if (pathLower.includes('certificates') || pathLower.includes('certificados')) return 'certificates';
+  if (pathLower.includes('reels')) return 'reels';
+  if (pathLower.includes('subscriptions') || pathLower.includes('suscripciones')) return 'subscriptions';
+  if (pathLower.includes('cart') || pathLower.includes('carrito')) return 'cart';
+  if (pathLower.includes('my-courses') || pathLower.includes('mis-cursos')) return 'courses';
+  
   return 'general';
 }
 
 // Función para obtener información contextual detallada de la página actual
-function getPageContextInfo(pathname: string): string {
+// ✅ MEJORADO: Usa contenido del DOM automáticamente, solo usa mapeo hardcoded como fallback
+function getPageContextInfo(pathname: string, pageContent?: {
+  title: string;
+  metaDescription: string;
+  headings: string[];
+  mainText: string;
+}): string {
+  // PRIORIDAD 1: Si tenemos contenido extraído del DOM, usarlo para generar descripción automática
+  if (pageContent) {
+    let description = '';
+    
+    // Usar meta description si está disponible (más descriptivo)
+    if (pageContent.metaDescription && pageContent.metaDescription.trim()) {
+      return pageContent.metaDescription;
+    }
+    
+    // Si no hay meta description, usar título + primer heading
+    if (pageContent.title && pageContent.title.trim()) {
+      description = `página "${pageContent.title}"`;
+      
+      // Agregar primer heading si está disponible para más contexto
+      if (pageContent.headings && pageContent.headings.length > 0) {
+        description += ` - ${pageContent.headings[0]}`;
+      }
+      
+      return description;
+    }
+    
+    // Si solo tenemos headings, usarlos
+    if (pageContent.headings && pageContent.headings.length > 0) {
+      return `página con contenido sobre "${pageContent.headings[0]}"`;
+    }
+  }
+  
+  // PRIORIDAD 2: Mapeo hardcoded solo como fallback para páginas conocidas
+  // Esto se usa cuando el DOM aún no se ha cargado o no tiene metadatos
   const contextMap: Record<string, string> = {
     '/communities': 'página de comunidades - donde los usuarios pueden unirse y participar en grupos',
     '/courses': 'página de cursos - catálogo de cursos disponibles para aprendizaje',
@@ -69,8 +118,32 @@ function getPageContextInfo(pathname: string): string {
       return description;
     }
   }
+  
+  // PRIORIDAD 3: Generar descripción automática desde la URL
+  const area = detectContextFromURL(pathname);
+  const areaNames: Record<string, string> = {
+    communities: 'comunidades',
+    courses: 'cursos',
+    workshops: 'talleres',
+    news: 'noticias',
+    dashboard: 'panel principal',
+    prompts: 'directorio de prompts',
+    apps: 'directorio de apps',
+    business: 'panel de negocios',
+    profile: 'perfil de usuario',
+    admin: 'panel de administración',
+    instructor: 'panel de instructor',
+    certificates: 'certificados',
+    reels: 'reels',
+    subscriptions: 'suscripciones',
+    cart: 'carrito de compras',
+  };
+  
+  if (areaNames[area]) {
+    return `página de ${areaNames[area]}`;
+  }
 
-  return 'página principal de la plataforma';
+  return 'página de la plataforma';
 }
 
 // Función para extraer contenido dinámico real del DOM
@@ -182,7 +255,6 @@ export function AIChatAgent({
   // Detectar automáticamente el contexto basado en la URL
   const detectedContext = detectContextFromURL(pathname);
   const activeContext = context === 'general' ? detectedContext : context;
-  const pageContextInfo = getPageContextInfo(pathname);
 
   // Detectar si estamos en página de comunidades
   const isCommunitiesPage = pathname?.includes('/communities');
@@ -297,6 +369,12 @@ export function AIChatAgent({
     headings: string[];
     mainText: string;
   } | null>(null);
+
+  // ✅ MEJORADO: pageContextInfo se recalcula automáticamente cuando pageContent está disponible
+  // Esto permite que use el contenido del DOM automáticamente sin configuración manual
+  const pageContextInfo = useMemo(() => {
+    return getPageContextInfo(pathname, pageContent || undefined);
+  }, [pathname, pageContent]);
 
   // Extraer contenido del DOM cuando cambie la ruta o cuando se abra el chat
   // NOTA: Cuando el chat está abierto y cambia la página, el contenido se maneja
@@ -554,6 +632,12 @@ export function AIChatAgent({
     setIsTyping(true);
 
     try {
+      // ✅ MEJORADO: Extraer contenido actual del DOM en cada mensaje para asegurar contexto actualizado
+      const currentPageContent = pageContent || extractPageContent();
+      if (currentPageContent && (!pageContent || currentPageContent.title !== pageContent.title)) {
+        setPageContent(currentPageContent);
+      }
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -566,11 +650,11 @@ export function AIChatAgent({
             pathname: pathname,
             description: pageContextInfo,
             detectedArea: detectedContext,
-            // Agregar contenido extraído del DOM
-            pageTitle: pageContent?.title || '',
-            metaDescription: pageContent?.metaDescription || '',
-            headings: pageContent?.headings || [],
-            mainText: pageContent?.mainText || ''
+            // ✅ MEJORADO: Siempre incluir contenido actual del DOM en cada mensaje
+            pageTitle: currentPageContent?.title || '',
+            metaDescription: currentPageContent?.metaDescription || '',
+            headings: currentPageContent?.headings || [],
+            mainText: currentPageContent?.mainText || ''
           },
           conversationHistory: messages.map(m => ({
             role: m.role,
@@ -617,7 +701,7 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user]);
+  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, pageContent, user]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -729,10 +813,10 @@ export function AIChatAgent({
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
       
-      // Limpiar mensajes y contenido de página cuando cambia la página
-      // Esto evita usar contenido de la página anterior
-      setMessages([]);
-      setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
+      // ✅ CAMBIO: NO borrar mensajes - mantener el historial para continuidad de conversación
+      // Solo actualizar el contenido de la nueva página
+      // setMessages([]); // ← ELIMINADO: Mantener historial al cambiar de página
+      setPageContent(null); // Limpiar para extraer contenido de la nueva página
       prevPathnameRef.current = pathname;
       
       // Si el chat está abierto, ejecutar la ayuda automáticamente en la nueva página
