@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -16,10 +16,9 @@ import {
   Clock,
   Star,
   TrendingUp,
-  MessageSquare,
+  MessageSquare as MessageSquareIcon,
   Heart,
   Share2,
-  Eye,
   Globe,
   Shield,
   Crown,
@@ -29,12 +28,15 @@ import {
   Megaphone,
   Briefcase,
   Flag,
-  X
+  X,
+  ChevronDown,
+  CalendarDays
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter } from 'next/navigation';
 import { usePrefetchOnHover } from '../../core/hooks/usePrefetch';
 import { useCommunities } from '../../core/hooks/useCommunities';
+import useSWR from 'swr';
 
 interface Community {
   id: string;
@@ -130,6 +132,20 @@ export default function CommunitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Estadísticas memoizadas - solo recalcular cuando cambian las comunidades
   const totalMembers = React.useMemo(() => 
@@ -345,11 +361,42 @@ export default function CommunitiesPage() {
     };
   }, []); // Función pura, solo lee propiedades del objeto
 
+  const updatedDateFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat('es-ES', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC'
+      }),
+    []
+  );
+
+  const yearFormatter = React.useMemo(
+    () =>
+      new Intl.DateTimeFormat('es-ES', {
+        year: 'numeric',
+        timeZone: 'UTC'
+      }),
+    []
+  );
+
+  const { overview, isLoading: overviewLoading, isError: overviewError } = useCommunityOverview(selectedCommunity?.slug ?? null);
+
+  const handleOpenDetails = (community: Community) => {
+    setSelectedCommunity(community);
+  };
+
+  const handleCloseDetails = () => setSelectedCommunity(null);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+    <div className="relative min-h-screen overflow-hidden bg-[#050414] text-white">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#11092e] via-[#160c3d] to-[#09041d]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.35),_transparent_55%)]" />
+      <div className="absolute -bottom-32 right-0 w-[520px] h-[520px] bg-purple-600/20 blur-[220px]" />
+      <div className="relative">
       {/* Hero Section */}
       <motion.section
-        className="relative py-16 px-6 overflow-hidden"
+        className="relative py-16 px-6 overflow-visible"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -391,49 +438,66 @@ export default function CommunitiesPage() {
             </div>
           </motion.div>
 
-          {/* Search Bar */}
+          {/* Search + Filters */}
           <motion.div
-            className="max-w-2xl mx-auto mb-8"
+            className="max-w-4xl mx-auto mb-12"
             variants={itemVariants}
           >
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Buscar comunidades o contenido..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-600/50 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all backdrop-blur-sm"
-              />
-            </div>
-          </motion.div>
-
-          {/* Category Filters */}
-          <motion.div
-            className="flex flex-wrap justify-center gap-3 mb-12"
-            variants={itemVariants}
-          >
-            {categories.map((category) => {
-              const Icon = category.icon;
-              const isActive = selectedCategory === category.id;
-              
-              return (
-                <motion.button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
-                    isActive
-                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-white dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-600/50 hover:bg-gray-100 dark:hover:bg-slate-700/50 hover:border-gray-300 dark:hover:border-slate-500/50'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Buscar comunidades o contenido..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800/60 border border-white/40 dark:border-slate-700/60 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all backdrop-blur-md shadow-lg shadow-purple-500/10"
+                  />
+                </div>
+              </div>
+              <div className="relative lg:w-60" ref={filterRef}>
+                <button
+                  onClick={() => setIsFilterOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium shadow-lg shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 >
-                  <Icon className="w-4 h-4" />
-                  {category.name}
-                </motion.button>
-              );
-            })}
+                  <span className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    {categories.find((c) => c.id === selectedCategory)?.name || 'Categorías'}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isFilterOpen && (
+                  <div className="absolute top-full mt-3 min-w-full lg:w-72 bg-white/95 dark:bg-slate-900/95 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-2xl backdrop-blur-xl p-3 space-y-2 z-20 max-h-64 overflow-y-auto custom-scroll">
+                    {categories.map((category) => {
+                      const Icon = category.icon;
+                      const isActive = selectedCategory === category.id;
+
+                      return (
+                        <button
+                          key={category.id}
+                          onClick={() => {
+                            setSelectedCategory(category.id);
+                            setIsFilterOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition ${
+                            isActive
+                              ? 'bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-200'
+                              : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/60'
+                          }`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <Icon className={`w-4 h-4 ${isActive ? 'text-blue-500 dark:text-blue-200' : 'text-blue-400/70'}`} />
+                            {category.name}
+                          </span>
+                          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-blue-500' : 'bg-gray-300 dark:bg-slate-600'}`} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
         </div>
       </motion.section>
@@ -473,126 +537,174 @@ export default function CommunitiesPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    className={`relative group ${cardStyle.background} ${cardStyle.border} border rounded-3xl overflow-hidden backdrop-blur-sm ${cardStyle.shadow} shadow-2xl cursor-pointer`}
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    className={`relative group flex flex-col rounded-[28px] border ${cardStyle.border} bg-white/95 dark:bg-slate-950/60 shadow-xl ${cardStyle.shadow} overflow-hidden cursor-pointer`}
                     onClick={() => router.push(`/communities/${community.slug}`)}
                     {...prefetchOnHover(`/communities/${community.slug}`)}
                   >
-                      {/* Community Header with Image or Gradient */}
-                      <div className={`${cardStyle.headerBg} p-6 pb-4 relative overflow-hidden`}>
-                        {/* Community Image */}
-                        {community.image_url ? (
-                          <div className="absolute inset-0">
-                            <Image
-                              src={community.image_url}
-                              alt={community.name}
-                              fill
-                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                              className="object-cover"
-                              loading="lazy"
-                              quality={75}
-                            />
-                            {/* Overlay para mejorar legibilidad del texto */}
-                            <div className="absolute inset-0 bg-black/40" />
-                          </div>
-                        ) : (
-                          <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent" />
-                        )}
-                        
-                        <div className="relative z-10">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-2xl font-bold text-white mb-3">
-                                {community.name}
-                              </h3>
-                              <p className="text-white/90 text-sm leading-relaxed">
-                                {community.description}
-                              </p>
-                            </div>
-                          </div>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-transparent" />
+                    </div>
 
-                          {/* Community Stats */}
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2 text-white/80 bg-white/10 px-3 py-1 rounded-full">
-                                <Users className="w-4 h-4" />
-                                {community.member_count} Miembros
-                              </div>
-                              <div className={`flex items-center gap-2 ${accessInfo.color} bg-white/10 px-3 py-1 rounded-full`}>
-                                <AccessIcon className="w-4 h-4" />
-                                {accessInfo.label}
-                              </div>
-                            </div>
-                          </div>
+                    {/* Header media */}
+                    <div className="relative h-48 overflow-hidden rounded-[28px] rounded-b-none">
+                      {community.image_url ? (
+                        <Image
+                          src={community.image_url}
+                          alt={community.name}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover"
+                          loading="lazy"
+                          quality={80}
+                        />
+                      ) : (
+                        <div className={`absolute inset-0 ${cardStyle.headerBg}`} />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
+
+                      <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                        {community.category && (
+                          <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                            {categories.find(cat => cat.id === community.category)?.icon &&
+                              React.createElement(categories.find(cat => cat.id === community.category)!.icon, { className: 'w-3.5 h-3.5' })
+                            }
+                            {categories.find(cat => cat.id === community.category)?.name || community.category}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-slate-900 shadow-lg">
+                        <AccessIcon className={`w-3.5 h-3.5 ${cardStyle.accent}`} />
+                        {accessInfo.label}
+                      </div>
+
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <p className="text-white/85 text-sm leading-relaxed line-clamp-2">
+                          {community.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="flex-1 flex flex-col gap-4 p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                            {community.name}
+                          </h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Actualizado {updatedDateFormatter.format(new Date(community.updated_at))}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                            {new Intl.NumberFormat('es-ES').format(community.member_count)}
+                          </p>
+                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            Miembros
+                          </span>
                         </div>
                       </div>
 
-                      {/* Content Section */}
-                      <div className="p-6 pt-4">
-                        {/* Category Badge */}
-                        {community.category && (
-                          <div className="mb-4">
-                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${cardStyle.accent} bg-white/10`}>
-                              {categories.find(cat => cat.id === community.category)?.icon && 
-                                React.createElement(categories.find(cat => cat.id === community.category)!.icon, { className: "w-3 h-3" })
-                              }
-                              {categories.find(cat => cat.id === community.category)?.name || community.category}
-                            </span>
-                          </div>
-                        )}
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100/70 dark:border-white/5 bg-slate-50/70 dark:bg-white/5 px-4 py-3 text-sm text-slate-600 dark:text-slate-200">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-blue-500" />
+                          {community.visibility === 'public' ? 'Comunidad abierta' : 'Acceso moderado'}
+                        </div>
+                        <div className="h-6 w-px bg-slate-200/70 dark:bg-white/10" />
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="w-4 h-4 text-purple-500" />
+                          {yearFormatter.format(new Date(community.created_at))}
+                        </div>
+                      </div>
 
-                        {/* Action Button */}
-                        <div className="mt-4" onClick={(e) => e.stopPropagation()}>
-                          {community.is_member ? (
-                            <Button
-                              onClick={() => router.push(`/communities/${community.slug}`)}
-                              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25 rounded-xl py-3 font-medium transition-all duration-300"
+                      <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500 dark:text-slate-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-white/10 px-3 py-1">
+                          <Shield className="w-3.5 h-3.5 text-emerald-500" />
+                          {community.is_active ? 'Activa' : 'En pausa'}
+                        </span>
+                        {community.is_member && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-emerald-500">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Ya eres miembro
+                          </span>
+                        )}
+                        {community.has_pending_request && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 text-amber-500">
+                            <Clock className="w-3.5 h-3.5" />
+                            Solicitud enviada
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="mt-auto" onClick={(e) => e.stopPropagation()}>
+                        {community.is_member ? (
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetails(community)}
+                              className="flex-1 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/60 py-3 text-sm font-semibold text-slate-900 dark:text-white transition hover:border-blue-400/60"
                             >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Entrar a la Comunidad
-                            </Button>
-                          ) : community.has_pending_request ? (
-                            <Button
-                              className="w-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 rounded-xl py-3 font-medium"
+                              Ver detalles
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/communities/${community.slug}`)}
+                              className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-110"
+                            >
+                              Entrar
+                            </button>
+                          </div>
+                        ) : community.has_pending_request ? (
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetails(community)}
+                              className="flex-1 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/60 py-3 text-sm font-semibold text-slate-900 dark:text-white transition hover:border-blue-400/60"
+                            >
+                              Ver detalles
+                            </button>
+                            <button
+                              type="button"
                               disabled
+                              className="flex-1 rounded-2xl border border-amber-400/40 bg-amber-500/20 py-3 text-sm font-semibold text-amber-700 dark:text-amber-200"
                             >
-                              <Clock className="w-4 h-4 mr-2" />
                               Solicitud pendiente
-                            </Button>
+                            </button>
+                          </div>
                         ) : (
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => router.push(`/communities/${community.slug}`)}
-                              className="flex-1 bg-slate-700/50 hover:bg-slate-600/50 text-white border border-slate-600/50 rounded-xl py-3 font-medium transition-all duration-300"
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetails(community)}
+                              className="flex-1 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/60 py-3 text-sm font-semibold text-slate-900 dark:text-white transition hover:border-blue-400/60"
                             >
-                              <Eye className="w-4 h-4 mr-2" />
-                              Ver Comunidad
-                            </Button>
-                            <Button
+                              Ver detalles
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleJoinCommunity(community.id, community.access_type)}
                               disabled={joiningCommunity === community.id}
-                              className={`rounded-xl py-3 font-medium transition-all duration-300 ${
+                              className={`flex-1 rounded-2xl py-3 text-sm font-semibold text-white shadow-lg transition ${
                                 community.access_type === 'free'
-                                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                                  : 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg shadow-purple-500/25'
-                              }`}
+                                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-blue-500/30 hover:brightness-110'
+                                  : 'bg-gradient-to-r from-purple-500 to-purple-600 shadow-purple-500/30 hover:brightness-110'
+                              } ${joiningCommunity === community.id ? 'cursor-wait opacity-80' : ''}`}
                             >
                               {joiningCommunity === community.id ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <div className="mx-auto h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                               ) : (
-                                <UserPlus className="w-4 h-4" />
+                                'Unirme'
                               )}
-                            </Button>
+                            </button>
                           </div>
                         )}
-                        </div>
                       </div>
-
-                      {/* Enhanced Hover Effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </motion.div>
-                  );
+                    </div>
+                  </motion.div>
+                );
                 })}
             </motion.div>
           )}
@@ -764,6 +876,349 @@ export default function CommunitiesPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {selectedCommunity && (
+          <CommunityDetailsModal
+            community={selectedCommunity}
+            overview={overview}
+            isLoading={overviewLoading}
+            isError={overviewError}
+            onClose={handleCloseDetails}
+            onEnter={() => {
+              router.push(`/communities/${selectedCommunity.slug}`);
+              handleCloseDetails();
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+    </div>
+  );
+}
+
+interface CommunityOverviewData {
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  image_url?: string;
+  member_count?: number;
+  created_at?: string;
+  category?: string | null;
+  access_type?: string;
+  visibility?: string;
+  stats: {
+    members: number;
+    posts: number;
+    createdAt: string | null;
+  };
+  creator?: {
+    id: string;
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    profile_picture_url: string | null;
+    cargo_rol: string | null;
+  } | null;
+  admins: Array<{
+    id: string;
+    display_name: string | null;
+    profile_picture_url: string | null;
+    role: string;
+  }>;
+  recentMembers: Array<{
+    id: string;
+    display_name: string | null;
+    profile_picture_url: string | null;
+    role: string;
+    joined_at: string | null;
+  }>;
+}
+
+function useCommunityOverview(slug: string | null) {
+  const { data, error, isLoading } = useSWR(
+    slug ? `/api/communities/${slug}/overview` : null,
+    async (url: string) => {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Error al obtener detalles de la comunidad');
+      }
+      return res.json();
+    },
+    {
+      revalidateOnFocus: false,
+    }
+  );
+
+  return {
+    overview: (data?.overview as CommunityOverviewData) || null,
+    isLoading,
+    isError: error,
+  };
+}
+
+interface CommunityDetailsModalProps {
+  community: Community;
+  overview: CommunityOverviewData | null;
+  isLoading: boolean;
+  isError: Error | undefined;
+  onClose: () => void;
+  onEnter: () => void;
+}
+
+function CommunityDetailsModal({
+  community,
+  overview,
+  isLoading,
+  isError,
+  onClose,
+  onEnter,
+}: CommunityDetailsModalProps) {
+  const fallbackStats = {
+    members: community.member_count || 0,
+    posts: 0,
+    createdAt: community.created_at || null,
+  };
+
+  const stats = overview?.stats || fallbackStats;
+  const creator = overview?.creator;
+  const admins = overview?.admins || [];
+  const recentMembers = overview?.recentMembers || [];
+
+  return (
+    <motion.div
+      className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9995] flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="relative w-full max-w-6xl bg-gradient-to-br from-[#090a1c] via-[#060614] to-[#03020b] border border-white/10 rounded-[32px] shadow-[0_40px_160px_rgba(5,3,18,0.8)] overflow-hidden text-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="p-8 space-y-8">
+          <div className="relative">
+            <div className="h-64 rounded-[32px] overflow-hidden border border-white/10 bg-slate-900/40 shadow-[0_25px_90px_rgba(0,0,0,0.45)]">
+              {community.image_url ? (
+                <Image src={community.image_url} alt={community.name} fill className="object-cover" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 via-purple-600/40 to-slate-900" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050414] via-[#050414]/30 to-transparent" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.35),_transparent_55%)] mix-blend-soft-light" />
+              <div className="absolute bottom-6 left-6 right-6 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-white/70">Comunidad</p>
+                  <h2 className="text-3xl font-bold">{community.name}</h2>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <InfoBadge icon={community.visibility === 'public' ? Globe : Shield} value={community.visibility === 'public' ? 'Pública' : 'Privada'} />
+                  <InfoBadge icon={community.access_type === 'free' ? CheckCircle : community.access_type === 'invitation_only' ? Lock : Crown} value={
+                    community.access_type === 'free' ? 'Acceso libre' : community.access_type === 'invitation_only' ? 'Solo invitación' : 'Acceso premium'
+                  } />
+                  {community.category && (
+                    <InfoBadge icon={Megaphone} value={categories.find((c) => c.id === community.category)?.name || community.category} />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
+            <section className="space-y-6">
+              <p className="text-white/85 leading-relaxed text-lg">
+                {community.description}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <DetailStat label="Miembros" value={stats.members.toString()} icon={Users} />
+                <DetailStat label="Posts publicados" value={stats.posts.toString()} icon={MessageSquareIcon} />
+                <DetailStat
+                  label="Creada"
+                  value={
+                    stats.createdAt
+                      ? new Date(stats.createdAt).toLocaleDateString('es-MX', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : '—'
+                  }
+                  icon={CalendarDays}
+                />
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-[26px] p-6 space-y-4">
+                <p className="text-sm uppercase tracking-[0.35em] text-white/60">Información clave</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <HighlightItem icon={Shield} title="Moderación activa" description="Un equipo dedicado mantiene conversaciones sanas y enfocadas." />
+                  <HighlightItem icon={MessageSquareIcon} title="Colaboración constante" description="Comparte ideas, dudas y recursos con profesionales afines." />
+                </div>
+              </div>
+            </section>
+
+            <aside className="space-y-6">
+              <section className="bg-white/5 border border-white/10 rounded-[26px] p-6 space-y-4">
+                <p className="text-sm uppercase tracking-[0.35em] text-white/60">Administradores</p>
+                {isLoading ? (
+                  <SkeletonList items={2} height="h-14" />
+                ) : (
+                  <div className="space-y-3">
+                    {creator ? (
+                      <AdminCard
+                        name={creator.display_name || `${creator.first_name || ''} ${creator.last_name || ''}`.trim() || 'Administrador'}
+                        role="Creador"
+                        avatar={creator.profile_picture_url}
+                      />
+                    ) : (
+                      <AdminCard name="Equipo Aprende y Aplica" role="Creador" avatar={null} />
+                    )}
+                    {admins.map((admin) => (
+                      <AdminCard
+                        key={admin.id}
+                        name={admin.display_name || 'Administrador'}
+                        role={admin.role === 'moderator' ? 'Moderador' : 'Administrador'}
+                        avatar={admin.profile_picture_url}
+                      />
+                    ))}
+                    {!admins.length && (
+                      <p className="text-xs text-white/60">Aún no se asignan administradores adicionales.</p>
+                    )}
+                  </div>
+                )}
+              </section>
+
+              <section className="bg-white/5 border border-white/10 rounded-[26px] p-6 space-y-4">
+                <p className="text-sm uppercase tracking-[0.35em] text-white/60">Miembros recientes</p>
+                {isLoading ? (
+                  <SkeletonList items={3} height="h-12" />
+                ) : recentMembers.length ? (
+                  <div className="space-y-3 max-h-48 overflow-y-auto custom-scroll pr-1">
+                    {recentMembers.map((member) => (
+                      <div key={member.id} className="flex items-center gap-3 bg-white/5 rounded-2xl px-3 py-2 border border-white/5">
+                        <AvatarCircle name={member.display_name || 'Miembro'} src={member.profile_picture_url} />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{member.display_name || 'Miembro'}</p>
+                          <p className="text-xs text-white/60">
+                            {member.role === 'admin' ? 'Administrador' : member.role === 'moderator' ? 'Moderador' : 'Miembro'} ·{' '}
+                            {member.joined_at ? new Date(member.joined_at).toLocaleDateString('es-MX') : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/60">Sé el primero en unirte a esta comunidad.</p>
+                )}
+              </section>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Button
+                  onClick={onEnter}
+                className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-500/90 hover:to-blue-500/90 text-white rounded-2xl py-4 shadow-lg shadow-green-500/20 text-base"
+                >
+                  Entrar a la Comunidad
+                </Button>
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                className="w-full border border-white/20 text-white rounded-2xl py-4 hover:bg-white/10 text-base"
+                >
+                  Cerrar
+                </Button>
+              </div>
+
+              {isError && (
+                <p className="text-xs text-red-300">
+                  No se pudieron cargar todos los detalles. Intenta nuevamente más tarde.
+                </p>
+              )}
+            </aside>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function DetailStat({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
+  return (
+    <div className="bg-white/5 rounded-3xl border border-white/10 px-4 py-4 flex items-center gap-4 shadow-inner shadow-black/10">
+      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
+        <Icon className="w-5 h-5" />
+      </div>
+      <div>
+        <p className="text-xs uppercase tracking-[0.35em] text-white/60">{label}</p>
+        <p className="text-xl font-semibold">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function AdminCard({ name, role, avatar }: { name: string; role: string; avatar: string | null }) {
+  return (
+    <div className="flex items-center gap-3 bg-white/5 rounded-2xl px-3 py-2 border border-white/10">
+      <AvatarCircle name={name} src={avatar} />
+      <div>
+        <p className="text-sm font-semibold">{name}</p>
+        <p className="text-xs text-white/60">{role}</p>
+      </div>
+    </div>
+  );
+}
+
+function AvatarCircle({ name, src }: { name: string; src: string | null }) {
+  if (src) {
+    return <Image src={src} alt={name} width={40} height={40} className="rounded-full object-cover" />;
+  }
+  return (
+    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-semibold">
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function InfoBadge({ icon: Icon, value }: { icon: any; value: string }) {
+  return (
+    <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur">
+      <Icon className="w-4 h-4 text-white/80" />
+      <span className="text-sm text-white/80">{value}</span>
+    </span>
+  );
+}
+
+function HighlightItem({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
+  return (
+    <div className="flex gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
+      <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
+        <Icon className="w-5 h-5 text-white/85" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-xs text-white/60">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonList({ items, height }: { items: number; height: string }) {
+  return (
+    <div className="space-y-3">
+      {[...Array(items)].map((_, idx) => (
+        <div key={idx} className={`${height} bg-white/5 rounded-2xl animate-pulse`} />
+      ))}
     </div>
   );
 }
