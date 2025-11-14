@@ -11,7 +11,8 @@ import {
   Loader2,
   User,
   ChevronUp,
-  Bug
+  Bug,
+  Plus
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -408,6 +409,7 @@ export function AIChatAgent({
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
+  const [isPromptCreatorMode, setIsPromptCreatorMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -645,7 +647,7 @@ export function AIChatAgent({
         },
         body: JSON.stringify({
           message: userMessage.content,
-          context: activeContext,
+          context: isPromptCreatorMode ? 'prompt-creator' : activeContext,
           pageContext: {
             pathname: pathname,
             description: pageContextInfo,
@@ -701,7 +703,7 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, pageContent, user]);
+  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, isPromptCreatorMode]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -907,7 +909,8 @@ export function AIChatAgent({
   // Ejecutar automáticamente la función de ayuda cuando se abre la LIA (solo si no se ejecutó por cambio de página)
   useEffect(() => {
     // Solo ejecutar si el chat se acaba de abrir y no se ejecutó la ayuda por cambio de página
-    if (isOpen && !hasOpenedRef.current) {
+    // NO ejecutar si está en modo prompt-creator (tiene su propio mensaje inicial)
+    if (isOpen && !hasOpenedRef.current && !isPromptCreatorMode) {
       // Ejecutar la ayuda automáticamente cuando se abre el chat
       hasOpenedRef.current = true;
       // Pequeño delay para asegurar que el chat esté completamente abierto
@@ -916,7 +919,19 @@ export function AIChatAgent({
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, handleRequestHelp]);
+    
+    // Si se activa el modo prompt-creator, agregar mensaje inicial
+    if (isOpen && isPromptCreatorMode && messages.length === 0) {
+      const initialPromptMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '¡Hola! Soy Lia, tu asistente especializada en creación de prompts de IA. Estoy aquí para ayudarte a crear prompts profesionales y efectivos.\n\n¿En qué tipo de prompt te gustaría trabajar hoy? Por ejemplo:\n\n• Quiero crear un prompt para generar contenido de marketing\n• Necesito un prompt para programación en Python\n• Busco un prompt para crear arte digital\n\n¡Cuéntame tu idea y comenzamos!',
+        timestamp: new Date()
+      };
+      setMessages([initialPromptMessage]);
+      hasOpenedRef.current = true;
+    }
+  }, [isOpen, handleRequestHelp, isPromptCreatorMode, messages.length]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
@@ -942,6 +957,7 @@ export function AIChatAgent({
     setIsOpen(false);
     setIsMinimized(false);
     setAreButtonsExpanded(false);
+    setIsPromptCreatorMode(false);
     // Resetear el flag cuando se cierra para que se ejecute la ayuda al abrir de nuevo
     hasOpenedRef.current = false;
   };
@@ -957,16 +973,45 @@ export function AIChatAgent({
           }}
         >
           <AnimatePresence>
-            {/* Botones expandidos: Reportar Problema */}
+            {/* Botones expandidos: Creador de prompts y Reportar Problema */}
             {areButtonsExpanded && (
               <motion.div
                 key="expanded-buttons"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col gap-2 overflow-hidden"
+                transition={{ duration: 0.25, ease: "easeInOut", delay: 0.05 }}
+                className="flex flex-col gap-2 overflow-hidden mb-2"
+                style={{ zIndex: 10 }}
               >
+                {/* Botón de Creador de prompts */}
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsPromptCreatorMode(true);
+                    setIsOpen(true);
+                    setIsMinimized(false);
+                    setAreButtonsExpanded(false);
+                    setHasUnreadMessages(false);
+                  }}
+                  initial={{ scale: 0, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2, delay: 0.1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg hover:shadow-green-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+                  title="Creador de prompts"
+                >
+                  <Plus className="w-6 h-6 text-white" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Creador de prompts
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
+                  </div>
+                </motion.button>
+
                 {/* Botón de reportar problema */}
                 <motion.button
                   onClick={(e) => {
@@ -977,7 +1022,7 @@ export function AIChatAgent({
                   initial={{ scale: 0, opacity: 0, y: 10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.15 }}
+                  transition={{ duration: 0.2, delay: 0.15 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-orange-500 shadow-lg hover:shadow-red-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
@@ -996,29 +1041,43 @@ export function AIChatAgent({
           </AnimatePresence>
 
           {/* Botón de expandir/colapsar - Solo flecha sin fondo */}
-          <motion.button
+          <button
             onClick={(e) => {
               e.stopPropagation();
               setAreButtonsExpanded(!areButtonsExpanded);
             }}
-            whileHover={{ scale: 1.2 }}
-            whileTap={{ scale: 0.9 }}
-            className="cursor-pointer flex items-center justify-center group relative p-1"
+            className="cursor-pointer flex items-center justify-center group relative p-1 z-20 bg-transparent border-none outline-none"
             title={areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
+            style={{ 
+              background: 'transparent', 
+              border: 'none',
+              outline: 'none',
+              padding: '4px'
+            }}
           >
             <motion.div
+              key={`chevron-${areButtonsExpanded}`}
               animate={{ rotate: areButtonsExpanded ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              style={{ 
+                transformOrigin: 'center',
+                display: 'inline-block',
+                width: '20px',
+                height: '20px'
+              }}
             >
-              <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+              <ChevronUp 
+                className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300"
+                style={{ display: 'block' }}
+              />
             </motion.div>
             
             {/* Tooltip */}
-            <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
               {areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
               <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
             </div>
-          </motion.button>
+          </button>
 
           {/* Botón principal de LIA */}
           <motion.div
@@ -1153,6 +1212,11 @@ export function AIChatAgent({
               </div>
               
               <div className="flex items-center gap-2">
+                {isPromptCreatorMode && (
+                  <div className="px-3 py-1 bg-white/20 rounded-lg text-white text-xs font-medium">
+                    Creador de Prompts
+                  </div>
+                )}
                 <button
                   onClick={handleClose}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
@@ -1273,13 +1337,13 @@ export function AIChatAgent({
               transition={{ delay: 0.3 }}
             >
               <div className="flex items-center gap-2">
-                <input
+                  <input
                   ref={inputRef}
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={promptPlaceholder}
+                  placeholder={isPromptCreatorMode ? "Describe qué tipo de prompt quieres crear..." : promptPlaceholder}
                   disabled={isTyping}
                   className="flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border border-gray-300 dark:border-carbon-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner"
                 />
