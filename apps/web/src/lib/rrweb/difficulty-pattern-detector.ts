@@ -338,40 +338,83 @@ export class DifficultyPatternDetector {
    * Detecta scroll excesivo (usuario busca información repetidamente)
    */
   private detectExcessiveScroll(events: eventWithTime[]): DifficultyPattern | null {
-    const scrollEvents = events.filter(event => event.type === 3 && (event.data as any).source === 0);
+    // rrweb scroll events pueden ser:
+    // - Type 3, source 0 (Scroll) - PERO en práctica son mutaciones
+    // - Type 3, source 6 (ViewportResize) 
+    // - Necesitamos buscar cambios en la posición del scroll de otra forma
     
-    if (scrollEvents.length < 10) return null;
-
-    // Detectar patrones de scroll repetitivo (arriba-abajo-arriba)
-    let scrollPatternCount = 0;
-    let lastScrollY = 0;
-    let scrollDirection = 0; // 1 = down, -1 = up
+    // Estrategia alternativa: contar eventos de mutación frecuentes como indicador de scroll
+    const incrementalSnapshots = events.filter(event => event.type === 3);
+    
+    console.log('📜 [DEBUG] Análisis de scroll alternativo:', {
+      totalIncrementalSnapshots: incrementalSnapshots.length,
+      primeros5Tipos: incrementalSnapshots.slice(0, 5).map(e => ({
+        type: e.type,
+        source: (e.data as any).source,
+        timestamp: e.timestamp
+      }))
+    });
+    
+    // Si hay muchos eventos incrementales en poco tiempo, probablemente hay scroll activo
+    // Contar "ráfagas" de eventos (grupos de eventos muy juntos en tiempo)
+    if (incrementalSnapshots.length < 100) {
+      console.log('⚠️ [DEBUG] Pocos snapshots incrementales:', incrementalSnapshots.length);
+      return null;
+    }
+    
+    // Estrategia simplificada: detectar períodos de actividad intensa
+    // Dividir los eventos en ventanas de 1 segundo y contar cuántas ventanas tienen actividad
+    const timeWindows = new Map<number, number>(); // segundo -> cantidad de eventos
+    
+    incrementalSnapshots.forEach(event => {
+      const second = Math.floor(event.timestamp / 1000);
+      timeWindows.set(second, (timeWindows.get(second) || 0) + 1);
+    });
+    
+    // Filtrar ventanas con actividad significativa (50+ eventos por segundo = scroll activo)
+    const activeWindows = Array.from(timeWindows.entries())
+      .filter(([_, count]) => count >= 50)
+      .map(([second, count]) => ({ second, count }))
+      .sort((a, b) => a.second - b.second);
+    
+    // Detectar "cambios de dirección" = silencios entre períodos activos
     let directionChanges = 0;
-
-    scrollEvents.forEach(event => {
-      const data = event.data as any;
-      const currentY = data.y || 0;
-      
-      if (currentY > lastScrollY) {
-        if (scrollDirection === -1) directionChanges++;
-        scrollDirection = 1;
-      } else if (currentY < lastScrollY) {
-        if (scrollDirection === 1) directionChanges++;
-        scrollDirection = -1;
+    for (let i = 1; i < activeWindows.length; i++) {
+      const gap = activeWindows[i].second - activeWindows[i - 1].second;
+      // Si hay más de 2 segundos de silencio, considerarlo un cambio de dirección
+      if (gap > 2) {
+        directionChanges++;
       }
-      
-      lastScrollY = currentY;
+    }
+    
+    console.log('📜 [DEBUG] Ráfagas de scroll:', {
+      ventanasActivas: activeWindows.length,
+      cambiosDireccion: directionChanges,
+      threshold: this.thresholds.scrollRepeatThreshold,
+      detectadoPorCambios: directionChanges >= this.thresholds.scrollRepeatThreshold,
+      detectadoPorVolumen: activeWindows.length >= 8, // 8+ segundos de scroll activo
+      primeras5Ventanas: activeWindows.slice(0, 5)
     });
 
-    if (directionChanges >= this.thresholds.scrollRepeatThreshold) {
+    // Detectar de dos formas:
+    // 1. Cambios de dirección (scroll arriba-abajo-arriba)
+    // 2. Volumen alto (8+ segundos de scroll continuo = usuario buscando algo)
+    const detectedByChanges = directionChanges >= this.thresholds.scrollRepeatThreshold;
+    const detectedByVolume = activeWindows.length >= 8;
+
+    if (detectedByChanges || detectedByVolume) {
       return {
         type: 'excessive_scroll',
         severity: 'medium',
-        description: `Patrón de scroll repetitivo detectado (${directionChanges} cambios de dirección)`,
+        description: detectedByChanges 
+          ? `Patrón de scroll repetitivo detectado (${directionChanges} cambios de dirección)`
+          : `Scroll excesivo detectado (${activeWindows.length} segundos de actividad)`,
         timestamp: Date.now(),
         metadata: {
-          scrollEventCount: scrollEvents.length,
-          directionChanges
+          scrollEventCount: incrementalSnapshots.length,
+          directionChanges,
+          activeWindows: activeWindows.length,
+          detectionMethod: detectedByChanges ? 'direction_changes' : 'volume'
         }
       };
     }
