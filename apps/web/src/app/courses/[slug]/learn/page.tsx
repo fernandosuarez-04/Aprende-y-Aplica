@@ -52,6 +52,7 @@ import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
 import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
+import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
 import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
@@ -1805,6 +1806,81 @@ Antes de cada respuesta, pregúntate:
   }
 
   return (
+    <WorkshopLearningProvider
+      workshopId={course?.id || course?.course_id || slug}
+      activityId={currentLesson?.lesson_id || 'no-lesson'}
+      enabled={!!course && !!currentLesson}
+      checkInterval={30000}
+      assistantPosition="bottom-right"
+      assistantCompact={false}
+      onDifficultyDetected={(analysis) => {
+        console.log('🚨 Dificultad detectada en taller:', {
+          workshop: course?.title || course?.course_title,
+          lesson: currentLesson?.lesson_title,
+          patterns: analysis.patterns,
+          score: analysis.overallScore
+        });
+      }}
+      onHelpAccepted={async (analysis) => {
+        console.log('✅ Usuario aceptó ayuda proactiva:', {
+          lesson: currentLesson?.lesson_title,
+          patterns: analysis.patterns
+        });
+        
+        // Abrir el panel de LIA (panel derecho)
+        setIsRightPanelOpen(true);
+        
+        // Construir mensaje visible simple para el usuario
+        const visibleUserMessage = `Necesito ayuda con esta lección`;
+        
+        // Construir contexto enriquecido de la lección con información de la dificultad detectada
+        const enrichedLessonContext = currentLesson && course ? {
+          courseTitle: course.title || course.course_title,
+          courseDescription: course.description || course.course_description,
+          moduleTitle: modules.find(m => m.lessons.some(l => l.lesson_id === currentLesson.lesson_id))?.module_title,
+          lessonTitle: currentLesson.lesson_title,
+          lessonDescription: currentLesson.lesson_description,
+          durationSeconds: currentLesson.duration_seconds,
+          userRole: user?.type_rol || undefined,
+          // Agregar información de la dificultad detectada al contexto
+          difficultyDetected: {
+            patterns: analysis.patterns.map(p => ({
+              type: p.type,
+              severity: p.severity,
+              description: (() => {
+                switch (p.type) {
+                  case 'inactivity':
+                    return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : 'varios'} minutos sin avanzar`;
+                  case 'excessive_scroll':
+                    return 'Ha estado haciendo scroll repetidamente buscando información';
+                  case 'failed_attempts':
+                    return 'Ha intentado completar la actividad varias veces sin éxito';
+                  case 'frequent_deletion':
+                    return 'Ha estado escribiendo y borrando varias veces';
+                  case 'repetitive_cycles':
+                    return 'Ha estado yendo y viniendo entre diferentes secciones';
+                  case 'erroneous_clicks':
+                    return 'Ha hecho varios clicks sin resultado';
+                  default:
+                    return 'Está teniendo dificultades para avanzar';
+                }
+              })()
+            })),
+            overallScore: analysis.overallScore,
+            shouldIntervene: analysis.shouldIntervene
+          }
+        } : getLessonContext();
+        
+        try {
+          // Enviar mensaje simple visible + contexto enriquecido en segundo plano
+          // El mensaje se mostrará como usuario normal: "Necesito ayuda con esta lección"
+          // El contexto enriquecido se procesará en el API pero NO se mostrará
+          await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, false);
+        } catch (error) {
+          console.error('❌ Error enviando mensaje proactivo a LIA:', error);
+        }
+      }}
+    >
     <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
       {/* Header superior con nueva estructura - Responsive */}
       <motion.div
@@ -3278,6 +3354,7 @@ Antes de cada respuesta, pregúntate:
         }}
       />
     </div>
+    </WorkshopLearningProvider>
   );
 }
 

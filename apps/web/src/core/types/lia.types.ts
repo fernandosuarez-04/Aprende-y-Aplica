@@ -10,6 +10,15 @@ export interface CourseLessonContext {
   videoTime?: number;
   durationSeconds?: number;
   userRole?: string;
+  difficultyDetected?: {
+    patterns: Array<{
+      type: string;
+      severity: 'low' | 'medium' | 'high';
+      description: string;
+    }>;
+    overallScore: number;
+    shouldIntervene: boolean;
+  };
 }
 
 export interface LiaMessage {

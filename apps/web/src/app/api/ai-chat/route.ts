@@ -263,6 +263,11 @@ const getContextPrompt = (
       ? `\n\nCURSO: ${courseContext.courseTitle}${courseContext.courseDescription ? `\n${courseContext.courseDescription}` : ''}`
       : '';
     
+    // Información de dificultad detectada (si existe)
+    const difficultyInfo = courseContext.difficultyDetected
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${courseContext.difficultyDetected.patterns.map(p => `- ${p.description}`).join('\n')}\n\n⚠️ IMPORTANTE: El estudiante necesita ayuda específica y práctica. Tu respuesta debe ser directa, útil y enfocada en resolver su dificultad inmediata. Proporciona pasos claros y concretos que pueda seguir.`
+      : '';
+    
     // Restricciones de contenido para cursos
     const courseContentRestrictions = `
 
@@ -348,7 +353,7 @@ FORMATO DE RESPUESTAS - REGLAS ABSOLUTAS (CRÍTICO):
 
 RECUERDA: Tu respuesta debe ser texto plano puro. Si detectas que estás a punto de usar cualquier símbolo de Markdown, detente y reescribe sin ese símbolo.
 
-CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${summaryInfo}${transcriptInfo}
+CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${summaryInfo}${transcriptInfo}${difficultyInfo}
 
 IMPORTANTE: Cuando respondas, siempre indica si la información proviene del video actual o si necesitarías revisar otra lección.`;
   }

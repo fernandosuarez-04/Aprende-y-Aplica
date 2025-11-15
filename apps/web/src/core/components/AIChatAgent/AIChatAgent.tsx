@@ -11,13 +11,16 @@ import {
   Loader2,
   User,
   ChevronUp,
-  Bug
+  Bug,
+  Brain,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
 import { ReporteProblema } from '../ReporteProblema/ReporteProblema';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../providers/I18nProvider';
+import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
 
 interface Message {
   id: string;
@@ -344,6 +347,7 @@ export function AIChatAgent({
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
+  const [useContextMode, setUseContextMode] = useState(false); // 🎬 Modo con contexto rrweb
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -635,7 +639,95 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric]);
+  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user]);
+
+  /**
+   * 🎬 NUEVO: Enviar mensaje con contexto de sesión rrweb
+   * Captura los últimos 2 minutos de interacción y los envía a LIA
+   */
+  const handleSendWithContext = useCallback(async () => {
+    if (!inputMessage.trim() || isTyping) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: inputMessage,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsTyping(true);
+
+    try {
+      // 🎬 Capturar snapshot de sesión (sin detener grabación)
+      console.log('🎬 Capturando contexto de sesión para LIA...');
+      const snapshot = sessionRecorder.captureSnapshot();
+      
+      if (!snapshot || !snapshot.events || snapshot.events.length === 0) {
+        console.warn('⚠️ No hay eventos de sesión disponibles, usando chat normal');
+        // Fallback a chat normal si no hay sesión
+        return handleSendMessage();
+      }
+
+      console.log(`✅ Contexto capturado: ${snapshot.events.length} eventos`);
+
+      // Limitar eventos para no enviar demasiados datos
+      const recentEvents = snapshot.events.slice(-200); // Últimos 200 eventos
+
+      // Llamar al endpoint con contexto
+      const response = await fetch('/api/lia/context-help', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: userMessage.content,
+          sessionEvents: recentEvents,
+          workshopId: undefined, // TODO: Detectar si está en taller
+          activityId: undefined,
+          analysisWindow: 120000 // 2 minutos
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Crear mensaje de LIA con el contexto analizado
+      let assistantContent = data.response;
+      
+      // Agregar indicador visual de que se usó contexto
+      const contextIndicator = `\n\n---\n*📊 He analizado tu sesión para darte una respuesta más precisa*`;
+      assistantContent += contextIndicator;
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: assistantContent,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+    } catch (error) {
+      console.error('❌ Error en chat con contexto:', error);
+      
+      // Fallback: intentar con chat normal
+      console.log('⚠️ Fallback a chat normal sin contexto');
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Lo siento, tuve un problema al analizar tu sesión. Déjame ayudarte de todos modos: ' + inputMessage,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  }, [inputMessage, isTyping, messages, handleSendMessage]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1214,17 +1306,44 @@ export function AIChatAgent({
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={placeholderText}
+                  placeholder={useContextMode ? "🎬 Pregunta algo (con análisis de tu sesión)..." : promptPlaceholder}
                   disabled={isTyping}
-                  className="flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border border-gray-300 dark:border-carbon-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner"
+                  className={`flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border ${
+                    useContextMode 
+                      ? 'border-purple-400 dark:border-purple-500 ring-2 ring-purple-400/30' 
+                      : 'border-gray-300 dark:border-carbon-600'
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all`}
                 />
+                
+                {/* 🎬 Botón para activar/desactivar modo contextual */}
+                <motion.button
+                  onClick={() => setUseContextMode(!useContextMode)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title={useContextMode ? "Desactivar análisis de sesión" : "Activar análisis de sesión"}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    useContextMode
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50'
+                      : 'bg-gray-200 dark:bg-carbon-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-carbon-700'
+                  }`}
+                >
+                  {useContextMode ? (
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                  ) : (
+                    <Brain className="w-5 h-5" />
+                  )}
+                </motion.button>
                 
                 {/* Botón dinámico: micrófono cuando está vacío, enviar cuando hay texto */}
                 <motion.button
                   onClick={() => {
                     if (inputMessage.trim()) {
-                      // Si hay texto, enviar mensaje
-                      handleSendMessage();
+                      // Si hay texto, enviar mensaje (con o sin contexto según modo)
+                      if (useContextMode) {
+                        handleSendWithContext();
+                      } else {
+                        handleSendMessage();
+                      }
                     } else {
                       // Si no hay texto, activar/desactivar grabación
                       toggleRecording();
@@ -1235,11 +1354,13 @@ export function AIChatAgent({
                   whileTap={{ scale: 0.9 }}
                   className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
                     inputMessage.trim()
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/50'
+                      ? useContextMode
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-lg shadow-purple-500/50'
+                        : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/50'
                       : isRecording
                       ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
                       : 'bg-gray-200 dark:bg-carbon-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-carbon-700'
-                  } ${isTyping && inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  } ${isTyping && !!inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isTyping && inputMessage.trim() ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -1255,9 +1376,18 @@ export function AIChatAgent({
               
               {/* Instrucciones */}
               <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 font-medium">
-                <span>{pressEnterLabel}</span>
-                <span>•</span>
-                <span>{inputMessage.trim() ? clickToSendLabel : clickToDictateLabel}</span>
+                {useContextMode ? (
+                  <>
+                    <Sparkles className="w-3 h-3 text-purple-500 animate-pulse" />
+                    <span className="text-purple-600 dark:text-purple-400">Modo contextual activado - LIA analizará tu sesión</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Presiona Enter para enviar</span>
+                    <span>•</span>
+                    <span>{inputMessage.trim() ? 'Clic para enviar' : 'Clic para dictar'}</span>
+                  </>
+                )}
               </div>
             </motion.div>
           )}
