@@ -23,6 +23,8 @@ import { usePathname } from 'next/navigation';
 import { ReporteProblema } from '../ReporteProblema/ReporteProblema';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../providers/I18nProvider';
+import { useRouter } from 'next/navigation';
+import { getPlatformContext } from '../../../lib/lia/page-metadata';
 
 interface Message {
   id: string;
@@ -188,6 +190,66 @@ function extractPageContent(): {
   };
 }
 
+// Función para renderizar texto con enlaces Markdown clickeables
+function renderTextWithLinks(text: string): React.ReactNode {
+  if (!text) return text;
+
+  // Regex para detectar enlaces Markdown: [texto](url)
+  const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Agregar texto antes del enlace
+    if (match.index > lastIndex) {
+      const textBefore = text.substring(lastIndex, match.index);
+      if (textBefore) {
+        parts.push(textBefore);
+      }
+    }
+
+    // Agregar el enlace como elemento <a>
+    const linkText = match[1];
+    const linkUrl = match[2];
+    
+    // Verificar si es una URL relativa (empieza con /) o absoluta
+    const isRelative = linkUrl.startsWith('/');
+    
+    parts.push(
+      <a
+        key={`link-${key++}`}
+        href={linkUrl}
+        onClick={(e) => {
+          if (isRelative) {
+            e.preventDefault();
+            // Usar Next.js router para navegación interna
+            const { useRouter } = require('next/navigation');
+            const router = useRouter();
+            router.push(linkUrl);
+          }
+          // Si es URL absoluta, dejar que el navegador maneje el enlace
+        }}
+        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+        {...(!isRelative && { target: '_blank', rel: 'noopener noreferrer' })}
+      >
+        {linkText}
+      </a>
+    );
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Agregar texto restante después del último enlace
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  // Si no hay enlaces, retornar el texto original
+  return parts.length > 0 ? parts : text;
+}
+
 export function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
@@ -341,6 +403,29 @@ export function AIChatAgent({
     mainText: string;
   } | null>(null);
 
+  // Estado para almacenar los links disponibles según el rol
+  const [availableLinks, setAvailableLinks] = useState<string>('');
+
+  // Obtener links disponibles cuando se monta el componente
+  useEffect(() => {
+    const fetchAvailableLinks = async () => {
+      try {
+        const response = await fetch('/api/lia/available-links');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.linksForLIA) {
+            setAvailableLinks(data.linksForLIA);
+          }
+        }
+      } catch (error) {
+        // Silenciar errores, no es crítico si no se pueden obtener los links
+        console.error('Error obteniendo links disponibles:', error);
+      }
+    };
+
+    fetchAvailableLinks();
+  }, []);
+
   // Extraer contenido del DOM cuando cambie la ruta o cuando se abra el chat
   // NOTA: Cuando el chat está abierto y cambia la página, el contenido se maneja
   // en el useEffect de cambio de página para evitar condiciones de carrera
@@ -378,6 +463,63 @@ export function AIChatAgent({
   const { user } = useAuth();
   const prevPathnameRef = useRef<string>('');
   const hasOpenedRef = useRef<boolean>(false);
+  const router = useRouter();
+
+  // Función para renderizar texto con enlaces Markdown clickeables
+  const renderTextWithLinks = useCallback((text: string): React.ReactNode => {
+    if (!text) return text;
+
+    // Regex para detectar enlaces Markdown: [texto](url)
+    const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // Agregar texto antes del enlace
+      if (match.index > lastIndex) {
+        const textBefore = text.substring(lastIndex, match.index);
+        if (textBefore) {
+          parts.push(textBefore);
+        }
+      }
+
+      // Agregar el enlace como elemento <a>
+      const linkText = match[1];
+      const linkUrl = match[2];
+      
+      // Verificar si es una URL relativa (empieza con /) o absoluta
+      const isRelative = linkUrl.startsWith('/');
+      
+      parts.push(
+        <a
+          key={`link-${key++}`}
+          href={linkUrl}
+          onClick={(e) => {
+            if (isRelative) {
+              e.preventDefault();
+              router.push(linkUrl);
+            }
+          }}
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+          {...(!isRelative && { target: '_blank', rel: 'noopener noreferrer' })}
+        >
+          {linkText}
+        </a>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Agregar texto restante después del último enlace
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    // Si no hay enlaces, retornar el texto original
+    return parts.length > 0 ? parts : text;
+  }, [router]);
 
   // Cargar posición guardada al montar
   useEffect(() => {
@@ -663,7 +805,11 @@ export function AIChatAgent({
               pageTitle: pageContent?.title || '',
               metaDescription: pageContent?.metaDescription || '',
               headings: pageContent?.headings || [],
-              mainText: pageContent?.mainText || ''
+              mainText: pageContent?.mainText || '',
+              // Agregar contexto de la plataforma completa
+              platformContext: getPlatformContext(),
+              // Agregar links disponibles según el rol del usuario
+              availableLinks: availableLinks
             },
             conversationHistory: normalMessages.map(m => ({
               role: m.role,
@@ -720,7 +866,7 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent]);
+  }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent, availableLinks]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -775,7 +921,11 @@ export function AIChatAgent({
             pageTitle: currentPageContent?.title || '',
             metaDescription: currentPageContent?.metaDescription || '',
             headings: currentPageContent?.headings || [],
-            mainText: currentPageContent?.mainText || ''
+            mainText: currentPageContent?.mainText || '',
+            // Agregar contexto de la plataforma completa
+            platformContext: getPlatformContext(),
+            // Agregar links disponibles según el rol del usuario
+            availableLinks: availableLinks
           },
           conversationHistory: currentMessages.map(m => ({
             role: m.role,
@@ -814,7 +964,7 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError, normalMessages]);
+  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError, normalMessages, availableLinks]);
 
   // Limpiar el chat cuando cambia la página
   useEffect(() => {
@@ -1357,7 +1507,9 @@ Fecha: ${new Date().toLocaleString()}
                       ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                       : 'bg-white dark:bg-carbon-800 text-gray-900 dark:text-white border border-gray-200 dark:border-carbon-600'
                   }`}>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">{message.content}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">
+                      {renderTextWithLinks(message.content)}
+                    </p>
                     
                     {/* Botón para reabrir prompt si el mensaje tiene un prompt generado */}
                     {message.role === 'assistant' && message.generatedPrompt && isPromptMode && (
