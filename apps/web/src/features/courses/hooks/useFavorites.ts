@@ -64,7 +64,7 @@ export function useFavorites(): UseFavoritesReturn {
         ? favorites.filter(id => id !== courseId)
         : [...favorites, courseId]
 
-      // Update UI immediately
+      // Update UI immediately (optimistic update)
       mutate(optimisticFavorites, false)
 
       const response = await fetch('/api/favorites', {
@@ -80,10 +80,32 @@ export function useFavorites(): UseFavoritesReturn {
         throw new Error(`Error ${response.status}`)
       }
 
-      const { isFavorite: newFavoriteStatus } = await response.json()
+      const { isFavorite: newFavoriteStatus, favorites: updatedFavorites } = await response.json()
 
-      // Revalidate to ensure consistency
-      await mutate()
+      // Si el servidor devolvió la lista actualizada de favoritos, usarla directamente
+      // Esto asegura que el estado esté 100% sincronizado con la BD
+      if (Array.isArray(updatedFavorites)) {
+        // Actualizar el cache con la lista exacta del servidor
+        // false = no revalidar (ya tenemos los datos frescos)
+        mutate(updatedFavorites, false)
+      } else {
+        // Fallback: Asegurar que el estado optimista coincida con la respuesta del servidor
+        const currentInOptimistic = optimisticFavorites.includes(courseId)
+        if (currentInOptimistic !== newFavoriteStatus) {
+          // Corregir el estado optimista
+          const correctedFavorites = newFavoriteStatus
+            ? [...optimisticFavorites.filter(id => id !== courseId), courseId]
+            : optimisticFavorites.filter(id => id !== courseId)
+          
+          // Actualizar el cache con el estado correcto
+          mutate(correctedFavorites, false)
+        }
+
+        // Revalidar desde el servidor para asegurar consistencia (sin bloquear la UI)
+        mutate().catch(() => {
+          // Si falla la revalidación, el estado optimista ya está correcto
+        })
+      }
 
       return newFavoriteStatus
     } catch (err) {

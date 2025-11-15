@@ -1406,8 +1406,12 @@ a {
 }
 
 /* Labels de auth */
-.auth-label {
-  color: var(--org-text-color, #f8fafc) !important;
+.dark .auth-label {
+  color: var(--org-text-color, #e2e8f0) !important;
+}
+
+.light .auth-label {
+  color: #374151 !important;
 }
 
 /* Focus personalizado para iconos de inputs */

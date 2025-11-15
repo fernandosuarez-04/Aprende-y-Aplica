@@ -795,8 +795,8 @@ PROMPTS ADAPTADOS:`;
       // Extraer prompts de la respuesta (cada línea es un prompt)
       const adaptedPrompts = generatedText
         .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
         .slice(0, basePrompts.length); // Limitar al número de prompts originales
 
       return adaptedPrompts.length > 0 ? adaptedPrompts : basePrompts;
@@ -3062,7 +3062,7 @@ Antes de cada respuesta, pregúntate:
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+              className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-2xl max-w-md w-full p-6"
             >
               {/* Icono de éxito */}
               <div className="flex justify-center mb-4">
@@ -3072,18 +3072,18 @@ Antes de cada respuesta, pregúntate:
               </div>
 
               {/* Título */}
-              <h3 className="text-2xl font-bold text-white text-center mb-2">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
                 ¡Felicidades!
               </h3>
 
               {/* Mensaje */}
-              <p className="text-slate-300 text-center mb-4">
+              <p className="text-gray-600 dark:text-slate-300 text-center mb-4">
                 Has completado el curso exitosamente. ¡Buen trabajo!
               </p>
 
               {/* Mensaje informativo sobre certificado */}
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
-                <p className="text-blue-300 text-center text-sm">
+              <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-3 mb-6">
+                <p className="text-blue-700 dark:text-blue-300 text-center text-sm">
                   📜 A continuación, completa una breve encuesta para acceder a tu certificado
                 </p>
               </div>
@@ -6922,38 +6922,37 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      {/* Overlay - No cubre el navbar (z-40) */}
+      <div className="absolute top-14 left-0 right-0 bottom-0 bg-black/70 backdrop-blur-sm" />
       
       {/* Modal Content */}
       <div 
-        className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 w-full max-w-2xl p-6 mx-4" 
+        className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 w-full max-w-2xl p-6 mx-4 shadow-2xl" 
         onClick={(e) => e.stopPropagation()}
-        style={{ boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.6), 0 0 0 0 rgba(0, 0, 0, 0)' }}
       >
-        <h3 className="text-white font-semibold text-xl mb-4">Hacer una Pregunta</h3>
+        <h3 className="text-gray-900 dark:text-white font-semibold text-xl mb-4">Hacer una Pregunta</h3>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-slate-300 text-sm mb-2">Título (opcional)</label>
+            <label className="block text-gray-700 dark:text-slate-300 text-sm mb-2">Título (opcional)</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Título de tu pregunta..."
-              className="w-full px-4 py-2 bg-slate-700/80 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-700/80 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
           
           <div>
-            <label className="block text-slate-300 text-sm mb-2">Contenido *</label>
+            <label className="block text-gray-700 dark:text-slate-300 text-sm mb-2">Contenido *</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Describe tu pregunta..."
               required
               rows={6}
-              className="w-full px-4 py-2 bg-slate-700/80 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+              className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-700/80 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
             />
           </div>
 
@@ -6961,7 +6960,7 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-gray-200 dark:bg-slate-700/80 hover:bg-gray-300 dark:hover:bg-slate-600/80 text-gray-900 dark:text-white rounded-lg transition-colors"
             >
               Cancelar
             </button>

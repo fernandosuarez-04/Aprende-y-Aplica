@@ -46,10 +46,14 @@ export async function POST(request: NextRequest) {
     }
 
     const isFavorite = await FavoritesService.toggleFavorite(userId, courseId)
+    
+    // Obtener la lista actualizada de favoritos para sincronizar el estado
+    const updatedFavorites = await FavoritesService.getUserFavorites(userId)
 
     return NextResponse.json({
       success: true,
       isFavorite,
+      favorites: updatedFavorites, // Incluir lista actualizada
       message: isFavorite ? 'Agregado a favoritos' : 'Removido de favoritos'
     })
   } catch (error) {

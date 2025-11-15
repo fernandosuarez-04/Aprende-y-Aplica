@@ -159,22 +159,25 @@ export class PurchasedCoursesService {
       const supabase = await createClient();
       
       // Obtener todos los cursos comprados
-      const { data: purchases } = await supabase
+      const { data: purchases, error: purchasesError } = await supabase
         .from('course_purchases')
         .select(`
+          purchase_id,
+          enrollment_id,
+          course_id,
           courses!inner (
             id,
             duration_total_minutes
-          ),
-          user_course_enrollments (
-            enrollment_status,
-            overall_progress_percentage
           )
         `)
         .eq('user_id', userId)
         .eq('access_status', 'active');
 
-      if (!purchases) {
+      if (purchasesError) {
+        throw purchasesError;
+      }
+
+      if (!purchases || purchases.length === 0) {
         return {
           total_courses: 0,
           completed_courses: 0,
@@ -184,26 +187,78 @@ export class PurchasedCoursesService {
         };
       }
 
+      // Obtener los course_ids de los purchases para buscar enrollments
+      const courseIds = purchases
+        .map((p: any) => p.course_id)
+        .filter((id: string | null) => id !== null && id !== undefined);
+
+      // Obtener todos los enrollments del usuario para los cursos comprados
+      // Esto asegura que encontremos enrollments incluso si el purchase no tiene enrollment_id
+      let enrollmentsMap = new Map();
+      if (courseIds.length > 0) {
+        const { data: enrollments, error: enrollmentsError } = await supabase
+          .from('user_course_enrollments')
+          .select('enrollment_id, enrollment_status, overall_progress_percentage, course_id')
+          .eq('user_id', userId)
+          .in('course_id', courseIds);
+
+        if (enrollmentsError) {
+          throw enrollmentsError;
+        }
+
+        // Crear un mapa usando course_id como clave para acceso rápido
+        // Si hay múltiples enrollments para el mismo curso, usamos el más reciente
+        if (enrollments) {
+          enrollments.forEach((enrollment: any) => {
+            const existing = enrollmentsMap.get(enrollment.course_id);
+            // Si ya existe uno, mantener el que tenga mayor progreso o sea 'completed'
+            if (!existing || 
+                enrollment.enrollment_status === 'completed' ||
+                (Number(enrollment.overall_progress_percentage) > Number(existing.overall_progress_percentage))) {
+              enrollmentsMap.set(enrollment.course_id, enrollment);
+            }
+          });
+        }
+      }
+
       let completed_courses = 0;
       let in_progress_courses = 0;
       let total_progress = 0;
       let total_time = 0;
+      let enrollments_with_progress = 0;
 
       purchases.forEach((purchase: any) => {
-        const enrollment = purchase.user_course_enrollments?.[0];
         const course = purchase.courses;
         
         if (course) {
           total_time += course.duration_total_minutes || 0;
         }
 
+        // Buscar el enrollment usando el course_id (más confiable que enrollment_id)
+        const enrollment = course?.id 
+          ? enrollmentsMap.get(course.id)
+          : null;
+
         if (enrollment) {
           const status = enrollment.enrollment_status;
-          const progress = enrollment.overall_progress_percentage || 0;
+          const progress = Number(enrollment.overall_progress_percentage) || 0;
           
-          if (status === 'completed') {
+          enrollments_with_progress++;
+          
+          // Un curso está completado si:
+          // 1. El enrollment_status es 'completed', O
+          // 2. El overall_progress_percentage es >= 100
+          const isCompleted = status === 'completed' || progress >= 100;
+          
+          // Un curso está en progreso si:
+          // 1. Tiene progreso > 0 y < 100, Y
+          // 2. No está completado, Y
+          // 3. No está cancelado ni pausado
+          const isInProgress = progress > 0 && progress < 100 && !isCompleted && status !== 'cancelled' && status !== 'paused';
+          
+          if (isCompleted) {
             completed_courses++;
-          } else if (progress > 0 && progress < 100) {
+          } else if (isInProgress) {
             in_progress_courses++;
           }
           
@@ -216,7 +271,7 @@ export class PurchasedCoursesService {
         completed_courses,
         in_progress_courses,
         total_time_minutes: total_time,
-        average_progress: purchases.length > 0 ? total_progress / purchases.length : 0
+        average_progress: enrollments_with_progress > 0 ? total_progress / enrollments_with_progress : 0
       };
     } catch (error) {
       // console.error('Error in PurchasedCoursesService.getUserLearningStats:', error);

@@ -12,8 +12,12 @@ import {
   User,
   ChevronUp,
   Bug,
-  Brain,
-  Sparkles
+  Wand2,
+  Sparkles,
+  Download,
+  Target,
+  MessageSquare,
+  Brain
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -21,12 +25,25 @@ import { ReporteProblema } from '../ReporteProblema/ReporteProblema';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../providers/I18nProvider';
 import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
+import { useRouter } from 'next/navigation';
+import { getPlatformContext } from '../../../lib/lia/page-metadata';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  generatedPrompt?: GeneratedPrompt | null;
+}
+
+interface GeneratedPrompt {
+  title: string;
+  description: string;
+  content: string;
+  tags: string[];
+  difficulty_level: string;
+  use_cases: string[];
+  tips: string[];
 }
 
 interface AIChatAgentProps {
@@ -175,6 +192,66 @@ function extractPageContent(): {
   };
 }
 
+// Función para renderizar texto con enlaces Markdown clickeables
+function renderTextWithLinks(text: string): React.ReactNode {
+  if (!text) return text;
+
+  // Regex para detectar enlaces Markdown: [texto](url)
+  const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Agregar texto antes del enlace
+    if (match.index > lastIndex) {
+      const textBefore = text.substring(lastIndex, match.index);
+      if (textBefore) {
+        parts.push(textBefore);
+      }
+    }
+
+    // Agregar el enlace como elemento <a>
+    const linkText = match[1];
+    const linkUrl = match[2];
+    
+    // Verificar si es una URL relativa (empieza con /) o absoluta
+    const isRelative = linkUrl.startsWith('/');
+    
+    parts.push(
+      <a
+        key={`link-${key++}`}
+        href={linkUrl}
+        onClick={(e) => {
+          if (isRelative) {
+            e.preventDefault();
+            // Usar Next.js router para navegación interna
+            const { useRouter } = require('next/navigation');
+            const router = useRouter();
+            router.push(linkUrl);
+          }
+          // Si es URL absoluta, dejar que el navegador maneje el enlace
+        }}
+        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+        {...(!isRelative && { target: '_blank', rel: 'noopener noreferrer' })}
+      >
+        {linkText}
+      </a>
+    );
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Agregar texto restante después del último enlace
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  // Si no hay enlaces, retornar el texto original
+  return parts.length > 0 ? parts : text;
+}
+
 export function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
@@ -185,7 +262,16 @@ export function AIChatAgent({
   const pathname = usePathname();
   const { language } = useLanguage();
   const { t: tCommon } = useTranslation('common');
-  const placeholderText = promptPlaceholder ?? tCommon('aiChat.placeholder');
+  
+  // Estados para el modo prompt (declarados temprano para poder usarlos en placeholderText)
+  const [isPromptMode, setIsPromptMode] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState<GeneratedPrompt | null>(null);
+  const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
+  const [selectedPromptMessageId, setSelectedPromptMessageId] = useState<string | null>(null);
+  
+  const placeholderText = isPromptMode 
+    ? 'Describe qué tipo de prompt quieres crear...' 
+    : (promptPlaceholder ?? tCommon('aiChat.placeholder'));
   const onlineLabel = tCommon('aiChat.online');
   const pressEnterLabel = tCommon('aiChat.pressEnter');
   const clickToSendLabel = tCommon('aiChat.clickToSend');
@@ -304,8 +390,12 @@ export function AIChatAgent({
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  // Mensaje de bienvenida eliminado - el chat inicia vacío
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Conversaciones separadas para cada modo
+  const [normalMessages, setNormalMessages] = useState<Message[]>([]);
+  const [promptMessages, setPromptMessages] = useState<Message[]>([]);
+  
+  // Obtener los mensajes según el modo actual
+  const messages = isPromptMode ? promptMessages : normalMessages;
 
   // Estado para almacenar el contenido extraído del DOM
   const [pageContent, setPageContent] = useState<{
@@ -314,6 +404,29 @@ export function AIChatAgent({
     headings: string[];
     mainText: string;
   } | null>(null);
+
+  // Estado para almacenar los links disponibles según el rol
+  const [availableLinks, setAvailableLinks] = useState<string>('');
+
+  // Obtener links disponibles cuando se monta el componente
+  useEffect(() => {
+    const fetchAvailableLinks = async () => {
+      try {
+        const response = await fetch('/api/lia/available-links');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.linksForLIA) {
+            setAvailableLinks(data.linksForLIA);
+          }
+        }
+      } catch (error) {
+        // Silenciar errores, no es crítico si no se pueden obtener los links
+        console.error('Error obteniendo links disponibles:', error);
+      }
+    };
+
+    fetchAvailableLinks();
+  }, []);
 
   // Extraer contenido del DOM cuando cambie la ruta o cuando se abra el chat
   // NOTA: Cuando el chat está abierto y cambia la página, el contenido se maneja
@@ -353,6 +466,63 @@ export function AIChatAgent({
   const { user } = useAuth();
   const prevPathnameRef = useRef<string>('');
   const hasOpenedRef = useRef<boolean>(false);
+  const router = useRouter();
+
+  // Función para renderizar texto con enlaces Markdown clickeables
+  const renderTextWithLinks = useCallback((text: string): React.ReactNode => {
+    if (!text) return text;
+
+    // Regex para detectar enlaces Markdown: [texto](url)
+    const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // Agregar texto antes del enlace
+      if (match.index > lastIndex) {
+        const textBefore = text.substring(lastIndex, match.index);
+        if (textBefore) {
+          parts.push(textBefore);
+        }
+      }
+
+      // Agregar el enlace como elemento <a>
+      const linkText = match[1];
+      const linkUrl = match[2];
+      
+      // Verificar si es una URL relativa (empieza con /) o absoluta
+      const isRelative = linkUrl.startsWith('/');
+      
+      parts.push(
+        <a
+          key={`link-${key++}`}
+          href={linkUrl}
+          onClick={(e) => {
+            if (isRelative) {
+              e.preventDefault();
+              router.push(linkUrl);
+            }
+          }}
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+          {...(!isRelative && { target: '_blank', rel: 'noopener noreferrer' })}
+        >
+          {linkText}
+        </a>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Agregar texto restante después del último enlace
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    // Si no hay enlaces, retornar el texto original
+    return parts.length > 0 ? parts : text;
+  }, [router]);
 
   // Cargar posición guardada al montar
   useEffect(() => {
@@ -567,60 +737,114 @@ export function AIChatAgent({
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // Usar el setter correcto según el modo
+    if (isPromptMode) {
+      setPromptMessages(prev => [...prev, userMessage]);
+    } else {
+      setNormalMessages(prev => [...prev, userMessage]);
+    }
+    
     setInputMessage('');
     setIsTyping(true);
+    // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
 
     try {
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          context: activeContext,
-          language,
-          pageContext: {
-            pathname: pathname,
-            description: pageContextInfo,
-            detectedArea: detectedContext,
-            // Agregar contenido extraído del DOM
-            pageTitle: pageContent?.title || '',
-            metaDescription: pageContent?.metaDescription || '',
-            headings: pageContent?.headings || [],
-            mainText: pageContent?.mainText || ''
+      // Si está en modo prompt, usar el endpoint de generación de prompts
+      if (isPromptMode) {
+        const response = await fetch('/api/ai-directory/generate-prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          conversationHistory: messages.map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          userName: user?.display_name || user?.username || user?.first_name
-        }),
-      });
+          body: JSON.stringify({
+            message: userMessage.content,
+            conversationHistory: promptMessages.map(m => ({
+              sender: m.role === 'user' ? 'user' : 'ai',
+              text: m.content,
+              timestamp: m.timestamp.toLocaleTimeString()
+            }))
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        if (process.env.NODE_ENV === 'development') {
-          // console.error('Error de API:', {
-          //   status: response.status,
-          //   statusText: response.statusText,
-          //   error: errorData
-          // });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
         }
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+
+        const data = await response.json();
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response || responseFallback,
+          timestamp: new Date()
+        };
+
+        // Si hay un prompt generado, guardarlo en el mensaje y en el estado
+        if (data.generatedPrompt) {
+          assistantMessage.generatedPrompt = data.generatedPrompt;
+          setGeneratedPrompt(data.generatedPrompt);
+          setIsPromptPanelOpen(true);
+          setSelectedPromptMessageId(assistantMessage.id);
+        }
+        
+        setPromptMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // Modo normal de chat
+        const response = await fetch('/api/ai-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: userMessage.content,
+            context: activeContext,
+            language,
+            pageContext: {
+              pathname: pathname,
+              description: pageContextInfo,
+              detectedArea: detectedContext,
+              // Agregar contenido extraído del DOM
+              pageTitle: pageContent?.title || '',
+              metaDescription: pageContent?.metaDescription || '',
+              headings: pageContent?.headings || [],
+              mainText: pageContent?.mainText || '',
+              // Agregar contexto de la plataforma completa
+              platformContext: getPlatformContext(),
+              // Agregar links disponibles según el rol del usuario
+              availableLinks: availableLinks
+            },
+            conversationHistory: normalMessages.map(m => ({
+              role: m.role,
+              content: m.content
+            })),
+            userName: user?.display_name || user?.username || user?.first_name
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          if (process.env.NODE_ENV === 'development') {
+            // console.error('Error de API:', {
+            //   status: response.status,
+            //   statusText: response.statusText,
+            //   error: errorData
+            // });
+          }
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response || responseFallback,
+          timestamp: new Date()
+        };
+
+        setNormalMessages(prev => [...prev, assistantMessage]);
       }
-
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response || responseFallback,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         // console.error('Error en el chat:', error);
@@ -635,99 +859,17 @@ export function AIChatAgent({
         content: errorContent,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      // Usar el setter correcto según el modo
+      if (isPromptMode) {
+        setPromptMessages(prev => [...prev, errorMessage]);
+      } else {
+        setNormalMessages(prev => [...prev, errorMessage]);
+      }
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user]);
-
-  /**
-   * 🎬 NUEVO: Enviar mensaje con contexto de sesión rrweb
-   * Captura los últimos 2 minutos de interacción y los envía a LIA
-   */
-  const handleSendWithContext = useCallback(async () => {
-    if (!inputMessage.trim() || isTyping) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: inputMessage,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    setIsTyping(true);
-
-    try {
-      // 🎬 Capturar snapshot de sesión (sin detener grabación)
-      console.log('🎬 Capturando contexto de sesión para LIA...');
-      const snapshot = sessionRecorder.captureSnapshot();
-      
-      if (!snapshot || !snapshot.events || snapshot.events.length === 0) {
-        console.warn('⚠️ No hay eventos de sesión disponibles, usando chat normal');
-        // Fallback a chat normal si no hay sesión
-        return handleSendMessage();
-      }
-
-      console.log(`✅ Contexto capturado: ${snapshot.events.length} eventos`);
-
-      // Limitar eventos para no enviar demasiados datos
-      const recentEvents = snapshot.events.slice(-200); // Últimos 200 eventos
-
-      // Llamar al endpoint con contexto
-      const response = await fetch('/api/lia/context-help', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: userMessage.content,
-          sessionEvents: recentEvents,
-          workshopId: undefined, // TODO: Detectar si está en taller
-          activityId: undefined,
-          analysisWindow: 120000 // 2 minutos
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Crear mensaje de LIA con el contexto analizado
-      let assistantContent = data.response;
-      
-      // Agregar indicador visual de que se usó contexto
-      const contextIndicator = `\n\n---\n*📊 He analizado tu sesión para darte una respuesta más precisa*`;
-      assistantContent += contextIndicator;
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: assistantContent,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-    } catch (error) {
-      console.error('❌ Error en chat con contexto:', error);
-      
-      // Fallback: intentar con chat normal
-      console.log('⚠️ Fallback a chat normal sin contexto');
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Lo siento, tuve un problema al analizar tu sesión. Déjame ayudarte de todos modos: ' + inputMessage,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsTyping(false);
-    }
-  }, [inputMessage, isTyping, messages, handleSendMessage]);
+  }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent, availableLinks]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -763,13 +905,8 @@ export function AIChatAgent({
     setIsTyping(true);
 
     try {
-      // Usar setMessages con callback para obtener el estado actual de messages
-      // Esto asegura que siempre usemos el estado más reciente, incluso después de limpiar el chat
-      let currentMessages: Message[] = [];
-      setMessages(prev => {
-        currentMessages = prev;
-        return prev;
-      });
+      // Usar los mensajes normales para la ayuda (solo funciona en modo normal)
+      const currentMessages = normalMessages;
 
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
@@ -787,7 +924,11 @@ export function AIChatAgent({
             pageTitle: currentPageContent?.title || '',
             metaDescription: currentPageContent?.metaDescription || '',
             headings: currentPageContent?.headings || [],
-            mainText: currentPageContent?.mainText || ''
+            mainText: currentPageContent?.mainText || '',
+            // Agregar contexto de la plataforma completa
+            platformContext: getPlatformContext(),
+            // Agregar links disponibles según el rol del usuario
+            availableLinks: availableLinks
           },
           conversationHistory: currentMessages.map(m => ({
             role: m.role,
@@ -813,7 +954,7 @@ export function AIChatAgent({
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setNormalMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       // console.error('❌ Error al solicitar ayuda:', error);
       const errorMessage: Message = {
@@ -822,11 +963,11 @@ export function AIChatAgent({
         content: helpError,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setNormalMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
-  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError]);
+  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError, normalMessages, availableLinks]);
 
   // Limpiar el chat cuando cambia la página
   useEffect(() => {
@@ -840,9 +981,11 @@ export function AIChatAgent({
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
       
-      // Limpiar mensajes y contenido de página cuando cambia la página
+      // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal)
       // Esto evita usar contenido de la página anterior
-      setMessages([]);
+      if (!isPromptMode) {
+        setNormalMessages([]);
+      }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
       
@@ -934,7 +1077,8 @@ export function AIChatAgent({
   // Ejecutar automáticamente la función de ayuda cuando se abre la LIA (solo si no se ejecutó por cambio de página)
   useEffect(() => {
     // Solo ejecutar si el chat se acaba de abrir y no se ejecutó la ayuda por cambio de página
-    if (isOpen && !hasOpenedRef.current) {
+    // No ejecutar si está en modo prompt
+    if (isOpen && !hasOpenedRef.current && !isPromptMode) {
       // Ejecutar la ayuda automáticamente cuando se abre el chat
       hasOpenedRef.current = true;
       // Pequeño delay para asegurar que el chat esté completamente abierto
@@ -943,7 +1087,7 @@ export function AIChatAgent({
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, handleRequestHelp]);
+  }, [isOpen, handleRequestHelp, isPromptMode]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
@@ -959,9 +1103,13 @@ export function AIChatAgent({
     if (isOpen) {
       setIsMinimized(!isMinimized);
     } else {
+      // Abrir en modo normal (desactivar modo prompt si estaba activo)
+      setIsPromptMode(false);
+      setGeneratedPrompt(null);
       setIsOpen(true);
       setIsMinimized(false);
       setHasUnreadMessages(false);
+      // No limpiar mensajes, solo cambiar de modo para mostrar los mensajes normales
     }
   };
 
@@ -971,6 +1119,76 @@ export function AIChatAgent({
     setAreButtonsExpanded(false);
     // Resetear el flag cuando se cierra para que se ejecute la ayuda al abrir de nuevo
     hasOpenedRef.current = false;
+  };
+
+  const handleOpenPromptMode = () => {
+    // Abrir LIA en modo prompt
+    setIsPromptMode(true);
+    setGeneratedPrompt(null);
+    setAreButtonsExpanded(false);
+    setIsOpen(true);
+    setIsMinimized(false);
+    setHasUnreadMessages(false);
+    
+    // Solo agregar mensaje inicial si no hay mensajes previos en modo prompt
+    if (promptMessages.length === 0) {
+      const initialPromptMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '¡Hola! Soy Lia, tu asistente especializada en creación de prompts de IA. Estoy aquí para ayudarte a crear prompts profesionales y efectivos.\n\n¿En qué tipo de prompt te gustaría trabajar hoy? Por ejemplo:\n\n• Quiero crear un prompt para generar contenido de marketing\n• Necesito un prompt para programación en Python\n• Busco un prompt para crear arte digital\n\n¡Cuéntame tu idea y comenzamos!',
+        timestamp: new Date()
+      };
+      setPromptMessages([initialPromptMessage]);
+    }
+  };
+
+  const handleDownloadPrompt = () => {
+    if (!generatedPrompt) return;
+
+    const promptContent = `# ${generatedPrompt.title}
+
+## Descripción
+${generatedPrompt.description}
+
+${'='.repeat(80)}
+
+## PROMPT LISTO PARA USAR
+
+Copia y pega el siguiente prompt en tu herramienta de IA preferida:
+
+${generatedPrompt.content}
+
+${'='.repeat(80)}
+
+## Información Adicional
+
+### Tags
+${generatedPrompt.tags.join(', ')}
+
+### Nivel de Dificultad
+${generatedPrompt.difficulty_level}
+
+### Casos de Uso
+${generatedPrompt.use_cases.map(uc => `- ${uc}`).join('\n')}
+
+### Consejos
+${generatedPrompt.tips.map(tip => `- ${tip}`).join('\n')}
+
+---
+
+Generado por Lia - Asistente de IA para Creación de Prompts
+Fecha: ${new Date().toLocaleString()}
+`;
+
+    const blob = new Blob([promptContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${generatedPrompt.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -984,7 +1202,7 @@ export function AIChatAgent({
           }}
         >
           <AnimatePresence>
-            {/* Botones expandidos: Reportar Problema */}
+            {/* Botones expandidos: Modo Prompt y Reportar Problema */}
             {areButtonsExpanded && (
               <motion.div
                 key="expanded-buttons"
@@ -994,6 +1212,30 @@ export function AIChatAgent({
                 transition={{ duration: 0.2 }}
                 className="flex flex-col gap-2 overflow-hidden"
               >
+                {/* Botón de modo prompt */}
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenPromptMode();
+                  }}
+                  initial={{ scale: 0, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0, y: 10 }}
+                  transition={{ duration: 0.15 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg hover:shadow-purple-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+                  title="Abrir modo prompt"
+                >
+                  <Wand2 className="w-6 h-6 text-white" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Abrir modo prompt
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
+                  </div>
+                </motion.button>
+                
                 {/* Botón de reportar problema */}
                 <motion.button
                   onClick={(e) => {
@@ -1056,6 +1298,9 @@ export function AIChatAgent({
             <motion.button
               onClick={(e) => {
                 e.stopPropagation();
+                // Abrir en modo normal (desactivar modo prompt si estaba activo)
+                setIsPromptMode(false);
+                setGeneratedPrompt(null);
                 setIsOpen(true);
                 setIsMinimized(false);
                 setHasUnreadMessages(false);
@@ -1111,15 +1356,15 @@ export function AIChatAgent({
             }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed right-6 w-96 max-w-[calc(100vw-3rem)] z-[99999]"
+            className={`fixed right-6 z-[99999] ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'w-[800px] max-w-[calc(100vw-3rem)]' : 'w-96 max-w-[calc(100vw-3rem)]'}`}
             style={{
               bottom: bottomPosition,
               height: calculateMaxHeight,
               maxHeight: calculateMaxHeight,
             }}
           >
-        <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
-          {/* Header con gradiente */}
+        <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full`}>
+          {/* Header con gradiente - Continuo para ambos paneles */}
           <motion.div 
             className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden flex-shrink-0"
             initial={{ opacity: 0 }}
@@ -1140,7 +1385,7 @@ export function AIChatAgent({
             />
             
             <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
                 {/* Avatar */}
                 <div className="relative w-10 h-10">
                   <Image
@@ -1164,9 +1409,15 @@ export function AIChatAgent({
                   />
                 </div>
                 
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-white font-semibold">{assistantName}</h3>
+                    {isPromptMode && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full">
+                        <Wand2 className="w-3 h-3 text-white" />
+                        <span className="text-xs text-white/90">Modo Prompt</span>
+                      </div>
+                    )}
                     <motion.div
                       className="flex items-center gap-1 text-white/90"
                       animate={{ opacity: [0.5, 1, 0.5] }}
@@ -1177,6 +1428,16 @@ export function AIChatAgent({
                     </motion.div>
                   </div>
                 </div>
+                
+                {/* Título del prompt generado en el header continuo */}
+                {isPromptMode && generatedPrompt && isPromptPanelOpen && (
+                  <div className="flex items-center gap-2 ml-auto mr-4">
+                    <div className="relative p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Prompt Generado</h3>
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center gap-2">
@@ -1189,6 +1450,11 @@ export function AIChatAgent({
               </div>
             </div>
           </motion.div>
+          
+          {/* Contenedor de paneles */}
+          <div className={`flex ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'flex-row' : 'flex-col'} flex-1 min-h-0 overflow-hidden`}>
+          {/* Contenedor principal del chat */}
+          <div className={`flex flex-col ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'w-1/2 border-r border-gray-200 dark:border-carbon-700' : 'w-full'} h-full`}>
 
           {/* Mensajes */}
           {(
@@ -1244,7 +1510,26 @@ export function AIChatAgent({
                       ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                       : 'bg-white dark:bg-carbon-800 text-gray-900 dark:text-white border border-gray-200 dark:border-carbon-600'
                   }`}>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">{message.content}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">
+                      {renderTextWithLinks(message.content)}
+                    </p>
+                    
+                    {/* Botón para reabrir prompt si el mensaje tiene un prompt generado */}
+                    {message.role === 'assistant' && message.generatedPrompt && isPromptMode && (
+                      <motion.button
+                        onClick={() => {
+                          setGeneratedPrompt(message.generatedPrompt!);
+                          setIsPromptPanelOpen(true);
+                          setSelectedPromptMessageId(message.id);
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        Ver Prompt Generado
+                      </motion.button>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -1391,6 +1676,71 @@ export function AIChatAgent({
               </div>
             </motion.div>
           )}
+          </div>
+          
+          {/* Panel lateral para prompt generado */}
+          {isPromptMode && generatedPrompt && isPromptPanelOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              className="w-1/2 flex flex-col h-full bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden"
+            >
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-sm">Título</span>
+                    </h4>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPromptPanelOpen(false);
+                        setGeneratedPrompt(null);
+                        setSelectedPromptMessageId(null);
+                      }}
+                      className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors text-gray-600 dark:text-gray-300"
+                      title="Cerrar panel de prompt"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-gray-700 dark:text-slate-300 text-sm break-words">{generatedPrompt.title}</p>
+                </div>
+                
+                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30 flex-1 flex flex-col min-h-0">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2 flex-shrink-0">
+                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm">Contenido</span>
+                  </h4>
+                  <div className="text-gray-700 dark:text-slate-300 text-sm flex-1 overflow-y-auto prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm leading-relaxed">{generatedPrompt.content}</pre>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 flex-shrink-0">
+                  {generatedPrompt.tags.slice(0, 3).map((tag, index) => (
+                    <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-full text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                
+                <motion.button
+                  onClick={handleDownloadPrompt}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm flex-shrink-0"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+          </div>
         </div>
       </motion.div>
         )}
