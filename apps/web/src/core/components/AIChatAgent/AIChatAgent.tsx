@@ -16,6 +16,8 @@ import {
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
 import { ReporteProblema } from '../ReporteProblema/ReporteProblema';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../providers/I18nProvider';
 
 interface Message {
   id: string;
@@ -174,10 +176,22 @@ export function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
   initialMessage = '¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.',
-  promptPlaceholder = 'Escribe tu pregunta...',
+  promptPlaceholder,
   context = 'general'
 }: AIChatAgentProps) {
   const pathname = usePathname();
+  const { language } = useLanguage();
+  const { t: tCommon } = useTranslation('common');
+  const placeholderText = promptPlaceholder ?? tCommon('aiChat.placeholder');
+  const onlineLabel = tCommon('aiChat.online');
+  const pressEnterLabel = tCommon('aiChat.pressEnter');
+  const clickToSendLabel = tCommon('aiChat.clickToSend');
+  const clickToDictateLabel = tCommon('aiChat.clickToDictate');
+  const responseFallback = tCommon('aiChat.responseFallback');
+  const errorGeneric = tCommon('aiChat.errorGeneric');
+  const helpPrompt = tCommon('aiChat.helpPrompt');
+  const helpFallback = tCommon('aiChat.helpFallback');
+  const helpError = tCommon('aiChat.helpError');
 
   // Detectar automáticamente el contexto basado en la URL
   const detectedContext = detectContextFromURL(pathname);
@@ -562,6 +576,7 @@ export function AIChatAgent({
         body: JSON.stringify({
           message: userMessage.content,
           context: activeContext,
+          language,
           pageContext: {
             pathname: pathname,
             description: pageContextInfo,
@@ -597,7 +612,7 @@ export function AIChatAgent({
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response || 'Lo siento, no pude procesar tu mensaje en este momento.',
+        content: data.response || responseFallback,
         timestamp: new Date()
       };
 
@@ -606,7 +621,10 @@ export function AIChatAgent({
       if (process.env.NODE_ENV === 'development') {
         // console.error('Error en el chat:', error);
       }
-      const errorContent = error instanceof Error ? error.message : 'Lo siento, ocurrió un error. Por favor intenta de nuevo.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error en el chat:', error);
+      }
+      const errorContent = errorGeneric;
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -617,7 +635,7 @@ export function AIChatAgent({
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user]);
+  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -647,7 +665,7 @@ export function AIChatAgent({
     }
 
     // Mensaje de ayuda automático - NO se muestra en el chat (isSystemMessage: true)
-    const helpMessageContent = '¿Qué puedo hacer aquí? Ayúdame';
+    const helpMessageContent = helpPrompt;
 
     // NO agregar el mensaje al estado - solo enviarlo como mensaje del sistema
     setIsTyping(true);
@@ -669,6 +687,7 @@ export function AIChatAgent({
         body: JSON.stringify({
           message: helpMessageContent,
           context: activeContext,
+          language,
           pageContext: {
             pathname: pathname,
             description: pageContextInfo,
@@ -698,7 +717,7 @@ export function AIChatAgent({
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response || 'Lo siento, no pude generar una respuesta.',
+        content: data.response || helpFallback,
         timestamp: new Date()
       };
 
@@ -708,14 +727,14 @@ export function AIChatAgent({
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo.',
+        content: helpError,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
-  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user]);
+  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError]);
 
   // Limpiar el chat cuando cambia la página
   useEffect(() => {
@@ -1062,7 +1081,7 @@ export function AIChatAgent({
                       transition={{ duration: 2, repeat: Infinity }}
                     >
                       <span className="w-2 h-2 rounded-full bg-green-400" />
-                      <span className="text-xs">En línea</span>
+                      <span className="text-xs">{onlineLabel}</span>
                     </motion.div>
                   </div>
                 </div>
@@ -1195,7 +1214,7 @@ export function AIChatAgent({
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={promptPlaceholder}
+                  placeholder={placeholderText}
                   disabled={isTyping}
                   className="flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border border-gray-300 dark:border-carbon-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner"
                 />
@@ -1236,9 +1255,9 @@ export function AIChatAgent({
               
               {/* Instrucciones */}
               <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 font-medium">
-                <span>Presiona Enter para enviar</span>
+                <span>{pressEnterLabel}</span>
                 <span>•</span>
-                <span>{inputMessage.trim() ? 'Clic para enviar' : 'Clic para dictar'}</span>
+                <span>{inputMessage.trim() ? clickToSendLabel : clickToDictateLabel}</span>
               </div>
             </motion.div>
           )}

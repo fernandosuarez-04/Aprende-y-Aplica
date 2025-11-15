@@ -8,6 +8,7 @@ import { SWRProvider } from '../core/providers/SWRProvider';
 import { NotificationProvider } from '../features/notifications/context/NotificationContext';
 import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
 import { GlobalRecorderProvider } from '../core/components/GlobalRecorderProvider';
+import { I18nProvider } from '../core/providers/I18nProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -132,18 +133,20 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`}>
         <GlobalRecorderProvider>
           <SWRProvider>
-            <ThemeProvider>
-              <NotificationProvider pollingInterval={60000}>
-                <PrefetchManager />
-                <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
-                  <ConditionalNavbar>
-                    {children}
-                  </ConditionalNavbar>
-                </div>
-                {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
-                <ConditionalAIChatAgent />
-              </NotificationProvider>
-            </ThemeProvider>
+            <I18nProvider>
+              <ThemeProvider>
+                <NotificationProvider pollingInterval={60000}>
+                  <PrefetchManager />
+                  <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
+                    <ConditionalNavbar>
+                      {children}
+                    </ConditionalNavbar>
+                  </div>
+                  {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+                  <ConditionalAIChatAgent />
+                </NotificationProvider>
+              </ThemeProvider>
+            </I18nProvider>
           </SWRProvider>
         </GlobalRecorderProvider>
       </body>

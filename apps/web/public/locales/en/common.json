@@ -1,0 +1,67 @@
+{
+  "appName": "Aprende y Aplica",
+  "welcome": "Welcome",
+  "language": "Language",
+  "change_language": "Change language",
+  "languages": {
+    "es": "Spanish",
+    "en": "English",
+    "pt": "Portuguese"
+  },
+  "languageSelector": {
+    "label": "Language: {{language}}",
+    "active": "Active"
+  },
+  "dashboardNav": {
+    "workshops": "Workshops",
+    "directory": "AI Directory",
+    "community": "Community",
+    "news": "News",
+    "promptDirectory": {
+      "title": "Prompt Directory",
+      "description": "Collection of AI prompts"
+    },
+    "appsDirectory": {
+      "title": "Apps Directory",
+      "description": "Available AI tools"
+    }
+  },
+  "navbar": {
+    "home": "Home",
+    "login": "Sign in",
+    "register": "Sign up",
+    "logoAlt": "Aprende y Aplica logo",
+    "clickCounter": "Counter: {{current}}/{{total}}"
+  },
+  "aiChat": {
+    "placeholder": "Type your question...",
+    "online": "Online",
+    "pressEnter": "Press Enter to send",
+    "clickToSend": "Click to send",
+    "clickToDictate": "Click to dictate",
+    "responseFallback": "Sorry, I couldn't process your message right now.",
+    "errorGeneric": "Sorry, something went wrong. Please try again.",
+    "helpPrompt": "What can I do here? Help me",
+    "helpFallback": "Sorry, I couldn't generate a response.",
+    "helpError": "Sorry, there was an error processing your help request. Please try again."
+  },
+  "menu": {
+    "stats": "My stats",
+    "learning": "My learning",
+    "certificates": "My certificates",
+    "profile": "Edit profile",
+    "account": "Account settings",
+    "subscriptions": "Subscriptions",
+    "paymentMethods": "Payment methods",
+    "purchaseHistory": "Purchase history",
+    "theme": {
+      "system": "System mode",
+      "light": "Light mode",
+      "dark": "Dark mode"
+    },
+    "adminPanel": "Admin panel",
+    "instructorPanel": "Instructor panel",
+    "logout": "Sign out"
+  }
+}
+

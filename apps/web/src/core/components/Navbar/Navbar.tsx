@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
+import { useTranslation } from 'react-i18next';
 import { ThemeToggle } from '../ThemeToggle';
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg';
 import { Menu, X } from 'lucide-react';
@@ -16,6 +17,7 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg();
+  const { t } = useTranslation('common');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,7 +61,7 @@ export function Navbar() {
             >
               <Image
                 src="/icono.png"
-                alt="Aprende y Aplica Logo"
+                alt={t('navbar.logoAlt')}
                 width={40}
                 height={40}
                 className="w-full h-full object-contain logo-adaptive"
@@ -75,13 +77,13 @@ export function Navbar() {
               )}
             </motion.div>
             <span className="font-bold text-xl hidden sm:block text-gray-900 dark:text-white navbar-logo-text">
-              Aprende y Aplica
+              {t('appName')}
             </span>
             
             {/* Contador oculto - solo para debugging */}
             {clickCount > 0 && clickCount < 5 && (
               <div className="sr-only">
-                Contador: {clickCount}/5
+                {t('navbar.clickCounter', { current: clickCount, total: 5 })}
               </div>
             )}
           </motion.div>
@@ -91,7 +93,7 @@ export function Navbar() {
             {/* Navigation Links - Solo Inicio */}
             <div className="flex items-center gap-6">
               <Link href="/" className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                Inicio
+                {t('navbar.home')}
               </Link>
             </div>
             
@@ -100,12 +102,12 @@ export function Navbar() {
             <div className="flex items-center gap-4">
               <Link href="/auth">
                 <Button variant="ghost" size="sm">
-                  Iniciar Sesión
+                  {t('navbar.login')}
                 </Button>
               </Link>
               <Link href="/auth?tab=register">
                 <Button variant="primary" size="sm">
-                  Registrarse
+                  {t('navbar.register')}
                 </Button>
               </Link>
             </div>
@@ -146,7 +148,7 @@ export function Navbar() {
                 className="block text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Inicio
+                {t('navbar.home')}
               </Link>
             </div>
             
@@ -155,12 +157,12 @@ export function Navbar() {
               <div className="flex gap-3">
                 <Link href="/auth">
                   <Button variant="ghost" size="sm">
-                    Iniciar Sesión
+                    {t('navbar.login')}
                   </Button>
                 </Link>
                 <Link href="/auth?tab=register">
                   <Button variant="primary" size="sm">
-                    Registrarse
+                    {t('navbar.register')}
                   </Button>
                 </Link>
               </div>
