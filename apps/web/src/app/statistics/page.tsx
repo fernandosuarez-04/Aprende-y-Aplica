@@ -28,6 +28,34 @@ interface ReferenceData {
   sectores: Array<{ id: number; nombre: string; slug: string }>;
 }
 
+// Lista de países americanos, latinoamericanos y España
+const PAISES = [
+  'Argentina',
+  'Belice',
+  'Bolivia',
+  'Brasil',
+  'Canadá',
+  'Chile',
+  'Colombia',
+  'Costa Rica',
+  'Cuba',
+  'Ecuador',
+  'El Salvador',
+  'España',
+  'Estados Unidos',
+  'Guatemala',
+  'Honduras',
+  'México',
+  'Nicaragua',
+  'Panamá',
+  'Paraguay',
+  'Perú',
+  'Puerto Rico',
+  'República Dominicana',
+  'Uruguay',
+  'Venezuela'
+].sort();
+
 export default function StatisticsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -443,13 +471,18 @@ export default function StatisticsPage() {
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     País (Opcional)
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.pais}
                     onChange={(e) => handleInputChange('pais', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
-                    placeholder="Ej: México, España, Colombia..."
-                  />
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu país</option>
+                    {PAISES.map(pais => (
+                      <option key={pais} value={pais} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                        {pais}
+                      </option>
+                    ))}
+                  </select>
                 </motion.div>
               </div>
             </div>

@@ -269,6 +269,10 @@ export function AIChatAgent({
   const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
   const [selectedPromptMessageId, setSelectedPromptMessageId] = useState<string | null>(null);
   
+  // Estados del chat (declarados temprano para poder usarlos en useMemo)
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  
   const placeholderText = isPromptMode 
     ? 'Describe qué tipo de prompt quieres crear...' 
     : (promptPlaceholder ?? tCommon('aiChat.placeholder'));
@@ -370,7 +374,16 @@ export function AIChatAgent({
     };
   }, [isCommunitiesPage, hasDashboardNavbar, isDesktop]);
 
+  // Calcular altura del modal de prompt para ajustar posición del chat
+  const promptModalHeight = useMemo(() => {
+    if (!isPromptMode || !generatedPrompt || !isPromptPanelOpen) return 0;
+    // Altura aproximada del modal de prompt (ajustable según necesidad)
+    // En móvil: más compacto, en desktop: más espacio
+    return isDesktop ? 450 : 380;
+  }, [isPromptMode, generatedPrompt, isPromptPanelOpen, isDesktop]);
+
   // Calcular altura máxima disponible dinámicamente
+  // No se reduce cuando hay prompt abierto, ya que el prompt está arriba
   const calculateMaxHeight = useMemo(() => {
     if (widgetHeight) {
       return widgetHeight;
@@ -388,14 +401,92 @@ export function AIChatAgent({
     return 'calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
   }, [isCommunitiesPage, hasDashboardNavbar, isDesktop, widgetHeight]);
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  // Estado para la altura de la ventana (para evitar problemas de SSR)
+  const [windowHeight, setWindowHeight] = useState(600);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWindowHeight(window.innerHeight);
+      const handleResize = () => setWindowHeight(window.innerHeight);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  // Calcular altura del chat para posicionar el prompt arriba
+  const chatHeightValue = useMemo(() => {
+    if (widgetHeight) {
+      return parseFloat(widgetHeight.replace('px', ''));
+    }
+    // Calcular altura aproximada del chat
+    if (isCommunitiesPage && !isDesktop) {
+      return windowHeight - 88 - 24;
+    }
+    if (hasDashboardNavbar) {
+      const navbarHeight = !isDesktop ? 78 : 72;
+      return windowHeight - navbarHeight - 24;
+    }
+    return windowHeight - 24;
+  }, [widgetHeight, windowHeight, isCommunitiesPage, isDesktop, hasDashboardNavbar]);
+
+  // Calcular posición bottom del chat cuando hay prompt abierto
+  const chatBottomPosition = useMemo(() => {
+    // El chat siempre mantiene su posición base
+    return bottomPosition;
+  }, [bottomPosition]);
+
+  // Calcular posición bottom del prompt (sobrepuesto encima del chat)
+  const promptBottomPosition = useMemo(() => {
+    if (isPromptMode && generatedPrompt && isPromptPanelOpen && isOpen) {
+      // El prompt debe sobreponerse encima del chat, en la misma posición
+      // Usa la misma posición bottom que el chat para cubrirlo
+      return chatBottomPosition;
+    }
+    // Si el chat no está abierto o no hay prompt, usar la posición base
+    return bottomPosition;
+  }, [chatBottomPosition, isPromptMode, generatedPrompt, isPromptPanelOpen, isOpen, bottomPosition]);
+
   // Conversaciones separadas para cada modo
   const [normalMessages, setNormalMessages] = useState<Message[]>([]);
   const [promptMessages, setPromptMessages] = useState<Message[]>([]);
   
   // Obtener los mensajes según el modo actual
   const messages = isPromptMode ? promptMessages : normalMessages;
+
+  // ✅ PERSISTENCIA: Claves para localStorage
+  const STORAGE_KEY_CONTEXT_MODE = 'lia-context-mode-enabled';
+  const STORAGE_KEY_CONTEXT_MESSAGES = 'lia-context-mode-messages';
+
+  // ✅ PERSISTENCIA: Función para guardar mensajes en localStorage
+  const saveContextMessages = useCallback((messagesToSave: Message[]) => {
+    try {
+      const serialized = JSON.stringify(messagesToSave.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp.toISOString()
+      })));
+      localStorage.setItem(STORAGE_KEY_CONTEXT_MESSAGES, serialized);
+    } catch (error) {
+      console.error('Error guardando mensajes en localStorage:', error);
+    }
+  }, []);
+
+  // ✅ PERSISTENCIA: Función para cargar mensajes desde localStorage
+  const loadContextMessages = useCallback((): Message[] => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_CONTEXT_MESSAGES);
+      if (!stored) return [];
+      
+      const parsed = JSON.parse(stored);
+      return parsed.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      }));
+    } catch (error) {
+      console.error('Error cargando mensajes desde localStorage:', error);
+      return [];
+    }
+  }, []);
+
 
   // Estado para almacenar el contenido extraído del DOM
   const [pageContent, setPageContent] = useState<{
@@ -461,12 +552,50 @@ export function AIChatAgent({
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
   const [useContextMode, setUseContextMode] = useState(false); // 🎬 Modo con contexto rrweb
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const prevPathnameRef = useRef<string>('');
   const hasOpenedRef = useRef<boolean>(false);
   const router = useRouter();
+
+  // ✅ PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
+  useEffect(() => {
+    try {
+      const savedContextMode = localStorage.getItem(STORAGE_KEY_CONTEXT_MODE);
+      if (savedContextMode === 'true') {
+        setUseContextMode(true);
+        // Cargar mensajes guardados
+        const savedMessages = loadContextMessages();
+        if (savedMessages.length > 0) {
+          setNormalMessages(savedMessages);
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando estado de contexto desde localStorage:', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo ejecutar una vez al montar
+
+  // ✅ PERSISTENCIA: Guardar estado de useContextMode cuando cambia
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, useContextMode.toString());
+      // Si se desactiva el modo, limpiar mensajes guardados
+      if (!useContextMode) {
+        localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
+      }
+    } catch (error) {
+      console.error('Error guardando estado de contexto en localStorage:', error);
+    }
+  }, [useContextMode]);
+
+  // ✅ PERSISTENCIA: Guardar mensajes cuando cambian y useContextMode está activo
+  useEffect(() => {
+    if (useContextMode && !isPromptMode && normalMessages.length > 0) {
+      saveContextMessages(normalMessages);
+    }
+  }, [normalMessages, useContextMode, isPromptMode, saveContextMessages]);
 
   // Función para renderizar texto con enlaces Markdown clickeables
   const renderTextWithLinks = useCallback((text: string): React.ReactNode => {
@@ -720,12 +849,34 @@ export function AIChatAgent({
     }
   }, [messages]);
 
-  // Enfocar input cuando se abre el chat
+  // Función para ajustar altura del textarea
+  const adjustTextareaHeight = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      const scrollHeight = inputRef.current.scrollHeight;
+      // Calcular altura de una línea basándose en el padding y line-height
+      const computedStyle = window.getComputedStyle(inputRef.current);
+      const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+      const paddingTop = parseFloat(computedStyle.paddingTop) || 12;
+      const paddingBottom = parseFloat(computedStyle.paddingBottom) || 12;
+      const singleLineHeight = lineHeight + paddingTop + paddingBottom;
+      const maxHeight = singleLineHeight * 3; // 3 renglones
+      
+      inputRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+      inputRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }
+  }, []);
+
+  // Enfocar input cuando se abre el chat y ajustar altura inicial
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
+      // Pequeño delay para asegurar que el DOM esté completamente renderizado
+      setTimeout(() => {
+        adjustTextareaHeight();
+      }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, adjustTextareaHeight]);
 
   const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
@@ -745,6 +896,13 @@ export function AIChatAgent({
     }
     
     setInputMessage('');
+    // Resetear altura del textarea
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto';
+        inputRef.current.style.overflowY = 'hidden';
+      }
+    }, 0);
     setIsTyping(true);
     // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
 
@@ -871,7 +1029,7 @@ export function AIChatAgent({
     }
   }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent, availableLinks]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -981,113 +1139,51 @@ export function AIChatAgent({
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
       
-      // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal)
+      // ✅ PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
+      // Esto permite mantener el contexto del chat entre páginas
+      // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal y sin contexto)
       // Esto evita usar contenido de la página anterior
-      if (!isPromptMode) {
+      if (!isPromptMode && !useContextMode) {
         setNormalMessages([]);
       }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
       
-      // Si el chat está abierto, ejecutar la ayuda automáticamente en la nueva página
+      // Actualizar el contenido de la página cuando cambia (sin enviar mensaje automático)
       if (wasOpen) {
         // Marcar que ya se abrió para evitar que el otro useEffect interfiera
         hasOpenedRef.current = true;
         
-        // Función para esperar a que el contenido de la nueva página esté listo
-        const waitForNewPageContent = async (): Promise<{
-          title: string;
-          metaDescription: string;
-          headings: string[];
-          mainText: string;
-        }> => {
-          // Esperar múltiples frames para asegurar que React haya renderizado
-          await new Promise(resolve => requestAnimationFrame(resolve));
-          await new Promise(resolve => requestAnimationFrame(resolve));
-          
-          // Esperar un tiempo adicional para contenido dinámico (APIs, animaciones, etc.)
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Extraer contenido y verificar que sea válido y estable
-          let attempts = 0;
-          const maxAttempts = 5;
-          let lastContent = '';
-          let stableCount = 0;
-          
-          while (attempts < maxAttempts) {
-            const currentPageContent = extractPageContent();
-            const contentHash = `${currentPageContent.title}-${currentPageContent.mainText.substring(0, 100)}`;
-            
-            // Verificar que el contenido sea válido
-            const isValid = currentPageContent.title && 
-                           currentPageContent.title === document.title && 
-                           currentPageContent.mainText.length > 50;
-            
-            if (isValid) {
-              // Si el contenido es el mismo que en el intento anterior, incrementar contador de estabilidad
-              if (contentHash === lastContent) {
-                stableCount++;
-                // Si el contenido es estable durante 2 intentos consecutivos, considerarlo listo
-                if (stableCount >= 2) {
-                  return currentPageContent;
-                }
-              } else {
-                // Si cambió, resetear el contador de estabilidad
-                stableCount = 0;
-              }
-            }
-            
-            lastContent = contentHash;
-            
-            // Esperar un poco más antes del siguiente intento
-            await new Promise(resolve => setTimeout(resolve, 300));
-            attempts++;
-          }
-          
-          // Si después de varios intentos no hay contenido válido, devolver lo que haya
-          return extractPageContent();
-        };
-        
-        // Ejecutar la espera y luego enviar la ayuda
-        const timer = setTimeout(async () => {
-          try {
-            const currentPageContent = await waitForNewPageContent();
-            setPageContent(currentPageContent);
-            
-            // Pasar el contenido directamente a handleRequestHelp para evitar problemas
-            // de sincronización con el estado de React
-            handleRequestHelp(currentPageContent);
-          } catch (error) {
-            // Si hay error, intentar de todas formas con el contenido actual
-            const fallbackContent = extractPageContent();
-            setPageContent(fallbackContent);
-            handleRequestHelp(fallbackContent);
-          }
-        }, 50); // Delay mínimo inicial
+        // Actualizar el contenido de la página sin enviar mensaje automático
+        const timer = setTimeout(() => {
+          const currentPageContent = extractPageContent();
+          setPageContent(currentPageContent);
+        }, 100);
         
         return () => clearTimeout(timer);
       } else {
-        // Si el chat está cerrado, resetear el flag para que se ejecute cuando se abra
+        // Si el chat está cerrado, resetear el flag
         hasOpenedRef.current = false;
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]); // Solo depender de pathname para evitar ejecuciones innecesarias
 
-  // Ejecutar automáticamente la función de ayuda cuando se abre la LIA (solo si no se ejecutó por cambio de página)
+  // Actualizar contenido de página cuando se abre la LIA (sin enviar mensaje automático)
   useEffect(() => {
-    // Solo ejecutar si el chat se acaba de abrir y no se ejecutó la ayuda por cambio de página
+    // Solo ejecutar si el chat se acaba de abrir y no se ejecutó por cambio de página
     // No ejecutar si está en modo prompt
     if (isOpen && !hasOpenedRef.current && !isPromptMode) {
-      // Ejecutar la ayuda automáticamente cuando se abre el chat
+      // Marcar que ya se abrió
       hasOpenedRef.current = true;
-      // Pequeño delay para asegurar que el chat esté completamente abierto
+      // Actualizar contenido de página sin enviar mensaje automático
       const timer = setTimeout(() => {
-        handleRequestHelp();
-      }, 300);
+        const currentPageContent = extractPageContent();
+        setPageContent(currentPageContent);
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, handleRequestHelp, isPromptMode]);
+  }, [isOpen, isPromptMode]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
@@ -1344,6 +1440,116 @@ Fecha: ${new Date().toLocaleString()}
         </div>
       )}
 
+      {/* Modal del prompt generado - Se sobrepone sobre el chat */}
+      <AnimatePresence>
+        {isPromptMode && generatedPrompt && isPromptPanelOpen && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              y: 0
+            }}
+            exit={{ scale: 0.8, opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="fixed right-6 z-[100000] w-96 max-w-[calc(100vw-3rem)]"
+            style={{
+              bottom: promptBottomPosition,
+              height: calculateMaxHeight,
+              maxHeight: calculateMaxHeight,
+            }}
+          >
+            <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
+              {/* Header del modal de prompt */}
+              <motion.div 
+                className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 p-4 relative overflow-hidden flex-shrink-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                {/* Efecto shimmer en el gradiente */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{
+                    x: ['-100%', '100%'],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                />
+                
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="relative p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Prompt Generado</h3>
+                  </div>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPromptPanelOpen(false);
+                      setGeneratedPrompt(null);
+                      setSelectedPromptMessageId(null);
+                    }}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+              
+              {/* Contenido del prompt */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain" style={{ 
+                scrollBehavior: 'smooth',
+                WebkitOverflowScrolling: 'touch'
+              }}>
+                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-sm">Título</span>
+                    </h4>
+                  </div>
+                  <p className="text-gray-700 dark:text-slate-300 text-sm break-words">{generatedPrompt.title}</p>
+                </div>
+                
+                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm">Contenido</span>
+                  </h4>
+                  <div className="text-gray-700 dark:text-slate-300 text-sm prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm leading-relaxed break-words">{generatedPrompt.content}</pre>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {generatedPrompt.tags.slice(0, 3).map((tag, index) => (
+                    <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-full text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                
+                <motion.button
+                  onClick={handleDownloadPrompt}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Widget del chat */}
       <AnimatePresence>
         {isOpen && (
@@ -1356,9 +1562,9 @@ Fecha: ${new Date().toLocaleString()}
             }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className={`fixed right-6 z-[99999] ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'w-[800px] max-w-[calc(100vw-3rem)]' : 'w-96 max-w-[calc(100vw-3rem)]'}`}
+            className="fixed right-6 z-[99999] w-96 max-w-[calc(100vw-3rem)]"
             style={{
-              bottom: bottomPosition,
+              bottom: chatBottomPosition,
               height: calculateMaxHeight,
               maxHeight: calculateMaxHeight,
             }}
@@ -1428,16 +1634,6 @@ Fecha: ${new Date().toLocaleString()}
                     </motion.div>
                   </div>
                 </div>
-                
-                {/* Título del prompt generado en el header continuo */}
-                {isPromptMode && generatedPrompt && isPromptPanelOpen && (
-                  <div className="flex items-center gap-2 ml-auto mr-4">
-                    <div className="relative p-2 rounded-lg bg-white/20 backdrop-blur-sm">
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-lg font-bold text-white">Prompt Generado</h3>
-                  </div>
-                )}
               </div>
               
               <div className="flex items-center gap-2">
@@ -1451,10 +1647,8 @@ Fecha: ${new Date().toLocaleString()}
             </div>
           </motion.div>
           
-          {/* Contenedor de paneles */}
-          <div className={`flex ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'flex-row' : 'flex-col'} flex-1 min-h-0 overflow-hidden`}>
           {/* Contenedor principal del chat */}
-          <div className={`flex flex-col ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'w-1/2 border-r border-gray-200 dark:border-carbon-700' : 'w-full'} h-full`}>
+          <div className="flex flex-col w-full h-full flex-1 min-h-0 overflow-hidden">
 
           {/* Mensajes */}
           {(
@@ -1584,20 +1778,28 @@ Fecha: ${new Date().toLocaleString()}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className="flex items-center gap-2">
-                <input
+              <div className="flex items-end gap-2">
+                <textarea
                   ref={inputRef}
-                  type="text"
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={useContextMode ? "🎬 Pregunta algo (con análisis de tu sesión)..." : promptPlaceholder}
+                  onChange={(e) => {
+                    setInputMessage(e.target.value);
+                    // Ajustar altura dinámicamente usando la función helper
+                    setTimeout(() => adjustTextareaHeight(), 0);
+                  }}
+                  onKeyDown={handleKeyPress}
+                  placeholder={useContextMode ? "🎬 Pregunta algo (con análisis de tu sesión)..." : (promptPlaceholder ?? placeholderText)}
                   disabled={isTyping}
+                  rows={1}
                   className={`flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border ${
                     useContextMode 
                       ? 'border-purple-400 dark:border-purple-500 ring-2 ring-purple-400/30' 
                       : 'border-gray-300 dark:border-carbon-600'
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all`}
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
+                  style={{
+                    minHeight: '48px',
+                    lineHeight: '1.5'
+                  }}
                 />
                 
                 {/* 🎬 Botón para activar/desactivar modo contextual */}
@@ -1623,12 +1825,8 @@ Fecha: ${new Date().toLocaleString()}
                 <motion.button
                   onClick={() => {
                     if (inputMessage.trim()) {
-                      // Si hay texto, enviar mensaje (con o sin contexto según modo)
-                      if (useContextMode) {
-                        handleSendWithContext();
-                      } else {
-                        handleSendMessage();
-                      }
+                      // Si hay texto, enviar mensaje
+                      handleSendMessage();
                     } else {
                       // Si no hay texto, activar/desactivar grabación
                       toggleRecording();
@@ -1673,70 +1871,6 @@ Fecha: ${new Date().toLocaleString()}
                     <span>{inputMessage.trim() ? 'Clic para enviar' : 'Clic para dictar'}</span>
                   </>
                 )}
-              </div>
-            </motion.div>
-          )}
-          </div>
-          
-          {/* Panel lateral para prompt generado */}
-          {isPromptMode && generatedPrompt && isPromptPanelOpen && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-              className="w-1/2 flex flex-col h-full bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden"
-            >
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                      <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                      <span className="text-sm">Título</span>
-                    </h4>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsPromptPanelOpen(false);
-                        setGeneratedPrompt(null);
-                        setSelectedPromptMessageId(null);
-                      }}
-                      className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors text-gray-600 dark:text-gray-300"
-                      title="Cerrar panel de prompt"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-gray-700 dark:text-slate-300 text-sm break-words">{generatedPrompt.title}</p>
-                </div>
-                
-                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30 flex-1 flex flex-col min-h-0">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2 flex-shrink-0">
-                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm">Contenido</span>
-                  </h4>
-                  <div className="text-gray-700 dark:text-slate-300 text-sm flex-1 overflow-y-auto prose prose-sm max-w-none">
-                    <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm leading-relaxed">{generatedPrompt.content}</pre>
-                  </div>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 flex-shrink-0">
-                  {generatedPrompt.tags.slice(0, 3).map((tag, index) => (
-                    <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-full text-xs">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                
-                <motion.button
-                  onClick={handleDownloadPrompt}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm flex-shrink-0"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar
-                </motion.button>
               </div>
             </motion.div>
           )}
