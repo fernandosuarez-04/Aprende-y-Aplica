@@ -310,3 +310,6 @@ export enum QuestionType {
 
 // Tipos de Contenido para Landing Page
 export * from './content';
+
+// Tipos de Planificador de Estudio
+export * from './study-planner';

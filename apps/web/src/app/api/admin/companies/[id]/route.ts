@@ -4,16 +4,16 @@ import { logger } from '@/lib/utils/logger'
 import { AdminCompaniesService, CompanyUpdatePayload } from '@/features/admin/services/adminCompanies.service'
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const auth = await requireAdmin()
   if (auth instanceof NextResponse) return auth
 
-  const companyId = params.id
+  const { id: companyId } = await params
 
   if (!companyId) {
     return NextResponse.json(
@@ -72,7 +72,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       company
     })
   } catch (error) {
-    logger.error(`💥 Error updating company ${params.id}:`, error)
+    logger.error(`💥 Error updating company ${companyId}:`, error)
     return NextResponse.json(
       {
         success: false,
