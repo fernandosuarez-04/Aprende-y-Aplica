@@ -517,7 +517,7 @@ export function AIChatAgent({
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
   const [useContextMode, setUseContextMode] = useState(false); // 🎬 Modo con contexto rrweb
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const prevPathnameRef = useRef<string>('');
@@ -776,12 +776,34 @@ export function AIChatAgent({
     }
   }, [messages]);
 
-  // Enfocar input cuando se abre el chat
+  // Función para ajustar altura del textarea
+  const adjustTextareaHeight = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      const scrollHeight = inputRef.current.scrollHeight;
+      // Calcular altura de una línea basándose en el padding y line-height
+      const computedStyle = window.getComputedStyle(inputRef.current);
+      const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+      const paddingTop = parseFloat(computedStyle.paddingTop) || 12;
+      const paddingBottom = parseFloat(computedStyle.paddingBottom) || 12;
+      const singleLineHeight = lineHeight + paddingTop + paddingBottom;
+      const maxHeight = singleLineHeight * 3; // 3 renglones
+      
+      inputRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+      inputRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }
+  }, []);
+
+  // Enfocar input cuando se abre el chat y ajustar altura inicial
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
+      // Pequeño delay para asegurar que el DOM esté completamente renderizado
+      setTimeout(() => {
+        adjustTextareaHeight();
+      }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, adjustTextareaHeight]);
 
   const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
@@ -801,6 +823,13 @@ export function AIChatAgent({
     }
     
     setInputMessage('');
+    // Resetear altura del textarea
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto';
+        inputRef.current.style.overflowY = 'hidden';
+      }
+    }, 0);
     setIsTyping(true);
     // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
 
@@ -927,7 +956,7 @@ export function AIChatAgent({
     }
   }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent, availableLinks]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -1738,20 +1767,28 @@ Fecha: ${new Date().toLocaleString()}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className="flex items-center gap-2">
-                <input
+              <div className="flex items-end gap-2">
+                <textarea
                   ref={inputRef}
-                  type="text"
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={useContextMode ? "🎬 Pregunta algo (con análisis de tu sesión)..." : promptPlaceholder}
+                  onChange={(e) => {
+                    setInputMessage(e.target.value);
+                    // Ajustar altura dinámicamente usando la función helper
+                    setTimeout(() => adjustTextareaHeight(), 0);
+                  }}
+                  onKeyDown={handleKeyPress}
+                  placeholder={useContextMode ? "🎬 Pregunta algo (con análisis de tu sesión)..." : (promptPlaceholder ?? placeholderText)}
                   disabled={isTyping}
+                  rows={1}
                   className={`flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border ${
                     useContextMode 
                       ? 'border-purple-400 dark:border-purple-500 ring-2 ring-purple-400/30' 
                       : 'border-gray-300 dark:border-carbon-600'
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all`}
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
+                  style={{
+                    minHeight: '48px',
+                    lineHeight: '1.5'
+                  }}
                 />
                 
                 {/* 🎬 Botón para activar/desactivar modo contextual */}
