@@ -453,6 +453,41 @@ export function AIChatAgent({
   // Obtener los mensajes según el modo actual
   const messages = isPromptMode ? promptMessages : normalMessages;
 
+  // ✅ PERSISTENCIA: Claves para localStorage
+  const STORAGE_KEY_CONTEXT_MODE = 'lia-context-mode-enabled';
+  const STORAGE_KEY_CONTEXT_MESSAGES = 'lia-context-mode-messages';
+
+  // ✅ PERSISTENCIA: Función para guardar mensajes en localStorage
+  const saveContextMessages = useCallback((messagesToSave: Message[]) => {
+    try {
+      const serialized = JSON.stringify(messagesToSave.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp.toISOString()
+      })));
+      localStorage.setItem(STORAGE_KEY_CONTEXT_MESSAGES, serialized);
+    } catch (error) {
+      console.error('Error guardando mensajes en localStorage:', error);
+    }
+  }, []);
+
+  // ✅ PERSISTENCIA: Función para cargar mensajes desde localStorage
+  const loadContextMessages = useCallback((): Message[] => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_CONTEXT_MESSAGES);
+      if (!stored) return [];
+      
+      const parsed = JSON.parse(stored);
+      return parsed.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      }));
+    } catch (error) {
+      console.error('Error cargando mensajes desde localStorage:', error);
+      return [];
+    }
+  }, []);
+
+
   // Estado para almacenar el contenido extraído del DOM
   const [pageContent, setPageContent] = useState<{
     title: string;
@@ -523,6 +558,44 @@ export function AIChatAgent({
   const prevPathnameRef = useRef<string>('');
   const hasOpenedRef = useRef<boolean>(false);
   const router = useRouter();
+
+  // ✅ PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
+  useEffect(() => {
+    try {
+      const savedContextMode = localStorage.getItem(STORAGE_KEY_CONTEXT_MODE);
+      if (savedContextMode === 'true') {
+        setUseContextMode(true);
+        // Cargar mensajes guardados
+        const savedMessages = loadContextMessages();
+        if (savedMessages.length > 0) {
+          setNormalMessages(savedMessages);
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando estado de contexto desde localStorage:', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo ejecutar una vez al montar
+
+  // ✅ PERSISTENCIA: Guardar estado de useContextMode cuando cambia
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, useContextMode.toString());
+      // Si se desactiva el modo, limpiar mensajes guardados
+      if (!useContextMode) {
+        localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
+      }
+    } catch (error) {
+      console.error('Error guardando estado de contexto en localStorage:', error);
+    }
+  }, [useContextMode]);
+
+  // ✅ PERSISTENCIA: Guardar mensajes cuando cambian y useContextMode está activo
+  useEffect(() => {
+    if (useContextMode && !isPromptMode && normalMessages.length > 0) {
+      saveContextMessages(normalMessages);
+    }
+  }, [normalMessages, useContextMode, isPromptMode, saveContextMessages]);
 
   // Función para renderizar texto con enlaces Markdown clickeables
   const renderTextWithLinks = useCallback((text: string): React.ReactNode => {
@@ -1066,9 +1139,11 @@ export function AIChatAgent({
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
       
-      // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal)
+      // ✅ PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
+      // Esto permite mantener el contexto del chat entre páginas
+      // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal y sin contexto)
       // Esto evita usar contenido de la página anterior
-      if (!isPromptMode) {
+      if (!isPromptMode && !useContextMode) {
         setNormalMessages([]);
       }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
