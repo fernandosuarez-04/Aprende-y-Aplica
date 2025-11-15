@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -13,6 +13,7 @@ import { loginSchema } from './LoginForm.schema';
 import { PasswordInput } from '../PasswordInput';
 import { loginAction } from '../../actions/login';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
+import { getSavedCredentials, saveCredentials, clearSavedCredentials } from '../../../../lib/auth/remember-me';
 
 export function LoginForm() {
   const [isPending, setIsPending] = useState(false);
@@ -25,6 +26,7 @@ export function LoginForm() {
     formState: { errors },
     watch,
     setError: setFormError,
+    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -34,11 +36,31 @@ export function LoginForm() {
     },
   });
 
+  // Cargar credenciales guardadas al montar el componente
+  useEffect(() => {
+    const savedCredentials = getSavedCredentials();
+    if (savedCredentials) {
+      setValue('emailOrUsername', savedCredentials.emailOrUsername);
+      setValue('password', savedCredentials.password);
+      setValue('rememberMe', true);
+    }
+  }, [setValue]);
+
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
     setIsPending(true);
     
     try {
+      // Guardar o eliminar credenciales según el estado de "recuérdame"
+      if (data.rememberMe) {
+        saveCredentials({
+          emailOrUsername: data.emailOrUsername,
+          password: data.password,
+        });
+      } else {
+        clearSavedCredentials();
+      }
+      
       // console.log('🔄 Iniciando proceso de login...');
       
       const formData = new FormData();

@@ -13,6 +13,7 @@ import { loginSchema } from '../LoginForm/LoginForm.schema';
 import { PasswordInput } from '../PasswordInput';
 import { loginAction } from '../../actions/login';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
+import { getSavedCredentials, saveCredentials, clearSavedCredentials } from '../../../../lib/auth/remember-me';
 
 interface OrganizationLoginFormProps {
   organizationId: string;
@@ -63,6 +64,7 @@ export function OrganizationLoginForm({
     handleSubmit,
     formState: { errors },
     setError: setFormError,
+    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -71,6 +73,16 @@ export function OrganizationLoginForm({
       rememberMe: false,
     },
   });
+
+  // Cargar credenciales guardadas al montar el componente
+  useEffect(() => {
+    const savedCredentials = getSavedCredentials();
+    if (savedCredentials) {
+      setValue('emailOrUsername', savedCredentials.emailOrUsername);
+      setValue('password', savedCredentials.password);
+      setValue('rememberMe', true);
+    }
+  }, [setValue]);
 
   // Limpiar intervalo al desmontar componente
   useEffect(() => {
@@ -153,6 +165,16 @@ export function OrganizationLoginForm({
     setIsPending(true);
     
     try {
+      // Guardar o eliminar credenciales según el estado de "recuérdame"
+      if (data.rememberMe) {
+        saveCredentials({
+          emailOrUsername: data.emailOrUsername,
+          password: data.password,
+        });
+      } else {
+        clearSavedCredentials();
+      }
+      
       // console.log('🔄 Iniciando proceso de login (organización)...');
       
       const formData = new FormData();
