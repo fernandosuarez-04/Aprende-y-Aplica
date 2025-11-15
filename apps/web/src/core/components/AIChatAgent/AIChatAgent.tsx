@@ -11,7 +11,12 @@ import {
   Loader2,
   User,
   ChevronUp,
-  Bug
+  Bug,
+  Wand2,
+  Sparkles,
+  Download,
+  Target,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -24,6 +29,16 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+}
+
+interface GeneratedPrompt {
+  title: string;
+  description: string;
+  content: string;
+  tags: string[];
+  difficulty_level: string;
+  use_cases: string[];
+  tips: string[];
 }
 
 interface AIChatAgentProps {
@@ -182,7 +197,14 @@ export function AIChatAgent({
   const pathname = usePathname();
   const { language } = useLanguage();
   const { t: tCommon } = useTranslation('common');
-  const placeholderText = promptPlaceholder ?? tCommon('aiChat.placeholder');
+  
+  // Estados para el modo prompt (declarados temprano para poder usarlos en placeholderText)
+  const [isPromptMode, setIsPromptMode] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState<GeneratedPrompt | null>(null);
+  
+  const placeholderText = isPromptMode 
+    ? 'Describe qué tipo de prompt quieres crear...' 
+    : (promptPlaceholder ?? tCommon('aiChat.placeholder'));
   const onlineLabel = tCommon('aiChat.online');
   const pressEnterLabel = tCommon('aiChat.pressEnter');
   const clickToSendLabel = tCommon('aiChat.clickToSend');
@@ -301,8 +323,12 @@ export function AIChatAgent({
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  // Mensaje de bienvenida eliminado - el chat inicia vacío
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Conversaciones separadas para cada modo
+  const [normalMessages, setNormalMessages] = useState<Message[]>([]);
+  const [promptMessages, setPromptMessages] = useState<Message[]>([]);
+  
+  // Obtener los mensajes según el modo actual
+  const messages = isPromptMode ? promptMessages : normalMessages;
 
   // Estado para almacenar el contenido extraído del DOM
   const [pageContent, setPageContent] = useState<{
@@ -563,60 +589,107 @@ export function AIChatAgent({
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // Usar el setter correcto según el modo
+    if (isPromptMode) {
+      setPromptMessages(prev => [...prev, userMessage]);
+    } else {
+      setNormalMessages(prev => [...prev, userMessage]);
+    }
+    
     setInputMessage('');
     setIsTyping(true);
+    setGeneratedPrompt(null); // Limpiar prompt anterior
 
     try {
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          context: activeContext,
-          language,
-          pageContext: {
-            pathname: pathname,
-            description: pageContextInfo,
-            detectedArea: detectedContext,
-            // Agregar contenido extraído del DOM
-            pageTitle: pageContent?.title || '',
-            metaDescription: pageContent?.metaDescription || '',
-            headings: pageContent?.headings || [],
-            mainText: pageContent?.mainText || ''
+      // Si está en modo prompt, usar el endpoint de generación de prompts
+      if (isPromptMode) {
+        const response = await fetch('/api/ai-directory/generate-prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          conversationHistory: messages.map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          userName: user?.display_name || user?.username || user?.first_name
-        }),
-      });
+          body: JSON.stringify({
+            message: userMessage.content,
+            conversationHistory: promptMessages.map(m => ({
+              sender: m.role === 'user' ? 'user' : 'ai',
+              text: m.content,
+              timestamp: m.timestamp.toLocaleTimeString()
+            }))
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        if (process.env.NODE_ENV === 'development') {
-          // console.error('Error de API:', {
-          //   status: response.status,
-          //   statusText: response.statusText,
-          //   error: errorData
-          // });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
         }
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+
+        const data = await response.json();
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response || responseFallback,
+          timestamp: new Date()
+        };
+
+        setPromptMessages(prev => [...prev, assistantMessage]);
+        
+        // Si hay un prompt generado, guardarlo
+        if (data.generatedPrompt) {
+          setGeneratedPrompt(data.generatedPrompt);
+        }
+      } else {
+        // Modo normal de chat
+        const response = await fetch('/api/ai-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: userMessage.content,
+            context: activeContext,
+            language,
+            pageContext: {
+              pathname: pathname,
+              description: pageContextInfo,
+              detectedArea: detectedContext,
+              // Agregar contenido extraído del DOM
+              pageTitle: pageContent?.title || '',
+              metaDescription: pageContent?.metaDescription || '',
+              headings: pageContent?.headings || [],
+              mainText: pageContent?.mainText || ''
+            },
+            conversationHistory: normalMessages.map(m => ({
+              role: m.role,
+              content: m.content
+            })),
+            userName: user?.display_name || user?.username || user?.first_name
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          if (process.env.NODE_ENV === 'development') {
+            // console.error('Error de API:', {
+            //   status: response.status,
+            //   statusText: response.statusText,
+            //   error: errorData
+            // });
+          }
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response || responseFallback,
+          timestamp: new Date()
+        };
+
+        setNormalMessages(prev => [...prev, assistantMessage]);
       }
-
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response || responseFallback,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         // console.error('Error en el chat:', error);
@@ -631,11 +704,17 @@ export function AIChatAgent({
         content: errorContent,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      // Usar el setter correcto según el modo
+      if (isPromptMode) {
+        setPromptMessages(prev => [...prev, errorMessage]);
+      } else {
+        setNormalMessages(prev => [...prev, errorMessage]);
+      }
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, messages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric]);
+  }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -671,13 +750,8 @@ export function AIChatAgent({
     setIsTyping(true);
 
     try {
-      // Usar setMessages con callback para obtener el estado actual de messages
-      // Esto asegura que siempre usemos el estado más reciente, incluso después de limpiar el chat
-      let currentMessages: Message[] = [];
-      setMessages(prev => {
-        currentMessages = prev;
-        return prev;
-      });
+      // Usar los mensajes normales para la ayuda (solo funciona en modo normal)
+      const currentMessages = normalMessages;
 
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
@@ -721,7 +795,7 @@ export function AIChatAgent({
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setNormalMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       // console.error('❌ Error al solicitar ayuda:', error);
       const errorMessage: Message = {
@@ -730,11 +804,11 @@ export function AIChatAgent({
         content: helpError,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setNormalMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
-  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError]);
+  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError, normalMessages]);
 
   // Limpiar el chat cuando cambia la página
   useEffect(() => {
@@ -748,9 +822,11 @@ export function AIChatAgent({
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
       
-      // Limpiar mensajes y contenido de página cuando cambia la página
+      // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal)
       // Esto evita usar contenido de la página anterior
-      setMessages([]);
+      if (!isPromptMode) {
+        setNormalMessages([]);
+      }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
       
@@ -842,7 +918,8 @@ export function AIChatAgent({
   // Ejecutar automáticamente la función de ayuda cuando se abre la LIA (solo si no se ejecutó por cambio de página)
   useEffect(() => {
     // Solo ejecutar si el chat se acaba de abrir y no se ejecutó la ayuda por cambio de página
-    if (isOpen && !hasOpenedRef.current) {
+    // No ejecutar si está en modo prompt
+    if (isOpen && !hasOpenedRef.current && !isPromptMode) {
       // Ejecutar la ayuda automáticamente cuando se abre el chat
       hasOpenedRef.current = true;
       // Pequeño delay para asegurar que el chat esté completamente abierto
@@ -851,7 +928,7 @@ export function AIChatAgent({
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, handleRequestHelp]);
+  }, [isOpen, handleRequestHelp, isPromptMode]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
@@ -867,9 +944,13 @@ export function AIChatAgent({
     if (isOpen) {
       setIsMinimized(!isMinimized);
     } else {
+      // Abrir en modo normal (desactivar modo prompt si estaba activo)
+      setIsPromptMode(false);
+      setGeneratedPrompt(null);
       setIsOpen(true);
       setIsMinimized(false);
       setHasUnreadMessages(false);
+      // No limpiar mensajes, solo cambiar de modo para mostrar los mensajes normales
     }
   };
 
@@ -879,6 +960,76 @@ export function AIChatAgent({
     setAreButtonsExpanded(false);
     // Resetear el flag cuando se cierra para que se ejecute la ayuda al abrir de nuevo
     hasOpenedRef.current = false;
+  };
+
+  const handleOpenPromptMode = () => {
+    // Abrir LIA en modo prompt
+    setIsPromptMode(true);
+    setGeneratedPrompt(null);
+    setAreButtonsExpanded(false);
+    setIsOpen(true);
+    setIsMinimized(false);
+    setHasUnreadMessages(false);
+    
+    // Solo agregar mensaje inicial si no hay mensajes previos en modo prompt
+    if (promptMessages.length === 0) {
+      const initialPromptMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '¡Hola! Soy Lia, tu asistente especializada en creación de prompts de IA. Estoy aquí para ayudarte a crear prompts profesionales y efectivos.\n\n¿En qué tipo de prompt te gustaría trabajar hoy? Por ejemplo:\n\n• Quiero crear un prompt para generar contenido de marketing\n• Necesito un prompt para programación en Python\n• Busco un prompt para crear arte digital\n\n¡Cuéntame tu idea y comenzamos!',
+        timestamp: new Date()
+      };
+      setPromptMessages([initialPromptMessage]);
+    }
+  };
+
+  const handleDownloadPrompt = () => {
+    if (!generatedPrompt) return;
+
+    const promptContent = `# ${generatedPrompt.title}
+
+## Descripción
+${generatedPrompt.description}
+
+${'='.repeat(80)}
+
+## PROMPT LISTO PARA USAR
+
+Copia y pega el siguiente prompt en tu herramienta de IA preferida:
+
+${generatedPrompt.content}
+
+${'='.repeat(80)}
+
+## Información Adicional
+
+### Tags
+${generatedPrompt.tags.join(', ')}
+
+### Nivel de Dificultad
+${generatedPrompt.difficulty_level}
+
+### Casos de Uso
+${generatedPrompt.use_cases.map(uc => `- ${uc}`).join('\n')}
+
+### Consejos
+${generatedPrompt.tips.map(tip => `- ${tip}`).join('\n')}
+
+---
+
+Generado por Lia - Asistente de IA para Creación de Prompts
+Fecha: ${new Date().toLocaleString()}
+`;
+
+    const blob = new Blob([promptContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${generatedPrompt.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -892,7 +1043,7 @@ export function AIChatAgent({
           }}
         >
           <AnimatePresence>
-            {/* Botones expandidos: Reportar Problema */}
+            {/* Botones expandidos: Modo Prompt y Reportar Problema */}
             {areButtonsExpanded && (
               <motion.div
                 key="expanded-buttons"
@@ -902,6 +1053,30 @@ export function AIChatAgent({
                 transition={{ duration: 0.2 }}
                 className="flex flex-col gap-2 overflow-hidden"
               >
+                {/* Botón de modo prompt */}
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenPromptMode();
+                  }}
+                  initial={{ scale: 0, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0, y: 10 }}
+                  transition={{ duration: 0.15 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg hover:shadow-purple-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
+                  title="Abrir modo prompt"
+                >
+                  <Wand2 className="w-6 h-6 text-white" />
+                  
+                  {/* Tooltip */}
+                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Abrir modo prompt
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
+                  </div>
+                </motion.button>
+                
                 {/* Botón de reportar problema */}
                 <motion.button
                   onClick={(e) => {
@@ -964,6 +1139,9 @@ export function AIChatAgent({
             <motion.button
               onClick={(e) => {
                 e.stopPropagation();
+                // Abrir en modo normal (desactivar modo prompt si estaba activo)
+                setIsPromptMode(false);
+                setGeneratedPrompt(null);
                 setIsOpen(true);
                 setIsMinimized(false);
                 setHasUnreadMessages(false);
@@ -1019,14 +1197,16 @@ export function AIChatAgent({
             }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed right-6 w-96 max-w-[calc(100vw-3rem)] z-[99999]"
+            className={`fixed right-6 z-[99999] ${isPromptMode && generatedPrompt ? 'w-[800px] max-w-[calc(100vw-3rem)]' : 'w-96 max-w-[calc(100vw-3rem)]'}`}
             style={{
               bottom: bottomPosition,
               height: calculateMaxHeight,
               maxHeight: calculateMaxHeight,
             }}
           >
-        <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
+        <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex ${isPromptMode && generatedPrompt ? 'flex-row' : 'flex-col'} bg-white dark:bg-[#0f0f0f] h-full`}>
+          {/* Contenedor principal del chat */}
+          <div className={`flex flex-col ${isPromptMode && generatedPrompt ? 'w-1/2 border-r border-gray-200 dark:border-carbon-700' : 'w-full'} h-full`}>
           {/* Header con gradiente */}
           <motion.div 
             className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden flex-shrink-0"
@@ -1075,6 +1255,12 @@ export function AIChatAgent({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-white font-semibold">{assistantName}</h3>
+                    {isPromptMode && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full">
+                        <Wand2 className="w-3 h-3 text-white" />
+                        <span className="text-xs text-white/90">Modo Prompt</span>
+                      </div>
+                    )}
                     <motion.div
                       className="flex items-center gap-1 text-white/90"
                       animate={{ opacity: [0.5, 1, 0.5] }}
@@ -1258,6 +1444,63 @@ export function AIChatAgent({
                 <span>{pressEnterLabel}</span>
                 <span>•</span>
                 <span>{inputMessage.trim() ? clickToSendLabel : clickToDictateLabel}</span>
+              </div>
+            </motion.div>
+          )}
+          </div>
+          
+          {/* Panel lateral para prompt generado */}
+          {isPromptMode && generatedPrompt && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              className="w-1/2 flex flex-col h-full bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden"
+            >
+              <div className="p-4 border-b border-gray-200 dark:border-carbon-700 flex items-center gap-2 flex-shrink-0">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Prompt Generado</h3>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span className="text-sm">Título</span>
+                  </h4>
+                  <p className="text-gray-700 dark:text-slate-300 text-sm break-words">{generatedPrompt.title}</p>
+                </div>
+                
+                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30 flex-1 flex flex-col min-h-0">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2 flex-shrink-0">
+                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm">Contenido</span>
+                  </h4>
+                  <div className="text-gray-700 dark:text-slate-300 text-sm flex-1 overflow-y-auto prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm leading-relaxed">{generatedPrompt.content}</pre>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 flex-shrink-0">
+                  {generatedPrompt.tags.slice(0, 3).map((tag, index) => (
+                    <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-full text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                
+                <motion.button
+                  onClick={handleDownloadPrompt}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm flex-shrink-0"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar
+                </motion.button>
               </div>
             </motion.div>
           )}
