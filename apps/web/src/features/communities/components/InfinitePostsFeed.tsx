@@ -36,12 +36,12 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
 
-  // Notificar cambios en posts al componente padre
+  // Sincronizar SOLO si el número de posts iniciales AUMENTA (nuevo post creado)
   useEffect(() => {
-    if (onPostsUpdate) {
-      onPostsUpdate(posts)
+    if (uniqueInitialPosts.length > posts.length) {
+      setPosts(uniqueInitialPosts)
     }
-  }, [posts, onPostsUpdate])
+  }, [uniqueInitialPosts.length, posts.length]) // Solo depende de la longitud, no del array completo
 
   const loadMorePosts = useCallback(async () => {
     if (loading) return

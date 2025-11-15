@@ -1616,8 +1616,16 @@ export default function CommunityDetailPage() {
 
       const result = await createPostWithAttachment(slug, newPostContent, attachmentData);
       
-      // Agregar el nuevo post al inicio de la lista
-      setPosts(prev => [result.post, ...prev]);
+      // Agregar el nuevo post al inicio de la lista con toda la información necesaria
+      const newPost = {
+        ...result.post,
+        // Asegurar que tenga todos los campos necesarios para renderizar
+        comment_count: result.post.comment_count || 0,
+        reaction_count: result.post.reaction_count || 0,
+        likes_count: result.post.likes_count || 0,
+      };
+      
+      setPosts(prev => [newPost, ...prev]);
       setNewPostContent('');
       setPostAttachment(null);
       
@@ -2192,7 +2200,6 @@ export default function CommunityDetailPage() {
               <InfinitePostsFeed
                 communitySlug={slug}
                 initialPosts={posts}
-                onPostsUpdate={(updatedPosts) => setPosts(updatedPosts as any)}
                 renderPost={(post, index) => (
                   <motion.div
                     key={post.id}
