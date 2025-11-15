@@ -1821,7 +1821,7 @@ Antes de cada respuesta, pregúntate:
           score: analysis.overallScore
         });
       }}
-      onHelpAccepted={(analysis) => {
+      onHelpAccepted={async (analysis) => {
         console.log('✅ Usuario aceptó ayuda proactiva:', {
           lesson: currentLesson?.lesson_title,
           patterns: analysis.patterns
@@ -1830,35 +1830,55 @@ Antes de cada respuesta, pregúntate:
         // Abrir el panel de LIA (panel derecho)
         setIsRightPanelOpen(true);
         
-        // Construir contexto detallado de la lección actual
-        const lessonContext = currentLesson 
-          ? `Estoy en la lección "${currentLesson.lesson_title}"${currentLesson.lesson_description ? ` que trata sobre: ${currentLesson.lesson_description}` : ''}.`
-          : 'Estoy trabajando en una lección del taller.';
+        // Construir mensaje visible simple para el usuario
+        const visibleUserMessage = `Necesito ayuda con esta lección`;
         
-        // Describir el patrón de dificultad detectado
-        const patternDescriptions = analysis.patterns.map(p => {
-          switch (p.type) {
-            case 'inactivity':
-              return `Llevo ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : 'varios'} minutos sin avanzar`;
-            case 'excessive_scroll':
-              return 'He estado haciendo scroll repetidamente buscando información';
-            case 'failed_attempts':
-              return 'He intentado completar la actividad varias veces sin éxito';
-            case 'frequent_deletion':
-              return 'He estado escribiendo y borrando varias veces';
-            case 'repetitive_cycles':
-              return 'He estado yendo y viniendo entre diferentes secciones';
-            case 'erroneous_clicks':
-              return 'He hecho varios clicks sin resultado';
-            default:
-              return 'Estoy teniendo dificultades para avanzar';
+        // Construir contexto enriquecido de la lección con información de la dificultad detectada
+        const enrichedLessonContext = currentLesson && course ? {
+          courseTitle: course.title || course.course_title,
+          courseDescription: course.description || course.course_description,
+          moduleTitle: modules.find(m => m.lessons.some(l => l.lesson_id === currentLesson.lesson_id))?.module_title,
+          lessonTitle: currentLesson.lesson_title,
+          lessonDescription: currentLesson.lesson_description,
+          durationSeconds: currentLesson.duration_seconds,
+          userRole: user?.type_rol || undefined,
+          // Agregar información de la dificultad detectada al contexto
+          difficultyDetected: {
+            patterns: analysis.patterns.map(p => ({
+              type: p.type,
+              severity: p.severity,
+              description: (() => {
+                switch (p.type) {
+                  case 'inactivity':
+                    return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : 'varios'} minutos sin avanzar`;
+                  case 'excessive_scroll':
+                    return 'Ha estado haciendo scroll repetidamente buscando información';
+                  case 'failed_attempts':
+                    return 'Ha intentado completar la actividad varias veces sin éxito';
+                  case 'frequent_deletion':
+                    return 'Ha estado escribiendo y borrando varias veces';
+                  case 'repetitive_cycles':
+                    return 'Ha estado yendo y viniendo entre diferentes secciones';
+                  case 'erroneous_clicks':
+                    return 'Ha hecho varios clicks sin resultado';
+                  default:
+                    return 'Está teniendo dificultades para avanzar';
+                }
+              })()
+            })),
+            overallScore: analysis.overallScore,
+            shouldIntervene: analysis.shouldIntervene
           }
-        }).join(' y ');
+        } : getLessonContext();
         
-        // Mensaje contextualizado para LIA
-        const difficultyMessage = `${lessonContext} ${patternDescriptions}. ¿Podrías ayudarme a entender mejor este tema?`;
-        
-        sendLiaMessage(difficultyMessage);
+        try {
+          // Enviar mensaje simple visible + contexto enriquecido en segundo plano
+          // El mensaje se mostrará como usuario normal: "Necesito ayuda con esta lección"
+          // El contexto enriquecido se procesará en el API pero NO se mostrará
+          await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, false);
+        } catch (error) {
+          console.error('❌ Error enviando mensaje proactivo a LIA:', error);
+        }
       }}
     >
     <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">

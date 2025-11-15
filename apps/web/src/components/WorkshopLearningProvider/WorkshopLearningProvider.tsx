@@ -92,75 +92,36 @@ export function WorkshopLearningProvider({
       if (onDifficultyDetected) {
         onDifficultyDetected(detectedAnalysis);
       }
-    },
-    onHelpAccepted: (acceptedAnalysis) => {
-      console.log('✅ Usuario aceptó ayuda en WorkshopLearningProvider');
-      
-      if (onHelpAccepted) {
-        onHelpAccepted(acceptedAnalysis);
-      }
     }
+    // NO pasar onHelpAccepted aquí - se maneja en handleAcceptHelp para evitar duplicados
   });
 
   // Manejar aceptación de ayuda
   const handleAcceptHelp = useCallback(async () => {
     if (!analysis) return;
 
-    console.log('📞 Solicitando ayuda proactiva a LIA...');
+    console.log('📞 Usuario aceptó ayuda proactiva, notificando al componente padre...');
     setIsLoadingHelp(true);
 
     try {
-      // Capturar snapshot de sesión
-      const snapshot = sessionRecorder.captureSnapshot();
-      
-      // Llamar a API de ayuda proactiva
-      const response = await fetch('/api/lia/proactive-help', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          analysis,
-          sessionEvents: snapshot?.events.slice(-200) || [], // Últimos 200 eventos
-          workshopId,
-          activityId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al solicitar ayuda proactiva');
+      // Notificar al componente padre que el usuario aceptó ayuda
+      // El componente padre manejará el envío del mensaje a LIA con el contexto completo
+      if (onHelpAccepted) {
+        await onHelpAccepted(analysis);
       }
-
-      const data = await response.json();
       
-      console.log('✅ Respuesta de LIA recibida:', {
-        responseLength: data.response?.length,
-        suggestions: data.suggestions?.length,
-        resources: data.resources?.length
-      });
-
-      // TODO: Aquí podrías abrir el chat de LIA automáticamente con la respuesta
-      // o mostrar la respuesta en un modal/drawer
-      
-      // Por ahora, simplemente loggeamos la respuesta
-      console.log('💬 Respuesta de LIA:', data.response);
-      
-      if (data.suggestions) {
-        console.log('💡 Sugerencias:', data.suggestions);
-      }
-
-      // Llamar al handler del padre
+      // Aceptar ayuda localmente (cierra el modal y limpia el estado)
       acceptHelp();
-
-    } catch (error) {
-      console.error('❌ Error al solicitar ayuda proactiva:', error);
       
-      // Aún así aceptar la ayuda localmente
+      console.log('✅ Ayuda proactiva iniciada correctamente');
+    } catch (error) {
+      console.error('❌ Error al procesar ayuda proactiva:', error);
+      // Aún así aceptar la ayuda localmente para cerrar el modal
       acceptHelp();
     } finally {
       setIsLoadingHelp(false);
     }
-  }, [analysis, workshopId, activityId, acceptHelp]);
+  }, [analysis, onHelpAccepted, acceptHelp]);
 
   return (
     <>
