@@ -14,6 +14,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar si el usuario necesita completar el cuestionario
+    const { QuestionnaireValidationService } = await import('../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de perfil profesional antes de unirte a comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
+    }
+
     const { communityId } = await request.json();
 
     if (!communityId) {
@@ -40,12 +52,13 @@ export async function POST(request: NextRequest) {
 
     // Lógica especial para "Profesionales"
     if (community.slug === 'profesionales') {
-      // Verificar si el usuario ya tiene membresía en CUALQUIER otra comunidad
+      // Verificar si el usuario ya tiene membresía en OTRAS comunidades (excluir Profesionales)
       const { data: allMemberships, error: allMembershipsError } = await supabase
         .from('community_members')
-        .select('community_id, communities!inner(name)')
+        .select('community_id, communities!inner(name, slug)')
         .eq('user_id', user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .neq('communities.slug', 'profesionales');
 
       if (allMembershipsError) {
         logger.error('Error checking all memberships:', allMembershipsError);

@@ -11,6 +11,7 @@ import {
   Sparkles,
   Grid3X3
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { UserDropdown } from '../UserDropdown'
 import { ShoppingCart } from '../ShoppingCart'
 import { HiddenAdminButton } from '../HiddenAdminButton'
@@ -24,25 +25,25 @@ interface DashboardNavbarProps {
 }
 
 const navigationItems = [
-  { id: 'workshops', name: 'Talleres', icon: BookOpen },
-  { id: 'directory', name: 'Directorio IA', icon: Brain },
-  { id: 'community', name: 'Comunidad', icon: Users },
-  { id: 'news', name: 'Noticias', icon: Newspaper },
+  { id: 'workshops', nameKey: 'dashboardNav.workshops', icon: BookOpen },
+  { id: 'directory', nameKey: 'dashboardNav.directory', icon: Brain },
+  { id: 'community', nameKey: 'dashboardNav.community', icon: Users },
+  { id: 'news', nameKey: 'dashboardNav.news', icon: Newspaper },
 ]
 
 const directoryOptions = [
   {
     id: 'prompt-directory',
-    name: 'Prompt Directory',
-    description: 'Prompts de IA',
+    nameKey: 'dashboardNav.promptDirectory.title',
+    descriptionKey: 'dashboardNav.promptDirectory.description',
     icon: Sparkles,
     route: '/prompt-directory',
     gradient: 'from-purple-500 to-pink-500'
   },
   {
     id: 'apps-directory',
-    name: 'Apps Directory',
-    description: 'Herramientas de IA',
+    nameKey: 'dashboardNav.appsDirectory.title',
+    descriptionKey: 'dashboardNav.appsDirectory.description',
     icon: Grid3X3,
     route: '/apps-directory',
     gradient: 'from-blue-500 to-cyan-500'
@@ -53,6 +54,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
   const router = useRouter()
   const pathname = usePathname()
   const [isDirectoryDropdownOpen, setIsDirectoryDropdownOpen] = useState(false)
+  const { t } = useTranslation('common')
   const [isMobileDirectoryDropdownOpen, setIsMobileDirectoryDropdownOpen] = useState(false)
   const mobileDropdownRef = useRef<HTMLDivElement>(null)
   const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg()
@@ -172,7 +174,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
             {/* Contador oculto - solo para debugging */}
             {clickCount > 0 && clickCount < 5 && (
               <div className="sr-only">
-                Contador: {clickCount}/5
+                {t('navbar.clickCounter', { current: clickCount, total: 5 })}
               </div>
             )}
           </motion.div>
@@ -219,7 +221,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                       )}
                       
                       <Icon className={`relative z-10 w-4 h-4 ${isActive || isDirectoryDropdownOpen ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`} />
-                      <span className={`relative z-10 ${isActive || isDirectoryDropdownOpen ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
+                      <span className={`relative z-10 ${isActive || isDirectoryDropdownOpen ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{t(item.nameKey)}</span>
                       <ChevronDown className={`relative z-10 w-4 h-4 transition-transform duration-200 ${
                         isDirectoryDropdownOpen ? 'rotate-180' : ''
                       } ${isActive || isDirectoryDropdownOpen ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`} />
@@ -252,10 +254,10 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               </div>
                               <div>
                                 <div className="font-medium !text-black dark:!text-white group-hover:!text-purple-600 dark:group-hover:!text-purple-300 transition-colors">
-                                  Prompt Directory
+                                  {t('dashboardNav.promptDirectory.title')}
                                 </div>
                                 <div className="text-xs !text-gray-700 dark:!text-gray-400">
-                                  Colección de prompts de IA
+                                  {t('dashboardNav.promptDirectory.description')}
                                 </div>
                               </div>
                             </motion.button>
@@ -275,10 +277,10 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                               </div>
                               <div>
                                 <div className="font-medium !text-black dark:!text-white group-hover:!text-blue-600 dark:group-hover:!text-blue-300 transition-colors">
-                                  Apps Directory
+                                  {t('dashboardNav.appsDirectory.title')}
                                 </div>
                                 <div className="text-xs !text-gray-700 dark:!text-gray-400">
-                                  Herramientas de IA disponibles
+                                  {t('dashboardNav.appsDirectory.description')}
                                 </div>
                               </div>
                             </motion.button>
@@ -333,7 +335,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                   )}
                   
                   <Icon className={`relative z-10 w-4 h-4 ${isActive ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`} />
-                  <span className={`relative z-10 ${isActive ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
+                  <span className={`relative z-10 ${isActive ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{t(item.nameKey)}</span>
                   
                   {/* Indicador de notificación */}
                   {item.id === 'community' && (
@@ -436,7 +438,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
 
                   {/* Texto */}
                   <span className="text-[10px] font-medium leading-tight text-center px-1">
-                    {item.name}
+                    {t(item.nameKey)}
                   </span>
                 </motion.button>
 
@@ -475,10 +477,10 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-sm !text-black dark:!text-white">
-                                    {option.name}
+                                    {t(option.nameKey)}
                                   </div>
                                   <div className="text-xs !text-gray-700 dark:!text-gray-400 truncate">
-                                    {option.description}
+                                    {t(option.descriptionKey)}
                                   </div>
                                 </div>
                               </motion.button>

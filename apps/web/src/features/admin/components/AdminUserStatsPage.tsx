@@ -200,7 +200,6 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
             //   isFullCircle: percentage >= 99.9
             // })
             
-// 
             return (
               <motion.path
                 key={index}
@@ -219,7 +218,6 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
         </svg>
       </div>
       
-// 
       {/* Leyenda */}
       <div className="flex flex-col justify-center gap-3 flex-shrink-0">
         {validData.map((item, index) => {
@@ -241,7 +239,6 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
   )
 }
 
-// 
 export function AdminUserStatsPage() {
   const {
     userProfiles,
@@ -258,7 +255,6 @@ export function AdminUserStatsPage() {
     deleteUserProfile
   } = useUserStats()
 
-// 
   // Debug: Log de datos
   useEffect(() => {
     // console.log('📊 User Stats:', userStats)
@@ -268,7 +264,6 @@ export function AdminUserStatsPage() {
     // console.log('🌍 GenAI Stats:', genAIStats)
   }, [userStats, questionStats, genAIStats])
 
-// 
   // Estados para modales
   const [viewingProfile, setViewingProfile] = useState<any>(null)
   const [editingProfile, setEditingProfile] = useState<any>(null)
@@ -277,43 +272,36 @@ export function AdminUserStatsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
-// 
   const [activeTab, setActiveTab] = useState<'overview' | 'profiles' | 'questions' | 'answers' | 'genai'>('overview')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
 
-// 
   // Funciones para manejar acciones
   const handleViewProfile = (profile: any) => {
     setViewingProfile(profile)
     setIsViewModalOpen(true)
   }
 
-// 
   const handleEditProfile = (profile: any) => {
     setEditingProfile(profile)
     setIsEditModalOpen(true)
   }
 
-// 
   const handleDeleteProfile = (profile: any) => {
     setDeletingProfile(profile)
     setIsDeleteModalOpen(true)
   }
 
-// 
   const handleSaveProfile = async (data: any) => {
     if (editingProfile) {
       await updateUserProfile(editingProfile.id, data)
     }
   }
 
-// 
   const handleConfirmDelete = async (profileId: string) => {
     await deleteUserProfile(profileId)
   }
 
-// 
   const closeModals = () => {
     setIsViewModalOpen(false)
     setIsEditModalOpen(false)
@@ -323,7 +311,6 @@ export function AdminUserStatsPage() {
     setDeletingProfile(null)
   }
 
-// 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -332,7 +319,6 @@ export function AdminUserStatsPage() {
     )
   }
 
-// 
   if (error) {
     return (
       <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
@@ -341,7 +327,6 @@ export function AdminUserStatsPage() {
     )
   }
 
-// 
   return (
     <div className="p-6 w-full">
       {/* Header */}
@@ -352,7 +337,6 @@ export function AdminUserStatsPage() {
         </div>
       </div>
 
-// 
       {/* Tabs */}
       <div className="flex space-x-1 mb-6 bg-gray-700 p-1 rounded-lg">
         {[
@@ -377,7 +361,6 @@ export function AdminUserStatsPage() {
         ))}
       </div>
 
-// 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
@@ -393,7 +376,6 @@ export function AdminUserStatsPage() {
               </div>
             </div>
             
-// 
             <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
@@ -404,7 +386,6 @@ export function AdminUserStatsPage() {
               </div>
             </div>
             
-// 
             <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
@@ -415,7 +396,6 @@ export function AdminUserStatsPage() {
               </div>
             </div>
             
-// 
             <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
@@ -427,7 +407,6 @@ export function AdminUserStatsPage() {
             </div>
           </div>
 
-// 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Users by Role - Gráfica de Pastel */}
@@ -449,7 +428,6 @@ export function AdminUserStatsPage() {
               )}
             </div>
 
-// 
             {/* Users by Area - Gráfica de Pastel */}
             <div className="bg-gray-700 rounded-lg p-6 border border-gray-600 min-h-[400px]">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -469,7 +447,6 @@ export function AdminUserStatsPage() {
               )}
             </div>
 
-// 
             {/* Questions by Type - Gráfica de Barras */}
             <div className="bg-gray-700 rounded-lg p-6 border border-gray-600 min-h-[400px]">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -489,7 +466,6 @@ export function AdminUserStatsPage() {
               )}
             </div>
 
-// 
             {/* Top Countries - Gráfica de Barras */}
             <div className="bg-gray-700 rounded-lg p-6 border border-gray-600 min-h-[400px]">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -512,7 +488,6 @@ export function AdminUserStatsPage() {
         </div>
       )}
 
-// 
       {/* Profiles Tab */}
       {activeTab === 'profiles' && (
         <div className="space-y-6">
@@ -538,7 +513,6 @@ export function AdminUserStatsPage() {
             </div>
           </div>
 
-// 
           {/* Profiles Table */}
           <div className="bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
             <div className="overflow-x-auto">
@@ -643,21 +617,17 @@ export function AdminUserStatsPage() {
         </div>
       )}
 
-// 
       {/* Questions Tab */}
       {activeTab === 'questions' && (
         <QuestionsManagement />
       )}
 
-// 
       {/* Answers Tab */}
       {activeTab === 'answers' && <AnswersManagement />}
 
-// 
       {/* GenAI Tab */}
       {activeTab === 'genai' && <GenAIAdoptionManagement />}
 
-// 
       {/* Modales */}
       {viewingProfile && (
         <ViewProfileModal
@@ -667,7 +637,6 @@ export function AdminUserStatsPage() {
         />
       )}
 
-// 
       {editingProfile && (
         <EditProfileModal
           profile={editingProfile}
@@ -677,7 +646,6 @@ export function AdminUserStatsPage() {
         />
       )}
 
-// 
       {deletingProfile && (
         <DeleteProfileModal
           profile={deletingProfile}
@@ -689,4 +657,3 @@ export function AdminUserStatsPage() {
     </div>
   )
 }
-// 

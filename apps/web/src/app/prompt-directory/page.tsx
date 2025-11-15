@@ -2,15 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Sparkles, Clock, Star, Eye, Download, ChevronDown, X, Plus, Wand2, Heart } from 'lucide-react';
+import { Search, Sparkles, Star, Wand2, Heart, Grid3X3, List } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { PromptCard } from '../../features/ai-directory/components/PromptCard';
-import { CategoryFilter } from '../../features/ai-directory/components/CategoryFilter';
 import { SearchBar } from '../../features/ai-directory/components/SearchBar';
-import { AdvancedFilters } from '../../features/ai-directory/components/AdvancedFilters';
 import { LoadingSpinner } from '../../features/ai-directory/components/LoadingSpinner';
 import { usePrompts } from '../../features/ai-directory/hooks/usePrompts';
-import { useCategories } from '../../features/ai-directory/hooks/useCategories';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { PromptFavoritesProvider } from '../../features/ai-directory/context/PromptFavoritesContext';
@@ -40,44 +37,42 @@ const itemVariants = {
 
 export default function PromptDirectoryPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [showFeatured, setShowFeatured] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Asegurar que el componente esté montado antes de renderizar contenido dependiente del cliente
   useEffect(() => {
     setMounted(true);
+    // Cargar el modo de vista guardado después del montaje
+    const saved = localStorage.getItem('prompts-view-mode')
+    if (saved === 'grid' || saved === 'list') {
+      setViewMode(saved)
+    }
   }, []);
+  
+  // Guardar el modo de vista en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('prompts-view-mode', viewMode)
+    }
+  }, [viewMode, mounted])
 
   const { prompts, loading, error, pagination, refetch } = usePrompts({
     search: searchQuery,
-    category: selectedCategory,
-    difficulty: selectedDifficulty,
     featured: showFeatured,
     favorites: showFavorites,
     sortBy,
     sortOrder
   });
 
-  const { categories } = useCategories();
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-  };
-
-  const handleCategoryChange = (categoryId: string | null) => {
-    setSelectedCategory(categoryId);
-  };
-
-  const handleDifficultyChange = (difficulty: string | null) => {
-    setSelectedDifficulty(difficulty);
   };
 
   const handleFeaturedToggle = () => {
@@ -90,28 +85,27 @@ export default function PromptDirectoryPage() {
 
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedCategory(null);
-    setSelectedDifficulty(null);
     setShowFeatured(false);
     setShowFavorites(false);
   };
 
-  const hasActiveFilters = searchQuery || selectedCategory || selectedDifficulty || showFeatured || showFavorites;
+  const hasActiveFilters = searchQuery || showFeatured || showFavorites;
 
   return (
     <PromptFavoritesProvider>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative pb-12">
+        {/* Background Effects - Applied to entire page */}
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 z-0" />
+        <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-10 pointer-events-none z-0" />
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl pointer-events-none z-0" />
+        
       {/* Hero Section */}
       <motion.div
-        className="relative pt-24 pb-16 overflow-hidden"
+        className="relative pt-24 pb-16 overflow-hidden z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl" />
-        
         <div className="container mx-auto px-4 relative z-10" suppressHydrationWarning>
           <motion.div
             className="text-center max-w-4xl mx-auto"
@@ -159,130 +153,60 @@ export default function PromptDirectoryPage() {
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants}>
-              <SearchBar
-                onSearch={handleSearch}
-                placeholder="Buscar prompts por nombre, categoría o descripción..."
-                className="max-w-2xl mx-auto"
-              />
+            <motion.div 
+              variants={itemVariants}
+              className="flex flex-col sm:flex-row gap-4 items-center justify-center max-w-3xl mx-auto"
+            >
+              <div className="flex-1 w-full">
+                <SearchBar
+                  onSearch={handleSearch}
+                  placeholder="Buscar prompts por nombre, categoría o descripción..."
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                {/* Featured Toggle */}
+                <button
+                  onClick={handleFeaturedToggle}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all whitespace-nowrap ${
+                    showFeatured
+                      ? 'bg-purple-500/20 dark:bg-purple-500/20 border-purple-500 dark:border-purple-500 text-purple-700 dark:text-purple-300'
+                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  <Star className="w-4 h-4" />
+                  <span className="text-sm">Destacados</span>
+                </button>
+
+                {/* Favorites Toggle */}
+                {mounted && (
+                  <button
+                    onClick={handleFavoritesToggle}
+                    disabled={!user}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all whitespace-nowrap ${
+                      !user
+                        ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-500'
+                        : showFavorites
+                        ? 'bg-red-500/20 dark:bg-red-500/20 border-red-500 dark:border-red-500 text-red-700 dark:text-red-300'
+                        : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                    }`}
+                    title={!user ? 'Inicia sesión para ver tus favoritos' : showFavorites ? 'Ocultar favoritos' : 'Mostrar favoritos'}
+                  >
+                    <Heart className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`} />
+                    <span className="text-sm">Favoritos</span>
+                  </button>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Filters Section */}
-      <motion.div
-        className="container mx-auto px-4 mb-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-      >
-        <div className="bg-white/80 dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-          {/* Category Filters */}
-          <div className="mb-6">
-            <CategoryFilter
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategoryChange={handleCategoryChange}
-            />
-          </div>
-
-          {/* Additional Filters */}
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Difficulty Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Dificultad:</span>
-              <select
-                value={selectedDifficulty || ''}
-                onChange={(e) => handleDifficultyChange(e.target.value || null)}
-                className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="">Todas</option>
-                <option value="beginner">Principiante</option>
-                <option value="intermediate">Intermedio</option>
-                <option value="advanced">Avanzado</option>
-              </select>
-            </div>
-
-            {/* Featured Toggle */}
-            <button
-              onClick={handleFeaturedToggle}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-                showFeatured
-                  ? 'bg-purple-500/20 dark:bg-purple-500/20 border-purple-500 dark:border-purple-500 text-purple-700 dark:text-purple-300'
-                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
-            >
-              <Star className="w-4 h-4" />
-              <span className="text-sm">Destacados</span>
-            </button>
-
-            {/* Favorites Toggle */}
-            {mounted && (
-              <button
-                onClick={handleFavoritesToggle}
-                disabled={!user}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-                  !user
-                    ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-500'
-                    : showFavorites
-                    ? 'bg-red-500/20 dark:bg-red-500/20 border-red-500 dark:border-red-500 text-red-700 dark:text-red-300'
-                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
-                }`}
-                title={!user ? 'Inicia sesión para ver tus favoritos' : showFavorites ? 'Ocultar favoritos' : 'Mostrar favoritos'}
-              >
-                <Heart className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`} />
-                <span className="text-sm">Favoritos</span>
-              </button>
-            )}
-
-            {/* Advanced Filters */}
-            <button
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-all"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="text-sm">Filtros Avanzados</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Clear Filters */}
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/50 text-red-400 hover:border-red-500 transition-all"
-              >
-                <X className="w-4 h-4" />
-                <span className="text-sm">Limpiar Filtros</span>
-              </button>
-            )}
-          </div>
-
-          {/* Advanced Filters Panel */}
-          <AnimatePresence>
-            {showAdvancedFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
-              >
-                <AdvancedFilters
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSortByChange={setSortBy}
-                  onSortOrderChange={setSortOrder}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
 
       {/* Results Section */}
       <motion.div
-        className="container mx-auto px-4"
+        className="container mx-auto px-4 relative z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
@@ -296,12 +220,34 @@ export default function PromptDirectoryPage() {
             {hasActiveFilters && (
               <p className="text-gray-600 dark:text-gray-400">
                 Filtros aplicados: {searchQuery && `"${searchQuery}"`} 
-                {selectedCategory && ` • Categoría: ${categories.find(c => c.category_id === selectedCategory)?.name}`}
-                {selectedDifficulty && ` • Dificultad: ${selectedDifficulty}`}
                 {showFeatured && ' • Destacados'}
                 {showFavorites && ' • Favoritos'}
               </p>
             )}
+          </div>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'grid' 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <Grid3X3 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'list' 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <List className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -322,24 +268,35 @@ export default function PromptDirectoryPage() {
           </div>
         )}
 
-        {/* Prompts Grid */}
+        {/* Prompts Grid/List */}
         {!loading && !error && (
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {prompts.map((prompt, index) => (
-              <motion.div
-                key={prompt.prompt_id}
-                variants={itemVariants}
-                custom={index}
-              >
-                <PromptCard prompt={prompt} />
-              </motion.div>
-            ))}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className={viewMode === 'grid' 
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch'
+                : 'space-y-4 mb-12'
+              }
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {prompts.map((prompt, index) => (
+                <motion.div
+                  key={prompt.prompt_id}
+                  variants={itemVariants}
+                  custom={index}
+                  className={viewMode === 'list' ? 'w-full' : 'h-full'}
+                >
+                  <PromptCard prompt={prompt} viewMode={viewMode} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         )}
 
         {/* Empty State */}
@@ -350,7 +307,7 @@ export default function PromptDirectoryPage() {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No se encontraron prompts</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Intenta ajustar tus filtros de búsqueda o explorar diferentes categorías
+              Intenta ajustar tus filtros de búsqueda o explorar diferentes prompts
             </p>
             <Button onClick={clearFilters} variant="primary">
               Limpiar Filtros

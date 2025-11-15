@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -17,6 +17,8 @@ import {
   Link,
   Play,
   BarChart3,
+  Info,
+  Trophy,
   Send,
   Clock,
   CheckCircle,
@@ -42,6 +44,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
+import { useQuestionnaireValidation } from '../../../features/auth/hooks/useQuestionnaireValidation';
+import { QuestionnaireRequiredModal } from '../../../features/auth/components/QuestionnaireRequiredModal';
 // Importaciones usando rutas relativas
 import { ReactionButton } from '../../../features/communities/components/ReactionButton';
 import { ReactionBanner } from '../../../features/communities/components/ReactionBanner';
@@ -81,6 +85,26 @@ import { formatRelativeTime } from '../../../core/utils/date-utils';
 
 // Componentes completos para la comunidad
 // ReactionButton component is now imported from features/communities/components
+
+/**
+ * Helper para obtener el emoji correspondiente a cada tipo de reacción
+ */
+function getReactionEmoji(type: string): string {
+  const emojiMap: Record<string, string> = {
+    'like': '👍',
+    'love': '❤️',
+    'laugh': '😂',
+    'haha': '😂',
+    'wow': '😮',
+    'sad': '😢',
+    'angry': '😡',
+    'clap': '👏',
+    'fire': '🔥',
+    'rocket': '🚀',
+    'eyes': '👀'
+  };
+  return emojiMap[type] || '👍';
+}
 
 function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComments, setShowComments }: any) {
   const [comments, setComments] = useState<any[]>([]);
@@ -271,12 +295,12 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       <div className="relative" ref={buttonRef}>
         <motion.button
           onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+          className="flex items-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Share2 className="w-5 h-5" />
-          <span>Compartir</span>
+          <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="text-xs sm:text-sm">Compartir</span>
         </motion.button>
 
         <AnimatePresence>
@@ -1323,6 +1347,9 @@ const cardVariants = {
   hover: { y: -2, scale: 1.01 }
 };
 
+const MOBILE_BOTTOM_NAV_HEIGHT = 72;
+const MOBILE_CONTENT_EXTRA_PADDING = 24;
+
 export default function CommunityDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -1347,6 +1374,13 @@ export default function CommunityDetailPage() {
   const [showReactionDetails, setShowReactionDetails] = useState<Record<string, boolean>>({});
   const [selectedReactionType, setSelectedReactionType] = useState<string | null>(null);
   const [postReactionStats, setPostReactionStats] = useState<Record<string, any>>({});
+  const communityHeaderRef = useRef<HTMLElement | null>(null);
+  const feedSectionRef = useRef<HTMLElement | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  
+  // Validar cuestionario
+  const { isRequired, isLoading: isLoadingValidation, status } = useQuestionnaireValidation(user?.id);
 
   useEffect(() => {
     if (slug) {
@@ -1365,6 +1399,58 @@ export default function CommunityDetailPage() {
       });
     }
   }, [slug]);
+
+  // Verificar si necesita cuestionario cuando el usuario está cargado
+  useEffect(() => {
+    if (user && !isLoadingValidation && isRequired) {
+      setShowQuestionnaireModal(true);
+    }
+  }, [user, isLoadingValidation, isRequired]);
+
+  useEffect(() => {
+    const checkViewport = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
+
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
+
+  const communityTabs = [
+    { id: 'comunidad', label: 'Comunidad', icon: MessageSquare },
+    { id: 'miembros', label: 'Miembros', icon: Users, href: `/communities/${slug}/members` },
+    { id: 'ligas', label: 'Ligas', icon: Trophy, href: `/communities/${slug}/leagues` },
+    { id: 'acerca', label: 'Acerca', icon: Info },
+  ];
+
+  const handleTabNavigation = (tabId: string) => {
+    setActiveTab(tabId);
+
+    if (tabId === 'miembros') {
+      router.push(`/communities/${slug}/members`);
+      return;
+    }
+
+    if (tabId === 'ligas') {
+      router.push(`/communities/${slug}/leagues`);
+      return;
+    }
+
+    if (tabId === 'acerca') {
+      if (communityHeaderRef.current) {
+        communityHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    if (tabId === 'comunidad' && feedSectionRef.current) {
+      feedSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const fetchCommunityDetail = async () => {
     try {
@@ -1445,14 +1531,36 @@ export default function CommunityDetailPage() {
       // Mapear los datos recibidos al formato esperado
       const userReactionsMap: Record<string, string | null> = {};
       const reactionStatsMap: Record<string, any> = {};
+      const postReactionsMap: Record<string, { type: string | null; count: number }> = {};
       
       Object.entries(data.reactionsByPost).forEach(([postId, postData]: [string, any]) => {
         userReactionsMap[postId] = postData.userReaction;
-        reactionStatsMap[postId] = postData.reactions;
+        
+        // Normalizar las estadísticas de reacciones y asegurar que tengan emoji
+        const normalizedReactions: Record<string, any> = {};
+        Object.entries(postData.reactions || {}).forEach(([reactionType, reactionData]: [string, any]) => {
+          const normalizedType = reactionType === 'haha' ? 'laugh' : reactionType;
+          normalizedReactions[normalizedType] = {
+            type: normalizedType,
+            reaction_type: normalizedType,
+            count: reactionData.count || 0,
+            emoji: reactionData.emoji || getReactionEmoji(normalizedType),
+            hasUserReacted: reactionData.hasUserReacted || false
+          };
+        });
+        
+        reactionStatsMap[postId] = normalizedReactions;
+        
+        // Actualizar también postReactions con el conteo total
+        postReactionsMap[postId] = {
+          type: postData.userReaction,
+          count: postData.totalReactions || 0
+        };
       });
 
       setUserReactions(userReactionsMap);
       setPostReactionStats(reactionStatsMap);
+      setPostReactions(prev => ({ ...prev, ...postReactionsMap }));
 
     } catch (error) {
       // console.error('Error loading user reactions:', error);
@@ -1508,8 +1616,16 @@ export default function CommunityDetailPage() {
 
       const result = await createPostWithAttachment(slug, newPostContent, attachmentData);
       
-      // Agregar el nuevo post al inicio de la lista
-      setPosts(prev => [result.post, ...prev]);
+      // Agregar el nuevo post al inicio de la lista con toda la información necesaria
+      const newPost = {
+        ...result.post,
+        // Asegurar que tenga todos los campos necesarios para renderizar
+        comment_count: result.post.comment_count || 0,
+        reaction_count: result.post.reaction_count || 0,
+        likes_count: result.post.likes_count || 0,
+      };
+      
+      setPosts(prev => [newPost, ...prev]);
       setNewPostContent('');
       setPostAttachment(null);
       
@@ -1683,37 +1799,6 @@ export default function CommunityDetailPage() {
     }
   };
 
-  const getCommunityStyle = (community: Community) => {
-    if (community.slug === 'profesionales') {
-      return {
-        background: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-slate-800/60',
-        headerBg: 'bg-gradient-to-r from-blue-600 to-blue-700',
-        accent: 'text-blue-600 dark:text-blue-400',
-        border: 'border-blue-500/30 dark:border-blue-500/30'
-      };
-    } else if (community.slug === 'ecos-liderazgo') {
-      return {
-        background: 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/40 dark:to-slate-800/60',
-        headerBg: 'bg-gradient-to-r from-purple-600 to-purple-700',
-        accent: 'text-orange-600 dark:text-orange-400',
-        border: 'border-orange-500/30 dark:border-orange-500/30'
-      };
-    } else if (community.slug === 'openminder') {
-      return {
-        background: 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900/50 dark:to-black/60',
-        headerBg: 'bg-gradient-to-r from-slate-800 to-slate-900',
-        accent: 'text-yellow-600 dark:text-yellow-400',
-        border: 'border-yellow-500/30 dark:border-yellow-500/30'
-      };
-    }
-    
-    return {
-      background: 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-800/50 dark:to-slate-900/60',
-      headerBg: 'bg-gradient-to-r from-slate-700 to-slate-800',
-      accent: 'text-gray-600 dark:text-slate-400',
-      border: 'border-gray-300 dark:border-slate-600/30'
-    };
-  };
 
   const getAccessButton = () => {
     if (!community) return null;
@@ -1721,7 +1806,7 @@ export default function CommunityDetailPage() {
     if (community.is_member) {
       return (
         <Button
-          className="bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+          className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-100"
           disabled
         >
           <CheckCircle className="w-4 h-4 mr-2" />
@@ -1733,7 +1818,7 @@ export default function CommunityDetailPage() {
     if (community.has_pending_request) {
       return (
         <Button
-          className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30"
+          className="w-full sm:w-auto bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-400/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-100"
           disabled
         >
           <Clock className="w-4 h-4 mr-2" />
@@ -1746,9 +1831,9 @@ export default function CommunityDetailPage() {
       if (community.can_join === false) {
         return (
           <div className="text-center">
-            <div className="text-slate-400 text-sm mb-2">Ya perteneces a otra comunidad</div>
+            <div className="text-white/70 text-sm mb-2">Ya perteneces a otra comunidad</div>
             <Button
-              className="bg-slate-600/50 text-slate-400 border border-slate-600/50"
+              className="w-full sm:w-auto bg-white/15 text-white/70 border border-white/20 backdrop-blur disabled:opacity-80"
               disabled
             >
               <Lock className="w-4 h-4 mr-2" />
@@ -1762,7 +1847,7 @@ export default function CommunityDetailPage() {
         <Button
           onClick={handleJoinCommunity}
           disabled={isJoining}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
+          className="w-full sm:w-auto bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
         >
           {isJoining ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1778,7 +1863,7 @@ export default function CommunityDetailPage() {
       <Button
         onClick={handleJoinCommunity}
         disabled={isJoining}
-        className="bg-purple-500 hover:bg-purple-600 text-white"
+        className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
       >
         {isJoining ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1789,6 +1874,30 @@ export default function CommunityDetailPage() {
       </Button>
     );
   };
+
+  const postsCount = useMemo(() => posts.length, [posts]);
+  const commentsCount = useMemo(
+    () => posts.reduce((total, post) => total + (post.comment_count ?? 0), 0),
+    [posts]
+  );
+  const reactionsCount = useMemo(
+    () => posts.reduce((total, post) => total + (post.reaction_count ?? post.likes_count ?? 0), 0),
+    [posts]
+  );
+  const formattedUpdatedAt = useMemo(() => {
+    if (!community) return '';
+    return new Date(community.updated_at).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short'
+    });
+  }, [community?.updated_at]);
+  const communityCategoryLabel = useMemo(() => {
+    if (!community?.category) return 'Comunidad';
+    return community.category
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }, [community?.category]);
 
   if (isLoading) {
     return (
@@ -1816,62 +1925,71 @@ export default function CommunityDetailPage() {
     );
   }
 
-  const communityStyle = getCommunityStyle(community);
-  const canViewContent = community.is_member || (community.access_type === 'free' && community.can_join !== false);
-  const needsAuth = !community.is_member && community.access_type === 'invitation_only';
+  const canViewContent = community.is_member || (community.access_type === 'free' && community.can_join !== false) || (community.slug === 'profesionales' && community.is_member);
+  const needsAuth = !community.is_member && community.access_type === 'invitation_only' && !(community.slug === 'profesionales');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+    <div
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900"
+      style={
+        isMobile
+          ? {
+              paddingBottom: `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+            }
+          : undefined
+      }
+    >
       {/* Navigation Bar */}
       <motion.nav
-        className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50"
-        initial={{ y: -100 }}
+        className="hidden md:block"
+        initial={{ y: -80 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
+        <div className="max-w-7xl mx-auto px-6 pt-6">
+          <div className="flex items-center justify-between gap-6 rounded-[32px] bg-white/5 border border-white/10 shadow-xl backdrop-blur-xl px-6 py-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
                 onClick={() => router.push('/communities')}
-                className="bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600/50 text-gray-900 dark:text-white border border-gray-300 dark:border-slate-600/50"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 text-slate-900 font-semibold shadow-lg shadow-slate-200 transition-all duration-300 hover:-translate-y-0.5 dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-500 dark:text-white dark:shadow-blue-500/30"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
                 Volver
-              </Button>
-              
-              <div className="flex items-center gap-1">
-                {['comunidad', 'miembros', 'ligas', 'acerca'].map((tab) => (
+              </button>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {communityTabs.map((tab, index) => (
                   <button
-                    key={tab}
-                    onClick={() => {
-                      if (tab === 'miembros') {
-                        router.push(`/communities/${slug}/members`);
-                      } else if (tab === 'ligas') {
-                        router.push(`/communities/${slug}/leagues`);
-                      } else {
-                        setActiveTab(tab);
-                      }
-                    }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      activeTab === tab
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
+                    key={tab.id}
+                    onClick={() => handleTabNavigation(tab.id)}
+                    className={`group relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white'
                     }`}
                   >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {tab.label}
+                    </span>
+                    <span
+                      className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 transition-opacity ${
+                        activeTab === tab.id
+                          ? 'opacity-100 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/30'
+                          : 'group-hover:opacity-30 bg-white/50 dark:bg-gradient-to-r dark:from-blue-500 dark:to-purple-500'
+                      }`}
+                    />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400 w-4 h-4" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-white/60 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Buscar en esta comunidad..."
-                  className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                  className="pl-12 pr-4 py-2 rounded-full bg-white/90 border border-white/70 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-transparent transition-all dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60"
                 />
               </div>
             </div>
@@ -1881,90 +1999,110 @@ export default function CommunityDetailPage() {
 
       {/* Community Header */}
       <motion.section
-        className={`relative py-16 px-6 overflow-hidden ${communityStyle.background}`}
+        ref={communityHeaderRef}
+        className="relative px-4 sm:px-6 lg:px-8 py-10"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Community Image as Background */}
-        {community.image_url ? (
-          <div className="absolute inset-0">
-            <img
-              src={community.image_url}
-              alt={community.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Si la imagen falla al cargar, mostrar el gradiente
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const gradient = target.nextElementSibling as HTMLElement;
-                if (gradient) gradient.style.display = 'block';
-              }}
-            />
-            {/* Overlay oscuro para mejorar legibilidad del texto */}
-            <div className="absolute inset-0 bg-black/50" />
-          </div>
-        ) : (
-          <>
-            {/* Background Effects - solo si no hay imagen */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/10 dark:to-purple-500/10" />
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/5 rounded-full blur-3xl" />
-          </>
-        )}
-        
-        <div className="relative max-w-7xl mx-auto z-10">
+        <div className="max-w-7xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
           <motion.div
-            className="flex items-start justify-between"
+            className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl overflow-hidden backdrop-blur-xl"
             variants={itemVariants}
           >
-            <div className="flex items-start gap-6">
-              {/* Community Avatar - solo si no hay imagen de fondo */}
-              {!community.image_url && (
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
+            <div className="relative h-52 sm:h-64 overflow-hidden">
+              {community.image_url ? (
+                <>
+                  <img
+                    src={community.image_url}
+                    alt={community.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
+                </>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30" />
               )}
-
-              <div className="flex-1">
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+            </div>
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-900/5 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-white/80">
+                  <Globe className="w-3.5 h-3.5" />
+                  {communityCategoryLabel}
+                </span>
+                <div className="w-full md:hidden">
+                  {getAccessButton()}
+                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">
                   {community.name}
                 </h1>
-                <p className="text-xl text-gray-800 dark:text-white/90 mb-4 max-w-2xl">
+                <p className="text-slate-600 dark:text-white/80 text-base sm:text-lg leading-relaxed">
                   {community.description}
                 </p>
-                
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="flex items-center gap-2 text-gray-700 dark:text-white/80">
-                    <Users className="w-4 h-4" />
-                    {community.member_count} Miembros
-                  </div>
-                  <div className={`flex items-center gap-2 ${communityStyle.accent} dark:${communityStyle.accent}`}>
-                    {community.access_type === 'free' ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Lock className="w-4 h-4" />
-                    )}
-                    {community.access_type === 'free' ? 'Acceso Gratuito' : 'Por Invitación'}
-                  </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-white/80">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  <Users className="w-4 h-4" />
+                  {community.member_count} Miembros
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <Lock className="w-4 h-4" />
+                  )}
+                  {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? 'Acceso gratuito' : 'Por invitación'}
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  <Clock className="w-4 h-4" />
+                  Actualizado {formattedUpdatedAt}
                 </div>
               </div>
             </div>
+          </motion.div>
 
-            <div className="flex flex-col items-end gap-4">
+          <motion.div className="space-y-4" variants={itemVariants}>
+            <div className="hidden md:block">
               {getAccessButton()}
-              
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">POSTS</div>
+            </div>
+            <div className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-slate-600 dark:text-white/60 uppercase tracking-[0.3em]">Actividad</p>
+                <div className="h-1 w-16 rounded-full bg-gradient-to-r from-blue-400 to-purple-400" />
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">7</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">COMENTARIOS</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { label: 'Posts', value: postsCount, gradient: 'from-blue-500 to-cyan-500' },
+                  { label: 'Comentarios', value: commentsCount, gradient: 'from-purple-500 to-pink-500' },
+                  { label: 'Reacciones', value: reactionsCount, gradient: 'from-emerald-500 to-lime-500' },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl bg-white/70 border border-white/30 px-4 py-5 text-center dark:bg-white/5 dark:border-white/10"
+                  >
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                      {stat.value}
+                    </p>
+                    <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-white/70">
+                      {stat.label}
+                    </span>
+                    <div className={`mt-3 h-1 rounded-full bg-gradient-to-r ${stat.gradient}`} />
+                  </div>
+                ))}
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">11</div>
-                <div className="text-gray-600 dark:text-slate-400 text-sm">REACCIONES</div>
+            </div>
+            <div className="bg-white/70 border border-white/30 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-4 dark:bg-white/5 dark:border-white/10">
+              <p className="text-sm font-medium text-slate-600 dark:text-white/80">Comparte la comunidad</p>
+              <div className="flex gap-3">
+                <button className="flex-1 px-4 py-2 rounded-xl bg-slate-900/5 text-slate-700 hover:bg-slate-900/10 transition-colors dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
+                  <Share2 className="w-4 h-4 inline mr-2" />
+                  Copiar enlace
+                </button>
+                <button className="px-4 py-2 rounded-xl bg-slate-900/5 text-slate-700 hover:bg-slate-900/10 transition-colors dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
+                  <Heart className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </motion.div>
@@ -1973,7 +2111,13 @@ export default function CommunityDetailPage() {
 
       {/* Main Content */}
       <motion.section
-        className="px-6 py-8"
+        ref={feedSectionRef}
+        className="px-4 md:px-6 pt-8"
+        style={{
+          paddingBottom: isMobile
+            ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + ${MOBILE_CONTENT_EXTRA_PADDING}px)`
+            : '4rem',
+        }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -2026,17 +2170,17 @@ export default function CommunityDetailPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-4 gap-4">
-                        <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-4 gap-4">
+                        <div className="w-full sm:flex-1">
                           <InlineAttachmentButtons
                             onAttachmentSelect={handleAttachmentSelect}
                           />
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 sm:w-auto w-full">
                           <Button
                             onClick={handleCreatePost}
                             disabled={!newPostContent.trim() || isCreatingPost || isProcessingAttachment}
-                            className="btn-primary disabled:opacity-50"
+                            className="btn-primary disabled:opacity-50 w-full sm:w-auto justify-center"
                           >
                             {(isCreatingPost || isProcessingAttachment) ? (
                               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -2056,7 +2200,6 @@ export default function CommunityDetailPage() {
               <InfinitePostsFeed
                 communitySlug={slug}
                 initialPosts={posts}
-                onPostsUpdate={(updatedPosts) => setPosts(updatedPosts as any)}
                 renderPost={(post, index) => (
                   <motion.div
                     key={post.id}
@@ -2122,25 +2265,21 @@ export default function CommunityDetailPage() {
                     )}
 
                     {/* Facebook-style Post Stats Bar - Reacciones y comentarios */}
-                    <div className="flex items-center justify-between py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30">
                       {/* Reacciones */}
                       {(() => {
                         const totalReactions = postReactions[post.id]?.count || post.reaction_count || 0;
                         const reactionStats = postReactionStats[post.id] || {};
-                        const topReactions = Object.values(reactionStats).map((reaction: any) => ({
-                          reaction_type: reaction.type,
-                          count: reaction.count,
-                          emoji: reaction.emoji
-                        }));
                         
-                        // console.log('Post reaction data:', {
-                        //   postId: post.id,
-                        //   totalReactions,
-                        //   reactionStats,
-                        //   topReactions,
-                        //   postReactions: postReactions[post.id],
-                        //   postReactionCount: post.reaction_count
-                        // });
+                        // Convertir las estadísticas a topReactions y ordenar por conteo (mayor a menor)
+                        const topReactions = Object.values(reactionStats)
+                          .map((reaction: any) => ({
+                            reaction_type: reaction.type || reaction.reaction_type,
+                            count: reaction.count || 0,
+                            emoji: reaction.emoji || getReactionEmoji(reaction.type || reaction.reaction_type)
+                          }))
+                          .filter((reaction: any) => reaction.count > 0) // Solo incluir reacciones con conteo > 0
+                          .sort((a: any, b: any) => b.count - a.count); // Ordenar por conteo descendente
                         
                         return (
                           <ReactionBanner
@@ -2177,15 +2316,17 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Facebook-style Action Buttons */}
-                    <div className="flex items-center justify-around py-2">
+                    <div className="flex flex-nowrap items-center justify-between gap-1 sm:gap-2 py-1.5 sm:py-2 px-1 sm:px-2 border-t border-gray-200 dark:border-slate-700/30">
                       {/* Botón de Reacciones */}
-                      <ReactionButton
-                        postId={post.id}
-                        currentReaction={userReactions[post.id] || null}
-                        reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
-                        onReaction={handleReaction}
-                        isFacebookStyle={true}
-                      />
+                      <div className="flex-1 min-w-0 flex justify-center">
+                        <ReactionButton
+                          postId={post.id}
+                          currentReaction={userReactions[post.id] || null}
+                          reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
+                          onReaction={handleReaction}
+                          isFacebookStyle={true}
+                        />
+                      </div>
                       <button 
                         onClick={() => {
                           const isCurrentlyShowing = showCommentsForPost[post.id] || false;
@@ -2202,18 +2343,20 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+                        className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
                       >
-                        <MessageSquare className="w-5 h-5" />
-                        <span>Comentar</span>
+                        <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm">Comentar</span>
                       </button>
-                      <ShareButton
-                        postId={post.id}
-                        postContent={post.content}
-                        communityName={community.name}
-                        communitySlug={slug}
-                        isFacebookStyle={true}
-                      />
+                      <div className="flex-1 min-w-0 flex justify-center">
+                        <ShareButton
+                          postId={post.id}
+                          postContent={post.content}
+                          communityName={community.name}
+                          communitySlug={slug}
+                          isFacebookStyle={true}
+                        />
+                      </div>
                     </div>
 
                     {/* Sección de comentarios */}
@@ -2265,6 +2408,55 @@ export default function CommunityDetailPage() {
           )}
         </div>
       </motion.section>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <motion.nav
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          style={{
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <div className="flex items-center justify-around px-4 py-3">
+            {communityTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabNavigation(tab.id)}
+                  className={`flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all ${
+                    isActive
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.nav>
+      )}
+
+      {/* Modal de cuestionario requerido */}
+      <QuestionnaireRequiredModal
+        isOpen={showQuestionnaireModal}
+        onContinue={() => {
+          setShowQuestionnaireModal(false);
+          router.push('/statistics');
+        }}
+        onCancel={() => {
+          setShowQuestionnaireModal(false);
+          router.push('/dashboard');
+        }}
+        isOAuthUser={status?.isGoogleOAuth || false}
+      />
 
       {/* Modales de detalles de reacciones */}
       {posts.map((post) => (

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -31,9 +31,27 @@ const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatA
 export default function NewsPage() {
   const router = useRouter()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [activeTab, setActiveTab] = useState<'news' | 'reels'>('news')
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+  
+  // Cargar el modo de vista guardado después del montaje
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('news-view-mode')
+    if (saved === 'grid' || saved === 'list') {
+      setViewMode(saved)
+    }
+  }, []);
+  
+  // Guardar el modo de vista en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('news-view-mode', viewMode)
+    }
+  }, [viewMode, mounted])
   
   const { news, loading, error, loadMore, hasMore } = useNews({
     language: selectedCategory === 'all' ? undefined : selectedCategory
@@ -74,19 +92,19 @@ export default function NewsPage() {
         transition={{ duration: 0.8 }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent" />
-        <div className="relative px-6 py-16 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="relative px-6 py-8 lg:px-8">
+          <div className="mx-auto max-w-5xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-center">
               {/* Left Content */}
               <motion.div
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
-                <h1 className="text-4xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70 mb-6">
+                <h1 className="text-3xl lg:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70 mb-4">
                   Noticias y Actualizaciones
                 </h1>
-                <p className="text-xl text-gray-600 dark:text-text-secondary mb-8 leading-relaxed">
+                <p className="text-lg text-gray-600 dark:text-text-secondary mb-6 leading-relaxed">
                   Mantente al día con las últimas novedades en inteligencia artificial, 
                   tecnología educativa y todo lo relacionado con Chat-Bot-LIA
                 </p>
@@ -94,22 +112,22 @@ export default function NewsPage() {
                 {/* Stats */}
                 {!statsLoading && stats && (
                   <motion.div 
-                    className="grid grid-cols-3 gap-6"
+                    className="grid grid-cols-3 gap-4"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
                   >
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-primary mb-2">{stats.totalNews}</div>
-                      <div className="text-sm text-gray-600 dark:text-text-tertiary">NOTICIAS</div>
+                      <div className="text-2xl font-bold text-primary mb-1">{stats.totalNews}</div>
+                      <div className="text-xs text-gray-600 dark:text-text-tertiary">NOTICIAS</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-primary mb-2">{stats.totalCategories}</div>
-                      <div className="text-sm text-gray-600 dark:text-text-tertiary">CATEGORÍAS</div>
+                      <div className="text-2xl font-bold text-primary mb-1">{stats.totalCategories}</div>
+                      <div className="text-xs text-gray-600 dark:text-text-tertiary">CATEGORÍAS</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-primary mb-2">{stats.totalViews}</div>
-                      <div className="text-sm text-gray-600 dark:text-text-tertiary">VISUALIZACIONES</div>
+                      <div className="text-2xl font-bold text-primary mb-1">{stats.totalViews}</div>
+                      <div className="text-xs text-gray-600 dark:text-text-tertiary">VISUALIZACIONES</div>
                     </div>
                   </motion.div>
                 )}
@@ -117,13 +135,13 @@ export default function NewsPage() {
 
               {/* Right Content - Animated Brain */}
               <motion.div
-                className="flex justify-center lg:justify-end"
+                className="flex justify-center"
                 initial={{ x: 50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
               >
                 <motion.div
-                  className="relative w-64 h-64 lg:w-80 lg:h-80"
+                  className="relative w-48 h-48 lg:w-56 lg:h-56"
                   animate={{ 
                     rotate: [0, 5, -5, 0],
                     scale: [1, 1.05, 1]
@@ -147,7 +165,7 @@ export default function NewsPage() {
                         ease: "easeInOut"
                       }}
                     >
-                      <BookOpen className="w-32 h-32 lg:w-40 lg:h-40 text-white" />
+                      <BookOpen className="w-24 h-24 lg:w-28 lg:h-28 text-white" />
                     </motion.div>
                   </div>
                 </motion.div>
@@ -238,7 +256,7 @@ export default function NewsPage() {
                   <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-primary/50 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20">
                     {/* Hero Image */}
                     <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20 flex items-center justify-center overflow-hidden">
-                      {item.hero_image_url ? (
+                      {item.hero_image_url && !imageErrors.has(item.id) ? (
                         <Image 
                           src={item.hero_image_url} 
                           alt={item.title}
@@ -248,6 +266,7 @@ export default function NewsPage() {
                           loading="lazy"
                           quality={75}
                           unoptimized={item.hero_image_url?.includes('supabase')}
+                          onError={() => setImageErrors(prev => new Set(prev).add(item.id))}
                         />
                       ) : (
                         <Newspaper className="w-16 h-16 text-primary/70 dark:text-primary/50" />
@@ -385,7 +404,7 @@ export default function NewsPage() {
                     }`}>
                       {/* Hero Image */}
                       <div className={`${viewMode === 'list' ? 'w-48 h-32' : 'h-48'} bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
-                        {item.hero_image_url ? (
+                        {item.hero_image_url && !imageErrors.has(item.id) ? (
                           <Image 
                             src={item.hero_image_url} 
                             alt={item.title}
@@ -395,6 +414,7 @@ export default function NewsPage() {
                             loading="lazy"
                             quality={75}
                             unoptimized={item.hero_image_url?.includes('supabase')}
+                            onError={() => setImageErrors(prev => new Set(prev).add(item.id))}
                           />
                         ) : (
                           <Newspaper className="w-8 h-8 text-primary/70 dark:text-primary/50" />

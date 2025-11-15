@@ -17,7 +17,8 @@ import {
   BarChart3,
   CheckCircle,
   Download,
-  Upload
+  Upload,
+  Trash
 } from 'lucide-react'
 import { useUserStats } from '@/features/admin/hooks/useUserStats'
 
@@ -61,6 +62,7 @@ export function QuestionsManagement() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Cargar datos de lookup tables
@@ -146,11 +148,32 @@ export function QuestionsManagement() {
     await deleteQuestion(questionId)
   }
 
+  const handleDeleteAllQuestions = async () => {
+    try {
+      // Llamar al endpoint que elimina todas las preguntas
+      const response = await fetch('/api/admin/user-stats/questions', {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al eliminar todas las preguntas')
+      }
+
+      setIsDeleteAllModalOpen(false)
+      // Recargar los datos
+      window.location.reload()
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Error al eliminar todas las preguntas')
+    }
+  }
+
   const closeModals = () => {
     setIsAddModalOpen(false)
     setIsViewModalOpen(false)
     setIsEditModalOpen(false)
     setIsDeleteModalOpen(false)
+    setIsDeleteAllModalOpen(false)
     setViewingQuestion(null)
     setEditingQuestion(null)
     setDeletingQuestion(null)
@@ -418,6 +441,16 @@ export function QuestionsManagement() {
               className="hidden"
             />
           </label>
+          {questions.length > 0 && (
+            <button
+              onClick={() => setIsDeleteAllModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+              title="Eliminar todas las preguntas"
+            >
+              <Trash className="w-4 h-4 mr-2" />
+              Borrar Todas
+            </button>
+          )}
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
@@ -593,9 +626,9 @@ export function QuestionsManagement() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody>
               {filteredQuestions.map((question) => (
-                <tr key={question.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr key={question.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
                   <td className="px-6 py-4">
                     <div className="max-w-xs">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -726,6 +759,34 @@ export function QuestionsManagement() {
           onClose={closeModals}
           onDelete={handleConfirmDelete}
         />
+      )}
+
+      {/* Modal de confirmación para borrar todas las preguntas */}
+      {isDeleteAllModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              ¿Eliminar todas las preguntas?
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Esta acción eliminará permanentemente todas las {questions.length} preguntas. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsDeleteAllModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAllQuestions}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Eliminar Todas
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -10,9 +10,6 @@ import {
   MicOff,
   Loader2,
   User,
-  HelpCircle,
-  AlertCircle,
-  MoreVertical,
   ChevronUp,
   Bug,
   Brain,
@@ -21,6 +18,8 @@ import {
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
 import { ReporteProblema } from '../ReporteProblema/ReporteProblema';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../providers/I18nProvider';
 import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
 
 interface Message {
@@ -180,26 +179,133 @@ export function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
   initialMessage = '¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.',
-  promptPlaceholder = 'Escribe tu pregunta...',
+  promptPlaceholder,
   context = 'general'
 }: AIChatAgentProps) {
   const pathname = usePathname();
-  
+  const { language } = useLanguage();
+  const { t: tCommon } = useTranslation('common');
+  const placeholderText = promptPlaceholder ?? tCommon('aiChat.placeholder');
+  const onlineLabel = tCommon('aiChat.online');
+  const pressEnterLabel = tCommon('aiChat.pressEnter');
+  const clickToSendLabel = tCommon('aiChat.clickToSend');
+  const clickToDictateLabel = tCommon('aiChat.clickToDictate');
+  const responseFallback = tCommon('aiChat.responseFallback');
+  const errorGeneric = tCommon('aiChat.errorGeneric');
+  const helpPrompt = tCommon('aiChat.helpPrompt');
+  const helpFallback = tCommon('aiChat.helpFallback');
+  const helpError = tCommon('aiChat.helpError');
+
   // Detectar automáticamente el contexto basado en la URL
   const detectedContext = detectContextFromURL(pathname);
   const activeContext = context === 'general' ? detectedContext : context;
   const pageContextInfo = getPageContextInfo(pathname);
+
+  // Detectar si estamos en página de comunidades
+  const isCommunitiesPage = pathname?.includes('/communities');
   
+  // Detectar si la página usa el DashboardNavbar (sticky)
+  const hasDashboardNavbar = useMemo(() => {
+    if (!pathname) return false;
+    const dashboardPrefixes = [
+      '/dashboard',
+      '/my-courses',
+      '/courses',
+      '/prompt-directory',
+      '/apps-directory',
+      '/communities',
+      '/news',
+      '/statistics',
+      '/questionnaire',
+      '/cart',
+      '/subscriptions',
+      '/payment-methods',
+      '/purchase-history',
+      '/account-settings',
+      '/certificates'
+    ];
+    return dashboardPrefixes.some((prefix) => pathname.startsWith(prefix));
+  }, [pathname]);
+
+  // Estado para detectar si es desktop (≥ 1024px, breakpoint lg de Tailwind)
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detectar tamaño de pantalla con media query
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+
+    // Establecer valor inicial
+    setIsDesktop(mediaQuery.matches);
+
+    // Listener para cambios en el tamaño de pantalla
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDesktop(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  // Determinar posición bottom según la página y el tamaño de pantalla
+  // En /communities: arriba (5.5rem) solo en móvil, abajo (1.5rem) en desktop
+  // En otras páginas: siempre abajo (1.5rem)
+  const bottomPosition = isCommunitiesPage && !isDesktop
+    ? 'calc(5.5rem + env(safe-area-inset-bottom, 0px))'
+    : 'calc(1.5rem + env(safe-area-inset-bottom, 0px))';
+
+  const [widgetHeight, setWidgetHeight] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (typeof window === 'undefined') return;
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+
+      const topGap = hasDashboardNavbar
+        ? (!isDesktop ? 78 : 72) + 8 // navbar + margen extra
+        : 24;
+      const bottomGap = isCommunitiesPage && !isDesktop ? 88 : 24;
+
+      const computed = Math.max(viewportHeight - topGap - bottomGap, 360);
+      setWidgetHeight(`${computed}px`);
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    window.addEventListener('orientationchange', updateHeight);
+    window.visualViewport?.addEventListener('resize', updateHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+      window.removeEventListener('orientationchange', updateHeight);
+      window.visualViewport?.removeEventListener('resize', updateHeight);
+    };
+  }, [isCommunitiesPage, hasDashboardNavbar, isDesktop]);
+
+  // Calcular altura máxima disponible dinámicamente
+  const calculateMaxHeight = useMemo(() => {
+    if (widgetHeight) {
+      return widgetHeight;
+    }
+
+    if (isCommunitiesPage && !isDesktop) {
+      return 'calc(100vh - 5.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
+    }
+    
+    if (hasDashboardNavbar) {
+      const navbarHeight = !isDesktop ? '4.875rem' : '4.5rem';
+      return `calc(100vh - ${navbarHeight} - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)`;
+    }
+    
+    return 'calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
+  }, [isCommunitiesPage, hasDashboardNavbar, isDesktop, widgetHeight]);
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'initial',
-      role: 'assistant',
-      content: initialMessage,
-      timestamp: new Date()
-    }
-  ]);
+  // Mensaje de bienvenida eliminado - el chat inicia vacío
+  const [messages, setMessages] = useState<Message[]>([]);
 
   // Estado para almacenar el contenido extraído del DOM
   const [pageContent, setPageContent] = useState<{
@@ -210,19 +316,23 @@ export function AIChatAgent({
   } | null>(null);
 
   // Extraer contenido del DOM cuando cambie la ruta o cuando se abra el chat
+  // NOTA: Cuando el chat está abierto y cambia la página, el contenido se maneja
+  // en el useEffect de cambio de página para evitar condiciones de carrera
   useEffect(() => {
+    // Si el chat está abierto, no actualizar aquí para evitar conflictos
+    // El useEffect de cambio de página se encargará de actualizar el contenido
+    if (isOpen) {
+      return;
+    }
+    
     // Extraer contenido después de un pequeño delay para asegurar que el DOM esté completamente cargado
     const timer = setTimeout(() => {
       const content = extractPageContent();
       setPageContent(content);
-      }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
+    }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
 
     return () => clearTimeout(timer);
   }, [pathname, isOpen]); // Re-extraer cuando cambie la ruta o se abra el chat
-
-  // Debug: Log estado isOpen
-  useEffect(() => {
-    }, [isOpen]);
 
   // Estado para posición arrastrable
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -235,13 +345,14 @@ export function AIChatAgent({
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
   const [useContextMode, setUseContextMode] = useState(false); // 🎬 Modo con contexto rrweb
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const prevPathnameRef = useRef<string>('');
+  const hasOpenedRef = useRef<boolean>(false);
 
   // Cargar posición guardada al montar
   useEffect(() => {
@@ -469,6 +580,7 @@ export function AIChatAgent({
         body: JSON.stringify({
           message: userMessage.content,
           context: activeContext,
+          language,
           pageContext: {
             pathname: pathname,
             description: pageContextInfo,
@@ -504,7 +616,7 @@ export function AIChatAgent({
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response || 'Lo siento, no pude procesar tu mensaje en este momento.',
+        content: data.response || responseFallback,
         timestamp: new Date()
       };
 
@@ -513,7 +625,10 @@ export function AIChatAgent({
       if (process.env.NODE_ENV === 'development') {
         // console.error('Error en el chat:', error);
       }
-      const errorContent = error instanceof Error ? error.message : 'Lo siento, ocurrió un error. Por favor intenta de nuevo.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error en el chat:', error);
+      }
+      const errorContent = errorGeneric;
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -627,40 +742,44 @@ export function AIChatAgent({
     }, [isRecording]);
 
   // Función para solicitar ayuda contextual
-  const handleRequestHelp = async () => {
-    // Abrir el chat si no está abierto
-    if (!isOpen) {
-      setIsOpen(true);
-      setIsMinimized(false);
-    }
-    
-    // Forzar extracción de contenido si no está disponible
-    let currentPageContent = pageContent;
+  // Permite pasar contenido de página directamente para evitar problemas de sincronización
+  const handleRequestHelp = useCallback(async (overridePageContent?: {
+    title: string;
+    metaDescription: string;
+    headings: string[];
+    mainText: string;
+  } | null) => {
+    // Usar el contenido pasado como parámetro, o el del estado, o extraerlo si no está disponible
+    let currentPageContent = overridePageContent ?? pageContent;
     if (!currentPageContent || !currentPageContent.title) {
       currentPageContent = extractPageContent();
       setPageContent(currentPageContent);
     }
 
-    // Crear mensaje de ayuda automático
-    const helpMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: '¿Qué puedo hacer aquí? Ayúdame',
-      timestamp: new Date()
-    };
+    // Mensaje de ayuda automático - NO se muestra en el chat (isSystemMessage: true)
+    const helpMessageContent = helpPrompt;
 
-    setMessages(prev => [...prev, helpMessage]);
+    // NO agregar el mensaje al estado - solo enviarlo como mensaje del sistema
     setIsTyping(true);
 
     try {
+      // Usar setMessages con callback para obtener el estado actual de messages
+      // Esto asegura que siempre usemos el estado más reciente, incluso después de limpiar el chat
+      let currentMessages: Message[] = [];
+      setMessages(prev => {
+        currentMessages = prev;
+        return prev;
+      });
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: helpMessage.content,
+          message: helpMessageContent,
           context: activeContext,
+          language,
           pageContext: {
             pathname: pathname,
             description: pageContextInfo,
@@ -670,11 +789,12 @@ export function AIChatAgent({
             headings: currentPageContent?.headings || [],
             mainText: currentPageContent?.mainText || ''
           },
-          conversationHistory: messages.map(m => ({
+          conversationHistory: currentMessages.map(m => ({
             role: m.role,
             content: m.content
           })),
-          userName: user?.display_name || user?.username || user?.first_name
+          userName: user?.display_name || user?.username || user?.first_name,
+          isSystemMessage: true // El mensaje del sistema no se mostrará en el chat
         }),
       });
 
@@ -689,7 +809,7 @@ export function AIChatAgent({
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response || 'Lo siento, no pude generar una respuesta.',
+        content: data.response || helpFallback,
         timestamp: new Date()
       };
 
@@ -699,14 +819,131 @@ export function AIChatAgent({
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo.',
+        content: helpError,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError]);
+
+  // Limpiar el chat cuando cambia la página
+  useEffect(() => {
+    // Inicializar prevPathnameRef en el primer render
+    if (prevPathnameRef.current === '') {
+      prevPathnameRef.current = pathname;
+      return;
+    }
+    
+    if (prevPathnameRef.current !== pathname) {
+      const wasOpen = isOpen;
+      const previousPathname = prevPathnameRef.current;
+      
+      // Limpiar mensajes y contenido de página cuando cambia la página
+      // Esto evita usar contenido de la página anterior
+      setMessages([]);
+      setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
+      prevPathnameRef.current = pathname;
+      
+      // Si el chat está abierto, ejecutar la ayuda automáticamente en la nueva página
+      if (wasOpen) {
+        // Marcar que ya se abrió para evitar que el otro useEffect interfiera
+        hasOpenedRef.current = true;
+        
+        // Función para esperar a que el contenido de la nueva página esté listo
+        const waitForNewPageContent = async (): Promise<{
+          title: string;
+          metaDescription: string;
+          headings: string[];
+          mainText: string;
+        }> => {
+          // Esperar múltiples frames para asegurar que React haya renderizado
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          
+          // Esperar un tiempo adicional para contenido dinámico (APIs, animaciones, etc.)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Extraer contenido y verificar que sea válido y estable
+          let attempts = 0;
+          const maxAttempts = 5;
+          let lastContent = '';
+          let stableCount = 0;
+          
+          while (attempts < maxAttempts) {
+            const currentPageContent = extractPageContent();
+            const contentHash = `${currentPageContent.title}-${currentPageContent.mainText.substring(0, 100)}`;
+            
+            // Verificar que el contenido sea válido
+            const isValid = currentPageContent.title && 
+                           currentPageContent.title === document.title && 
+                           currentPageContent.mainText.length > 50;
+            
+            if (isValid) {
+              // Si el contenido es el mismo que en el intento anterior, incrementar contador de estabilidad
+              if (contentHash === lastContent) {
+                stableCount++;
+                // Si el contenido es estable durante 2 intentos consecutivos, considerarlo listo
+                if (stableCount >= 2) {
+                  return currentPageContent;
+                }
+              } else {
+                // Si cambió, resetear el contador de estabilidad
+                stableCount = 0;
+              }
+            }
+            
+            lastContent = contentHash;
+            
+            // Esperar un poco más antes del siguiente intento
+            await new Promise(resolve => setTimeout(resolve, 300));
+            attempts++;
+          }
+          
+          // Si después de varios intentos no hay contenido válido, devolver lo que haya
+          return extractPageContent();
+        };
+        
+        // Ejecutar la espera y luego enviar la ayuda
+        const timer = setTimeout(async () => {
+          try {
+            const currentPageContent = await waitForNewPageContent();
+            setPageContent(currentPageContent);
+            
+            // Pasar el contenido directamente a handleRequestHelp para evitar problemas
+            // de sincronización con el estado de React
+            handleRequestHelp(currentPageContent);
+          } catch (error) {
+            // Si hay error, intentar de todas formas con el contenido actual
+            const fallbackContent = extractPageContent();
+            setPageContent(fallbackContent);
+            handleRequestHelp(fallbackContent);
+          }
+        }, 50); // Delay mínimo inicial
+        
+        return () => clearTimeout(timer);
+      } else {
+        // Si el chat está cerrado, resetear el flag para que se ejecute cuando se abra
+        hasOpenedRef.current = false;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]); // Solo depender de pathname para evitar ejecuciones innecesarias
+
+  // Ejecutar automáticamente la función de ayuda cuando se abre la LIA (solo si no se ejecutó por cambio de página)
+  useEffect(() => {
+    // Solo ejecutar si el chat se acaba de abrir y no se ejecutó la ayuda por cambio de página
+    if (isOpen && !hasOpenedRef.current) {
+      // Ejecutar la ayuda automáticamente cuando se abre el chat
+      hasOpenedRef.current = true;
+      // Pequeño delay para asegurar que el chat esté completamente abierto
+      const timer = setTimeout(() => {
+        handleRequestHelp();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, handleRequestHelp]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
@@ -732,15 +969,22 @@ export function AIChatAgent({
     setIsOpen(false);
     setIsMinimized(false);
     setAreButtonsExpanded(false);
+    // Resetear el flag cuando se cierra para que se ejecute la ayuda al abrir de nuevo
+    hasOpenedRef.current = false;
   };
 
   return (
     <>
       {/* Botones flotantes */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2 items-end">
+        <div
+          className="fixed right-6 z-40 flex flex-col gap-2 items-end bottom-6 md:bottom-6"
+          style={{
+            bottom: bottomPosition,
+          }}
+        >
           <AnimatePresence>
-            {/* Botones expandidos: Ayuda y Reportar Problema */}
+            {/* Botones expandidos: Reportar Problema */}
             {areButtonsExpanded && (
               <motion.div
                 key="expanded-buttons"
@@ -750,31 +994,6 @@ export function AIChatAgent({
                 transition={{ duration: 0.2 }}
                 className="flex flex-col gap-2 overflow-hidden"
               >
-                {/* Botón de ayuda contextual */}
-                <motion.button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRequestHelp();
-                    setAreButtonsExpanded(false);
-                  }}
-                  initial={{ scale: 0, opacity: 0, y: 10 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.15, delay: 0.05 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg hover:shadow-amber-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
-                  title="¿Necesitas ayuda?"
-                >
-                  <HelpCircle className="w-6 h-6 text-white" />
-                  
-                  {/* Tooltip */}
-                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                    ¿Necesitas ayuda?
-                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
-                  </div>
-                </motion.button>
-
                 {/* Botón de reportar problema */}
                 <motion.button
                   onClick={(e) => {
@@ -885,14 +1104,19 @@ export function AIChatAgent({
         {isOpen && (
           <motion.div
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
-            animate={{ 
-              scale: 1, 
+            animate={{
+              scale: 1,
               opacity: 1,
               y: 0
             }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-3rem)] z-[99999]"
+            className="fixed right-6 w-96 max-w-[calc(100vw-3rem)] z-[99999]"
+            style={{
+              bottom: bottomPosition,
+              height: calculateMaxHeight,
+              maxHeight: calculateMaxHeight,
+            }}
           >
         <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
           {/* Header con gradiente */}
@@ -949,63 +1173,13 @@ export function AIChatAgent({
                       transition={{ duration: 2, repeat: Infinity }}
                     >
                       <span className="w-2 h-2 rounded-full bg-green-400" />
-                      <span className="text-xs">En línea</span>
+                      <span className="text-xs">{onlineLabel}</span>
                     </motion.div>
                   </div>
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                {/* Menú desplegable */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
-                    title="Menú"
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-                  
-                  {/* Dropdown menu */}
-                  <AnimatePresence>
-                    {showMenu && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50"
-                      >
-                        <button
-                          onClick={() => {
-                            setShowMenu(false);
-                            setIsReportOpen(true);
-                          }}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                        >
-                          <AlertCircle className="w-5 h-5 text-red-500" />
-                          <div>
-                            <div className="font-medium">Reportar Problema</div>
-                            <div className="text-xs text-gray-500">Bug, sugerencia o ayuda</div>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowMenu(false);
-                            handleRequestHelp();
-                          }}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                        >
-                          <HelpCircle className="w-5 h-5 text-amber-500" />
-                          <div>
-                            <div className="font-medium">Ayuda Contextual</div>
-                            <div className="text-xs text-gray-500">¿Qué puedo hacer aquí?</div>
-                          </div>
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
                 <button
                   onClick={handleClose}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
@@ -1024,7 +1198,6 @@ export function AIChatAgent({
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
               style={{ 
-                maxHeight: 'calc(600px - 200px)', // Altura total menos header e input
                 scrollBehavior: 'smooth'
               }}
             >

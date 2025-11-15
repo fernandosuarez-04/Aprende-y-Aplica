@@ -8,6 +8,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@aprende-y-aplica/ui';
 import { LoadingSpinner } from '../../../features/ai-directory/components/LoadingSpinner';
+import { StarRating } from '../../../features/courses/components/StarRating';
+import { AppRatingInline } from '../../../features/ai-directory/components/AppRatingInline';
 
 interface App {
   app_id: string;
@@ -36,8 +38,8 @@ interface App {
   is_verified: boolean;
   view_count: number;
   like_count: number;
-  rating: number;
-  rating_count: number;
+  rating?: number | null;
+  rating_count?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -69,28 +71,40 @@ export default function AppDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchApp = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/ai-directory/apps/${params.slug}`);
-        
-        if (!response.ok) {
-          throw new Error('App not found');
-        }
-
-        const data = await response.json();
-        setApp(data.app);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+  const fetchApp = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/ai-directory/apps/${params.slug}`);
+      
+      if (!response.ok) {
+        throw new Error('App not found');
       }
-    };
 
+      const data = await response.json();
+      setApp(data.app);
+      setError(null);
+
+      // Incrementar contador de visualizaciones
+      try {
+        await fetch(`/api/ai-directory/apps/${params.slug}/view`, {
+          method: 'POST',
+        });
+      } catch (viewError) {
+        // No fallar si el incremento de vistas falla
+        console.error('Error incrementing view count:', viewError);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (params.slug) {
       fetchApp();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.slug]);
 
   if (loading) {
@@ -210,10 +224,20 @@ export default function AppDetailPage() {
                     <span>{app.view_count.toLocaleString()} visualizaciones</span>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                    <Star className="w-4 h-4" />
-                    <span>{app.rating.toFixed(1)} ({app.rating_count} reseñas)</span>
-                  </div>
+                  {app.rating && app.rating > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <StarRating
+                        rating={app.rating}
+                        size="sm"
+                        showRatingNumber={true}
+                        reviewCount={app.rating_count || 0}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-500">
+                      Sin calificaciones
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -399,6 +423,26 @@ export default function AppDetailPage() {
                 </div>
               </div>
 
+              {/* Rating Section */}
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Calificación</h3>
+                <AppRatingInline
+                  appSlug={app.slug}
+                  currentRating={app.rating || 0}
+                  currentRatingCount={app.rating_count || 0}
+                  onRatingSubmitted={async (newRating, newRatingCount) => {
+                    // Actualizar solo los datos de rating sin recargar toda la página
+                    if (app) {
+                      setApp({
+                        ...app,
+                        rating: newRating,
+                        rating_count: newRatingCount,
+                      });
+                    }
+                  }}
+                />
+              </div>
+
               {/* Supported Languages */}
               {app.supported_languages && app.supported_languages.length > 0 && (
                 <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
@@ -424,17 +468,26 @@ export default function AppDetailPage() {
                     <span className="text-gray-600 dark:text-gray-400">Visualizaciones</span>
                     <span className="text-gray-900 dark:text-white font-medium">{app.view_count.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Calificación</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-                      <span className="text-gray-900 dark:text-white font-medium">{app.rating.toFixed(1)}</span>
+                  {app.rating && app.rating > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Calificación</span>
+                        <StarRating
+                          rating={app.rating}
+                          size="sm"
+                          showRatingNumber={true}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Reseñas</span>
+                        <span className="text-gray-900 dark:text-white font-medium">{app.rating_count || 0}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-500">
+                      Sin calificaciones aún
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Reseñas</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{app.rating_count}</span>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

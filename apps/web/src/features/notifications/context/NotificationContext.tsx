@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import useSWR from 'swr'
 import { Notification } from '../services/notification.service'
+import { useAuth } from '@/features/auth/hooks/useAuth'
 
 /**
  * Interfaz para el contexto de notificaciones
@@ -64,11 +65,15 @@ export function NotificationProvider({
 }: NotificationProviderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const { user, loading: authLoading, isAuthenticated } = useAuth()
 
   // Marcar como montado después del primer render
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Solo hacer llamadas si el usuario está autenticado
+  const shouldFetch = isMounted && !authLoading && isAuthenticated && !!user
 
   // Obtener notificaciones no leídas
   const {
@@ -77,13 +82,19 @@ export function NotificationProvider({
     mutate: mutateNotifications,
     isLoading: isLoadingNotifications
   } = useSWR<{ success: boolean; data: { notifications: Notification[]; total: number } }>(
-    isMounted ? '/api/notifications?status=unread&limit=10&orderBy=priority' : null,
+    shouldFetch ? '/api/notifications?status=unread&limit=10&orderBy=created_at&orderDirection=desc' : null,
     {
-      refreshInterval: pollingInterval,
-      revalidateOnFocus: true,  // ✅ Siempre revalidar en focus para mantener datos actualizados
-      revalidateOnReconnect: true,
+      refreshInterval: shouldFetch ? pollingInterval : 0, // Desactivar polling si no está autenticado
+      revalidateOnFocus: shouldFetch,  // Solo revalidar si está autenticado
+      revalidateOnReconnect: shouldFetch,
       dedupingInterval: 5000,  // ✅ De 2s a 5s para evitar requests duplicados
-      revalidateIfStale: true,  // ✅ Revalidar si data está stale (importante para carga inicial)
+      revalidateIfStale: shouldFetch,  // Solo revalidar si está autenticado
+      onError: (error) => {
+        // Ignorar errores 401 (no autenticado) - es esperado cuando no hay sesión
+        if (error instanceof Error && error.message.includes('401')) {
+          return
+        }
+      }
     }
   )
 
@@ -93,18 +104,33 @@ export function NotificationProvider({
     error: countError,
     mutate: mutateCount
   } = useSWR<{ success: boolean; data: { total: number; critical: number; high: number } }>(
-    isMounted ? '/api/notifications/unread-count' : null,
+    shouldFetch ? '/api/notifications/unread-count' : null,
     {
-      refreshInterval: pollingInterval,
-      revalidateOnFocus: true,  // ✅ Siempre revalidar en focus para mantener datos actualizados
-      revalidateOnReconnect: true,
+      refreshInterval: shouldFetch ? pollingInterval : 0, // Desactivar polling si no está autenticado
+      revalidateOnFocus: shouldFetch,  // Solo revalidar si está autenticado
+      revalidateOnReconnect: shouldFetch,
       dedupingInterval: 5000,  // ✅ De 2s a 5s
-      revalidateIfStale: true,  // ✅ Revalidar si data está stale (importante para carga inicial)
+      revalidateIfStale: shouldFetch,  // Solo revalidar si está autenticado
+      onError: (error) => {
+        // Ignorar errores 401 (no autenticado) - es esperado cuando no hay sesión
+        if (error instanceof Error && error.message.includes('401')) {
+          return
+        }
+      }
     }
   )
 
-  // Extraer datos
-  const notifications = notificationsData?.data?.notifications || []
+  // Extraer y ordenar notificaciones por prioridad (critical > high > medium > low)
+  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+  const notifications = (notificationsData?.data?.notifications || []).sort((a, b) => {
+    const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2
+    const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB
+    }
+    // Si tienen la misma prioridad, ordenar por fecha (más recientes primero)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
   const unreadCount = countData?.data?.total || 0
   const criticalCount = countData?.data?.critical || 0
   const highCount = countData?.data?.high || 0
@@ -209,14 +235,14 @@ export function NotificationProvider({
     ])
   }
 
-  // Forzar revalidación inicial al montar
+  // Forzar revalidación inicial al montar solo si está autenticado
   useEffect(() => {
-    if (isMounted) {
+    if (shouldFetch) {
       // Revalidar inmediatamente al montar para asegurar datos frescos
       mutateNotifications()
       mutateCount()
     }
-  }, [isMounted, mutateNotifications, mutateCount])
+  }, [shouldFetch, mutateNotifications, mutateCount])
 
   // Escuchar evento personalizado para refrescar notificaciones
   useEffect(() => {

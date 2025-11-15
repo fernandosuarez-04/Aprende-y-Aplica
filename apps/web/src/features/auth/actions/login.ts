@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { redirect } from 'next/navigation'
 import bcrypt from 'bcryptjs'
 import { cookies, headers } from 'next/headers'
+import { logger } from '../../../lib/logger'
 
 const loginSchema = z.object({
   emailOrUsername: z.string().min(1, 'El correo o usuario es requerido'),
@@ -228,19 +229,39 @@ export async function loginAction(formData: FormData) {
         expires: legacySession.expiresAt,
       });
 
-      // OPTIMIZACIÓN: Crear notificación en background (no await)
-      // No bloqueamos el login esperando la notificación
-      (async () => {
-        try {
-          const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
-          await AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
+      // Crear notificación de login (con timeout para no bloquear demasiado)
+      try {
+        logger.info('🔔 Iniciando creación de notificación de login', { userId: user.id })
+        const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
+        
+        // Usar Promise.race con timeout para no bloquear el login más de 2 segundos
+        await Promise.race([
+          AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
             rememberMe: parsed.rememberMe,
             timestamp: new Date().toISOString()
-          })
-        } catch (notificationError) {
-          // Error silenciado para no exponer información
-        }
-      })().catch(() => {}) // Fire and forget
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 2000)
+          )
+        ]).catch((error) => {
+          // Si es timeout, continuar sin bloquear
+          if (error instanceof Error && error.message === 'Timeout') {
+            logger.warn('⏱️ Timeout en notificación de login, continuando', { userId: user.id })
+          } else {
+            logger.error('❌ Error en notificación de login:', {
+              userId: user.id,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          }
+        })
+        logger.info('✅ Notificación de login procesada', { userId: user.id })
+      } catch (notificationError) {
+        // Log del error pero no bloquear el login
+        logger.error('❌ Error en notificación de login:', {
+          userId: user.id,
+          error: notificationError instanceof Error ? notificationError.message : String(notificationError)
+        })
+      }
     } catch (sessionError) {
       // Log del error para debugging
       console.error('Error creando sesión:', sessionError)

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { CourseService, CourseWithInstructor } from '../../../features/courses/services/course.service';
+import { StarRating } from '../../../features/courses/components/StarRating';
 import { createClient } from '../../../lib/supabase/client';
 
 export default function CourseDetailPage() {
@@ -292,7 +293,7 @@ export default function CourseDetailPage() {
         <div className="mb-6">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-carbon-800/50 hover:bg-gray-100 dark:hover:bg-carbon-700/50 text-gray-700 dark:text-carbon-300 dark:hover:text-white rounded-lg border border-gray-200 dark:border-carbon-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 dark:hover:text-white rounded-lg border border-gray-200 dark:border-slate-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Volver</span>
@@ -300,9 +301,9 @@ export default function CourseDetailPage() {
         </div>
 
         {/* Hero Section */}
-      <div className="relative rounded-2xl overflow-hidden border border-gray-200 dark:border-carbon-600 mb-8 bg-white dark:bg-carbon-800 shadow-lg">
+      <div className="relative rounded-2xl overflow-hidden border border-gray-200 dark:border-slate-700 mb-8 bg-white dark:bg-slate-800 shadow-lg">
         {course.thumbnail ? (
-          <div className="relative h-96 bg-gray-200 dark:bg-carbon-600">
+          <div className="relative h-96 bg-gray-200 dark:bg-slate-700">
             <Image
               src={course.thumbnail}
               alt={course.title}
@@ -312,7 +313,7 @@ export default function CourseDetailPage() {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
               quality={85}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent dark:from-carbon-900 dark:via-carbon-900/50"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent dark:from-slate-900 dark:via-slate-900/50"></div>
             
             {/* Background Graphics */}
             <div className="absolute inset-0 pointer-events-none opacity-20">
@@ -354,7 +355,7 @@ export default function CourseDetailPage() {
                       </span>
                     )}
                     {totalModules > 0 && (
-                      <span className="px-3 py-1 bg-white/20 dark:bg-carbon-700/50 text-white dark:text-carbon-300 rounded-full text-xs font-semibold border border-white/30 dark:border-carbon-600">
+                      <span className="px-3 py-1 bg-white/20 dark:bg-slate-700/50 text-white dark:text-slate-300 rounded-full text-xs font-semibold border border-white/30 dark:border-slate-600">
                         {totalModules} módulos
                       </span>
                     )}
@@ -365,24 +366,28 @@ export default function CourseDetailPage() {
                   <div className="flex items-center gap-6 flex-wrap">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1">
-                        <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                        <span className="text-white font-bold text-lg">{course.rating?.toFixed(1) || '0.0'}</span>
+                        <StarRating
+                          rating={course.rating || 0}
+                          size="md"
+                          showRatingNumber={true}
+                          reviewCount={course.review_count}
+                        />
                       </div>
                       {course.review_count && course.review_count > 0 && (
-                        <span className="text-white/80 dark:text-carbon-300 text-sm">
+                        <span className="text-white/80 dark:text-slate-300 text-sm">
                           ({course.review_count} {course.review_count === 1 ? 'reseña' : 'reseñas'})
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-white/80 dark:text-carbon-300">
+                    <div className="flex items-center gap-2 text-white/80 dark:text-slate-300">
                       <Users className="w-5 h-5" />
                       <span>{course.student_count?.toLocaleString() || '0'} estudiantes</span>
                     </div>
-                    <div className="flex items-center gap-2 text-white/80 dark:text-carbon-300">
+                    <div className="flex items-center gap-2 text-white/80 dark:text-slate-300">
                       <Clock className="w-5 h-5" />
                       <span>{formatDuration(course.estimatedDuration)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-white/80 dark:text-carbon-300">
+                    <div className="flex items-center gap-2 text-white/80 dark:text-slate-300">
                       <Calendar className="w-5 h-5" />
                       <span>Actualizado {formatDate(course.updatedAt)}</span>
                     </div>
@@ -403,8 +408,8 @@ export default function CourseDetailPage() {
         {/* Left Column - Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Tabs */}
-          <div className="bg-white dark:bg-gradient-to-br dark:from-carbon-700 dark:to-carbon-800 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden shadow-sm dark:shadow-none">
-            <div className="flex border-b border-gray-200 dark:border-carbon-600">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm dark:shadow-none">
+            <div className="flex border-b border-gray-200 dark:border-slate-700">
               {[
                 { id: 'info', label: 'Información', icon: BookOpen },
                 { id: 'content', label: 'Contenido', icon: FileText },
@@ -419,7 +424,7 @@ export default function CourseDetailPage() {
                     className={`flex-1 px-6 py-4 flex items-center justify-center gap-2 transition-colors ${
                       activeTab === tab.id
                         ? 'bg-primary/20 text-primary border-b-2 border-primary'
-                        : 'text-gray-600 dark:text-carbon-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-carbon-700/50'
+                        : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700/50'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -448,7 +453,7 @@ export default function CourseDetailPage() {
                             {course.learning_objectives.map((objective: string, index: number) => (
                               <div key={index} className="flex items-start gap-3">
                                 <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                                <span className="text-gray-700 dark:text-carbon-100">{objective}</span>
+                                <span className="text-gray-700 dark:text-slate-200">{objective}</span>
                               </div>
                             ))}
                           </div>
@@ -459,7 +464,7 @@ export default function CourseDetailPage() {
                       {course.description && (
                         <div>
                           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Descripción del Curso</h3>
-                          <p className="text-gray-700 dark:text-carbon-100 leading-relaxed whitespace-pre-line">
+                          <p className="text-gray-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
                             {course.description}
                           </p>
                         </div>
@@ -467,31 +472,31 @@ export default function CourseDetailPage() {
 
                       {/* Course Stats */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <FileText className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Módulos</span>
+                            <span className="text-gray-600 dark:text-slate-300 text-sm">Módulos</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalModules || '0'}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <Video className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Lecciones</span>
+                            <span className="text-gray-600 dark:text-slate-300 text-sm">Lecciones</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalLessons || '0'}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <Clock className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Duración</span>
+                            <span className="text-gray-600 dark:text-slate-300 text-sm">Duración</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatDuration(totalDuration)}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-2 mb-2">
                             <Users className="w-5 h-5 text-primary" />
-                            <span className="text-gray-600 dark:text-carbon-200 text-sm">Estudiantes</span>
+                            <span className="text-gray-600 dark:text-slate-300 text-sm">Estudiantes</span>
                           </div>
                           <p className="text-2xl font-bold text-gray-900 dark:text-white">{course.student_count?.toLocaleString() || '0'}</p>
                         </div>
@@ -512,15 +517,15 @@ export default function CourseDetailPage() {
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                           Contenido del Curso
                         </h3>
-                        <span className="text-gray-600 dark:text-carbon-200 text-sm">
+                        <span className="text-gray-600 dark:text-slate-300 text-sm">
                           {totalModules} módulos • {totalLessons} lecciones • {formatDuration(totalDuration)}
                         </span>
                       </div>
 
                       {modules.length === 0 ? (
                         <div className="text-center py-12">
-                          <BookOpen className="w-16 h-16 text-gray-400 dark:text-carbon-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-carbon-200">Este curso aún no tiene contenido disponible</p>
+                          <BookOpen className="w-16 h-16 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-slate-300">Este curso aún no tiene contenido disponible</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -534,30 +539,30 @@ export default function CourseDetailPage() {
                             return (
                               <div
                                 key={module.module_id || module.id}
-                                className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden"
+                                className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm dark:shadow-none"
                               >
                                 <button
                                   onClick={() => toggleModule(module.module_id || module.id)}
-                                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-carbon-700/50 transition-colors"
+                                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
                                 >
                                   <div className="flex items-center gap-4 flex-1 text-left">
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${
-                                      isExpanded ? 'bg-primary' : 'bg-gray-400 dark:bg-carbon-600'
+                                      isExpanded ? 'bg-primary' : 'bg-gray-400 dark:bg-slate-600'
                                     }`}>
                                       {moduleIndex + 1}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <h4 className="text-gray-900 dark:text-white font-semibold mb-1">{module.module_title || module.title}</h4>
-                                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-carbon-200">
+                                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-300">
                                         <span>{moduleLessons.length} {moduleLessons.length === 1 ? 'lección' : 'lecciones'}</span>
                                         <span>{formatDurationSeconds(moduleDuration)}</span>
                                       </div>
                                     </div>
                                   </div>
                                   {isExpanded ? (
-                                    <ChevronUp className="w-5 h-5 text-gray-600 dark:text-carbon-200" />
+                                    <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-300" />
                                   ) : (
-                                    <ChevronDown className="w-5 h-5 text-gray-600 dark:text-carbon-200" />
+                                    <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-300" />
                                   )}
                                 </button>
 
@@ -570,27 +575,27 @@ export default function CourseDetailPage() {
                                       transition={{ duration: 0.2 }}
                                       className="overflow-hidden"
                                     >
-                                      <div className="px-6 pb-4 space-y-2 border-t border-gray-200 dark:border-carbon-600 pt-4">
+                                      <div className="px-6 pb-4 space-y-2 border-t border-gray-200 dark:border-slate-700 pt-4">
                                         {module.module_description && (
-                                          <p className="text-gray-600 dark:text-carbon-200 text-sm mb-4">{module.module_description}</p>
+                                          <p className="text-gray-600 dark:text-slate-300 text-sm mb-4">{module.module_description}</p>
                                         )}
                                         {moduleLessons.map((lesson: any, lessonIndex: number) => (
                                           <div
                                             key={lesson.lesson_id || lesson.id}
-                                            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-carbon-700/30 hover:bg-gray-50 dark:hover:bg-carbon-700/50 transition-colors border border-gray-200 dark:border-carbon-600"
+                                            className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-600"
                                           >
-                                            <Play className="w-4 h-4 text-gray-600 dark:text-carbon-200 flex-shrink-0" />
+                                            <Play className="w-4 h-4 text-gray-600 dark:text-slate-300 flex-shrink-0" />
                                             <div className="flex-1 min-w-0">
                                               <p className="text-gray-900 dark:text-white text-sm font-medium">
                                                 {lessonIndex + 1}. {lesson.lesson_title || lesson.title}
                                               </p>
                                               {lesson.lesson_description && (
-                                                <p className="text-gray-600 dark:text-carbon-200 text-xs mt-1 line-clamp-1">
+                                                <p className="text-gray-600 dark:text-slate-300 text-xs mt-1 line-clamp-1">
                                                   {lesson.lesson_description}
                                                 </p>
                                               )}
                                             </div>
-                                            <span className="text-gray-500 dark:text-carbon-300 text-xs flex-shrink-0">
+                                            <span className="text-gray-500 dark:text-slate-400 text-xs flex-shrink-0">
                                               {formatDurationSeconds(lesson.duration_seconds || 0)}
                                             </span>
                                           </div>
@@ -618,14 +623,14 @@ export default function CourseDetailPage() {
                     <div className="space-y-6">
                       {reviews.length === 0 ? (
                         <div className="text-center py-12">
-                          <Star className="w-16 h-16 text-gray-400 dark:text-carbon-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-carbon-200">Aún no hay reseñas para este curso</p>
+                          <Star className="w-16 h-16 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+                          <p className="text-gray-600 dark:text-slate-300">Aún no hay reseñas para este curso</p>
                         </div>
                       ) : (
                         reviews.map((review) => (
                           <div
                             key={review.id}
-                            className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-6 border border-gray-200 dark:border-carbon-600"
+                            className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-none"
                           >
                             <div className="flex items-start gap-4 mb-4">
                               <div className="w-12 h-12 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -642,18 +647,18 @@ export default function CourseDetailPage() {
                                       className={`w-4 h-4 ${
                                         i < review.rating
                                           ? 'text-yellow-400 fill-yellow-400'
-                                          : 'text-gray-300 dark:text-carbon-600'
+                                          : 'text-gray-300 dark:text-slate-600'
                                       }`}
                                     />
                                   ))}
-                                  <span className="text-gray-600 dark:text-carbon-400 text-xs ml-1">
+                                  <span className="text-gray-600 dark:text-slate-400 text-xs ml-1">
                                     {formatDate(review.created_at)}
                                   </span>
                                 </div>
                                 {review.title && (
                                   <h5 className="text-gray-900 dark:text-white font-medium mb-2">{review.title}</h5>
                                 )}
-                                <p className="text-gray-700 dark:text-carbon-100 text-sm leading-relaxed whitespace-pre-line">
+                                <p className="text-gray-700 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-line">
                                   {review.content}
                                 </p>
                               </div>
@@ -701,12 +706,12 @@ export default function CourseDetailPage() {
                              'Instructor'}
                           </h3>
                           {(instructorData?.cargo_rol || instructorData?.type_rol) && (
-                            <p className="text-gray-600 dark:text-carbon-200 text-lg mb-3">
+                            <p className="text-gray-600 dark:text-slate-300 text-lg mb-3">
                               {instructorData.cargo_rol || instructorData.type_rol}
                             </p>
                           )}
                           {instructorData?.location && (
-                            <div className="flex items-center gap-2 text-gray-600 dark:text-carbon-200 mb-4">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-slate-300 mb-4">
                               <span className="text-sm">{instructorData.location}</span>
                             </div>
                           )}
@@ -757,7 +762,7 @@ export default function CourseDetailPage() {
 
                       {/* Email */}
                       {course.instructor_email && (
-                        <div className="bg-gray-50 dark:bg-carbon-800/50 rounded-xl p-4 border border-gray-200 dark:border-carbon-600">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-none">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
                               <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -765,7 +770,7 @@ export default function CourseDetailPage() {
                               </svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-gray-600 dark:text-carbon-200 text-sm mb-1">Correo electrónico</p>
+                              <p className="text-gray-600 dark:text-slate-300 text-sm mb-1">Correo electrónico</p>
                               <a
                                 href={`mailto:${course.instructor_email}`}
                                 className="text-primary hover:text-primary/80 transition-colors font-medium break-all"
@@ -781,11 +786,11 @@ export default function CourseDetailPage() {
                       <div>
                         <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Biografía</h4>
                         {instructorData?.bio ? (
-                          <p className="text-gray-700 dark:text-carbon-100 leading-relaxed whitespace-pre-line">
+                          <p className="text-gray-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
                             {instructorData.bio}
                           </p>
                         ) : (
-                          <p className="text-gray-500 dark:text-carbon-300 italic">No hay biografía disponible para este instructor.</p>
+                          <p className="text-gray-500 dark:text-slate-400 italic">No hay biografía disponible para este instructor.</p>
                         )}
                       </div>
                     </div>
@@ -799,7 +804,7 @@ export default function CourseDetailPage() {
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
           {/* Course Info Card */}
-          <div className="bg-white dark:bg-gradient-to-br dark:from-carbon-700 dark:to-carbon-800 rounded-xl p-6 border border-gray-200 dark:border-carbon-600 sticky top-6 shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 sticky top-6 shadow-sm dark:shadow-none">
             <div className="space-y-6">
               {/* Price */}
               <div>
@@ -853,20 +858,20 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Course Features */}
-              <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-carbon-600">
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
+              <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-slate-200">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Acceso de por vida</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-slate-200">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">{totalLessons || '0'} lecciones en video</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-slate-200">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Certificado de finalización</span>
                 </div>
-                <div className="flex items-center gap-3 text-gray-700 dark:text-carbon-100">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-slate-200">
                   <CheckCircle className="w-5 h-5 text-primary" />
                   <span className="text-sm">Actualizado {formatDate(course.updatedAt)}</span>
                 </div>
@@ -874,30 +879,14 @@ export default function CourseDetailPage() {
 
               {/* Rating Summary */}
               {course.rating && course.rating > 0 && (
-                <div className="pt-4 border-t border-gray-200 dark:border-carbon-600">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-                      <span className="text-2xl font-bold text-gray-900 dark:text-white">{course.rating.toFixed(1)}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-1 mb-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(course.rating || 0)
-                                ? 'text-yellow-400 fill-yellow-400'
-                                : 'text-gray-300 dark:text-carbon-600'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-gray-600 dark:text-carbon-200 text-xs">
-                        {course.review_count || 0} {course.review_count === 1 ? 'reseña' : 'reseñas'}
-                      </p>
-                    </div>
-                  </div>
+                <div className="pt-4 border-t border-gray-200 dark:border-slate-700">
+                  <StarRating
+                    rating={course.rating}
+                    size="lg"
+                    showRatingNumber={true}
+                    reviewCount={course.review_count}
+                    className="justify-center"
+                  />
                 </div>
               )}
             </div>

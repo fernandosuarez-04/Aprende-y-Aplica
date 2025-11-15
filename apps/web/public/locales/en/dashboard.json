@@ -1,0 +1,48 @@
+{
+  "loading": "Loading dashboard...",
+  "categories": {
+    "errorTitle": "Error loading categories",
+    "errorMessage": "Using default categories"
+  },
+  "courses": {
+    "loading": "Loading courses...",
+    "errorTitle": "Error loading courses",
+    "noRatings": "No ratings yet",
+    "goToCourse": "Go to course",
+    "viewDetails": "View details",
+    "addToCart": "Add to cart",
+    "empty": {
+      "title": "No courses available",
+      "favorites": "You don't have favorite courses yet",
+      "all": "There are no courses on the platform",
+      "category": "No courses found in the {{category}} category"
+    }
+  },
+  "filters": {
+    "all": "All",
+    "favorites": "Favorites"
+  },
+  "stats": {
+    "title": "Your Progress",
+    "completed": "Completed Workshops",
+    "inProgress": "In Progress",
+    "favorites": "Favorites"
+  },
+  "activity": {
+    "title": "Recent Activity",
+    "completed": "You completed \"{{course}}\"",
+    "inProgress": "You continued \"{{course}}\"",
+    "purchased": "You purchased \"{{course}}\"",
+    "emptyTitle": "No recent activity",
+    "emptySubtitle": "Start a course to see your progress here"
+  },
+  "courseTitles": {
+    "ia-esencial-aprende-lo-que-otros-tardan-meses-en-descubrir": "Essential AI: Learn what others take months to discover",
+    "introduccion-a-la-ia": "Introduction to AI"
+  },
+  "assistant": {
+    "initialMessage": "Hi! 👋 I'm Lia, your AI assistant. I'm here to help you with workshops, courses, and educational content. How can I assist you today?",
+    "placeholder": "Ask about workshops, courses..."
+  }
+}
+

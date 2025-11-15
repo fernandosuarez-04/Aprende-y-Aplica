@@ -19,11 +19,15 @@ import {
   Wallet,
   Settings,
   Receipt,
-  Award
+  Award,
+  Languages as LanguagesIcon
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
 import { useThemeStore, Theme } from '../../stores/themeStore'
+import { useLanguage } from '../../providers/I18nProvider'
+import type { SupportedLanguage } from '../../i18n/i18n'
 
 interface UserDropdownProps {
   className?: string
@@ -32,12 +36,16 @@ interface UserDropdownProps {
 export const UserDropdown = React.memo(function UserDropdown({ className = '' }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false)
+  const [isLanguageSubmenuOpen, setIsLanguageSubmenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const themeSubmenuRef = useRef<HTMLDivElement>(null)
+  const languageSubmenuRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
   const { userProfile, loading: profileLoading } = useUserProfile()
   const { theme, setTheme, resolvedTheme, initializeTheme } = useThemeStore()
   const router = useRouter()
+  const { language, setLanguage } = useLanguage()
+  const { t } = useTranslation('common')
 
   // Inicializar tema al montar
   useEffect(() => {
@@ -50,9 +58,13 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
         setIsThemeSubmenuOpen(false)
+        setIsLanguageSubmenuOpen(false)
       }
       if (themeSubmenuRef.current && !themeSubmenuRef.current.contains(event.target as Node)) {
         setIsThemeSubmenuOpen(false)
+      }
+      if (languageSubmenuRef.current && !languageSubmenuRef.current.contains(event.target as Node)) {
+        setIsLanguageSubmenuOpen(false)
       }
     }
 
@@ -78,6 +90,30 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     setIsOpen(false)
   }, [logout])
 
+  const handleLanguageChange = useCallback((lang: SupportedLanguage) => {
+    setLanguage(lang)
+    setIsLanguageSubmenuOpen(false)
+  }, [setLanguage])
+
+  const languageOptions = [
+    { value: 'es' as SupportedLanguage, label: t('languages.es') },
+    { value: 'en' as SupportedLanguage, label: t('languages.en') },
+    { value: 'pt' as SupportedLanguage, label: t('languages.pt') },
+  ]
+
+  const languageLabelMap = languageOptions.reduce<Record<SupportedLanguage, string>>((acc, option) => {
+    acc[option.value] = option.label
+    return acc
+  }, { es: '', en: '', pt: '' })
+
+  const languageMenuLabel = t('languageSelector.label', { language: languageLabelMap[language] })
+  const themeLabel =
+    theme === 'light'
+      ? t('menu.theme.light')
+      : theme === 'dark'
+        ? t('menu.theme.dark')
+        : t('menu.theme.system')
+
   const truncateEmail = useCallback((email: string, maxLength: number = 20) => {
     if (email.length <= maxLength) return email
     return email.substring(0, maxLength) + '...'
@@ -87,7 +123,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     // Accesos rápidos
     {
       id: 'stats',
-      label: 'Mis Estadísticas',
+      label: t('menu.stats'),
       icon: BarChart,
       onClick: () => {
         router.push('/statistics')
@@ -96,7 +132,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     },
     {
       id: 'learning',
-      label: 'Mi aprendizaje',
+      label: t('menu.learning'),
       icon: BookOpen,
       onClick: () => {
         router.push('/my-courses')
@@ -105,7 +141,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     },
     {
       id: 'certificates',
-      label: 'Mis Certificados',
+      label: t('menu.certificates'),
       icon: Award,
       onClick: () => {
         router.push('/certificates')
@@ -118,7 +154,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     },
     {
       id: 'profile',
-      label: 'Editar perfil',
+      label: t('menu.profile'),
       icon: Edit3,
       onClick: () => {
         router.push('/profile')
@@ -127,7 +163,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     },
     {
       id: 'account-settings',
-      label: 'Configuración de la cuenta',
+      label: t('menu.account'),
       icon: Settings,
       onClick: () => {
         router.push('/account-settings')
@@ -141,7 +177,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     // Sección: Suscripciones y Pagos
     {
       id: 'subscriptions',
-      label: 'Suscripciones',
+      label: t('menu.subscriptions'),
       icon: CreditCard,
       onClick: () => {
         router.push('/subscriptions')
@@ -150,7 +186,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     },
     {
       id: 'payment-methods',
-      label: 'Métodos de pago',
+      label: t('menu.paymentMethods'),
       icon: Wallet,
       onClick: () => {
         router.push('/payment-methods')
@@ -159,7 +195,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     },
     {
       id: 'purchase-history',
-      label: 'Historial de compras',
+      label: t('menu.purchaseHistory'),
       icon: Receipt,
       onClick: () => {
         router.push('/purchase-history')
@@ -173,10 +209,20 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     // Tema (submenu)
     {
       id: 'theme',
-      label: theme === 'light' ? 'Modo claro' : theme === 'dark' ? 'Modo oscuro' : 'Modo sistema',
+      label: themeLabel,
       icon: resolvedTheme === 'light' ? Sun : resolvedTheme === 'dark' ? Moon : Monitor,
       onClick: () => {
         setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
+        setIsLanguageSubmenuOpen(false)
+      }
+    },
+    {
+      id: 'language',
+      label: languageMenuLabel,
+      icon: LanguagesIcon,
+      onClick: () => {
+        setIsLanguageSubmenuOpen(!isLanguageSubmenuOpen)
+        setIsThemeSubmenuOpen(false)
       }
     },
     {
@@ -186,7 +232,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     // Botón de administración - Solo para administradores
     ...(isAdmin ? [{
       id: 'admin',
-      label: 'Panel de Administración',
+      label: t('menu.adminPanel'),
       icon: ShieldCheck,
       onClick: () => {
         router.push('/admin/dashboard')
@@ -197,7 +243,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     // Botón de instructor - Solo para instructores
     ...(isInstructor ? [{
       id: 'instructor',
-      label: 'Panel de Instructor',
+      label: t('menu.instructorPanel'),
       icon: GraduationCap,
       onClick: () => {
         router.push('/instructor/dashboard')
@@ -207,7 +253,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     }] : []),
     {
       id: 'logout',
-      label: 'Cerrar sesión',
+      label: t('menu.logout'),
       icon: LogOut,
       onClick: handleLogout,
       isDestructive: true
@@ -378,9 +424,9 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                       }`} />
                       </motion.div>
                       <span className="font-medium text-sm flex-1">{item.label}</span>
-                      {item.id === 'theme' && (
+                      {(item.id === 'theme' || item.id === 'language') && (
                         <ChevronDown className={`w-4 h-4 text-text-secondary dark:text-text-secondary transition-transform flex-shrink-0 ${
-                          isThemeSubmenuOpen ? 'rotate-180' : ''
+                          (item.id === 'theme' && isThemeSubmenuOpen) || (item.id === 'language' && isLanguageSubmenuOpen) ? 'rotate-180' : ''
                         }`} />
                       )}
                     </motion.button>
@@ -392,9 +438,9 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                         className="mt-1 ml-4 border-l-2 border-gray-300 dark:border-gray-700 pl-2"
                       >
                         {[
-                          { value: 'light' as Theme, label: 'Claro', icon: Sun },
-                          { value: 'dark' as Theme, label: 'Oscuro', icon: Moon },
-                          { value: 'system' as Theme, label: 'Sistema', icon: Monitor }
+                          { value: 'light' as Theme, label: t('menu.theme.light'), icon: Sun },
+                          { value: 'dark' as Theme, label: t('menu.theme.dark'), icon: Moon },
+                          { value: 'system' as Theme, label: t('menu.theme.system'), icon: Monitor }
                         ].map((themeOption) => {
                           const ThemeIcon = themeOption.icon
                           const isActive = theme === themeOption.value
@@ -432,6 +478,40 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                                   animate={{ scale: 1 }}
                                   transition={{ duration: 0.2 }}
                                 />
+                              )}
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {item.id === 'language' && isLanguageSubmenuOpen && (
+                      <div 
+                        ref={languageSubmenuRef}
+                        className="mt-1 ml-4 border-l-2 border-gray-300 dark:border-gray-700 pl-2"
+                      >
+                        {languageOptions.map((langOption) => {
+                          const isActive = language === langOption.value
+                          return (
+                            <motion.button
+                              key={langOption.value}
+                              onClick={() => handleLanguageChange(langOption.value)}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                isActive
+                                  ? 'bg-primary/20 text-primary dark:bg-primary/20 dark:text-primary'
+                                  : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
+                              }`}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.15 }}
+                              whileHover={{ x: 4 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <span>{langOption.label}</span>
+                              {isActive && (
+                                <span className="text-xs uppercase tracking-wide text-primary dark:text-primary">
+                                  {t('languageSelector.active')}
+                                </span>
                               )}
                             </motion.button>
                           )

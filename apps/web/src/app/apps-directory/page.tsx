@@ -2,15 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Grid3X3, Clock, Star, Eye, ExternalLink, ChevronDown, X } from 'lucide-react';
+import { Search, Grid3X3, Star, List } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { AppCard } from '../../features/ai-directory/components/AppCard';
-import { CategoryFilter } from '../../features/ai-directory/components/CategoryFilter';
 import { SearchBar } from '../../features/ai-directory/components/SearchBar';
-import { AdvancedFilters } from '../../features/ai-directory/components/AdvancedFilters';
 import { LoadingSpinner } from '../../features/ai-directory/components/LoadingSpinner';
 import { useApps } from '../../features/ai-directory/hooks/useApps';
-import { useCategories } from '../../features/ai-directory/hooks/useCategories';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -37,34 +34,37 @@ const itemVariants = {
 
 export default function AppsDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedPricing, setSelectedPricing] = useState<string | null>(null);
   const [showFeatured, setShowFeatured] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [mounted, setMounted] = useState(false);
+  
+  // Cargar el modo de vista guardado después del montaje
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('apps-view-mode')
+    if (saved === 'grid' || saved === 'list') {
+      setViewMode(saved)
+    }
+  }, []);
+  
+  // Guardar el modo de vista en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('apps-view-mode', viewMode)
+    }
+  }, [viewMode, mounted])
 
   const { apps, loading, error, pagination, refetch } = useApps({
     search: searchQuery,
-    category: selectedCategory,
-    pricing: selectedPricing,
     featured: showFeatured,
     sortBy,
     sortOrder
   });
 
-  const { categories } = useCategories();
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-  };
-
-  const handleCategoryChange = (categoryId: string | null) => {
-    setSelectedCategory(categoryId);
-  };
-
-  const handlePricingChange = (pricing: string | null) => {
-    setSelectedPricing(pricing);
   };
 
   const handleFeaturedToggle = () => {
@@ -73,25 +73,25 @@ export default function AppsDirectoryPage() {
 
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedCategory(null);
-    setSelectedPricing(null);
     setShowFeatured(false);
   };
 
-  const hasActiveFilters = searchQuery || selectedCategory || selectedPricing || showFeatured;
+  const hasActiveFilters = searchQuery || showFeatured;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative pb-12">
+      {/* Background Effects - Applied to entire page */}
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 z-0" />
+      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-10 pointer-events-none z-0" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl pointer-events-none z-0" />
+      
       {/* Hero Section */}
       <motion.div
-        className="relative pt-24 pb-16 overflow-hidden"
+        className="relative pt-24 pb-16 overflow-hidden z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-100 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl" />
         
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -122,112 +122,41 @@ export default function AppsDirectoryPage() {
               Descubre las mejores herramientas de inteligencia artificial para potenciar tu productividad y creatividad
             </motion.p>
 
-            <motion.div variants={itemVariants}>
-              <SearchBar
-                onSearch={handleSearch}
-                placeholder="Buscar herramientas de IA por nombre, categoría o descripción..."
-                className="max-w-2xl mx-auto"
-              />
+            <motion.div 
+              variants={itemVariants}
+              className="flex flex-col sm:flex-row gap-4 items-center justify-center max-w-3xl mx-auto"
+            >
+              <div className="flex-1 w-full">
+                <SearchBar
+                  onSearch={handleSearch}
+                  placeholder="Buscar herramientas de IA por nombre, categoría o descripción..."
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                {/* Featured Toggle */}
+                <button
+                  onClick={handleFeaturedToggle}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all whitespace-nowrap ${
+                    showFeatured
+                      ? 'bg-blue-500/20 dark:bg-blue-500/20 border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300'
+                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  <Star className="w-4 h-4" />
+                  <span className="text-sm">Destacados</span>
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Filters Section */}
-      <motion.div
-        className="container mx-auto px-4 mb-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-      >
-        <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
-          {/* Category Filters */}
-          <div className="mb-6">
-            <CategoryFilter
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategoryChange={handleCategoryChange}
-            />
-          </div>
-
-          {/* Additional Filters */}
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Pricing Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700 dark:text-gray-400">Precio:</span>
-              <select
-                value={selectedPricing || ''}
-                onChange={(e) => handlePricingChange(e.target.value || null)}
-                className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos</option>
-                <option value="free">Gratuito</option>
-                <option value="freemium">Freemium</option>
-                <option value="paid">De Pago</option>
-                <option value="subscription">Suscripción</option>
-              </select>
-            </div>
-
-            {/* Featured Toggle */}
-            <button
-              onClick={handleFeaturedToggle}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-                showFeatured
-                  ? 'bg-blue-500/20 dark:bg-blue-500/20 border-blue-500 dark:border-blue-500 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
-            >
-              <Star className="w-4 h-4" />
-              <span className="text-sm">Destacados</span>
-            </button>
-
-            {/* Advanced Filters */}
-            <button
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-all"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="text-sm">Filtros Avanzados</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Clear Filters */}
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/50 dark:border-red-500/50 text-red-600 dark:text-red-400 hover:border-red-600 dark:hover:border-red-500 transition-all"
-              >
-                <X className="w-4 h-4" />
-                <span className="text-sm">Limpiar Filtros</span>
-              </button>
-            )}
-          </div>
-
-          {/* Advanced Filters Panel */}
-          <AnimatePresence>
-            {showAdvancedFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
-              >
-                <AdvancedFilters
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSortByChange={setSortBy}
-                  onSortOrderChange={setSortOrder}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
 
       {/* Results Section */}
       <motion.div
-        className="container mx-auto px-4"
+        className="container mx-auto px-4 relative z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
@@ -241,11 +170,33 @@ export default function AppsDirectoryPage() {
             {hasActiveFilters && (
               <p className="text-gray-600 dark:text-gray-400">
                 Filtros aplicados: {searchQuery && `"${searchQuery}"`} 
-                {selectedCategory && ` • Categoría: ${categories.find(c => c.category_id === selectedCategory)?.name}`}
-                {selectedPricing && ` • Precio: ${selectedPricing}`}
                 {showFeatured && ' • Destacados'}
               </p>
             )}
+          </div>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'grid' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <Grid3X3 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-3 rounded-xl transition-all ${
+                viewMode === 'list' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <List className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -266,24 +217,35 @@ export default function AppsDirectoryPage() {
           </div>
         )}
 
-        {/* Apps Grid */}
+        {/* Apps Grid/List */}
         {!loading && !error && (
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {apps.map((app, index) => (
-              <motion.div
-                key={app.app_id}
-                variants={itemVariants}
-                custom={index}
-              >
-                <AppCard app={app} />
-              </motion.div>
-            ))}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className={viewMode === 'grid' 
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch'
+                : 'space-y-6 mb-12'
+              }
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {apps.map((app, index) => (
+                <motion.div
+                  key={app.app_id}
+                  variants={itemVariants}
+                  custom={index}
+                  className={viewMode === 'list' ? 'w-full' : 'h-full'}
+                >
+                  <AppCard app={app} viewMode={viewMode} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         )}
 
         {/* Empty State */}
@@ -294,7 +256,7 @@ export default function AppsDirectoryPage() {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No se encontraron herramientas</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Intenta ajustar tus filtros de búsqueda o explorar diferentes categorías
+              Intenta ajustar tus filtros de búsqueda o explorar diferentes herramientas
             </p>
             <Button onClick={clearFilters} variant="primary">
               Limpiar Filtros

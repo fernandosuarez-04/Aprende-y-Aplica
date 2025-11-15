@@ -12,16 +12,20 @@ export interface UseLiaChatReturn {
   clearHistory: () => void;
 }
 
-export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
+export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<LiaMessage[]>([
-    {
-      id: 'initial',
-      role: 'assistant',
-      content: initialMessage || '¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<LiaMessage[]>(
+    initialMessage !== null && initialMessage !== undefined && initialMessage !== ''
+      ? [
+          {
+            id: 'initial',
+            role: 'assistant',
+            content: initialMessage,
+            timestamp: new Date()
+          }
+        ]
+      : []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
@@ -63,7 +67,20 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
             role: m.role,
             content: m.content
           })),
-          userName: user?.username || user?.first_name || undefined,
+          // ✅ OPTIMIZACIÓN: Enviar información completa del usuario para evitar consulta a BD
+          userInfo: user ? {
+            display_name: user.display_name,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            username: user.username,
+            type_rol: user.type_rol
+          } : undefined,
+          // Mantener userName para compatibilidad con código existente
+          userName: user?.display_name || 
+                    (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+                    user?.first_name || 
+                    user?.username || 
+                    undefined,
           courseContext: courseContext || undefined,
           isSystemMessage: isSystemMessage,
           // ✅ ANALYTICS: Enviar conversationId existente si lo hay
@@ -131,14 +148,18 @@ export function useLiaChat(initialMessage?: string): UseLiaChatReturn {
       conversationIdRef.current = null;
     }
     
-    setMessages([
-      {
-        id: 'initial',
-        role: 'assistant',
-        content: initialMessage || '¡Hola! Soy LIA, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?',
-        timestamp: new Date()
-      }
-    ]);
+    setMessages(
+      initialMessage !== null && initialMessage !== undefined && initialMessage !== ''
+        ? [
+            {
+              id: 'initial',
+              role: 'assistant',
+              content: initialMessage,
+              timestamp: new Date()
+            }
+          ]
+        : []
+    );
     setError(null);
   }, [initialMessage, user]);
 

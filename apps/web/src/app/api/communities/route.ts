@@ -185,12 +185,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Enriquecer comunidades con información del usuario
-    const enrichedCommunities = filteredCommunities.map(community => ({
-      ...community,
-      is_member: membershipMap.has(community.id),
-      has_pending_request: pendingRequestsMap.has(community.id),
-      user_role: membershipMap.get(community.id) || null
-    }));
+    const enrichedCommunities = filteredCommunities.map(community => {
+      // Lógica especial para "Profesionales" - siempre mostrar como miembro
+      if (community.slug === 'profesionales') {
+        // Verificar si el usuario tiene ALGUNA otra membresía
+        const hasOtherMembership = Array.from(membershipMap.keys()).some(
+          communityId => communityId !== community.id
+        );
+        
+        if (!hasOtherMembership) {
+          // Usuario sin otras comunidades: mostrar como miembro automático
+          return {
+            ...community,
+            is_member: true,
+            has_pending_request: false,
+            user_role: 'member'
+          };
+        }
+      }
+      
+      return {
+        ...community,
+        is_member: membershipMap.has(community.id),
+        has_pending_request: pendingRequestsMap.has(community.id),
+        user_role: membershipMap.get(community.id) || null
+      };
+    });
 
     logger.log(`✅ Returning ${enrichedCommunities.length} enriched communities for ${userRole}`);
 

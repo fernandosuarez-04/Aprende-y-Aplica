@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, 
@@ -28,6 +28,8 @@ import { UserDropdown } from '../../core/components/UserDropdown';
 import { useRouter } from 'next/navigation';
 import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
 import { formatRelativeTime } from '../../core/utils/date-utils';
+import { StarRating } from '../../features/courses/components/StarRating';
+import { useTranslation } from 'react-i18next';
 
 // 🚀 Lazy Loading - AIChatAgent pesado
 const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
@@ -36,17 +38,26 @@ const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatA
 
 // Las categorías ahora se obtienen dinámicamente desde la base de datos
 
-const navigationItems = [
-  { id: 'workshops', name: 'Talleres', icon: BookOpen, active: true },
-  { id: 'directory', name: 'Directorio IA', icon: Brain, active: false },
-  { id: 'community', name: 'Comunidad', icon: Users, active: false },
-  { id: 'news', name: 'Noticias', icon: Newspaper, active: false },
-];
+const normalizeKey = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const getCourseTranslationKey = (course: { slug?: string | null; id?: string; title?: string }) => {
+  if (course.slug) return course.slug;
+  if (course.id) return course.id;
+  if (course.title) return normalizeKey(course.title);
+  return undefined;
+};
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('workshops');
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation('dashboard');
   const { 
     courses, 
     loading: coursesLoading, 
@@ -68,6 +79,7 @@ export default function DashboardPage() {
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
 
   // Ref para almacenar el valor anterior de favorites y evitar bucles infinitos
   const prevFavoritesRef = React.useRef<string[]>([]);
@@ -137,13 +149,18 @@ export default function DashboardPage() {
 
 
   const handleToggleFavorite = async (courseId: string) => {
+    if (togglingFavorite === courseId) return; // Ya está procesando
+    
     try {
+      setTogglingFavorite(courseId);
       await toggleFavorite(courseId);
     } catch (error) {
       // Mostrar mensaje de error al usuario si es necesario
       if (error instanceof Error && error.message.includes('Variables de entorno')) {
         alert('Error: Supabase no está configurado. Por favor, configura las variables de entorno.');
       }
+    } finally {
+      setTogglingFavorite(null);
     }
   };
 
@@ -155,20 +172,43 @@ export default function DashboardPage() {
     }
   };
 
+  const getCategoryLabel = React.useCallback(
+    (categoryId: string, fallbackName: string) => {
+      if (categoryId === 'all') return t('filters.all');
+      if (categoryId === 'favorites') return t('filters.favorites');
+      return fallbackName;
+    },
+    [t]
+  );
+
+  const selectedCategoryName = React.useMemo(() => {
+    const category = categories.find((cat) => cat.id === activeFilter);
+    return getCategoryLabel(activeFilter, category?.name || activeFilter);
+  }, [activeFilter, categories, getCategoryLabel]);
+
+  const translateCourseTitle = useCallback(
+    (key: string | undefined, fallback: string) => {
+      if (!key) return fallback;
+      return t(`courseTitles.${key}`, { defaultValue: fallback });
+    },
+    [t]
+  );
+
   // ⚡ Memoizar transformación de workshops para evitar re-cálculos
   const workshops = React.useMemo(() => {
     return filteredCourses.map(course => ({
       id: course.id,
       title: course.title,
+    translationKey: getCourseTranslationKey(course),
       instructor: course.instructor_name || 'Instructor',
-      rating: course.rating || 4.5,
+      rating: course.rating || 0,
       price: course.price || 'MX$0',
       status: course.status || 'Disponible',
       image: course.thumbnail || null,
       category: course.category || 'General',
       isFavorite: isFavorite(course.id),
     }));
-  }, [filteredCourses, isFavorite]);
+  }, [filteredCourses, isFavorite, favorites]);
 
   // Mostrar loading mientras se obtienen los datos del usuario
   if (loading) {
@@ -176,7 +216,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-white">Cargando dashboard...</p>
+          <p className="text-gray-700 dark:text-white">{t('loading')}</p>
         </div>
       </div>
     );
@@ -210,8 +250,8 @@ export default function DashboardPage() {
                   <span className="text-yellow-400 text-sm">!</span>
                 </div>
                 <div>
-                  <h3 className="text-yellow-600 dark:text-yellow-400 font-medium">Error al cargar categorías</h3>
-                  <p className="text-yellow-700 dark:text-yellow-300/70 text-sm">Usando categorías por defecto</p>
+                  <h3 className="text-yellow-600 dark:text-yellow-400 font-medium">{t('categories.errorTitle')}</h3>
+                  <p className="text-yellow-700 dark:text-yellow-300/70 text-sm">{t('categories.errorMessage')}</p>
                 </div>
               </div>
             </div>
@@ -230,7 +270,7 @@ export default function DashboardPage() {
                       : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-200 dark:border-slate-600'
                   }`}
                 >
-                  {category.name}
+                  {getCategoryLabel(category.id, category.name)}
                 </button>
               ))}
             </div>
@@ -246,7 +286,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-text-secondary">Cargando cursos...</p>
+                  <p className="text-gray-600 dark:text-text-secondary">{t('courses.loading')}</p>
                 </div>
               </div>
             )}
@@ -259,7 +299,7 @@ export default function DashboardPage() {
                     <span className="text-red-400 text-sm">!</span>
                   </div>
                   <div>
-                    <h3 className="text-red-600 dark:text-red-400 font-medium">Error al cargar cursos</h3>
+                    <h3 className="text-red-600 dark:text-red-400 font-medium">{t('courses.errorTitle')}</h3>
                     <p className="text-red-700 dark:text-red-300/70 text-sm">{coursesError}</p>
                   </div>
                 </div>
@@ -309,7 +349,10 @@ export default function DashboardPage() {
                     
                     <button
                       onClick={() => handleToggleFavorite(workshop.id)}
-                      className="absolute top-3 right-3 p-2 bg-white/80 dark:bg-carbon-800/80 rounded-full hover:bg-gray-100 dark:hover:bg-carbon-700 transition-colors z-10"
+                      disabled={togglingFavorite === workshop.id}
+                      className={`absolute top-3 right-3 p-2 bg-white/80 dark:bg-carbon-800/80 rounded-full hover:bg-gray-100 dark:hover:bg-carbon-700 transition-colors z-10 ${
+                        togglingFavorite === workshop.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
                       <Heart 
                         className={`w-4 h-4 ${
@@ -323,17 +366,26 @@ export default function DashboardPage() {
                   <div className="flex flex-col flex-1 p-6 bg-white dark:bg-slate-800">
                     <div className="flex-1 flex flex-col">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 min-h-[3.5rem] line-clamp-2">
-                        {workshop.title}
+                        {translateCourseTitle(workshop.translationKey, workshop.title)}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 min-h-[1.5rem]">
                         {workshop.instructor}
                       </p>
                       
                       <div className="flex items-center justify-between mb-4 h-6">
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">{workshop.rating}</span>
-                        </div>
+                        {workshop.rating > 0 ? (
+                          <div className="flex items-center space-x-1">
+                            <StarRating
+                              rating={workshop.rating}
+                              size="sm"
+                              showRatingNumber={true}
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {t('courses.noRatings')}
+                          </div>
+                        )}
                         <span className="text-lg font-bold text-primary">{workshop.price}</span>
                       </div>
                     </div>
@@ -354,7 +406,7 @@ export default function DashboardPage() {
                           }}
                         >
                           <BookOpen className="w-4 h-4 mr-2" />
-                          Ir al curso
+                          {t('courses.goToCourse')}
                         </Button>
                       ) : (
                         // Si el curso NO está comprado: mostrar "Ver detalles" y "Agregar al carrito"
@@ -371,7 +423,7 @@ export default function DashboardPage() {
                             }}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            Ver detalles
+                            {t('courses.viewDetails')}
                           </Button>
                           <Button
                             variant="primary"
@@ -396,7 +448,7 @@ export default function DashboardPage() {
                             }}
                           >
                             <ShoppingCart className="w-4 h-4 mr-2" />
-                            Agregar al carrito
+                            {t('courses.addToCart')}
                           </Button>
                         </div>
                       )}
@@ -414,14 +466,14 @@ export default function DashboardPage() {
                   <BookOpen className="w-8 h-8 text-gray-600 dark:text-text-secondary" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-text-primary mb-2">
-                  No hay cursos disponibles
+                  {t('courses.empty.title')}
                 </h3>
                 <p className="text-gray-600 dark:text-text-secondary">
                   {activeFilter === 'favorites' 
-                    ? 'No tienes cursos favoritos aún'
+                    ? t('courses.empty.favorites')
                     : activeFilter === 'all'
-                    ? 'No hay cursos en la plataforma'
-                    : `No hay cursos en la categoría ${activeFilter}`
+                    ? t('courses.empty.all')
+                    : t('courses.empty.category', { category: selectedCategoryName || activeFilter })
                   }
                 </p>
               </div>
@@ -433,39 +485,39 @@ export default function DashboardPage() {
             {/* Quick Stats */}
             <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Tu Progreso
+                {t('stats.title')}
               </h3>
               {loadingStats ? (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Talleres Completados</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('stats.completed')}</span>
                     <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">En Progreso</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('stats.inProgress')}</span>
                     <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Favoritos</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('stats.favorites')}</span>
                     <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Talleres Completados</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('stats.completed')}</span>
                     <span className="text-primary font-semibold">
                       {stats.completed}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">En Progreso</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('stats.inProgress')}</span>
                     <span className="text-primary font-semibold">
                       {stats.inProgress}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Favoritos</span>
+                    <span className="text-gray-600 dark:text-gray-300">{t('stats.favorites')}</span>
                     <span className="text-primary font-semibold">
                       {stats.favorites}
                     </span>
@@ -477,7 +529,7 @@ export default function DashboardPage() {
             {/* Recent Activity */}
             <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Actividad Reciente
+                {t('activity.title')}
               </h3>
               {loadingStats ? (
                 <div className="space-y-3">
@@ -517,10 +569,10 @@ export default function DashboardPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-gray-900 dark:text-white font-medium line-clamp-1">
                             {activity.progress_percentage >= 100 
-                              ? `Completaste "${activity.course_title}"`
+                              ? t('activity.completed', { course: activity.course_title })
                               : activity.progress_percentage > 0
-                              ? `Continuaste "${activity.course_title}"`
-                              : `Adquiriste "${activity.course_title}"`
+                              ? t('activity.inProgress', { course: activity.course_title })
+                              : t('activity.purchased', { course: activity.course_title })
                             }
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -533,9 +585,9 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  <p>No hay actividad reciente</p>
+                  <p>{t('activity.emptyTitle')}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Comienza un curso para ver tu progreso
+                    {t('activity.emptySubtitle')}
                   </p>
                 </div>
               )}
@@ -548,8 +600,8 @@ export default function DashboardPage() {
       <Suspense fallback={null}>
         <AIChatAgent
           assistantName="Lia"
-          initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre talleres, cursos y contenido educativo. ¿En qué puedo asistirte hoy?"
-          promptPlaceholder="Pregunta sobre talleres, cursos..."
+          initialMessage={t('assistant.initialMessage')}
+          promptPlaceholder={t('assistant.placeholder')}
           context="workshops"
         />
       </Suspense>

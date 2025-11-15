@@ -1,10 +1,10 @@
-'use client';
+ 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { dedupedFetch } from '@/lib/supabase/request-deduplication';
+import { dedupedFetch } from '../../../../lib/supabase/request-deduplication';
 import {
   Play,
   BookOpen,
@@ -53,6 +53,9 @@ import { ExpandableText } from '../../../../core/components/ExpandableText';
 import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
 import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
+import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
+import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
+import { useAuth } from '../../../../features/auth/hooks/useAuth';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
@@ -64,6 +67,9 @@ const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlaye
   loading: () => <div className="flex items-center justify-center aspect-video bg-gray-900 rounded-lg">Cargando video...</div>,
   ssr: false
 });
+
+const MOBILE_BOTTOM_NAV_HEIGHT_PX = 104; // Altura real: 70px base + 34px safe-area máximo en iPhone
+const CONTENT_BOTTOM_PADDING_MOBILE = 32;
 
 interface Lesson {
   lesson_id: string;
@@ -100,6 +106,9 @@ export default function CourseLearnPage() {
   const router = useRouter();
   const slug = params.slug as string;
 
+  // Obtener usuario y su rol
+  const { user } = useAuth();
+
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
@@ -107,6 +116,10 @@ export default function CourseLearnPage() {
   
   // Estado para detectar si estamos en móvil
   const [isMobile, setIsMobile] = useState(false);
+  // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
+  const [screenHeight, setScreenHeight] = useState(0);
+  // Estado para la altura del visualViewport (para manejar el teclado en móvil)
+  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
   
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
@@ -114,8 +127,28 @@ export default function CourseLearnPage() {
   
   const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
+  const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [lessonsActivities, setLessonsActivities] = useState<Record<string, Array<{
+    activity_id: string;
+    activity_title: string;
+    activity_type: string;
+    is_required: boolean;
+  }>>>({});
+  const [lessonsMaterials, setLessonsMaterials] = useState<Record<string, Array<{
+    material_id: string;
+    material_title: string;
+    material_type: string;
+    is_required?: boolean;
+  }>>>({});
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
+  const mobileContentPaddingBottom = isMobileBottomNavVisible
+    ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`
+    : `calc(env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`;
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<{
     id: string;
@@ -126,34 +159,58 @@ export default function CourseLearnPage() {
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(6);
   
-  // Hook de LIA con mensaje inicial personalizado
+  // Hook de LIA sin mensaje inicial
   const {
     messages: liaMessages,
     isLoading: isLiaLoading,
     sendMessage: sendLiaMessage,
     clearHistory: clearLiaHistory
-  } = useLiaChat('¡Hola! Soy Lia, tu tutora personalizada. Estoy aquí para acompañarte en tu aprendizaje con conceptos fundamentales explicados de forma clara. ¿En qué puedo ayudarte hoy?');
+  } = useLiaChat(null);
   
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
   const [isLiaRecording, setIsLiaRecording] = useState(false);
   // Ref para hacer scroll automático al final de los mensajes de LIA
   const liaMessagesEndRef = useRef<HTMLDivElement>(null);
+  const liaPanelRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
+  const prevPromptsLengthRef = useRef<number>(0);
 
   // Limpiar prompts cuando se cambia de tab
   useEffect(() => {
     if (activeTab !== 'activities') {
       setCurrentActivityPrompts([]);
+      setIsPromptsCollapsed(false);
+      prevPromptsLengthRef.current = 0;
     }
   }, [activeTab]);
+
+  // Resetear estado de colapsado cuando se establecen nuevos prompts (solo si cambió de 0 a >0)
+  useEffect(() => {
+    const prevLength = prevPromptsLengthRef.current;
+    const currentLength = currentActivityPrompts.length;
+    
+    // Solo resetear si cambió de 0 a tener prompts (nuevos prompts)
+    if (prevLength === 0 && currentLength > 0) {
+      setIsPromptsCollapsed(false);
+    }
+    
+    prevPromptsLengthRef.current = currentLength;
+  }, [currentActivityPrompts.length]);
+
+  // Callback memoizado para evitar loops infinitos
+  const handlePromptsChange = useCallback((prompts: string[]) => {
+    setCurrentActivityPrompts(prompts);
+  }, []);
 
   // Detectar tamaño de pantalla y ajustar estado inicial de paneles
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768; // md breakpoint
       setIsMobile(mobile);
+      setScreenHeight(window.innerHeight);
     };
 
     // Verificar al montar
@@ -163,6 +220,117 @@ export default function CourseLearnPage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []); // Solo ejecutar al montar
+
+  // Detectar cambios en visualViewport para manejar el teclado en móvil
+  // Similar a la implementación de LIA general
+  useEffect(() => {
+    if (!isMobile) {
+      setVisualViewportHeight(null);
+      return;
+    }
+
+    // Verificar si visualViewport está disponible
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      const updateViewportHeight = () => {
+        setVisualViewportHeight(window.visualViewport?.height || null);
+      };
+
+      // Establecer valor inicial
+      updateViewportHeight();
+
+      // Escuchar cambios en el visualViewport (cuando se abre/cierra el teclado)
+      window.visualViewport.addEventListener('resize', updateViewportHeight);
+      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+
+      return () => {
+        window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+        window.visualViewport?.removeEventListener('scroll', updateViewportHeight);
+      };
+    } else {
+      // Fallback: usar window.innerHeight si visualViewport no está disponible
+      const handleResize = () => {
+        setVisualViewportHeight(window.innerHeight);
+      };
+
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [isMobile]);
+
+  const [desktopLiaHeight, setDesktopLiaHeight] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (isMobile || !isRightPanelOpen) {
+      setDesktopLiaHeight(undefined);
+      return;
+    }
+
+    const updateDesktopHeight = () => {
+      if (typeof window === 'undefined' || !liaPanelRef.current) {
+        return;
+      }
+      const rect = liaPanelRef.current.getBoundingClientRect();
+      const marginBottom = 24; // px
+      const available = window.innerHeight - rect.top - marginBottom;
+      const clamped = Math.max(available, 360); // asegurar altura mínima
+      setDesktopLiaHeight(`${clamped}px`);
+    };
+
+    updateDesktopHeight();
+    window.addEventListener('resize', updateDesktopHeight);
+    window.addEventListener('scroll', updateDesktopHeight, true);
+
+    return () => {
+      window.removeEventListener('resize', updateDesktopHeight);
+      window.removeEventListener('scroll', updateDesktopHeight, true);
+    };
+  }, [isMobile, isRightPanelOpen, activeTab, isLiaExpanded, currentLesson?.lesson_id]);
+
+  // Calcular altura máxima disponible para el panel de LIA dinámicamente
+  // Similar al sistema usado en AIChatAgent.tsx (LIA general)
+  // Ahora incluye soporte para visualViewport cuando el teclado está abierto
+  const calculateLiaMaxHeight = useMemo(() => {
+    if (isMobile) {
+      // En móvil, usar visualViewport height si está disponible (cuando el teclado está abierto)
+      if (visualViewportHeight !== null) {
+        // Calcular altura disponible: visualViewport height menos el header
+        // El safe-area-inset-bottom se maneja en el padding del área de entrada
+        const headerHeight = 56; // Altura del header de LIA
+        const bottomNavHeight = isMobileBottomNavVisible ? MOBILE_BOTTOM_NAV_HEIGHT_PX : 0;
+        
+        // Usar calc() para incluir safe-area-inset-bottom en el cálculo CSS
+        // Esto asegura que el textbox siempre esté visible cuando el teclado está abierto
+        return `calc(${visualViewportHeight - headerHeight - bottomNavHeight}px - env(safe-area-inset-bottom, 0px))`;
+      }
+      // Si no hay visualViewport, no retornar height para que se ajuste automáticamente
+      return undefined;
+    }
+    
+    // En desktop, usar altura calculada basada en el viewport para asegurar que se muestre el input
+    if (desktopLiaHeight) {
+      return desktopLiaHeight;
+    }
+    return 'calc(100vh - 3rem)';
+  }, [isMobile, isMobileBottomNavVisible, visualViewportHeight, desktopLiaHeight]);
+
+  // Calcular padding dinámico para el área de entrada según altura de pantalla
+  const getInputAreaPadding = (): string => {
+    if (!isMobile) return '1rem';
+    
+    // Para pantallas muy pequeñas (menos de 600px de altura), usar padding mínimo
+    if (screenHeight < 600) {
+      return `calc(0.75rem + max(env(safe-area-inset-bottom, 0px), 4px))`;
+    }
+    
+    // Para pantallas pequeñas (600-800px), usar padding moderado
+    if (screenHeight < 800) {
+      return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+    }
+    
+    // Para pantallas normales y grandes, usar padding estándar
+    return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+  };
 
   // Ajustar paneles cuando cambia isMobile
   useEffect(() => {
@@ -197,17 +365,21 @@ export default function CourseLearnPage() {
   const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] = useState(false);
   const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [hasUserRated, setHasUserRated] = useState(false);
   const [validationModal, setValidationModal] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
     details?: string;
     type: 'activity' | 'video' | 'quiz';
+    lessonId?: string; // ID de la lección que se intentó completar
   }>({
     isOpen: false,
     title: '',
     message: '',
     type: 'activity',
+    lessonId: undefined,
   });
 
   // Función para convertir HTML a texto plano con formato mejorado
@@ -394,6 +566,94 @@ export default function CourseLearnPage() {
     }
   };
 
+  // ⚡ OPTIMIZACIÓN: Función para actualizar estadísticas de manera optimizada
+  // Calcula las estadísticas localmente cuando es posible, evitando llamadas al servidor
+  const updateNotesStatsOptimized = async (operation: 'create' | 'update' | 'delete', lessonId?: string) => {
+    if (!slug) return;
+
+    const allLessons = modules.flatMap((m: Module) => m.lessons);
+    const totalLessons = allLessons.length;
+
+    // Para operaciones de creación/eliminación, podemos actualizar optimistamente
+    if (operation === 'create' || operation === 'delete') {
+      // Actualizar total de notas optimistamente
+      setNotesStats((prev) => {
+        const currentTotal = prev.totalNotes || 0;
+        const newTotal = operation === 'create' ? currentTotal + 1 : Math.max(0, currentTotal - 1);
+        
+        // Para lecciones con notas, usar el valor anterior y ajustar optimistamente
+        // La recarga del servidor corregirá cualquier discrepancia
+        const prevLessonsWithNotes = parseInt(prev.lessonsWithNotes.split('/')[0]) || 0;
+        let lessonsWithNotes = prevLessonsWithNotes;
+        
+        if (lessonId && operation === 'create') {
+          // Si creamos una nota, asumimos que la lección no tenía notas antes
+          // (será corregido por la recarga del servidor si es incorrecto)
+          lessonsWithNotes = Math.min(prevLessonsWithNotes + 1, totalLessons);
+        } else if (lessonId && operation === 'delete') {
+          // Si eliminamos una nota, asumimos que era la última de la lección
+          // (será corregido por la recarga del servidor si es incorrecto)
+          lessonsWithNotes = Math.max(0, prevLessonsWithNotes - 1);
+        }
+        
+        return {
+          ...prev,
+          totalNotes: newTotal,
+          lessonsWithNotes: `${lessonsWithNotes}/${totalLessons}`,
+          lastUpdate: 'Ahora' // Actualizar timestamp inmediatamente
+        };
+      });
+
+      // Recargar estadísticas completas del servidor en background (sin bloquear UI)
+      // Usamos un pequeño delay para evitar múltiples llamadas si hay varias operaciones rápidas
+      // y para dar tiempo a que el estado local se actualice
+      setTimeout(async () => {
+        await loadNotesStats(slug);
+      }, 500);
+    } else {
+      // Para actualizaciones, solo actualizar el timestamp y recargar en background
+      setNotesStats((prev) => ({
+        ...prev,
+        lastUpdate: 'Ahora'
+      }));
+      
+      setTimeout(async () => {
+        await loadNotesStats(slug);
+      }, 500);
+    }
+  };
+
+  // ⚡ OPTIMIZACIÓN: Función para agregar una nota al estado local inmediatamente
+  const addNoteToLocalState = (noteData: any, lessonId: string) => {
+    const preview = generateNotePreview(noteData.note_content || noteData.noteContent, 50);
+    const newNote = {
+      id: noteData.note_id || noteData.id,
+      title: noteData.note_title || noteData.title,
+      content: preview,
+      timestamp: 'Ahora',
+      lessonId: lessonId,
+      fullContent: noteData.note_content || noteData.content,
+      tags: noteData.note_tags || noteData.tags || []
+    };
+
+    setSavedNotes((prev) => {
+      // Si la nota ya existe (por ID), reemplazarla; si no, agregarla al inicio
+      const existingIndex = prev.findIndex(n => n.id === newNote.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = newNote;
+        return updated;
+      } else {
+        return [newNote, ...prev];
+      }
+    });
+  };
+
+  // ⚡ OPTIMIZACIÓN: Función para eliminar una nota del estado local inmediatamente
+  const removeNoteFromLocalState = (noteId: string) => {
+    setSavedNotes((prev) => prev.filter(note => note.id !== noteId));
+  };
+
 
   // Función para construir el contexto de la lección actual
   const getLessonContext = (): CourseLessonContext | undefined => {
@@ -410,7 +670,8 @@ export default function CourseLearnPage() {
       moduleTitle: currentModule?.module_title,
       lessonTitle: currentLesson.lesson_title,
       lessonDescription: currentLesson.lesson_description,
-      durationSeconds: currentLesson.duration_seconds
+      durationSeconds: currentLesson.duration_seconds,
+      userRole: user?.type_rol || undefined
       // transcriptContent y summaryContent se cargan bajo demanda desde sus respectivos endpoints
     };
   };
@@ -480,6 +741,129 @@ export default function CourseLearnPage() {
     await sendLiaMessage(message, lessonContext);
   };
 
+  // Función para generar prompts sugeridos adaptados por rol (memoizada para evitar loops)
+  const generateRoleBasedPrompts = useCallback(async (
+    basePrompts: string[],
+    activityContent: string,
+    activityTitle: string,
+    userRole?: string
+  ): Promise<string[]> => {
+    if (!userRole || basePrompts.length === 0) {
+      return basePrompts; // Retornar prompts originales si no hay rol
+    }
+
+    try {
+      const promptGenerationRequest = `Eres un asistente que adapta prompts educativos según el rol profesional del usuario.
+
+ROL DEL USUARIO: ${userRole}
+TÍTULO DE LA ACTIVIDAD: ${activityTitle}
+CONTENIDO DE LA ACTIVIDAD: ${activityContent.substring(0, 500)}${activityContent.length > 500 ? '...' : ''}
+
+PROMPTS BASE (como referencia):
+${basePrompts.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+INSTRUCCIONES:
+- Genera ${basePrompts.length} prompts nuevos adaptados específicamente para el rol "${userRole}"
+- Los prompts deben ser relevantes para este rol profesional
+- Mantén la misma estructura y propósito educativo que los prompts base
+- Adapta ejemplos y casos de uso al contexto profesional del rol
+- Retorna SOLO los prompts, uno por línea, sin numeración ni formato adicional
+- Cada prompt debe ser una pregunta o instrucción clara y directa
+
+PROMPTS ADAPTADOS:`;
+
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: promptGenerationRequest,
+          context: 'general',
+          conversationHistory: [],
+          isSystemMessage: true,
+        }),
+      });
+
+      if (!response.ok) {
+        return basePrompts; // Fallback a prompts originales
+      }
+
+      const data = await response.json();
+      const generatedText = data.response || '';
+
+      // Extraer prompts de la respuesta (cada línea es un prompt)
+      const adaptedPrompts = generatedText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
+        .slice(0, basePrompts.length); // Limitar al número de prompts originales
+
+      return adaptedPrompts.length > 0 ? adaptedPrompts : basePrompts;
+    } catch (error) {
+      console.error('Error generando prompts adaptados:', error);
+      return basePrompts; // Fallback a prompts originales
+    }
+  }, []); // Sin dependencias ya que no usa variables del scope
+
+  // Función para adaptar contenido de actividad según el rol
+  const adaptActivityContentForRole = async (
+    activityContent: string,
+    activityTitle: string,
+    userRole?: string
+  ): Promise<string> => {
+    if (!userRole) {
+      return activityContent; // Retornar contenido original si no hay rol
+    }
+
+    try {
+      const adaptationRequest = `Eres un asistente que adapta contenido educativo según el rol profesional del usuario.
+
+ROL DEL USUARIO: ${userRole}
+TÍTULO DE LA ACTIVIDAD: ${activityTitle}
+
+CONTENIDO ORIGINAL DE LA ACTIVIDAD:
+\`\`\`
+${activityContent}
+\`\`\`
+
+INSTRUCCIONES:
+- Adapta el contenido de la actividad para que sea relevante y aplicable al rol "${userRole}"
+- Mantén la estructura y formato original (incluyendo separadores "---")
+- Personaliza ejemplos, casos de uso y referencias al contexto profesional del rol
+- Asegúrate de que los ejercicios y preguntas sean relevantes para este rol
+- NO cambies la estructura general ni los separadores "---"
+- Retorna SOLO el contenido adaptado, sin explicaciones adicionales
+
+CONTENIDO ADAPTADO:`;
+
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: adaptationRequest,
+          context: 'general',
+          conversationHistory: [],
+          isSystemMessage: true,
+        }),
+      });
+
+      if (!response.ok) {
+        return activityContent; // Fallback a contenido original
+      }
+
+      const data = await response.json();
+      const adaptedContent = data.response || '';
+
+      return adaptedContent.trim() || activityContent;
+    } catch (error) {
+      console.error('Error adaptando contenido de actividad:', error);
+      return activityContent; // Fallback a contenido original
+    }
+  };
+
   // Función para iniciar interacción con LIA desde una actividad
   const handleStartActivityInteraction = async (activityContent: string, activityTitle: string) => {
     // Abrir el panel de LIA si está cerrado
@@ -487,13 +871,46 @@ export default function CourseLearnPage() {
       setIsRightPanelOpen(true);
     }
 
+    // ✅ OPTIMIZACIÓN: Usar contenido original inmediatamente, adaptar en background si es necesario
+    const userRole = user?.type_rol;
+    let adaptedContent = activityContent; // Usar contenido original por defecto (más rápido)
+    
+    // Adaptar contenido en background si hay rol del usuario (no bloquea la interacción inicial)
+    if (userRole) {
+      adaptActivityContentForRole(activityContent, activityTitle, userRole)
+        .then((adapted) => {
+          // Si la adaptación se completa y es diferente, se puede usar en mensajes futuros
+          // Por ahora, usamos el contenido original para la primera interacción
+          adaptedContent = adapted;
+        })
+        .catch((error) => {
+          console.error('Error adaptando contenido (background):', error);
+          // Continuar con contenido original si falla
+        });
+    }
+
     // Construir el prompt profesional para LIA con GUARDRAILS
+    const roleInfo = userRole 
+      ? `\n## ROL DEL USUARIO
+- El usuario tiene el rol profesional: "${userRole}"
+- DEBES adaptar todos los ejemplos, casos de uso y referencias al contexto profesional de este rol
+- Personaliza las preguntas y ejercicios para que sean relevantes y aplicables a este rol
+- Usa terminología y ejemplos que el usuario pueda relacionar con su trabajo diario
+- Asegúrate de que las actividades sean prácticas y útiles para alguien con este rol profesional`
+      : '';
+
     const systemPrompt = `# SISTEMA: Inicio de Actividad Interactiva
 
 Vas a guiar al usuario a través de la actividad: "${activityTitle}"
 
 ## TU ROL
 Eres Lia, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
+
+## PERSONALIZACIÓN
+- Si conoces el nombre del usuario (te será proporcionado en el contexto), DEBES usarlo en tu saludo inicial
+- Comienza tu primer mensaje con "Hola [nombre del usuario]!" seguido del contenido del guión
+- Si no conoces el nombre del usuario, simplemente usa "Hola!" como saludo
+- Usa el nombre del usuario de manera natural y amigable a lo largo de la conversación cuando sea apropiado${roleInfo}
 
 ## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
 
@@ -519,7 +936,7 @@ Si el usuario:
 A continuación te proporciono el guión completo de la actividad. Los separadores "---" indican cambios de turno (tú hablas → esperas respuesta → continúas):
 
 \`\`\`
-${activityContent}
+${adaptedContent}
 \`\`\`
 
 ## INSTRUCCIONES DE EJECUCIÓN
@@ -623,7 +1040,7 @@ Antes de cada respuesta, pregúntate:
     setIsNotesModalOpen(true);
   };
 
-  // Función para guardar nota (nueva o editada)
+  // ⚡ OPTIMIZADO: Función para guardar nota (nueva o editada) con actualización optimista
   const handleSaveNote = async (noteData: { title: string; content: string; tags: string[] }) => {
     try {
       if (!currentLesson?.lesson_id || !slug) {
@@ -638,7 +1055,7 @@ Antes de cada respuesta, pregúntate:
         source_type: 'manual' // Siempre manual desde el modal
       };
 
-      if (editingNote) {
+      if (editingNote && editingNote.id && editingNote.id.trim() !== '') {
         // Editar nota existente
         const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${editingNote.id}`, {
           method: 'PUT',
@@ -652,11 +1069,20 @@ Antes de cada respuesta, pregúntate:
           return;
         }
         
-        // Recargar notas desde el servidor para asegurar consistencia
-        await loadLessonNotes(currentLesson.lesson_id, slug);
-        
-        // Actualizar estadísticas desde el servidor
-        await updateNotesStats();
+        // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+        const updatedNote = await response.json();
+        if (updatedNote && updatedNote.note_id) {
+          addNoteToLocalState(updatedNote, currentLesson.lesson_id);
+          
+          // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+          await updateNotesStatsOptimized('update', currentLesson.lesson_id);
+          
+          // Cerrar modal solo después de que todo se haya guardado correctamente
+          setIsNotesModalOpen(false);
+          setEditingNote(null);
+        } else {
+          throw new Error('La respuesta del servidor no contiene los datos esperados de la nota');
+        }
       } else {
         // Crear nueva nota
         const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
@@ -667,25 +1093,37 @@ Antes de cada respuesta, pregúntate:
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-          alert(`Error al guardar la nota: ${errorData.error || 'Error desconocido'}`);
-          return;
+          const errorMessage = errorData.error || errorData.message || 'Error desconocido';
+          alert(`Error al guardar la nota: ${errorMessage}`);
+          throw new Error(errorMessage);
         }
         
-        // Recargar notas desde el servidor para asegurar consistencia
-        await loadLessonNotes(currentLesson.lesson_id, slug);
-        
-        // Actualizar estadísticas desde el servidor
-        await updateNotesStats();
+        // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+        const newNote = await response.json();
+        if (newNote && newNote.note_id) {
+          addNoteToLocalState(newNote, currentLesson.lesson_id);
+          
+          // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+          await updateNotesStatsOptimized('create', currentLesson.lesson_id);
+          
+          // Cerrar modal solo después de que todo se haya guardado correctamente
+          setIsNotesModalOpen(false);
+          setEditingNote(null);
+        } else {
+          throw new Error('La respuesta del servidor no contiene los datos esperados de la nota');
+        }
       }
-      
-      setIsNotesModalOpen(false);
-      setEditingNote(null);
     } catch (error) {
       // console.error('Error al guardar nota:', error);
+      // En caso de error, recargar desde el servidor para asegurar consistencia
+      if (currentLesson?.lesson_id && slug) {
+        await loadLessonNotes(currentLesson.lesson_id, slug);
+        await loadNotesStats(slug);
+      }
     }
   };
 
-  // Función para eliminar nota
+  // ⚡ OPTIMIZADO: Función para eliminar nota con actualización optimista
   const handleDeleteNote = async (noteId: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) return;
     
@@ -695,27 +1133,38 @@ Antes de cada respuesta, pregúntate:
         return;
       }
 
+      // ⚡ OPTIMIZACIÓN: Eliminar del estado local inmediatamente (actualización optimista)
+      removeNoteFromLocalState(noteId);
+      
+      // ⚡ OPTIMIZACIÓN: Actualizar estadísticas optimistamente
+      await updateNotesStatsOptimized('delete', currentLesson.lesson_id);
+
       const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`, {
         method: 'DELETE'
       });
       
-      if (response.ok) {
-        // Recargar notas desde el servidor para asegurar consistencia
+      if (!response.ok) {
+        // Si falla, recargar desde el servidor para revertir el cambio optimista
         await loadLessonNotes(currentLesson.lesson_id, slug);
+        await loadNotesStats(slug);
         
-        // Actualizar estadísticas desde el servidor
-        await updateNotesStats();
-      } else {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         alert(`Error al eliminar la nota: ${errorData.error || 'Error desconocido'}`);
       }
+      // Si tiene éxito, el estado ya fue actualizado optimistamente
     } catch (error) {
       // console.error('Error al eliminar nota:', error);
+      // En caso de error, recargar desde el servidor para revertir el cambio optimista
+      if (currentLesson?.lesson_id && slug) {
+        await loadLessonNotes(currentLesson.lesson_id, slug);
+        await loadNotesStats(slug);
+      }
       alert('Error al eliminar la nota. Por favor, intenta de nuevo.');
     }
   };
 
   // Función para actualizar estadísticas de notas desde el servidor
+  // ⚡ DEPRECATED: Usar updateNotesStatsOptimized en su lugar
   const updateNotesStats = async () => {
     if (!slug) return;
     await loadNotesStats(slug);
@@ -749,6 +1198,24 @@ Antes de cada respuesta, pregúntate:
             ? Math.round((completedLessons.length / allLessons.length) * 100)
             : 0;
           setCourseProgress(totalProgress);
+
+          // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
+          if (learnData.lastWatchedLessonId && allLessons.length > 0) {
+            const lastWatchedLesson = allLessons.find(
+              (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
+            );
+            if (lastWatchedLesson) {
+              setCurrentLesson(lastWatchedLesson);
+            } else if (allLessons.length > 0) {
+              // Fallback: primera lección no completada o primera lección
+              const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
+              setCurrentLesson(nextIncomplete || allLessons[0]);
+            }
+          } else if (allLessons.length > 0) {
+            // Si no hay último video visto, cargar primera lección no completada o primera lección
+            const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
+            setCurrentLesson(nextIncomplete || allLessons[0]);
+          }
         }
 
         if (learnData.notesStats) {
@@ -759,6 +1226,14 @@ Antes de cada respuesta, pregúntate:
         if (learnData.currentLesson && lessonId) {
           // Los datos ya están cacheados en el navegador por el fetch
           // Cuando los tabs los soliciten, vendrán del cache
+        }
+
+        // ⚡ OPTIMIZACIÓN: Si hay último video visto, precargar sus datos en paralelo
+        if (learnData.lastWatchedLessonId && !lessonId && learnData.modules) {
+          // Precargar datos de la lección en segundo plano para acelerar cuando el usuario la vea
+          dedupedFetch(
+            `/api/courses/${slug}/learn-data?lessonId=${learnData.lastWatchedLessonId}`
+          ).catch(() => null); // Ignorar errores, es solo precarga
         }
 
       } catch (error) {
@@ -777,6 +1252,19 @@ Antes de cada respuesta, pregúntate:
   useEffect(() => {
     if (currentLesson && slug) {
       loadLessonNotes(currentLesson.lesson_id, slug);
+    }
+  }, [currentLesson?.lesson_id, slug]);
+
+  // ⚡ OPTIMIZACIÓN: Actualizar last_accessed_at cuando se carga una lección
+  useEffect(() => {
+    if (currentLesson && slug) {
+      // Actualizar last_accessed_at en segundo plano (no bloquear UI)
+      fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(() => {
+        // Ignorar errores, es solo para tracking
+      });
     }
   }, [currentLesson?.lesson_id, slug]);
 
@@ -820,6 +1308,7 @@ Antes de cada respuesta, pregúntate:
         lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0',
       }));
 
+      // Esta función ya no se usa frecuentemente, pero mantenemos la lógica por compatibilidad
       if (modulesResponse.length > 0 && modulesResponse[0].lessons.length > 0) {
         const nextIncomplete = allLessons.find((lesson) => !lesson.is_completed);
         const selectedLesson = nextIncomplete || modulesResponse[0].lessons[0];
@@ -835,6 +1324,121 @@ Antes de cada respuesta, pregúntate:
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Función para cargar actividades y materiales de una lección
+  const loadLessonActivitiesAndMaterials = async (lessonId: string) => {
+    if (!slug) return;
+    
+    // Solo cargar si no están ya cargados
+    if (lessonsActivities[lessonId] !== undefined && lessonsMaterials[lessonId] !== undefined) {
+      return; // Ya están cargados
+    }
+
+    try {
+      const [activitiesResponse, materialsResponse] = await Promise.all([
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/activities`),
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`)
+      ]);
+
+      if (activitiesResponse.ok) {
+        const activitiesData = await activitiesResponse.json();
+        setLessonsActivities(prev => ({
+          ...prev,
+          [lessonId]: (activitiesData || []).map((a: any) => ({
+            activity_id: a.activity_id,
+            activity_title: a.activity_title,
+            activity_type: a.activity_type,
+            is_required: a.is_required
+          }))
+        }));
+      } else {
+        // Si falla, establecer como array vacío para no intentar cargar de nuevo
+        setLessonsActivities(prev => ({
+          ...prev,
+          [lessonId]: []
+        }));
+      }
+
+      if (materialsResponse.ok) {
+        const materialsData = await materialsResponse.json();
+        setLessonsMaterials(prev => ({
+          ...prev,
+          [lessonId]: (materialsData || []).map((m: any) => ({
+            material_id: m.material_id,
+            material_title: m.material_title,
+            material_type: m.material_type,
+            is_required: m.is_required || m.material_type === 'quiz' // Los quizzes son requeridos por defecto
+          }))
+        }));
+      } else {
+        // Si falla, establecer como array vacío para no intentar cargar de nuevo
+        setLessonsMaterials(prev => ({
+          ...prev,
+          [lessonId]: []
+        }));
+      }
+    } catch (error) {
+      // En caso de error, establecer como arrays vacíos
+      setLessonsActivities(prev => ({
+        ...prev,
+        [lessonId]: []
+      }));
+      setLessonsMaterials(prev => ({
+        ...prev,
+        [lessonId]: []
+      }));
+    }
+  };
+
+  // Función para toggle de expandir/colapsar lección
+  const toggleLessonExpand = async (lessonId: string) => {
+    const isExpanded = expandedLessons.has(lessonId);
+    
+    if (!isExpanded) {
+      // Si se está expandiendo, cargar actividades y materiales
+      await loadLessonActivitiesAndMaterials(lessonId);
+    }
+    
+    setExpandedLessons(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(lessonId)) {
+        newSet.delete(lessonId);
+      } else {
+        newSet.add(lessonId);
+      }
+      return newSet;
+    });
+  };
+
+  // Función para toggle de expandir/colapsar módulo
+  const toggleModuleExpand = (moduleId: string) => {
+    setExpandedModules(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(moduleId)) {
+        newSet.delete(moduleId);
+      } else {
+        newSet.add(moduleId);
+      }
+      return newSet;
+    });
+  };
+
+  // Expandir automáticamente el módulo que contiene la lección actual
+  useEffect(() => {
+    if (currentLesson && modules.length > 0) {
+      const moduleWithCurrentLesson = modules.find(module => 
+        module.lessons.some(lesson => lesson.lesson_id === currentLesson.lesson_id)
+      );
+      
+      if (moduleWithCurrentLesson) {
+        setExpandedModules(prev => {
+          const newSet = new Set(prev);
+          newSet.add(moduleWithCurrentLesson.module_id);
+          return newSet;
+        });
+      }
+    }
+  }, [currentLesson, modules]);
 
   // Función para encontrar todas las lecciones ordenadas en una lista plana
   const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
@@ -942,7 +1546,7 @@ Antes de cada respuesta, pregúntate:
     // Verificar estado de quizzes obligatorios
     const quizStatus = await checkQuizStatus(lessonId);
     if (!quizStatus.canComplete) {
-      // Mostrar modal de validación
+      // Mostrar modal de validación con el ID de la lección que se intentó completar
       setValidationModal({
         isOpen: true,
         title: 'Hace falta realizar actividad',
@@ -951,6 +1555,7 @@ Antes de cada respuesta, pregúntate:
           ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
           : undefined,
         type: 'activity',
+        lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
       });
       return false;
     }
@@ -1053,6 +1658,7 @@ Antes de cada respuesta, pregúntate:
                 ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
                 : undefined,
               type: 'activity',
+              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
             });
           } else {
             setValidationModal({
@@ -1060,6 +1666,7 @@ Antes de cada respuesta, pregúntate:
               title: 'No se puede completar',
               message: responseData?.details?.message || responseData?.error || 'No se puede completar la lección en este momento.',
               type: 'activity',
+              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
             });
           }
           return false;
@@ -1105,48 +1712,60 @@ Antes de cada respuesta, pregúntate:
   };
 
   // Función para navegar a la lección siguiente
-  const navigateToNextLesson = () => {
+  const navigateToNextLesson = async () => {
     const nextLesson = getNextLesson();
-    if (nextLesson) {
-      // Cambiar inmediatamente (no bloqueante)
-      setCurrentLesson(nextLesson);
-      setActiveTab('video');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (nextLesson && currentLesson) {
+      // Guardar la lección anterior antes de cambiar
+      const previousLesson = currentLesson;
       
-      // Marcar lección anterior como completada en segundo plano (no bloqueante)
-      if (currentLesson) {
-        markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
-          // console.error('Error al marcar lección como completada:', error);
-        });
+      // Intentar marcar la lección anterior como completada ANTES de cambiar
+      const canComplete = await markLessonAsCompleted(previousLesson.lesson_id);
+      
+      // Solo cambiar de lección si se pudo completar la anterior
+      if (canComplete) {
+        setCurrentLesson(nextLesson);
+        setActiveTab('video');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
     }
   };
 
 
   // Función para manejar el cambio de lección desde el panel
-  const handleLessonChange = (selectedLesson: Lesson) => {
-    // Cambiar inmediatamente (no bloqueante)
-    setCurrentLesson(selectedLesson);
-    setActiveTab('video');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Si hay una lección actual y se está avanzando (seleccionando una lección posterior), 
-    // marcar como completada la actual en segundo plano (no bloqueante)
-    if (currentLesson) {
-      const allLessons = getAllLessonsOrdered();
-      const currentIndex = allLessons.findIndex(
-        (item) => item.lesson.lesson_id === currentLesson.lesson_id
-      );
-      const selectedIndex = allLessons.findIndex(
-        (item) => item.lesson.lesson_id === selectedLesson.lesson_id
-      );
+  const handleLessonChange = async (selectedLesson: Lesson) => {
+    if (!currentLesson) {
+      // Si no hay lección actual, cambiar directamente
+      setCurrentLesson(selectedLesson);
+      setActiveTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
-      // Si se está avanzando, marcar como completada en segundo plano
-      if (selectedIndex > currentIndex) {
-        markLessonAsCompleted(currentLesson.lesson_id).catch((error) => {
-          // console.error('Error al marcar lección como completada:', error);
-        });
+    const allLessons = getAllLessonsOrdered();
+    const currentIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === currentLesson.lesson_id
+    );
+    const selectedIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === selectedLesson.lesson_id
+    );
+
+    // Si se está avanzando, validar antes de cambiar
+    if (selectedIndex > currentIndex) {
+      const canComplete = await markLessonAsCompleted(currentLesson.lesson_id);
+      
+      // Solo cambiar de lección si se pudo completar la actual
+      if (canComplete) {
+        setCurrentLesson(selectedLesson);
+        setActiveTab('video');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
+    } else {
+      // Si se está retrocediendo o es la misma, cambiar directamente
+      setCurrentLesson(selectedLesson);
+      setActiveTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -1256,6 +1875,8 @@ Antes de cada respuesta, pregúntate:
             <button
               onClick={() => router.back()}
               className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+              aria-label="Volver atrás"
+              title="Volver atrás"
             >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
             </button>
@@ -1378,82 +1999,194 @@ Antes de cada respuesta, pregúntate:
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                       >
-                {modules.map((module, moduleIndex) => (
-                  <div key={module.module_id} className="mb-8">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
+                {modules.map((module, moduleIndex) => {
+                  const isModuleExpanded = expandedModules.has(module.module_id);
+
+                  return (
+                    <div key={module.module_id} className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
+                          </div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
+                        </div>
+                        <button
+                          onClick={() => toggleModuleExpand(module.module_id)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
+                          title={isModuleExpanded ? "Colapsar módulo" : "Expandir módulo"}
+                        >
+                          {isModuleExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                          )}
+                        </button>
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
-                    </div>
 
-                    {/* Estadísticas del módulo mejoradas */}
-                    <div className="flex gap-3 mb-4">
-                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
-                        {module.lessons.filter(l => l.is_completed).length}/{module.lessons.length} completados
-                      </span>
-                      <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
-                        {Math.round((module.lessons.filter(l => l.is_completed).length / module.lessons.length) * 100)}% completado
-                      </span>
-                    </div>
+                      {/* Contenido del módulo - Colapsable */}
+                      <AnimatePresence>
+                        {isModuleExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            {/* Estadísticas del módulo mejoradas */}
+                            <div className="flex gap-3 mb-4">
+                              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
+                                {module.lessons.filter(l => l.is_completed).length}/{module.lessons.length} completados
+                              </span>
+                              <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
+                                {Math.round((module.lessons.filter(l => l.is_completed).length / module.lessons.length) * 100)}% completado
+                              </span>
+                            </div>
 
-                    {/* Lista de lecciones mejorada */}
-                    <div className="space-y-2">
+                            {/* Lista de lecciones mejorada - Estilo Minimalista */}
+                            <div className="space-y-2">
                       {module.lessons.map((lesson, lessonIndex) => {
                         const isActive = currentLesson?.lesson_id === lesson.lesson_id;
                         const isCompleted = lesson.is_completed;
+                        const isExpanded = expandedLessons.has(lesson.lesson_id);
+                        const activities = lessonsActivities[lesson.lesson_id] || [];
+                        const materials = lessonsMaterials[lesson.lesson_id] || [];
+                        const hasContent = activities.length > 0 || materials.length > 0;
+                        const isContentLoaded = lessonsActivities[lesson.lesson_id] !== undefined && lessonsMaterials[lesson.lesson_id] !== undefined;
 
                         return (
-                          <motion.button
-                            key={lesson.lesson_id}
-                            whileHover={{ x: 4, scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => handleLessonChange(lesson)}
-                            className={`w-full p-4 rounded-xl transition-all duration-200 ${
-                              isActive
-                                ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-blue-400/50 shadow-lg shadow-blue-500/20'
-                                : 'bg-gray-50 dark:bg-slate-700/50 border-2 border-transparent hover:bg-gray-100 dark:hover:bg-slate-700/70 hover:border-gray-300 dark:hover:border-slate-600/50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                isCompleted 
-                                  ? 'bg-green-500/20 text-green-400' 
-                                  : isActive 
-                                    ? 'bg-blue-500/20 text-blue-400' 
-                                    : 'bg-gray-200 dark:bg-slate-600/50 text-gray-600 dark:text-slate-400'
-                              }`}>
-                                {isCompleted ? (
-                                  <CheckCircle2 className="w-5 h-5" />
-                                ) : (
-                                  <Play className="w-4 h-4" />
-                                )}
-                              </div>
-                              
-                              <div className="flex-1 text-left">
-                                <p className={`text-sm font-medium ${isActive ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/80'}`}>
-                                  {lesson.lesson_title}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Clock className="w-3 h-3 text-gray-500 dark:text-slate-400" />
-                                  <span className="text-xs text-gray-500 dark:text-slate-400">{formatDuration(lesson.duration_seconds)}</span>
+                          <div key={lesson.lesson_id} className="w-full">
+                            <div className="flex items-start gap-2">
+                              <motion.button
+                                whileHover={{ opacity: 0.8 }}
+                                whileTap={{ scale: 0.99 }}
+                                onClick={() => handleLessonChange(lesson)}
+                                className={`flex-1 flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ${
+                                  isActive
+                                    ? 'bg-blue-500/10 dark:bg-blue-500/15 border-l-2 border-blue-500'
+                                    : 'hover:bg-gray-50/50 dark:hover:bg-slate-700/30 border-l-2 border-transparent'
+                                }`}
+                              >
+                                <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${
+                                  isCompleted 
+                                    ? 'text-green-500 dark:text-green-400' 
+                                    : isActive 
+                                      ? 'text-blue-500 dark:text-blue-400' 
+                                      : 'text-gray-400 dark:text-slate-500'
+                                }`}>
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="w-5 h-5" />
+                                  ) : (
+                                    <Play className="w-4 h-4" />
+                                  )}
                                 </div>
-                              </div>
+                                
+                                <div className="flex-1 text-left min-w-0">
+                                  <p className={`text-sm leading-relaxed line-clamp-3 ${isActive ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-slate-300'}`}>
+                                    {lesson.lesson_title}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-2">
+                                    <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" />
+                                    <span className="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">{formatDuration(lesson.duration_seconds)}</span>
+                                  </div>
+                                </div>
+                              </motion.button>
 
-                              {isActive && (
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  className="w-3 h-3 bg-blue-400 rounded-full shadow-lg"
-                                />
-                              )}
+                              {/* Botón para expandir/colapsar actividades y materiales */}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  // Si no se han cargado las actividades y materiales, cargarlas primero
+                                  if (!isContentLoaded) {
+                                    await loadLessonActivitiesAndMaterials(lesson.lesson_id);
+                                  }
+                                  toggleLessonExpand(lesson.lesson_id);
+                                }}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
+                                title={isExpanded ? "Colapsar" : "Expandir actividades y materiales"}
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                                )}
+                              </button>
                             </div>
-                          </motion.button>
+
+                            {/* Actividades y Materiales desplegables */}
+                            <AnimatePresence>
+                              {isExpanded && isContentLoaded && hasContent && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="ml-9 mt-3 space-y-2 pl-4 border-l border-gray-200 dark:border-slate-700">
+                                    {/* Actividades */}
+                                    {activities.length > 0 && (
+                                      <div className="space-y-1.5">
+                                        {activities.map((activity) => (
+                                          <div
+                                            key={activity.activity_id}
+                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
+                                          >
+                                            <Activity className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500 dark:text-blue-400 opacity-70 group-hover:opacity-100" />
+                                            <div className="flex-1 min-w-0">
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{activity.activity_title}</span>
+                                            </div>
+                                            {activity.is_required && (
+                                              <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
+                                                Requerida
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Materiales */}
+                                    {materials.length > 0 && (
+                                      <div className="space-y-1.5">
+                                        {materials.map((material) => (
+                                          <div
+                                            key={material.material_id}
+                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
+                                          >
+                                            <FileText className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500 dark:text-green-400 opacity-70 group-hover:opacity-100" />
+                                            <div className="flex-1 min-w-0">
+                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{material.material_title}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                              {material.is_required && (
+                                                <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
+                                                  Requerida
+                                                </span>
+                                              )}
+                                              <span className="px-2 py-0.5 bg-green-500/10 text-green-500 dark:text-green-400 text-xs rounded-md capitalize flex-shrink-0 font-medium whitespace-nowrap">
+                                                {material.material_type}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         );
                       })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1606,7 +2339,7 @@ Antes de cada respuesta, pregúntate:
 
         {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
         {!isLeftPanelOpen && (
-          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:flex w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
               <button
                 onClick={() => {
@@ -1702,7 +2435,8 @@ Antes de cada respuesta, pregúntate:
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
-                    const shouldHideText = isLiaExpanded && !isActive && !isMobile;
+                    // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
+                    const shouldHideText = !isActive && (isMobile || (isLiaExpanded && !isMobile));
 
                     return (
                       <button
@@ -1736,7 +2470,12 @@ Antes de cada respuesta, pregúntate:
               </div>
 
               {/* Contenido del tab activo */}
-              <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+              <div
+                className="flex-1 overflow-y-auto md:pb-0"
+                style={{
+                  paddingBottom: isMobile ? mobileContentPaddingBottom : undefined,
+                }}
+              >
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -1744,7 +2483,7 @@ Antes de cada respuesta, pregúntate:
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="h-full p-3 md:p-6"
+                  className="min-h-full p-3 md:p-6 flex flex-col gap-4"
                   >
                     {activeTab === 'video' && (
                       <VideoContent 
@@ -1760,14 +2499,23 @@ Antes de cada respuesta, pregúntate:
                         onCannotComplete={() => setIsCannotCompleteModalOpen(true)}
                       />
                     )}
-                    {activeTab === 'transcript' && <TranscriptContent lesson={currentLesson} slug={slug} />}
+                    {activeTab === 'transcript' && (
+                      <TranscriptContent 
+                        lesson={currentLesson} 
+                        slug={slug}
+                        onNoteCreated={addNoteToLocalState}
+                        onStatsUpdate={updateNotesStatsOptimized}
+                      />
+                    )}
                     {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
                     {activeTab === 'activities' && (
                       <ActivitiesContent
                         lesson={currentLesson}
                         slug={slug}
-                        onPromptsChange={setCurrentActivityPrompts}
+                        onPromptsChange={handlePromptsChange}
                         onStartInteraction={handleStartActivityInteraction}
+                        userRole={user?.type_rol}
+                        generateRoleBasedPrompts={generateRoleBasedPrompts}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -1778,7 +2526,8 @@ Antes de cada respuesta, pregúntate:
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <p className="text-gray-600 dark:text-slate-400">No hay lecciones disponibles</p>
+                <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-slate-400">Cargando lección...</p>
               </div>
             </div>
           )}
@@ -1800,6 +2549,7 @@ Antes de cada respuesta, pregúntate:
               )}
               
               <motion.div
+                ref={liaPanelRef}
                 initial={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
                 animate={isMobile 
                   ? { x: 0 } 
@@ -1809,13 +2559,37 @@ Antes de cada respuesta, pregúntate:
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                 className={`
                   ${isMobile 
-                    ? 'fixed inset-y-0 right-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
+                    ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
                     : 'relative'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
                   ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
                   border border-gray-200 dark:border-slate-700/50
                 `}
+                style={
+                  isMobile
+                    ? {
+                        // En móvil, ajustar el bottom para respetar la navegación inferior
+                        // El contenedor tiene bottom-0 en la clase, pero necesitamos sobrescribirlo
+                        // cuando hay navegación inferior visible para evitar que se corte el textarea
+                        bottom: isMobileBottomNavVisible
+                          ? `${MOBILE_BOTTOM_NAV_HEIGHT_PX}px`
+                          : 0,
+                        // Usar height cuando visualViewport está disponible (teclado abierto)
+                        // para asegurar que el textbox siempre esté visible
+                        ...(calculateLiaMaxHeight && {
+                          height: calculateLiaMaxHeight,
+                          maxHeight: calculateLiaMaxHeight,
+                        }),
+                      }
+                    : {
+                        // En desktop, usar toda la altura disponible del contenedor padre
+                        ...(calculateLiaMaxHeight && {
+                          height: calculateLiaMaxHeight,
+                          maxHeight: calculateLiaMaxHeight,
+                        }),
+                      }
+                }
               >
                 {/* Header Lia con línea separadora alineada con panel central */}
                 <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
@@ -1871,26 +2645,85 @@ Antes de cada respuesta, pregúntate:
               {/* Chat de Lia expandido */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {/* Área de mensajes */}
-                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isMobile ? 'pb-4' : 'pb-4'}`} style={{ paddingBottom: isMobile ? 'calc(1rem + 80px)' : '1rem' }}>
+                <div
+                  className="flex-1 overflow-y-auto p-4 space-y-4"
+                  style={{
+                    paddingBottom: currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen
+                      ? (isPromptsCollapsed ? '5.5rem' : '6rem')
+                      : '1rem'
+                  }}
+                >
                   {liaMessages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 ${
+                        className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 relative group ${
                           message.role === 'user'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                             : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                        <p className="text-xs mt-1 opacity-70">
-                          {message.timestamp.toLocaleTimeString('es-ES', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">{message.content}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs opacity-70">
+                            {message.timestamp.toLocaleTimeString('es-ES', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </p>
+                          {message.role === 'assistant' && (
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(message.content);
+                                    setCopiedMessageId(message.id);
+                                    setTimeout(() => setCopiedMessageId(null), 2000);
+                                  } catch (err) {
+                                    // Fallback para navegadores que no soportan clipboard API
+                                    const textArea = document.createElement('textarea');
+                                    textArea.value = message.content;
+                                    textArea.style.position = 'fixed';
+                                    textArea.style.opacity = '0';
+                                    document.body.appendChild(textArea);
+                                    textArea.select();
+                                    document.execCommand('copy');
+                                    document.body.removeChild(textArea);
+                                    setCopiedMessageId(message.id);
+                                    setTimeout(() => setCopiedMessageId(null), 2000);
+                                  }
+                                }}
+                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                                title="Copiar mensaje"
+                              >
+                                {copiedMessageId === message.id ? (
+                                  <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                ) : (
+                                  <Copy className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  // Crear nota automáticamente con el contenido del mensaje
+                                  const noteTitle = message.content.substring(0, 50).replace(/\n/g, ' ').trim() + (message.content.length > 50 ? '...' : '');
+                                  setEditingNote({
+                                    id: '',
+                                    title: noteTitle,
+                                    content: message.content,
+                                    tags: ['Lia', 'Chat']
+                                  });
+                                  setIsNotesModalOpen(true);
+                                }}
+                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                                title="Crear nota"
+                              >
+                                <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1920,66 +2753,104 @@ Antes de cada respuesta, pregúntate:
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute bottom-20 left-4 right-4 z-10"
+                      className={`absolute ${isPromptsCollapsed ? 'bottom-24' : 'bottom-20'} left-4 right-4 z-10`}
                     >
-                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 p-4 max-h-[300px] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
-                              <HelpCircle className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
-                              <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
-                            </div>
-                          </div>
+                      {isPromptsCollapsed ? (
+                        // Versión colapsada - más compacta
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-xl shadow-lg border border-purple-200/50 dark:border-purple-500/30 p-2"
+                        >
                           <button
-                            onClick={() => setCurrentActivityPrompts([])}
-                            className="p-1.5 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
-                            title="Cerrar prompts"
+                            onClick={() => setIsPromptsCollapsed(false)}
+                            className="w-full flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg px-2 py-1.5 transition-colors group"
                           >
-                            <X className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                          </button>
-                        </div>
-
-                        <div className="space-y-2">
-                          {currentActivityPrompts.map((prompt, index) => (
-                            <motion.button
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              onClick={() => {
-                                setLiaMessage(prompt);
-                                setTimeout(() => {
-                                  handleSendLiaMessage();
-                                  setCurrentActivityPrompts([]);
-                                }, 100);
-                              }}
-                              className="w-full text-left px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-purple-200/50 dark:border-purple-500/30 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-200 dark:group-hover:bg-purple-500/30 transition-colors">
-                                  <span className="text-purple-600 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                                    {prompt}
-                                  </p>
-                                </div>
-                                <Send className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md shrink-0">
+                                <HelpCircle className="w-3 h-3 text-white" />
                               </div>
-                            </motion.button>
-                          ))}
-                        </div>
-                      </div>
+                              <div className="min-w-0">
+                                <h4 className="font-semibold text-xs text-gray-900 dark:text-white truncate">Prompts Sugeridos</h4>
+                                <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
+                              </div>
+                            </div>
+                            <ChevronUp className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors shrink-0 ml-2" />
+                          </button>
+                        </motion.div>
+                      ) : (
+                        // Versión expandida
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 max-h-[300px]"
+                        >
+                          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/40 dark:border-white/10 bg-white/20 dark:bg-white/5 rounded-t-2xl">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
+                                <HelpCircle className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
+                                <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setIsPromptsCollapsed(true)}
+                              className="p-1.5 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
+                              title="Minimizar prompts"
+                            >
+                              <ChevronDown className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                            </button>
+                          </div>
+                          <div className="space-y-2 p-4 overflow-y-auto max-h-[210px] pr-2 custom-scroll">
+                            {currentActivityPrompts.map((prompt, index) => (
+                              <motion.button
+                                key={index}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                onClick={() => {
+                                  setLiaMessage(prompt);
+                                  setTimeout(() => {
+                                    handleSendLiaMessage();
+                                    setIsPromptsCollapsed(true);
+                                  }, 100);
+                                }}
+                                className="w-full text-left px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-purple-200/50 dark:border-purple-500/30 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-200 dark:group-hover:bg-purple-500/30 transition-colors">
+                                    <span className="text-purple-600 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                      {prompt}
+                                    </p>
+                                  </div>
+                                  <Send className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                                </div>
+                              </motion.button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Área de entrada */}
-                <div className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 z-10 ${isMobile ? 'pb-[calc(80px+1rem)]' : ''}`}>
-                  <div className="flex gap-2 items-end">
+                {/* Área de entrada - Similar a LIA general con mejor manejo de altura */}
+                <div
+                  className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
+                  style={isMobile ? {
+                    // Asegurar padding suficiente para safe area y evitar que se corte
+                    // El padding bottom debe incluir el safe area para dispositivos con notch
+                    paddingBottom: `calc(${getInputAreaPadding()} + max(env(safe-area-inset-bottom, 0px), 8px))`,
+                  } : undefined}
+                >
+                  <div className="flex gap-2 items-end min-w-0">
                     <textarea
                       ref={liaTextareaRef}
                       placeholder="Escribe tu pregunta a Lia..."
@@ -1989,6 +2860,17 @@ Antes de cada respuesta, pregúntate:
                         // Ajustar altura inmediatamente al cambiar el contenido
                         setTimeout(() => adjustLiaTextareaHeight(), 0);
                       }}
+                      onFocus={(e) => {
+                        // En móvil, asegurar que el textarea sea visible cuando se enfoca
+                        // El visualViewport ya maneja el ajuste de altura, pero esto ayuda
+                        // a asegurar que el scroll se haga correctamente
+                        if (isMobile && window.visualViewport) {
+                          // Pequeño delay para permitir que el teclado se abra
+                          setTimeout(() => {
+                            e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          }, 300);
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !isLiaLoading) {
                           e.preventDefault();
@@ -1996,7 +2878,7 @@ Antes de cada respuesta, pregúntate:
                         }
                       }}
                       disabled={isLiaLoading}
-                      className="flex-1 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none lia-textarea-scrollbar"
+                      className="flex-1 min-w-0 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none lia-textarea-scrollbar"
                       style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
                     />
                     <button
@@ -2010,7 +2892,7 @@ Antes de cada respuesta, pregúntate:
                           // Aquí se implementaría la lógica de reconocimiento de voz
                         }
                       }}
-                      disabled={isLiaLoading && liaMessage.trim()}
+                      disabled={isLiaLoading && !!liaMessage.trim()}
                       className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${
                         liaMessage.trim()
                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-blue-500/50'
@@ -2039,7 +2921,7 @@ Antes de cada respuesta, pregúntate:
 
         {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
         {!isRightPanelOpen && (
-          <div className="hidden md:block w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
+          <div className="hidden md:flex w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
             <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => {
@@ -2057,11 +2939,15 @@ Antes de cada respuesta, pregúntate:
       </div>
 
       {/* Barra de navegación inferior flotante para móviles */}
-      {isMobile && (
+      {isMobileBottomNavVisible && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          style={{
+            paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+            height: 'calc(70px + max(env(safe-area-inset-bottom), 8px))'
+          }}
         >
           <div className="flex items-center justify-around px-4 py-3">
             {/* Botón Material del Curso */}
@@ -2120,6 +3006,7 @@ Antes de cada respuesta, pregúntate:
           </div>
         </motion.div>
       )}
+
       <NotesModal
         isOpen={isNotesModalOpen}
         onClose={() => {
@@ -2170,13 +3057,39 @@ Antes de cada respuesta, pregúntate:
               </h3>
 
               {/* Mensaje */}
-              <p className="text-slate-300 text-center mb-6">
+              <p className="text-slate-300 text-center mb-4">
                 Has completado el curso exitosamente. ¡Buen trabajo!
               </p>
 
+              {/* Mensaje informativo sobre certificado */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
+                <p className="text-blue-300 text-center text-sm">
+                  📜 A continuación, completa una breve encuesta para acceder a tu certificado
+                </p>
+              </div>
+
               {/* Botón de cerrar */}
               <button
-                onClick={() => setIsCourseCompletedModalOpen(false)}
+                onClick={async () => {
+                  setIsCourseCompletedModalOpen(false);
+                  // Verificar si el usuario ya calificó después de cerrar el modal de completado
+                  if (!hasUserRated && slug) {
+                    try {
+                      const ratingCheck = await CourseRatingService.checkUserRating(slug);
+                      if (!ratingCheck.hasRating) {
+                        // Mostrar modal de rating después de un breve delay
+                        setTimeout(() => {
+                          setIsRatingModalOpen(true);
+                        }, 500);
+                      } else {
+                        setHasUserRated(true);
+                      }
+                    } catch (error) {
+                      // Si hay error, no mostrar el modal
+                      console.error('Error checking rating:', error);
+                    }
+                  }
+                }}
                 className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
               >
                 Aceptar
@@ -2307,7 +3220,28 @@ Antes de cada respuesta, pregúntate:
 
               {/* Botón de cerrar */}
               <button
-                onClick={() => setValidationModal({ ...validationModal, isOpen: false })}
+                onClick={() => {
+                  // Cerrar el modal
+                  const lessonIdToShow = validationModal.lessonId;
+                  setValidationModal({ ...validationModal, isOpen: false });
+                  
+                  // Si hay una lección guardada, cambiar a esa lección y abrir actividades
+                  if (lessonIdToShow) {
+                    // Buscar la lección en todos los módulos
+                    const allLessons = getAllLessonsOrdered();
+                    const lessonToShow = allLessons.find(
+                      (item) => item.lesson.lesson_id === lessonIdToShow
+                    );
+                    
+                    if (lessonToShow) {
+                      // Cambiar a la lección correspondiente
+                      setCurrentLesson(lessonToShow.lesson);
+                      // Cambiar al tab de actividades
+                      setActiveTab('activities');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }
+                }}
                 className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
               >
                 Entendido
@@ -2385,6 +3319,20 @@ Antes de cada respuesta, pregúntate:
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal de Rating */}
+      <CourseRatingModal
+        isOpen={isRatingModalOpen}
+        onClose={() => setIsRatingModalOpen(false)}
+        courseSlug={slug}
+        courseTitle={course?.title || course?.course_title}
+        onRatingSubmitted={() => {
+          setHasUserRated(true);
+          setIsRatingModalOpen(false);
+          // Redirigir a la página de certificados después de completar la encuesta
+          router.push('/certificates');
+        }}
+      />
     </div>
     </WorkshopLearningProvider>
   );
@@ -2406,7 +3354,7 @@ function VideoContent({
   lesson: Lesson;
   modules: Module[];
   onNavigatePrevious: () => void;
-  onNavigateNext: () => void;
+  onNavigateNext: () => void | Promise<void>;
   getPreviousLesson: () => Lesson | null;
   getNextLesson: () => Lesson | null;
   markLessonAsCompleted: (lessonId: string) => Promise<boolean>;
@@ -2445,7 +3393,7 @@ function VideoContent({
   // });
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16 md:pb-6">
       <div className="relative w-full">
         {hasVideo ? (
           <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative bg-black">
@@ -2585,7 +3533,17 @@ function VideoContent({
   );
 }
 
-function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: string }) {
+function TranscriptContent({ 
+  lesson, 
+  slug,
+  onNoteCreated,
+  onStatsUpdate
+}: { 
+  lesson: Lesson | null; 
+  slug: string;
+  onNoteCreated: (noteData: any, lessonId: string) => void;
+  onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
+}) {
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [transcriptContent, setTranscriptContent] = useState<string | null>(null);
@@ -2712,11 +3670,14 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
       // console.log('Nota creada exitosamente:', newNote);
       // console.log('=== FIN DEBUG ===');
       
+      // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+      if (lesson?.lesson_id) {
+        onNoteCreated(newNote, lesson.lesson_id);
+        await onStatsUpdate('create', lesson.lesson_id);
+      }
+      
       // Mostrar mensaje de éxito
       alert('✅ Transcripción guardada exitosamente en notas');
-      
-      // Aquí podrías actualizar la lista de notas si es necesario
-      // loadLessonNotes(lesson.lesson_id, slug);
       
     } catch (error) {
       // console.error('Error al guardar transcripción en notas:', error);
@@ -2729,7 +3690,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   
   if (!lesson) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
         </div>
@@ -2748,7 +3709,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2764,7 +3725,7 @@ function TranscriptContent({ lesson, slug }: { lesson: Lesson | null; slug: stri
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2891,7 +3852,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2908,7 +3869,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
   if (!hasSummary) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -2932,7 +3893,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -3182,7 +4143,7 @@ function QuizRenderer({
 
     // Verificar si la explicación tiene el formato con "---"
     if (explanation.includes('---')) {
-      const parts = explanation.split('---').map(p => p.trim());
+      const parts = explanation.split('---').map((p: string) => p.trim());
 
       // Obtener el texto de la opción seleccionada
       let selectedOptionText = '';
@@ -3217,16 +4178,16 @@ function QuizRenderer({
   return (
     <div className="space-y-6">
       {/* Instrucciones */}
-      <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4 mb-4">
-        <p className="text-gray-800 dark:text-slate-200 text-sm mb-2">
+      <div className="bg-blue-50 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/40 rounded-lg p-4 mb-4">
+        <p className="text-gray-800 dark:text-slate-100 text-sm mb-2">
           <strong>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
         </p>
         {totalPoints !== undefined && (
-          <p className="text-gray-800 dark:text-slate-200 text-sm mb-2">
+          <p className="text-gray-800 dark:text-slate-100 text-sm mb-2">
             <strong>Puntos totales:</strong> {totalPoints}
           </p>
         )}
-        <p className="text-gray-700 dark:text-slate-300 text-sm">
+        <p className="text-gray-700 dark:text-slate-200 text-sm">
           Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas).
           <span className="block mt-1"><strong>Umbral de aprobación:</strong> {passingThreshold}%</span>
         </p>
@@ -3242,31 +4203,31 @@ function QuizRenderer({
           return (
             <div
               key={question.id}
-              className={`bg-gray-50 dark:bg-carbon-800/70 rounded-lg p-5 border-2 ${
+              className={`bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border-2 ${
                 showResults
                   ? isCorrect
-                    ? 'border-green-500/50 bg-green-50 dark:bg-green-500/5'
-                    : 'border-red-500/50 bg-red-50 dark:bg-red-500/5'
-                  : 'border-gray-200 dark:border-carbon-600/50'
+                    ? 'border-green-500/50 bg-green-50 dark:bg-green-500/20 dark:border-green-500/50'
+                    : 'border-red-500/50 bg-red-50 dark:bg-red-500/20 dark:border-red-500/50'
+                  : 'border-gray-200 dark:border-gray-700'
               }`}
             >
               <div className="flex items-start gap-3 mb-4">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${
                   showResults
                     ? isCorrect
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      ? 'bg-green-500/20 dark:bg-green-500/30 text-green-600 dark:text-green-400 border border-green-500/30 dark:border-green-500/50'
+                      : 'bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/50'
+                    : 'bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 border border-blue-500/30 dark:border-blue-500/50'
                 }`}>
                   {index + 1}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-3 mb-4">
-                    <h4 className="text-gray-900 dark:text-white font-semibold leading-relaxed flex-1">
+                    <h4 className="text-gray-900 dark:text-slate-100 font-semibold leading-relaxed flex-1">
                       {question.question}
                     </h4>
                     {question.points && (
-                      <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-xs rounded-full border border-purple-300 dark:border-purple-500/30 shrink-0">
+                      <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 text-xs rounded-full border border-purple-300 dark:border-purple-500/50 shrink-0">
                         {question.points} {question.points === 1 ? 'punto' : 'puntos'}
                       </span>
                     )}
@@ -3302,13 +4263,13 @@ function QuizRenderer({
                           className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                             showResults
                               ? isCorrectOption
-                                ? 'bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/50'
+                                ? 'bg-green-50 dark:bg-green-500/20 border-green-300 dark:border-green-500/60'
                                 : isSelected && !isCorrectOption
-                                ? 'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/50'
-                                : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-200 dark:border-carbon-600/50'
+                                ? 'bg-red-50 dark:bg-red-500/20 border-red-300 dark:border-red-500/60'
+                                : 'bg-gray-100 dark:bg-gray-700/80 border-gray-200 dark:border-gray-600'
                               : isSelected
-                              ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/50'
-                              : 'bg-gray-100 dark:bg-carbon-700/50 border-gray-200 dark:border-carbon-600/50 hover:border-gray-300 dark:hover:border-carbon-500/50'
+                              ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-300 dark:border-blue-500/60'
+                              : 'bg-gray-100 dark:bg-gray-700/80 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                           }`}
                         >
                           <input
@@ -3318,13 +4279,13 @@ function QuizRenderer({
                             checked={isSelected}
                             onChange={() => handleAnswerSelect(question.id, optIndex)}
                             disabled={showResults}
-                            className="mt-1 w-4 h-4 text-blue-500 border-gray-300 dark:border-carbon-600 focus:ring-blue-500 focus:ring-2"
+                            className="mt-1 w-4 h-4 text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 focus:ring-2 dark:bg-gray-800"
                           />
                           <div className="flex-1">
-                            <span className="font-semibold text-gray-700 dark:text-slate-300 mr-2">
+                            <span className="font-semibold text-gray-700 dark:text-slate-200 mr-2">
                               ({optionLetter})
                             </span>
-                            <span className="text-gray-900 dark:text-slate-200">{option}</span>
+                            <span className="text-gray-900 dark:text-slate-100">{option}</span>
                           </div>
                           {showResults && isCorrectOption && (
                             <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
@@ -3341,10 +4302,10 @@ function QuizRenderer({
                   {showExplanation && question.explanation && (
                     <div className={`mt-4 p-4 rounded-lg ${
                       isCorrect
-                        ? 'bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30'
-                        : 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30'
+                        ? 'bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50'
+                        : 'bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50'
                     }`}>
-                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-300 mb-1">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">
                         {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
                       </p>
                       <p className="text-gray-700 dark:text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
@@ -3361,18 +4322,18 @@ function QuizRenderer({
 
       {/* Mensaje de error */}
       {submitError && (
-        <div className="mt-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
-          <p className="text-red-600 dark:text-red-400 text-sm">{submitError}</p>
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 rounded-lg">
+          <p className="text-red-600 dark:text-red-300 text-sm">{submitError}</p>
         </div>
       )}
 
       {/* Botón de envío */}
       {!showResults && (
-        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-carbon-600/50">
+        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={handleSubmit}
             disabled={Object.keys(selectedAnswers).length < totalQuestions || isSubmitting}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2"
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -3390,25 +4351,25 @@ function QuizRenderer({
       {showResults && (
         <div className={`mt-6 p-6 rounded-lg border-2 ${
           passed
-            ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/50'
-            : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/50'
+            ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
+            : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
         }`}>
           <div className="text-center">
             {/* Mensaje informativo del servidor */}
             {serverMessage && (
               <div className={`mb-4 p-3 rounded-lg border ${
                 serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                  ? 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/30'
+                  ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
                   : passed
-                  ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30'
-                  : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30'
+                  ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
+                  : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
               }`}>
                 <p className={`text-sm ${
                   serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                    ? 'text-yellow-800 dark:text-yellow-300'
+                    ? 'text-yellow-800 dark:text-yellow-200'
                     : passed
-                    ? 'text-green-800 dark:text-green-300'
-                    : 'text-blue-800 dark:text-blue-300'
+                    ? 'text-green-800 dark:text-green-200'
+                    : 'text-blue-800 dark:text-blue-200'
                 }`}>
                   {serverMessage}
                 </p>
@@ -3417,15 +4378,15 @@ function QuizRenderer({
             <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
             </h3>
-            <p className="text-gray-800 dark:text-slate-200 text-lg mb-1">
+            <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
               Obtuviste {score} de {totalQuestions} correctas
             </p>
             {totalPoints !== undefined && (
-              <p className="text-gray-800 dark:text-slate-200 text-lg mb-1">
+              <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
                 Puntos: {pointsEarned} de {totalPoints}
               </p>
             )}
-            <p className="text-gray-700 dark:text-slate-300 text-sm">
+            <p className="text-gray-700 dark:text-slate-200 text-sm">
               Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
             </p>
           </div>
@@ -3557,7 +4518,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700">
       <div className="prose prose-lg dark:prose-invert max-w-none">
         <div className="text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
-          {lines.map((line, index) => {
+          {lines.map((line: string, index: number) => {
             const trimmedLine = line.trim();
             
             // Si la línea está vacía, renderizar un espacio para separar párrafos
@@ -3668,14 +4629,14 @@ function FormattedContentRenderer({ content }: { content: any }) {
   }
 
   // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
-  const lines = readingContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const lines = readingContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
   const formattedContent: Array<{ 
     type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
     content: string;
     level?: number;
   }> = [];
 
-  lines.forEach((line, index) => {
+  lines.forEach((line: string, index: number) => {
     const trimmedLine = line.trim();
     
     // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
@@ -3853,11 +4814,20 @@ function FormattedContentRenderer({ content }: { content: any }) {
   );
 }
 
-function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }: {
+function ActivitiesContent({ 
+  lesson, 
+  slug, 
+  onPromptsChange, 
+  onStartInteraction,
+  userRole,
+  generateRoleBasedPrompts
+}: {
   lesson: Lesson;
   slug: string;
   onPromptsChange?: (prompts: string[]) => void;
   onStartInteraction?: (content: string, title: string) => void;
+  userRole?: string;
+  generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -3881,6 +4851,34 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
     is_downloadable: boolean;
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [collapsedActivities, setCollapsedActivities] = useState<Set<string>>(new Set());
+  const [collapsedMaterials, setCollapsedMaterials] = useState<Set<string>>(new Set());
+  const [activitiesInitialized, setActivitiesInitialized] = useState(false);
+  const [materialsInitialized, setMaterialsInitialized] = useState(false);
+  
+  // Resetear estados de inicialización cuando cambia la lección
+  useEffect(() => {
+    setActivitiesInitialized(false);
+    setMaterialsInitialized(false);
+    setCollapsedActivities(new Set());
+    setCollapsedMaterials(new Set());
+  }, [lesson?.lesson_id]);
+  
+  // Inicializar todas las actividades como colapsadas cuando se cargan por primera vez
+  useEffect(() => {
+    if (activities.length > 0 && !activitiesInitialized) {
+      setCollapsedActivities(new Set(activities.map(a => a.activity_id)));
+      setActivitiesInitialized(true);
+    }
+  }, [activities, activitiesInitialized]);
+  
+  // Inicializar todos los materiales como colapsados cuando se cargan por primera vez
+  useEffect(() => {
+    if (materials.length > 0 && !materialsInitialized) {
+      setCollapsedMaterials(new Set(materials.map(m => m.material_id)));
+      setMaterialsInitialized(true);
+    }
+  }, [materials, materialsInitialized]);
   const [quizStatus, setQuizStatus] = useState<{
     hasRequiredQuizzes: boolean;
     totalRequiredQuizzes: number;
@@ -3947,51 +4945,115 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
     loadActivitiesAndMaterials();
   }, [lesson?.lesson_id, slug]);
 
+  // Refs para almacenar las funciones y evitar loops infinitos
+  const generateRoleBasedPromptsRef = useRef(generateRoleBasedPrompts);
+  const onPromptsChangeRef = useRef(onPromptsChange);
+
+  // Actualizar refs cuando cambien las funciones
+  useEffect(() => {
+    generateRoleBasedPromptsRef.current = generateRoleBasedPrompts;
+  }, [generateRoleBasedPrompts]);
+
+  useEffect(() => {
+    onPromptsChangeRef.current = onPromptsChange;
+  }, [onPromptsChange]);
+
   // Extraer y actualizar prompts cuando cambien las actividades
   useEffect(() => {
-    const allPrompts: string[] = [];
+    let isMounted = true; // Flag para evitar actualizaciones si el componente se desmonta
 
-    activities.forEach(activity => {
-      if (activity.ai_prompts) {
-        try {
-          let promptsList: string[] = [];
+    const processPrompts = async () => {
+      const allPrompts: string[] = [];
+      const activityPromptsMap: Map<string, { prompts: string[], content: string, title: string }> = new Map();
 
-          // Si es string, intentar parsearlo como JSON
-          if (typeof activity.ai_prompts === 'string') {
-            try {
-              const parsed = JSON.parse(activity.ai_prompts);
-              if (Array.isArray(parsed)) {
-                promptsList = parsed;
-              } else {
+      // Primero, extraer todos los prompts base de las actividades
+      activities.forEach(activity => {
+        if (activity.ai_prompts) {
+          try {
+            let promptsList: string[] = [];
+
+            // Si es string, intentar parsearlo como JSON
+            if (typeof activity.ai_prompts === 'string') {
+              try {
+                const parsed = JSON.parse(activity.ai_prompts);
+                if (Array.isArray(parsed)) {
+                  promptsList = parsed;
+                } else {
+                  promptsList = [activity.ai_prompts];
+                }
+              } catch {
                 promptsList = [activity.ai_prompts];
               }
-            } catch {
-              promptsList = [activity.ai_prompts];
+            } else if (Array.isArray(activity.ai_prompts)) {
+              promptsList = activity.ai_prompts;
+            } else {
+              promptsList = [String(activity.ai_prompts)];
             }
-          } else if (Array.isArray(activity.ai_prompts)) {
-            promptsList = activity.ai_prompts;
-          } else {
-            promptsList = [String(activity.ai_prompts)];
+
+            // Limpiar prompts (remover comillas si las tiene)
+            const cleanPrompts: string[] = [];
+            promptsList.forEach(prompt => {
+              const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+              if (cleanPrompt) {
+                cleanPrompts.push(cleanPrompt);
+              }
+            });
+
+            if (cleanPrompts.length > 0) {
+              // Guardar prompts base junto con información de la actividad
+              activityPromptsMap.set(activity.activity_id, {
+                prompts: cleanPrompts,
+                content: activity.activity_content || '',
+                title: activity.activity_title || ''
+              });
+            }
+          } catch (error) {
+            // console.warn('Error parsing prompts:', error);
           }
-
-          // Limpiar prompts (remover comillas si las tiene)
-          promptsList.forEach(prompt => {
-            const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
-            if (cleanPrompt) {
-              allPrompts.push(cleanPrompt);
-            }
-          });
-        } catch (error) {
-          // console.warn('Error parsing prompts:', error);
         }
-      }
-    });
+      });
 
-    // Notificar cambios al componente padre
-    if (onPromptsChange) {
-      onPromptsChange(allPrompts);
-    }
-  }, [activities, onPromptsChange]);
+      // Si hay rol del usuario y función de generación, adaptar prompts
+      if (userRole && generateRoleBasedPromptsRef.current && activityPromptsMap.size > 0) {
+        try {
+          // Generar prompts adaptados para cada actividad
+          for (const [activityId, activityData] of activityPromptsMap.entries()) {
+            if (!isMounted) break; // Salir si el componente se desmontó
+            const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+              activityData.prompts,
+              activityData.content,
+              activityData.title,
+              userRole
+            );
+            allPrompts.push(...adaptedPrompts);
+          }
+        } catch (error) {
+          console.error('Error generando prompts adaptados:', error);
+          // Fallback: usar prompts originales
+          activityPromptsMap.forEach(activityData => {
+            allPrompts.push(...activityData.prompts);
+          });
+        }
+      } else {
+        // Sin rol o sin función de generación, usar prompts originales
+        activityPromptsMap.forEach(activityData => {
+          allPrompts.push(...activityData.prompts);
+        });
+      }
+
+      // Notificar cambios al componente padre solo si el componente sigue montado
+      if (isMounted && onPromptsChangeRef.current) {
+        onPromptsChangeRef.current(allPrompts);
+      }
+    };
+
+    processPrompts();
+
+    // Cleanup: marcar como desmontado
+    return () => {
+      isMounted = false;
+    };
+  }, [activities, userRole]); // Solo dependemos de activities y userRole
 
   const hasActivities = activities.length > 0;
   const hasMaterials = materials.length > 0;
@@ -3999,7 +5061,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
 
   if (loading) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -4016,7 +5078,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
 
   if (!hasContent) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -4040,7 +5102,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
@@ -4064,12 +5126,16 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           
           {/* Contenido de actividades */}
           <div className="p-6 space-y-4">
-            {activities.map((activity) => (
+            {activities.map((activity) => {
+              const isCollapsed = collapsedActivities.has(activity.activity_id);
+              
+              return (
               <div
                 key={activity.activity_id}
-                className="bg-gray-50 dark:bg-carbon-800 rounded-lg p-5 border border-gray-200 dark:border-carbon-600"
+                className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-3">
+                {/* Header de la actividad con botón de colapsar/expandir */}
+                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
@@ -4111,17 +5177,55 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         return null;
                       })()}
                     </div>
-                    {activity.activity_description && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{activity.activity_description}</p>
+                    {activity.activity_description && !isCollapsed && (
+                      <p className="text-gray-700 dark:text-slate-300 text-sm">{activity.activity_description}</p>
                     )}
                   </div>
+                  
+                  {/* Botón de colapsar/expandir */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsedActivities(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(activity.activity_id)) {
+                          newSet.delete(activity.activity_id);
+                        } else {
+                          newSet.add(activity.activity_id);
+                        }
+                        return newSet;
+                      });
+                    }}
+                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-carbon-600 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+                    title={isCollapsed ? "Expandir actividad" : "Colapsar actividad"}
+                  >
+                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+                      {isCollapsed ? 'Expandir' : 'Colapsar'}
+                    </span>
+                    {isCollapsed ? (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    )}
+                  </button>
                 </div>
 
+                {/* Contenido de la actividad (colapsable) */}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-5">
                 {/* Botón especial para actividades ai_chat */}
                 {activity.activity_type === 'ai_chat' ? (
-                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 text-center">
+                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/10 dark:to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 dark:border-purple-500/30 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/50">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/50 dark:shadow-purple-500/50">
                         <Image
                           src="/lia-avatar.png"
                           alt="Lia"
@@ -4132,10 +5236,10 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                       </div>
 
                       <div>
-                        <h3 className="text-xl font-bold text-white mb-2">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                           Actividad Interactiva con Lia
                         </h3>
-                        <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
+                        <p className="text-gray-700 dark:text-slate-300 text-sm mb-6 max-w-md mx-auto">
                           Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
                         </p>
                       </div>
@@ -4146,7 +5250,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                             onStartInteraction(activity.activity_content, activity.activity_title);
                           }
                         }}
-                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 hover:scale-105"
+                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 dark:from-purple-500 dark:to-blue-500 dark:hover:from-purple-600 dark:hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 dark:hover:shadow-purple-500/50 hover:scale-105"
                       >
                         <span className="flex items-center gap-3">
                           <div className="relative w-5 h-5">
@@ -4163,7 +5267,7 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         </span>
                       </button>
 
-                      <p className="text-xs text-slate-400 mt-2">
+                      <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
                         Lia te guiará a través de {activity.activity_title.toLowerCase()}
                       </p>
                     </div>
@@ -4193,13 +5297,14 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                       }
 
                       // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                      let questionsArray = quizData;
-                      let totalPoints = undefined;
+                      let questionsArray: any = quizData;
+                      let totalPoints: number | undefined = undefined;
 
                       if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                        if (quizData.questions && Array.isArray(quizData.questions)) {
-                          questionsArray = quizData.questions;
-                          totalPoints = quizData.totalPoints;
+                        const quizObj = quizData as { questions?: any[]; totalPoints?: number };
+                        if (quizObj.questions && Array.isArray(quizObj.questions)) {
+                          questionsArray = quizObj.questions;
+                          totalPoints = quizObj.totalPoints;
                         }
                       }
 
@@ -4265,7 +5370,12 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                   </div>
                 )}
               </div>
-            ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+            })}
           </div>
         </div>
       )}
@@ -4288,12 +5398,16 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
           
           {/* Contenido de materiales */}
           <div className="p-6 space-y-4">
-            {materials.map((material) => (
+            {materials.map((material) => {
+              const isCollapsed = collapsedMaterials.has(material.material_id);
+              
+              return (
               <div
                 key={material.material_id}
-                className="bg-white dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-3">
+                {/* Header del material con botón de colapsar/expandir */}
+                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{material.material_title}</h4>
@@ -4335,15 +5449,52 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                         return null;
                       })()}
                     </div>
-                    {material.material_description && material.material_type !== 'reading' && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm mb-3">{material.material_description}</p>
+                    {material.material_description && material.material_type !== 'reading' && !isCollapsed && (
+                      <p className="text-gray-700 dark:text-slate-300 text-sm">{material.material_description}</p>
                     )}
                   </div>
+                  
+                  {/* Botón de colapsar/expandir */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsedMaterials(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(material.material_id)) {
+                          newSet.delete(material.material_id);
+                        } else {
+                          newSet.add(material.material_id);
+                        }
+                        return newSet;
+                      });
+                    }}
+                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+                    title={isCollapsed ? "Expandir material" : "Colapsar material"}
+                  >
+                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+                      {isCollapsed ? 'Expandir' : 'Colapsar'}
+                    </span>
+                    {isCollapsed ? (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                    )}
+                  </button>
                 </div>
                 
-                {/* Contenido del material */}
+                {/* Contenido del material (colapsable) */}
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-5 pt-4">
                 {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
-                  <div className="w-full mt-4">
+                          <div className="w-full">
                     {material.material_type === 'quiz' && (() => {
                       try {
                         let quizData = material.content_data;
@@ -4432,7 +5583,27 @@ function ActivitiesContent({ lesson, slug, onPromptsChange, onStartInteraction }
                   </div>
                 )}
               </div>
-            ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Leyenda informativa sobre requisitos para avanzar */}
+      {(hasActivities || hasMaterials) && (
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">
+                Para avanzar a la siguiente lección, es necesario completar todas las actividades requeridas y aprobar los quizzes correspondientes. 
+                Te recomendamos revisar cada actividad y material con atención para asegurar una comprensión completa del contenido.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -4762,7 +5933,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
         </div>
@@ -4777,7 +5948,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
@@ -5533,6 +6704,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                               setReplyContent('');
                             }}
                             className="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 text-gray-900 dark:text-white rounded-lg transition-colors"
+                            aria-label="Cancelar respuesta"
+                            title="Cancelar respuesta"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -5632,6 +6805,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                           setReplyToReplyContent('');
                                         }}
                                         className="px-3 py-1.5 bg-gray-300 dark:bg-slate-500 hover:bg-gray-400 dark:hover:bg-slate-400 text-gray-900 dark:text-white rounded-lg transition-colors text-sm"
+                                        aria-label="Cancelar respuesta"
+                                        title="Cancelar respuesta"
                                       >
                                         <X className="w-3.5 h-3.5" />
                                       </button>

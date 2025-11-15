@@ -17,24 +17,38 @@ interface User {
 
 // Fetcher optimizado para autenticación
 const authFetcher = async (url: string): Promise<User | null> => {
-  const response = await fetch(url, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
 
-  if (!response.ok) {
-    // Si no está autenticado, no es un error - simplemente no hay usuario
-    if (response.status === 401 || response.status === 403) {
+    if (!response.ok) {
+      // Si no está autenticado, no es un error - simplemente no hay usuario
+      if (response.status === 401 || response.status === 403) {
+        return null
+      }
+      throw new Error('Error fetching user')
+    }
+
+    const data = await response.json()
+    return data.success && data.user ? data.user : null
+  } catch (error) {
+    // Manejar errores de red de forma silenciosa
+    // "Failed to fetch" puede ocurrir cuando el componente se desmonta durante la navegación
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      // Error de red esperado durante navegación - retornar null silenciosamente
       return null
     }
-    throw new Error('Error fetching user')
+    
+    if (process.env.NODE_ENV === 'development') {
+      // console.warn('useAuth fetcher error:', error)
+    }
+    return null
   }
-
-  const data = await response.json()
-  return data.success && data.user ? data.user : null
 }
 
 export function useAuth() {
@@ -53,6 +67,12 @@ export function useAuth() {
       shouldRetryOnError: false, // No reintentar en errores (si no está autenticado, no hay que reintentar)
       errorRetryCount: 0, // No reintentar
       fallbackData: null, // Valor por defecto mientras carga
+      onError: (error) => {
+        // Ignorar errores de red esperados (Failed to fetch durante navegación)
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          return // No hacer nada, el fetcher ya retorna null
+        }
+      },
     }
   )
 
