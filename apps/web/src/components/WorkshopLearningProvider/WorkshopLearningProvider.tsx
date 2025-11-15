@@ -140,8 +140,8 @@ export function WorkshopLearningProvider({
         />
       )}
 
-      {/* Debug info (solo en desarrollo) */}
-      {process.env.NODE_ENV === 'development' && isActive && (
+      {/* Debug info - DESHABILITADO */}
+      {/* {process.env.NODE_ENV === 'development' && isActive && (
         <div className="fixed bottom-4 left-4 bg-black/80 text-white text-xs p-2 rounded-lg font-mono z-50 max-w-xs">
           <div className="font-bold mb-1">🔍 Detector Activo</div>
           <div>Workshop: {workshopId}</div>
@@ -157,7 +157,7 @@ export function WorkshopLearningProvider({
             </>
           )}
         </div>
-      )}
+      )} */}
     </>
   );
 }

@@ -343,11 +343,27 @@ export class DifficultyPatternDetector {
     // - Type 3, source 6 (ViewportResize) 
     // - Necesitamos buscar cambios en la posición del scroll de otra forma
     
+    // CRÍTICO: Solo analizar si hay interacciones reales del usuario
+    // Si no hay suficientes interacciones, el usuario está AFK y los eventos son solo ruido del DOM
+    const interactionEvents = events.filter(event => {
+      if (event.type !== 3) return false;
+      const data = event.data as any;
+      // Solo MouseMove, Click, o Input
+      return data.source === 1 || data.source === 2 || data.source === 5;
+    });
+    
+    // Requerir al menos 10 interacciones reales para considerar que hay actividad real del usuario
+    if (interactionEvents.length < 10) {
+      console.log('⚠️ [DEBUG] Muy pocas interacciones reales:', interactionEvents.length, '< 10. Usuario probablemente AFK.');
+      return null;
+    }
+    
     // Estrategia alternativa: contar eventos de mutación frecuentes como indicador de scroll
     const incrementalSnapshots = events.filter(event => event.type === 3);
     
     console.log('📜 [DEBUG] Análisis de scroll alternativo:', {
       totalIncrementalSnapshots: incrementalSnapshots.length,
+      interaccionesReales: interactionEvents.length,
       primeros5Tipos: incrementalSnapshots.slice(0, 5).map(e => ({
         type: e.type,
         source: (e.data as any).source,
@@ -390,17 +406,19 @@ export class DifficultyPatternDetector {
     console.log('📜 [DEBUG] Ráfagas de scroll:', {
       ventanasActivas: activeWindows.length,
       cambiosDireccion: directionChanges,
+      interaccionesReales: interactionEvents.length,
       threshold: this.thresholds.scrollRepeatThreshold,
       detectadoPorCambios: directionChanges >= this.thresholds.scrollRepeatThreshold,
-      detectadoPorVolumen: activeWindows.length >= 8, // 8+ segundos de scroll activo
+      detectadoPorVolumen: activeWindows.length >= 15, // AUMENTADO de 8 a 15
       primeras5Ventanas: activeWindows.slice(0, 5)
     });
 
     // Detectar de dos formas:
     // 1. Cambios de dirección (scroll arriba-abajo-arriba)
-    // 2. Volumen alto (8+ segundos de scroll continuo = usuario buscando algo)
+    // 2. Volumen alto (15+ segundos de scroll continuo = usuario buscando algo)
+    //    AUMENTADO de 8 a 15 para evitar falsos positivos
     const detectedByChanges = directionChanges >= this.thresholds.scrollRepeatThreshold;
-    const detectedByVolume = activeWindows.length >= 8;
+    const detectedByVolume = activeWindows.length >= 15;
 
     if (detectedByChanges || detectedByVolume) {
       return {
