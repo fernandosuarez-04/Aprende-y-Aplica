@@ -29,6 +29,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  generatedPrompt?: GeneratedPrompt | null;
 }
 
 interface GeneratedPrompt {
@@ -201,6 +202,8 @@ export function AIChatAgent({
   // Estados para el modo prompt (declarados temprano para poder usarlos en placeholderText)
   const [isPromptMode, setIsPromptMode] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState<GeneratedPrompt | null>(null);
+  const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
+  const [selectedPromptMessageId, setSelectedPromptMessageId] = useState<string | null>(null);
   
   const placeholderText = isPromptMode 
     ? 'Describe qué tipo de prompt quieres crear...' 
@@ -598,7 +601,7 @@ export function AIChatAgent({
     
     setInputMessage('');
     setIsTyping(true);
-    setGeneratedPrompt(null); // Limpiar prompt anterior
+    // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
 
     try {
       // Si está en modo prompt, usar el endpoint de generación de prompts
@@ -632,12 +635,15 @@ export function AIChatAgent({
           timestamp: new Date()
         };
 
-        setPromptMessages(prev => [...prev, assistantMessage]);
-        
-        // Si hay un prompt generado, guardarlo
+        // Si hay un prompt generado, guardarlo en el mensaje y en el estado
         if (data.generatedPrompt) {
+          assistantMessage.generatedPrompt = data.generatedPrompt;
           setGeneratedPrompt(data.generatedPrompt);
+          setIsPromptPanelOpen(true);
+          setSelectedPromptMessageId(assistantMessage.id);
         }
+        
+        setPromptMessages(prev => [...prev, assistantMessage]);
       } else {
         // Modo normal de chat
         const response = await fetch('/api/ai-chat', {
@@ -1197,17 +1203,15 @@ Fecha: ${new Date().toLocaleString()}
             }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className={`fixed right-6 z-[99999] ${isPromptMode && generatedPrompt ? 'w-[800px] max-w-[calc(100vw-3rem)]' : 'w-96 max-w-[calc(100vw-3rem)]'}`}
+            className={`fixed right-6 z-[99999] ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'w-[800px] max-w-[calc(100vw-3rem)]' : 'w-96 max-w-[calc(100vw-3rem)]'}`}
             style={{
               bottom: bottomPosition,
               height: calculateMaxHeight,
               maxHeight: calculateMaxHeight,
             }}
           >
-        <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex ${isPromptMode && generatedPrompt ? 'flex-row' : 'flex-col'} bg-white dark:bg-[#0f0f0f] h-full`}>
-          {/* Contenedor principal del chat */}
-          <div className={`flex flex-col ${isPromptMode && generatedPrompt ? 'w-1/2 border-r border-gray-200 dark:border-carbon-700' : 'w-full'} h-full`}>
-          {/* Header con gradiente */}
+        <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full`}>
+          {/* Header con gradiente - Continuo para ambos paneles */}
           <motion.div 
             className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden flex-shrink-0"
             initial={{ opacity: 0 }}
@@ -1228,7 +1232,7 @@ Fecha: ${new Date().toLocaleString()}
             />
             
             <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
                 {/* Avatar */}
                 <div className="relative w-10 h-10">
                   <Image
@@ -1252,7 +1256,7 @@ Fecha: ${new Date().toLocaleString()}
                   />
                 </div>
                 
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-white font-semibold">{assistantName}</h3>
                     {isPromptMode && (
@@ -1271,6 +1275,16 @@ Fecha: ${new Date().toLocaleString()}
                     </motion.div>
                   </div>
                 </div>
+                
+                {/* Título del prompt generado en el header continuo */}
+                {isPromptMode && generatedPrompt && isPromptPanelOpen && (
+                  <div className="flex items-center gap-2 ml-auto mr-4">
+                    <div className="relative p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Prompt Generado</h3>
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center gap-2">
@@ -1283,6 +1297,11 @@ Fecha: ${new Date().toLocaleString()}
               </div>
             </div>
           </motion.div>
+          
+          {/* Contenedor de paneles */}
+          <div className={`flex ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'flex-row' : 'flex-col'} flex-1 min-h-0 overflow-hidden`}>
+          {/* Contenedor principal del chat */}
+          <div className={`flex flex-col ${isPromptMode && generatedPrompt && isPromptPanelOpen ? 'w-1/2 border-r border-gray-200 dark:border-carbon-700' : 'w-full'} h-full`}>
 
           {/* Mensajes */}
           {(
@@ -1339,6 +1358,23 @@ Fecha: ${new Date().toLocaleString()}
                       : 'bg-white dark:bg-carbon-800 text-gray-900 dark:text-white border border-gray-200 dark:border-carbon-600'
                   }`}>
                     <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">{message.content}</p>
+                    
+                    {/* Botón para reabrir prompt si el mensaje tiene un prompt generado */}
+                    {message.role === 'assistant' && message.generatedPrompt && isPromptMode && (
+                      <motion.button
+                        onClick={() => {
+                          setGeneratedPrompt(message.generatedPrompt!);
+                          setIsPromptPanelOpen(true);
+                          setSelectedPromptMessageId(message.id);
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        Ver Prompt Generado
+                      </motion.button>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -1450,7 +1486,7 @@ Fecha: ${new Date().toLocaleString()}
           </div>
           
           {/* Panel lateral para prompt generado */}
-          {isPromptMode && generatedPrompt && (
+          {isPromptMode && generatedPrompt && isPromptPanelOpen && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1458,19 +1494,26 @@ Fecha: ${new Date().toLocaleString()}
               transition={{ duration: 0.3 }}
               className="w-1/2 flex flex-col h-full bg-gray-50 dark:bg-[#0a0a0a] overflow-hidden"
             >
-              <div className="p-4 border-b border-gray-200 dark:border-carbon-700 flex items-center gap-2 flex-shrink-0">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Prompt Generado</h3>
-              </div>
-              
               <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                    <span className="text-sm">Título</span>
-                  </h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-sm">Título</span>
+                    </h4>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPromptPanelOpen(false);
+                        setGeneratedPrompt(null);
+                        setSelectedPromptMessageId(null);
+                      }}
+                      className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors text-gray-600 dark:text-gray-300"
+                      title="Cerrar panel de prompt"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                   <p className="text-gray-700 dark:text-slate-300 text-sm break-words">{generatedPrompt.title}</p>
                 </div>
                 
@@ -1504,6 +1547,7 @@ Fecha: ${new Date().toLocaleString()}
               </div>
             </motion.div>
           )}
+          </div>
         </div>
       </motion.div>
         )}
