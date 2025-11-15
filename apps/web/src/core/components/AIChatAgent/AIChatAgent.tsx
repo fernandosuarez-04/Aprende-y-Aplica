@@ -1074,105 +1074,41 @@ export function AIChatAgent({
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
       
-      // Si el chat está abierto, ejecutar la ayuda automáticamente en la nueva página
+      // Actualizar el contenido de la página cuando cambia (sin enviar mensaje automático)
       if (wasOpen) {
         // Marcar que ya se abrió para evitar que el otro useEffect interfiera
         hasOpenedRef.current = true;
         
-        // Función para esperar a que el contenido de la nueva página esté listo
-        const waitForNewPageContent = async (): Promise<{
-          title: string;
-          metaDescription: string;
-          headings: string[];
-          mainText: string;
-        }> => {
-          // Esperar múltiples frames para asegurar que React haya renderizado
-          await new Promise(resolve => requestAnimationFrame(resolve));
-          await new Promise(resolve => requestAnimationFrame(resolve));
-          
-          // Esperar un tiempo adicional para contenido dinámico (APIs, animaciones, etc.)
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Extraer contenido y verificar que sea válido y estable
-          let attempts = 0;
-          const maxAttempts = 5;
-          let lastContent = '';
-          let stableCount = 0;
-          
-          while (attempts < maxAttempts) {
-            const currentPageContent = extractPageContent();
-            const contentHash = `${currentPageContent.title}-${currentPageContent.mainText.substring(0, 100)}`;
-            
-            // Verificar que el contenido sea válido
-            const isValid = currentPageContent.title && 
-                           currentPageContent.title === document.title && 
-                           currentPageContent.mainText.length > 50;
-            
-            if (isValid) {
-              // Si el contenido es el mismo que en el intento anterior, incrementar contador de estabilidad
-              if (contentHash === lastContent) {
-                stableCount++;
-                // Si el contenido es estable durante 2 intentos consecutivos, considerarlo listo
-                if (stableCount >= 2) {
-                  return currentPageContent;
-                }
-              } else {
-                // Si cambió, resetear el contador de estabilidad
-                stableCount = 0;
-              }
-            }
-            
-            lastContent = contentHash;
-            
-            // Esperar un poco más antes del siguiente intento
-            await new Promise(resolve => setTimeout(resolve, 300));
-            attempts++;
-          }
-          
-          // Si después de varios intentos no hay contenido válido, devolver lo que haya
-          return extractPageContent();
-        };
-        
-        // Ejecutar la espera y luego enviar la ayuda
-        const timer = setTimeout(async () => {
-          try {
-            const currentPageContent = await waitForNewPageContent();
-            setPageContent(currentPageContent);
-            
-            // Pasar el contenido directamente a handleRequestHelp para evitar problemas
-            // de sincronización con el estado de React
-            handleRequestHelp(currentPageContent);
-          } catch (error) {
-            // Si hay error, intentar de todas formas con el contenido actual
-            const fallbackContent = extractPageContent();
-            setPageContent(fallbackContent);
-            handleRequestHelp(fallbackContent);
-          }
-        }, 50); // Delay mínimo inicial
+        // Actualizar el contenido de la página sin enviar mensaje automático
+        const timer = setTimeout(() => {
+          const currentPageContent = extractPageContent();
+          setPageContent(currentPageContent);
+        }, 100);
         
         return () => clearTimeout(timer);
       } else {
-        // Si el chat está cerrado, resetear el flag para que se ejecute cuando se abra
+        // Si el chat está cerrado, resetear el flag
         hasOpenedRef.current = false;
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]); // Solo depender de pathname para evitar ejecuciones innecesarias
 
-  // Ejecutar automáticamente la función de ayuda cuando se abre la LIA (solo si no se ejecutó por cambio de página)
+  // Actualizar contenido de página cuando se abre la LIA (sin enviar mensaje automático)
   useEffect(() => {
-    // Solo ejecutar si el chat se acaba de abrir y no se ejecutó la ayuda por cambio de página
+    // Solo ejecutar si el chat se acaba de abrir y no se ejecutó por cambio de página
     // No ejecutar si está en modo prompt
     if (isOpen && !hasOpenedRef.current && !isPromptMode) {
-      // Ejecutar la ayuda automáticamente cuando se abre el chat
+      // Marcar que ya se abrió
       hasOpenedRef.current = true;
-      // Pequeño delay para asegurar que el chat esté completamente abierto
+      // Actualizar contenido de página sin enviar mensaje automático
       const timer = setTimeout(() => {
-        handleRequestHelp();
-      }, 300);
+        const currentPageContent = extractPageContent();
+        setPageContent(currentPageContent);
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, handleRequestHelp, isPromptMode]);
+  }, [isOpen, isPromptMode]);
 
   const handleToggle = (e?: React.MouseEvent) => {
     if (e) {
