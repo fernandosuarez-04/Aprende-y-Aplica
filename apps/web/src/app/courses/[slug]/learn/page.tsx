@@ -1211,8 +1211,34 @@ Antes de cada respuesta, pregúntate:
         // Abrir el panel de LIA (panel derecho)
         setIsRightPanelOpen(true);
         
-        // Enviar mensaje automático a LIA con el contexto de la dificultad
-        const difficultyMessage = `Hola LIA, necesito ayuda con esta lección. ${analysis.interventionMessage}`;
+        // Construir contexto detallado de la lección actual
+        const lessonContext = currentLesson 
+          ? `Estoy en la lección "${currentLesson.lesson_title}"${currentLesson.lesson_description ? ` que trata sobre: ${currentLesson.lesson_description}` : ''}.`
+          : 'Estoy trabajando en una lección del taller.';
+        
+        // Describir el patrón de dificultad detectado
+        const patternDescriptions = analysis.patterns.map(p => {
+          switch (p.type) {
+            case 'inactivity':
+              return `Llevo ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : 'varios'} minutos sin avanzar`;
+            case 'excessive_scroll':
+              return 'He estado haciendo scroll repetidamente buscando información';
+            case 'failed_attempts':
+              return 'He intentado completar la actividad varias veces sin éxito';
+            case 'frequent_deletion':
+              return 'He estado escribiendo y borrando varias veces';
+            case 'repetitive_cycles':
+              return 'He estado yendo y viniendo entre diferentes secciones';
+            case 'erroneous_clicks':
+              return 'He hecho varios clicks sin resultado';
+            default:
+              return 'Estoy teniendo dificultades para avanzar';
+          }
+        }).join(' y ');
+        
+        // Mensaje contextualizado para LIA
+        const difficultyMessage = `${lessonContext} ${patternDescriptions}. ¿Podrías ayudarme a entender mejor este tema?`;
+        
         sendLiaMessage(difficultyMessage);
       }}
     >
