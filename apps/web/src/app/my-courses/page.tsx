@@ -276,7 +276,7 @@ export default function MyCoursesPage() {
               </Button>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 justify-items-center">
               {filteredCourses.map((course, index) => (
                 <motion.div
                   key={course.purchase_id}
@@ -284,10 +284,10 @@ export default function MyCoursesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   whileHover={{ y: -4 }}
-                  className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 group shadow-lg dark:shadow-xl"
+                  className="bg-white dark:bg-slate-800/60 border border-gray-100/70 dark:border-slate-700/60 rounded-[1.5rem] overflow-hidden hover:border-blue-400/60 dark:hover:border-blue-500/50 transition-all duration-300 group shadow-[0_20px_60px_rgba(15,20,40,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col h-full w-full max-w-[420px]"
                 >
                   {/* Course Thumbnail */}
-                  <div className="relative h-48 bg-gradient-to-br from-blue-600/20 to-purple-600/20 overflow-hidden">
+                  <div className="relative h-40 bg-gradient-to-br from-blue-600/15 to-purple-600/15 overflow-hidden">
                     {course.course_thumbnail ? (
                       <img
                         src={course.course_thumbnail}
@@ -313,9 +313,9 @@ export default function MyCoursesPage() {
                   </div>
 
                   {/* Course Content */}
-                  <div className="p-6">
+                  <div className="p-5 flex-1 flex flex-col gap-3">
                     {/* Category & Difficulty */}
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2">
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
                         {course.course_category}
                       </span>
@@ -327,18 +327,18 @@ export default function MyCoursesPage() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {course.course_title}
                     </h3>
 
                     {/* Instructor */}
-                    <p className="text-gray-600 dark:text-slate-400 text-sm mb-4">
+                    <p className="text-gray-600 dark:text-slate-400 text-sm">
                       Por {course.instructor_name}
                     </p>
 
                     {/* Progress Bar */}
                     {course.progress_percentage > 0 && (
-                      <div className="mb-4">
+                      <div className="mb-1">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-gray-600 dark:text-slate-400">Progreso</span>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">{course.progress_percentage}%</span>
@@ -355,24 +355,24 @@ export default function MyCoursesPage() {
                     )}
 
                     {/* Duration */}
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400 text-sm mb-4">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400 text-sm">
                       <Clock className="w-4 h-4" />
                       <span>{formatDuration(course.course_duration_minutes)}</span>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 mt-auto pt-1">
                       <Button
                         onClick={() => router.push(`/courses/${course.course_slug}`)}
                         variant="gradient"
-                        className="flex-1 group/btn"
+                        className="flex-1 group/btn h-12 rounded-xl shadow-[0_10px_25px_rgba(37,99,235,0.25)]"
                       >
                         <Play className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
                         {course.progress_percentage > 0 ? 'Continuar' : 'Iniciar'}
                       </Button>
                       
                       {course.progress_percentage === 100 && (
-                        <div className="px-4 py-2 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center gap-2">
+                        <div className="px-4 py-2 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-5 h-5 text-green-400" />
                           <span className="text-green-400 font-medium">Completado</span>
                         </div>

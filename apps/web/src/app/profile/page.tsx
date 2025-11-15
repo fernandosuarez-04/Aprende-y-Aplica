@@ -107,19 +107,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-carbon">
+    <div className="min-h-screen bg-gray-50 dark:bg-carbon">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-carbon-900 border-b border-carbon-700"
+        className="bg-white/90 dark:bg-carbon-900 border-b border-gray-200 dark:border-carbon-700 backdrop-blur-sm shadow-sm"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <motion.button
                 onClick={() => router.back()}
-                className="flex items-center space-x-2 px-4 py-2 text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-carbon-800"
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-carbon-800"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -129,14 +129,14 @@ export default function ProfilePage() {
             </div>
 
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-text-primary">Mi Perfil</h1>
-              <p className="text-sm text-text-tertiary">Gestiona tu información personal</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-text-primary">Mi Perfil</h1>
+              <p className="text-sm text-gray-500 dark:text-text-tertiary">Gestiona tu información personal</p>
             </div>
 
             <motion.button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center space-x-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="flex items-center space-x-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-md"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -160,14 +160,14 @@ export default function ProfilePage() {
             transition={{ delay: 0.1 }}
             className="lg:col-span-1"
           >
-            <div className="bg-carbon-800 rounded-xl p-6 space-y-6">
+            <div className="bg-white dark:bg-carbon-800 rounded-2xl p-6 space-y-6 shadow-lg border border-gray-200 dark:border-carbon-700">
               {/* Avatar y info básica */}
               <div className="text-center">
                 <motion.div
                   className="relative w-24 h-24 mx-auto mb-4"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <div className="w-full h-full bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+                  <div className="w-full h-full bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center shadow-lg overflow-hidden ring-4 ring-white dark:ring-transparent">
                     {profile.profile_picture_url ? (
                       <img
                         src={profile.profile_picture_url}
@@ -207,62 +207,62 @@ export default function ProfilePage() {
                   </motion.label>
                 </motion.div>
                 
-                <h3 className="text-lg font-semibold text-text-primary">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-text-primary">
                   {profile.display_name}
                 </h3>
-                <p className="text-sm text-text-tertiary">
+                <p className="text-sm text-gray-500 dark:text-text-tertiary">
                   {profile.type_rol}
                 </p>
               </div>
 
               {/* Stats */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-carbon-700 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
                       <Award className="w-4 h-4 text-primary" />
                     </div>
-                    <span className="text-sm text-text-secondary">Puntos</span>
+                    <span className="text-sm text-gray-600 dark:text-text-secondary">Puntos</span>
                   </div>
-                  <span className="text-lg font-semibold text-text-primary">
+                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">
                     {profile.points.toLocaleString()}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-carbon-700 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
                       <Check className="w-4 h-4 text-green-500" />
                     </div>
-                    <span className="text-sm text-text-secondary">Completados</span>
+                    <span className="text-sm text-gray-600 dark:text-text-secondary">Completados</span>
                   </div>
-                  <span className="text-lg font-semibold text-text-primary">8</span>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">8</span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-carbon-700 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-blue-500" />
                     </div>
-                    <span className="text-sm text-text-secondary">Progreso</span>
+                    <span className="text-sm text-gray-600 dark:text-text-secondary">Progreso</span>
                   </div>
-                  <span className="text-lg font-semibold text-text-primary">75%</span>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">75%</span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-carbon-700 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
                       <Clock className="w-4 h-4 text-orange-500" />
                     </div>
-                    <span className="text-sm text-text-secondary">Tiempo</span>
+                    <span className="text-sm text-gray-600 dark:text-text-secondary">Tiempo</span>
                   </div>
-                  <span className="text-lg font-semibold text-text-primary">24h</span>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">24h</span>
                 </div>
               </div>
 
               {/* Info del sistema */}
-              <div className="pt-4 border-t border-carbon-700">
-                <div className="space-y-2 text-xs text-text-tertiary">
+              <div className="pt-4 border-t border-gray-200 dark:border-carbon-700">
+                <div className="space-y-2 text-xs text-gray-500 dark:text-text-tertiary">
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-3 h-3" />
                     <span>Miembro desde {formatDate(profile.created_at)}</span>
@@ -293,106 +293,106 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-carbon-800 rounded-xl p-6"
+                className="bg-white dark:bg-carbon-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-carbon-700"
               >
                 <div className="flex items-center space-x-3 mb-6">
                   <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
                     <User className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-text-primary">Información Personal</h2>
-                    <p className="text-sm text-text-tertiary">Detalles personales y profesionales</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-text-primary">Información Personal</h2>
+                    <p className="text-sm text-gray-500 dark:text-text-tertiary">Detalles personales y profesionales</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Nombre *
                     </label>
                     <input
                       type="text"
                       value={formData.first_name || ''}
                       onChange={(e) => handleInputChange('first_name', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Nombre"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Apellido *
                     </label>
                     <input
                       type="text"
                       value={formData.last_name || ''}
                       onChange={(e) => handleInputChange('last_name', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Apellido"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Nombre de Usuario *
                     </label>
                     <input
                       type="text"
                       value={formData.username || ''}
                       onChange={(e) => handleInputChange('username', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="usuario"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Rol en la Empresa
                     </label>
                     <input
                       type="text"
                       value={formData.type_rol || ''}
                       onChange={(e) => handleInputChange('type_rol', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Ej: CEO, CTO/CIO, Desarrollador UX/UI, Gerencia Media..."
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Teléfono
                     </label>
                     <input
                       type="tel"
                       value={formData.phone || ''}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="+52 55 1234 5678"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Ubicación
                     </label>
                     <input
                       type="text"
                       value={formData.location || ''}
                       onChange={(e) => handleInputChange('location', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Ciudad, País"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Biografía
                     </label>
                     <textarea
                       value={formData.bio || ''}
                       onChange={(e) => handleInputChange('bio', e.target.value)}
                       rows={4}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors resize-none"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors resize-none"
                       placeholder="Cuéntanos sobre ti, tus intereses y objetivos de aprendizaje..."
                     />
                   </div>
@@ -404,61 +404,61 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-carbon-800 rounded-xl p-6"
+                className="bg-white dark:bg-carbon-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-carbon-700"
               >
                 <div className="flex items-center space-x-3 mb-6">
                   <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
                     <Mail className="w-4 h-4 text-green-500" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-text-primary">Seguridad</h2>
-                    <p className="text-sm text-text-tertiary">Gestiona tu email y contraseña</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-text-primary">Seguridad</h2>
+                    <p className="text-sm text-gray-500 dark:text-text-tertiary">Gestiona tu email y contraseña</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Correo Electrónico *
                     </label>
                     <input
                       type="email"
                       value={formData.email || ''}
                       onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="tu@email.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Nueva Contraseña
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Mínimo 8 caracteres"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Contraseña Actual
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Ingresa tu contraseña actual"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Confirmar Nueva Contraseña
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Confirma tu nueva contraseña"
                     />
                   </div>
@@ -470,21 +470,21 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-carbon-800 rounded-xl p-6"
+                className="bg-white dark:bg-carbon-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-carbon-700"
               >
                 <div className="flex items-center space-x-3 mb-6">
                   <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                     <FileText className="w-4 h-4 text-blue-500" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-text-primary">Documentos y Links</h2>
-                    <p className="text-sm text-text-tertiary">Gestiona tu curriculum y perfiles profesionales</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-text-primary">Documentos y Links</h2>
+                    <p className="text-sm text-gray-500 dark:text-text-tertiary">Gestiona tu curriculum y perfiles profesionales</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Curriculum Vitae
                     </label>
                     <div className="space-y-3">
@@ -508,10 +508,10 @@ export default function ProfilePage() {
                       />
                       <label 
                         htmlFor="curriculum-upload" 
-                        className="flex items-center space-x-2 px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg hover:bg-carbon-600 transition-colors cursor-pointer"
+                        className="flex items-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg hover:bg-gray-200 dark:hover:bg-carbon-600 transition-colors cursor-pointer"
                       >
-                        <Upload className="w-4 h-4 text-text-secondary" />
-                        <span className="text-text-secondary">
+                        <Upload className="w-4 h-4 text-gray-600 dark:text-text-secondary" />
+                        <span className="text-gray-700 dark:text-text-secondary">
                           {profile.curriculum_url ? 'Cambiar CV' : 'Subir CV'}
                         </span>
                       </label>
@@ -536,45 +536,45 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       Portafolio/Sitio Web
                     </label>
                     <input
                       type="url"
                       value={formData.website_url || ''}
                       onChange={(e) => handleInputChange('website_url', e.target.value)}
-                      className="w-full px-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="https://tu-portafolio.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       LinkedIn
                     </label>
                     <div className="relative">
-                      <Linkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                      <Linkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-text-tertiary" />
                       <input
                         type="url"
                         value={formData.linkedin_url || ''}
                         onChange={(e) => handleInputChange('linkedin_url', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                         placeholder="https://linkedin.com/in/tu-perfil"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
                       GitHub
                     </label>
                     <div className="relative">
-                      <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                      <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-text-tertiary" />
                       <input
                         type="url"
                         value={formData.github_url || ''}
                         onChange={(e) => handleInputChange('github_url', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-carbon-700 border border-carbon-600 rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-colors"
+                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                         placeholder="https://github.com/tu-usuario"
                       />
                     </div>

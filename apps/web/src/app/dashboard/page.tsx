@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, lazy, Suspense, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, 
@@ -30,9 +30,16 @@ import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
 import { formatRelativeTime } from '../../core/utils/date-utils';
 import { StarRating } from '../../features/courses/components/StarRating';
 import { useTranslation } from 'react-i18next';
+import dynamic from 'next/dynamic';
 
 // 🚀 Lazy Loading - AIChatAgent pesado
-const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })));
+const AIChatAgent = dynamic(
+  () => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
 // Los talleres ahora se obtienen únicamente de la API
 
@@ -597,14 +604,12 @@ export default function DashboardPage() {
       </main>
 
       {/* AI Chat Agent - Lazy loaded */}
-      <Suspense fallback={null}>
-        <AIChatAgent
-          assistantName="Lia"
-          initialMessage={t('assistant.initialMessage')}
-          promptPlaceholder={t('assistant.placeholder')}
-          context="workshops"
-        />
-      </Suspense>
+      <AIChatAgent
+        assistantName="Lia"
+        initialMessage={t('assistant.initialMessage')}
+        promptPlaceholder={t('assistant.placeholder')}
+        context="workshops"
+      />
     </div>
   );
 }

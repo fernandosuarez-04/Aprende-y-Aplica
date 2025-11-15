@@ -1,6 +1,27 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.admin_dashboard_layouts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name character varying NOT NULL,
+  layout_config jsonb NOT NULL DEFAULT '{}'::jsonb,
+  is_default boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT admin_dashboard_layouts_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_dashboard_layouts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.admin_dashboard_preferences (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  activity_period character varying DEFAULT '24h'::character varying,
+  growth_chart_metrics jsonb DEFAULT '["users"]'::jsonb,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT admin_dashboard_preferences_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_dashboard_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.adopcion_genai (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   pais text,
@@ -155,6 +176,20 @@ CREATE TABLE public.audit_logs (
   CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
   CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT audit_logs_admin_user_id_fkey FOREIGN KEY (admin_user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.calendar_integrations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  provider text NOT NULL,
+  access_token text,
+  refresh_token text,
+  expires_at timestamp with time zone,
+  scope text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT calendar_integrations_pkey PRIMARY KEY (id),
+  CONSTRAINT calendar_integrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.certificate_ledger (
   block_id bigint NOT NULL DEFAULT nextval('certificate_ledger_block_id_seq'::regclass),
@@ -1071,6 +1106,9 @@ CREATE TABLE public.reportes_problemas (
   updated_at timestamp with time zone DEFAULT now(),
   resuelto_at timestamp with time zone,
   metadata jsonb DEFAULT '{}'::jsonb,
+  session_recording text,
+  recording_size character varying,
+  recording_duration integer,
   CONSTRAINT reportes_problemas_pkey PRIMARY KEY (id),
   CONSTRAINT reportes_problemas_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT reportes_problemas_admin_asignado_fkey FOREIGN KEY (admin_asignado) REFERENCES public.users(id)
@@ -1105,6 +1143,58 @@ CREATE TABLE public.sectores (
   slug text NOT NULL UNIQUE,
   nombre text NOT NULL,
   CONSTRAINT sectores_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.study_plans (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  goal_hours_per_week numeric NOT NULL DEFAULT 5,
+  start_date date,
+  end_date date,
+  timezone text NOT NULL DEFAULT 'UTC'::text,
+  preferred_days ARRAY NOT NULL DEFAULT '{1,2,3,4,5}'::smallint[],
+  preferred_time_blocks jsonb DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT study_plans_pkey PRIMARY KEY (id),
+  CONSTRAINT study_plans_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.study_preferences (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  timezone text NOT NULL DEFAULT 'UTC'::text,
+  preferred_time_of_day text NOT NULL DEFAULT 'morning'::text,
+  preferred_days ARRAY NOT NULL DEFAULT '{1,2,3,4,5}'::smallint[],
+  daily_target_minutes integer NOT NULL DEFAULT 60,
+  weekly_target_minutes integer NOT NULL DEFAULT 300,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT study_preferences_pkey PRIMARY KEY (id),
+  CONSTRAINT study_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.study_sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  plan_id uuid,
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  course_id text,
+  focus_area text,
+  start_time timestamp with time zone NOT NULL,
+  end_time timestamp with time zone NOT NULL,
+  duration_minutes integer DEFAULT (GREATEST((1)::numeric, (EXTRACT(epoch FROM (end_time - start_time)) / (60)::numeric)))::integer,
+  status text NOT NULL DEFAULT 'planned'::text,
+  actual_duration_minutes integer,
+  recurrence jsonb,
+  metrics jsonb DEFAULT '{}'::jsonb,
+  calendar_provider text,
+  external_event_id text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT study_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT study_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT study_sessions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.study_plans(id)
 );
 CREATE TABLE public.subscriptions (
   subscription_id uuid NOT NULL DEFAULT gen_random_uuid(),

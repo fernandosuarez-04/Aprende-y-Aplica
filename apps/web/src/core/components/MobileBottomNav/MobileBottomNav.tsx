@@ -154,14 +154,6 @@ export function MobileBottomNav() {
                   {/* Icono */}
                   <div className="relative">
                     <Icon className="w-5 h-5" />
-                    {/* Indicador de notificación para Comunidad */}
-                    {item.id === 'community' && (
-                      <motion.div
-                        className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      />
-                    )}
                   </div>
 
                   {/* Texto */}
