@@ -71,6 +71,12 @@ export class DifficultyPatternDetector {
     // Filtrar eventos dentro de la ventana de análisis
     const recentEvents = this.filterRecentEvents(events, this.thresholds.analysisWindow);
     
+    console.log('🔍 [DEBUG] Analizando eventos:', {
+      totalEvents: events.length,
+      recentEvents: recentEvents.length,
+      analysisWindow: this.thresholds.analysisWindow
+    });
+    
     if (recentEvents.length === 0) {
       return this.createAnalysis(0, [], false, '');
     }
@@ -201,7 +207,7 @@ export class DifficultyPatternDetector {
   }
 
   /**
-   * Detecta ciclos repetitivos (usuario vuelve atrás repetidamente)
+   * Detecta ciclos repetitivos (usuario vuelve atrás repetidamente o cambia entre secciones)
    */
   private detectRepetitiveCycles(events: eventWithTime[]): DifficultyPattern | null {
     // Contar eventos de navegación hacia atrás o clicks en "anterior"
@@ -217,14 +223,71 @@ export class DifficultyPatternDetector {
       return false;
     });
 
-    if (backNavigationEvents.length >= 3) {
+    // NUEVO: Detectar cambios frecuentes entre tabs/secciones
+    // En rrweb, los IDs son numéricos internos, no IDs del DOM
+    // Estrategia: detectar clicks repetidos alternando entre un conjunto pequeño de IDs
+    const clickEvents = events.filter(event => {
+      if (event.type === 3) { // MouseInteraction
+        const data = event.data as any;
+        return data.source === 2; // Solo clicks
+      }
+      return false;
+    });
+
+    // Extraer secuencia de IDs clickeados
+    const clickedIds = clickEvents.map(e => (e.data as any).id);
+    
+    console.log('🖱️ [DEBUG] Secuencia de clicks:', {
+      total: clickedIds.length,
+      ids: clickedIds,
+      uniqueIds: [...new Set(clickedIds)].length
+    });
+    
+    // Detectar patrón de ciclos: si hay muchos clicks alternando entre pocos IDs únicos
+    // Ejemplo: [177, 184, 192, 177, 184, 192] = cambio entre tabs
+    const uniqueIds = new Set(clickedIds);
+    let tabClickEvents: eventWithTime[] = [];
+    let alternations = 0;
+    
+    // Si hay 5+ clicks alternando entre 3-15 elementos únicos = probable navegación entre tabs
+    // (aumentado a 15 para capturar interfaces con múltiples tabs y botones)
+    if (clickedIds.length >= 5 && uniqueIds.size >= 3 && uniqueIds.size <= 15) {
+      // Verificar que hay alternancia real (no clicks en el mismo elemento)
+      for (let i = 1; i < clickedIds.length; i++) {
+        if (clickedIds[i] !== clickedIds[i - 1]) {
+          alternations++;
+          tabClickEvents.push(clickEvents[i]);
+        }
+      }
+      
+      console.log('🔄 [DEBUG] Análisis de alternancia:', {
+        clicksTotal: clickedIds.length,
+        idsUnicos: uniqueIds.size,
+        alternancias: alternations,
+        ratio: (alternations / clickedIds.length).toFixed(2)
+      });
+    }
+
+    // Si hay 5 o más cambios de tab/sección en la ventana de análisis, es un ciclo repetitivo
+    const totalNavigationEvents = backNavigationEvents.length + alternations;
+    
+    console.log('🔄 [DEBUG] Ciclos repetitivos:', {
+      backNavigation: backNavigationEvents.length,
+      tabChanges: alternations,
+      total: totalNavigationEvents,
+      threshold: 5
+    });
+    
+    if (totalNavigationEvents >= 5) {
       return {
         type: 'repetitive_cycles',
-        severity: 'medium',
-        description: `Usuario ha vuelto atrás ${backNavigationEvents.length} veces`,
+        severity: alternations >= 7 ? 'high' : 'medium',
+        description: `Usuario ha cambiado entre secciones ${totalNavigationEvents} veces`,
         timestamp: Date.now(),
         metadata: {
-          backNavigationCount: backNavigationEvents.length
+          navigationCount: totalNavigationEvents,
+          backNavigationCount: backNavigationEvents.length,
+          tabChanges: alternations
         }
       };
     }
