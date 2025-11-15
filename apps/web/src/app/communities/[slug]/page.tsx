@@ -1917,8 +1917,8 @@ export default function CommunityDetailPage() {
     );
   }
 
-  const canViewContent = community.is_member || (community.access_type === 'free' && community.can_join !== false);
-  const needsAuth = !community.is_member && community.access_type === 'invitation_only';
+  const canViewContent = community.is_member || (community.access_type === 'free' && community.can_join !== false) || (community.slug === 'profesionales' && community.is_member);
+  const needsAuth = !community.is_member && community.access_type === 'invitation_only' && !(community.slug === 'profesionales');
 
   return (
     <div
@@ -2040,12 +2040,12 @@ export default function CommunityDetailPage() {
                   {community.member_count} Miembros
                 </div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
-                  {community.access_type === 'free' ? (
+                  {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? (
                     <CheckCircle className="w-4 h-4" />
                   ) : (
                     <Lock className="w-4 h-4" />
                   )}
-                  {community.access_type === 'free' ? 'Acceso gratuito' : 'Por invitación'}
+                  {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? 'Acceso gratuito' : 'Por invitación'}
                 </div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
                   <Clock className="w-4 h-4" />

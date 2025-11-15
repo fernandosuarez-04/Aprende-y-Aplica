@@ -105,15 +105,16 @@ export async function GET(
     let canJoin = true;
     
     if (community.slug === 'profesionales') {
-      const hasAnyMembership = allMemberships && allMemberships.length > 0;
+      // Verificar si el usuario tiene membresías en OTRAS comunidades (excluir Profesionales)
+      const hasOtherMemberships = allMemberships && allMemberships.some(m => m.community_id !== community.id);
       
-      if (!hasAnyMembership) {
-        // Usuario sin comunidad: acceso libre a Profesionales
-        logger.log('🔓 User has no memberships: allowing free access to Profesionales');
+      if (!hasOtherMemberships) {
+        // Usuario sin otras comunidades: mostrar como miembro automático de Profesionales
+        logger.log('🔓 User has no other memberships: showing as auto-member of Profesionales');
         isMember = true;
         userRole = 'member';
       } else {
-        // Usuario con comunidad: bloqueado de Profesionales
+        // Usuario con otra comunidad: bloqueado de Profesionales
         logger.log('🔒 User has other memberships: blocking access to Profesionales');
         isMember = false;
         canJoin = false;

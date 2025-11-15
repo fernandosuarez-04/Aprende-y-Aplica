@@ -52,12 +52,13 @@ export async function POST(request: NextRequest) {
 
     // Lógica especial para "Profesionales"
     if (community.slug === 'profesionales') {
-      // Verificar si el usuario ya tiene membresía en CUALQUIER otra comunidad
+      // Verificar si el usuario ya tiene membresía en OTRAS comunidades (excluir Profesionales)
       const { data: allMemberships, error: allMembershipsError } = await supabase
         .from('community_members')
-        .select('community_id, communities!inner(name)')
+        .select('community_id, communities!inner(name, slug)')
         .eq('user_id', user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .neq('communities.slug', 'profesionales');
 
       if (allMembershipsError) {
         logger.error('Error checking all memberships:', allMembershipsError);

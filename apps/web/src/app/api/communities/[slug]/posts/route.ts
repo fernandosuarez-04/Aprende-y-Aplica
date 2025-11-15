@@ -67,12 +67,13 @@ export async function GET(
         logger.log('🔓 Free community: user not authenticated, showing limited content');
         // Permitir ver posts pero no crear
       } else {
-        // Verificar si el usuario tiene membresía en otras comunidades
+        // Verificar si el usuario tiene membresía en OTRAS comunidades (excluir Profesionales)
         const { data: allMemberships } = await supabase
           .from('community_members')
           .select('community_id')
           .eq('user_id', user.id)
-          .eq('is_active', true);
+          .eq('is_active', true)
+          .neq('community_id', community.id); // Excluir la membresía de Profesionales misma
 
         const hasOtherMemberships = allMemberships && allMemberships.length > 0;
         
@@ -287,6 +288,58 @@ export async function POST(
           .single();
         
         membership = emailMembership;
+      }
+    }
+
+    // Lógica especial para "Profesionales": crear membresía automática si no existe
+    if (!membership && slug === 'profesionales') {
+      logger.log('🔓 Auto-creating membership for Profesionales community');
+      
+      // Verificar que el usuario no tenga otras membresías (excluyendo Profesionales)
+      const { data: allMemberships } = await supabase
+        .from('community_members')
+        .select('community_id, communities!inner(slug)')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .neq('communities.slug', 'profesionales');
+      
+      if (!allMemberships || allMemberships.length === 0) {
+        // Crear membresía automática
+        const { data: newMembership, error: joinError } = await supabase
+          .from('community_members')
+          .insert({
+            community_id: community.id,
+            user_id: user.id,
+            role: 'member',
+            joined_at: new Date().toISOString(),
+            is_active: true
+          })
+          .select('id')
+          .single();
+
+        if (!joinError && newMembership) {
+          membership = newMembership;
+          logger.log('✅ Auto-membership created for Profesionales');
+          
+          // Obtener el contador actual y actualizarlo
+          const { data: communityData } = await supabase
+            .from('communities')
+            .select('member_count')
+            .eq('id', community.id)
+            .single();
+          
+          if (communityData) {
+            await supabase
+              .from('communities')
+              .update({ 
+                member_count: (communityData.member_count || 0) + 1,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', community.id);
+          }
+        } else {
+          logger.error('❌ Error creating auto-membership:', joinError);
+        }
       }
     }
 
