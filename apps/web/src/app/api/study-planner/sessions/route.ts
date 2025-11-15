@@ -62,18 +62,38 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
     });
 
-    // Sincronizar con calendarios externos si hay integraciones
+    // Sincronizar con todos los calendarios externos activos
     try {
       const integrations = await StudyPlannerService.getCalendarIntegrations(user.id);
-      // Solo sincronizar con la primera integración activa para evitar duplicados
-      const activeIntegration = integrations.find(integration => integration.access_token);
-      if (activeIntegration) {
-        const eventId = await CalendarSyncService.createEvent(session, activeIntegration);
-        if (eventId) {
-          // Actualizar la sesión con el ID del evento externo
+      const activeIntegrations = integrations.filter(integration => integration.access_token);
+      
+      if (activeIntegrations.length > 0) {
+        // Usar la primera integración para guardar el external_event_id principal
+        const primaryIntegration = activeIntegrations[0];
+        let primaryEventId: string | null = null;
+        
+        // Sincronizar con todas las integraciones
+        for (const integration of activeIntegrations) {
+          try {
+            const eventId = await CalendarSyncService.createEvent(session, integration);
+            if (eventId) {
+              // Guardar el ID de la primera integración como principal
+              if (integration.provider === primaryIntegration.provider) {
+                primaryEventId = eventId;
+              }
+              console.log(`[SESSIONS POST] Synced session ${session.id} to ${integration.provider} calendar`);
+            }
+          } catch (syncError) {
+            console.error(`[SESSIONS POST] Error syncing session to ${integration.provider}:`, syncError);
+            // Continuar con las demás integraciones aunque falle una
+          }
+        }
+        
+        // Guardar el external_event_id de la primera integración
+        if (primaryEventId) {
           session = await StudyPlannerService.updateStudySession(session.id, user.id, {
-            external_event_id: eventId,
-            calendar_provider: activeIntegration.provider,
+            external_event_id: primaryEventId,
+            calendar_provider: primaryIntegration.provider,
           });
         }
       }

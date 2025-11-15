@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         
         // Crear las sesiones en la base de datos
         const integrations = await StudyPlannerService.getCalendarIntegrations(user.id);
-        const activeIntegration = integrations.find(integration => integration.access_token);
+        const activeIntegrations = integrations.filter(integration => integration.access_token);
         
         let createdCount = 0;
         let syncedCount = 0;
@@ -85,20 +85,36 @@ export async function POST(request: NextRequest) {
             const createdSession = await StudyPlannerService.createStudySession(session);
             createdCount++;
             
-            // Sincronizar con calendario externo si hay integración activa
-            if (activeIntegration) {
-              try {
-                const eventId = await CalendarSyncService.createEvent(createdSession, activeIntegration);
-                if (eventId) {
-                  await StudyPlannerService.updateStudySession(createdSession.id, user.id, {
-                    external_event_id: eventId,
-                    calendar_provider: activeIntegration.provider,
-                  });
-                  syncedCount++;
+            // Sincronizar con todos los calendarios externos activos
+            if (activeIntegrations.length > 0) {
+              // Usar la primera integración para guardar el external_event_id principal
+              const primaryIntegration = activeIntegrations[0];
+              let primaryEventId: string | null = null;
+              
+              // Sincronizar con todas las integraciones
+              for (const integration of activeIntegrations) {
+                try {
+                  const eventId = await CalendarSyncService.createEvent(createdSession, integration);
+                  if (eventId) {
+                    // Guardar el ID de la primera integración como principal
+                    if (integration.provider === primaryIntegration.provider) {
+                      primaryEventId = eventId;
+                    }
+                    syncedCount++;
+                    console.log(`[PREFERENCES POST] Synced session ${createdSession.id} to ${integration.provider} calendar`);
+                  }
+                } catch (syncError) {
+                  console.error(`[PREFERENCES POST] Error syncing session to ${integration.provider}:`, syncError);
+                  // Continuar con las demás integraciones aunque falle una
                 }
-              } catch (syncError) {
-                console.error('[PREFERENCES POST] Error syncing generated session to calendar:', syncError);
-                // Continuar con las demás sesiones aunque falle una sincronización
+              }
+              
+              // Guardar el external_event_id de la primera integración
+              if (primaryEventId) {
+                await StudyPlannerService.updateStudySession(createdSession.id, user.id, {
+                  external_event_id: primaryEventId,
+                  calendar_provider: primaryIntegration.provider,
+                });
               }
             }
           } catch (createError) {
@@ -168,17 +184,20 @@ export async function PUT(request: NextRequest) {
         
         // Eliminar sesiones futuras planificadas que fueron generadas automáticamente
         const integrations = await StudyPlannerService.getCalendarIntegrations(user.id);
-        const activeIntegration = integrations.find(integration => integration.access_token);
+        const activeIntegrations = integrations.filter(integration => integration.access_token);
         
         let deletedCount = 0;
         for (const session of existingSessions) {
           if (session.status === 'planned' && session.description?.includes('programada automáticamente')) {
-            // Eliminar del calendario externo si existe
-            if (session.external_event_id && activeIntegration) {
-              try {
-                await CalendarSyncService.deleteEvent(session, activeIntegration);
-              } catch (deleteError) {
-                logger.error('Error deleting session from calendar:', deleteError);
+            // Eliminar de todos los calendarios externos activos
+            if (session.external_event_id) {
+              for (const integration of activeIntegrations) {
+                try {
+                  await CalendarSyncService.deleteEvent(session, integration);
+                } catch (deleteError) {
+                  // Ignorar errores si el evento no existe en ese calendario
+                  console.log(`[PREFERENCES PUT] Could not delete session from ${integration.provider} (may not exist there)`);
+                }
               }
             }
             // Eliminar de la base de datos
@@ -200,19 +219,36 @@ export async function PUT(request: NextRequest) {
             const createdSession = await StudyPlannerService.createStudySession(session);
             createdCount++;
             
-            // Sincronizar con calendario externo si hay integración activa
-            if (activeIntegration) {
-              try {
-                const eventId = await CalendarSyncService.createEvent(createdSession, activeIntegration);
-                if (eventId) {
-                  await StudyPlannerService.updateStudySession(createdSession.id, user.id, {
-                    external_event_id: eventId,
-                    calendar_provider: activeIntegration.provider,
-                  });
-                  syncedCount++;
+            // Sincronizar con todos los calendarios externos activos
+            if (activeIntegrations.length > 0) {
+              // Usar la primera integración para guardar el external_event_id principal
+              const primaryIntegration = activeIntegrations[0];
+              let primaryEventId: string | null = null;
+              
+              // Sincronizar con todas las integraciones
+              for (const integration of activeIntegrations) {
+                try {
+                  const eventId = await CalendarSyncService.createEvent(createdSession, integration);
+                  if (eventId) {
+                    // Guardar el ID de la primera integración como principal
+                    if (integration.provider === primaryIntegration.provider) {
+                      primaryEventId = eventId;
+                    }
+                    syncedCount++;
+                    console.log(`[PREFERENCES PUT] Synced session ${createdSession.id} to ${integration.provider} calendar`);
+                  }
+                } catch (syncError) {
+                  console.error(`[PREFERENCES PUT] Error syncing session to ${integration.provider}:`, syncError);
+                  // Continuar con las demás integraciones aunque falle una
                 }
-              } catch (syncError) {
-                console.error('[PREFERENCES PUT] Error syncing generated session to calendar:', syncError);
+              }
+              
+              // Guardar el external_event_id de la primera integración
+              if (primaryEventId) {
+                await StudyPlannerService.updateStudySession(createdSession.id, user.id, {
+                  external_event_id: primaryEventId,
+                  calendar_provider: primaryIntegration.provider,
+                });
               }
             }
           } catch (createError) {

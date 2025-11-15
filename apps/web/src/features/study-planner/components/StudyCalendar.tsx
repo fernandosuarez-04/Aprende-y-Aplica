@@ -69,17 +69,18 @@ export function StudyCalendar({
   };
 
   function getStatusColor(status: string): string {
+    // Colores más brillantes y saturados para mejor visibilidad en modo oscuro
     switch (status) {
       case 'completed':
-        return '#10b981'; // green
+        return '#22c55e'; // green más brillante
       case 'in_progress':
         return '#3b82f6'; // blue
       case 'planned':
         return '#6366f1'; // indigo
       case 'cancelled':
-        return '#ef4444'; // red
+        return '#f87171'; // red más brillante
       case 'skipped':
-        return '#6b7280'; // gray
+        return '#9ca3af'; // gray más claro
       default:
         return '#6366f1';
     }
@@ -205,9 +206,9 @@ export function StudyCalendar({
             )}
             eventContent={(eventInfo) => (
               <div className="p-1">
-                <div className="text-xs font-medium truncate">{eventInfo.event.title}</div>
+                <div className="text-xs font-medium truncate text-white">{eventInfo.event.title}</div>
                 {view !== 'dayGridMonth' && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <div className="text-xs text-white/80 flex items-center gap-1">
                     <ClockIcon className="w-3 h-3" />
                     {eventInfo.timeText}
                   </div>
@@ -224,19 +225,24 @@ export function StudyCalendar({
           --fc-border-color: rgb(229 231 235);
           --fc-daygrid-event-dot-width: 8px;
           --fc-event-border-radius: 8px;
+          --fc-event-text-color: #ffffff;
         }
         .dark .fc-custom {
           --fc-border-color: rgb(55 65 81);
           --fc-page-bg-color: rgb(17 24 39);
           --fc-neutral-bg-color: rgb(31 41 55);
-          --fc-neutral-text-color: rgb(209 213 219);
+          --fc-neutral-text-color: rgb(243 244 246);
           --fc-button-bg-color: rgb(55 65 81);
           --fc-button-border-color: rgb(75 85 99);
           --fc-button-hover-bg-color: rgb(75 85 99);
           --fc-button-hover-border-color: rgb(107 114 128);
           --fc-button-active-bg-color: rgb(37 99 235);
           --fc-button-active-border-color: rgb(37 99 235);
-          --fc-today-bg-color: rgba(37, 99, 235, 0.1);
+          --fc-today-bg-color: rgba(37, 99, 235, 0.15);
+          --fc-daygrid-day-bg-color: rgb(17 24 39);
+          --fc-daygrid-day-frame-bg-color: rgb(17 24 39);
+          --fc-event-text-color: #ffffff;
+          --fc-col-header-cell-bg-color: rgb(31 41 55);
         }
         .fc-custom .fc-button {
           border-radius: 0.5rem;
@@ -247,32 +253,130 @@ export function StudyCalendar({
         .fc-custom .fc-button-primary {
           background-color: rgb(37 99 235);
           border-color: rgb(37 99 235);
+          color: white;
         }
         .fc-custom .fc-button-primary:hover {
           background-color: rgb(29 78 216);
           border-color: rgb(29 78 216);
         }
+        .dark .fc-custom .fc-button-primary {
+          background-color: rgb(55 65 81);
+          border-color: rgb(75 85 99);
+          color: rgb(209 213 219);
+        }
+        .dark .fc-custom .fc-button-primary:hover {
+          background-color: rgb(75 85 99);
+          border-color: rgb(107 114 128);
+        }
+        .dark .fc-custom .fc-button-primary:not(:disabled):active,
+        .dark .fc-custom .fc-button-primary:not(:disabled).fc-button-active {
+          background-color: rgb(37 99 235);
+          border-color: rgb(37 99 235);
+          color: white;
+        }
         .fc-custom .fc-event {
           cursor: pointer;
           border: none;
-          padding: 2px 4px;
+          padding: 4px 6px;
+          font-weight: 500;
+          color: #ffffff !important;
         }
         .fc-custom .fc-event:hover {
           opacity: 0.9;
           transform: scale(1.02);
+          filter: brightness(1.1);
+        }
+        .fc-custom .fc-event-title {
+          color: #ffffff !important;
+        }
+        .fc-custom .fc-event-time {
+          color: rgba(255, 255, 255, 0.9) !important;
         }
         .fc-custom .fc-daygrid-day-number {
           color: rgb(107 114 128);
+          font-weight: 500;
         }
         .dark .fc-custom .fc-daygrid-day-number {
-          color: rgb(209 213 219);
+          color: rgb(243 244 246) !important;
+          font-weight: 500;
         }
         .fc-custom .fc-col-header-cell-cushion {
           color: rgb(55 65 81);
           font-weight: 600;
         }
         .dark .fc-custom .fc-col-header-cell-cushion {
-          color: rgb(209 213 219);
+          color: rgb(243 244 246) !important;
+          font-weight: 600;
+        }
+        .dark .fc-custom .fc-col-header-cell {
+          background-color: rgb(31 41 55) !important;
+          border-color: rgb(55 65 81) !important;
+        }
+        .dark .fc-custom .fc-daygrid-day {
+          background-color: rgb(17 24 39) !important;
+        }
+        .dark .fc-custom .fc-daygrid-day-frame {
+          background-color: rgb(17 24 39) !important;
+        }
+        .dark .fc-custom .fc-daygrid-day-top {
+          color: rgb(243 244 246) !important;
+        }
+        .dark .fc-custom .fc-day-other .fc-daygrid-day-frame {
+          background-color: rgb(31 41 55) !important;
+          opacity: 0.6;
+        }
+        .dark .fc-custom .fc-day-other .fc-daygrid-day-number {
+          color: rgb(156 163 175) !important;
+        }
+        .dark .fc-custom .fc-day-today {
+          background-color: rgba(37, 99, 235, 0.15) !important;
+        }
+        .dark .fc-custom .fc-day-today .fc-daygrid-day-number {
+          color: rgb(96 165 250) !important;
+          font-weight: 700;
+        }
+        .dark .fc-custom .fc-day-today .fc-daygrid-day-frame {
+          background-color: rgba(37, 99, 235, 0.15) !important;
+        }
+        .dark .fc-custom .fc-scrollgrid {
+          border-color: rgb(55 65 81) !important;
+          background-color: rgb(17 24 39) !important;
+        }
+        .dark .fc-custom .fc-scrollgrid-section > td {
+          border-color: rgb(55 65 81) !important;
+        }
+        .dark .fc-custom .fc-scrollgrid-section-header > td {
+          background-color: rgb(31 41 55) !important;
+          border-color: rgb(55 65 81) !important;
+        }
+        .dark .fc-custom .fc-timegrid-slot {
+          border-color: rgb(55 65 81);
+        }
+        .dark .fc-custom .fc-timegrid-slot-label {
+          color: rgb(156 163 175);
+        }
+        .dark .fc-custom .fc-timegrid-axis {
+          border-color: rgb(55 65 81);
+          color: rgb(156 163 175);
+        }
+        .dark .fc-custom .fc-timegrid-col {
+          border-color: rgb(55 65 81);
+        }
+        .dark .fc-custom .fc-timegrid-event {
+          border-color: transparent;
+        }
+        .dark .fc-custom .fc-daygrid-event {
+          border-color: transparent;
+        }
+        /* Forzar colores en modo oscuro */
+        .dark .fc-custom table {
+          background-color: rgb(17 24 39) !important;
+        }
+        .dark .fc-custom .fc-view-harness {
+          background-color: rgb(17 24 39) !important;
+        }
+        .dark .fc-custom .fc-daygrid-body {
+          background-color: rgb(17 24 39) !important;
         }
       `}</style>
     </div>

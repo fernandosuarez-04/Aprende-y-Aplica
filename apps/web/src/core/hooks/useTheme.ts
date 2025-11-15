@@ -4,30 +4,71 @@ import { useState, useEffect } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
+// Función helper para obtener el tema del sistema
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'light'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+// Función helper para resolver el tema
+const resolveTheme = (theme: Theme): 'light' | 'dark' => {
+  if (theme === 'system') {
+    return getSystemTheme()
+  }
+  return theme
+}
+
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>('system')
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark')
-
-  useEffect(() => {
-    // Obtener tema guardado del localStorage
+  // Inicializar con el tema correcto desde el principio
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'system'
     const savedTheme = localStorage.getItem('theme') as Theme
-    if (savedTheme) {
-      setTheme(savedTheme)
-    }
-  }, [])
+    return savedTheme || 'system'
+  })
+  
+  // Inicializar resolvedTheme correctamente desde el principio
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light'
+    const savedTheme = localStorage.getItem('theme') as Theme
+    return resolveTheme(savedTheme || 'system')
+  })
 
   useEffect(() => {
-    const root = window.document.documentElement
+    // Resolver el tema cuando cambia
+    const newResolvedTheme = resolveTheme(theme)
+    setResolvedTheme(newResolvedTheme)
+  }, [theme])
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      setResolvedTheme(systemTheme)
+  // Escuchar cambios en las preferencias del sistema cuando el tema es 'system'
+  useEffect(() => {
+    if (theme !== 'system') return
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => {
+      const newResolvedTheme = getSystemTheme()
+      setResolvedTheme(newResolvedTheme)
+    }
+
+    // Agregar listener
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange)
     } else {
-      setResolvedTheme(theme)
+      // Fallback para navegadores antiguos
+      mediaQuery.addListener(handleChange)
+    }
+
+    // Cleanup
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleChange)
+      } else {
+        mediaQuery.removeListener(handleChange)
+      }
     }
   }, [theme])
 
   useEffect(() => {
+    // Aplicar el tema al DOM solo cuando resolvedTheme cambie
     const root = window.document.documentElement
 
     // Remover clases anteriores

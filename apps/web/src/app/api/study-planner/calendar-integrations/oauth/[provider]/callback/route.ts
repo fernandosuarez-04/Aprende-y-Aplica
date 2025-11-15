@@ -78,7 +78,17 @@ export async function GET(
       const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
       const redirectUri = `${request.nextUrl.origin}/api/study-planner/calendar-integrations/oauth/${typedProvider}/callback`;
 
+      console.log('[MICROSOFT OAUTH] Starting token exchange', {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        redirectUri,
+      });
+
       if (!clientId || !clientSecret) {
+        console.error('[MICROSOFT OAUTH] Missing configuration:', {
+          hasClientId: !!clientId,
+          hasClientSecret: !!clientSecret,
+        });
         return NextResponse.redirect(
           new URL('/study-planner?error=config_error', request.url)
         );
@@ -101,16 +111,35 @@ export async function GET(
       });
 
       if (!tokenResponse.ok) {
-        throw new Error('Error al obtener tokens de Microsoft');
+        const errorText = await tokenResponse.text();
+        console.error('[MICROSOFT OAUTH] Token exchange failed:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          error: errorText,
+        });
+        throw new Error(`Error al obtener tokens de Microsoft: ${tokenResponse.status} ${tokenResponse.statusText}`);
       }
 
       const tokenData = await tokenResponse.json();
       accessToken = tokenData.access_token;
       refreshToken = tokenData.refresh_token;
-      expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000));
+      expiresAt = tokenData.expires_in 
+        ? new Date(Date.now() + (tokenData.expires_in * 1000))
+        : null;
+
+      console.log('[MICROSOFT OAUTH] Token exchange successful', {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        expiresAt: expiresAt?.toISOString(),
+      });
+
+      if (!refreshToken) {
+        console.warn('[MICROSOFT OAUTH] No refresh_token received - session may expire');
+      }
     }
 
     // Guardar integración en la base de datos
+    console.log(`[${typedProvider.toUpperCase()} OAUTH] Saving integration for user ${user.id}`);
     await StudyPlannerService.createOrUpdateCalendarIntegration({
       user_id: user.id,
       provider: typedProvider,
@@ -122,6 +151,7 @@ export async function GET(
         : 'Calendars.ReadWrite offline_access',
     });
 
+    console.log(`[${typedProvider.toUpperCase()} OAUTH] Integration saved successfully`);
     return NextResponse.redirect(
       new URL('/study-planner?success=calendar_connected', request.url)
     );

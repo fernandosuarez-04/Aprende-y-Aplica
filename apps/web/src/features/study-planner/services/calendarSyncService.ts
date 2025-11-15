@@ -261,50 +261,15 @@ export class CalendarSyncService {
     session: StudySession,
     accessToken: string
   ): Promise<string | null> {
-    const response = await fetch('https://graph.microsoft.com/v1.0/me/events', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        subject: session.title,
-        body: {
-          contentType: 'Text',
-          content: session.description || '',
-        },
-        start: {
-          dateTime: session.start_time,
-          timeZone: 'UTC',
-        },
-        end: {
-          dateTime: session.end_time,
-          timeZone: 'UTC',
-        },
-      }),
-    });
+    try {
+      console.log('[MICROSOFT CALENDAR] Creating event:', {
+        title: session.title,
+        start: session.start_time,
+        end: session.end_time,
+      });
 
-    if (!response.ok) {
-      throw new Error('Error creating Microsoft Calendar event');
-    }
-
-    const data = await response.json();
-    return data.id;
-  }
-
-  /**
-   * Actualiza un evento en Microsoft Calendar
-   */
-  private static async updateMicrosoftEvent(
-    session: StudySession,
-    accessToken: string
-  ): Promise<boolean> {
-    if (!session.external_event_id) return false;
-
-    const response = await fetch(
-      `https://graph.microsoft.com/v1.0/me/events/${session.external_event_id}`,
-      {
-        method: 'PATCH',
+      const response = await fetch('https://graph.microsoft.com/v1.0/me/events', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -324,10 +289,93 @@ export class CalendarSyncService {
             timeZone: 'UTC',
           },
         }),
-      }
-    );
+      });
 
-    return response.ok;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[MICROSOFT CALENDAR] Error creating event:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+        });
+        throw new Error(`Error creating Microsoft Calendar event: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('[MICROSOFT CALENDAR] Event created successfully:', {
+        eventId: data.id,
+        title: data.subject,
+      });
+      return data.id;
+    } catch (error) {
+      console.error('[MICROSOFT CALENDAR] Exception in createMicrosoftEvent:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualiza un evento en Microsoft Calendar
+   */
+  private static async updateMicrosoftEvent(
+    session: StudySession,
+    accessToken: string
+  ): Promise<boolean> {
+    if (!session.external_event_id) {
+      console.warn('[MICROSOFT CALENDAR] Cannot update event: no external_event_id');
+      return false;
+    }
+
+    try {
+      console.log('[MICROSOFT CALENDAR] Updating event:', {
+        eventId: session.external_event_id,
+        title: session.title,
+      });
+
+      const response = await fetch(
+        `https://graph.microsoft.com/v1.0/me/events/${session.external_event_id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            subject: session.title,
+            body: {
+              contentType: 'Text',
+              content: session.description || '',
+            },
+            start: {
+              dateTime: session.start_time,
+              timeZone: 'UTC',
+            },
+            end: {
+              dateTime: session.end_time,
+              timeZone: 'UTC',
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[MICROSOFT CALENDAR] Error updating event:', {
+          eventId: session.external_event_id,
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+        });
+        return false;
+      }
+
+      console.log('[MICROSOFT CALENDAR] Event updated successfully:', {
+        eventId: session.external_event_id,
+      });
+      return true;
+    } catch (error) {
+      console.error('[MICROSOFT CALENDAR] Exception in updateMicrosoftEvent:', error);
+      return false;
+    }
   }
 
   /**
@@ -337,19 +385,45 @@ export class CalendarSyncService {
     session: StudySession,
     accessToken: string
   ): Promise<boolean> {
-    if (!session.external_event_id) return false;
+    if (!session.external_event_id) {
+      console.warn('[MICROSOFT CALENDAR] Cannot delete event: no external_event_id');
+      return false;
+    }
 
-    const response = await fetch(
-      `https://graph.microsoft.com/v1.0/me/events/${session.external_event_id}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+    try {
+      console.log('[MICROSOFT CALENDAR] Deleting event:', {
+        eventId: session.external_event_id,
+      });
+
+      const response = await fetch(
+        `https://graph.microsoft.com/v1.0/me/events/${session.external_event_id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[MICROSOFT CALENDAR] Error deleting event:', {
+          eventId: session.external_event_id,
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+        });
+        return false;
       }
-    );
 
-    return response.ok;
+      console.log('[MICROSOFT CALENDAR] Event deleted successfully:', {
+        eventId: session.external_event_id,
+      });
+      return true;
+    } catch (error) {
+      console.error('[MICROSOFT CALENDAR] Exception in deleteMicrosoftEvent:', error);
+      return false;
+    }
   }
 
   /**
@@ -395,8 +469,20 @@ export class CalendarSyncService {
       const clientId = process.env.MICROSOFT_CLIENT_ID;
       const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
 
+      console.log('[MICROSOFT TOKEN REFRESH] Starting token refresh', {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        hasRefreshToken: !!integration.refresh_token,
+      });
+
       if (!clientId || !clientSecret) {
+        console.error('[MICROSOFT TOKEN REFRESH] Missing configuration');
         throw new Error('Microsoft OAuth no configurado');
+      }
+
+      if (!integration.refresh_token) {
+        console.error('[MICROSOFT TOKEN REFRESH] No refresh token available');
+        throw new Error('Refresh token no disponible para Microsoft');
       }
 
       const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
@@ -414,23 +500,54 @@ export class CalendarSyncService {
       });
 
       if (!response.ok) {
-        throw new Error('Error refreshing Microsoft token');
+        const errorText = await response.text();
+        console.error('[MICROSOFT TOKEN REFRESH] Token refresh failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+        });
+        throw new Error(`Error refreshing Microsoft token: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       newAccessToken = data.access_token;
-      newExpiresAt = new Date(Date.now() + (data.expires_in * 1000));
+      newExpiresAt = data.expires_in 
+        ? new Date(Date.now() + (data.expires_in * 1000))
+        : null;
+
+      // Microsoft puede devolver un nuevo refresh_token, actualizarlo si está presente
+      const newRefreshToken = data.refresh_token || integration.refresh_token;
+
+      console.log('[MICROSOFT TOKEN REFRESH] Token refreshed successfully', {
+        hasNewAccessToken: !!newAccessToken,
+        hasNewRefreshToken: !!data.refresh_token,
+        expiresAt: newExpiresAt?.toISOString(),
+      });
+
+      // Actualizar integración con nuevo token (y refresh_token si viene)
+      await StudyPlannerService.createOrUpdateCalendarIntegration({
+        user_id: integration.user_id,
+        provider: integration.provider,
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken,
+        expires_at: newExpiresAt?.toISOString() || null,
+        scope: integration.scope || 'Calendars.ReadWrite offline_access',
+      });
+
+      return; // Ya se actualizó arriba, no necesitamos continuar
     }
 
-    // Actualizar integración con nuevo token
-    await StudyPlannerService.createOrUpdateCalendarIntegration({
-      user_id: integration.user_id,
-      provider: integration.provider,
-      access_token: newAccessToken,
-      refresh_token: integration.refresh_token,
-      expires_at: newExpiresAt?.toISOString() || null,
-      scope: integration.scope || null,
-    });
+    // Actualizar integración con nuevo token (solo para Google, Microsoft ya se actualizó arriba)
+    if (integration.provider === 'google') {
+      await StudyPlannerService.createOrUpdateCalendarIntegration({
+        user_id: integration.user_id,
+        provider: integration.provider,
+        access_token: newAccessToken,
+        refresh_token: integration.refresh_token,
+        expires_at: newExpiresAt?.toISOString() || null,
+        scope: integration.scope || null,
+      });
+    }
   }
 }
 
