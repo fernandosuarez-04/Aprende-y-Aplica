@@ -1,6 +1,7 @@
 'use client';
 
 import { GoogleLoginButton } from '../GoogleLoginButton/GoogleLoginButton';
+import { MicrosoftLoginButton } from '../MicrosoftLoginButton/MicrosoftLoginButton';
 
 export function SocialLoginButtons() {
   return (
@@ -19,6 +20,7 @@ export function SocialLoginButtons() {
 
       {/* Botones de providers */}
       <GoogleLoginButton />
+      <MicrosoftLoginButton />
 
       {/* Espacio para futuros providers */}
       {/* <GitHubLoginButton /> */}

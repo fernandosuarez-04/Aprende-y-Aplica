@@ -14,6 +14,7 @@ import { SECURE_COOKIE_OPTIONS, getCustomCookieOptions } from '../../../lib/auth
 import { AuthService } from '../services/auth.service';
 import { OAuthCallbackParams } from '../types/oauth.types';
 import { QuestionnaireValidationService } from '../services/questionnaire-validation.service';
+import { MicrosoftOAuthService } from '../services/microsoft-oauth.service';
 
 /**
  * Inicia el flujo de autenticación con Google
@@ -284,5 +285,106 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     return {
       error: 'Error procesando autenticación. Inténtalo de nuevo.',
     };
+  }
+}
+
+/**
+ * Inicia el flujo de autenticación con Microsoft
+ */
+export async function initiateMicrosoftLogin() {
+  const { getMicrosoftAuthUrl } = await import('@/lib/oauth/microsoft');
+
+  const stateBuffer = crypto.randomBytes(32);
+  const state = stateBuffer.toString('base64url');
+
+  const cookieStore = await cookies();
+  cookieStore.set('oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 10 * 60,
+    path: '/',
+  });
+
+  const authUrl = getMicrosoftAuthUrl(state);
+  redirect(authUrl);
+}
+
+/**
+ * Maneja el callback de Microsoft OAuth
+ */
+export async function handleMicrosoftCallback(params: { code?: string; state?: string; error?: string; error_description?: string; }) {
+  try {
+    if (params.error) return { error: params.error_description || 'Error de autenticación' };
+    if (!params.code) return { error: 'Código de autorización no recibido' };
+
+    const cookieStore = await cookies();
+    const storedState = cookieStore.get('oauth_state')?.value;
+    if (!storedState || !params.state || storedState !== params.state) {
+      return { error: 'Error de validación de seguridad (CSRF). Intenta nuevamente.' };
+    }
+    cookieStore.delete('oauth_state');
+
+    // Intercambiar código por tokens y obtener perfil
+    const tokens = await MicrosoftOAuthService.exchangeCodeForTokens(params.code);
+    const profile = await MicrosoftOAuthService.getUserProfile(tokens.access_token);
+    const email = (profile as any).mail || (profile as any).userPrincipalName;
+
+    if (!email || !validator.isEmail(email)) {
+      return { error: 'Email inválido o no disponible' };
+    }
+
+    // Usuario (crear o usar existente)
+    let userId: string; let isNewUser = false;
+    const existingUser = await OAuthService.findUserByEmail(email);
+    if (existingUser) {
+      userId = existingUser.id;
+    } else {
+      const first = (profile as any).givenName || ((profile as any).displayName?.split(' ')[0] ?? 'Usuario');
+      const last  = (profile as any).surname || ((profile as any).displayName?.split(' ').slice(1).join(' ') ?? '');
+      userId = await OAuthService.createUserFromOAuth(email, first, last, undefined);
+      isNewUser = true;
+    }
+
+    // Guardar/actualizar cuenta OAuth
+    await OAuthService.upsertOAuthAccount(userId, 'microsoft', (profile as any).id, tokens as any);
+
+    // Crear sesión
+    const headersList = await headers();
+    const userAgent = headersList.get('user-agent') || 'unknown';
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               headersList.get('x-real-ip') ||
+               'unknown';
+
+    const requestHeaders = new Headers();
+    requestHeaders.set('user-agent', userAgent);
+    requestHeaders.set('x-real-ip', ip);
+    const mockRequest = new Request('http://localhost', { headers: requestHeaders });
+
+    const sessionInfo = await RefreshTokenService.createSession(userId, false, mockRequest);
+
+    cookieStore.set('access_token', sessionInfo.accessToken, {
+      ...SECURE_COOKIE_OPTIONS,
+      expires: sessionInfo.accessExpiresAt,
+    });
+
+    cookieStore.set('refresh_token', sessionInfo.refreshToken, {
+      ...SECURE_COOKIE_OPTIONS,
+      expires: sessionInfo.refreshExpiresAt,
+    });
+
+    const legacySession = await SessionService.createLegacySession(userId, false);
+    const maxAge = 7 * 24 * 60 * 60;
+    cookieStore.set('aprende-y-aplica-session', legacySession.sessionToken, {
+      ...getCustomCookieOptions(maxAge),
+      expires: legacySession.expiresAt,
+    });
+
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(userId);
+    if (isNewUser) redirect('/welcome?oauth=microsoft');
+    else if (requiresQuestionnaire) redirect('/welcome?oauth=microsoft');
+    else redirect('/dashboard');
+  } catch (error) {
+    return { error: 'Error procesando autenticación con Microsoft' };
   }
 }
