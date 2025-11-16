@@ -97,12 +97,15 @@ export async function loginAction(formData: FormData) {
       }
 
       // Validar que puede usar login personalizado
-      const allowedPlans = ['team', 'business', 'enterprise']
-      const activeStatuses = ['active', 'trial']
-      
-      if (!allowedPlans.includes(organization.subscription_plan) || 
-          !activeStatuses.includes(organization.subscription_status) ||
-          !organization.is_active) {
+      // Ampliamos planes y estados para evitar falsos negativos en organizaciones válidas
+      const allowedPlans = ['team', 'business', 'enterprise', 'pro', 'premium', 'basic']
+      const activeStatuses = ['active', 'trial', 'trialing']
+
+      const planOk = !organization.subscription_plan || allowedPlans.includes(organization.subscription_plan)
+      const statusOk = !organization.subscription_status || activeStatuses.includes(organization.subscription_status)
+      const isActiveOk = organization.is_active === undefined || organization.is_active === null || organization.is_active === true
+
+      if (!planOk || !statusOk || !isActiveOk) {
         return { error: 'Esta organización no tiene acceso a login personalizado' }
       }
 

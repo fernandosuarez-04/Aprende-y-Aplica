@@ -17,7 +17,8 @@ import {
   Download,
   Target,
   MessageSquare,
-  Brain
+  Brain,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -1225,17 +1226,24 @@ export function AIChatAgent({
     setIsOpen(true);
     setIsMinimized(false);
     setHasUnreadMessages(false);
-    
-    // Solo agregar mensaje inicial si no hay mensajes previos en modo prompt
-    if (promptMessages.length === 0) {
-      const initialPromptMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: '¡Hola! Soy Lia, tu asistente especializada en creación de prompts de IA. Estoy aquí para ayudarte a crear prompts profesionales y efectivos.\n\n¿En qué tipo de prompt te gustaría trabajar hoy? Por ejemplo:\n\n• Quiero crear un prompt para generar contenido de marketing\n• Necesito un prompt para programación en Python\n• Busco un prompt para crear arte digital\n\n¡Cuéntame tu idea y comenzamos!',
-        timestamp: new Date()
-      };
-      setPromptMessages([initialPromptMessage]);
+    // No agregar mensaje inicial automático en modo prompt
+  };
+
+  const handleClearConversation = () => {
+    if (isPromptMode) {
+      setPromptMessages([]);
+    } else {
+      setNormalMessages([]);
+      // Si hay persistencia activada, limpiar almacenamiento
+      if (useContextMode) {
+        try {
+          localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
+        } catch {}
+      }
     }
+    setGeneratedPrompt(null);
+    setIsPromptPanelOpen(false);
+    setSelectedPromptMessageId(null);
   };
 
   const handleDownloadPrompt = () => {
@@ -1287,6 +1295,59 @@ Fecha: ${new Date().toLocaleString()}
     URL.revokeObjectURL(url);
   };
 
+  // ======== THEME by MODE (Normal / Prompt / Analysis) ========
+  type LiaMode = 'normal' | 'prompt' | 'analysis';
+  const currentMode: LiaMode = useContextMode ? 'analysis' : (isPromptMode ? 'prompt' : 'normal');
+
+  const theme = useMemo(() => {
+    switch (currentMode) {
+      case 'prompt':
+        return {
+          header: 'from-purple-600 via-pink-600 to-purple-600',
+          accent: 'purple',
+          bubbleUser: 'from-fuchsia-500 to-purple-500',
+          ring: 'focus:ring-purple-500',
+          borderUser: 'border-purple-500',
+          chipBg: 'bg-purple-500/15 text-purple-400 border border-purple-500/30',
+          chipActive: 'bg-purple-500 text-white border-transparent'
+        };
+      case 'analysis':
+        return {
+          header: 'from-cyan-600 via-teal-600 to-cyan-600',
+          accent: 'teal',
+          bubbleUser: 'from-teal-500 to-cyan-500',
+          ring: 'focus:ring-emerald-500',
+          borderUser: 'border-teal-500',
+          chipBg: 'bg-teal-500/15 text-teal-400 border border-teal-500/30',
+          chipActive: 'bg-teal-500 text-white border-transparent'
+        };
+      default:
+        return {
+          header: 'from-blue-600 via-indigo-600 to-blue-600',
+          accent: 'blue',
+          bubbleUser: 'from-blue-500 to-indigo-500',
+          ring: 'focus:ring-blue-500',
+          borderUser: 'border-blue-500',
+          chipBg: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+          chipActive: 'bg-blue-500 text-white border-transparent'
+        };
+    }
+  }, [currentMode]);
+
+  // Menu de selección de modo (tipo hamburguesa)
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const modeMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!modeMenuRef.current) return;
+      if (!modeMenuRef.current.contains(e.target as Node)) {
+        setModeMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
   return (
     <>
       {/* Botones flotantes */}
@@ -1308,30 +1369,6 @@ Fecha: ${new Date().toLocaleString()}
                 transition={{ duration: 0.2 }}
                 className="flex flex-col gap-2 overflow-hidden"
               >
-                {/* Botón de modo prompt */}
-                <motion.button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenPromptMode();
-                  }}
-                  initial={{ scale: 0, opacity: 0, y: 10 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0, opacity: 0, y: 10 }}
-                  transition={{ duration: 0.15 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg hover:shadow-purple-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
-                  title="Abrir modo prompt"
-                >
-                  <Wand2 className="w-6 h-6 text-white" />
-                  
-                  {/* Tooltip */}
-                  <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                    Abrir modo prompt
-                    <div className="absolute top-1/2 -translate-y-1/2 right-[-6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900"></div>
-                  </div>
-                </motion.button>
-                
                 {/* Botón de reportar problema */}
                 <motion.button
                   onClick={(e) => {
@@ -1570,9 +1607,9 @@ Fecha: ${new Date().toLocaleString()}
             }}
           >
         <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full`}>
-          {/* Header con gradiente - Continuo para ambos paneles */}
+          {/* Header con gradiente - compacto */}
           <motion.div 
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-4 relative overflow-hidden flex-shrink-0"
+            className={`bg-gradient-to-r ${theme.header} px-2 py-2 relative flex-shrink-0`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -1591,19 +1628,19 @@ Fecha: ${new Date().toLocaleString()}
             />
             
             <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 {/* Avatar */}
-                <div className="relative w-10 h-10">
+                <div className="relative w-8 h-8">
                   <Image
                     src={assistantAvatar}
                     alt={assistantName}
                     fill
-                    className="rounded-full object-cover border-2 border-white/50"
-                    sizes="40px"
+                    className="rounded-full object-cover border border-white/60"
+                    sizes="32px"
                   />
                   {/* Indicador de estado en línea */}
                   <motion.div
-                    className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-blue-600"
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border border-white/70"
                     animate={{
                       scale: [1, 1.2, 1],
                     }}
@@ -1615,33 +1652,109 @@ Fecha: ${new Date().toLocaleString()}
                   />
                 </div>
                 
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-white font-semibold">{assistantName}</h3>
-                    {isPromptMode && (
-                      <div className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full">
-                        <Wand2 className="w-3 h-3 text-white" />
-                        <span className="text-xs text-white/90">Modo Prompt</span>
-                      </div>
-                    )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 leading-none min-w-0">
+                    <h3 className="text-white font-semibold text-sm">{assistantName}</h3>
+                    <span className="text-[11px] text-white/80 px-1.5 py-[2px] rounded-full bg-white/15 border border-white/25 truncate max-w-[120px]">
+                      {currentMode === 'normal' ? 'Asistente' : currentMode === 'prompt' ? 'Prompt' : 'Analista'}
+                    </span>
                     <motion.div
                       className="flex items-center gap-1 text-white/90"
                       animate={{ opacity: [0.5, 1, 0.5] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
                       <span className="w-2 h-2 rounded-full bg-green-400" />
-                      <span className="text-xs">{onlineLabel}</span>
+                      <span className="text-[11px]">{onlineLabel}</span>
                     </motion.div>
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1" ref={modeMenuRef}>
+                {/* Botón limpiar conversación */}
+                <button
+                  onClick={handleClearConversation}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                  aria-label="Limpiar conversación"
+                  title="Limpiar conversación"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                {/* Botón menú de modos (hamburguesa) */}
+                <button
+                  onClick={() => setModeMenuOpen(!modeMenuOpen)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                  aria-label="Cambiar modo de Lia"
+                  title="Cambiar modo de Lia"
+                >
+                  {/* Icono de hamburguesa simple */}
+                  <div className="flex flex-col gap-[3px]">
+                    <span className="w-4 h-[2px] bg-white rounded"></span>
+                    <span className="w-4 h-[2px] bg-white rounded"></span>
+                    <span className="w-4 h-[2px] bg-white rounded"></span>
+                  </div>
+                </button>
+
+                {/* Menú desplegable */}
+                <AnimatePresence>
+                  {modeMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-9 top-8 bg-white/95 dark:bg-[#0d0d0d] backdrop-blur-md border border-white/30 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
+                    >
+                      <div className="min-w-[260px] py-2">
+                        {/* NORMAL */}
+                        <button
+                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
+                          onClick={() => { setIsPromptMode(false); setUseContextMode(false); setModeMenuOpen(false); }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                            <div className="flex-1">
+                              <div className={`text-sm font-semibold ${currentMode==='normal' ? 'text-blue-600 dark:text-blue-400' : ''}`}>Asistente</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">Conversación general con ayuda contextual ligera.</div>
+                            </div>
+                          </div>
+                        </button>
+                        {/* PROMPT */}
+                        <button
+                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
+                          onClick={() => { setIsPromptMode(true); setUseContextMode(false); setModeMenuOpen(false); if (promptMessages.length===0) handleOpenPromptMode(); }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-purple-500"></div>
+                            <div className="flex-1">
+                              <div className={`text-sm font-semibold ${currentMode==='prompt' ? 'text-purple-600 dark:text-purple-400' : ''}`}>Diseñador de Prompts</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">Crea y refina prompts profesionales guiados por LIA.</div>
+                            </div>
+                          </div>
+                        </button>
+                        {/* ANALISIS */}
+                        <button
+                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
+                          onClick={() => { setUseContextMode(true); setIsPromptMode(false); setModeMenuOpen(false); }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-teal-500"></div>
+                            <div className="flex-1">
+                              <div className={`text-sm font-semibold ${currentMode==='analysis' ? 'text-teal-600 dark:text-teal-400' : ''}`}>Analista Contextual</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">Activa el análisis de tu sesión para respuestas más precisas.</div>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <button
                   onClick={handleClose}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -1653,7 +1766,7 @@ Fecha: ${new Date().toLocaleString()}
           {/* Mensajes */}
           {(
             <motion.div 
-              className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain"
+              className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain relative"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
@@ -1661,6 +1774,27 @@ Fecha: ${new Date().toLocaleString()}
                 scrollBehavior: 'smooth'
               }}
             >
+              {/* Fondo informativo del modelo */}
+              {messages.length === 0 && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6">
+                  <div className="max-w-sm text-center opacity-80">
+                    <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg overflow-hidden bg-transparent">
+                      {/* Usa el logo/avatares reales si existen */}
+                      <img src="/icono.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
+                    </div>
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
+                      {currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Analista Contextual' : 'Asistente'}
+                    </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {currentMode === 'prompt'
+                        ? 'Genera y refina prompts profesionales. Indica el objetivo, el tono y los requisitos; LIA te entrega un prompt listo para usar con buenas prácticas.'
+                        : currentMode === 'analysis'
+                        ? 'Responde con mayor precisión utilizando el contexto actual de tu sesión. Ideal para dudas sobre la pantalla o pasos a seguir.'
+                        : 'Asistente conversacional para resolver dudas generales, explorar contenido y guiarte por la plataforma.'}
+                    </p>
+                  </div>
+                </div>
+              )}
               {messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -1671,7 +1805,7 @@ Fecha: ${new Date().toLocaleString()}
                 >
                   {/* Avatar del mensaje */}
                   {message.role === 'user' ? (
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
+                  <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border ${theme.borderUser} relative`}>
                       {user?.profile_picture_url ? (
                         <Image
                           src={user.profile_picture_url}
@@ -1687,7 +1821,7 @@ Fecha: ${new Date().toLocaleString()}
                       )}
                     </div>
                   ) : (
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
+                    <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border ${theme.borderUser} relative`}>
                       <Image
                         src={assistantAvatar}
                         alt={assistantName}
@@ -1699,12 +1833,12 @@ Fecha: ${new Date().toLocaleString()}
                   )}
                   
                   {/* Contenido del mensaje */}
-                  <div className={`flex-1 rounded-2xl px-4 py-3 shadow-lg ${
+                  <div className={`flex-1 rounded-2xl px-3.5 py-3 shadow-lg ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                      ? `bg-gradient-to-r ${theme.bubbleUser} text-white`
                       : 'bg-white dark:bg-carbon-800 text-gray-900 dark:text-white border border-gray-200 dark:border-carbon-600'
                   }`}>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">
+                    <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
                       {renderTextWithLinks(message.content)}
                     </p>
                     
@@ -1773,12 +1907,12 @@ Fecha: ${new Date().toLocaleString()}
           {/* Input */}
           {(
             <motion.div 
-              className="p-4 border-t border-gray-200 dark:border-carbon-700 bg-white dark:bg-[#0f0f0f] flex-shrink-0"
+              className="p-2 border-t border-gray-200 dark:border-carbon-700 bg-white dark:bg-[#0f0f0f] flex-shrink-0"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className="flex items-end gap-2">
+              <div className="flex items-center gap-2">
                 <textarea
                   ref={inputRef}
                   value={inputMessage}
@@ -1788,38 +1922,22 @@ Fecha: ${new Date().toLocaleString()}
                     setTimeout(() => adjustTextareaHeight(), 0);
                   }}
                   onKeyDown={handleKeyPress}
-                  placeholder={useContextMode ? "🎬 Pregunta algo (con análisis de tu sesión)..." : (promptPlaceholder ?? placeholderText)}
+                  placeholder={useContextMode ? "Escribe tu pregunta..." : (promptPlaceholder ?? placeholderText)}
                   disabled={isTyping}
                   rows={1}
-                  className={`flex-1 px-4 py-3 bg-gray-100 dark:bg-carbon-800 border ${
+                  className={`flex-1 px-3 py-2 border ${
                     useContextMode 
-                      ? 'border-purple-400 dark:border-purple-500 ring-2 ring-purple-400/30' 
-                      : 'border-gray-300 dark:border-carbon-600'
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
+                      ? 'bg-white/90 dark:bg-[#0b0b0b] border-emerald-400 dark:border-emerald-500 ring-2 ring-emerald-400/30' 
+                      : `bg-white/90 dark:bg-[#0b0b0b] ${currentMode==='prompt' ? 'border-purple-300 ring-2 ring-purple-300/30' : currentMode==='analysis' ? 'border-emerald-300 ring-2 ring-emerald-300/30' : 'border-blue-300 ring-2 ring-blue-300/30'}`
+                  } rounded-lg focus:outline-none focus:ring-2 ${theme.ring} text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
                   style={{
-                    minHeight: '48px',
+                    minHeight: '38px',
                     lineHeight: '1.5'
                   }}
                 />
                 
                 {/* 🎬 Botón para activar/desactivar modo contextual */}
-                <motion.button
-                  onClick={() => setUseContextMode(!useContextMode)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  title={useContextMode ? "Desactivar análisis de sesión" : "Activar análisis de sesión"}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                    useContextMode
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50'
-                      : 'bg-gray-200 dark:bg-carbon-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-carbon-700'
-                  }`}
-                >
-                  {useContextMode ? (
-                    <Sparkles className="w-5 h-5 animate-pulse" />
-                  ) : (
-                    <Brain className="w-5 h-5" />
-                  )}
-                </motion.button>
+                {/* Botón de cerebro eliminado - el modo Análisis se controla con los chips */}
                 
                 {/* Botón dinámico: micrófono cuando está vacío, enviar cuando hay texto */}
                 <motion.button
@@ -1835,43 +1953,28 @@ Fecha: ${new Date().toLocaleString()}
                   disabled={isTyping && !!inputMessage.trim()}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300 ${
                     inputMessage.trim()
                       ? useContextMode
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-lg shadow-purple-500/50'
-                        : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/50'
+                        ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:opacity-90 shadow-lg'
+                        : `bg-gradient-to-r ${theme.bubbleUser} text-white hover:opacity-90 shadow-lg`
                       : isRecording
                       ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
-                      : 'bg-gray-200 dark:bg-carbon-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-carbon-700'
+                      : `${currentMode==='prompt' ? 'bg-purple-100 text-purple-600' : currentMode==='analysis' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'} hover:opacity-90`
                   } ${isTyping && !!inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isTyping && inputMessage.trim() ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : inputMessage.trim() ? (
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4" />
                   ) : isRecording ? (
-                    <MicOff className="w-5 h-5" />
+                    <MicOff className="w-4 h-4" />
                   ) : (
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-4 h-4" />
                   )}
                 </motion.button>
               </div>
-              
-              {/* Instrucciones */}
-              <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 font-medium">
-                {useContextMode ? (
-                  <>
-                    <Sparkles className="w-3 h-3 text-purple-500 animate-pulse" />
-                    <span className="text-purple-600 dark:text-purple-400">Modo contextual activado - LIA analizará tu sesión</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Presiona Enter para enviar</span>
-                    <span>•</span>
-                    <span>{inputMessage.trim() ? 'Clic para enviar' : 'Clic para dictar'}</span>
-                  </>
-                )}
-              </div>
+
             </motion.div>
           )}
           </div>
