@@ -157,6 +157,16 @@ export default function MyCoursesPage() {
               <BookOpen className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Mi Aprendizaje</h1>
+            <div className="ml-auto flex items-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/study-planner')}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 dark:hover:bg-blue-500/10 hover:border-blue-500/60"
+              >
+                <Calendar className="w-5 h-5" />
+                Abrir Planificador
+              </Button>
+            </div>
           </div>
           <p className="text-gray-600 dark:text-slate-400 text-lg">Continúa donde lo dejaste</p>
         </motion.div>
