@@ -1058,14 +1058,14 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
     });
   }
   
-  // Obtener respuesta del modelo
+    // Obtener respuesta del modelo
   const rawResponse = data.choices[0]?.message?.content || languageConfig.fallback;
   
   // Aplicar filtro de prompt del sistema primero
   const filteredResponse = filterSystemPromptFromResponse(rawResponse);
   
   // Luego aplicar limpieza de Markdown
-  const cleanedResponse = cleanMarkdownFromResponse(filteredResponse);
+    let cleanedResponse = cleanMarkdownFromResponse(filteredResponse);
   
   // Log si se detectó y limpió Markdown (solo en desarrollo)
   if (process.env.NODE_ENV === 'development' && rawResponse !== cleanedResponse) {
@@ -1074,6 +1074,37 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
       cleanedLength: cleanedResponse.length
     });
   }
+
+    // Normalización de enlaces: usar dominio de ALLOWED_ORIGINS y mapear rutas renombradas
+    try {
+      // Tomar el primer origen válido de ALLOWED_ORIGINS (separado por comas)
+      const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+      // Fallbacks: PUBLIC_APP_URL o el origin de la request
+      const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || request.nextUrl.origin;
+
+      const pathMap: Record<string, string> = {
+        '/dashboard': '/home',
+      };
+
+      // 1) Enlaces markdown con rutas relativas → absolutas + mapeo
+      cleanedResponse = cleanedResponse.replace(/\[([^\]]+)\]\((\/[^\)]+)\)/g, (_m, label, path) => {
+        const mapped = pathMap[path] || path;
+        return `[${label}](${baseUrl}${mapped})`;
+      });
+
+      // 2) Reemplazar dominios placeholder por el permitido
+      cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com\/dashboard/gi, `${baseUrl}/home`);
+      cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com(\/[^\s\)]*)?/gi, (_m, p1) => {
+        const path = typeof p1 === 'string' ? p1 : '';
+        const mapped = pathMap[path] || path;
+        return `${baseUrl}${mapped || ''}`;
+      });
+
+      // 3) Fallback para texto plano "( /dashboard )"
+      cleanedResponse = cleanedResponse.replace(/\(\/dashboard\)/g, `(${baseUrl}/home)`);
+    } catch {
+      // Ignorar errores de normalización
+    }
   
   // Preparar metadatos para retornar
   const metadata = data.usage ? {
