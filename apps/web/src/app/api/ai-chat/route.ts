@@ -1082,9 +1082,8 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
       // Fallbacks: PUBLIC_APP_URL o el origin de la request
       const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || request.nextUrl.origin;
 
-      const pathMap: Record<string, string> = {
-        '/dashboard': '/home',
-      };
+      // No remapear rutas por defecto; mantener exactamente la ruta provista
+      const pathMap: Record<string, string> = {};
 
       // 1) Enlaces markdown con rutas relativas → absolutas + mapeo
       cleanedResponse = cleanedResponse.replace(/\[([^\]]+)\]\((\/[^\)]+)\)/g, (_m, label, path) => {
@@ -1093,7 +1092,7 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
       });
 
       // 2) Reemplazar dominios placeholder por el permitido
-      cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com\/dashboard/gi, `${baseUrl}/home`);
+      cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com\/dashboard/gi, `${baseUrl}/dashboard`);
       cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com(\/[^\s\)]*)?/gi, (_m, p1) => {
         const path = typeof p1 === 'string' ? p1 : '';
         const mapped = pathMap[path] || path;
@@ -1101,7 +1100,7 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
       });
 
       // 3) Fallback para texto plano "( /dashboard )"
-      cleanedResponse = cleanedResponse.replace(/\(\/dashboard\)/g, `(${baseUrl}/home)`);
+      cleanedResponse = cleanedResponse.replace(/\(\/dashboard\)/g, `(${baseUrl}/dashboard)`);
     } catch {
       // Ignorar errores de normalización
     }
