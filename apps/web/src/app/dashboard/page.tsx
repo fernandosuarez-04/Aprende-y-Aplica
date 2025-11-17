@@ -30,16 +30,6 @@ import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
 import { formatRelativeTime } from '../../core/utils/date-utils';
 import { StarRating } from '../../features/courses/components/StarRating';
 import { useTranslation } from 'react-i18next';
-import dynamic from 'next/dynamic';
-
-// 🚀 Lazy Loading - AIChatAgent pesado
-const AIChatAgent = dynamic(
-  () => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })),
-  {
-    ssr: false,
-    loading: () => null,
-  }
-);
 
 // Los talleres ahora se obtienen únicamente de la API
 
@@ -603,13 +593,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* AI Chat Agent - Lazy loaded */}
-      <AIChatAgent
-        assistantName="Lia"
-        initialMessage={t('assistant.initialMessage')}
-        promptPlaceholder={t('assistant.placeholder')}
-        context="workshops"
-      />
+      {/* AI Chat Agent - Ahora está en el layout principal (ConditionalAIChatAgent) para persistencia entre páginas */}
     </div>
   );
 }

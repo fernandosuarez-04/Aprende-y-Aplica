@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, lazy, Suspense } from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -24,9 +24,6 @@ import { NewsWithMetrics } from '../../features/news/services/news.service'
 import { useFeaturedReels } from '../../features/reels/hooks/useFeaturedReels'
 import { FeaturedReelsSection } from '../../features/reels/components/FeaturedReelsSection'
 import { useRouter } from 'next/navigation'
-
-// 🚀 Lazy Loading - AIChatAgent pesado
-const AIChatAgent = lazy(() => import('../../core/components/AIChatAgent/AIChatAgent').then(m => ({ default: m.AIChatAgent })))
 
 export default function NewsPage() {
   const router = useRouter()
@@ -564,15 +561,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
         </motion.section>
       )}
 
-      {/* AI Chat Agent - Lazy loaded */}
-      <Suspense fallback={null}>
-        <AIChatAgent
-          assistantName="Lia"
-          initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre las últimas noticias, tendencias y actualizaciones en IA y tecnología. ¿En qué puedo asistirte?"
-          promptPlaceholder="Pregunta sobre noticias..."
-          context="news"
-        />
-      </Suspense>
+      {/* AI Chat Agent - Ahora está en el layout principal (ConditionalAIChatAgent) para persistencia entre páginas */}
     </div>
   )
 }

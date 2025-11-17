@@ -457,11 +457,16 @@ export function AIChatAgent({
   // ✅ PERSISTENCIA: Claves para localStorage
   const STORAGE_KEY_CONTEXT_MODE = 'lia-context-mode-enabled';
   const STORAGE_KEY_CONTEXT_MESSAGES = 'lia-context-mode-messages';
+  const MAX_CONTEXT_MESSAGES = 7; // 🎯 Máximo de mensajes para mantener contexto
 
   // ✅ PERSISTENCIA: Función para guardar mensajes en localStorage
+  // Solo guarda los últimos MAX_CONTEXT_MESSAGES mensajes
   const saveContextMessages = useCallback((messagesToSave: Message[]) => {
     try {
-      const serialized = JSON.stringify(messagesToSave.map(msg => ({
+      // Tomar solo los últimos N mensajes (últimos 7)
+      const recentMessages = messagesToSave.slice(-MAX_CONTEXT_MESSAGES);
+      
+      const serialized = JSON.stringify(recentMessages.map(msg => ({
         ...msg,
         timestamp: msg.timestamp.toISOString()
       })));
@@ -485,6 +490,16 @@ export function AIChatAgent({
     } catch (error) {
       console.error('Error cargando mensajes desde localStorage:', error);
       return [];
+    }
+  }, []);
+
+  // ✅ PERSISTENCIA: Función para limpiar contexto guardado
+  const clearContextMessages = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
+      setNormalMessages([]);
+    } catch (error) {
+      console.error('Error limpiando mensajes de contexto:', error);
     }
   }, []);
 
@@ -552,7 +567,7 @@ export function AIChatAgent({
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
-  const [useContextMode, setUseContextMode] = useState(false); // 🎬 Modo con contexto rrweb
+  const [useContextMode, setUseContextMode] = useState(true); // � ACTIVADO POR DEFECTO para persistencia automática
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -563,14 +578,27 @@ export function AIChatAgent({
   // ✅ PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
   useEffect(() => {
     try {
+      // Primero verificar si el modo de contexto está activado
       const savedContextMode = localStorage.getItem(STORAGE_KEY_CONTEXT_MODE);
-      if (savedContextMode === 'true') {
+      const contextModeEnabled = savedContextMode === 'true';
+      
+      // Cargar mensajes guardados
+      const savedMessages = loadContextMessages();
+      
+      console.log('🔄 Cargando contexto:', {
+        contextModeEnabled,
+        savedMessagesCount: savedMessages.length,
+        savedMessages: savedMessages
+      });
+      
+      // Si hay mensajes guardados O el modo estaba activado, restaurar
+      if (savedMessages.length > 0 || contextModeEnabled) {
         setUseContextMode(true);
-        // Cargar mensajes guardados
-        const savedMessages = loadContextMessages();
         if (savedMessages.length > 0) {
           setNormalMessages(savedMessages);
+          console.log('✅ Contexto restaurado:', savedMessages.length, 'mensajes');
         }
+        localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, 'true');
       }
     } catch (error) {
       console.error('Error cargando estado de contexto desde localStorage:', error);
@@ -585,18 +613,67 @@ export function AIChatAgent({
       // Si se desactiva el modo, limpiar mensajes guardados
       if (!useContextMode) {
         localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
+        // También limpiar mensajes en memoria si no están en una conversación activa
+        if (!isOpen) {
+          setNormalMessages([]);
+        }
       }
     } catch (error) {
       console.error('Error guardando estado de contexto en localStorage:', error);
     }
-  }, [useContextMode]);
+  }, [useContextMode, isOpen]);
 
   // ✅ PERSISTENCIA: Guardar mensajes cuando cambian y useContextMode está activo
   useEffect(() => {
     if (useContextMode && !isPromptMode && normalMessages.length > 0) {
+      // Guardar inmediatamente sin debounce
       saveContextMessages(normalMessages);
+      console.log('💾 Guardando contexto:', normalMessages.length, 'mensajes');
     }
   }, [normalMessages, useContextMode, isPromptMode, saveContextMessages]);
+
+  // ✅ PERSISTENCIA: Guardar mensajes antes de cerrar la pestaña/navegador
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (useContextMode && !isPromptMode && normalMessages.length > 0) {
+        saveContextMessages(normalMessages);
+        console.log('💾 Guardando antes de beforeunload:', normalMessages.length, 'mensajes');
+      }
+    };
+
+    // Guardar también cuando se desmonta el componente (navegación interna)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && useContextMode && !isPromptMode && normalMessages.length > 0) {
+        saveContextMessages(normalMessages);
+        console.log('💾 Guardando en visibilitychange:', normalMessages.length, 'mensajes');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Guardar una última vez al desmontar el componente
+      if (useContextMode && !isPromptMode && normalMessages.length > 0) {
+        // Usar una copia de los valores actuales para evitar problemas con el closure
+        const messagesToSave = normalMessages;
+        const recentMessages = messagesToSave.slice(-MAX_CONTEXT_MESSAGES);
+        try {
+          const serialized = JSON.stringify(recentMessages.map(msg => ({
+            ...msg,
+            timestamp: msg.timestamp.toISOString()
+          })));
+          localStorage.setItem(STORAGE_KEY_CONTEXT_MESSAGES, serialized);
+          console.log('💾 Guardando al desmontar componente:', recentMessages.length, 'mensajes');
+        } catch (error) {
+          console.error('Error guardando al desmontar:', error);
+        }
+      }
+    };
+  }, [useContextMode, isPromptMode, normalMessages, saveContextMessages]);
 
   // Función para renderizar texto con enlaces Markdown clickeables
   const renderTextWithLinks = useCallback((text: string): React.ReactNode => {
@@ -1140,12 +1217,28 @@ export function AIChatAgent({
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
       
+      console.log('🔀 Cambio de página detectado:', {
+        from: previousPathname,
+        to: pathname,
+        useContextMode,
+        messagesCount: normalMessages.length
+      });
+      
+      // ✅ PERSISTENCIA: Guardar mensajes antes de cambiar de página si el modo de contexto está activo
+      if (useContextMode && !isPromptMode && normalMessages.length > 0) {
+        saveContextMessages(normalMessages);
+        console.log('💾 Guardando contexto antes de cambiar de página:', normalMessages.length, 'mensajes');
+      }
+      
       // ✅ PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
       // Esto permite mantener el contexto del chat entre páginas
       // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal y sin contexto)
       // Esto evita usar contenido de la página anterior
       if (!isPromptMode && !useContextMode) {
         setNormalMessages([]);
+        console.log('🧹 Limpiando mensajes (modo contexto desactivado)');
+      } else if (useContextMode) {
+        console.log('🔒 Manteniendo mensajes (modo contexto activado)');
       }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
@@ -1168,7 +1261,7 @@ export function AIChatAgent({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]); // Solo depender de pathname para evitar ejecuciones innecesarias
+  }, [pathname, useContextMode, isPromptMode]); // Agregar dependencias necesarias para detectar modo de contexto
 
   // Actualizar contenido de página cuando se abre la LIA (sin enviar mensaje automático)
   useEffect(() => {
@@ -1230,6 +1323,13 @@ export function AIChatAgent({
   };
 
   const handleClearConversation = () => {
+    // Si el modo de contexto está activado, preguntar antes de limpiar
+    if (useContextMode && normalMessages.length > 0 && !isPromptMode) {
+      if (!window.confirm('Tienes el modo de contexto persistente activado. ¿Deseas limpiar la conversación y el contexto guardado?')) {
+        return;
+      }
+    }
+    
     if (isPromptMode) {
       setPromptMessages([]);
     } else {
@@ -1656,7 +1756,7 @@ Fecha: ${new Date().toLocaleString()}
                   <div className="flex items-center gap-2 leading-none min-w-0">
                     <h3 className="text-white font-semibold text-sm">{assistantName}</h3>
                     <span className="text-[11px] text-white/80 px-1.5 py-[2px] rounded-full bg-white/15 border border-white/25 truncate max-w-[120px]">
-                      {currentMode === 'normal' ? 'Asistente' : currentMode === 'prompt' ? 'Prompt' : 'Analista'}
+                      {currentMode === 'normal' ? 'Asistente' : currentMode === 'prompt' ? 'Prompt' : 'Contexto'}
                     </span>
                     <motion.div
                       className="flex items-center gap-1 text-white/90"
@@ -1740,8 +1840,19 @@ Fecha: ${new Date().toLocaleString()}
                           <div className="flex items-start gap-3">
                             <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-teal-500"></div>
                             <div className="flex-1">
-                              <div className={`text-sm font-semibold ${currentMode==='analysis' ? 'text-teal-600 dark:text-teal-400' : ''}`}>Analista Contextual</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">Activa el análisis de tu sesión para respuestas más precisas.</div>
+                              <div className="flex items-center gap-2">
+                                <div className={`text-sm font-semibold ${currentMode==='analysis' ? 'text-teal-600 dark:text-teal-400' : ''}`}>
+                                  Contexto Persistente
+                                </div>
+                                {normalMessages.length > 0 && useContextMode && (
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-300 rounded-full font-medium">
+                                    {normalMessages.length} msg
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">
+                                Mantiene los últimos {MAX_CONTEXT_MESSAGES} mensajes entre páginas
+                              </div>
                             </div>
                           </div>
                         </button>
@@ -1774,6 +1885,35 @@ Fecha: ${new Date().toLocaleString()}
                 scrollBehavior: 'smooth'
               }}
             >
+              {/* 🎯 INDICADOR DE CONTEXTO PREVIO */}
+              {useContextMode && messages.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="sticky top-0 z-10 mb-2"
+                >
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+                      <Brain className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="font-medium">
+                        Contexto activo: {messages.length} mensaje{messages.length !== 1 ? 's' : ''} {messages.length > MAX_CONTEXT_MESSAGES ? `(mostrando últimos ${MAX_CONTEXT_MESSAGES})` : ''}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('¿Deseas limpiar el contexto y empezar una conversación nueva?')) {
+                          clearContextMessages();
+                        }
+                      }}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                      title="Limpiar contexto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Fondo informativo del modelo */}
               {messages.length === 0 && (
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6">
@@ -1783,13 +1923,13 @@ Fecha: ${new Date().toLocaleString()}
                       <img src="/icono.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
                     </div>
                     <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
-                      {currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Analista Contextual' : 'Asistente'}
+                      {currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Contexto Persistente' : 'Asistente'}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                       {currentMode === 'prompt'
                         ? 'Genera y refina prompts profesionales. Indica el objetivo, el tono y los requisitos; LIA te entrega un prompt listo para usar con buenas prácticas.'
                         : currentMode === 'analysis'
-                        ? 'Responde con mayor precisión utilizando el contexto actual de tu sesión. Ideal para dudas sobre la pantalla o pasos a seguir.'
+                        ? `Mantiene la conversación activa entre páginas. Guarda automáticamente los últimos ${MAX_CONTEXT_MESSAGES} mensajes para continuar donde lo dejaste.`
                         : 'Asistente conversacional para resolver dudas generales, explorar contenido y guiarte por la plataforma.'}
                     </p>
                   </div>
