@@ -21,7 +21,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 1,
     title: '¡Bienvenido a Aprende y Aplica!',
-    description: 'Soy tu asistente inteligente, similar a JARVIS. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial.',
+    description: 'Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial.',
     speech: 'Bienvenido a Aprende y Aplica. Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial.'
   },
   {
