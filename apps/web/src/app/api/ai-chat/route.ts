@@ -1015,7 +1015,7 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
       'Authorization': `Bearer ${openaiApiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.CHATBOT_MODEL || 'gpt-4o-mini',
+      model: process.env.CHATBOT_MODEL || 'gpt-5-nano',
       messages: messages,
       temperature: parseFloat(process.env.CHATBOT_TEMPERATURE || (hasCourseContext ? '0.5' : '0.6')), // Más determinístico para contexto educativo
       max_tokens: parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')), // Más tokens para respuestas educativas
@@ -1031,7 +1031,7 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
   const data = await response.json();
   
   // ✅ CORRECCIÓN 6: Registrar uso de OpenAI
-  const model = data.model || process.env.CHATBOT_MODEL || 'gpt-4o-mini';
+  const model = data.model || process.env.CHATBOT_MODEL || 'gpt-5-nano';
   const totalTokens = data.usage?.total_tokens || 0;
   let estimatedCost = 0;
   

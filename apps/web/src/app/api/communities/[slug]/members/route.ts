@@ -120,7 +120,65 @@ export async function GET(
 
     // Si no hay miembros reales, retornar array vacío
     if (members.length === 0) {
+      return NextResponse.json({
+        community: {
+          id: community.id,
+          name: community.name,
+          slug: community.slug,
+          access_type: community.access_type
+        },
+        members: [],
+        total: 0
+      });
+    }
+
+    // Lógica especial para "Profesionales": filtrar miembros que tienen otras comunidades
+    if (community.slug === 'profesionales') {
+      const validMembers = [];
+
+      for (const member of members) {
+        const userId = member.user_id || member.users.id;
+
+        // Verificar si el usuario tiene otras comunidades activas (excluyendo Profesionales)
+        // Contar membresías activas del usuario
+        const { data: userMemberships, error: membershipError } = await supabase
+          .from('community_members')
+          .select('community_id')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .neq('community_id', community.id);
+
+        if (membershipError) {
+          // Si hay error, por seguridad no incluir este miembro
+          console.error('Error checking user memberships:', membershipError);
+          continue;
+        }
+
+        // Solo incluir si NO tiene otras comunidades activas
+        if (!userMemberships || userMemberships.length === 0) {
+          validMembers.push(member);
+        } else {
+          console.log(`Usuario ${userId} tiene ${userMemberships.length} otras comunidades, excluido de Profesionales`);
+        }
       }
+
+      // Reemplazar con solo los miembros válidos
+      members = validMembers;
+
+      // Si no quedan miembros válidos después del filtrado
+      if (members.length === 0) {
+        return NextResponse.json({
+          community: {
+            id: community.id,
+            name: community.name,
+            slug: community.slug,
+            access_type: community.access_type
+          },
+          members: [],
+          total: 0
+        });
+      }
+    }
 
     // Obtener estadísticas de cada miembro (si es posible)
     const membersWithStats = await Promise.all(
@@ -235,6 +293,148 @@ export async function GET(
     logError('GET /api/communities/[slug]/members', error);
     return NextResponse.json(
       formatApiError(error, 'Error al obtener miembros de la comunidad'),
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH endpoint para limpiar membresías inválidas en "Profesionales"
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  try {
+    const supabase = await createClient();
+    const { slug } = await params;
+
+    // Verificar autenticación
+    const { SessionService } = await import('../../../../../features/auth/services/session.service');
+    const user = await SessionService.getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // Solo permitir limpieza en "Profesionales"
+    if (slug !== 'profesionales') {
+      return NextResponse.json({
+        error: 'Esta operación solo está disponible para la comunidad Profesionales'
+      }, { status: 400 });
+    }
+
+    // Verificar que el usuario es admin
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData || userData.role !== 'admin') {
+      return NextResponse.json({ error: 'Se requieren permisos de administrador' }, { status: 403 });
+    }
+
+    // Obtener la comunidad "Profesionales"
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
+      .select('id, name, slug')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single();
+
+    if (communityError || !community) {
+      return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
+    }
+
+    // Obtener todos los miembros actuales de "Profesionales"
+    const { data: allMembers, error: membersError } = await supabase
+      .from('community_members')
+      .select('id, user_id')
+      .eq('community_id', community.id)
+      .eq('is_active', true);
+
+    if (membersError) {
+      return NextResponse.json({
+        error: 'Error al obtener miembros'
+      }, { status: 500 });
+    }
+
+    if (!allMembers || allMembers.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No hay miembros para limpiar',
+        removed: 0,
+        valid_members: 0
+      });
+    }
+
+    // Verificar cada miembro y marcar inválidos
+    const invalidMemberIds: string[] = [];
+
+    for (const member of allMembers) {
+      // Verificar si tiene otras comunidades activas (excluyendo Profesionales)
+      const { data: otherMemberships } = await supabase
+        .from('community_members')
+        .select('community_id')
+        .eq('user_id', member.user_id)
+        .eq('is_active', true)
+        .neq('community_id', community.id);
+
+      // Si tiene otras comunidades, marcarlo como inválido
+      if (otherMemberships && otherMemberships.length > 0) {
+        invalidMemberIds.push(member.id);
+        console.log(`Marcando usuario ${member.user_id} como inválido - tiene ${otherMemberships.length} otras comunidades`);
+      }
+    }
+
+    // Remover membresías inválidas
+    let removedCount = 0;
+    if (invalidMemberIds.length > 0) {
+      const { error: removeError } = await supabase
+        .from('community_members')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', invalidMemberIds);
+
+      if (removeError) {
+        return NextResponse.json({
+          error: 'Error al remover membresías inválidas'
+        }, { status: 500 });
+      }
+
+      removedCount = invalidMemberIds.length;
+    }
+
+    // Calcular y actualizar el member_count correcto
+    const validMemberCount = allMembers.length - removedCount;
+
+    const { error: updateCountError } = await supabase
+      .from('communities')
+      .update({
+        member_count: validMemberCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', community.id);
+
+    if (updateCountError) {
+      return NextResponse.json({
+        error: 'Error al actualizar contador de miembros'
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Limpieza completada exitosamente',
+      removed: removedCount,
+      valid_members: validMemberCount,
+      total_checked: allMembers.length
+    });
+
+  } catch (error) {
+    logError('PATCH /api/communities/[slug]/members', error);
+    return NextResponse.json(
+      formatApiError(error, 'Error al limpiar membresías'),
       { status: 500 }
     );
   }
