@@ -9,6 +9,8 @@ import { NotificationProvider } from '../features/notifications/context/Notifica
 import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
 import { GlobalRecorderProvider } from '../core/components/GlobalRecorderProvider';
 import { I18nProvider } from '../core/providers/I18nProvider';
+import { OnboardingAgent } from '../core/components/OnboardingAgent';
+import { DevResetButton } from '../core/components/OnboardingAgent/DevResetButton';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -144,6 +146,10 @@ export default function RootLayout({
                   </div>
                   {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
                   <ConditionalAIChatAgent />
+                  {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
+                  <OnboardingAgent />
+                  {/* Botón de desarrollo para resetear onboarding */}
+                  <DevResetButton />
                 </NotificationProvider>
               </ThemeProvider>
             </I18nProvider>
