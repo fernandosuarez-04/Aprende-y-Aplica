@@ -24,20 +24,47 @@ export function CalendarSyncSettings({ isOpen, onClose }: CalendarSyncSettingsPr
 
   useEffect(() => {
     if (isOpen) {
-      loadIntegrations();
+      // Verificar y refrescar tokens automáticamente al abrir el modal
+      loadIntegrations(true);
     }
   }, [isOpen]);
 
-  const loadIntegrations = async () => {
+  const loadIntegrations = async (verifyTokens = false) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/study-planner/calendar-integrations', {
+      // Si verifyTokens es true, verificar y refrescar tokens automáticamente
+      const endpoint = verifyTokens 
+        ? '/api/study-planner/calendar-integrations/verify'
+        : '/api/study-planner/calendar-integrations';
+      
+      const method = verifyTokens ? 'POST' : 'GET';
+      
+      const response = await fetch(endpoint, {
+        method,
         credentials: 'include',
+        headers: verifyTokens ? { 'Content-Type': 'application/json' } : undefined,
       });
+      
       const data = await response.json();
+      
       if (data.success) {
-        setIntegrations(data.data || []);
+        // Si se verificaron tokens, los datos vienen en data.data.integrations
+        const integrationsData = verifyTokens && data.data?.integrations 
+          ? data.data.integrations 
+          : data.data || [];
+        
+        setIntegrations(integrationsData);
+        
+        // Mostrar errores de verificación si los hay
+        if (verifyTokens && data.data?.errors && data.data.errors.length > 0) {
+          const errorMessages = data.data.errors.map((e: { provider: string; error: string }) => 
+            `${e.provider}: ${e.error}`
+          ).join('; ');
+          setError(`Algunas integraciones tienen problemas: ${errorMessages}`);
+        }
+      } else {
+        setError(data.error?.message || 'Error al cargar integraciones');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar integraciones');
@@ -343,7 +370,7 @@ export function CalendarSyncSettings({ isOpen, onClose }: CalendarSyncSettingsPr
             <Button variant="ghost" onClick={onClose} disabled={loading}>
               Cerrar
             </Button>
-            <Button onClick={loadIntegrations} disabled={loading}>
+            <Button onClick={() => loadIntegrations(true)} disabled={loading}>
               <ArrowPathIcon className="w-4 h-4 mr-2" />
               Actualizar
             </Button>

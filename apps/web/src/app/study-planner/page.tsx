@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarIcon, ChartBarIcon, Cog6ToothIcon, PlusIcon, ArrowPathIcon, TrashIcon, ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline';
 import { StudyCalendar } from '../../features/study-planner/components/StudyCalendar';
@@ -40,6 +40,49 @@ export default function StudyPlannerPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Verificar y refrescar tokens de calendario automáticamente al cargar la página
+  useEffect(() => {
+    const verifyCalendarTokens = async () => {
+      try {
+        // Verificar y refrescar tokens automáticamente
+        const response = await fetch('/api/study-planner/calendar-integrations/verify', {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // Si hay errores en alguna integración, registrarlos pero no bloquear la UI
+          if (data.data?.errors && data.data.errors.length > 0) {
+            console.warn('[CALENDAR] Algunas integraciones tienen problemas:', data.data.errors);
+            // Solo mostrar error si todas las integraciones fallaron
+            const allFailed = data.data.integrations.length === 0 && data.data.errors.length > 0;
+            if (allFailed) {
+              setError(
+                `No se pudieron refrescar las integraciones de calendario: ${data.data.errors.map((e: { provider: string; error: string }) => `${e.provider}`).join(', ')}`
+              );
+            }
+          } else {
+            console.log('[CALENDAR] Tokens verificados y refrescados exitosamente');
+          }
+        }
+      } catch (err) {
+        // No mostrar error al usuario si falla la verificación automática
+        // Solo loguear para debugging
+        console.warn('[CALENDAR] Error verificando tokens al cargar la página:', err);
+      }
+    };
+
+    // Ejecutar verificación al montar el componente
+    verifyCalendarTokens();
+
+    // También verificar periódicamente (cada 30 minutos) para tokens que puedan expirar
+    const interval = setInterval(verifyCalendarTokens, 30 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSavePreferences = async (
     prefs: StudyPreferencesInsert | StudyPreferencesUpdate

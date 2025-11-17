@@ -14,14 +14,16 @@ export class CalendarSyncService {
     integration: CalendarIntegration
   ): Promise<string | null> {
     try {
-      if (!integration.access_token) {
+      // Verificar y refrescar token si es necesario
+      const validIntegration = await this.ensureValidToken(integration);
+      if (!validIntegration || !validIntegration.access_token) {
         throw new Error('Token de acceso no disponible');
       }
 
-      if (integration.provider === 'google') {
-        return await this.createGoogleEvent(session, integration.access_token);
-      } else if (integration.provider === 'microsoft') {
-        return await this.createMicrosoftEvent(session, integration.access_token);
+      if (validIntegration.provider === 'google') {
+        return await this.createGoogleEvent(session, validIntegration.access_token);
+      } else if (validIntegration.provider === 'microsoft') {
+        return await this.createMicrosoftEvent(session, validIntegration.access_token);
       }
 
       return null;
@@ -39,14 +41,20 @@ export class CalendarSyncService {
     integration: CalendarIntegration
   ): Promise<boolean> {
     try {
-      if (!integration.access_token || !session.external_event_id) {
+      if (!session.external_event_id) {
         return false;
       }
 
-      if (integration.provider === 'google') {
-        return await this.updateGoogleEvent(session, integration.access_token);
-      } else if (integration.provider === 'microsoft') {
-        return await this.updateMicrosoftEvent(session, integration.access_token);
+      // Verificar y refrescar token si es necesario
+      const validIntegration = await this.ensureValidToken(integration);
+      if (!validIntegration || !validIntegration.access_token) {
+        return false;
+      }
+
+      if (validIntegration.provider === 'google') {
+        return await this.updateGoogleEvent(session, validIntegration.access_token);
+      } else if (validIntegration.provider === 'microsoft') {
+        return await this.updateMicrosoftEvent(session, validIntegration.access_token);
       }
 
       return false;
@@ -69,46 +77,23 @@ export class CalendarSyncService {
         return false;
       }
 
-      // Verificar si el token está expirado y refrescarlo si es necesario
-      let accessToken = integration.access_token;
-      let currentIntegration = integration;
-
-      if (!accessToken) {
-        console.error('[CALENDAR SYNC] No access token available');
+      // Verificar y refrescar token si es necesario
+      const validIntegration = await this.ensureValidToken(integration);
+      if (!validIntegration || !validIntegration.access_token) {
+        console.error('[CALENDAR SYNC] No valid access token available');
         return false;
       }
 
-      if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
-        console.log(`[CALENDAR SYNC] Token expired for ${integration.provider}, refreshing...`);
-        try {
-          await this.refreshToken(integration);
-          // Obtener la integración actualizada
-          const integrations = await StudyPlannerService.getCalendarIntegrations(integration.user_id);
-          const updatedIntegration = integrations.find(int => int.id === integration.id);
-          if (updatedIntegration && updatedIntegration.access_token) {
-            currentIntegration = updatedIntegration;
-            accessToken = updatedIntegration.access_token;
-            console.log(`[CALENDAR SYNC] Token refreshed successfully for ${integration.provider}`);
-          } else {
-            console.error('[CALENDAR SYNC] Could not get updated integration after refresh');
-            return false;
-          }
-        } catch (refreshError) {
-          console.error('[CALENDAR SYNC] Error refreshing token:', refreshError);
-          return false;
-        }
-      }
-
-      if (currentIntegration.provider === 'google') {
-        const result = await this.deleteGoogleEvent(session, accessToken);
+      if (validIntegration.provider === 'google') {
+        const result = await this.deleteGoogleEvent(session, validIntegration.access_token);
         if (result) {
           console.log(`[CALENDAR SYNC] Successfully deleted event ${session.external_event_id} from Google Calendar`);
         } else {
           console.error(`[CALENDAR SYNC] Failed to delete event ${session.external_event_id} from Google Calendar`);
         }
         return result;
-      } else if (currentIntegration.provider === 'microsoft') {
-        const result = await this.deleteMicrosoftEvent(session, accessToken);
+      } else if (validIntegration.provider === 'microsoft') {
+        const result = await this.deleteMicrosoftEvent(session, validIntegration.access_token);
         if (result) {
           console.log(`[CALENDAR SYNC] Successfully deleted event ${session.external_event_id} from Microsoft Calendar`);
         } else {
@@ -117,7 +102,7 @@ export class CalendarSyncService {
         return result;
       }
 
-      console.warn(`[CALENDAR SYNC] Unknown provider: ${currentIntegration.provider}`);
+      console.warn(`[CALENDAR SYNC] Unknown provider: ${validIntegration.provider}`);
       return false;
     } catch (error) {
       console.error('[CALENDAR SYNC] Error deleting calendar event:', error);
@@ -134,19 +119,21 @@ export class CalendarSyncService {
       const sessions = await StudyPlannerService.getStudySessions(userId);
 
       for (const integration of integrations) {
-        // Verificar si el token está expirado y refrescarlo si es necesario
-        if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
-          await this.refreshToken(integration);
+        // Verificar y refrescar token si es necesario
+        const validIntegration = await this.ensureValidToken(integration);
+        if (!validIntegration || !validIntegration.access_token) {
+          console.warn(`[CALENDAR SYNC] Skipping ${integration.provider} - no valid token`);
+          continue;
         }
 
         for (const session of sessions) {
           if (session.calendar_provider === integration.provider) {
             if (session.external_event_id) {
               // Actualizar evento existente
-              await this.updateEvent(session, integration);
+              await this.updateEvent(session, validIntegration);
             } else {
               // Crear nuevo evento
-              const eventId = await this.createEvent(session, integration);
+              const eventId = await this.createEvent(session, validIntegration);
               if (eventId) {
                 await StudyPlannerService.updateStudySession(session.id, userId, {
                   external_event_id: eventId,
@@ -159,6 +146,51 @@ export class CalendarSyncService {
       }
     } catch (error) {
       console.error('Error syncing all sessions:', error);
+    }
+  }
+
+  /**
+   * Asegura que el token de la integración sea válido, refrescándolo si es necesario
+   */
+  private static async ensureValidToken(
+    integration: CalendarIntegration
+  ): Promise<CalendarIntegration | null> {
+    try {
+      // Verificar si el token está expirado o a punto de expirar (en los próximos 5 minutos)
+      const now = new Date();
+      const expiresAt = integration.expires_at ? new Date(integration.expires_at) : null;
+      const shouldRefresh = expiresAt && expiresAt.getTime() < now.getTime() + 5 * 60 * 1000;
+
+      if (shouldRefresh && integration.refresh_token) {
+        console.log(`[CALENDAR SYNC] Token expirado o a punto de expirar para ${integration.provider}, refrescando...`);
+        try {
+          await this.refreshToken(integration);
+          // Obtener la integración actualizada
+          const integrations = await StudyPlannerService.getCalendarIntegrations(integration.user_id);
+          const updatedIntegration = integrations.find(int => int.id === integration.id);
+          if (updatedIntegration && updatedIntegration.access_token) {
+            console.log(`[CALENDAR SYNC] Token refreshed successfully for ${integration.provider}`);
+            return updatedIntegration;
+          } else {
+            console.error('[CALENDAR SYNC] Could not get updated integration after refresh');
+            return null;
+          }
+        } catch (refreshError) {
+          console.error('[CALENDAR SYNC] Error refreshing token:', refreshError);
+          return null;
+        }
+      }
+
+      // Token no expirado, retornar la integración original
+      if (!integration.access_token) {
+        console.error('[CALENDAR SYNC] No access token available');
+        return null;
+      }
+
+      return integration;
+    } catch (error) {
+      console.error('[CALENDAR SYNC] Error ensuring valid token:', error);
+      return null;
     }
   }
 

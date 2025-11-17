@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -27,6 +27,7 @@ export function StudyCalendar({
 }: StudyCalendarProps) {
   const [view, setView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth');
   const calendarRef = useRef<FullCalendar>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Convertir sesiones a eventos de FullCalendar
   const events = sessions.map((session) => ({
@@ -86,6 +87,139 @@ export function StudyCalendar({
     }
   }
 
+  // Función para aplicar estilos oscuros directamente al DOM
+  const applyDarkModeStyles = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    if (!isDarkMode) return;
+
+    // Buscar todos los elementos de encabezado de columna
+    const headerCells = document.querySelectorAll('.fc-custom .fc-col-header-cell, .fc-custom [class*="fc-col-header-cell"]');
+    const headerRows = document.querySelectorAll('.fc-custom .fc-col-header, .fc-custom [class*="fc-col-header"]');
+    const scrollGridHeaders = document.querySelectorAll('.fc-custom .fc-scrollgrid-section-header, .fc-custom [class*="fc-scrollgrid-section-header"]');
+    const theadElements = document.querySelectorAll('.fc-custom .fc-scrollgrid thead, .fc-custom .fc-scrollgrid > thead');
+
+    const darkBackground = 'rgb(31, 41, 55)';
+    const darkBorder = 'rgb(55, 65, 81)';
+    const darkText = 'rgb(243, 244, 246)';
+
+    // Aplicar estilos a celdas de encabezado
+    headerCells.forEach((cell) => {
+      const element = cell as HTMLElement;
+      element.style.backgroundColor = darkBackground;
+      element.style.background = darkBackground;
+      element.style.borderColor = darkBorder;
+      // Aplicar también a hijos
+      const children = element.querySelectorAll('*');
+      children.forEach((child) => {
+        const childElement = child as HTMLElement;
+        if (childElement.tagName === 'A' || childElement.classList.contains('fc-col-header-cell-cushion')) {
+          childElement.style.color = darkText;
+        }
+      });
+    });
+
+    // Aplicar estilos a filas de encabezado
+    headerRows.forEach((row) => {
+      const element = row as HTMLElement;
+      element.style.backgroundColor = darkBackground;
+      element.style.background = darkBackground;
+      // Aplicar a td y th dentro
+      const cells = element.querySelectorAll('td, th');
+      cells.forEach((cell) => {
+        const cellElement = cell as HTMLElement;
+        cellElement.style.backgroundColor = darkBackground;
+        cellElement.style.background = darkBackground;
+        cellElement.style.borderColor = darkBorder;
+      });
+    });
+
+    // Aplicar estilos a scrollgrid headers
+    scrollGridHeaders.forEach((header) => {
+      const element = header as HTMLElement;
+      element.style.backgroundColor = darkBackground;
+      element.style.background = darkBackground;
+      const cells = element.querySelectorAll('td, th');
+      cells.forEach((cell) => {
+        const cellElement = cell as HTMLElement;
+        cellElement.style.backgroundColor = darkBackground;
+        cellElement.style.background = darkBackground;
+        cellElement.style.borderColor = darkBorder;
+      });
+    });
+
+    // Aplicar estilos a thead
+    theadElements.forEach((thead) => {
+      const element = thead as HTMLElement;
+      element.style.backgroundColor = darkBackground;
+      element.style.background = darkBackground;
+      const cells = element.querySelectorAll('td, th');
+      cells.forEach((cell) => {
+        const cellElement = cell as HTMLElement;
+        cellElement.style.backgroundColor = darkBackground;
+        cellElement.style.background = darkBackground;
+      });
+    });
+  }, []);
+
+  // useEffect para aplicar estilos después del montaje y cuando cambia la vista
+  useEffect(() => {
+    // Aplicar estilos inmediatamente
+    const timeout = setTimeout(() => {
+      applyDarkModeStyles();
+    }, 100);
+
+    // MutationObserver para detectar cambios dinámicos en el DOM
+    const observer = new MutationObserver((mutations) => {
+      let shouldApply = false;
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' || mutation.type === 'attributes') {
+          const target = mutation.target as HTMLElement;
+          if (target.classList?.contains('fc-col-header') || 
+              target.classList?.contains('fc-col-header-cell') ||
+              target.closest('.fc-col-header')) {
+            shouldApply = true;
+          }
+        }
+      });
+      if (shouldApply) {
+        setTimeout(() => applyDarkModeStyles(), 50);
+      }
+    });
+
+    // Observar cambios en el contenedor del calendario
+    if (containerRef.current) {
+      observer.observe(containerRef.current, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style'],
+      });
+    }
+
+    // También observar cambios cuando cambia la vista
+    const handleViewChange = () => {
+      setTimeout(() => applyDarkModeStyles(), 150);
+    };
+
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.on('datesSet', handleViewChange);
+      calendarApi.on('viewSkeletonRender', handleViewChange);
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
+      if (calendarRef.current) {
+        const calendarApi = calendarRef.current.getApi();
+        calendarApi.off('datesSet', handleViewChange);
+        calendarApi.off('viewSkeletonRender', handleViewChange);
+      }
+    };
+  }, [view, applyDarkModeStyles]);
+
   return (
     <div className="w-full bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Header con controles */}
@@ -143,30 +277,30 @@ export function StudyCalendar({
         {/* Leyenda de estados */}
         <div className="flex items-center gap-4 mt-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-            <span className="text-xs text-gray-600 dark:text-gray-400">Planificado</span>
+            <div className="w-3 h-3 rounded-full bg-indigo-500 shadow-sm"></div>
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">Planificado</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-            <span className="text-xs text-gray-600 dark:text-gray-400">En progreso</span>
+            <div className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></div>
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">En progreso</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="text-xs text-gray-600 dark:text-gray-400">Completado</span>
+            <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">Completado</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <span className="text-xs text-gray-600 dark:text-gray-400">Cancelado</span>
+            <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">Cancelado</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-            <span className="text-xs text-gray-600 dark:text-gray-400">Omitido</span>
+            <div className="w-3 h-3 rounded-full bg-gray-500 shadow-sm"></div>
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">Omitido</span>
           </div>
         </div>
       </div>
 
       {/* Calendario */}
-      <div className="p-4">
+      <div className="p-4" ref={containerRef}>
         {loading ? (
           <div className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -221,6 +355,7 @@ export function StudyCalendar({
       </div>
 
       <style jsx global>{`
+        /* ===== VARIABLES GLOBALES ===== */
         .fc-custom {
           --fc-border-color: rgb(229 231 235);
           --fc-daygrid-event-dot-width: 8px;
@@ -242,38 +377,50 @@ export function StudyCalendar({
           --fc-daygrid-day-bg-color: rgb(17 24 39);
           --fc-daygrid-day-frame-bg-color: rgb(17 24 39);
           --fc-event-text-color: #ffffff;
-          --fc-col-header-cell-bg-color: rgb(31 41 55);
         }
+
+        /* ===== HEADER TOTAL - MÁXIMA PRIORIDAD ===== */
+        .dark .fc-custom thead,
+        .dark .fc-custom thead *,
+        .dark .fc-custom .fc-col-header,
+        .dark .fc-custom .fc-col-header *,
+        .dark .fc-custom .fc-scrollgrid-section-header,
+        .dark .fc-custom .fc-scrollgrid-section-header * {
+          background: rgb(31 41 55) !important;
+          background-color: rgb(31 41 55) !important;
+          border-color: rgb(55 65 81) !important;
+        }
+
+        /* ===== TEXTO DEL HEADER ===== */
+        .dark .fc-custom .fc-col-header-cell-cushion,
+        .dark .fc-custom thead a {
+          color: rgb(243 244 246) !important;
+          font-weight: 600 !important;
+        }
+        /* ===== BOTONES ===== */
         .fc-custom .fc-button {
           border-radius: 0.5rem;
           padding: 0.5rem 1rem;
           font-weight: 500;
           transition: all 0.2s;
         }
-        .fc-custom .fc-button-primary {
-          background-color: rgb(37 99 235);
-          border-color: rgb(37 99 235);
-          color: white;
+        .dark .fc-custom .fc-button-primary,
+        .dark .fc-custom .fc-today-button {
+          background-color: rgb(31 41 55) !important;
+          border-color: rgb(55 65 81) !important;
+          color: rgb(243 244 246) !important;
         }
-        .fc-custom .fc-button-primary:hover {
-          background-color: rgb(29 78 216);
-          border-color: rgb(29 78 216);
+        .dark .fc-custom .fc-button-primary:hover,
+        .dark .fc-custom .fc-today-button:hover {
+          background-color: rgb(55 65 81) !important;
+          border-color: rgb(75 85 99) !important;
         }
-        .dark .fc-custom .fc-button-primary {
-          background-color: rgb(55 65 81);
-          border-color: rgb(75 85 99);
-          color: rgb(209 213 219);
+        .dark .fc-custom .fc-toolbar-title {
+          color: rgb(255 255 255) !important;
+          font-weight: 600;
+          font-size: 1.5rem;
         }
-        .dark .fc-custom .fc-button-primary:hover {
-          background-color: rgb(75 85 99);
-          border-color: rgb(107 114 128);
-        }
-        .dark .fc-custom .fc-button-primary:not(:disabled):active,
-        .dark .fc-custom .fc-button-primary:not(:disabled).fc-button-active {
-          background-color: rgb(37 99 235);
-          border-color: rgb(37 99 235);
-          color: white;
-        }
+        /* ===== EVENTOS ===== */
         .fc-custom .fc-event {
           cursor: pointer;
           border: none;
@@ -284,98 +431,48 @@ export function StudyCalendar({
         .fc-custom .fc-event:hover {
           opacity: 0.9;
           transform: scale(1.02);
-          filter: brightness(1.1);
         }
-        .fc-custom .fc-event-title {
-          color: #ffffff !important;
-        }
-        .fc-custom .fc-event-time {
-          color: rgba(255, 255, 255, 0.9) !important;
-        }
-        .fc-custom .fc-daygrid-day-number {
-          color: rgb(107 114 128);
-          font-weight: 500;
-        }
+
+        /* ===== NÚMEROS DE DÍA ===== */
         .dark .fc-custom .fc-daygrid-day-number {
-          color: rgb(243 244 246) !important;
+          color: rgb(255 255 255) !important;
           font-weight: 500;
-        }
-        .fc-custom .fc-col-header-cell-cushion {
-          color: rgb(55 65 81);
-          font-weight: 600;
-        }
-        .dark .fc-custom .fc-col-header-cell-cushion {
-          color: rgb(243 244 246) !important;
-          font-weight: 600;
-        }
-        .dark .fc-custom .fc-col-header-cell {
-          background-color: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-        }
-        .dark .fc-custom .fc-daygrid-day {
-          background-color: rgb(17 24 39) !important;
-        }
-        .dark .fc-custom .fc-daygrid-day-frame {
-          background-color: rgb(17 24 39) !important;
-        }
-        .dark .fc-custom .fc-daygrid-day-top {
-          color: rgb(243 244 246) !important;
-        }
-        .dark .fc-custom .fc-day-other .fc-daygrid-day-frame {
-          background-color: rgb(31 41 55) !important;
-          opacity: 0.6;
+          padding: 0.5rem;
         }
         .dark .fc-custom .fc-day-other .fc-daygrid-day-number {
           color: rgb(156 163 175) !important;
+          opacity: 0.7;
         }
+
+        /* ===== CELDAS DEL CALENDARIO ===== */
+        .dark .fc-custom .fc-daygrid-day {
+          background-color: rgb(17 24 39) !important;
+          border-color: rgb(55 65 81) !important;
+          min-height: 100px;
+        }
+        .dark .fc-custom .fc-daygrid-day-frame {
+          background-color: rgb(17 24 39) !important;
+          min-height: 100px;
+        }
+        .dark .fc-custom .fc-day-other {
+          background-color: rgb(31 41 55) !important;
+        }
+
+        /* ===== DÍA ACTUAL ===== */
         .dark .fc-custom .fc-day-today {
-          background-color: rgba(37, 99, 235, 0.15) !important;
+          background-color: rgba(37, 99, 235, 0.2) !important;
         }
         .dark .fc-custom .fc-day-today .fc-daygrid-day-number {
           color: rgb(96 165 250) !important;
           font-weight: 700;
         }
-        .dark .fc-custom .fc-day-today .fc-daygrid-day-frame {
-          background-color: rgba(37, 99, 235, 0.15) !important;
-        }
+
+        /* ===== GENERAL ===== */
         .dark .fc-custom .fc-scrollgrid {
           border-color: rgb(55 65 81) !important;
           background-color: rgb(17 24 39) !important;
         }
-        .dark .fc-custom .fc-scrollgrid-section > td {
-          border-color: rgb(55 65 81) !important;
-        }
-        .dark .fc-custom .fc-scrollgrid-section-header > td {
-          background-color: rgb(31 41 55) !important;
-          border-color: rgb(55 65 81) !important;
-        }
-        .dark .fc-custom .fc-timegrid-slot {
-          border-color: rgb(55 65 81);
-        }
-        .dark .fc-custom .fc-timegrid-slot-label {
-          color: rgb(156 163 175);
-        }
-        .dark .fc-custom .fc-timegrid-axis {
-          border-color: rgb(55 65 81);
-          color: rgb(156 163 175);
-        }
-        .dark .fc-custom .fc-timegrid-col {
-          border-color: rgb(55 65 81);
-        }
-        .dark .fc-custom .fc-timegrid-event {
-          border-color: transparent;
-        }
-        .dark .fc-custom .fc-daygrid-event {
-          border-color: transparent;
-        }
-        /* Forzar colores en modo oscuro */
         .dark .fc-custom table {
-          background-color: rgb(17 24 39) !important;
-        }
-        .dark .fc-custom .fc-view-harness {
-          background-color: rgb(17 24 39) !important;
-        }
-        .dark .fc-custom .fc-daygrid-body {
           background-color: rgb(17 24 39) !important;
         }
       `}</style>
