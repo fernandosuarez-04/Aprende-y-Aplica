@@ -12,15 +12,26 @@ El **OnboardingAgent** es un componente de bienvenida inmersivo que aparece la p
 - **Gradientes dinámicos** con colores azul, púrpura y cyan
 - **Animaciones sincronizadas** con la síntesis de voz
 - **Efectos de pulso** cuando el asistente está hablando
+- **Avatar de LIA** en el centro de la esfera
 
 ### 🔊 Síntesis de Voz
-- **Narración automática** usando Web Speech API
-- **Voz en español** (es-ES)
+- **Narración profesional** usando ElevenLabs API
+- **Voz en español** de alta calidad
 - **Control de audio** con botón de mute/unmute
 - **Indicador visual** cuando está hablando
+- **Respeto a políticas de autoplay** del navegador
+
+### 💬 Conversación por Voz (NUEVO)
+- **Reconocimiento de voz** usando Web Speech API
+- **Chat inteligente** con LIA antes de entrar a la plataforma
+- **Respuestas contextuales** sobre el onboarding y la plataforma
+- **Historial de conversación** visible en tiempo real
+- **Respuestas por voz** usando ElevenLabs
+- **Interfaz intuitiva** con botón de micrófono animado
 
 ### 📱 Experiencia Interactiva
-- **5 pasos de onboarding** con información clave
+- **6 pasos de onboarding** con información clave
+- **Paso 5: Conversación interactiva** donde puedes hacer preguntas
 - **Navegación fluida** entre pasos
 - **Acciones directas** para explorar la plataforma
 - **Barra de progreso** visual
@@ -94,9 +105,43 @@ Presentación de cursos, talleres, comunidades y noticias.
 Introducción a la herramienta de creación de prompts profesionales.
 - **Acción**: Ver Prompts
 
-### Paso 5: ¡Estás Listo!
+### Paso 5: 💬 Hablemos un Momento (NUEVO)
+**Conversación interactiva por voz** donde el usuario puede hacer preguntas antes de entrar a la plataforma.
+
+#### Cómo funciona:
+1. **Haz clic en el micrófono** grande en el centro
+2. **Habla tu pregunta** (ej: "¿Qué tipo de cursos tienen?", "¿Cómo funciona la IA?", "¿Puedes ayudarme con mis tareas?")
+3. **Espera la respuesta** - LIA procesará tu pregunta y responderá por voz
+4. **Continúa la conversación** - Puedes hacer más preguntas
+5. **Cuando estés listo**, haz clic en "Continuar sin preguntar" para avanzar
+
+#### Ejemplos de preguntas:
+- "¿Qué voy a aprender aquí?"
+- "¿Cómo funciona el machine learning?"
+- "¿Puedes ayudarme con programación?"
+- "¿Qué es la inteligencia artificial?"
+- "¿Hay proyectos prácticos?"
+
+### Paso 6: ¡Estás Listo!
 Mensaje final y recordatorio de que LIA estará disponible siempre.
 - **Acción**: Comenzar (va al Dashboard)
+
+## 🎤 Conversación por Voz
+
+### Requisitos del Navegador
+- **Chrome**: ✅ Soportado completamente
+- **Edge**: ✅ Soportado completamente  
+- **Safari**: ✅ Soportado (con permisos de micrófono)
+- **Firefox**: ⚠️ Soporte limitado
+
+### Permisos Necesarios
+El navegador solicitará permiso para usar el micrófono la primera vez. Es necesario aceptar para usar la función de voz.
+
+### Estados del Micrófono
+- **🎤 Azul/Púrpura**: Listo para escuchar - Haz clic para hablar
+- **🔴 Rojo pulsante**: Escuchando - Habla ahora
+- **⏳ Girando**: Procesando tu pregunta con LIA
+- **🔇 Gris**: Deshabilitado (procesando)
 
 ## 🎯 Customización
 

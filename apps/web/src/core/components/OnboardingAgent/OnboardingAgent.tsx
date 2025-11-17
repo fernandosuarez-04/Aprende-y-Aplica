@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, ChevronRight } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getPlatformContext } from '../../../lib/lia/page-metadata';
@@ -57,6 +57,12 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 5,
+    title: '💬 Hablemos un momento',
+    description: 'Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Puedo hablarte por voz sobre lo que necesites saber.',
+    speech: 'Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Haz clic en el micrófono y háblame. Te responderé por voz.',
+  },
+  {
+    id: 6,
     title: '¡Estás listo!',
     description: 'Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible en la esquina inferior derecha para ayudarte.',
     speech: 'Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible para ayudarte.',
@@ -73,7 +79,15 @@ export function OnboardingAgent() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  
+  // Estados para conversación por voz
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recognitionRef = useRef<any>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -187,6 +201,118 @@ export function OnboardingAgent() {
     } catch (error) {
       console.error('Error en síntesis de voz con ElevenLabs:', error);
       setIsSpeaking(false);
+    }
+  };
+
+  // Inicializar reconocimiento de voz
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onresult = (event: any) => {
+          const speechToText = event.results[0][0].transcript;
+          console.log('🎤 Transcripción:', speechToText);
+          setTranscript(speechToText);
+          setIsListening(false);
+          
+          // Procesar la pregunta con LIA
+          handleVoiceQuestion(speechToText);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('❌ Error en reconocimiento de voz:', event.error);
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+      } else {
+        console.warn('⚠️ El navegador no soporta reconocimiento de voz');
+      }
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Función para iniciar/detener escucha
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert('Tu navegador no soporta reconocimiento de voz. Por favor usa Chrome, Edge o Safari.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setTranscript('');
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  // Función para procesar pregunta de voz con LIA
+  const handleVoiceQuestion = async (question: string) => {
+    if (!question.trim()) return;
+
+    setIsProcessing(true);
+    
+    try {
+      // Construir contexto para LIA
+      const context = {
+        isOnboarding: true,
+        currentStep: currentStep + 1,
+        totalSteps: ONBOARDING_STEPS.length,
+        conversationHistory,
+      };
+
+      console.log('🤖 Enviando pregunta a LIA:', question);
+
+      // Llamar a la API de LIA
+      const response = await fetch('/api/lia/onboarding-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, context }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al comunicarse con LIA');
+      }
+
+      const data = await response.json();
+      const liaResponse = data.response;
+
+      console.log('💬 Respuesta de LIA:', liaResponse);
+
+      // Actualizar historial de conversación
+      setConversationHistory(prev => [
+        ...prev,
+        { role: 'user', content: question },
+        { role: 'assistant', content: liaResponse },
+      ]);
+
+      // Reproducir respuesta con ElevenLabs
+      await speakText(liaResponse);
+
+    } catch (error) {
+      console.error('❌ Error procesando pregunta:', error);
+      const errorMessage = 'Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?';
+      await speakText(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -478,6 +604,93 @@ export function OnboardingAgent() {
                     <p className="text-gray-300 text-lg leading-relaxed max-w-2xl mx-auto">
                       {step.description}
                     </p>
+
+                    {/* Interfaz de conversación por voz (solo en paso 5) */}
+                    {currentStep === 4 && (
+                      <div className="mt-8 space-y-4">
+                        {/* Botón de micrófono */}
+                        <div className="flex justify-center">
+                          <motion.button
+                            onClick={toggleListening}
+                            disabled={isProcessing}
+                            className={`relative p-8 rounded-full transition-all shadow-2xl ${
+                              isListening 
+                                ? 'bg-red-500 hover:bg-red-600' 
+                                : isProcessing
+                                ? 'bg-gray-600 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500'
+                            }`}
+                            whileHover={{ scale: isProcessing ? 1 : 1.1 }}
+                            whileTap={{ scale: isProcessing ? 1 : 0.95 }}
+                            animate={isListening ? {
+                              boxShadow: [
+                                '0 0 20px rgba(239, 68, 68, 0.5)',
+                                '0 0 60px rgba(239, 68, 68, 0.8)',
+                                '0 0 20px rgba(239, 68, 68, 0.5)',
+                              ]
+                            } : {}}
+                            transition={{ duration: 1, repeat: Infinity }}
+                          >
+                            {isProcessing ? (
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                              >
+                                <Mic size={40} className="text-white" />
+                              </motion.div>
+                            ) : isListening ? (
+                              <MicOff size={40} className="text-white" />
+                            ) : (
+                              <Mic size={40} className="text-white" />
+                            )}
+                          </motion.button>
+                        </div>
+
+                        {/* Estado del micrófono */}
+                        <p className="text-sm text-gray-400">
+                          {isProcessing 
+                            ? '🤔 Procesando tu pregunta...' 
+                            : isListening 
+                            ? '🎤 Escuchando... Habla ahora' 
+                            : '👆 Haz clic en el micrófono para hablar'}
+                        </p>
+
+                        {/* Transcripción */}
+                        {transcript && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-gray-800/50 rounded-lg p-4 max-w-xl mx-auto"
+                          >
+                            <p className="text-sm text-gray-400 mb-1">Tu pregunta:</p>
+                            <p className="text-white">{transcript}</p>
+                          </motion.div>
+                        )}
+
+                        {/* Historial de conversación */}
+                        {conversationHistory.length > 0 && (
+                          <div className="max-w-2xl mx-auto space-y-3 max-h-48 overflow-y-auto">
+                            {conversationHistory.map((msg, idx) => (
+                              <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className={`p-3 rounded-lg text-sm ${
+                                  msg.role === 'user'
+                                    ? 'bg-blue-600/20 text-blue-200 ml-12'
+                                    : 'bg-purple-600/20 text-purple-200 mr-12'
+                                }`}
+                              >
+                                <p className="font-semibold text-xs mb-1">
+                                  {msg.role === 'user' ? '👤 Tú' : '🤖 LIA'}
+                                </p>
+                                <p>{msg.content}</p>
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Botones de navegación */}
@@ -506,7 +719,7 @@ export function OnboardingAgent() {
                         onClick={handleNext}
                         className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold transition-all flex items-center gap-2 shadow-lg"
                       >
-                        Siguiente
+                        {currentStep === 4 ? 'Continuar sin preguntar' : 'Siguiente'}
                         <ChevronRight size={20} />
                       </button>
                     ) : (
