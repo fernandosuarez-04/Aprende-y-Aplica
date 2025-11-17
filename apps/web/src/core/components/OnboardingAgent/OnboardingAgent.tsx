@@ -72,7 +72,8 @@ export function OnboardingAgent() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -85,33 +86,106 @@ export function OnboardingAgent() {
       // Pequeño delay para que la página cargue primero
       setTimeout(() => {
         setIsVisible(true);
-        speakText(ONBOARDING_STEPS[0].speech);
+        // NO reproducir audio automáticamente, esperar interacción del usuario
+        // El audio se activará cuando el usuario haga clic en "Siguiente"
       }, 1000);
     }
   }, [pathname]);
 
-  // Función para síntesis de voz
-  const speakText = (text: string) => {
+  // Función para síntesis de voz con ElevenLabs
+  const speakText = async (text: string) => {
     if (!isAudioEnabled || typeof window === 'undefined') return;
 
-    // Cancelar cualquier voz anterior
-    window.speechSynthesis.cancel();
+    // Detener cualquier audio anterior
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
 
     try {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-ES';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
+      setIsSpeaking(true);
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      // Acceder directamente a las variables sin validación previa
+      const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
+      const voiceId = '15Y62ZlO8it2f5wduybx';
+      const modelId = 'eleven_multilingual_v2';
 
-      utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
+      // Debug: mostrar valores
+      console.log('🔍 ElevenLabs Config:', { 
+        apiKey: apiKey.substring(0, 15) + '...', 
+        voiceId,
+        modelId
+      });
+
+      if (!apiKey || !voiceId) {
+        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        
+        // Fallback a Web Speech API
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+        
+        window.speechSynthesis.speak(utterance);
+        return;
+      }
+
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'audio/mpeg',
+            'Content-Type': 'application/json',
+            'xi-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            text: text,
+            model_id: modelId || 'eleven_multilingual_v2',
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.5,
+              use_speaker_boost: true
+            }
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`ElevenLabs API error: ${response.status}`);
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      // Intentar reproducir el audio
+      try {
+        await audio.play();
+      } catch (playError: any) {
+        console.warn('⚠️ Autoplay bloqueado por el navegador:', playError.message);
+        // El audio se reproducirá cuando el usuario haga clic en "Siguiente" o cualquier botón
+        setIsSpeaking(false);
+      }
     } catch (error) {
-      console.error('Error en síntesis de voz:', error);
+      console.error('Error en síntesis de voz con ElevenLabs:', error);
       setIsSpeaking(false);
     }
   };
@@ -119,13 +193,23 @@ export function OnboardingAgent() {
   // Limpiar al desmontar
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined') {
-        window.speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
     };
   }, []);
 
   const handleNext = () => {
+    // Marcar que el usuario ha interactuado (activa audio)
+    // Si es la primera interacción, reproducir el audio del paso actual primero
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+      // Reproducir el audio del paso actual antes de avanzar
+      speakText(ONBOARDING_STEPS[currentStep].speech);
+      return;
+    }
+    
     const nextStep = currentStep + 1;
     
     if (nextStep < ONBOARDING_STEPS.length) {
@@ -137,6 +221,11 @@ export function OnboardingAgent() {
   };
 
   const handlePrevious = () => {
+    // Marcar que el usuario ha interactuado
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+    }
+    
     if (currentStep > 0) {
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
@@ -145,13 +234,19 @@ export function OnboardingAgent() {
   };
 
   const handleSkip = () => {
-    window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     setIsVisible(false);
     localStorage.setItem('has-seen-onboarding', 'true');
   };
 
   const handleComplete = () => {
-    window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     const lastStep = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
     
     if (lastStep.action) {
@@ -165,7 +260,10 @@ export function OnboardingAgent() {
   const handleActionClick = () => {
     const step = ONBOARDING_STEPS[currentStep];
     if (step.action) {
-      window.speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       router.push(step.action.path);
       setIsVisible(false);
       localStorage.setItem('has-seen-onboarding', 'true');
@@ -177,7 +275,10 @@ export function OnboardingAgent() {
     setIsAudioEnabled(newState);
     
     if (!newState) {
-      window.speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       setIsSpeaking(false);
     } else {
       speakText(ONBOARDING_STEPS[currentStep].speech);
@@ -273,6 +374,7 @@ export function OnboardingAgent() {
                         src="/lia-avatar.png"
                         alt="LIA"
                         fill
+                        sizes="256px"
                         className="object-cover"
                         priority
                       />
