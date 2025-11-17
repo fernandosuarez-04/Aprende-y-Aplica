@@ -124,65 +124,67 @@ function cleanMarkdownFromResponse(text: string): string {
  */
 function filterSystemPromptFromResponse(text: string): string {
   if (!text || text.trim().length === 0) {
+    logger.warn('⚠️ Respuesta vacía detectada');
     return 'Hola! 😊 ¿En qué puedo ayudarte?';
   }
 
   const trimmedText = text.trim();
 
-  // Lista de frases que indican que el prompt del sistema se filtró
-  const promptIndicators = [
+  // Lista de frases que indican que el prompt del sistema se filtró (solo las MUY específicas)
+  const criticalPromptIndicators = [
     'Eres Lia, un asistente',
     'Eres LIA (Learning Intelligence Assistant)',
     'CONTEXTO DE LA PÁGINA ACTUAL:',
     'FORMATO DE RESPUESTAS (CRÍTICO):',
-    'FORMATO DE RESPUESTA:',
     'REGLA CRÍTICA',
     'NUNCA, BAJO NINGUNA CIRCUNSTANCIA',
     'antiMarkdownInstructions',
     'systemPrompt',
-    'Te estás dirigiendo a',
-    'IMPORTANTE: El usuario está viendo esta página específica',
-    'pageContext',
-    'conversationHistory'
+    'IMPORTANTE: El usuario está viendo esta página específica'
   ];
 
-  // Si comienza con alguno de estos indicadores, definitivamente es el prompt
-  for (const indicator of promptIndicators) {
+  // Si comienza con alguno de estos indicadores CRÍTICOS, definitivamente es el prompt
+  for (const indicator of criticalPromptIndicators) {
     if (trimmedText.startsWith(indicator)) {
+      logger.warn('🚫 Filtro activado - respuesta comienza con indicador de prompt:', indicator.substring(0, 50));
       return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
     }
   }
 
-  // Contar cuántos indicadores aparecen en la respuesta
-  let indicatorCount = 0;
-  for (const indicator of promptIndicators) {
+  // Contar cuántos indicadores CRÍTICOS aparecen en la respuesta
+  let criticalIndicatorCount = 0;
+  for (const indicator of criticalPromptIndicators) {
     if (text.includes(indicator)) {
-      indicatorCount++;
+      criticalIndicatorCount++;
     }
   }
 
-  // Si hay 3 o más indicadores, es muy probable que sea el prompt completo
-  if (indicatorCount >= 3) {
-    // console.log('Prompt detectado - aplicando filtro');
+  // Solo filtrar si hay 5 o más indicadores críticos (era 3, ahora más estricto)
+  if (criticalIndicatorCount >= 5) {
+    logger.warn('🚫 Filtro activado - múltiples indicadores de prompt detectados:', criticalIndicatorCount);
     return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
   }
 
-  // Detectar si la respuesta contiene código o variables del sistema
-  const codePatterns = [
-    /systemPrompt/gi,
-    /pageContext/gi,
-    /conversationHistory/gi,
-    /antiMarkdown/gi,
-    /formatInstructions/gi
-  ];
+  // Detectar si la respuesta es SOLO código o variables del sistema (longitud < 200 caracteres)
+  if (text.length < 200) {
+    const codePatterns = [
+      /^systemPrompt$/gi,
+      /^pageContext$/gi,
+      /^conversationHistory$/gi,
+      /^antiMarkdown$/gi,
+      /^formatInstructions$/gi
+    ];
 
-  for (const pattern of codePatterns) {
-    if (pattern.test(text)) {
-      return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
+    for (const pattern of codePatterns) {
+      if (pattern.test(trimmedText)) {
+        logger.warn('🚫 Filtro activado - respuesta es una variable del sistema');
+        return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
+      }
     }
   }
 
   // Si pasa todas las verificaciones, es una respuesta válida
+  logger.info('✅ Respuesta válida pasó todos los filtros');
   return text;
 }
 
@@ -788,20 +790,28 @@ export async function POST(request: NextRequest) {
     if (openaiApiKey) {
       try {
         const startTime = Date.now();
+        logger.info('🔥 Llamando a OpenAI', { message: message.substring(0, 50), hasKey: !!openaiApiKey });
         const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage, language);
         const responseTime = Date.now() - startTime;
         // Filtrar prompt del sistema y limpiar markdown
         response = filterSystemPromptFromResponse(result.response);
         response = cleanMarkdownFromResponse(response);
         responseMetadata = result.metadata ? { ...result.metadata, responseTimeMs: responseTime } : { responseTimeMs: responseTime };
+        logger.info('✅ OpenAI respondió exitosamente', { responseLength: response.length, responseTime });
       } catch (error) {
-        logger.error('Error con OpenAI, usando fallback:', error);
+        logger.error('❌ Error con OpenAI, usando fallback:', error);
+        logger.error('OpenAI error details:', { 
+          errorMessage: error instanceof Error ? error.message : String(error),
+          hasApiKey: !!openaiApiKey,
+          apiKeyPrefix: openaiApiKey ? openaiApiKey.substring(0, 10) + '...' : 'none'
+        });
         const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt, language);
         response = filterSystemPromptFromResponse(fallbackResponse);
         response = cleanMarkdownFromResponse(response);
       }
     } else {
       // Usar respuestas predeterminadas si no hay API key
+      logger.warn('⚠️ No hay OPENAI_API_KEY configurada, usando fallback');
       const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt, language);
       response = filterSystemPromptFromResponse(fallbackResponse);
       response = cleanMarkdownFromResponse(response);
@@ -1079,8 +1089,8 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
     try {
       // Tomar el primer origen válido de ALLOWED_ORIGINS (separado por comas)
       const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-      // Fallbacks: PUBLIC_APP_URL o el origin de la request
-      const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || request.nextUrl.origin;
+      // Fallbacks: PUBLIC_APP_URL o https://www.ecosdeliderazgo.com como último recurso
+      const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || 'https://www.ecosdeliderazgo.com';
 
       // No remapear rutas por defecto; mantener exactamente la ruta provista
       const pathMap: Record<string, string> = {};
