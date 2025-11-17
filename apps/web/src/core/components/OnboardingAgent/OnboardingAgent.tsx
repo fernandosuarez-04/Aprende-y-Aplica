@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, ChevronRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { getPlatformContext } from '../../../lib/lia/page-metadata';
 
 interface OnboardingStep {
@@ -248,9 +249,9 @@ export function OnboardingAgent() {
                     }}
                   />
 
-                  {/* Esfera central con gradiente */}
+                  {/* Esfera central con foto de LIA */}
                   <motion.div
-                    className="absolute inset-16 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500"
+                    className="absolute inset-16 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
                     animate={{ 
                       scale: isSpeaking ? [1, 1.1, 1] : 1,
                       boxShadow: isSpeaking 
@@ -265,7 +266,18 @@ export function OnboardingAgent() {
                       scale: { duration: 0.5, repeat: Infinity },
                       boxShadow: { duration: 1, repeat: Infinity }
                     }}
-                  />
+                  >
+                    {/* Foto de LIA */}
+                    <div className="relative w-full h-full rounded-full overflow-hidden bg-white/10 backdrop-blur-sm">
+                      <Image
+                        src="/lia-avatar.png"
+                        alt="LIA"
+                        fill
+                        className="object-cover"
+                        priority
+                      />
+                    </div>
+                  </motion.div>
 
                   {/* Partículas flotantes */}
                   {[...Array(12)].map((_, i) => (
