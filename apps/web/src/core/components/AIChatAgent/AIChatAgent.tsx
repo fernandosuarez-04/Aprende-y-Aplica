@@ -567,7 +567,7 @@ export function AIChatAgent({
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
-  const [useContextMode, setUseContextMode] = useState(false); // 🎬 Modo con contexto rrweb
+  const [useContextMode, setUseContextMode] = useState(true); // � ACTIVADO POR DEFECTO para persistencia automática
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
