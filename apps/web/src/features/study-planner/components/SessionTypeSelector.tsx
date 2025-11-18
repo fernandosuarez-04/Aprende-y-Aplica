@@ -4,9 +4,14 @@ import { useState } from 'react'
 import {
   SessionType,
   SESSION_TYPE_DURATIONS,
-  getSessionTypeIcon,
   formatSessionType,
 } from '@/lib/supabase/study-planner-types'
+import {
+  BoltIcon,
+  BookOpenIcon,
+  TargetIcon,
+  LightbulbIcon,
+} from './icons/ProfessionalIcons'
 
 interface SessionTypeSelectorProps {
   value: SessionType
@@ -62,6 +67,15 @@ export function SessionTypeSelector({
     return benefits[type]
   }
 
+  const getSessionIcon = (type: SessionType) => {
+    const icons: Record<SessionType, React.ReactNode> = {
+      short: <BoltIcon className="text-current" size={32} />,
+      medium: <BookOpenIcon className="text-current" size={32} />,
+      long: <TargetIcon className="text-current" size={32} />,
+    }
+    return icons[type]
+  }
+
   return (
     <div className={className}>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -71,7 +85,6 @@ export function SessionTypeSelector({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {sessionTypes.map((type) => {
           const duration = SESSION_TYPE_DURATIONS[type]
-          const icon = getSessionTypeIcon(type)
           const isSelected = selectedType === type
           const benefits = getBenefits(type)
 
@@ -93,8 +106,8 @@ export function SessionTypeSelector({
             >
               {/* Icon and Title */}
               <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl" role="img" aria-label={type}>
-                  {icon}
+                <span className="text-blue-600 dark:text-blue-400">
+                  {getSessionIcon(type)}
                 </span>
                 <div>
                   <h3
@@ -166,7 +179,9 @@ export function SessionTypeSelector({
       {/* Info message */}
       <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <div className="flex items-start gap-3">
-          <span className="text-blue-600 dark:text-blue-400 text-xl mt-0.5">💡</span>
+          <span className="text-blue-600 dark:text-blue-400 mt-0.5">
+            <LightbulbIcon size={20} />
+          </span>
           <div className="flex-1">
             <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
               Recomendación basada en tu perfil

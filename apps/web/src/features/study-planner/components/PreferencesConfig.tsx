@@ -9,6 +9,18 @@ import {
 } from '../types/ai-wizard.types'
 import { SessionType } from '@/lib/supabase/study-planner-types'
 import { SessionTypeSelector } from './SessionTypeSelector'
+import {
+  BrainIcon,
+  BoltIcon,
+  ScaleIcon,
+  BookStackIcon,
+  ShuffleIcon,
+  TrendingUpIcon,
+  SparklesIcon,
+  TomatoIcon,
+  BellIcon,
+  CalendarIcon,
+} from './icons/ProfessionalIcons'
 
 interface PreferencesConfigProps {
   value: PreferencesConfiguration
@@ -55,21 +67,21 @@ export function PreferencesConfig({
     return descriptions[ordering]
   }
 
-  const getStrategyIcon = (strategy: ReviewStrategy): string => {
-    const icons: Record<ReviewStrategy, string> = {
-      spaced_repetition: '🧠',
-      massed_practice: '⚡',
-      mixed: '⚖️',
+  const getStrategyIcon = (strategy: ReviewStrategy) => {
+    const icons: Record<ReviewStrategy, React.ReactNode> = {
+      spaced_repetition: <BrainIcon className="text-current" size={28} />,
+      massed_practice: <BoltIcon className="text-current" size={28} />,
+      mixed: <ScaleIcon className="text-current" size={28} />,
     }
     return icons[strategy]
   }
 
-  const getOrderingIcon = (ordering: ContentOrdering): string => {
-    const icons: Record<ContentOrdering, string> = {
-      sequential: '📚',
-      interleaved: '🔀',
-      difficulty_based: '📈',
-      ai_optimized: '🤖',
+  const getOrderingIcon = (ordering: ContentOrdering) => {
+    const icons: Record<ContentOrdering, React.ReactNode> = {
+      sequential: <BookStackIcon className="text-current" size={28} />,
+      interleaved: <ShuffleIcon className="text-current" size={28} />,
+      difficulty_based: <TrendingUpIcon className="text-current" size={28} />,
+      ai_optimized: <SparklesIcon className="text-current" size={28} />,
     }
     return icons[ordering]
   }
@@ -121,7 +133,7 @@ export function PreferencesConfig({
                 }`}
               >
                 <div className="flex items-start gap-4">
-                  <span className="text-3xl flex-shrink-0">{getStrategyIcon(strategy)}</span>
+                  <span className="flex-shrink-0 text-blue-600 dark:text-blue-400">{getStrategyIcon(strategy)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <h4
@@ -179,7 +191,7 @@ export function PreferencesConfig({
                 }`}
               >
                 <div className="flex items-start gap-4">
-                  <span className="text-3xl flex-shrink-0">{getOrderingIcon(ordering)}</span>
+                  <span className="flex-shrink-0 text-blue-600 dark:text-blue-400">{getOrderingIcon(ordering)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <h4
@@ -225,9 +237,10 @@ export function PreferencesConfig({
             onChange={(e) => onChange({ ...value, enable_pomodoro: e.target.checked })}
             className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
           />
-          <div>
+          <div className="flex items-center gap-2">
+            <TomatoIcon className="text-red-500 dark:text-red-400" size={20} />
             <span className="font-semibold text-gray-900 dark:text-white">
-              Habilitar Técnica Pomodoro 🍅
+              Habilitar Técnica Pomodoro
             </span>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Divide sesiones en ciclos de trabajo + descanso para máxima concentración
@@ -295,9 +308,10 @@ export function PreferencesConfig({
             onChange={(e) => onChange({ ...value, enable_reminders: e.target.checked })}
             className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
           />
-          <div>
+          <div className="flex items-center gap-2">
+            <BellIcon className="text-yellow-500 dark:text-yellow-400" size={20} />
             <span className="font-semibold text-gray-900 dark:text-white">
-              Habilitar recordatorios 🔔
+              Habilitar recordatorios
             </span>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Recibe notificaciones antes de tus sesiones programadas
@@ -340,9 +354,10 @@ export function PreferencesConfig({
             }
             className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
           />
-          <div>
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="text-purple-500 dark:text-purple-400" size={20} />
             <span className="font-semibold text-gray-900 dark:text-white">
-              Permitir reprogramación de sesiones 📅
+              Permitir reprogramación de sesiones
             </span>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Podrás mover sesiones manualmente si surge algún imprevisto

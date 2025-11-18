@@ -13,6 +13,20 @@ import {
   PRIORITY_FOCUS_LABELS,
   PRIORITY_FOCUS_DESCRIPTIONS,
 } from '../types/ai-wizard.types'
+import {
+  RocketIcon,
+  TargetIcon,
+  CertificateIcon,
+  SproutIcon,
+  CheckCircleIcon,
+  CompassIcon,
+  TurtleIcon,
+  WalkIcon,
+  RunIcon,
+  BoltIcon,
+  BrainIcon,
+  ScaleIcon,
+} from './icons/ProfessionalIcons'
 
 interface GoalsConfigurationProps {
   value: GoalsConfigType
@@ -37,32 +51,32 @@ export function GoalsConfiguration({
   const learningPaces: LearningPace[] = ['relaxed', 'moderate', 'intensive']
   const priorityFocuses: PriorityFocus[] = ['completion', 'retention', 'balanced']
 
-  const getGoalIcon = (goal: LearningGoal): string => {
-    const icons: Record<LearningGoal, string> = {
-      career_advancement: '🚀',
-      skill_acquisition: '🎯',
-      certification: '📜',
-      personal_growth: '🌱',
-      project_completion: '✅',
-      exploration: '🔍',
+  const getGoalIcon = (goal: LearningGoal) => {
+    const icons: Record<LearningGoal, React.ReactNode> = {
+      career_advancement: <RocketIcon className="text-current" size={28} />,
+      skill_acquisition: <TargetIcon className="text-current" size={28} />,
+      certification: <CertificateIcon className="text-current" size={28} />,
+      personal_growth: <SproutIcon className="text-current" size={28} />,
+      project_completion: <CheckCircleIcon className="text-current" size={28} />,
+      exploration: <CompassIcon className="text-current" size={28} />,
     }
     return icons[goal]
   }
 
-  const getPaceIcon = (pace: LearningPace): string => {
-    const icons: Record<LearningPace, string> = {
-      relaxed: '🐢',
-      moderate: '🚶',
-      intensive: '🏃',
+  const getPaceIcon = (pace: LearningPace) => {
+    const icons: Record<LearningPace, React.ReactNode> = {
+      relaxed: <TurtleIcon className="text-current" size={32} />,
+      moderate: <WalkIcon className="text-current" size={32} />,
+      intensive: <RunIcon className="text-current" size={32} />,
     }
     return icons[pace]
   }
 
-  const getFocusIcon = (focus: PriorityFocus): string => {
-    const icons: Record<PriorityFocus, string> = {
-      completion: '⚡',
-      retention: '🧠',
-      balanced: '⚖️',
+  const getFocusIcon = (focus: PriorityFocus) => {
+    const icons: Record<PriorityFocus, React.ReactNode> = {
+      completion: <BoltIcon className="text-current" size={32} />,
+      retention: <BrainIcon className="text-current" size={32} />,
+      balanced: <ScaleIcon className="text-current" size={32} />,
     }
     return icons[focus]
   }
@@ -100,7 +114,7 @@ export function GoalsConfiguration({
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl flex-shrink-0">{getGoalIcon(goal)}</span>
+                  <span className="flex-shrink-0 text-blue-600 dark:text-blue-400">{getGoalIcon(goal)}</span>
                   <div className="flex-1 min-w-0">
                     <h4
                       className={`font-semibold mb-1 ${
@@ -191,7 +205,7 @@ export function GoalsConfiguration({
                 }`}
               >
                 <div className="text-center">
-                  <span className="text-4xl mb-2 block">{getPaceIcon(pace)}</span>
+                  <span className="mb-2 flex justify-center text-blue-600 dark:text-blue-400">{getPaceIcon(pace)}</span>
                   <h4
                     className={`font-semibold mb-1 ${
                       isSelected
@@ -232,7 +246,7 @@ export function GoalsConfiguration({
                 }`}
               >
                 <div className="text-center">
-                  <span className="text-4xl mb-2 block">{getFocusIcon(focus)}</span>
+                  <span className="mb-2 flex justify-center text-blue-600 dark:text-blue-400">{getFocusIcon(focus)}</span>
                   <h4
                     className={`font-semibold mb-1 ${
                       isSelected
