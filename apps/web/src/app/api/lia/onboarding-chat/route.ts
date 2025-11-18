@@ -13,13 +13,15 @@ interface OnboardingChatRequest {
     totalSteps: number;
     conversationHistory: Array<{ role: string; content: string }>;
   };
+  userName?: string;
+  pageContext?: any;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: OnboardingChatRequest = await request.json();
     
-    const { question, context } = body;
+  const { question, context, userName, pageContext } = body;
 
     // Validaciones
     if (!question || !question.trim()) {
@@ -36,6 +38,8 @@ export async function POST(request: NextRequest) {
     // manejo de contexto/analytics. Esto hará que las respuestas usen el mismo
     // 'system prompt' y contexto rico que el resto de la plataforma.
 
+    // Enviamos la pregunta y el contexto al endpoint central sin la instrucción
+    // de clarificación automática para que LIA responda directamente.
     const aiChatResp = await fetch(new URL('/api/ai-chat', request.url).toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -43,6 +47,9 @@ export async function POST(request: NextRequest) {
         message: question,
         context: 'onboarding',
         conversationHistory: context.conversationHistory || [],
+        // Pasar userName y pageContext para personalización
+        userName: userName,
+        pageContext: pageContext,
         // Indicar idioma por defecto a 'es' (se puede ampliar si el frontend lo envía)
         language: 'es'
       }),

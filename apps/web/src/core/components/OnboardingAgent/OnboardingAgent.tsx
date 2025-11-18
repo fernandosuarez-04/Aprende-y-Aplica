@@ -475,10 +475,13 @@ export function OnboardingAgent() {
       console.log('🤖 Enviando pregunta a LIA:', question);
 
       // Llamar a la API de LIA
+      // Añadir información opcional de usuario y contexto de la página para respuestas más ricas
+      const platformContext = getPlatformContext ? getPlatformContext() : undefined;
+
       const response = await fetch('/api/lia/onboarding-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, context }),
+        body: JSON.stringify({ question, context, userName: undefined, pageContext: platformContext }),
       });
 
       if (!response.ok) {
