@@ -125,9 +125,46 @@ export async function GET(
       userRole = membership?.role || null;
     }
 
+    // Para "Profesionales", calcular el member_count real (solo usuarios sin otras comunidades)
+    let realMemberCount = community.member_count;
+
+    if (community.slug === 'profesionales') {
+      // Obtener todos los miembros de "Profesionales"
+      const { data: profMembers } = await supabase
+        .from('community_members')
+        .select('id, user_id')
+        .eq('community_id', community.id)
+        .eq('is_active', true);
+
+      if (profMembers && profMembers.length > 0) {
+        let validCount = 0;
+
+        // Contar solo usuarios que NO tienen otras comunidades
+        for (const member of profMembers) {
+          const { data: otherMemberships } = await supabase
+            .from('community_members')
+            .select('community_id')
+            .eq('user_id', member.user_id)
+            .eq('is_active', true)
+            .neq('community_id', community.id);
+
+          // Solo contar si NO tiene otras comunidades
+          if (!otherMemberships || otherMemberships.length === 0) {
+            validCount++;
+          }
+        }
+
+        realMemberCount = validCount;
+        logger.log(`📊 Profesionales real member count: ${validCount} (database: ${community.member_count})`);
+      } else {
+        realMemberCount = 0;
+      }
+    }
+
     // Enriquecer comunidad con información del usuario
     const enrichedCommunity = {
       ...community,
+      member_count: realMemberCount,
       is_member: isMember,
       has_pending_request: !!pendingRequest,
       user_role: userRole,

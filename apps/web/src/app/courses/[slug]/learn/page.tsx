@@ -45,6 +45,9 @@ import {
   AlertCircle,
   XCircle,
   Info,
+  History,
+  Edit2,
+  MoreVertical,
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
@@ -144,6 +147,21 @@ export default function CourseLearnPage() {
     material_type: string;
     is_required?: boolean;
   }>>>({});
+  const [lessonsQuizStatus, setLessonsQuizStatus] = useState<Record<string, {
+    hasRequiredQuizzes: boolean;
+    totalRequiredQuizzes: number;
+    completedQuizzes: number;
+    passedQuizzes: number;
+    allQuizzesPassed: boolean;
+    quizzes: Array<{
+      id: string;
+      title: string;
+      type: string;
+      isCompleted: boolean;
+      isPassed: boolean;
+      percentage: number;
+    }>;
+  } | null>>({});
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
   const mobileContentPaddingBottom = isMobileBottomNavVisible
@@ -164,7 +182,9 @@ export default function CourseLearnPage() {
     messages: liaMessages,
     isLoading: isLiaLoading,
     sendMessage: sendLiaMessage,
-    clearHistory: clearLiaHistory
+    clearHistory: clearLiaHistory,
+    loadConversation,
+    currentConversationId
   } = useLiaChat(null);
   
   // Estado local para el input del mensaje
@@ -177,6 +197,27 @@ export default function CourseLearnPage() {
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
+
+  // Estados para historial de conversaciones
+  const [showHistory, setShowHistory] = useState(false);
+  const [conversations, setConversations] = useState<Array<{
+    conversation_id: string;
+    conversation_title: string | null;
+    started_at: string;
+    total_messages: number;
+    context_type: string;
+    course_id: string | null;
+    lesson_id: string | null;
+    course: {
+      slug: string;
+      title: string;
+    } | null;
+  }>>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>('');
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+  const [showLiaMenu, setShowLiaMenu] = useState(false);
 
   // Limpiar prompts cuando se cambia de tab
   useEffect(() => {
@@ -665,6 +706,8 @@ export default function CourseLearnPage() {
     );
 
     return {
+      courseId: course.id || course.course_id || undefined,
+      courseSlug: slug || undefined,
       courseTitle: course.title || course.course_title,
       courseDescription: course.description || course.course_description,
       moduleTitle: currentModule?.module_title,
@@ -1023,6 +1066,98 @@ Antes de cada respuesta, pregúntate:
     setIsClearHistoryModalOpen(false);
   };
 
+  // Función para cargar conversaciones del usuario
+  // IMPORTANTE: Solo carga conversaciones de talleres (context_type='course')
+  // Máximo 5 conversaciones por usuario
+  const loadConversations = useCallback(async () => {
+    if (!slug) return;
+    
+    setLoadingConversations(true);
+    try {
+      // Limitar a 5 conversaciones (máximo permitido)
+      const response = await fetch(`/api/lia/conversations?courseSlug=${slug}&limit=5`);
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data.conversations || []);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('Error cargando conversaciones:', errorData.error || response.statusText);
+        setConversations([]);
+      }
+    } catch (error) {
+      console.error('Error cargando conversaciones:', error);
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, [slug]);
+
+  // Función para actualizar título de conversación
+  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
+    try {
+      const response = await fetch(`/api/lia/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ conversation_title: title.trim() || null }),
+      });
+
+      if (response.ok) {
+        // Actualizar en el estado local
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.conversation_id === conversationId
+              ? { ...conv, conversation_title: title.trim() || null }
+              : conv
+          )
+        );
+        setEditingConversationId(null);
+        setEditingTitle('');
+      } else {
+        console.error('Error actualizando título de conversación');
+      }
+    } catch (error) {
+      console.error('Error actualizando título:', error);
+    }
+  }, []);
+
+  // Función para eliminar conversación
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/lia/conversations/${conversationId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remover del estado local
+        setConversations(prev => prev.filter(conv => conv.conversation_id !== conversationId));
+        
+        // Si era la conversación actual, limpiar el historial
+        if (currentConversationId === conversationId) {
+          clearLiaHistory();
+        }
+        
+        setDeletingConversationId(null);
+      } else {
+        console.error('Error eliminando conversación');
+      }
+    } catch (error) {
+      console.error('Error eliminando conversación:', error);
+    }
+  }, [currentConversationId, clearLiaHistory]);
+
+  // Función para cargar y restaurar una conversación
+  const handleLoadConversation = useCallback(async (conversationId: string) => {
+    await loadConversation(conversationId);
+    setShowHistory(false);
+    
+    // Scroll al final de los mensajes
+    setTimeout(() => {
+      liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, [loadConversation]);
+
   // Función para abrir modal de nueva nota
   const openNewNoteModal = () => {
     setEditingNote(null);
@@ -1335,9 +1470,10 @@ Antes de cada respuesta, pregúntate:
     }
 
     try {
-      const [activitiesResponse, materialsResponse] = await Promise.all([
+      const [activitiesResponse, materialsResponse, quizStatusResponse] = await Promise.all([
         fetch(`/api/courses/${slug}/lessons/${lessonId}/activities`),
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`)
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`),
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/quiz/status`)
       ]);
 
       if (activitiesResponse.ok) {
@@ -1377,6 +1513,20 @@ Antes de cada respuesta, pregúntate:
           [lessonId]: []
         }));
       }
+
+      // Procesar estado de quizzes
+      if (quizStatusResponse.ok) {
+        const quizStatusData = await quizStatusResponse.json();
+        setLessonsQuizStatus(prev => ({
+          ...prev,
+          [lessonId]: quizStatusData
+        }));
+      } else {
+        setLessonsQuizStatus(prev => ({
+          ...prev,
+          [lessonId]: null
+        }));
+      }
     } catch (error) {
       // En caso de error, establecer como arrays vacíos
       setLessonsActivities(prev => ({
@@ -1386,6 +1536,10 @@ Antes de cada respuesta, pregúntate:
       setLessonsMaterials(prev => ({
         ...prev,
         [lessonId]: []
+      }));
+      setLessonsQuizStatus(prev => ({
+        ...prev,
+        [lessonId]: null
       }));
     }
   };
@@ -2144,53 +2298,183 @@ Antes de cada respuesta, pregúntate:
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="ml-9 mt-3 space-y-2 pl-4 border-l border-gray-200 dark:border-slate-700">
+                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-blue-200/50 dark:border-blue-800/30">
                                     {/* Actividades */}
                                     {activities.length > 0 && (
-                                      <div className="space-y-1.5">
-                                        {activities.map((activity) => (
-                                          <div
-                                            key={activity.activity_id}
-                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
-                                          >
-                                            <Activity className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500 dark:text-blue-400 opacity-70 group-hover:opacity-100" />
-                                            <div className="flex-1 min-w-0">
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{activity.activity_title}</span>
+                                      <div className="space-y-2">
+                                        {activities.map((activity) => {
+                                          const isQuiz = activity.activity_type === 'quiz';
+                                          const isRequired = activity.is_required;
+                                          
+                                          return (
+                                            <div
+                                              key={activity.activity_id}
+                                              className="group relative bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/50 border border-gray-200/50 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700 rounded-lg p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                              <div className="flex items-start gap-3">
+                                                {/* Icono mejorado con fondo */}
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                  isQuiz 
+                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' 
+                                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                }`}>
+                                                  {isQuiz ? (
+                                                    <FileText className="w-4 h-4" />
+                                                  ) : (
+                                                    <Activity className="w-4 h-4" />
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Contenido principal */}
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                    {activity.activity_title}
+                                                  </p>
+                                                  
+                                                  {/* Badges en fila con wrap */}
+                                                  <div className="flex flex-wrap items-center gap-1.5">
+                                                    {/* Badge de tipo */}
+                                                    <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors ${
+                                                      isQuiz
+                                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                                    }`}>
+                                                      {activity.activity_type}
+                                                    </span>
+                                                    
+                                                    {/* Badge Requerida */}
+                                                    {isRequired && (
+                                                      <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                        Requerida
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Indicador de estado para quizzes (si está disponible) */}
+                                              {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
+                                                const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                                                if (quizInfo) {
+                                                  return (
+                                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+                                                      {quizInfo.isPassed ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                          <CheckCircle className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : quizInfo.isCompleted ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                          <X className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : (
+                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                          <Clock className="w-3.5 h-3.5" />
+                                                          <span>Pendiente</span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                }
+                                                return null;
+                                              })()}
                                             </div>
-                                            {activity.is_required && (
-                                              <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
-                                                Requerida
-                                              </span>
-                                            )}
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     )}
 
                                     {/* Materiales */}
                                     {materials.length > 0 && (
-                                      <div className="space-y-1.5">
-                                        {materials.map((material) => (
-                                          <div
-                                            key={material.material_id}
-                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
-                                          >
-                                            <FileText className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500 dark:text-green-400 opacity-70 group-hover:opacity-100" />
-                                            <div className="flex-1 min-w-0">
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{material.material_title}</span>
+                                      <div className="space-y-2">
+                                        {materials.map((material) => {
+                                          const isQuiz = material.material_type === 'quiz';
+                                          const isReading = material.material_type === 'reading';
+                                          const isRequired = material.is_required;
+                                          
+                                          return (
+                                            <div
+                                              key={material.material_id}
+                                              className="group relative bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/50 border border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-700 rounded-lg p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                              <div className="flex items-start gap-3">
+                                                {/* Icono mejorado con fondo según tipo */}
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                  isQuiz
+                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                                                    : isReading
+                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                                }`}>
+                                                  {isQuiz ? (
+                                                    <FileText className="w-4 h-4" />
+                                                  ) : isReading ? (
+                                                    <BookOpen className="w-4 h-4" />
+                                                  ) : (
+                                                    <FileText className="w-4 h-4" />
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Contenido principal */}
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                    {material.material_title}
+                                                  </p>
+                                                  
+                                                  {/* Badges en fila con wrap para evitar cortes */}
+                                                  <div className="flex flex-wrap items-center gap-1.5">
+                                                    {/* Badge Requerida primero */}
+                                                    {isRequired && (
+                                                      <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                        Requerida
+                                                      </span>
+                                                    )}
+                                                    
+                                                    {/* Badge de tipo */}
+                                                    <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors whitespace-nowrap ${
+                                                      isQuiz
+                                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                                        : isReading
+                                                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                                                        : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20'
+                                                    }`}>
+                                                      {material.material_type}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Indicador de estado para quizzes (si está disponible) */}
+                                              {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
+                                                const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
+                                                if (quizInfo) {
+                                                  return (
+                                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+                                                      {quizInfo.isPassed ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                          <CheckCircle className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : quizInfo.isCompleted ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                          <X className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : (
+                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                          <Clock className="w-3.5 h-3.5" />
+                                                          <span>Pendiente</span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                }
+                                                return null;
+                                              })()}
                                             </div>
-                                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                                              {material.is_required && (
-                                                <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
-                                                  Requerida
-                                                </span>
-                                              )}
-                                              <span className="px-2 py-0.5 bg-green-500/10 text-green-500 dark:text-green-400 text-xs rounded-md capitalize flex-shrink-0 font-medium whitespace-nowrap">
-                                                {material.material_type}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     )}
                                   </div>
@@ -2628,14 +2912,67 @@ Antes de cada respuesta, pregúntate:
                       <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={handleOpenClearHistoryModal}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                      title="Reiniciar conversación con Lia"
-                    >
-                      <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                    </button>
+                  <div className="flex items-center gap-1 relative">
+                    {/* Menú de opciones (tres puntos) */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowLiaMenu(!showLiaMenu)}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                        title="Más opciones"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      </button>
+                      
+                      {/* Menú dropdown */}
+                      {showLiaMenu && (
+                        <>
+                          {/* Overlay para cerrar el menú al hacer clic fuera */}
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowLiaMenu(false)}
+                          />
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                            <button
+                              onClick={() => {
+                                clearLiaHistory();
+                                setShowHistory(true);
+                                loadConversations();
+                                setShowLiaMenu(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Nueva conversación
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowHistory(!showHistory);
+                                if (!showHistory) {
+                                  loadConversations();
+                                }
+                                setShowLiaMenu(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            >
+                              <History className="w-4 h-4" />
+                              Ver historial
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleOpenClearHistoryModal();
+                                setShowLiaMenu(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Reiniciar conversación
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Botón de expandir/minimizar - siempre visible */}
                     {!isMobile && (
                       <button
                         onClick={handleToggleLiaExpanded}
@@ -2649,6 +2986,8 @@ Antes de cada respuesta, pregúntate:
                         )}
                       </button>
                     )}
+                    
+                    {/* Botón de cerrar */}
                     <button
                       onClick={() => setIsRightPanelOpen(false)}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
@@ -2661,6 +3000,172 @@ Antes de cada respuesta, pregúntate:
                     </button>
                   </div>
                 </div>
+
+                {/* Panel de historial de conversaciones */}
+                {showHistory && (
+                  <div className="absolute top-14 right-0 w-80 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+                    <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Historial de Conversaciones</h3>
+                      <button
+                        onClick={() => setShowHistory(false)}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        title="Cerrar historial"
+                      >
+                        <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2">
+                      {loadingConversations ? (
+                        <div className="p-4 text-center text-gray-500 dark:text-slate-400">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                          <p className="text-sm">Cargando conversaciones...</p>
+                        </div>
+                      ) : conversations.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500 dark:text-slate-400">
+                          <p className="text-sm">No hay conversaciones anteriores</p>
+                        </div>
+                      ) : (
+                        conversations.map((conv) => (
+                          <div
+                            key={conv.conversation_id}
+                            className={`group relative bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg p-3 mb-2 transition-colors ${
+                              currentConversationId === conv.conversation_id ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <button
+                                onClick={() => handleLoadConversation(conv.conversation_id)}
+                                className="flex-1 text-left min-w-0"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  {editingConversationId === conv.conversation_id ? (
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <input
+                                        type="text"
+                                        value={editingTitle}
+                                        onChange={(e) => setEditingTitle(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            updateConversationTitle(conv.conversation_id, editingTitle);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingConversationId(null);
+                                            setEditingTitle('');
+                                          }
+                                        }}
+                                        className="flex-1 px-2 py-1 text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded text-gray-900 dark:text-white"
+                                        autoFocus
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updateConversationTitle(conv.conversation_id, editingTitle);
+                                        }}
+                                        className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors"
+                                      >
+                                        <Save className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingConversationId(null);
+                                          setEditingTitle('');
+                                        }}
+                                        className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                      >
+                                        <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
+                                        {conv.conversation_title || conv.course?.title || 'Conversación general'}
+                                      </p>
+                                      <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">
+                                        {new Date(conv.started_at).toLocaleDateString('es-ES', {
+                                          day: 'numeric',
+                                          month: 'short',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                      <p className="text-xs text-gray-400 dark:text-slate-500">
+                                        {conv.total_messages} mensaje{conv.total_messages !== 1 ? 's' : ''}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              </button>
+                              {editingConversationId !== conv.conversation_id && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingConversationId(conv.conversation_id);
+                                      setEditingTitle(conv.conversation_title || '');
+                                    }}
+                                    className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Editar nombre"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5 text-gray-600 dark:text-slate-400" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeletingConversationId(conv.conversation_id);
+                                    }}
+                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Eliminar conversación"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Modal de confirmación para eliminar conversación */}
+                {deletingConversationId && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-6 max-w-md w-full">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                          <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">Eliminar conversación</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-400">Esta acción no se puede deshacer</p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-slate-300 mb-6">
+                        ¿Estás seguro de que quieres eliminar esta conversación? Todos los mensajes se perderán permanentemente.
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setDeletingConversationId(null)}
+                          className="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (deletingConversationId) {
+                              deleteConversation(deletingConversationId);
+                            }
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               {/* Chat de Lia expandido */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -4952,11 +5457,14 @@ function ActivitiesContent({
         if (quizStatusResponse.ok) {
           const quizStatusData = await quizStatusResponse.json();
           setQuizStatus(quizStatusData);
+        } else {
+          setQuizStatus(null);
         }
       } catch (error) {
         // console.error('Error loading activities and materials:', error);
         setActivities([]);
         setMaterials([]);
+        setQuizStatus(null);
       } finally {
         setLoading(false);
       }
@@ -5168,7 +5676,7 @@ function ActivitiesContent({
                         {activity.activity_type}
                       </span>
                       {/* Indicador de quiz obligatorio */}
-                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && (() => {
+                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && quizStatus.quizzes && (() => {
                         const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
                         if (quizInfo) {
                           if (quizInfo.isPassed) {
@@ -5440,7 +5948,7 @@ function ActivitiesContent({
                         </span>
                       )}
                       {/* Indicador de quiz obligatorio */}
-                      {material.material_type === 'quiz' && quizStatus && (() => {
+                      {material.material_type === 'quiz' && quizStatus && quizStatus.quizzes && (() => {
                         const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
                         if (quizInfo) {
                           if (quizInfo.isPassed) {

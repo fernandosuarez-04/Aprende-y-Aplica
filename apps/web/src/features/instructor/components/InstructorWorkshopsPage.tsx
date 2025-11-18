@@ -306,10 +306,10 @@ export function InstructorWorkshopsPage() {
             {filteredWorkshops.map((workshop) => (
               <div 
                 key={workshop.id} 
-                className="bg-gradient-to-br from-gray-900/95 to-gray-950/95 backdrop-blur-xl rounded-2xl border border-gray-800/50 overflow-hidden hover:border-purple-500/50 hover:shadow-xl transition-all duration-300"
+                className="bg-gradient-to-br from-gray-900/95 to-gray-950/95 backdrop-blur-xl rounded-2xl border border-gray-800/50 overflow-hidden hover:border-purple-500/50 hover:shadow-xl transition-all duration-300 flex flex-col"
               >
                 {/* Thumbnail */}
-                <div className="h-48 bg-gradient-to-br from-indigo-900/50 to-purple-900/50 relative">
+                <div className="h-48 bg-gradient-to-br from-indigo-900/50 to-purple-900/50 relative flex-shrink-0">
                   {workshop.thumbnail_url ? (
                     <img 
                       src={workshop.thumbnail_url} 
@@ -345,7 +345,8 @@ export function InstructorWorkshopsPage() {
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
+                <div className="p-6 flex flex-col flex-1">
+                  {/* Tags */}
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getCategoryColor(workshop.category)}`}>
                       {workshop.category}
@@ -355,39 +356,43 @@ export function InstructorWorkshopsPage() {
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">
+                  {/* Title */}
+                  <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2 min-h-[3.5rem]">
                     {workshop.title}
                   </h3>
 
-                  <p className="text-sm text-gray-400 mb-4 line-clamp-2">
+                  {/* Description */}
+                  <p className="text-sm text-gray-400 mb-4 line-clamp-2 flex-1 min-h-[2.5rem]">
                     {workshop.description || 'Sin descripción'}
                   </p>
 
+                  {/* Stats */}
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-sm text-gray-400">
-                      <ClockIcon className="h-4 w-4 mr-2" />
-                      {Math.round((workshop.duration_total_minutes / 60) * 10) / 10} horas
+                      <ClockIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span>{Math.round((workshop.duration_total_minutes / 60) * 10) / 10} horas</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-400">
-                      <UserGroupIcon className="h-4 w-4 mr-2" />
-                      {workshop.student_count || 0} estudiantes
+                      <UserGroupIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span>{workshop.student_count || 0} estudiantes</span>
                     </div>
                     {workshop.average_rating && workshop.average_rating > 0 && (
                       <div className="flex items-center text-sm text-gray-400">
-                        <StarIcon className="h-4 w-4 mr-2 text-yellow-400" />
-                        {workshop.average_rating.toFixed(1)} ({workshop.review_count || 0} reseñas)
+                        <StarIcon className="h-4 w-4 mr-2 text-yellow-400 flex-shrink-0" />
+                        <span>{workshop.average_rating.toFixed(1)} ({workshop.review_count || 0} reseñas)</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-gray-800 space-y-3">
+                  {/* Footer */}
+                  <div className="pt-4 border-t border-gray-800 space-y-3 mt-auto">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-500">
                         Creado: {new Date(workshop.created_at).toLocaleDateString('es-ES')}
                       </p>
                       <button
                         onClick={() => handleEdit(workshop)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 hover:text-purple-300 rounded-lg transition-all duration-200 text-xs font-medium hover:scale-105"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 hover:text-purple-300 rounded-lg transition-all duration-200 text-xs font-medium hover:scale-105 flex-shrink-0"
                         title="Editar taller"
                       >
                         <PencilIcon className="h-3.5 w-3.5" />

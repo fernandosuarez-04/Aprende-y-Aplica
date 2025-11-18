@@ -91,6 +91,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ya eres miembro de esta comunidad' }, { status: 400 });
     }
 
+    // Si está uniéndose a una comunidad diferente de "Profesionales",
+    // remover automáticamente de "Profesionales" si está allí
+    if (community.slug !== 'profesionales') {
+      // Buscar la comunidad "Profesionales"
+      const { data: profesionalesComm } = await supabase
+        .from('communities')
+        .select('id, member_count')
+        .eq('slug', 'profesionales')
+        .single();
+
+      if (profesionalesComm) {
+        // Verificar si el usuario es miembro de "Profesionales"
+        const { data: profMembership } = await supabase
+          .from('community_members')
+          .select('id')
+          .eq('community_id', profesionalesComm.id)
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single();
+
+        if (profMembership) {
+          // Remover de "Profesionales"
+          const { error: removeError } = await supabase
+            .from('community_members')
+            .update({ is_active: false, updated_at: new Date().toISOString() })
+            .eq('id', profMembership.id);
+
+          if (!removeError) {
+            // Decrementar contador de miembros de "Profesionales"
+            await supabase
+              .from('communities')
+              .update({
+                member_count: Math.max(0, profesionalesComm.member_count - 1),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', profesionalesComm.id);
+
+            logger.info(`User ${user.id} automatically removed from Profesionales when joining ${community.name}`);
+          }
+        }
+      }
+    }
+
     // Agregar usuario a la comunidad
     const { error: joinError } = await supabase
       .from('community_members')
@@ -110,7 +153,7 @@ export async function POST(request: NextRequest) {
     // Actualizar contador de miembros
     const { error: updateError } = await supabase
       .from('communities')
-      .update({ 
+      .update({
         member_count: community.member_count + 1,
         updated_at: new Date().toISOString()
       })

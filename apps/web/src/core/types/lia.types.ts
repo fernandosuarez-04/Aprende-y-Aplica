@@ -1,5 +1,7 @@
 // Tipos compartidos para LIA
 export interface CourseLessonContext {
+  courseId?: string;
+  courseSlug?: string;
   courseTitle?: string;
   courseDescription?: string;
   moduleTitle?: string;

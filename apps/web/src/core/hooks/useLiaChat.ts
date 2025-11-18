@@ -10,6 +10,8 @@ export interface UseLiaChatReturn {
   error: Error | null;
   sendMessage: (message: string, courseContext?: CourseLessonContext, isSystemMessage?: boolean) => Promise<void>;
   clearHistory: () => void;
+  loadConversation: (conversationId: string) => Promise<void>;
+  currentConversationId: string | null;
 }
 
 export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
@@ -126,6 +128,40 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     }
   }, [isLoading, messages, user]);
 
+  const loadConversation = useCallback(async (conversationId: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/lia/conversations/${conversationId}/messages`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(errorData.error || 'Error cargando conversación');
+      }
+
+      const data = await response.json();
+      
+      // Formatear mensajes para el estado
+      const formattedMessages: LiaMessage[] = (data.messages || []).map((msg: any) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.timestamp)
+      }));
+
+      setMessages(formattedMessages);
+      
+      // Establecer conversationId para continuar la conversación
+      conversationIdRef.current = conversationId;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err : new Error('Error desconocido');
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const clearHistory = useCallback(async () => {
     // ✅ ANALYTICS: Cerrar conversación actual antes de limpiar
     if (conversationIdRef.current && user) {
@@ -187,7 +223,9 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     isLoading,
     error,
     sendMessage,
-    clearHistory
+    clearHistory,
+    loadConversation,
+    currentConversationId: conversationIdRef.current
   };
 }
 

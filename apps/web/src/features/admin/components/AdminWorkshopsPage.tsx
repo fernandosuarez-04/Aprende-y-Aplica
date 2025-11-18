@@ -19,6 +19,7 @@ import {
 import { useAdminWorkshops } from '../hooks/useAdminWorkshops'
 import { AdminWorkshop } from '../services/adminWorkshops.service'
 import { EditWorkshopModal } from './EditWorkshopModal'
+import { AddWorkshopModal } from './AddWorkshopModal'
 
 // Componente interno para manejar la imagen del taller con fallback
 function WorkshopThumbnail({ thumbnailUrl, title }: { thumbnailUrl?: string; title: string }) {
@@ -50,6 +51,7 @@ export function AdminWorkshopsPage() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [editingWorkshop, setEditingWorkshop] = useState<AdminWorkshop | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   const filteredWorkshops = workshops.filter(workshop => {
     const matchesSearch = workshop.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -152,7 +154,10 @@ export function AdminWorkshopsPage() {
                 Administra todos los talleres de la plataforma
               </p>
             </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+            <button 
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
               <PlusIcon className="h-5 w-5" />
               <span>Crear Taller</span>
             </button>
@@ -259,9 +264,9 @@ export function AdminWorkshopsPage() {
         {/* Workshops Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredWorkshops.map((workshop) => (
-            <div key={workshop.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow duration-300">
+            <div key={workshop.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col">
               {/* Thumbnail */}
-              <div className="h-48 bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+              <div className="h-48 bg-gray-200 dark:bg-gray-700 relative overflow-hidden flex-shrink-0">
                 <WorkshopThumbnail thumbnailUrl={workshop.thumbnail_url} title={workshop.title} />
                 <div className="absolute top-4 right-4 z-10">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -275,8 +280,9 @@ export function AdminWorkshopsPage() {
               </div>
 
               {/* Content */}
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
+              <div className="p-6 flex flex-col flex-1">
+                {/* Tags */}
+                <div className="flex items-center justify-between mb-3">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(workshop.category)}`}>
                     {workshop.category}
                   </span>
@@ -285,40 +291,44 @@ export function AdminWorkshopsPage() {
                   </span>
                 </div>
 
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                {/* Title */}
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 min-h-[3.5rem]">
                   {workshop.title}
                 </h3>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                {/* Description */}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 flex-1 min-h-[2.5rem]">
                   {workshop.description}
                 </p>
 
+                {/* Instructor and Duration */}
                 <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  <div className="flex items-center">
-                    <UserCircleIcon className="h-4 w-4 mr-1" />
-                    {workshop.instructor_name || 'Sin instructor'}
+                  <div className="flex items-center min-w-0 flex-1">
+                    <UserCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0" />
+                    <span className="truncate">{workshop.instructor_name || 'Sin instructor'}</span>
                   </div>
-                  <div className="flex items-center">
-                    <ClockIcon className="h-4 w-4 mr-1" />
-                    {workshop.duration_total_minutes} min
+                  <div className="flex items-center ml-3 flex-shrink-0">
+                    <ClockIcon className="h-4 w-4 mr-1.5" />
+                    <span>{workshop.duration_total_minutes} min</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                {/* Footer with students count and actions */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     {workshop.student_count || 0} estudiantes
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex items-center space-x-2">
                     <button 
                       onClick={() => router.push(`/admin/workshops/${workshop.id}`)}
-                      className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                       title="Ver detalle"
                     >
                       <EyeIcon className="h-4 w-4" />
                     </button>
                     <button 
                       onClick={() => setEditingWorkshop(workshop)}
-                      className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                      className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                       title="Editar taller"
                     >
                       <PencilIcon className="h-4 w-4" />
@@ -329,7 +339,7 @@ export function AdminWorkshopsPage() {
                           // console.log('Eliminar taller:', workshop.id)
                         }
                       }}
-                      className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                       title="Eliminar taller"
                     >
                       <TrashIcon className="h-4 w-4" />
@@ -341,6 +351,17 @@ export function AdminWorkshopsPage() {
           ))}
         </div>
       </div>
+
+      {/* Modal de Creación */}
+      {isAddModalOpen && (
+        <AddWorkshopModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSave={async () => {
+            await refetch()
+          }}
+        />
+      )}
 
       {/* Modal de Edición */}
       {editingWorkshop && (
