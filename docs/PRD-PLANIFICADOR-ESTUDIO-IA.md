@@ -1903,58 +1903,75 @@ function getUserAvailabilityProfile(userProfile: UserProfile): RoleAvailabilityP
 
 El tiempo total de una lección incluye:
 
-1. **Video** (`course_lessons.duration_seconds`)
-2. **Actividades con Lia** (`lesson_activities`)
-3. **Lecturas** (`lesson_materials` tipo 'reading')
-4. **Interacciones** (tiempo de navegación y comprensión)
-5. **Quizzes** (`lesson_activities` tipo 'quiz' o `lesson_materials` tipo 'quiz')
+1. **Video** (`course_lessons.duration_seconds`) - **Proporcionado por el instructor**
+2. **Actividades con Lia** (`lesson_activities.estimated_time_minutes`) - **Proporcionado por el instructor**
+3. **Lecturas** (`lesson_materials.estimated_time_minutes` donde `material_type = 'reading'`) - **Proporcionado por el instructor**
+4. **Interacciones** (tiempo de navegación y comprensión) - **Fijo: 3 minutos**
+5. **Quizzes** (`lesson_activities.estimated_time_minutes` donde `activity_type = 'quiz'` o `lesson_materials.estimated_time_minutes` donde `material_type = 'quiz'`) - **Proporcionado por el instructor**
+6. **Ejercicios y Prácticas** (`lesson_materials.estimated_time_minutes` donde `material_type = 'exercise'`) - **Proporcionado por el instructor**
+7. **Enlaces Externos** (`lesson_materials.estimated_time_minutes` donde `material_type = 'link'`) - **Proporcionado por el instructor**
+
+**IMPORTANTE**: Los tiempos de actividades, materiales, lecturas, quizzes, ejercicios y enlaces externos **deben ser proporcionados por el instructor** al crear o editar el contenido. El sistema NO calcula estos tiempos automáticamente.
 
 ### 4.2 Fórmula de Cálculo
 
 ```
 Tiempo Total Lección (minutos) = 
-  (duration_seconds / 60) +                    // Video
-  SUM(tiempo_actividades_lia) +                // Actividades con Lia
-  SUM(tiempo_lecturas) +                       // Lecturas
-  tiempo_interacciones +                       // Interacciones
-  SUM(tiempo_quizzes)                          // Quizzes
+  (duration_seconds / 60) +                                    // Video (del instructor)
+  SUM(lesson_activities.estimated_time_minutes) +              // Actividades (del instructor)
+  SUM(lesson_materials.estimated_time_minutes) +               // Materiales (del instructor)
+  tiempo_interacciones                                         // Interacciones (fijo: 3 min)
 ```
 
-### 4.3 Estimaciones por Tipo de Contenido
+### 4.3 Fuentes de Tiempo por Tipo de Contenido
 
 #### Video
 - **Fuente**: `course_lessons.duration_seconds`
+- **Proporcionado por**: Instructor al subir/editar el video
 - **Cálculo**: `duration_seconds / 60` (convertir a minutos)
 - **Ejemplo**: 1800 segundos = 30 minutos
 
 #### Actividades con Lia
-- **Fuente**: `lesson_activities` donde `activity_type = 'ai_chat'`
-- **Estimación por tipo**:
-  - `ai_chat`: 10-15 minutos (promedio: 12 min)
-  - `reflection`: 5-10 minutos (promedio: 7 min)
-  - `exercise`: 10-20 minutos (promedio: 15 min) ---------
-  - `discussion`: 5-10 minutos (promedio: 7 min)
-- **Si hay datos históricos**: Usar `lia_activity_completions.time_to_complete_seconds` promedio
+- **Fuente**: `lesson_activities.estimated_time_minutes`
+- **Proporcionado por**: Instructor al crear/editar la actividad
+- **Tipos de actividades**:
+  - `ai_chat`: Tiempo estimado para completar la conversación con Lia
+  - `reflection`: Tiempo estimado para la reflexión
+  - `exercise`: Tiempo estimado para el ejercicio
+  - `discussion`: Tiempo estimado para la discusión
+  - `quiz`: Tiempo estimado para completar el quiz
+- **Validación**: El instructor debe proporcionar un tiempo estimado en minutos (≥ 1)
 
 #### Lecturas
-- **Fuente**: `lesson_materials` donde `material_type = 'reading'`
-- **Cálculo**: Basado en longitud del contenido
-  - Velocidad promedio de lectura: **200 palabras/minuto**
-  - Tiempo = `(número_de_palabras / 200)` minutos
-- **Si es PDF o documento externo**: Estimar 1-2 minutos por página
-- **Si es link externo**: Estimar 3-5 minutos de lectura
-
-#### Interacciones
-- **Tiempo estimado**: 2-5 minutos por lección
-- **Incluye**: Navegación, comprensión de contexto, transiciones
-- **Fijo**: 3 minutos (promedio)
+- **Fuente**: `lesson_materials.estimated_time_minutes` donde `material_type = 'reading'`
+- **Proporcionado por**: Instructor al crear/editar el material
+- **Tipos**:
+  - Texto en `content_data`: Tiempo estimado de lectura
+  - PDF en `file_url`: Tiempo estimado de lectura del PDF
+  - Link externo en `external_url`: Tiempo estimado de lectura del contenido externo
+- **Validación**: El instructor debe proporcionar un tiempo estimado en minutos (≥ 1)
 
 #### Quizzes
-- **Fuente**: `lesson_activities` donde `activity_type = 'quiz'` o `lesson_materials` donde `material_type = 'quiz'`
-- **Cálculo**: Basado en número de preguntas
-  - Tiempo por pregunta: **1.5 minutos** (incluye lectura, respuesta, revisión)
-  - Tiempo = `(número_de_preguntas * 1.5)` minutos
-- **Mínimo**: 5 minutos (incluso para 1 pregunta)
+- **Fuente**: 
+  - `lesson_activities.estimated_time_minutes` donde `activity_type = 'quiz'`
+  - `lesson_materials.estimated_time_minutes` donde `material_type = 'quiz'`
+- **Proporcionado por**: Instructor al crear/editar el quiz
+- **Validación**: El instructor debe proporcionar un tiempo estimado en minutos (≥ 1)
+
+#### Ejercicios y Prácticas
+- **Fuente**: `lesson_materials.estimated_time_minutes` donde `material_type = 'exercise'`
+- **Proporcionado por**: Instructor al crear/editar el ejercicio
+- **Validación**: El instructor debe proporcionar un tiempo estimado en minutos (≥ 1)
+
+#### Enlaces Externos
+- **Fuente**: `lesson_materials.estimated_time_minutes` donde `material_type = 'link'`
+- **Proporcionado por**: Instructor al crear/editar el enlace
+- **Validación**: El instructor debe proporcionar un tiempo estimado en minutos (≥ 1)
+
+#### Interacciones
+- **Tiempo fijo**: 3 minutos por lección
+- **Incluye**: Navegación, comprensión de contexto, transiciones
+- **No requiere configuración del instructor**
 
 ### 4.4 Consulta SQL para Cálculo
 
@@ -1964,45 +1981,15 @@ WITH lesson_components AS (
     l.lesson_id,
     l.duration_seconds,
     
-    -- Tiempo de video
+    -- Tiempo de video (proporcionado por instructor)
     (l.duration_seconds / 60.0) as video_minutes,
     
-    -- Tiempo de actividades con Lia
-    COALESCE(SUM(
-      CASE 
-        WHEN la.activity_type = 'ai_chat' THEN 12
-        WHEN la.activity_type = 'reflection' THEN 7
-        WHEN la.activity_type = 'exercise' THEN 15
-        WHEN la.activity_type = 'discussion' THEN 7
-        ELSE 10
-      END
-    ), 0) as activities_minutes,
+    -- Tiempo de actividades (proporcionado por instructor)
+    COALESCE(SUM(la.estimated_time_minutes), 0) as activities_minutes,
     
-    -- Tiempo de lecturas
-    COALESCE(SUM(
-      CASE 
-        WHEN lm.material_type = 'reading' THEN
-          CASE 
-            WHEN lm.content_data IS NOT NULL THEN
-              GREATEST(1, (LENGTH(lm.content_data::text) / 4) / 200.0) -- Aprox 4 chars por palabra
-            WHEN lm.file_url IS NOT NULL THEN 2 -- PDF estimado
-            WHEN lm.external_url IS NOT NULL THEN 4 -- Link externo
-            ELSE 3
-          END
-        ELSE 0
-      END
-    ), 0) as reading_minutes,
-    
-    -- Tiempo de quizzes
-    COALESCE(SUM(
-      CASE 
-        WHEN la.activity_type = 'quiz' THEN
-          GREATEST(5, (jsonb_array_length(la.activity_content::jsonb->'questions') * 1.5))
-        WHEN lm.material_type = 'quiz' THEN
-          GREATEST(5, (jsonb_array_length(lm.content_data::jsonb->'questions') * 1.5))
-        ELSE 0
-      END
-    ), 0) as quiz_minutes,
+    -- Tiempo de materiales (proporcionado por instructor)
+    -- Incluye: lecturas, quizzes, ejercicios, enlaces externos
+    COALESCE(SUM(lm.estimated_time_minutes), 0) as materials_minutes,
     
     -- Tiempo de interacciones (fijo)
     3 as interactions_minutes
@@ -2017,47 +2004,40 @@ SELECT
   lesson_id,
   video_minutes,
   activities_minutes,
-  reading_minutes,
-  quiz_minutes,
+  materials_minutes,
   interactions_minutes,
-  (video_minutes + activities_minutes + reading_minutes + quiz_minutes + interactions_minutes) as total_minutes,
-  CEIL(video_minutes + activities_minutes + reading_minutes + quiz_minutes + interactions_minutes) as total_minutes_rounded
+  (video_minutes + activities_minutes + materials_minutes + interactions_minutes) as total_minutes,
+  CEIL(video_minutes + activities_minutes + materials_minutes + interactions_minutes) as total_minutes_rounded
 FROM lesson_components;
 ```
 
-### 4.5 Tabla de Estimaciones de Tiempo
+### 4.5 Tabla de Fuentes de Tiempo
 
-| Tipo de Contenido | Estimación | Fuente de Datos |
-|-------------------|------------|-----------------|
-| Video | `duration_seconds / 60` | `course_lessons.duration_seconds` |
-| Actividad AI Chat | 12 min promedio | `lesson_activities` (activity_type='ai_chat') |
-| Actividad Reflexión | 7 min promedio | `lesson_activities` (activity_type='reflection') |
-| Actividad Ejercicio | 15 min promedio | `lesson_activities` (activity_type='exercise') |
-| Actividad Discusión | 7 min promedio | `lesson_activities` (activity_type='discussion') |
-| Lectura (texto) | `palabras / 200` min | `lesson_materials.content_data` |
-| Lectura (PDF) | 2 min/página | `lesson_materials.file_url` |
-| Lectura (link) | 4 min promedio | `lesson_materials.external_url` |
-| Quiz | `preguntas * 1.5` min (mín 5) | `lesson_activities` o `lesson_materials` |
-| Interacciones | 3 min fijo | Estimación general |
+| Tipo de Contenido | Fuente | Proporcionado por |
+|-------------------|--------|-------------------|
+| Video | `course_lessons.duration_seconds` | Instructor (al subir video) |
+| Actividades (todos los tipos) | `lesson_activities.estimated_time_minutes` | Instructor (al crear actividad) |
+| Lecturas | `lesson_materials.estimated_time_minutes` (tipo 'reading') | Instructor (al crear material) |
+| Quizzes (actividades) | `lesson_activities.estimated_time_minutes` (tipo 'quiz') | Instructor (al crear quiz) |
+| Quizzes (materiales) | `lesson_materials.estimated_time_minutes` (tipo 'quiz') | Instructor (al crear material) |
+| Ejercicios | `lesson_materials.estimated_time_minutes` (tipo 'exercise') | Instructor (al crear material) |
+| Enlaces Externos | `lesson_materials.estimated_time_minutes` (tipo 'link') | Instructor (al crear material) |
+| Interacciones | Fijo: 3 minutos | Sistema (no requiere configuración) |
 
-### 4.6 Optimización con Datos Históricos
+### 4.6 Validaciones y Requisitos
 
-Si hay datos históricos disponibles en `lia_activity_completions`:
+**Para el Instructor**:
+- **Obligatorio**: Proporcionar `estimated_time_minutes` para todas las actividades y materiales
+- **Mínimo**: 1 minuto para cualquier actividad o material
+- **Recomendación**: Basar el tiempo estimado en pruebas reales o experiencia previa
 
-```sql
--- Obtener tiempo promedio real de actividades
-SELECT 
-  la.activity_id,
-  la.activity_type,
-  AVG(lac.time_to_complete_seconds / 60.0) as avg_time_minutes,
-  COUNT(*) as completion_count
-FROM lesson_activities la
-LEFT JOIN lia_activity_completions lac ON la.activity_id = lac.activity_id
-WHERE la.lesson_id = $1
-  AND lac.time_to_complete_seconds IS NOT NULL
-GROUP BY la.activity_id, la.activity_type
-HAVING COUNT(*) >= 5; -- Mínimo 5 completaciones para usar promedio
-```
+**Para el Sistema**:
+- Si `estimated_time_minutes` es NULL o 0, el sistema debe:
+  - Mostrar advertencia al instructor
+  - No permitir publicar la lección hasta que todos los tiempos estén configurados
+  - Usar 0 en el cálculo (pero mostrar advertencia)
+
+**Nota**: Los datos históricos de `lia_activity_completions.time_to_complete_seconds` pueden ser útiles como referencia para el instructor, pero **NO se usan automáticamente** en el cálculo. El instructor debe revisar estos datos y ajustar manualmente el tiempo estimado si es necesario.
 
 ---
 
@@ -2080,7 +2060,16 @@ HAVING COUNT(*) >= 5; -- Mínimo 5 completaciones para usar promedio
 **Prioridad**: Alta
 
 #### RF-1.2: Cálculo de Tiempo Total por Lección
-**Descripción**: El sistema debe calcular el tiempo total de una lección incluyendo todos los componentes (video, actividades, lecturas, interacciones, quizzes).
+**Descripción**: El sistema debe calcular el tiempo total de una lección incluyendo todos los componentes:
+- Video (duración proporcionada por instructor)
+- Actividades (tiempo estimado proporcionado por instructor)
+- Materiales (tiempo estimado proporcionado por instructor: lecturas, quizzes, ejercicios, enlaces)
+- Interacciones (fijo: 3 minutos)
+
+**Requisitos**:
+- El instructor DEBE proporcionar `estimated_time_minutes` para todas las actividades y materiales
+- El sistema debe validar que todos los tiempos estén configurados antes de permitir publicar la lección
+- Si algún tiempo está faltante, mostrar advertencia clara al instructor
 
 **Prioridad**: Crítica
 
@@ -2178,8 +2167,12 @@ HAVING COUNT(*) >= 5; -- Mínimo 5 completaciones para usar promedio
 
 **Prioridad**: Crítica
 
-#### RF-3.2: Cálculo de Tiempo de Actividades
-**Descripción**: El sistema debe estimar tiempos para actividades, lecturas y quizzes según las fórmulas documentadas en la sección 4.
+#### RF-3.2: Validación de Tiempos de Actividades y Materiales
+**Descripción**: El sistema debe:
+- Validar que el instructor haya proporcionado `estimated_time_minutes` para todas las actividades y materiales
+- Mostrar advertencias si algún tiempo está faltante
+- No permitir publicar la lección hasta que todos los tiempos estén configurados
+- Usar los tiempos proporcionados por el instructor en el cálculo total
 
 **Prioridad**: Alta
 
@@ -2230,16 +2223,18 @@ HAVING COUNT(*) >= 5; -- Mínimo 5 completaciones para usar promedio
 
 ### 6.1 Nueva Tabla: `lesson_time_estimates`
 
+Esta tabla almacena el tiempo total calculado de cada lección, actualizado automáticamente mediante triggers cuando cambian los tiempos proporcionados por el instructor.
+
 ```sql
 CREATE TABLE public.lesson_time_estimates (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   lesson_id uuid NOT NULL,
-  video_duration_seconds integer NOT NULL,
+  video_duration_seconds integer NOT NULL, -- Del instructor
   video_minutes numeric NOT NULL GENERATED ALWAYS AS ((video_duration_seconds / 60.0)) STORED,
-  activities_time_minutes numeric DEFAULT 0,
-  reading_time_minutes numeric DEFAULT 0,
-  interactions_time_minutes numeric DEFAULT 3, -- Fijo
-  quiz_time_minutes numeric DEFAULT 0,
+  activities_time_minutes numeric DEFAULT 0, -- Suma de estimated_time_minutes de todas las actividades (del instructor)
+  reading_time_minutes numeric DEFAULT 0, -- Suma de estimated_time_minutes de materiales tipo 'reading' (del instructor)
+  interactions_time_minutes numeric DEFAULT 3, -- Fijo: 3 minutos
+  quiz_time_minutes numeric DEFAULT 0, -- Suma de estimated_time_minutes de quizzes en actividades y materiales (del instructor)
   total_time_minutes numeric GENERATED ALWAYS AS (
     video_minutes + 
     activities_time_minutes + 
@@ -2255,9 +2250,35 @@ CREATE TABLE public.lesson_time_estimates (
 );
 
 CREATE INDEX idx_lesson_time_estimates_lesson_id ON public.lesson_time_estimates(lesson_id);
+
+-- Comentarios para claridad
+COMMENT ON TABLE public.lesson_time_estimates IS 'Tabla que almacena el tiempo total calculado de cada lección. Los tiempos se actualizan automáticamente mediante triggers cuando el instructor modifica los tiempos estimados de actividades y materiales.';
+COMMENT ON COLUMN public.lesson_time_estimates.activities_time_minutes IS 'Suma de estimated_time_minutes de todas las actividades de la lección (proporcionados por el instructor)';
+COMMENT ON COLUMN public.lesson_time_estimates.reading_time_minutes IS 'Suma de estimated_time_minutes de materiales tipo reading (proporcionados por el instructor)';
+COMMENT ON COLUMN public.lesson_time_estimates.quiz_time_minutes IS 'Suma de estimated_time_minutes de quizzes en actividades y materiales (proporcionados por el instructor)';
 ```
 
 ### 6.2 Modificaciones a Tablas Existentes
+
+#### `lesson_activities`
+```sql
+-- Agregar campo para tiempo estimado proporcionado por el instructor
+ALTER TABLE public.lesson_activities
+ADD COLUMN estimated_time_minutes integer CHECK (estimated_time_minutes >= 1);
+
+-- Comentario para claridad
+COMMENT ON COLUMN public.lesson_activities.estimated_time_minutes IS 'Tiempo estimado en minutos para completar la actividad. Debe ser proporcionado por el instructor. Mínimo: 1 minuto.';
+```
+
+#### `lesson_materials`
+```sql
+-- Agregar campo para tiempo estimado proporcionado por el instructor
+ALTER TABLE public.lesson_materials
+ADD COLUMN estimated_time_minutes integer CHECK (estimated_time_minutes >= 1);
+
+-- Comentario para claridad
+COMMENT ON COLUMN public.lesson_materials.estimated_time_minutes IS 'Tiempo estimado en minutos para completar/revisar el material. Debe ser proporcionado por el instructor. Mínimo: 1 minuto. Aplica a todos los tipos: reading, quiz, exercise, link, pdf, document.';
+```
 
 #### `study_preferences`
 ```sql
@@ -2310,72 +2331,32 @@ RETURNS numeric AS $$
 DECLARE
   v_video_minutes numeric;
   v_activities_minutes numeric := 0;
-  v_reading_minutes numeric := 0;
-  v_quiz_minutes numeric := 0;
+  v_materials_minutes numeric := 0;
   v_interactions_minutes numeric := 3; -- Fijo
   v_total_minutes numeric;
 BEGIN
-  -- Obtener duración del video
+  -- Obtener duración del video (proporcionado por instructor)
   SELECT (duration_seconds / 60.0) INTO v_video_minutes
   FROM course_lessons
   WHERE lesson_id = p_lesson_id;
   
-  -- Calcular tiempo de actividades
-  SELECT COALESCE(SUM(
-    CASE 
-      WHEN activity_type = 'ai_chat' THEN 12
-      WHEN activity_type = 'reflection' THEN 7
-      WHEN activity_type = 'exercise' THEN 15
-      WHEN activity_type = 'discussion' THEN 7
-      ELSE 10
-    END
-  ), 0) INTO v_activities_minutes
-  FROM lesson_activities
-  WHERE lesson_id = p_lesson_id;
-  
-  -- Calcular tiempo de lecturas
-  SELECT COALESCE(SUM(
-    CASE 
-      WHEN material_type = 'reading' THEN
-        CASE 
-          WHEN content_data IS NOT NULL THEN
-            GREATEST(1, (LENGTH(content_data::text) / 4) / 200.0)
-          WHEN file_url IS NOT NULL THEN 2
-          WHEN external_url IS NOT NULL THEN 4
-          ELSE 3
-        END
-      ELSE 0
-    END
-  ), 0) INTO v_reading_minutes
-  FROM lesson_materials
-  WHERE lesson_id = p_lesson_id;
-  
-  -- Calcular tiempo de quizzes
-  SELECT COALESCE(SUM(
-    CASE 
-      WHEN activity_type = 'quiz' THEN
-        GREATEST(5, (jsonb_array_length(activity_content::jsonb->'questions') * 1.5))
-      ELSE 0
-    END
-  ), 0) INTO v_quiz_minutes
+  -- Sumar tiempos de actividades (proporcionados por instructor)
+  -- Si estimated_time_minutes es NULL, se trata como 0 (pero debería validarse antes)
+  SELECT COALESCE(SUM(estimated_time_minutes), 0) INTO v_activities_minutes
   FROM lesson_activities
   WHERE lesson_id = p_lesson_id
-    AND activity_type = 'quiz';
+    AND estimated_time_minutes IS NOT NULL;
   
-  -- Sumar tiempos de quizzes en materiales
-  SELECT COALESCE(SUM(
-    CASE 
-      WHEN material_type = 'quiz' THEN
-        GREATEST(5, (jsonb_array_length(content_data::jsonb->'questions') * 1.5))
-      ELSE 0
-    END
-  ), 0) INTO v_quiz_minutes
+  -- Sumar tiempos de materiales (proporcionados por instructor)
+  -- Incluye: lecturas, quizzes, ejercicios, enlaces externos, PDFs, documentos
+  -- Si estimated_time_minutes es NULL, se trata como 0 (pero debería validarse antes)
+  SELECT COALESCE(SUM(estimated_time_minutes), 0) INTO v_materials_minutes
   FROM lesson_materials
   WHERE lesson_id = p_lesson_id
-    AND material_type = 'quiz';
+    AND estimated_time_minutes IS NOT NULL;
   
   -- Calcular total
-  v_total_minutes := v_video_minutes + v_activities_minutes + v_reading_minutes + v_quiz_minutes + v_interactions_minutes;
+  v_total_minutes := v_video_minutes + v_activities_minutes + v_materials_minutes + v_interactions_minutes;
   
   RETURN CEIL(v_total_minutes);
 END;
@@ -2397,45 +2378,36 @@ BEGIN
     updated_at
   )
   SELECT 
-    NEW.lesson_id,
-    NEW.duration_seconds,
+    COALESCE(NEW.lesson_id, OLD.lesson_id),
+    COALESCE(NEW.duration_seconds, (SELECT duration_seconds FROM course_lessons WHERE lesson_id = COALESCE(NEW.lesson_id, OLD.lesson_id))),
+    -- Sumar tiempos de actividades (proporcionados por instructor)
     COALESCE((
-      SELECT SUM(
-        CASE 
-          WHEN activity_type = 'ai_chat' THEN 12
-          WHEN activity_type = 'reflection' THEN 7
-          WHEN activity_type = 'exercise' THEN 15
-          WHEN activity_type = 'discussion' THEN 7
-          ELSE 10
-        END
-      )
+      SELECT SUM(estimated_time_minutes)
       FROM lesson_activities
-      WHERE lesson_id = NEW.lesson_id
+      WHERE lesson_id = COALESCE(NEW.lesson_id, OLD.lesson_id)
+        AND estimated_time_minutes IS NOT NULL
     ), 0),
+    -- Sumar tiempos de materiales tipo 'reading' (proporcionados por instructor)
     COALESCE((
-      SELECT SUM(
-        CASE 
-          WHEN material_type = 'reading' THEN
-            CASE 
-              WHEN content_data IS NOT NULL THEN GREATEST(1, (LENGTH(content_data::text) / 4) / 200.0)
-              WHEN file_url IS NOT NULL THEN 2
-              WHEN external_url IS NOT NULL THEN 4
-              ELSE 3
-            END
-          ELSE 0
-        END
-      )
+      SELECT SUM(estimated_time_minutes)
       FROM lesson_materials
-      WHERE lesson_id = NEW.lesson_id
+      WHERE lesson_id = COALESCE(NEW.lesson_id, OLD.lesson_id)
+        AND material_type = 'reading'
+        AND estimated_time_minutes IS NOT NULL
     ), 0),
+    -- Sumar tiempos de quizzes (proporcionados por instructor)
     COALESCE((
-      SELECT SUM(GREATEST(5, (jsonb_array_length(activity_content::jsonb->'questions') * 1.5)))
+      SELECT SUM(estimated_time_minutes)
       FROM lesson_activities
-      WHERE lesson_id = NEW.lesson_id AND activity_type = 'quiz'
+      WHERE lesson_id = COALESCE(NEW.lesson_id, OLD.lesson_id)
+        AND activity_type = 'quiz'
+        AND estimated_time_minutes IS NOT NULL
     ), 0) + COALESCE((
-      SELECT SUM(GREATEST(5, (jsonb_array_length(content_data::jsonb->'questions') * 1.5)))
+      SELECT SUM(estimated_time_minutes)
       FROM lesson_materials
-      WHERE lesson_id = NEW.lesson_id AND material_type = 'quiz'
+      WHERE lesson_id = COALESCE(NEW.lesson_id, OLD.lesson_id)
+        AND material_type = 'quiz'
+        AND estimated_time_minutes IS NOT NULL
     ), 0),
     now()
   ON CONFLICT (lesson_id) 
@@ -2446,28 +2418,33 @@ BEGIN
     quiz_time_minutes = EXCLUDED.quiz_time_minutes,
     updated_at = now();
   
-  RETURN NEW;
+  RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger en course_lessons
+-- Trigger en course_lessons (cuando cambia duration_seconds)
 CREATE TRIGGER trigger_update_lesson_time_estimate
 AFTER INSERT OR UPDATE OF duration_seconds ON course_lessons
 FOR EACH ROW
 EXECUTE FUNCTION update_lesson_time_estimate();
 
--- Trigger en lesson_activities
+-- Trigger en lesson_activities (cuando cambia estimated_time_minutes o se agrega/elimina actividad)
 CREATE TRIGGER trigger_update_lesson_time_on_activity_change
-AFTER INSERT OR UPDATE OR DELETE ON lesson_activities
+AFTER INSERT OR UPDATE OF estimated_time_minutes OR DELETE ON lesson_activities
 FOR EACH ROW
 EXECUTE FUNCTION update_lesson_time_estimate();
 
--- Trigger en lesson_materials
+-- Trigger en lesson_materials (cuando cambia estimated_time_minutes o se agrega/elimina material)
 CREATE TRIGGER trigger_update_lesson_time_on_material_change
-AFTER INSERT OR UPDATE OR DELETE ON lesson_materials
+AFTER INSERT OR UPDATE OF estimated_time_minutes OR DELETE ON lesson_materials
 FOR EACH ROW
 EXECUTE FUNCTION update_lesson_time_estimate();
 ```
+
+**Nota**: Los triggers actualizan automáticamente la tabla `lesson_time_estimates` cuando:
+- Se modifica `duration_seconds` en `course_lessons`
+- Se agrega, modifica o elimina una actividad y su `estimated_time_minutes`
+- Se agrega, modifica o elimina un material y su `estimated_time_minutes`
 
 ---
 
@@ -3023,10 +3000,14 @@ Response:
 ## 10. Roadmap de Implementación
 
 ### Fase 1: Fundación (Semanas 1-2)
+- [ ] Agregar campo `estimated_time_minutes` a `lesson_activities`
+- [ ] Agregar campo `estimated_time_minutes` a `lesson_materials`
 - [ ] Crear tabla `lesson_time_estimates`
-- [ ] Implementar función `calculate_lesson_total_time()`
+- [ ] Implementar función `calculate_lesson_total_time()` (usando tiempos del instructor)
 - [ ] Crear triggers para actualización automática
 - [ ] Implementar validaciones de tiempo mínimo
+- [ ] **Actualizar UI del instructor**: Agregar campo de tiempo estimado en formularios de actividades y materiales
+- [ ] **Migración de datos**: Script para notificar a instructores sobre actividades/materiales sin tiempo estimado
 - [ ] Mejorar UI de configuración manual
 
 ### Fase 2: IA Básica (Semanas 3-5)
@@ -3053,6 +3034,74 @@ Response:
 - [ ] Ajuste automático de planes
 - [ ] Logros y gamificación avanzada
 - [ ] Análisis predictivo de completitud
+
+### 10.1 Migración de Datos Existentes
+
+**Problema**: Si ya existen actividades y materiales en la base de datos, estos no tendrán `estimated_time_minutes` configurado.
+
+**Solución**:
+1. **Script de migración**: Identificar todas las actividades y materiales sin `estimated_time_minutes`
+2. **Notificación a instructores**: Enviar notificación/email a instructores con lista de contenido pendiente de configuración
+3. **Validación en UI**: No permitir publicar lecciones hasta que todos los tiempos estén configurados
+4. **Valores por defecto**: NO usar valores por defecto automáticos. El instructor DEBE proporcionar los tiempos manualmente
+
+**Query para identificar contenido pendiente**:
+```sql
+-- Actividades sin tiempo estimado
+SELECT 
+  la.activity_id,
+  la.activity_title,
+  la.activity_type,
+  l.lesson_title,
+  c.title as course_title
+FROM lesson_activities la
+JOIN course_lessons l ON la.lesson_id = l.lesson_id
+JOIN course_modules cm ON l.module_id = cm.module_id
+JOIN courses c ON cm.course_id = c.id
+WHERE la.estimated_time_minutes IS NULL;
+
+-- Materiales sin tiempo estimado
+SELECT 
+  lm.material_id,
+  lm.material_title,
+  lm.material_type,
+  l.lesson_title,
+  c.title as course_title
+FROM lesson_materials lm
+JOIN course_lessons l ON lm.lesson_id = l.lesson_id
+JOIN course_modules cm ON l.module_id = cm.module_id
+JOIN courses c ON cm.course_id = c.id
+WHERE lm.estimated_time_minutes IS NULL;
+```
+
+### 10.2 Interfaz del Instructor
+
+**Requisitos de UI**:
+1. **Formulario de Actividad**: Agregar campo "Tiempo Estimado (minutos)" con:
+   - Input numérico (mínimo: 1)
+   - Validación en tiempo real
+   - Mensaje de ayuda: "Tiempo estimado para completar esta actividad"
+   - Indicador visual si falta el tiempo
+
+2. **Formulario de Material**: Agregar campo "Tiempo Estimado (minutos)" con:
+   - Input numérico (mínimo: 1)
+   - Validación en tiempo real
+   - Mensaje de ayuda según tipo:
+     - Lectura: "Tiempo estimado de lectura"
+     - Quiz: "Tiempo estimado para completar el quiz"
+     - Ejercicio: "Tiempo estimado para completar el ejercicio"
+     - Enlace: "Tiempo estimado para revisar el contenido"
+   - Indicador visual si falta el tiempo
+
+3. **Validación al Publicar**:
+   - Verificar que todas las actividades y materiales tengan `estimated_time_minutes`
+   - Mostrar lista de elementos faltantes
+   - Bloquear publicación hasta completar
+
+4. **Vista Previa de Tiempo Total**:
+   - Mostrar tiempo total calculado de la lección
+   - Desglose: Video + Actividades + Materiales + Interacciones
+   - Actualización en tiempo real al modificar tiempos
 
 ---
 

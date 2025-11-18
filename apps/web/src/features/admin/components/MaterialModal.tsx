@@ -21,7 +21,8 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
     file_url: '',
     external_url: '',
     content_data: null as any,
-    is_downloadable: false
+    is_downloadable: false,
+    estimated_time_minutes: 10 // Default 10 minutes
   })
   const [quizQuestions, setQuizQuestions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,7 +36,8 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
         file_url: material.file_url || '',
         external_url: material.external_url || '',
         content_data: material.content_data || null,
-        is_downloadable: material.is_downloadable
+        is_downloadable: material.is_downloadable,
+        estimated_time_minutes: material.estimated_time_minutes || 10
       })
       // Cargar preguntas del quiz si existe
       if (material.material_type === 'quiz' && material.content_data) {
@@ -44,7 +46,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
         const normalizedQuestions = loadedQuestions.map((q: any) => {
           if (q.questionType === 'true_false') {
             // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
-            if (!q.options || q.options.length !== 2 || 
+            if (!q.options || q.options.length !== 2 ||
                 (q.options[0] !== 'Verdadero' && q.options[0] !== 'Falso') ||
                 (q.options[1] !== 'Verdadero' && q.options[1] !== 'Falso')) {
               return {
@@ -136,8 +138,8 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
             </label>
             <select
               value={formData.material_type}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
                 material_type: e.target.value as any,
                 file_url: '',
                 external_url: ''
@@ -151,6 +153,29 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
               <option value="quiz">Quiz</option>
               <option value="exercise">Ejercicio</option>
             </select>
+          </div>
+
+          {/* Tiempo Estimado - NUEVO CAMPO PARA STUDY PLANNER */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tiempo Estimado (minutos) *
+            </label>
+            <input
+              type="number"
+              required
+              min="1"
+              max="480"
+              value={formData.estimated_time_minutes}
+              onChange={(e) => setFormData(prev => ({ ...prev, estimated_time_minutes: parseInt(e.target.value) || 1 }))}
+              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
+              placeholder="Ej: 15"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+              Tiempo estimado para completar este material ({formData.material_type === 'reading' ? 'leer' : formData.material_type === 'quiz' ? 'completar quiz' : formData.material_type === 'link' ? 'revisar enlace' : 'revisar material'}). Mínimo 1 minuto, máximo 480 minutos (8 horas).
+              <span className="block mt-1 text-blue-600 dark:text-blue-400 font-medium">
+                ⏱️ Requerido para el Planificador de Estudio IA
+              </span>
+            </p>
           </div>
 
           {/* Contenido según tipo */}

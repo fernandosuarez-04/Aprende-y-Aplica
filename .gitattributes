@@ -1,0 +1,18 @@
+# Normalizar finales de línea a LF para todo el proyecto
+* text=auto eol=lf
+
+# Archivos binarios que no deben ser normalizados
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+
