@@ -45,6 +45,9 @@ import {
   AlertCircle,
   XCircle,
   Info,
+  History,
+  Edit2,
+  MoreVertical,
 } from 'lucide-react';
 import { UserDropdown } from '../../../../core/components/UserDropdown';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
@@ -179,7 +182,9 @@ export default function CourseLearnPage() {
     messages: liaMessages,
     isLoading: isLiaLoading,
     sendMessage: sendLiaMessage,
-    clearHistory: clearLiaHistory
+    clearHistory: clearLiaHistory,
+    loadConversation,
+    currentConversationId
   } = useLiaChat(null);
   
   // Estado local para el input del mensaje
@@ -192,6 +197,27 @@ export default function CourseLearnPage() {
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
+
+  // Estados para historial de conversaciones
+  const [showHistory, setShowHistory] = useState(false);
+  const [conversations, setConversations] = useState<Array<{
+    conversation_id: string;
+    conversation_title: string | null;
+    started_at: string;
+    total_messages: number;
+    context_type: string;
+    course_id: string | null;
+    lesson_id: string | null;
+    course: {
+      slug: string;
+      title: string;
+    } | null;
+  }>>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>('');
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+  const [showLiaMenu, setShowLiaMenu] = useState(false);
 
   // Limpiar prompts cuando se cambia de tab
   useEffect(() => {
@@ -680,6 +706,8 @@ export default function CourseLearnPage() {
     );
 
     return {
+      courseId: course.id || course.course_id || undefined,
+      courseSlug: slug || undefined,
       courseTitle: course.title || course.course_title,
       courseDescription: course.description || course.course_description,
       moduleTitle: currentModule?.module_title,
@@ -1037,6 +1065,98 @@ Antes de cada respuesta, pregúntate:
     clearLiaHistory();
     setIsClearHistoryModalOpen(false);
   };
+
+  // Función para cargar conversaciones del usuario
+  // IMPORTANTE: Solo carga conversaciones de talleres (context_type='course')
+  // Máximo 5 conversaciones por usuario
+  const loadConversations = useCallback(async () => {
+    if (!slug) return;
+    
+    setLoadingConversations(true);
+    try {
+      // Limitar a 5 conversaciones (máximo permitido)
+      const response = await fetch(`/api/lia/conversations?courseSlug=${slug}&limit=5`);
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data.conversations || []);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('Error cargando conversaciones:', errorData.error || response.statusText);
+        setConversations([]);
+      }
+    } catch (error) {
+      console.error('Error cargando conversaciones:', error);
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, [slug]);
+
+  // Función para actualizar título de conversación
+  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
+    try {
+      const response = await fetch(`/api/lia/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ conversation_title: title.trim() || null }),
+      });
+
+      if (response.ok) {
+        // Actualizar en el estado local
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.conversation_id === conversationId
+              ? { ...conv, conversation_title: title.trim() || null }
+              : conv
+          )
+        );
+        setEditingConversationId(null);
+        setEditingTitle('');
+      } else {
+        console.error('Error actualizando título de conversación');
+      }
+    } catch (error) {
+      console.error('Error actualizando título:', error);
+    }
+  }, []);
+
+  // Función para eliminar conversación
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/lia/conversations/${conversationId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remover del estado local
+        setConversations(prev => prev.filter(conv => conv.conversation_id !== conversationId));
+        
+        // Si era la conversación actual, limpiar el historial
+        if (currentConversationId === conversationId) {
+          clearLiaHistory();
+        }
+        
+        setDeletingConversationId(null);
+      } else {
+        console.error('Error eliminando conversación');
+      }
+    } catch (error) {
+      console.error('Error eliminando conversación:', error);
+    }
+  }, [currentConversationId, clearLiaHistory]);
+
+  // Función para cargar y restaurar una conversación
+  const handleLoadConversation = useCallback(async (conversationId: string) => {
+    await loadConversation(conversationId);
+    setShowHistory(false);
+    
+    // Scroll al final de los mensajes
+    setTimeout(() => {
+      liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, [loadConversation]);
 
   // Función para abrir modal de nueva nota
   const openNewNoteModal = () => {
@@ -2792,14 +2912,67 @@ Antes de cada respuesta, pregúntate:
                       <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={handleOpenClearHistoryModal}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                      title="Reiniciar conversación con Lia"
-                    >
-                      <Trash2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                    </button>
+                  <div className="flex items-center gap-1 relative">
+                    {/* Menú de opciones (tres puntos) */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowLiaMenu(!showLiaMenu)}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                        title="Más opciones"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      </button>
+                      
+                      {/* Menú dropdown */}
+                      {showLiaMenu && (
+                        <>
+                          {/* Overlay para cerrar el menú al hacer clic fuera */}
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowLiaMenu(false)}
+                          />
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                            <button
+                              onClick={() => {
+                                clearLiaHistory();
+                                setShowHistory(true);
+                                loadConversations();
+                                setShowLiaMenu(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Nueva conversación
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowHistory(!showHistory);
+                                if (!showHistory) {
+                                  loadConversations();
+                                }
+                                setShowLiaMenu(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            >
+                              <History className="w-4 h-4" />
+                              Ver historial
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleOpenClearHistoryModal();
+                                setShowLiaMenu(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Reiniciar conversación
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Botón de expandir/minimizar - siempre visible */}
                     {!isMobile && (
                       <button
                         onClick={handleToggleLiaExpanded}
@@ -2813,6 +2986,8 @@ Antes de cada respuesta, pregúntate:
                         )}
                       </button>
                     )}
+                    
+                    {/* Botón de cerrar */}
                     <button
                       onClick={() => setIsRightPanelOpen(false)}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
@@ -2825,6 +3000,172 @@ Antes de cada respuesta, pregúntate:
                     </button>
                   </div>
                 </div>
+
+                {/* Panel de historial de conversaciones */}
+                {showHistory && (
+                  <div className="absolute top-14 right-0 w-80 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+                    <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Historial de Conversaciones</h3>
+                      <button
+                        onClick={() => setShowHistory(false)}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        title="Cerrar historial"
+                      >
+                        <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2">
+                      {loadingConversations ? (
+                        <div className="p-4 text-center text-gray-500 dark:text-slate-400">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                          <p className="text-sm">Cargando conversaciones...</p>
+                        </div>
+                      ) : conversations.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500 dark:text-slate-400">
+                          <p className="text-sm">No hay conversaciones anteriores</p>
+                        </div>
+                      ) : (
+                        conversations.map((conv) => (
+                          <div
+                            key={conv.conversation_id}
+                            className={`group relative bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg p-3 mb-2 transition-colors ${
+                              currentConversationId === conv.conversation_id ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <button
+                                onClick={() => handleLoadConversation(conv.conversation_id)}
+                                className="flex-1 text-left min-w-0"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  {editingConversationId === conv.conversation_id ? (
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <input
+                                        type="text"
+                                        value={editingTitle}
+                                        onChange={(e) => setEditingTitle(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            updateConversationTitle(conv.conversation_id, editingTitle);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingConversationId(null);
+                                            setEditingTitle('');
+                                          }
+                                        }}
+                                        className="flex-1 px-2 py-1 text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded text-gray-900 dark:text-white"
+                                        autoFocus
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updateConversationTitle(conv.conversation_id, editingTitle);
+                                        }}
+                                        className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors"
+                                      >
+                                        <Save className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingConversationId(null);
+                                          setEditingTitle('');
+                                        }}
+                                        className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                      >
+                                        <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
+                                        {conv.conversation_title || conv.course?.title || 'Conversación general'}
+                                      </p>
+                                      <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">
+                                        {new Date(conv.started_at).toLocaleDateString('es-ES', {
+                                          day: 'numeric',
+                                          month: 'short',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                      <p className="text-xs text-gray-400 dark:text-slate-500">
+                                        {conv.total_messages} mensaje{conv.total_messages !== 1 ? 's' : ''}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              </button>
+                              {editingConversationId !== conv.conversation_id && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingConversationId(conv.conversation_id);
+                                      setEditingTitle(conv.conversation_title || '');
+                                    }}
+                                    className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Editar nombre"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5 text-gray-600 dark:text-slate-400" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeletingConversationId(conv.conversation_id);
+                                    }}
+                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Eliminar conversación"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Modal de confirmación para eliminar conversación */}
+                {deletingConversationId && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-6 max-w-md w-full">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                          <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">Eliminar conversación</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-400">Esta acción no se puede deshacer</p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-slate-300 mb-6">
+                        ¿Estás seguro de que quieres eliminar esta conversación? Todos los mensajes se perderán permanentemente.
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setDeletingConversationId(null)}
+                          className="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (deletingConversationId) {
+                              deleteConversation(deletingConversationId);
+                            }
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               {/* Chat de Lia expandido */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">

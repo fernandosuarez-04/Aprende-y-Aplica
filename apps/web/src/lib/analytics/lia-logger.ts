@@ -59,9 +59,42 @@ export class LiaLogger {
 
   /**
    * Inicia una nueva conversación con LIA
+   * IMPORTANTE: Limita a máximo 5 conversaciones por usuario por contexto
+   * Elimina automáticamente las conversaciones más antiguas si se excede el límite
    */
   async startConversation(metadata: ConversationMetadata): Promise<string> {
     const supabase = await createClient();
+
+    // Límite de conversaciones por usuario por contexto
+    const MAX_CONVERSATIONS_PER_CONTEXT = 5;
+
+    // Verificar cuántas conversaciones tiene el usuario para este contexto
+    const { data: existingConversations, error: countError } = await supabase
+      .from('lia_conversations' as any)
+      .select('conversation_id, started_at')
+      .eq('user_id', this.userId)
+      .eq('context_type', metadata.contextType)
+      .order('started_at', { ascending: false });
+
+    if (!countError && existingConversations && existingConversations.length >= MAX_CONVERSATIONS_PER_CONTEXT) {
+      // Eliminar las conversaciones más antiguas (mantener solo las 4 más recientes)
+      const conversationsToDelete = existingConversations.slice(MAX_CONVERSATIONS_PER_CONTEXT - 1);
+      const conversationIdsToDelete = conversationsToDelete.map((conv: any) => conv.conversation_id);
+
+      if (conversationIdsToDelete.length > 0) {
+        // Primero eliminar los mensajes de esas conversaciones
+        await supabase
+          .from('lia_messages' as any)
+          .delete()
+          .in('conversation_id', conversationIdsToDelete);
+
+        // Luego eliminar las conversaciones
+        await supabase
+          .from('lia_conversations' as any)
+          .delete()
+          .in('conversation_id', conversationIdsToDelete);
+      }
+    }
 
     const { data, error } = await supabase
       .from('lia_conversations' as any)

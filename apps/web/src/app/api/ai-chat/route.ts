@@ -761,6 +761,46 @@ export async function POST(request: NextRequest) {
             ipAddress: clientIp
           });
           
+          // Si hay courseContext y se creó una nueva conversación, intentar actualizar el course_id
+          if (courseContext && context === 'course' && newConversationId) {
+            try {
+              const supabase = await createClient();
+              let courseIdToUpdate: string | null = null;
+              
+              // Intentar obtener course_id del courseContext primero (más directo)
+              if (courseContext.courseId) {
+                courseIdToUpdate = courseContext.courseId;
+              } else if (courseContext.courseSlug) {
+                // Si no hay course_id pero hay courseSlug, buscarlo en la BD
+                const { data: courseData } = await supabase
+                  .from('courses')
+                  .select('id')
+                  .eq('slug', courseContext.courseSlug)
+                  .single();
+                
+                if (courseData?.id) {
+                  courseIdToUpdate = courseData.id;
+                }
+              }
+              
+              // Actualizar la conversación con el course_id si lo encontramos
+              if (courseIdToUpdate) {
+                await supabase
+                  .from('lia_conversations')
+                  .update({ course_id: courseIdToUpdate })
+                  .eq('conversation_id', newConversationId);
+                
+                logger.info('✅ Actualizado course_id en conversación', { 
+                  conversationId: newConversationId, 
+                  courseId: courseIdToUpdate 
+                });
+              }
+            } catch (error) {
+              // Ignorar errores al actualizar course_id, no es crítico
+              logger.warn('No se pudo actualizar course_id en conversación:', error);
+            }
+          }
+          
           logger.info('✅ Nueva conversación LIA creada exitosamente (async)', { conversationId: newConversationId, userId: user.id, context });
           return { liaLogger, conversationId: newConversationId };
         } else {
