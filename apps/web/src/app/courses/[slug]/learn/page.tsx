@@ -2144,53 +2144,183 @@ Antes de cada respuesta, pregúntate:
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="ml-9 mt-3 space-y-2 pl-4 border-l border-gray-200 dark:border-slate-700">
+                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-blue-200/50 dark:border-blue-800/30">
                                     {/* Actividades */}
                                     {activities.length > 0 && (
-                                      <div className="space-y-1.5">
-                                        {activities.map((activity) => (
-                                          <div
-                                            key={activity.activity_id}
-                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
-                                          >
-                                            <Activity className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500 dark:text-blue-400 opacity-70 group-hover:opacity-100" />
-                                            <div className="flex-1 min-w-0">
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{activity.activity_title}</span>
+                                      <div className="space-y-2">
+                                        {activities.map((activity) => {
+                                          const isQuiz = activity.activity_type === 'quiz';
+                                          const isRequired = activity.is_required;
+                                          
+                                          return (
+                                            <div
+                                              key={activity.activity_id}
+                                              className="group relative bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/50 border border-gray-200/50 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700 rounded-lg p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                              <div className="flex items-start gap-3">
+                                                {/* Icono mejorado con fondo */}
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                  isQuiz 
+                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' 
+                                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                }`}>
+                                                  {isQuiz ? (
+                                                    <FileText className="w-4 h-4" />
+                                                  ) : (
+                                                    <Activity className="w-4 h-4" />
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Contenido principal */}
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                    {activity.activity_title}
+                                                  </p>
+                                                  
+                                                  {/* Badges en fila con wrap */}
+                                                  <div className="flex flex-wrap items-center gap-1.5">
+                                                    {/* Badge de tipo */}
+                                                    <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors ${
+                                                      isQuiz
+                                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                                    }`}>
+                                                      {activity.activity_type}
+                                                    </span>
+                                                    
+                                                    {/* Badge Requerida */}
+                                                    {isRequired && (
+                                                      <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                        Requerida
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Indicador de estado para quizzes (si está disponible) */}
+                                              {isQuiz && quizStatus && (() => {
+                                                const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                                                if (quizInfo) {
+                                                  return (
+                                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+                                                      {quizInfo.isPassed ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                          <CheckCircle className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : quizInfo.isCompleted ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                          <X className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : (
+                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                          <Clock className="w-3.5 h-3.5" />
+                                                          <span>Pendiente</span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                }
+                                                return null;
+                                              })()}
                                             </div>
-                                            {activity.is_required && (
-                                              <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
-                                                Requerida
-                                              </span>
-                                            )}
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     )}
 
                                     {/* Materiales */}
                                     {materials.length > 0 && (
-                                      <div className="space-y-1.5">
-                                        {materials.map((material) => (
-                                          <div
-                                            key={material.material_id}
-                                            className="flex items-start gap-3 p-2.5 rounded-md hover:bg-gray-50/50 dark:hover:bg-slate-700/20 transition-colors group"
-                                          >
-                                            <FileText className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500 dark:text-green-400 opacity-70 group-hover:opacity-100" />
-                                            <div className="flex-1 min-w-0">
-                                              <span className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed line-clamp-3">{material.material_title}</span>
+                                      <div className="space-y-2">
+                                        {materials.map((material) => {
+                                          const isQuiz = material.material_type === 'quiz';
+                                          const isReading = material.material_type === 'reading';
+                                          const isRequired = material.is_required;
+                                          
+                                          return (
+                                            <div
+                                              key={material.material_id}
+                                              className="group relative bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/50 border border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-700 rounded-lg p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                              <div className="flex items-start gap-3">
+                                                {/* Icono mejorado con fondo según tipo */}
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                  isQuiz
+                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                                                    : isReading
+                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                                }`}>
+                                                  {isQuiz ? (
+                                                    <FileText className="w-4 h-4" />
+                                                  ) : isReading ? (
+                                                    <BookOpen className="w-4 h-4" />
+                                                  ) : (
+                                                    <FileText className="w-4 h-4" />
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Contenido principal */}
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                    {material.material_title}
+                                                  </p>
+                                                  
+                                                  {/* Badges en fila con wrap para evitar cortes */}
+                                                  <div className="flex flex-wrap items-center gap-1.5">
+                                                    {/* Badge Requerida primero */}
+                                                    {isRequired && (
+                                                      <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                        Requerida
+                                                      </span>
+                                                    )}
+                                                    
+                                                    {/* Badge de tipo */}
+                                                    <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors whitespace-nowrap ${
+                                                      isQuiz
+                                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                                        : isReading
+                                                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                                                        : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20'
+                                                    }`}>
+                                                      {material.material_type}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Indicador de estado para quizzes (si está disponible) */}
+                                              {isQuiz && quizStatus && (() => {
+                                                const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
+                                                if (quizInfo) {
+                                                  return (
+                                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+                                                      {quizInfo.isPassed ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                          <CheckCircle className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : quizInfo.isCompleted ? (
+                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                          <X className="w-3.5 h-3.5" />
+                                                          <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+                                                        </div>
+                                                      ) : (
+                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                          <Clock className="w-3.5 h-3.5" />
+                                                          <span>Pendiente</span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                }
+                                                return null;
+                                              })()}
                                             </div>
-                                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                                              {material.is_required && (
-                                                <span className="px-2 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded-md flex-shrink-0 font-medium whitespace-nowrap">
-                                                  Requerida
-                                                </span>
-                                              )}
-                                              <span className="px-2 py-0.5 bg-green-500/10 text-green-500 dark:text-green-400 text-xs rounded-md capitalize flex-shrink-0 font-medium whitespace-nowrap">
-                                                {material.material_type}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     )}
                                   </div>

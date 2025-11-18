@@ -55,7 +55,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(20, {
     message: 'OPENAI_API_KEY debe tener al menos 20 caracteres'
   }).optional(),
-  CHATBOT_MODEL: z.string().default('gpt-5-nano'),
+  CHATBOT_MODEL: z.string().default('gpt-4o-mini'),
   CHATBOT_MAX_TOKENS: z.coerce.number().int().positive().max(4000).default(700),
   CHATBOT_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.6),
   ASSEMBLYAI_API_KEY: z.string().optional(),
