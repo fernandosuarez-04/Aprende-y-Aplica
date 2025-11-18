@@ -115,9 +115,10 @@ const nextConfig: NextConfig = {
             value: 'strict-origin-when-cross-origin'
           },
           // Control de permisos del navegador
+          // Permitir el uso de cámara/micrófono desde el mismo origen (self) en desarrollo
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+            value: 'camera=(self), microphone=(self), geolocation=(self), interest-cohort=()'
           },
           // Previene ataques XSS en navegadores antiguos
           {
