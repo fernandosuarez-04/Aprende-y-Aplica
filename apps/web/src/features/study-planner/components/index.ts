@@ -30,3 +30,6 @@ export { DailyProgressCard } from './DailyProgressCard'
 export { WeeklyProgressBar } from './WeeklyProgressBar'
 export { NextSessionCard, NextSessionsList } from './NextSessionCard'
 export { CalendarView } from './CalendarView'
+
+// Phase 5 Components (Calendar Integrations)
+export { CalendarSyncSettings } from './CalendarSyncSettings'

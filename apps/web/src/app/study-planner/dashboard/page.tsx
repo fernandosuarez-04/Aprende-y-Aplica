@@ -8,6 +8,7 @@ import {
   WeeklyProgressBar,
   NextSessionsList,
   CalendarView,
+  CalendarSyncSettings,
 } from '@/features/study-planner/components'
 import type { DashboardStats } from '@/features/study-planner/types/streak.types'
 
@@ -17,6 +18,7 @@ export default function StudyPlannerDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [showCalendarSync, setShowCalendarSync] = useState(false)
 
   // Cargar datos del dashboard
   useEffect(() => {
@@ -234,6 +236,12 @@ export default function StudyPlannerDashboard() {
               >
                 📚 Explorar cursos
               </button>
+              <button
+                onClick={() => setShowCalendarSync(true)}
+                className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 text-neutral-900 dark:text-white font-medium rounded-lg transition-colors text-left"
+              >
+                📅 Sincronizar calendarios
+              </button>
             </div>
           </div>
         </div>
@@ -279,6 +287,12 @@ export default function StudyPlannerDashboard() {
           </div>
         </div>
       )}
+
+      {/* Calendar Sync Settings Modal */}
+      <CalendarSyncSettings
+        isOpen={showCalendarSync}
+        onClose={() => setShowCalendarSync(false)}
+      />
     </div>
   )
 }

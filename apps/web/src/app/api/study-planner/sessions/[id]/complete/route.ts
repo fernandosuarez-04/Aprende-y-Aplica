@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SessionService } from '@/core/services/session.service'
+import { StudyPlannerService } from '@/features/study-planner/services/studyPlannerService'
+import { CalendarSyncService } from '@/features/study-planner/services/calendarSyncService'
+import type { StudySessionUpdate } from '@repo/shared/types'
 
 interface CompleteSessionBody {
   actual_duration_minutes: number
@@ -45,53 +48,78 @@ export async function POST(
       )
     }
 
-    // 4. Obtener Supabase client
-    const supabase = await createClient()
+    // 4. Verificar que la sesión existe y pertenece al usuario usando el servicio
+    const session = await StudyPlannerService.getStudySessionById(params.id, user.usuario_id)
 
-    // 5. Verificar que la sesión existe y pertenece al usuario
-    const { data: session, error: sessionError } = await supabase
-      .from('study_sessions')
-      .select('session_id, user_id, duration_minutes, completion_status')
-      .eq('session_id', params.id)
-      .eq('user_id', user.usuario_id)
-      .single()
-
-    if (sessionError || !session) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Sesión no encontrada o no autorizada' },
         { status: 404 }
       )
     }
 
-    if (session.completion_status === 'completed') {
+    if (session.status === 'completed') {
       return NextResponse.json(
         { error: 'Esta sesión ya está completada' },
         { status: 400 }
       )
     }
 
-    // 6. Completar la sesión
+    // 6. Completar la sesión usando el servicio
     // El trigger update_user_streak() se ejecutará automáticamente
-    const { error: updateError } = await supabase
-      .from('study_sessions')
-      .update({
-        completion_status: 'completed',
-        completed_at: new Date().toISOString(),
-        actual_duration_minutes: body.actual_duration_minutes,
-        notes: body.notes || null,
-        self_evaluation: body.self_evaluation || null,
-      })
-      .eq('session_id', params.id)
+    // Nota: notes y self_evaluation se guardan en metrics según el esquema
+    const updateData: StudySessionUpdate = {
+      status: 'completed' as const,
+      actual_duration_minutes: body.actual_duration_minutes,
+    }
 
-    if (updateError) {
-      console.error('Error al completar sesión:', updateError)
+    // Si hay notes o self_evaluation, guardarlos en metrics
+    // metrics es JSONB, así que podemos agregar campos adicionales
+    if (body.notes || body.self_evaluation !== undefined) {
+      const currentMetrics = session.metrics || {}
+      updateData.metrics = {
+        ...currentMetrics,
+        ...(body.notes && { notes: body.notes }),
+        ...(body.self_evaluation !== undefined && { self_evaluation: body.self_evaluation }),
+      } as typeof session.metrics
+    }
+
+    const updatedSession = await StudyPlannerService.updateStudySession(
+      params.id,
+      user.usuario_id,
+      updateData
+    )
+
+    if (!updatedSession) {
+      console.error('Error al completar sesión')
       return NextResponse.json(
         { error: 'Error al actualizar la sesión' },
         { status: 500 }
       )
     }
 
-    // 7. Obtener el streak actualizado
+    // 7. Sincronizar con calendarios externos (actualizar evento como completado)
+    try {
+      const integrations = await StudyPlannerService.getCalendarIntegrations(user.usuario_id)
+      const activeIntegrations = integrations.filter(integration => integration.access_token)
+      
+      if (activeIntegrations.length > 0 && updatedSession.external_event_id && updatedSession.calendar_provider) {
+        const matchingIntegration = activeIntegrations.find(
+          int => int.provider === updatedSession.calendar_provider
+        )
+        
+        if (matchingIntegration) {
+          // Actualizar el evento en el calendario externo
+          await CalendarSyncService.updateEvent(updatedSession, matchingIntegration)
+          console.log(`[COMPLETE] Updated calendar event for session ${params.id} in ${matchingIntegration.provider}`)
+        }
+      }
+    } catch (syncError) {
+      console.error('[COMPLETE] Error syncing to calendar (non-blocking):', syncError)
+      // No fallar la request si la sincronización falla
+    }
+
+    // 8. Obtener el streak actualizado
     const { data: streak, error: streakError } = await supabase
       .from('user_streaks')
       .select('*')

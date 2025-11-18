@@ -14,7 +14,7 @@
 - ✅ **FASE 2**: Modo Manual - 100% COMPLETADA
 - ✅ **FASE 3**: Generación con IA - 100% COMPLETADA
 - ✅ **FASE 4**: Streaks y Dashboard - 100% COMPLETADA
-- ⏸️ **FASE 5**: Integración de Calendarios - 0% PENDIENTE
+- 🟡 **FASE 5**: Integración de Calendarios - 90% COMPLETADA
 - ⏸️ **FASE 6**: Página de Sesión - 0% PENDIENTE
 - ⏸️ **FASE 7**: Testing y Optimización - 0% PENDIENTE
 
@@ -359,11 +359,28 @@
 
 ## ⏸️ FASES PENDIENTES (RESUMEN)
 
-### FASE 5: Integración de Calendarios (~20-25 horas)
-- OAuth Google/Microsoft/Apple
-- Sync bidireccional
-- Exportación/importación ICS
-- Conflict resolution
+### FASE 5: Integración de Calendarios (~20-25 horas) - 85% COMPLETADA
+
+**✅ Completado:**
+- ✅ OAuth Google/Microsoft (setup completo)
+- ✅ OAuth callbacks funcionando
+- ✅ CalendarSyncService (Google y Microsoft)
+- ✅ Sincronización automática al crear/actualizar sesiones
+- ✅ Refresh automático de tokens
+- ✅ Endpoint de verificación de tokens
+- ✅ Exportación ICS
+- ✅ CalendarSyncSettings component (UI completa)
+- ✅ Migración SQL (calendar_integrations table)
+- ✅ Integración en endpoints de creación de sesiones
+
+**⏸️ Pendiente:**
+- ⏸️ Sync bidireccional (webhooks para recibir cambios desde calendarios externos)
+- ⏸️ Conflict resolution avanzado (detección y resolución automática de conflictos)
+
+**✅ Recién Completado (2025-01-18):**
+- ✅ Sincronización en endpoints complete/reschedule
+- ✅ Endpoint de suscripción ICS (subscribe)
+- ✅ Integración completa de calendar sync en todos los endpoints de sesiones
 
 ### FASE 6: Página de Sesión (~15-18 horas)
 - Timer Pomodoro funcional
@@ -551,15 +568,19 @@ supabase/
 - [x] Integración en create/page.tsx
 - [x] Exports actualizados en index.ts
 
-### ⏸️ Próximo: Fase 5 - Integración de Calendarios
-- [ ] OAuth setup (Google/Microsoft/Apple)
-- [ ] Calendar providers implementation
-- [ ] Bidirectional sync service
-- [ ] ICS export/import functionality
-- [ ] Conflict resolution logic
-- [ ] UI components para OAuth flow
-- [ ] Settings page for calendar integrations
-- [ ] Testing de sync
+### 🟡 Fase 5 - Integración de Calendarios (90% Completada)
+- [x] OAuth setup (Google/Microsoft) ✅
+- [x] Calendar providers implementation (Google/Microsoft) ✅
+- [x] Calendar sync service (unidireccional: app → calendarios) ✅
+- [x] ICS export functionality ✅
+- [x] ICS subscription endpoint ✅
+- [x] UI components para OAuth flow ✅
+- [x] Settings page for calendar integrations ✅
+- [x] Sincronización en create/update/complete/reschedule ✅
+- [x] Token refresh automático ✅
+- [ ] Bidirectional sync service (webhooks para recibir cambios)
+- [ ] Conflict resolution logic avanzado
+- [ ] Testing de sync completo
 
 ### ⏸️ Pendiente Futuro (Fases 6-7)
 - [ ] Página de sesión con Pomodoro
@@ -590,7 +611,7 @@ supabase/
 ---
 
 **ÚLTIMA ACTUALIZACIÓN:** 2025-01-18
-**FASE ACTUAL:** FASE 4 COMPLETADA ✅ (100%)
-**PRÓXIMO PASO:** Iniciar FASE 5 - Integración de Calendarios (OAuth, Sync bidireccional, ICS export/import)
+**FASE ACTUAL:** FASE 5 - Integración de Calendarios 🟡 (90% completada)
+**PRÓXIMO PASO:** Completar FASE 5 - Sync bidireccional (webhooks) y conflict resolution, luego iniciar FASE 6
 
 Este documento es el punto de referencia único para retomar el desarrollo. Actualizar al completar tareas.

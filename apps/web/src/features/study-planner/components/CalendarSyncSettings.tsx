@@ -340,16 +340,21 @@ export function CalendarSyncSettings({ isOpen, onClose }: CalendarSyncSettingsPr
                     Descargar ICS
                   </Button>
                   <Button
-                    onClick={() => {
-                      // Generar URL de suscripción
-                      const subscribeUrl = `${window.location.origin}/api/study-planner/calendar-integrations/subscribe/ics`;
-                      navigator.clipboard.writeText(subscribeUrl);
-                      alert('URL de suscripción copiada al portapapeles');
+                    onClick={async () => {
+                      try {
+                        // Generar URL de suscripción
+                        const subscribeUrl = `${window.location.origin}/api/study-planner/calendar-integrations/subscribe/ics`;
+                        await navigator.clipboard.writeText(subscribeUrl);
+                        alert('URL de suscripción copiada al portapapeles. Puedes agregarla a tu calendario Apple/iCal.');
+                      } catch (err) {
+                        console.error('Error copying URL:', err);
+                        alert('Error al copiar URL. Por favor, cópiala manualmente desde la barra de direcciones.');
+                      }
                     }}
                     disabled={loading}
                     size="sm"
                   >
-                    Copiar URL
+                    Copiar URL de Suscripción
                   </Button>
                 </div>
               </div>

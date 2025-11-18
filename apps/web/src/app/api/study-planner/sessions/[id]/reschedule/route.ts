@@ -4,8 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { SessionService } from '@/core/services/session.service'
+import { StudyPlannerService } from '@/features/study-planner/services/studyPlannerService'
+import { CalendarSyncService } from '@/features/study-planner/services/calendarSyncService'
 
 interface RescheduleSessionBody {
   new_date: string // YYYY-MM-DD
@@ -35,74 +36,116 @@ export async function POST(
       )
     }
 
-    // 4. Obtener Supabase client
-    const supabase = await createClient()
+    // 4. Verificar que la sesión existe y pertenece al usuario usando el servicio
+    const session = await StudyPlannerService.getStudySessionById(params.id, user.usuario_id)
 
-    // 5. Verificar que la sesión existe y pertenece al usuario
-    const { data: session, error: sessionError } = await supabase
-      .from('study_sessions')
-      .select('scheduled_date, scheduled_start_time, completion_status')
-      .eq('session_id', params.id)
-      .eq('user_id', user.usuario_id)
-      .single()
-
-    if (sessionError || !session) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Sesión no encontrada o no autorizada' },
         { status: 404 }
       )
     }
 
-    if (session.completion_status === 'completed') {
+    // 5. Validar que la sesión no esté completada
+    if (session.status === 'completed') {
       return NextResponse.json(
         { error: 'No se puede reprogramar una sesión completada' },
         { status: 400 }
       )
     }
 
-    // 6. Guardar la fecha original
-    const originalDateTime = `${session.scheduled_date} ${session.scheduled_start_time}`
+    // 6. Construir las nuevas fechas/horas como timestamps ISO
+    // Combinar fecha (YYYY-MM-DD) con hora (HH:MM) y convertir a ISO timestamp
+    const startDateTime = new Date(`${body.new_date}T${body.new_start_time}:00`)
+    const endDateTime = new Date(`${body.new_date}T${body.new_end_time}:00`)
 
-    // 7. Marcar como reprogramada y actualizar fechas
-    const { error: updateError } = await supabase
-      .from('study_sessions')
-      .update({
-        completion_status: 'rescheduled',
-        was_rescheduled: true,
-        rescheduled_from: originalDateTime,
-        scheduled_date: body.new_date,
-        scheduled_start_time: body.new_start_time,
-        scheduled_end_time: body.new_end_time,
-      })
-      .eq('session_id', params.id)
+    // Validar que las fechas sean válidas
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+      return NextResponse.json(
+        { error: 'Fechas u horas inválidas' },
+        { status: 400 }
+      )
+    }
 
-    if (updateError) {
-      console.error('Error al reprogramar sesión:', updateError)
+    // Validar que end_time sea después de start_time
+    if (endDateTime <= startDateTime) {
+      return NextResponse.json(
+        { error: 'La hora de fin debe ser posterior a la hora de inicio' },
+        { status: 400 }
+      )
+    }
+
+    // 7. Guardar la fecha/hora original para la respuesta
+    const originalStartTime = new Date(session.start_time)
+    const originalDate = originalStartTime.toISOString().split('T')[0]
+    const originalTime = originalStartTime.toTimeString().slice(0, 5)
+
+    // 8. Actualizar la sesión usando el servicio
+    const updatedSession = await StudyPlannerService.updateStudySession(
+      params.id,
+      user.usuario_id,
+      {
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        // Mantener el status actual si no está completada, o cambiarlo a 'planned' si estaba 'cancelled' o 'skipped'
+        status: session.status === 'cancelled' || session.status === 'skipped' ? 'planned' : session.status,
+      }
+    )
+
+    if (!updatedSession) {
+      console.error('Error al reprogramar sesión')
       return NextResponse.json(
         { error: 'Error al reprogramar la sesión' },
         { status: 500 }
       )
     }
 
-    // 8. Volver a estado pending para que se pueda completar
-    await supabase
-      .from('study_sessions')
-      .update({ completion_status: 'pending' })
-      .eq('session_id', params.id)
+    // 9. Sincronizar con calendarios externos (actualizar fecha/hora del evento)
+    try {
+      const integrations = await StudyPlannerService.getCalendarIntegrations(user.usuario_id)
+      const activeIntegrations = integrations.filter(integration => integration.access_token)
+      
+      if (activeIntegrations.length > 0 && updatedSession.external_event_id && updatedSession.calendar_provider) {
+        const matchingIntegration = activeIntegrations.find(
+          int => int.provider === updatedSession.calendar_provider
+        )
+        
+        if (matchingIntegration) {
+          // Actualizar el evento en el calendario externo con las nuevas fechas
+          await CalendarSyncService.updateEvent(updatedSession, matchingIntegration)
+          console.log(`[RESCHEDULE] Updated calendar event for session ${params.id} in ${matchingIntegration.provider}`)
+        }
+      }
+    } catch (syncError) {
+      console.error('[RESCHEDULE] Error syncing to calendar (non-blocking):', syncError)
+      // No fallar la request si la sincronización falla
+    }
 
     return NextResponse.json(
       {
         success: true,
         message: 'Sesión reprogramada exitosamente',
-        original_date: session.scheduled_date,
-        original_time: session.scheduled_start_time,
+        original_date: originalDate,
+        original_time: originalTime,
         new_date: body.new_date,
         new_time: body.new_start_time,
+        session: {
+          id: updatedSession.id,
+          start_time: updatedSession.start_time,
+          end_time: updatedSession.end_time,
+          status: updatedSession.status,
+        },
       },
       { status: 200 }
     )
   } catch (error) {
     console.error('Error en POST /api/study-planner/sessions/[id]/reschedule:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    return NextResponse.json(
+      { 
+        error: 'Error interno del servidor',
+        message: error instanceof Error ? error.message : 'Error desconocido'
+      },
+      { status: 500 }
+    )
   }
 }
