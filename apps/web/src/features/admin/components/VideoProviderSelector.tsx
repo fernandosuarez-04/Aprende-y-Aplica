@@ -361,54 +361,43 @@ export function VideoProviderSelector({
             throw new Error(`El servidor devolvió una respuesta inválida (${response.status}). El archivo puede ser demasiado grande para la API route.`)
           }
 
-// 
           const result = await response.json()
 
-// 
           if (!response.ok) {
             const errorMessage = result.details || result.error || result.message || 'Error al subir el video'
             throw new Error(errorMessage)
           }
 
-// 
           if (!result.success || !result.url) {
             throw new Error('No se recibió la URL del video subido')
           }
 
-// 
           setUploadProgress(100)
           onVideoIdChange(result.url)
           return
         }
-        
-// 
+
         throw new Error(`Error al subir el video: ${uploadError.message}`)
       }
 
-// 
       if (!uploadData) {
         throw new Error('No se recibió confirmación de la subida')
       }
 
-// 
       // Obtener URL pública
       const { data: urlData } = supabase.storage
         .from('course-videos')
         .getPublicUrl(filePath)
 
-// 
       if (!urlData?.publicUrl) {
         throw new Error('Error al obtener la URL pública del video')
       }
 
-// 
       // console.log('✅ Video uploaded successfully:', urlData.publicUrl)
 
-// 
       setUploadProgress(100)
       onVideoIdChange(urlData.publicUrl)
-      
-// 
+
     } catch (err) {
       // console.error('💥 Error uploading video:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al subir el video'
@@ -419,7 +408,7 @@ export function VideoProviderSelector({
     }
   }
 
-// 
+
   return (
     <div className="space-y-4">
       {/* Selector de Proveedor */}
@@ -445,7 +434,6 @@ export function VideoProviderSelector({
             <span className="text-sm font-medium">YouTube</span>
           </button>
 
-// 
           <button
             type="button"
             onClick={() => onProviderChange('vimeo')}
@@ -463,7 +451,6 @@ export function VideoProviderSelector({
             <span className="text-sm font-medium">Vimeo</span>
           </button>
 
-// 
           <button
             type="button"
             onClick={() => onProviderChange('direct')}
@@ -481,7 +468,6 @@ export function VideoProviderSelector({
             <span className="text-sm font-medium">Subir Video</span>
           </button>
 
-// 
           <button
             type="button"
             onClick={() => onProviderChange('custom')}
@@ -501,7 +487,6 @@ export function VideoProviderSelector({
         </div>
       </div>
 
-// 
       {/* Input según el proveedor */}
       <div>
         {provider === 'youtube' && (
@@ -516,7 +501,7 @@ export function VideoProviderSelector({
                 const value = e.target.value
                 onVideoIdChange(value)
                 
-// 
+
                 // Detectar duración automáticamente
                 if (value && value.trim()) {
                   setDetectingDuration(true)
@@ -544,7 +529,6 @@ export function VideoProviderSelector({
           </>
         )}
 
-// 
         {provider === 'vimeo' && (
           <>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -557,7 +541,7 @@ export function VideoProviderSelector({
                 const value = e.target.value
                 onVideoIdChange(value)
                 
-// 
+
                 // Detectar duración automáticamente
                 if (value && value.trim()) {
                   setDetectingDuration(true)
@@ -585,14 +569,12 @@ export function VideoProviderSelector({
           </>
         )}
 
-// 
         {provider === 'direct' && (
           <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Subir Video
             </label>
-            
-// 
+
             {videoPreview ? (
               <div className="relative group">
                 <div className="relative bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700">
@@ -639,7 +621,7 @@ export function VideoProviderSelector({
                     }}
                   />
                   
-// 
+
                   {/* Botón para eliminar video */}
                   <button
                     type="button"
@@ -661,8 +643,7 @@ export function VideoProviderSelector({
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  
-// 
+
                   {/* Información del video */}
                   {(selectedFile || (videoProviderId && !selectedFile)) && (
                     <div className="absolute bottom-2 left-2 right-2 bg-black/70 backdrop-blur-sm rounded-lg p-2 text-white text-xs">
@@ -680,8 +661,7 @@ export function VideoProviderSelector({
                     </div>
                   )}
                 </div>
-                
-// 
+
                 {uploading && (
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-1">
@@ -697,8 +677,7 @@ export function VideoProviderSelector({
                     </div>
                   </div>
                 )}
-                
-// 
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -710,8 +689,7 @@ export function VideoProviderSelector({
                   disabled={disabled || uploading}
                   className="hidden"
                 />
-                
-// 
+
                 {!uploading && (
                   <button
                     type="button"
@@ -771,7 +749,7 @@ export function VideoProviderSelector({
                   className="hidden"
                 />
                 
-// 
+
                 <div className="text-center">
                   <Upload className={`w-12 h-12 mx-auto mb-3 ${
                     dragActive 
@@ -790,7 +768,6 @@ export function VideoProviderSelector({
           </div>
         )}
 
-// 
         {provider === 'custom' && (
           <>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -802,8 +779,7 @@ export function VideoProviderSelector({
               onChange={async (e) => {
                 const value = e.target.value
                 onVideoIdChange(value)
-                
-// 
+
                 // Detectar duración automáticamente
                 if (value && value.trim() && (value.startsWith('http://') || value.startsWith('https://'))) {
                   setDetectingDuration(true)
@@ -835,5 +811,3 @@ export function VideoProviderSelector({
   )
 }
 
-// 
-// 
