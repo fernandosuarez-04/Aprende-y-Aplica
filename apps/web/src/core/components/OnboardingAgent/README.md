@@ -224,6 +224,26 @@ El componente está diseñado para trabajar en conjunto con LIA:
 import { getPlatformContext } from '../../../lib/lia/page-metadata';
 ```
 
+## 🛠️ Ajustar sensibilidad de la ayuda proactiva
+
+Si notas que la ayuda de LIA aparece muy rápido (por ejemplo al hacer scroll repetido o al cambiar secciones), puedes ajustar los umbrales que controla el detector de patrones.
+
+Archivo: `apps/web/src/lib/rrweb/difficulty-pattern-detector.ts`
+
+Parámetros relevantes:
+- `scrollRepeatThreshold`: número de repeticiones/direcciones de scroll necesarias para considerar el patrón de "scroll excesivo". Por defecto se elevó a `8`.
+- `repetitiveCyclesThreshold`: número de cambios de sección/back alternados necesarios para considerar un "ciclo repetitivo". Por defecto se estableció en `8`.
+
+Modifica estos valores si quieres que la ayuda tarde más o menos en dispararse. Después de cambiar, reconstruye la aplicación y prueba en el taller.
+
+```ts
+// Ejemplo de valores en difficulty-pattern-detector.ts
+scrollRepeatThreshold: 8,
+repetitiveCyclesThreshold: 8,
+```
+
+Recomendación: aumenta en pasos pequeños (ej. 2 unidades) y prueba con usuarios para encontrar el equilibrio entre proactividad y ruido.
+
 ## 🎨 Estilos y Animaciones
 
 ### Anillos Orbitales

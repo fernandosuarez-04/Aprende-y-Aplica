@@ -26,6 +26,7 @@ export interface DifficultyPattern {
 export interface DetectionThresholds {
   inactivityThreshold: number; // ms (default: 120000 = 2 min)
   scrollRepeatThreshold: number; // times (default: 4)
+  repetitiveCyclesThreshold: number; // times (default: 5)
   failedAttemptsThreshold: number; // times (default: 3)
   deleteKeysThreshold: number; // times (default: 10)
   erroneousClicksThreshold: number; // times (default: 5)
@@ -42,7 +43,10 @@ export interface DifficultyAnalysis {
 
 const DEFAULT_THRESHOLDS: DetectionThresholds = {
   inactivityThreshold: 120000, // 2 minutos
-  scrollRepeatThreshold: 4,
+  // Aumentado para evitar que la ayuda se dispare demasiado rápido al hacer scroll
+  scrollRepeatThreshold: 8,
+  // Umbral para detectar ciclos repetitivos (navegación entre secciones/backs)
+  repetitiveCyclesThreshold: 8,
   failedAttemptsThreshold: 3,
   deleteKeysThreshold: 10,
   erroneousClicksThreshold: 5,
@@ -268,20 +272,21 @@ export class DifficultyPatternDetector {
       });
     }
 
-    // Si hay 5 o más cambios de tab/sección en la ventana de análisis, es un ciclo repetitivo
+    // Si hay suficientes cambios de tab/sección en la ventana de análisis, es un ciclo repetitivo
     const totalNavigationEvents = backNavigationEvents.length + alternations;
-    
+    const repetitionThreshold = this.thresholds.repetitiveCyclesThreshold ?? 5;
+
     console.log('🔄 [DEBUG] Ciclos repetitivos:', {
       backNavigation: backNavigationEvents.length,
       tabChanges: alternations,
       total: totalNavigationEvents,
-      threshold: 5
+      threshold: repetitionThreshold
     });
     
-    if (totalNavigationEvents >= 5) {
+    if (totalNavigationEvents >= repetitionThreshold) {
       return {
         type: 'repetitive_cycles',
-        severity: alternations >= 7 ? 'high' : 'medium',
+        severity: alternations >= (repetitionThreshold + 2) ? 'high' : 'medium',
         description: `Usuario ha cambiado entre secciones ${totalNavigationEvents} veces`,
         timestamp: Date.now(),
         metadata: {
