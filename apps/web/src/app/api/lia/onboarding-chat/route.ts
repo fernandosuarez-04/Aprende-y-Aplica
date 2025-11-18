@@ -31,16 +31,32 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎤 Pregunta de onboarding: "${question}"`);
 
-    // Construir prompt contextual para LIA
-    const prompt = buildOnboardingPrompt(question, context);
+    // En lugar de llamar directamente a OpenAI desde aquí, delegamos en el endpoint
+    // central `/api/ai-chat` que ya contiene el sistema completo de LIA y todo el
+    // manejo de contexto/analytics. Esto hará que las respuestas usen el mismo
+    // 'system prompt' y contexto rico que el resto de la plataforma.
 
-    // Llamar a LIA (OpenAI)
-    const liaResponse = await callLIA(prompt, context.conversationHistory);
-
-    return NextResponse.json({
-      success: true,
-      response: liaResponse,
+    const aiChatResp = await fetch(new URL('/api/ai-chat', request.url).toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: question,
+        context: 'onboarding',
+        conversationHistory: context.conversationHistory || [],
+        // Indicar idioma por defecto a 'es' (se puede ampliar si el frontend lo envía)
+        language: 'es'
+      }),
     });
+
+    if (!aiChatResp.ok) {
+      const errText = await aiChatResp.text().catch(() => 'Unknown error');
+      throw new Error(`Error from /api/ai-chat: ${aiChatResp.status} - ${errText}`);
+    }
+
+    const aiData = await aiChatResp.json();
+
+    // Pasamos la respuesta generada por el endpoint central
+    return NextResponse.json({ success: true, response: aiData.response });
 
   } catch (error) {
     console.error('❌ Error en onboarding-chat:', error);
