@@ -69,7 +69,10 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
       await onSave(formData)
       onClose()
     } catch (error) {
-      // console.error('Error saving lesson:', error)
+      // Mostrar error al usuario
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al guardar la lección'
+      alert(`Error: ${errorMessage}`)
+      // No cerrar el modal si hay error, para que el usuario pueda corregir
     } finally {
       setLoading(false)
     }
