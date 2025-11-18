@@ -12,7 +12,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Database: Supabase (PostgreSQL)
 - Authentication: Supabase Auth
 - State Management: Zustand 5.0.2
-- UI Components: Radix UI, custom components with Framer Motion
+- UI Components: Radix UI, Headless UI, custom components with Framer Motion
+- Data Visualization: Nivo charts, Recharts, Tremor
+- AI Integration: OpenAI GPT-4o-mini (Chat-Bot-LIA)
+- Internationalization: next-i18next, react-i18next (Spanish, English, Portuguese)
+- Additional Libraries: FullCalendar, React Grid Layout, React Window, Session Recording (rrweb)
 
 ## Repository Structure
 
@@ -73,6 +77,18 @@ npm run type-check
 npm run lint
 ```
 
+### Bundle Analysis (Frontend)
+```bash
+# Analyze both client and server bundles
+npm run analyze --workspace=apps/web
+
+# Analyze server bundle only
+npm run analyze:server --workspace=apps/web
+
+# Analyze browser bundle only
+npm run analyze:browser --workspace=apps/web
+```
+
 ## Architecture
 
 ### Screaming Architecture
@@ -102,8 +118,8 @@ features/[feature-name]/
 - `profile/` - User profile management
 - `purchases/` - Purchase history and management
 - `reels/` - Short-form video content (Reels)
+- `study-planner/` - Study planning and scheduling
 - `subscriptions/` - Subscription and payment management
-- `workshops/` - Workshop management and content
 
 ### Dependency Rules
 ```
@@ -125,13 +141,30 @@ shared/    → Cannot import from anywhere (pure infrastructure)
 **core/** - Cross-cutting business logic
 - `components/` - Core reusable components (layout, navigation, etc.)
 - `hooks/` - Core custom hooks
+- `i18n/` - Internationalization configuration (i18next setup)
 - `lib/` - Core libraries and utilities
 - `middleware/` - Request middleware
-- `providers/` - Context providers (theme, auth, etc.)
+- `providers/` - Context providers (theme, auth, i18n, etc.)
 - `services/api.ts` - Configured Axios client with interceptors
 - `stores/` - Zustand state management (authStore, themeStore, shoppingCartStore)
 - `types/` - Shared TypeScript types
 - `utils/` - Core utility functions
+
+**lib/** - Infrastructure libraries and utilities
+- `ai-moderation.ts` - AI content moderation
+- `analytics/` - Analytics integration
+- `auth/` - Authentication utilities
+- `cache/` - Caching mechanisms
+- `lia/` - LIA chatbot integration (OpenAI)
+- `logger/` - Logging utilities
+- `openai/` - OpenAI client configuration
+- `rate-limit/` - Rate limiting utilities
+- `rrweb/` - Session recording utilities
+- `sanitize/` - Input sanitization
+- `schemas/` - Zod validation schemas
+- `supabase/` - Supabase client and types
+- `upload/` - File upload utilities
+- `validation/` - Input validation
 
 **shared/** - Infrastructure components (no business logic)
 - `hooks/` - Generic hooks (useDebounce, useParallax, etc.)
@@ -186,6 +219,40 @@ shared/    → Cannot import from anywhere (pure infrastructure)
 
 Note: Both `@/features/*` and `@features/*` work for importing features.
 
+## Internationalization (i18n)
+
+The frontend integrates `next-i18next` + `react-i18next` to support **Spanish (default)**, **English**, and **Portuguese**.
+
+### Translation Files
+- Located in `apps/web/public/locales/{es,en,pt}/common.json`
+- Keep the same keys across all three languages for consistency
+
+### Usage in Components
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation('common');
+  return <h1>{t('welcome.title')}</h1>;
+}
+```
+
+### Language Switching
+```typescript
+import { useLanguage } from '@/core/i18n/I18nProvider';
+
+function LanguageSelector() {
+  const { language, changeLanguage } = useLanguage();
+  // language: 'es' | 'en' | 'pt'
+  // changeLanguage(newLang)
+}
+```
+
+### Important Notes
+- The `I18nProvider` is already mounted in `src/app/layout.tsx`
+- After changing translation files, restart dev server or clear cache
+- User menu includes a language selector example
+
 ## Styling & Design System
 
 ### TailwindCSS Configuration
@@ -213,7 +280,35 @@ xl:  1280px  (Large desktop)
 ### Component Patterns
 - Use `cn()` utility from `shared/utils/cn.ts` for className merging
 - Framer Motion for animations (12.23.24)
-- Radix UI for accessible components
+- Radix UI and Headless UI for accessible components
+
+## Data Visualization & Charts
+
+The platform uses multiple charting libraries for different use cases:
+
+### Nivo Charts (@nivo/*)
+Comprehensive suite of data visualization components:
+- `@nivo/bar` - Bar charts
+- `@nivo/line` - Line charts
+- `@nivo/pie` - Pie and donut charts
+- `@nivo/calendar` - Calendar heatmaps
+- `@nivo/heatmap` - Heatmaps
+- `@nivo/radar` - Radar charts
+- `@nivo/sankey` - Sankey diagrams
+- `@nivo/sunburst` - Sunburst charts
+- `@nivo/treemap` - Treemap visualizations
+- Plus many more specialized chart types
+
+### Recharts
+Alternative charting library for simpler visualizations and better performance in some cases.
+
+### Tremor (@tremor/react)
+Business dashboard components and charts with built-in styling and responsive design.
+
+### When to Use Each
+- **Nivo**: Complex, customizable visualizations with rich interactions
+- **Recharts**: Simple, performant charts with straightforward API
+- **Tremor**: Business metrics dashboards with consistent design
 
 ## Database Schema (Supabase)
 
@@ -351,6 +446,54 @@ npm install <package> --workspace=apps/api
 npm run <command> --workspace=apps/web
 ```
 
+## Additional Key Libraries
+
+### FullCalendar (@fullcalendar/*)
+Used for scheduling and calendar functionality in study planner and workshop features:
+- `@fullcalendar/react` - React wrapper
+- `@fullcalendar/daygrid` - Month/week grid views
+- `@fullcalendar/timegrid` - Time-based grid views
+- `@fullcalendar/interaction` - Drag, drop, and click interactions
+
+### React Grid Layout
+Drag-and-drop grid layout system for customizable dashboards and layouts.
+
+### React Window
+Virtualized list and grid rendering for performance with large datasets.
+
+### React Hook Form + Zod
+Form handling with validation:
+- `react-hook-form` - Performant form state management
+- `@hookform/resolvers` - Validation resolvers
+- `zod` - Schema validation (shared between frontend and backend)
+
+### Session Recording (rrweb)
+User session recording for analytics and debugging:
+- `rrweb` - Session recorder
+- `rrweb-player` - Session playback
+- Located in `lib/rrweb/`
+
+## Chat-Bot-LIA (AI Assistant)
+
+The platform includes **LIA**, an AI-powered chatbot using OpenAI's GPT-4o-mini model.
+
+### Configuration
+Located in `lib/lia-config.ts` and `lib/openai/`:
+- Model: `gpt-4o-mini` (configurable via `CHATBOT_MODEL`)
+- Max tokens: 700 (configurable via `CHATBOT_MAX_TOKENS`)
+- Temperature: 0.6 (configurable via `CHATBOT_TEMPERATURE`)
+
+### Key Files
+- `lib/lia/` - LIA chatbot integration logic
+- `lib/openai/` - OpenAI client configuration
+- `lib/ai-moderation.ts` - Content moderation using AI
+
+### Usage
+The chatbot is integrated throughout the platform for:
+- User assistance and guidance
+- Content recommendations
+- Interactive learning support
+
 ## Important Notes
 
 - **NO webhooks** - Use REST API for all backend communication
@@ -361,3 +504,5 @@ npm run <command> --workspace=apps/web
 - All builds ignore TypeScript and ESLint errors (configured for speed)
 - The backend API currently has placeholder endpoints; most backend logic is handled by Supabase directly
 - Use Axios interceptors in `core/services/api.ts` for API calls with automatic token refresh
+- Translations must be kept in sync across all three language files (es, en, pt)
+- Session recording (rrweb) is available for user behavior analytics

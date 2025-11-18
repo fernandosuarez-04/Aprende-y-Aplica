@@ -90,6 +90,11 @@ export function OnboardingAgent() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<any>(null);
+  const lastTranscriptRef = useRef<{ text: string; ts: number }>({ text: '', ts: 0 });
+  const processingRef = useRef<boolean>(false);
+  const pendingTranscriptRef = useRef<string | null>(null);
+  const pendingTimeoutRef = useRef<number | null>(null);
+  const conversationHistoryRef = useRef(conversationHistory);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -244,8 +249,13 @@ export function OnboardingAgent() {
         // El audio se reproducirá cuando el usuario haga clic en un botón
         setIsSpeaking(false);
       }
-    } catch (error) {
-      console.error('Error en síntesis de voz con ElevenLabs:', error);
+    } catch (error: any) {
+      // Si la petición fue abortada, lo manejamos como info
+      if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+        console.log('TTS aborted:', error.message || error);
+      } else {
+        console.error('Error en síntesis de voz con ElevenLabs:', error);
+      }
       setIsSpeaking(false);
     }
   };
@@ -262,12 +272,48 @@ export function OnboardingAgent() {
         recognition.interimResults = false;
 
         recognition.onresult = (event: any) => {
-          const speechToText = event.results[0][0].transcript;
-          console.log('🎤 Transcripción:', speechToText);
+          const speechToTextRaw = event.results[0][0].transcript || '';
+          const speechToText = speechToTextRaw.trim();
+          console.log('🎤 Transcripción raw:', speechToTextRaw);
+
+          // Normalizar texto para deduplicación
+          const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+          const norm = normalize(speechToText);
+
+          // Ignorar transcripciones demasiado cortas
+          if (norm.length < 2) {
+            console.warn('Transcripción demasiado corta, ignorando.');
+            setIsListening(false);
+            return;
+          }
+
+          // Evitar resultados duplicados rápidos (debounce simple) usando texto normalizado
+          const now = Date.now();
+          if (
+            lastTranscriptRef.current.text === norm &&
+            now - lastTranscriptRef.current.ts < 3000
+          ) {
+            console.warn('Resultado duplicado detectado, ignorando.');
+            setIsListening(false);
+            return;
+          }
+
+          // Si ya estamos procesando otra pregunta, ignorar
+          if (processingRef.current) {
+            console.warn('Reconocimiento produjo resultado pero ya hay procesamiento en curso, ignorando.');
+            setIsListening(false);
+            return;
+          }
+
+          // Registrar y bloquear procesamiento inmediato
+          lastTranscriptRef.current = { text: norm, ts: now };
+          processingRef.current = true;
+
           setTranscript(speechToText);
           setIsListening(false);
-          
+
           // Procesar la pregunta con LIA
+          // handleVoiceQuestion liberará processingRef cuando termine
           handleVoiceQuestion(speechToText);
         };
 
@@ -283,8 +329,65 @@ export function OnboardingAgent() {
           }
         };
 
-        recognition.onend = () => {
-          setIsListening(false);
+        recognition.onresult = (event: any) => {
+          const speechToTextRaw = event.results[0][0].transcript || '';
+          const speechToText = speechToTextRaw.trim();
+          console.log('🎤 Transcripción raw:', speechToTextRaw);
+
+          // Normalizar texto para deduplicación
+          const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+          const norm = normalize(speechToText);
+
+          // Ignorar transcripciones demasiado cortas
+          if (norm.length < 2) {
+            console.warn('Transcripción demasiado corta, ignorando.');
+            setIsListening(false);
+            return;
+          }
+
+          // Guardar como transcripción pendiente y usar un pequeño debounce
+          pendingTranscriptRef.current = speechToText;
+
+          // Limpiar timeout anterior
+          if (pendingTimeoutRef.current) {
+            window.clearTimeout(pendingTimeoutRef.current);
+            pendingTimeoutRef.current = null;
+          }
+
+          // Ejecutar procesamiento después de un breve retardo; si viene otra onresult este timeout se reiniciará
+          pendingTimeoutRef.current = window.setTimeout(() => {
+            pendingTimeoutRef.current = null;
+
+            // Revalidar normalizado y evitar duplicados rápidos
+            const now = Date.now();
+            if (lastTranscriptRef.current.text === norm && now - lastTranscriptRef.current.ts < 3000) {
+              console.warn('Resultado duplicado detectado (post-debounce), ignorando.');
+              setIsListening(false);
+              return;
+            }
+
+            // Si ya estamos procesando otra pregunta, ignorar esta
+            if (processingRef.current) {
+              console.warn('Reconocimiento produjo resultado pero ya hay procesamiento en curso, ignorando.');
+              setIsListening(false);
+              return;
+            }
+
+            // Registrar la transcripción final recibida y procesarla.
+            // No marcar processingRef aquí para evitar que handleVoiceQuestion vea
+            // la bandera ya establecida y se salga prematuramente; handleVoiceQuestion
+            // es responsable de establecer processingRef de forma atómica.
+            lastTranscriptRef.current = { text: norm, ts: now };
+
+            const finalTranscript = pendingTranscriptRef.current || speechToText;
+            pendingTranscriptRef.current = null;
+
+            setTranscript(finalTranscript);
+            setIsListening(false);
+
+            // handleVoiceQuestion liberará processingRef al finalizar
+            handleVoiceQuestion(finalTranscript);
+          }, 350);
         };
 
         recognitionRef.current = recognition;
@@ -308,19 +411,21 @@ export function OnboardingAgent() {
     }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (e) { /* ignore */ }
       setIsListening(false);
     } else {
       try {
         // Solicitar permisos del micrófono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        
+
         setTranscript('');
         recognitionRef.current.start();
         setIsListening(true);
       } catch (error: any) {
         console.error('Error al solicitar permisos de micrófono:', error);
-        if (error.name === 'NotAllowedError') {
+        if (error?.name === 'NotAllowedError' || error?.name === 'NotAllowedError') {
           alert('⚠️ Necesito permiso para usar el micrófono.\n\nPor favor permite el acceso al micrófono en tu navegador y vuelve a intentar.');
         } else {
           alert('Error al acceder al micrófono. Por favor verifica que tu micrófono esté conectado y funcionando.');
@@ -332,11 +437,31 @@ export function OnboardingAgent() {
   // Función para procesar pregunta de voz con LIA
   const handleVoiceQuestion = async (question: string) => {
     if (!question.trim()) return;
+    // Evitar procesar preguntas en paralelo
+    if (processingRef.current) {
+      console.warn('Otra pregunta está en curso, ignorando la nueva.');
+      return;
+    }
 
     // Detener cualquier audio/voz que esté sonando
     stopAllAudio();
 
+    processingRef.current = true;
     setIsProcessing(true);
+
+    // Evitar preguntas muy similares ya procesadas recientemente
+    const lastUserMsg = conversationHistoryRef.current.slice().reverse().find(m => m.role === 'user');
+    const now = Date.now();
+    if (lastUserMsg) {
+      const lastText = lastUserMsg.content || '';
+      const recent = now - (lastTranscriptRef.current.ts || 0) < 5000;
+      if (recent && (lastText === question || lastText.includes(question) || question.includes(lastText))) {
+        console.warn('Pregunta similar ya procesada recientemente, ignorando.');
+        processingRef.current = false;
+        setIsProcessing(false);
+        return;
+      }
+    }
     
     try {
       // Construir contexto para LIA
@@ -365,12 +490,19 @@ export function OnboardingAgent() {
 
       console.log('💬 Respuesta de LIA:', liaResponse);
 
-      // Actualizar historial de conversación
-      setConversationHistory(prev => [
-        ...prev,
-        { role: 'user', content: question },
-        { role: 'assistant', content: liaResponse },
-      ]);
+      // Actualizar historial de conversación, evitando duplicados consecutivos
+      setConversationHistory(prev => {
+        const last = prev[prev.length - 1];
+        const lastUser = prev.slice().reverse().find(m => m.role === 'user');
+
+        const shouldAddUser = !(lastUser && lastUser.content === question);
+        const shouldAddAssistant = !(last && last.role === 'assistant' && last.content === liaResponse);
+
+        let next = prev.slice();
+        if (shouldAddUser) next = [...next, { role: 'user', content: question }];
+        if (shouldAddAssistant) next = [...next, { role: 'assistant', content: liaResponse }];
+        return next;
+      });
 
       // Reproducir respuesta con ElevenLabs
       await speakText(liaResponse);
@@ -378,8 +510,9 @@ export function OnboardingAgent() {
     } catch (error) {
       console.error('❌ Error procesando pregunta:', error);
       const errorMessage = 'Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?';
-      await speakText(errorMessage);
+      try { await speakText(errorMessage); } catch(e) { /* ignore */ }
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   };
