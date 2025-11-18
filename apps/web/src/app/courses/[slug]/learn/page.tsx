@@ -4952,11 +4952,14 @@ function ActivitiesContent({
         if (quizStatusResponse.ok) {
           const quizStatusData = await quizStatusResponse.json();
           setQuizStatus(quizStatusData);
+        } else {
+          setQuizStatus(null);
         }
       } catch (error) {
         // console.error('Error loading activities and materials:', error);
         setActivities([]);
         setMaterials([]);
+        setQuizStatus(null);
       } finally {
         setLoading(false);
       }
@@ -5168,7 +5171,7 @@ function ActivitiesContent({
                         {activity.activity_type}
                       </span>
                       {/* Indicador de quiz obligatorio */}
-                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && (() => {
+                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && quizStatus.quizzes && (() => {
                         const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
                         if (quizInfo) {
                           if (quizInfo.isPassed) {
@@ -5440,7 +5443,7 @@ function ActivitiesContent({
                         </span>
                       )}
                       {/* Indicador de quiz obligatorio */}
-                      {material.material_type === 'quiz' && quizStatus && (() => {
+                      {material.material_type === 'quiz' && quizStatus && quizStatus.quizzes && (() => {
                         const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
                         if (quizInfo) {
                           if (quizInfo.isPassed) {
