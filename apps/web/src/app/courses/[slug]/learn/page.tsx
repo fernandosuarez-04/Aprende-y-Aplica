@@ -144,6 +144,21 @@ export default function CourseLearnPage() {
     material_type: string;
     is_required?: boolean;
   }>>>({});
+  const [lessonsQuizStatus, setLessonsQuizStatus] = useState<Record<string, {
+    hasRequiredQuizzes: boolean;
+    totalRequiredQuizzes: number;
+    completedQuizzes: number;
+    passedQuizzes: number;
+    allQuizzesPassed: boolean;
+    quizzes: Array<{
+      id: string;
+      title: string;
+      type: string;
+      isCompleted: boolean;
+      isPassed: boolean;
+      percentage: number;
+    }>;
+  } | null>>({});
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
   const mobileContentPaddingBottom = isMobileBottomNavVisible
@@ -1335,9 +1350,10 @@ Antes de cada respuesta, pregúntate:
     }
 
     try {
-      const [activitiesResponse, materialsResponse] = await Promise.all([
+      const [activitiesResponse, materialsResponse, quizStatusResponse] = await Promise.all([
         fetch(`/api/courses/${slug}/lessons/${lessonId}/activities`),
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`)
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`),
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/quiz/status`)
       ]);
 
       if (activitiesResponse.ok) {
@@ -1377,6 +1393,20 @@ Antes de cada respuesta, pregúntate:
           [lessonId]: []
         }));
       }
+
+      // Procesar estado de quizzes
+      if (quizStatusResponse.ok) {
+        const quizStatusData = await quizStatusResponse.json();
+        setLessonsQuizStatus(prev => ({
+          ...prev,
+          [lessonId]: quizStatusData
+        }));
+      } else {
+        setLessonsQuizStatus(prev => ({
+          ...prev,
+          [lessonId]: null
+        }));
+      }
     } catch (error) {
       // En caso de error, establecer como arrays vacíos
       setLessonsActivities(prev => ({
@@ -1386,6 +1416,10 @@ Antes de cada respuesta, pregúntate:
       setLessonsMaterials(prev => ({
         ...prev,
         [lessonId]: []
+      }));
+      setLessonsQuizStatus(prev => ({
+        ...prev,
+        [lessonId]: null
       }));
     }
   };
@@ -2199,8 +2233,8 @@ Antes de cada respuesta, pregúntate:
                                               </div>
                                               
                                               {/* Indicador de estado para quizzes (si está disponible) */}
-                                              {isQuiz && quizStatus && (() => {
-                                                const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                                              {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
+                                                const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
                                                 if (quizInfo) {
                                                   return (
                                                     <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
@@ -2292,8 +2326,8 @@ Antes de cada respuesta, pregúntate:
                                               </div>
                                               
                                               {/* Indicador de estado para quizzes (si está disponible) */}
-                                              {isQuiz && quizStatus && (() => {
-                                                const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
+                                              {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
+                                                const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
                                                 if (quizInfo) {
                                                   return (
                                                     <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
