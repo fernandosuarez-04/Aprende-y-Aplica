@@ -87,9 +87,36 @@ export function OnboardingAgent() {
   const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const ttsAbortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<any>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Detiene todo audio/voz en reproducción (ElevenLabs audio y SpeechSynthesis)
+  const stopAllAudio = () => {
+    try {
+      // Abort any in-flight TTS fetch
+      if (ttsAbortRef.current) {
+        try { ttsAbortRef.current.abort(); } catch (e) { /* ignore */ }
+        ttsAbortRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        // Cancelar cualquier utterance en curso
+        window.speechSynthesis.cancel();
+        utteranceRef.current = null;
+      }
+
+      setIsSpeaking(false);
+    } catch (err) {
+      console.warn('Error deteniendo audio:', err);
+    }
+  };
 
   // Verificar si es la primera visita
   useEffect(() => {
@@ -110,11 +137,8 @@ export function OnboardingAgent() {
   const speakText = async (text: string) => {
     if (!isAudioEnabled || typeof window === 'undefined') return;
 
-    // Detener cualquier audio anterior
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    // Asegurar que no haya audio superpuesto
+    stopAllAudio();
 
     try {
       setIsSpeaking(true);
@@ -141,16 +165,28 @@ export function OnboardingAgent() {
         utterance.pitch = 1;
         utterance.volume = 1;
         
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+        };
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+        };
         
+        utteranceRef.current = utterance;
         window.speechSynthesis.speak(utterance);
         return;
       }
 
+      // Setup abort controller so we can cancel in-flight TTS requests
+      const controller = new AbortController();
+      ttsAbortRef.current = controller;
+
       const response = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         {
+          signal: controller.signal,
           method: 'POST',
           headers: {
             'Accept': 'audio/mpeg',
@@ -175,6 +211,12 @@ export function OnboardingAgent() {
       }
 
       const audioBlob = await response.blob();
+      // If the request was aborted, do not proceed
+      if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
+        console.log('TTS request aborted, skipping playback');
+        ttsAbortRef.current = null;
+        return;
+      }
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
@@ -183,19 +225,23 @@ export function OnboardingAgent() {
       audio.onended = () => {
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
+        if (audioRef.current === audio) audioRef.current = null;
       };
 
       audio.onerror = () => {
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
+        if (audioRef.current === audio) audioRef.current = null;
       };
 
       // Intentar reproducir el audio
       try {
         await audio.play();
+        // Playback started successfully; clear abort controller
+        if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
         console.warn('⚠️ Autoplay bloqueado por el navegador:', playError.message);
-        // El audio se reproducirá cuando el usuario haga clic en "Siguiente" o cualquier botón
+        // El audio se reproducirá cuando el usuario haga clic en un botón
         setIsSpeaking(false);
       }
     } catch (error) {
@@ -228,6 +274,13 @@ export function OnboardingAgent() {
         recognition.onerror = (event: any) => {
           console.error('❌ Error en reconocimiento de voz:', event.error);
           setIsListening(false);
+          
+          // Mostrar mensaje de error específico
+          if (event.error === 'not-allowed') {
+            alert('⚠️ Necesito permiso para usar el micrófono.\n\nPor favor:\n1. Haz clic en el icono de micrófono en la barra de direcciones\n2. Permite el acceso al micrófono\n3. Intenta de nuevo');
+          } else if (event.error === 'no-speech') {
+            console.warn('No se detectó voz, intenta de nuevo');
+          }
         };
 
         recognition.onend = () => {
@@ -248,7 +301,7 @@ export function OnboardingAgent() {
   }, []);
 
   // Función para iniciar/detener escucha
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (!recognitionRef.current) {
       alert('Tu navegador no soporta reconocimiento de voz. Por favor usa Chrome, Edge o Safari.');
       return;
@@ -258,15 +311,30 @@ export function OnboardingAgent() {
       recognitionRef.current.stop();
       setIsListening(false);
     } else {
-      setTranscript('');
-      recognitionRef.current.start();
-      setIsListening(true);
+      try {
+        // Solicitar permisos del micrófono primero
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        setTranscript('');
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error: any) {
+        console.error('Error al solicitar permisos de micrófono:', error);
+        if (error.name === 'NotAllowedError') {
+          alert('⚠️ Necesito permiso para usar el micrófono.\n\nPor favor permite el acceso al micrófono en tu navegador y vuelve a intentar.');
+        } else {
+          alert('Error al acceder al micrófono. Por favor verifica que tu micrófono esté conectado y funcionando.');
+        }
+      }
     }
   };
 
   // Función para procesar pregunta de voz con LIA
   const handleVoiceQuestion = async (question: string) => {
     if (!question.trim()) return;
+
+    // Detener cualquier audio/voz que esté sonando
+    stopAllAudio();
 
     setIsProcessing(true);
     
@@ -319,14 +387,14 @@ export function OnboardingAgent() {
   // Limpiar al desmontar
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      stopAllAudio();
     };
   }, []);
 
   const handleNext = () => {
+    // Detener cualquier audio en reproducción
+    stopAllAudio();
+
     // Marcar que el usuario ha interactuado (activa audio)
     // Si es la primera interacción, reproducir el audio del paso actual primero
     if (!hasUserInteracted) {
@@ -347,6 +415,9 @@ export function OnboardingAgent() {
   };
 
   const handlePrevious = () => {
+    // Detener cualquier audio en reproducción
+    stopAllAudio();
+
     // Marcar que el usuario ha interactuado
     if (!hasUserInteracted) {
       setHasUserInteracted(true);
@@ -360,19 +431,13 @@ export function OnboardingAgent() {
   };
 
   const handleSkip = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    stopAllAudio();
     setIsVisible(false);
     localStorage.setItem('has-seen-onboarding', 'true');
   };
 
   const handleComplete = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    stopAllAudio();
     const lastStep = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
     
     if (lastStep.action) {
@@ -386,10 +451,7 @@ export function OnboardingAgent() {
   const handleActionClick = () => {
     const step = ONBOARDING_STEPS[currentStep];
     if (step.action) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      stopAllAudio();
       router.push(step.action.path);
       setIsVisible(false);
       localStorage.setItem('has-seen-onboarding', 'true');
@@ -401,11 +463,7 @@ export function OnboardingAgent() {
     setIsAudioEnabled(newState);
     
     if (!newState) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      setIsSpeaking(false);
+      stopAllAudio();
     } else {
       speakText(ONBOARDING_STEPS[currentStep].speech);
     }
