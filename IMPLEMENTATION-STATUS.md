@@ -1,6 +1,6 @@
 # 📋 ESTADO DE IMPLEMENTACIÓN: Planificador de Estudio con IA
 
-**Estado actual:** Fase 3 COMPLETADA ✅
+**Estado actual:** Fase 4 COMPLETADA ✅
 **Última actualización:** 2025-01-18
 **Proyecto:** Aprende y Aplica - Study Planner
 
@@ -13,19 +13,19 @@
 - ✅ **FASE 1**: Disponibilidad y Complejidad - 100% COMPLETADA
 - ✅ **FASE 2**: Modo Manual - 100% COMPLETADA
 - ✅ **FASE 3**: Generación con IA - 100% COMPLETADA
-- ⏸️ **FASE 4**: Streaks y Dashboard - 0% PENDIENTE
+- ✅ **FASE 4**: Streaks y Dashboard - 100% COMPLETADA
 - ⏸️ **FASE 5**: Integración de Calendarios - 0% PENDIENTE
 - ⏸️ **FASE 6**: Página de Sesión - 0% PENDIENTE
 - ⏸️ **FASE 7**: Testing y Optimización - 0% PENDIENTE
 
 ### Métricas de Código
-- **SQL**: ~1,120 líneas (migraciones + funciones + vistas)
-- **TypeScript Backend**: ~3,300 líneas (servicios + algoritmos + tipos)
-- **TypeScript Frontend**: ~6,500 líneas (componentes + wizard + páginas + tipos)
-- **API Endpoints**: ~900 líneas
+- **SQL**: ~1,650 líneas (migraciones + funciones + triggers + vistas)
+- **TypeScript Backend**: ~3,650 líneas (servicios + algoritmos + tipos)
+- **TypeScript Frontend**: ~11,500 líneas (componentes + wizard + páginas + tipos + helpers)
+- **API Endpoints**: ~1,500 líneas
 - **Documentación**: ~1,400 líneas
 
-**Total: ~13,220 líneas de código productivo**
+**Total: ~19,700 líneas de código productivo**
 
 ---
 
@@ -216,13 +216,148 @@
 
 ---
 
-## ⏸️ FASES PENDIENTES (RESUMEN)
+## ✅ FASE 4: Streaks y Dashboard (100% COMPLETADA)
 
-### FASE 4: Streaks y Dashboard (~12-15 horas)
-- Servicio de cálculo de streaks
-- Componentes de dashboard
-- Gráficos y heatmap
-- Sistema de achievements
+### ✅ Backend Completado
+
+**Archivos Creados:**
+
+1. `scripts/supabase/003-study-planner-phase-4-streaks.sql` (530 líneas)
+   - Modificación de tabla study_sessions (completed_at, actual_duration_minutes, notes, self_evaluation)
+   - Tabla user_streaks (current_streak, longest_streak, stats totales/semanales/mensuales)
+   - Tabla daily_progress (progreso diario para heatmap)
+   - Función update_user_streak() con trigger automático
+   - Función get_dashboard_stats() que retorna JSON completo
+   - Vista study_plan_progress
+   - Índices optimizados para queries de dashboard
+
+2. `apps/web/src/features/study-planner/types/streak.types.ts` (350 líneas)
+   - Tipos completos: UserStreak, DailyProgress, SessionCompletion
+   - DashboardStats con todas las estadísticas
+   - Helper functions: formatStudyTime, calculateHeatmapLevel, getStreakMotivationMessage
+   - Funciones de conversión y cálculo de datos
+
+3. `apps/api/src/features/study-planner/streak.service.ts` (350 líneas)
+   - Clase StreakService con todos los métodos
+   - completeSession() - Completa sesión y actualiza streak
+   - markSessionAsMissed() - Marca sesión como perdida
+   - rescheduleSession() - Reprograma sesiones
+   - getDashboardStats() - Stats completas del dashboard
+   - getUserStreak() - Obtiene racha del usuario
+   - getDailyProgress() - Progreso diario últimos N días
+
+**Features Backend:**
+✅ Sistema de streaks automático con triggers
+✅ Tracking de sesiones completadas/perdidas/reprogramadas
+✅ Cálculo de stats semanales y mensuales
+✅ Progreso diario para heatmap
+✅ Función SQL optimizada que retorna todo en un query
+
+### ✅ API Endpoints Completados
+
+**Archivos Creados:**
+
+1. `apps/web/src/app/api/study-planner/dashboard/stats/route.ts` (60 líneas)
+   - GET /api/study-planner/dashboard/stats
+   - Retorna todas las estadísticas del dashboard
+   - Normaliza datos vacíos
+
+2. `apps/web/src/app/api/study-planner/streak/route.ts` (55 líneas)
+   - GET /api/study-planner/streak
+   - Obtiene el streak del usuario
+
+3. `apps/web/src/app/api/study-planner/sessions/[id]/complete/route.ts` (100 líneas)
+   - POST /api/study-planner/sessions/[id]/complete
+   - Completa sesión con duración, notas y evaluación
+   - Actualiza streak automáticamente
+
+4. `apps/web/src/app/api/study-planner/sessions/[id]/reschedule/route.ts` (90 líneas)
+   - POST /api/study-planner/sessions/[id]/reschedule
+   - Reprograma sesión a nueva fecha/hora
+
+**Features API:**
+✅ Autenticación con SessionService
+✅ Validaciones de datos completas
+✅ Error handling robusto
+✅ Response types tipados
+
+### ✅ Frontend Components Completados
+
+**Archivos Creados:**
+
+1. ✅ **StreakDisplay.tsx** (180 líneas)
+   - Muestra racha actual y más larga
+   - Indicador de riesgo (si no hay sesión ayer)
+   - Mensaje de motivación dinámico
+   - Progreso hacia próximos hitos (3, 7, 14, 30, 60, 100 días)
+   - Badges de logros alcanzados
+   - Animaciones y dark mode
+
+2. ✅ **DailyProgressCard.tsx** (160 líneas)
+   - Progreso de sesiones del día (completadas/pendientes)
+   - Barra de progreso con colores según %
+   - Tiempo de estudio vs meta (opcional)
+   - Mini stats cards (completadas, pendientes, estudiado)
+   - Mensajes motivacionales contextuales
+
+3. ✅ **WeeklyProgressBar.tsx** (200 líneas)
+   - Gráfico de barras de la semana (Dom-Sáb)
+   - Altura proporcional a minutos estudiados
+   - Tooltips con detalle al hover
+   - Indicador de día actual
+   - Stats semanales: sesiones, tiempo total, promedio diario
+   - Mensaje de felicitación si 5+ días activos
+
+4. ✅ **NextSessionCard.tsx** (180 líneas)
+   - Card de sesión próxima con toda la info
+   - Indicador "Pronto" si falta <30 mins
+   - Badges por tipo de sesión (aprendizaje/repaso/práctica)
+   - Botones: Iniciar sesión / Reprogramar
+   - Componente NextSessionsList para múltiples sesiones
+   - Empty state cuando no hay sesiones
+
+5. ✅ **CalendarView.tsx** (280 líneas)
+   - Heatmap de 12 meses de actividad
+   - Grid de semanas por mes
+   - 5 niveles de intensidad (0-4) por color
+   - Tooltips interactivos al hover
+   - Click en día para ver detalle
+   - Leyenda de colores
+   - Stats totales: días activos, tiempo total, sesiones
+   - Dark mode completo
+
+6. ✅ **Dashboard Page** (320 líneas)
+   - `apps/web/src/app/study-planner/dashboard/page.tsx`
+   - Layout responsivo 3 columnas (lg), 1 en mobile
+   - Integración de todos los componentes
+   - Loading y error states
+   - Carga de datos desde API
+   - Handlers para iniciar/reprogramar sesiones
+   - Quick actions: crear plan, ver planes, explorar cursos
+   - Stats del mes card
+   - Heatmap full-width
+   - Lista expandida si hay >3 sesiones próximas
+
+**Features Frontend:**
+✅ 5 componentes de dashboard completamente funcionales
+✅ Página principal de dashboard integrada
+✅ Estados de loading/error manejados
+✅ Dark mode en todos los componentes
+✅ Responsive design completo
+✅ Animaciones y transitions suaves
+✅ Tooltips interactivos
+✅ Exports actualizados en index.ts
+
+**Tiempo Invertido Fase 4:**
+- SQL migrations y triggers: 1.5 horas
+- Backend services + API endpoints: 3.5 horas
+- Frontend components: 7 horas
+- Dashboard page + integration: 2 horas
+- **Total:** ~14 horas
+
+---
+
+## ⏸️ FASES PENDIENTES (RESUMEN)
 
 ### FASE 5: Integración de Calendarios (~20-25 horas)
 - OAuth Google/Microsoft/Apple
@@ -248,56 +383,44 @@
 
 ## 🚀 PUNTO DE RETOMA EXACTO
 
-**FASE 3 COMPLETADA ✅**
+**FASE 4 COMPLETADA ✅**
 
-**Si continúas con FASE 4 (Streaks y Dashboard):**
+**Si continúas con FASE 5 (Integración de Calendarios):**
 
-### Próximo Paso: Backend - Sistema de Streaks
+### Próximo Paso: OAuth y Calendar Sync
 
-**1. Modificar tabla study_sessions en Supabase:**
-```sql
--- Agregar campos para tracking de sesiones
-ALTER TABLE study_sessions ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE;
-ALTER TABLE study_sessions ADD COLUMN IF NOT EXISTS actual_duration_minutes INTEGER;
-ALTER TABLE study_sessions ADD COLUMN IF NOT EXISTS notes TEXT;
-ALTER TABLE study_sessions ADD COLUMN IF NOT EXISTS self_evaluation INTEGER CHECK (self_evaluation >= 1 AND self_evaluation <= 5);
+**1. Instalar dependencias:**
+```bash
+npm install google-auth-library @microsoft/microsoft-graph-client ical.js --workspace=apps/api
 ```
 
-**2. Crear tabla user_streaks:**
-```sql
-CREATE TABLE user_streaks (
-  user_id UUID PRIMARY KEY REFERENCES usuarios(usuario_id),
-  current_streak INTEGER DEFAULT 0,
-  longest_streak INTEGER DEFAULT 0,
-  last_session_date DATE,
-  total_sessions_completed INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+**2. Configurar OAuth providers:**
+- Google Calendar API (OAuth 2.0)
+- Microsoft Graph API (Azure AD)
+- Apple Calendar (CalDAV)
 
-**3. Crear servicio backend:**
-`apps/api/src/features/study-planner/streak.service.ts`
+**3. Crear servicios de integración:**
+- `apps/api/src/features/study-planner/calendar-sync.service.ts`
+- `apps/api/src/features/study-planner/calendar-providers/`
+  - `google-calendar.provider.ts`
+  - `microsoft-calendar.provider.ts`
+  - `apple-calendar.provider.ts`
 
-### Archivos a Crear (Fase 4):
-1. `scripts/supabase/003-study-planner-phase-4-streaks.sql` (~200 líneas)
-2. `apps/api/src/features/study-planner/streak.service.ts` (~300 líneas)
-3. `apps/web/src/app/api/study-planner/streak/route.ts` (~150 líneas)
-4. `apps/web/src/app/api/study-planner/sessions/[id]/complete/route.ts` (~200 líneas)
-5. `apps/web/src/app/api/study-planner/dashboard/stats/route.ts` (~250 líneas)
-6. `apps/web/src/features/study-planner/components/StreakDisplay.tsx` (~200 líneas)
-7. `apps/web/src/features/study-planner/components/DailyProgressCard.tsx` (~180 líneas)
-8. `apps/web/src/features/study-planner/components/WeeklyProgressBar.tsx` (~220 líneas)
-9. `apps/web/src/features/study-planner/components/NextSessionCard.tsx` (~150 líneas)
-10. `apps/web/src/features/study-planner/components/CalendarView.tsx` (~400 líneas)
-11. `apps/web/src/app/study-planner/dashboard/page.tsx` (~300 líneas)
+### Archivos a Crear (Fase 5):
+1. OAuth setup y config
+2. Calendar sync service (bidireccional)
+3. ICS export/import
+4. Conflict resolution logic
+5. UI components para OAuth flow
+6. Settings page para calendar integrations
 
-### Estimación Fase 4:
-- SQL migrations: 1 hora
-- Backend services + endpoints: 4 horas
-- Frontend components: 6 horas
-- Dashboard page + integration: 2 horas
-- **Total:** ~13 horas
+### Estimación Fase 5:
+- OAuth setup: 3 horas
+- Calendar providers: 6 horas
+- Sync service: 5 horas
+- ICS export/import: 3 horas
+- UI components: 4 horas
+- **Total:** ~21 horas
 
 ---
 
@@ -313,7 +436,8 @@ study-planner/
 ├── study-planner-types.ts (100 líneas) ✅
 ├── ai-distribution.algorithm.ts (350 líneas) ✅
 ├── ai-plan.service.ts (480 líneas) ✅
-└── ai-wizard.types.ts (200 líneas) ✅
+├── ai-wizard.types.ts (200 líneas) ✅
+└── streak.service.ts (350 líneas) ✅
 ```
 
 ### Frontend Components (apps/web/src/features/study-planner/)
@@ -335,10 +459,16 @@ study-planner/
 │   ├── AICourseSelector.tsx (290 líneas) ✅
 │   ├── AIPlanPreview.tsx (320 líneas) ✅
 │   ├── AIWizard.tsx (420 líneas) ✅
+│   ├── StreakDisplay.tsx (180 líneas) ✅
+│   ├── DailyProgressCard.tsx (160 líneas) ✅
+│   ├── WeeklyProgressBar.tsx (200 líneas) ✅
+│   ├── NextSessionCard.tsx (180 líneas) ✅
+│   ├── CalendarView.tsx (280 líneas) ✅
 │   └── index.ts ✅
 └── types/
     ├── manual-wizard.types.ts (280 líneas) ✅
-    └── ai-wizard.types.ts (420 líneas) ✅
+    ├── ai-wizard.types.ts (420 líneas) ✅
+    └── streak.types.ts (350 líneas) ✅
 ```
 
 ### API Endpoints (apps/web/src/app/api/study-planner/)
@@ -347,23 +477,33 @@ api/study-planner/
 ├── manual/
 │   ├── preview/route.ts ✅
 │   └── create/route.ts ✅
-└── ai/
-    ├── preview/route.ts ✅
-    └── create/route.ts ✅
+├── ai/
+│   ├── preview/route.ts ✅
+│   └── create/route.ts ✅
+├── dashboard/
+│   └── stats/route.ts (60 líneas) ✅
+├── streak/
+│   └── route.ts (55 líneas) ✅
+└── sessions/[id]/
+    ├── complete/route.ts (100 líneas) ✅
+    └── reschedule/route.ts (90 líneas) ✅
 ```
 
 ### Pages
 ```
 study-planner/
-└── create/
-    └── page.tsx (220 líneas) ✅
+├── create/
+│   └── page.tsx (220 líneas) ✅
+└── dashboard/
+    └── page.tsx (320 líneas) ✅
 ```
 
 ### SQL Scripts
 ```
 supabase/
 ├── 001-study-planner-phase-0-lesson-times.sql (370 líneas) ✅
-└── 002-study-planner-phase-1-preferences-plans-sessions.sql (550 líneas) ✅
+├── 002-study-planner-phase-1-preferences-plans-sessions.sql (550 líneas) ✅
+└── 003-study-planner-phase-4-streaks.sql (530 líneas) ✅
 ```
 
 ---
@@ -376,17 +516,17 @@ supabase/
 - FASE 2: 8 horas ✅
 - FASE 3 (backend): 8 horas ✅
 - FASE 3 (frontend): 18 horas ✅
-- **Total:** ~46 horas
+- FASE 4: 14 horas ✅
+- **Total:** ~60 horas
 
 ### Tiempo Restante
-- FASE 4: ~12-15 horas ⏸️
 - FASE 5: ~20-25 horas ⏸️
 - FASE 6: ~15-18 horas ⏸️
 - FASE 7: ~10-12 horas ⏸️
-- **Total:** ~57-70 horas
+- **Total:** ~45-55 horas
 
 ### Progreso General
-**46 de ~116 horas = 40% completado**
+**60 de ~116 horas = 52% completado**
 
 ---
 
@@ -411,23 +551,24 @@ supabase/
 - [x] Integración en create/page.tsx
 - [x] Exports actualizados en index.ts
 
-### ⏸️ Próximo: Fase 4 - Streaks y Dashboard
-- [ ] Backend: Servicio de cálculo de streaks
-- [ ] Backend: Endpoints de dashboard stats
-- [ ] Frontend: StreakDisplay component
-- [ ] Frontend: DailyProgressCard component
-- [ ] Frontend: WeeklyProgressBar component
-- [ ] Frontend: NextSessionCard component
-- [ ] Frontend: CalendarView component
-- [ ] Frontend: Dashboard page
+### ⏸️ Próximo: Fase 5 - Integración de Calendarios
+- [ ] OAuth setup (Google/Microsoft/Apple)
+- [ ] Calendar providers implementation
+- [ ] Bidirectional sync service
+- [ ] ICS export/import functionality
+- [ ] Conflict resolution logic
+- [ ] UI components para OAuth flow
+- [ ] Settings page for calendar integrations
+- [ ] Testing de sync
 
-### ⏸️ Pendiente Futuro (Fases 4-7)
-- [ ] Sistema de streaks
-- [ ] Dashboard de progreso
-- [ ] Integración de calendarios (OAuth)
+### ⏸️ Pendiente Futuro (Fases 6-7)
 - [ ] Página de sesión con Pomodoro
-- [ ] Tests completos
+- [ ] Timer funcional
+- [ ] Tracking de sesión en tiempo real
+- [ ] Notas y autoevaluación
+- [ ] Tests completos (unitarios, integración, E2E)
 - [ ] Optimización de performance
+- [ ] Documentación final
 
 ---
 
@@ -449,7 +590,7 @@ supabase/
 ---
 
 **ÚLTIMA ACTUALIZACIÓN:** 2025-01-18
-**FASE ACTUAL:** FASE 3 COMPLETADA ✅ (100%)
-**PRÓXIMO PASO:** Iniciar FASE 4 - Sistema de Streaks y Dashboard
+**FASE ACTUAL:** FASE 4 COMPLETADA ✅ (100%)
+**PRÓXIMO PASO:** Iniciar FASE 5 - Integración de Calendarios (OAuth, Sync bidireccional, ICS export/import)
 
 Este documento es el punto de referencia único para retomar el desarrollo. Actualizar al completar tareas.

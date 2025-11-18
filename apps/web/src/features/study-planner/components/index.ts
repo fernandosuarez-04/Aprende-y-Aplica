@@ -23,3 +23,10 @@ export { PreferencesConfig } from './PreferencesConfig'
 export { AICourseSelector } from './AICourseSelector'
 export { AIPlanPreview } from './AIPlanPreview'
 export { AIWizard } from './AIWizard'
+
+// Phase 4 Components (Streaks & Dashboard)
+export { StreakDisplay } from './StreakDisplay'
+export { DailyProgressCard } from './DailyProgressCard'
+export { WeeklyProgressBar } from './WeeklyProgressBar'
+export { NextSessionCard, NextSessionsList } from './NextSessionCard'
+export { CalendarView } from './CalendarView'
