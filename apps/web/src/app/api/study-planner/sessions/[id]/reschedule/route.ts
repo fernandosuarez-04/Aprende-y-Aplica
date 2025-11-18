@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { SessionService } from '@/core/services/session.service'
+import { SessionService } from '@/features/auth/services/session.service'
 import { StudyPlannerService } from '@/features/study-planner/services/studyPlannerService'
 import { CalendarSyncService } from '@/features/study-planner/services/calendarSyncService'
 

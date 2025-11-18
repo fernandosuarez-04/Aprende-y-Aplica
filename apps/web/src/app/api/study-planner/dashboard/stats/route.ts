@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { SessionService } from '@/core/services/session.service'
+import { SessionService } from '@/features/auth/services/session.service'
 
 export async function GET(request: NextRequest) {
   try {

@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { SessionService } from '@/core/services/session.service'
+import { SessionService } from '@/features/auth/services/session.service'
 import { StudyPlannerService } from '@/features/study-planner/services/studyPlannerService'
 import { CalendarSyncService } from '@/features/study-planner/services/calendarSyncService'
 import type { StudySessionUpdate } from '@repo/shared/types'
