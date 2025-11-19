@@ -2173,8 +2173,22 @@ Antes de cada respuesta, pregúntate:
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                       >
-                {modules.map((module, moduleIndex) => {
+                {[...modules]
+                  .sort((a, b) => (a.module_order_index || 0) - (b.module_order_index || 0))
+                  .map((module, moduleIndex) => {
                   const isModuleExpanded = expandedModules.has(module.module_id);
+                  
+                  // Ordenar lecciones dentro del módulo por lesson_order_index
+                  const sortedLessons = [...(module.lessons || [])].sort(
+                    (a, b) => (a.lesson_order_index || 0) - (b.lesson_order_index || 0)
+                  );
+                  
+                  // Calcular estadísticas del módulo
+                  const completedLessons = sortedLessons.filter(l => l.is_completed).length;
+                  const totalLessons = sortedLessons.length;
+                  const completionPercentage = totalLessons > 0 
+                    ? Math.round((completedLessons / totalLessons) * 100) 
+                    : 0;
 
                   return (
                     <div key={module.module_id} className="mb-6">
@@ -2211,16 +2225,16 @@ Antes de cada respuesta, pregúntate:
                             {/* Estadísticas del módulo mejoradas */}
                             <div className="flex gap-3 mb-4">
                               <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
-                                {module.lessons.filter(l => l.is_completed).length}/{module.lessons.length} completados
+                                {completedLessons}/{totalLessons} completados
                               </span>
                               <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
-                                {Math.round((module.lessons.filter(l => l.is_completed).length / module.lessons.length) * 100)}% completado
+                                {completionPercentage}% completado
                               </span>
                             </div>
 
                             {/* Lista de lecciones mejorada - Estilo Minimalista */}
                             <div className="space-y-2">
-                      {module.lessons.map((lesson, lessonIndex) => {
+                      {sortedLessons.length > 0 ? sortedLessons.map((lesson, lessonIndex) => {
                         const isActive = currentLesson?.lesson_id === lesson.lesson_id;
                         const isCompleted = lesson.is_completed;
                         const isExpanded = expandedLessons.has(lesson.lesson_id);
@@ -2483,7 +2497,11 @@ Antes de cada respuesta, pregúntate:
                             </AnimatePresence>
                           </div>
                         );
-                      })}
+                      }) : (
+                        <div className="text-center py-4 text-gray-500 dark:text-slate-400 text-sm">
+                          Este módulo aún no tiene lecciones
+                        </div>
+                      )}
                             </div>
                           </motion.div>
                         )}

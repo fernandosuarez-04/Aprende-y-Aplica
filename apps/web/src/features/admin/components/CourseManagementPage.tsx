@@ -346,7 +346,21 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                 </button>
               </div>
             ) : (
-              modules.map((module) => (
+              [...modules]
+                .sort((a, b) => {
+                  // Primero ordenar por module_order_index
+                  const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
+                  if (orderDiff !== 0) return orderDiff;
+                  
+                  // Si hay empate o valores iguales, extraer número del título como respaldo
+                  const extractModuleNumber = (title: string): number => {
+                    const match = title.match(/Módulo\s*(\d+)/i);
+                    return match ? parseInt(match[1], 10) : 999;
+                  };
+                  
+                  return extractModuleNumber(a.module_title) - extractModuleNumber(b.module_title);
+                })
+                .map((module) => (
                 <div key={module.module_id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow">
                   {/* Header del Módulo Mejorado */}
                   <div className="p-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
