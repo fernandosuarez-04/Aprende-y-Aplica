@@ -132,11 +132,22 @@ export function OnboardingAgent() {
       // Pequeño delay para que la página cargue primero
       setTimeout(() => {
         setIsVisible(true);
-        // NO reproducir audio automáticamente, esperar interacción del usuario
-        // El audio se activará cuando el usuario haga clic en "Siguiente"
       }, 1000);
     }
   }, [pathname]);
+
+  // ✅ Reproducir audio automáticamente cuando se abre el modal
+  useEffect(() => {
+    if (isVisible && currentStep === 0 && isAudioEnabled) {
+      // Pequeño delay para asegurar que el modal esté completamente renderizado
+      const timer = setTimeout(() => {
+        speakText(ONBOARDING_STEPS[0].speech);
+        setHasUserInteracted(true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
 
   // Función para síntesis de voz con ElevenLabs
   const speakText = async (text: string) => {
@@ -543,14 +554,8 @@ export function OnboardingAgent() {
     // Detener cualquier audio en reproducción
     stopAllAudio();
 
-    // Marcar que el usuario ha interactuado (activa audio)
-    // Si es la primera interacción, reproducir el audio del paso actual primero
-    if (!hasUserInteracted) {
-      setHasUserInteracted(true);
-      // Reproducir el audio del paso actual antes de avanzar
-      speakText(ONBOARDING_STEPS[currentStep].speech);
-      return;
-    }
+    // ✅ Ya no necesitamos verificar hasUserInteracted porque el audio se inicia automáticamente
+    setHasUserInteracted(true);
     
     const nextStep = currentStep + 1;
     
