@@ -89,8 +89,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https://*.supabase.co https://via.placeholder.com https://picsum.photos https://images.unsplash.com https://img.youtube.com https://*.googleusercontent.com",
-              "media-src 'self' https://*.supabase.co",
-              "connect-src 'self' https://*.supabase.co https://api.openai.com https://accounts.google.com https://oauth2.googleapis.com",
+              "media-src 'self' blob: https://*.supabase.co",
+              "connect-src 'self' https://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://accounts.google.com https://oauth2.googleapis.com",
               "frame-src 'self' https://accounts.google.com https://www.youtube.com https://*.supabase.co",
               "object-src 'none'",
               "base-uri 'self'",
@@ -115,9 +115,10 @@ const nextConfig: NextConfig = {
             value: 'strict-origin-when-cross-origin'
           },
           // Control de permisos del navegador
+          // Permitir el uso de cámara/micrófono desde el mismo origen (self) en desarrollo
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+            value: 'camera=(self), microphone=(self), geolocation=(self), interest-cohort=()'
           },
           // Previene ataques XSS en navegadores antiguos
           {
