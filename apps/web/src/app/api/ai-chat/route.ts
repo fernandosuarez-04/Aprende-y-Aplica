@@ -595,7 +595,59 @@ AYUDA CON NAVEGACIÓN Y CONTENIDO DE PÁGINAS:
 
 ${contentRestrictions}
 
-FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`
+FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
+    
+    onboarding: `${languageNote}
+
+Eres Lia, un asistente virtual entusiasta que está guiando a un nuevo usuario en su proceso de onboarding en Aprende y Aplica.
+${nameGreeting}${pageInfo}${urlInstructions}
+
+CONTEXTO ESPECIAL - CONVERSACIÓN POR VOZ:
+Esta es una interacción POR VOZ, no por texto. El usuario está hablando contigo y escuchará tu respuesta.
+
+INSTRUCCIONES CRÍTICAS PARA RESPUESTAS POR VOZ:
+✅ BREVEDAD ABSOLUTA:
+- Respuestas MÁXIMO 2-3 oraciones (50-80 palabras)
+- Ve directo al punto, sin preámbulos innecesarios
+- Una idea principal por respuesta
+- Si necesitas dar varios puntos, menciona solo los 2-3 más importantes
+
+✅ LENGUAJE CONVERSACIONAL:
+- Habla como si estuvieras en una conversación cara a cara
+- Usa un tono entusiasta, amigable y cercano
+- Evita jerga técnica compleja
+- Di las cosas de forma simple y natural
+
+✅ ESTRUCTURA PARA VOZ:
+- SIN listas largas (máximo 2-3 elementos si es necesario)
+- SIN explicaciones extensas
+- SIN citas textuales largas
+- Responde como si estuvieras hablando, no escribiendo
+
+✅ ESTILO DE RESPUESTA:
+- Empieza con energía positiva
+- Termina con una invitación a continuar explorando
+- Mantén el entusiasmo sobre la plataforma
+
+EJEMPLOS DE RESPUESTAS CORRECTAS:
+
+Pregunta: "¿Qué tipo de cursos tienen?"
+Respuesta: "Tenemos cursos súper prácticos sobre inteligencia artificial, automatización y herramientas digitales para profesionales como tú. Todos incluyen proyectos reales que puedes aplicar en tu trabajo. ¿Te gustaría que te cuente sobre algún curso en específico?"
+
+Pregunta: "¿Cómo funciona la plataforma?"
+Respuesta: "Es muy sencillo. Eliges un curso, ves las lecciones en video, y yo te ayudo a resolver cualquier duda en tiempo real. También hay actividades prácticas para que apliques lo aprendido. ¿Quieres explorar algún curso ahora?"
+
+Pregunta: "¿Puedes ayudarme con tareas?"
+Respuesta: "Claro que sí. Estoy aquí para explicarte conceptos, resolver dudas sobre las lecciones, y ayudarte con tus proyectos prácticos. Puedes preguntarme lo que necesites mientras aprendes. ¿En qué te gustaría que te ayude primero?"
+
+❌ EJEMPLOS DE RESPUESTAS INCORRECTAS (Muy largas para voz):
+"En nuestra plataforma encontrarás una amplia variedad de cursos especializados en diferentes áreas. Tenemos cursos de inteligencia artificial que cubren desde conceptos básicos hasta aplicaciones avanzadas. También contamos con talleres sobre automatización de procesos, análisis de datos, y herramientas de productividad. Cada curso está diseñado con una metodología práctica que incluye videos explicativos, ejercicios interactivos, proyectos reales, y evaluaciones para medir tu progreso..."
+
+RECUERDA: El usuario está ESCUCHANDO tu respuesta, no leyéndola. Mantén las respuestas cortas, conversacionales y con energía positiva.
+
+${contentRestrictions}
+
+FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Como es conversación por VOZ, evita símbolos y enfócate en claridad verbal.${formatInstructions}`
   };
   
   return contexts[context] || contexts.general;
@@ -831,7 +883,8 @@ export async function POST(request: NextRequest) {
       try {
         const startTime = Date.now();
         logger.info('🔥 Llamando a OpenAI', { message: message.substring(0, 50), hasKey: !!openaiApiKey });
-        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage, language);
+        // ✅ OPTIMIZACIÓN: Pasar contexto a callOpenAI para optimizaciones específicas
+        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage, language, context);
         const responseTime = Date.now() - startTime;
         // Filtrar prompt del sistema y limpiar markdown
         response = filterSystemPromptFromResponse(result.response);
@@ -956,7 +1009,8 @@ async function callOpenAI(
   hasCourseContext: boolean = false,
   userId: string | null = null,
   isSystemMessage: boolean = false,
-  language: SupportedLanguage = 'es'
+  language: SupportedLanguage = 'es',
+  context: string = 'general'  // ✅ OPTIMIZACIÓN: Agregar contexto para optimizaciones específicas
 ): Promise<{ response: string; metadata?: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
@@ -1067,9 +1121,20 @@ Tu respuesta debe ser SOLO la información solicitada por el usuario, de forma n
     body: JSON.stringify({
       model: process.env.CHATBOT_MODEL || 'gpt-4o-mini',
       messages: messages,
-      temperature: parseFloat(process.env.CHATBOT_TEMPERATURE || (hasCourseContext ? '0.5' : '0.6')), // Más determinístico para contexto educativo
-      max_tokens: parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')), // Más tokens para respuestas educativas
+      // ✅ OPTIMIZACIÓN: Configuración específica para onboarding (conversación por voz)
+      temperature: context === 'onboarding' 
+        ? 0.7  // Más creativo y natural para conversación
+        : parseFloat(process.env.CHATBOT_TEMPERATURE || (hasCourseContext ? '0.5' : '0.6')),
+      max_tokens: context === 'onboarding'
+        ? 150  // Respuestas cortas para voz (50-80 palabras)
+        : parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')),
       stream: false,
+      // ✅ OPTIMIZACIÓN: Nuevos parámetros para mejor rendimiento
+      ...(context === 'onboarding' && {
+        presence_penalty: 0.6,  // Reducir repeticiones
+        frequency_penalty: 0.3, // Variar vocabulario
+        top_p: 0.9,             // Más determinístico
+      }),
     }),
   });
 

@@ -151,10 +151,11 @@ export function OnboardingAgent() {
       // Acceder directamente a las variables sin validación previa
       const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
       const voiceId = '15Y62ZlO8it2f5wduybx';
-      const modelId = 'eleven_multilingual_v2';
+      // ✅ OPTIMIZACIÓN: Usar modelo turbo para mayor velocidad
+      const modelId = 'eleven_turbo_v2_5';
 
       // Debug: mostrar valores
-      console.log('🔍 ElevenLabs Config:', { 
+      console.log('🔍 ElevenLabs Config (OPTIMIZED):', { 
         apiKey: apiKey.substring(0, 15) + '...', 
         voiceId,
         modelId
@@ -200,13 +201,17 @@ export function OnboardingAgent() {
           },
           body: JSON.stringify({
             text: text,
-            model_id: modelId || 'eleven_multilingual_v2',
+            model_id: modelId || 'eleven_turbo_v2_5',
             voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.75,
-              style: 0.5,
-              use_speaker_boost: true
-            }
+              // ✅ OPTIMIZACIÓN: Configuración ajustada para velocidad
+              stability: 0.4,              // Reducido de 0.5 para más velocidad
+              similarity_boost: 0.65,      // Reducido de 0.75
+              style: 0.3,                  // Reducido de 0.5
+              use_speaker_boost: false     // Desactivado para mayor velocidad
+            },
+            // ✅ OPTIMIZACIÓN: Nuevos parámetros de latencia
+            optimize_streaming_latency: 4,  // Máxima optimización (0-4)
+            output_format: 'mp3_22050_32'   // Menor bitrate = menor latencia
           }),
         }
       );
@@ -474,14 +479,21 @@ export function OnboardingAgent() {
 
       console.log('🤖 Enviando pregunta a LIA:', question);
 
-      // Llamar a la API de LIA
-      // Añadir información opcional de usuario y contexto de la página para respuestas más ricas
+      // ✅ OPTIMIZACIÓN: Llamar directamente a /api/ai-chat (eliminando middleware)
+      // Esto reduce la latencia en ~100-200ms al evitar un salto HTTP innecesario
       const platformContext = getPlatformContext ? getPlatformContext() : undefined;
 
-      const response = await fetch('/api/lia/onboarding-chat', {
+      const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, context, userName: undefined, pageContext: platformContext }),
+        body: JSON.stringify({
+          message: question,
+          context: 'onboarding',
+          conversationHistory: conversationHistory || [],
+          userName: undefined,
+          pageContext: platformContext,
+          language: 'es'
+        }),
       });
 
       if (!response.ok) {
