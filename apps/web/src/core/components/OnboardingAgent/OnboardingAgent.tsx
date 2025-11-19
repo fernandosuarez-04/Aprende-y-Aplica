@@ -432,6 +432,9 @@ export function OnboardingAgent() {
       } catch (e) { /* ignore */ }
       setIsListening(false);
     } else {
+      // ✅ Detener audio de LIA si está hablando antes de que el usuario hable
+      stopAllAudio();
+      
       try {
         // Solicitar permisos del micrófono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
