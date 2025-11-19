@@ -207,8 +207,8 @@ export function AppCard({ app, viewMode = 'grid' }: AppCardProps) {
         </div>
 
         {/* Bottom section - Different layout for list mode */}
-        <div className={`${viewMode === 'list' ? 'flex items-center justify-between gap-4' : ''}`}>
-          <div className={viewMode === 'list' ? 'flex-1' : ''}>
+        <div className={`${viewMode === 'list' ? 'flex items-center justify-between gap-4' : 'flex flex-col flex-1'}`}>
+          <div className={viewMode === 'list' ? 'flex-1' : 'flex-1'}>
             {/* Platform Availability */}
             <div className={`flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 flex-shrink-0 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`} style={viewMode === 'grid' ? { minHeight: '1.5rem' } : {}}>
               {app.mobile_app && (
@@ -238,15 +238,15 @@ export function AppCard({ app, viewMode = 'grid' }: AppCardProps) {
             </div>
 
             {/* Stats */}
-            <div className={`flex items-center gap-4 text-gray-600 dark:text-gray-400 text-xs flex-shrink-0 ${viewMode === 'list' ? 'mb-0' : 'mb-6'}`}>
-              <div className="flex items-center gap-1.5 h-[14px]">
+            <div className={`flex items-center gap-4 text-gray-600 dark:text-gray-400 text-xs flex-shrink-0 ${viewMode === 'list' ? 'mb-0' : 'mb-0'}`} style={viewMode === 'grid' ? { minHeight: '1.5rem' } : {}}>
+              <div className="flex items-center gap-1.5 h-[14px] min-h-[14px]">
                 <Eye className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="text-xs leading-none">{app.view_count.toLocaleString()}</span>
               </div>
               
-              <div className="flex items-center h-[14px]">
+              <div className="flex items-center h-[14px] min-h-[14px]">
                 {app.rating && app.rating > 0 ? (
-                  <div className="flex items-center h-[14px]">
+                  <div className="flex items-center h-[14px] min-h-[14px]">
                     <StarRating
                       rating={app.rating}
                       size="sm"
@@ -255,7 +255,7 @@ export function AppCard({ app, viewMode = 'grid' }: AppCardProps) {
                     />
                   </div>
                 ) : (
-                  <span className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap leading-none h-[14px] flex items-center">
+                  <span className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap leading-none h-[14px] min-h-[14px] flex items-center">
                     Sin calificaciones
                   </span>
                 )}
@@ -264,7 +264,7 @@ export function AppCard({ app, viewMode = 'grid' }: AppCardProps) {
           </div>
 
           {/* Actions */}
-          <div className={`flex items-center gap-3 ${viewMode === 'list' ? 'mt-0' : 'mt-auto'}`} onClick={(e) => e.stopPropagation()}>
+          <div className={`flex items-center gap-3 ${viewMode === 'list' ? 'mt-0' : 'mt-auto pt-4'}`} onClick={(e) => e.stopPropagation()}>
             <Link href={`/apps-directory/${app.slug}`} className={viewMode === 'list' ? '' : 'w-full'}>
               <Button
                 variant="primary"
