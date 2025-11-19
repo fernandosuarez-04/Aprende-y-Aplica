@@ -132,11 +132,22 @@ export function OnboardingAgent() {
       // Pequeño delay para que la página cargue primero
       setTimeout(() => {
         setIsVisible(true);
-        // NO reproducir audio automáticamente, esperar interacción del usuario
-        // El audio se activará cuando el usuario haga clic en "Siguiente"
       }, 1000);
     }
   }, [pathname]);
+
+  // ✅ Reproducir audio automáticamente cuando se abre el modal
+  useEffect(() => {
+    if (isVisible && currentStep === 0 && isAudioEnabled) {
+      // Pequeño delay para asegurar que el modal esté completamente renderizado
+      const timer = setTimeout(() => {
+        speakText(ONBOARDING_STEPS[0].speech);
+        setHasUserInteracted(true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
 
   // Función para síntesis de voz con ElevenLabs
   const speakText = async (text: string) => {
@@ -421,6 +432,9 @@ export function OnboardingAgent() {
       } catch (e) { /* ignore */ }
       setIsListening(false);
     } else {
+      // ✅ Detener audio de LIA si está hablando antes de que el usuario hable
+      stopAllAudio();
+      
       try {
         // Solicitar permisos del micrófono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -543,14 +557,8 @@ export function OnboardingAgent() {
     // Detener cualquier audio en reproducción
     stopAllAudio();
 
-    // Marcar que el usuario ha interactuado (activa audio)
-    // Si es la primera interacción, reproducir el audio del paso actual primero
-    if (!hasUserInteracted) {
-      setHasUserInteracted(true);
-      // Reproducir el audio del paso actual antes de avanzar
-      speakText(ONBOARDING_STEPS[currentStep].speech);
-      return;
-    }
+    // ✅ Ya no necesitamos verificar hasUserInteracted porque el audio se inicia automáticamente
+    setHasUserInteracted(true);
     
     const nextStep = currentStep + 1;
     
@@ -821,7 +829,7 @@ export function OnboardingAgent() {
                             disabled={isProcessing}
                             className={`relative p-8 rounded-full transition-all shadow-2xl ${
                               isListening 
-                                ? 'bg-red-500 hover:bg-red-600' 
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500' 
                                 : isProcessing
                                 ? 'bg-gray-600 cursor-not-allowed'
                                 : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500'
@@ -830,9 +838,9 @@ export function OnboardingAgent() {
                             whileTap={{ scale: isProcessing ? 1 : 0.95 }}
                             animate={isListening ? {
                               boxShadow: [
-                                '0 0 20px rgba(239, 68, 68, 0.5)',
-                                '0 0 60px rgba(239, 68, 68, 0.8)',
-                                '0 0 20px rgba(239, 68, 68, 0.5)',
+                                '0 0 20px rgba(34, 197, 94, 0.5)',
+                                '0 0 60px rgba(34, 197, 94, 0.8)',
+                                '0 0 20px rgba(34, 197, 94, 0.5)',
                               ]
                             } : {}}
                             transition={{ duration: 1, repeat: Infinity }}
@@ -855,46 +863,14 @@ export function OnboardingAgent() {
                         {/* Estado del micrófono */}
                         <p className="text-sm text-gray-400">
                           {isProcessing 
-                            ? '🤔 Procesando tu pregunta...' 
+                            ? 'Procesando tu pregunta...' 
                             : isListening 
-                            ? '🎤 Escuchando... Habla ahora' 
-                            : '👆 Haz clic en el micrófono para hablar'}
+                            ? 'Escuchando... Habla ahora' 
+                            : 'Haz clic en el micrófono para hablar'}
                         </p>
 
-                        {/* Transcripción */}
-                        {transcript && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-gray-800/50 rounded-lg p-4 max-w-xl mx-auto"
-                          >
-                            <p className="text-sm text-gray-400 mb-1">Tu pregunta:</p>
-                            <p className="text-white">{transcript}</p>
-                          </motion.div>
-                        )}
-
-                        {/* Historial de conversación */}
-                        {conversationHistory.length > 0 && (
-                          <div className="max-w-2xl mx-auto space-y-3 max-h-48 overflow-y-auto">
-                            {conversationHistory.map((msg, idx) => (
-                              <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className={`p-3 rounded-lg text-sm ${
-                                  msg.role === 'user'
-                                    ? 'bg-blue-600/20 text-blue-200 ml-12'
-                                    : 'bg-purple-600/20 text-purple-200 mr-12'
-                                }`}
-                              >
-                                <p className="font-semibold text-xs mb-1">
-                                  {msg.role === 'user' ? '👤 Tú' : '🤖 LIA'}
-                                </p>
-                                <p>{msg.content}</p>
-                              </motion.div>
-                            ))}
-                          </div>
-                        )}
+                        {/* ✅ Ocultado: Transcripción y historial de conversación */}
+                        {/* Solo se reproduce la voz, sin mostrar el texto en pantalla */}
                       </div>
                     )}
                   </div>
