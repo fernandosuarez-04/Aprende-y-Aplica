@@ -212,10 +212,19 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   }
 
   const handleCreateLesson = async (data: any) => {
-    if (editingModuleId) {
+    if (!editingModuleId) {
+      alert('Error: No se ha seleccionado un módulo. Por favor, seleccione un módulo primero.')
+      return
+    }
+
+    try {
       await createLesson(editingModuleId, data, courseId)
       // Refetch lessons después de crear
       await fetchLessons(editingModuleId, courseId)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al crear la lección'
+      alert(`Error al crear la lección: ${errorMessage}`)
+      throw error // Re-lanzar para que el modal pueda manejarlo si es necesario
     }
   }
 
@@ -1283,17 +1292,24 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
               setEditingModuleId(null)
             }}
             onSave={async (data) => {
-              if (selectedLesson) {
-                // Editar lección existente
-                await updateLesson(selectedLesson.lesson_id, data, courseId)
-                await fetchLessons(editingModuleId, courseId)
-              } else {
-                // Crear nueva lección
-                await handleCreateLesson(data)
+              try {
+                if (selectedLesson) {
+                  // Editar lección existente
+                  await updateLesson(selectedLesson.lesson_id, data, courseId)
+                  await fetchLessons(editingModuleId, courseId)
+                } else {
+                  // Crear nueva lección
+                  await handleCreateLesson(data)
+                }
+                // Solo cerrar el modal si no hay errores
+                setShowLessonModal(false)
+                setSelectedLesson(null)
+                setEditingModuleId(null)
+              } catch (error) {
+                // El error ya fue manejado en handleCreateLesson o updateLesson
+                // No cerrar el modal para que el usuario pueda corregir
+                throw error
               }
-              setShowLessonModal(false)
-              setSelectedLesson(null)
-              setEditingModuleId(null)
             }}
             instructors={instructors}
           />

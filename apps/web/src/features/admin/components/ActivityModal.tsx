@@ -18,7 +18,8 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
     activity_type: 'reflection' as 'reflection' | 'exercise' | 'quiz' | 'discussion' | 'ai_chat',
     activity_content: '',
     ai_prompts: '',
-    is_required: false
+    is_required: false,
+    estimated_time_minutes: 5 // Default 5 minutes
   })
   const [loading, setLoading] = useState(false)
   const [aiPromptsList, setAiPromptsList] = useState<string[]>([''])
@@ -31,7 +32,8 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
         activity_type: activity.activity_type,
         activity_content: activity.activity_content,
         ai_prompts: activity.ai_prompts || '',
-        is_required: activity.is_required
+        is_required: activity.is_required,
+        estimated_time_minutes: activity.estimated_time_minutes || 5
       })
       // Intentar inicializar lista de prompts desde JSON o texto separado por nuevas líneas
       if (activity.ai_prompts) {
@@ -131,6 +133,29 @@ export function ActivityModal({ activity, lessonId, onClose, onSave }: ActivityM
               <option value="discussion">Discusión</option>
               <option value="ai_chat">Chat con IA</option>
             </select>
+          </div>
+
+          {/* Tiempo Estimado - NUEVO CAMPO PARA STUDY PLANNER */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tiempo Estimado (minutos) *
+            </label>
+            <input
+              type="number"
+              required
+              min="1"
+              max="480"
+              value={formData.estimated_time_minutes}
+              onChange={(e) => setFormData(prev => ({ ...prev, estimated_time_minutes: parseInt(e.target.value) || 1 }))}
+              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
+              placeholder="Ej: 10"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+              Tiempo que tomará completar esta actividad. Mínimo 1 minuto, máximo 480 minutos (8 horas).
+              <span className="block mt-1 text-blue-600 dark:text-blue-400 font-medium">
+                ⏱️ Requerido para el Planificador de Estudio IA
+              </span>
+            </p>
           </div>
 
           {/* Contenido */}

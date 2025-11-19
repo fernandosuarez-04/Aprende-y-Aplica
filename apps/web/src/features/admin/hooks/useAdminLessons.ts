@@ -114,6 +114,13 @@ export function useAdminLessons(courseId?: string): UseAdminLessonsReturn {
     const actualCourseId = getCourseId(providedCourseId)
     
     try {
+      // Validar que moduleId esté presente
+      if (!moduleId || moduleId.trim() === '') {
+        const errorMsg = 'El ID del módulo es requerido para crear una lección'
+        setError(errorMsg)
+        throw new Error(errorMsg)
+      }
+
       const response = await fetchWithRetry(`/api/admin/courses/${actualCourseId}/modules/${moduleId}/lessons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,21 +128,59 @@ export function useAdminLessons(courseId?: string): UseAdminLessonsReturn {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error al crear lección' }))
-        throw new Error(errorData.error || 'Error al crear lección')
+        // Intentar obtener el mensaje de error del servidor
+        let errorData: { error?: string; details?: string; success?: boolean }
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { error: 'Error al crear lección' }
+        }
+
+        // Construir mensaje de error descriptivo
+        let errorMessage = errorData.error || 'Error al crear lección'
+        if (errorData.details) {
+          errorMessage += `: ${errorData.details}`
+        }
+
+        // Mensajes específicos según el código de estado
+        if (response.status === 400) {
+          errorMessage = errorData.error || 'Datos inválidos. Por favor, verifique que todos los campos requeridos estén completos.'
+        } else if (response.status === 401) {
+          errorMessage = 'No autenticado. Por favor, inicie sesión nuevamente.'
+        } else if (response.status === 403) {
+          errorMessage = 'No tiene permisos para realizar esta acción.'
+        } else if (response.status >= 500) {
+          errorMessage = 'Error del servidor. Por favor, intente nuevamente más tarde.'
+        }
+
+        setError(errorMessage)
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
+      
+      if (!data.success || !data.lesson) {
+        const errorMsg = data.error || 'Error al crear lección: respuesta inválida del servidor'
+        setError(errorMsg)
+        throw new Error(errorMsg)
+      }
+
       const newLesson = data.lesson
 
       // Agregar nueva lección y refetch para asegurar consistencia
       setLessons(prev => [...prev, newLesson])
       await refetchLessons(moduleId, actualCourseId)
       
+      // Limpiar error si todo fue exitoso
+      setError(null)
+      
       return newLesson
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear lección'
-      setError(errorMessage)
+      // Si el error ya tiene un mensaje establecido, no sobrescribirlo
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al crear lección'
+      if (!error) {
+        setError(errorMessage)
+      }
       throw err
     }
   }
