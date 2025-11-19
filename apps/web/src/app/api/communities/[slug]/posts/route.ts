@@ -199,6 +199,35 @@ export async function POST(
       return NextResponse.json({ error: 'El contenido es requerido' }, { status: 400 });
     }
 
+    // Validar que attachment_type sea uno de los valores permitidos en la BD
+    const validAttachmentTypes = ['image', 'video', 'document', 'link', 'poll'];
+    let validatedAttachmentType = attachment_type;
+    
+    if (attachment_type && !validAttachmentTypes.includes(attachment_type)) {
+      logger.warn('⚠️ Invalid attachment_type received:', attachment_type, 'Defaulting to null');
+      validatedAttachmentType = null;
+    }
+
+    // Validar y limpiar attachment_data si existe
+    let validatedAttachmentData = attachment_data;
+    if (attachment_data) {
+      try {
+        // Asegurarse de que attachment_data sea un objeto válido
+        if (typeof attachment_data === 'string') {
+          validatedAttachmentData = JSON.parse(attachment_data);
+        } else if (typeof attachment_data !== 'object') {
+          logger.warn('⚠️ Invalid attachment_data type:', typeof attachment_data, 'Defaulting to null');
+          validatedAttachmentData = null;
+        } else {
+          // Validar que sea serializable
+          JSON.stringify(attachment_data);
+        }
+      } catch (error) {
+        logger.error('❌ Error validating attachment_data:', error);
+        validatedAttachmentData = null;
+      }
+    }
+
     // ⭐ MODERACIÓN CAPA 1: Verificar si contiene palabras prohibidas
     const { containsForbiddenContent, registerWarning, getUserWarningsCount } = await import('../../../../../lib/moderation');
     const forbiddenCheck = await containsForbiddenContent(content, supabase);
@@ -349,23 +378,34 @@ export async function POST(
       }, { status: 403 });
     }
 
+    // Preparar datos para insertar
+    const postInsertData = {
+      community_id: community.id,
+      user_id: user.id,
+      title: title || null,
+      content: content.trim(),
+      attachment_url: attachment_url || null,
+      attachment_type: validatedAttachmentType || null,
+      attachment_data: validatedAttachmentData || null,
+      likes_count: 0,
+      comment_count: 0,
+      reaction_count: 0,
+      is_pinned: false,
+      is_edited: false
+    };
+
+    logger.log('📝 Inserting post with data:', {
+      community_id: postInsertData.community_id,
+      user_id: postInsertData.user_id,
+      has_attachment: !!postInsertData.attachment_url,
+      attachment_type: postInsertData.attachment_type,
+      has_attachment_data: !!postInsertData.attachment_data
+    });
+
     // Crear el post
     const { data: newPost, error: postError } = await supabase
       .from('community_posts')
-      .insert({
-        community_id: community.id,
-        user_id: user.id,
-        title: title || null,
-        content: content.trim(),
-        attachment_url: attachment_url || null,
-        attachment_type: attachment_type || null,
-        attachment_data: attachment_data || null,
-        likes_count: 0,
-        comment_count: 0,
-        reaction_count: 0,
-        is_pinned: false,
-        is_edited: false
-      })
+      .insert(postInsertData)
       .select(`
         *,
         user:user_id (
@@ -381,7 +421,21 @@ export async function POST(
 
     if (postError) {
       logger.error('❌ Error creating post:', postError);
-      return NextResponse.json({ error: 'Error al crear el post' }, { status: 500 });
+      logger.error('❌ Post data that failed:', {
+        attachment_type: validatedAttachmentType,
+        attachment_url: attachment_url ? attachment_url.substring(0, 100) : null,
+        attachment_data_keys: attachment_data ? Object.keys(attachment_data) : null,
+        attachment_data_preview: attachment_data ? JSON.stringify(attachment_data).substring(0, 500) : null,
+        error_code: postError.code,
+        error_message: postError.message,
+        error_details: postError.details,
+        error_hint: postError.hint
+      });
+      return NextResponse.json({ 
+        error: 'Error al crear el post',
+        details: postError.message || 'Error desconocido',
+        code: postError.code
+      }, { status: 500 });
     }
 
     logger.log('✅ Post created successfully:', newPost.id);

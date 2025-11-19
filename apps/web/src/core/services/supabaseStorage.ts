@@ -151,10 +151,13 @@ class SupabaseStorageService {
 
       case 'youtube':
         // console.log('🎥 [YOUTUBE] Procesando caso YouTube:', attachmentData);
+        // Mapear 'youtube' a 'link' para cumplir con el constraint de la base de datos
+        // pero mantener la información de YouTube en attachment_data
         const result = {
           attachment_url: attachmentData.url || null,
-          attachment_type: 'youtube',
+          attachment_type: 'link', // Usar 'link' que está permitido en la BD
           attachment_data: {
+            isYouTube: true, // Flag para identificar que es YouTube
             videoId: attachmentData.videoId,
             title: attachmentData.title,
             thumbnail: attachmentData.thumbnail,
@@ -203,12 +206,22 @@ class SupabaseStorageService {
   }
 
   /**
-   * Convierte data URL a File
+   * Convierte data URL a File sin usar fetch (para evitar problemas de CSP)
    */
   private async dataURLToFile(dataURL: string, fileName: string): Promise<File> {
-    const response = await fetch(dataURL);
-    const blob = await response.blob();
-    return new File([blob], fileName, { type: blob.type });
+    // Convertir data URL directamente a Blob sin usar fetch
+    const arr = dataURL.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    
+    return new File([u8arr], fileName, { type: mime });
   }
 
   /**
@@ -228,9 +241,10 @@ class SupabaseStorageService {
     thumbnail: string;
   }> {
     try {
-      // Usar la API pública de YouTube para obtener información
+      // Usar nuestra ruta API del servidor para obtener información del video
+      // Esto protege la API key y evita problemas de CSP
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.NEXT_PUBLIC_YOUTUBE_API_KEY}&part=snippet`
+        `/api/youtube/video-info?videoId=${encodeURIComponent(videoId)}`
       );
       
       if (!response.ok) {
@@ -239,17 +253,13 @@ class SupabaseStorageService {
 
       const data = await response.json();
       
-      if (data.items && data.items.length > 0) {
-        const video = data.items[0];
-        return {
-          title: video.snippet.title,
-          thumbnail: video.snippet.thumbnails.maxres?.url || video.snippet.thumbnails.high?.url
-        };
-      }
-
-      throw new Error('Video no encontrado');
+      return {
+        title: data.title || 'Video de YouTube',
+        thumbnail: data.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+      };
     } catch (error) {
       // console.error('Error getting YouTube video info:', error);
+      // En caso de error, devolver información básica usando el videoId
       return {
         title: 'Video de YouTube',
         thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`

@@ -8,7 +8,6 @@ import {
   Search,
   Users,
   MessageSquare,
-  Heart,
   Share2,
   MoreHorizontal,
   Plus,
@@ -1364,7 +1363,7 @@ export default function CommunityDetailPage() {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [activeTab, setActiveTab] = useState('comunidad');
   const [isCreatingPost, setIsCreatingPost] = useState(false);
-  const [postAttachment, setPostAttachment] = useState<{ type: string; data: any } | null>(null);
+  const [postAttachments, setPostAttachments] = useState<Array<{ type: string; data: any; id: string }>>([]);
   const [showYouTubeModal, setShowYouTubeModal] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
   const [pendingAttachmentType, setPendingAttachmentType] = useState<string | null>(null);
@@ -1568,33 +1567,137 @@ export default function CommunityDetailPage() {
   };
 
   const handleAttachmentSelect = (type: string, data: any) => {
+    // Verificar límite de 3 adjuntos
+    if (postAttachments.length >= 3) {
+      alert('Máximo 3 adjuntos por publicación');
+      return;
+    }
+
     if (type === 'youtube' || type === 'link') {
       setPendingAttachmentType(type);
       setShowYouTubeModal(true);
     } else if (type === 'poll') {
+      // Las encuestas solo pueden ser una por publicación
+      if (postAttachments.some(att => att.type === 'poll')) {
+        alert('Solo puedes agregar una encuesta por publicación');
+        return;
+      }
       setShowPollModal(true);
     } else {
       // Para archivos (imagen, documento, video)
-      setPostAttachment({ type, data });
+      const newAttachment = {
+        type,
+        data,
+        id: `${type}-${Date.now()}-${Math.random()}`
+      };
+      setPostAttachments(prev => [...prev, newAttachment]);
+    }
+  };
+
+  const handlePasteImage = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    // Buscar una imagen en los elementos del portapapeles
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      // Verificar si el elemento es una imagen
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault(); // Prevenir que se pegue el texto de la imagen
+        
+        const file = item.getAsFile();
+        if (!file) return;
+
+        // Validar que sea un tipo de imagen válido
+        const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+        if (!validImageTypes.includes(file.type)) {
+          alert('Tipo de imagen no soportado. Por favor, usa PNG, JPEG, GIF o WebP.');
+          return;
+        }
+
+        // Validar tamaño (máximo 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+          alert('La imagen es demasiado grande. El tamaño máximo es 10MB.');
+          return;
+        }
+
+        // Verificar límite de 3 adjuntos
+        if (postAttachments.length >= 3) {
+          alert('Máximo 3 adjuntos por publicación');
+          return;
+        }
+
+        // Leer el archivo como DataURL para la vista previa
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const data = {
+            file,
+            url: event.target?.result,
+            name: file.name || `imagen-${Date.now()}.${file.type.split('/')[1]}`,
+            size: file.size,
+            mimeType: file.type,
+            type: 'image'
+          };
+          
+          // Agregar el adjunto al array
+          const newAttachment = {
+            type: 'image',
+            data,
+            id: `image-${Date.now()}-${Math.random()}`
+          };
+          setPostAttachments(prev => [...prev, newAttachment]);
+        };
+        reader.readAsDataURL(file);
+        break;
+      }
     }
   };
 
   const handleYouTubeLinkConfirm = (url: string, type: 'youtube' | 'link') => {
-    setPostAttachment({ 
-      type, 
-      data: { url, name: type === 'youtube' ? 'Video de YouTube' : 'Enlace web' }
-    });
+    if (postAttachments.length >= 3) {
+      alert('Máximo 3 adjuntos por publicación');
+      setShowYouTubeModal(false);
+      setPendingAttachmentType(null);
+      return;
+    }
+
+    const newAttachment = {
+      type,
+      data: { url, name: type === 'youtube' ? 'Video de YouTube' : 'Enlace web' },
+      id: `${type}-${Date.now()}-${Math.random()}`
+    };
+    setPostAttachments(prev => [...prev, newAttachment]);
     setShowYouTubeModal(false);
     setPendingAttachmentType(null);
   };
 
   const handlePollConfirm = (pollData: any) => {
-    setPostAttachment({ type: 'poll', data: pollData });
+    // Las encuestas solo pueden ser una por publicación
+    if (postAttachments.some(att => att.type === 'poll')) {
+      alert('Solo puedes agregar una encuesta por publicación');
+      setShowPollModal(false);
+      return;
+    }
+
+    if (postAttachments.length >= 3) {
+      alert('Máximo 3 adjuntos por publicación');
+      setShowPollModal(false);
+      return;
+    }
+
+    const newAttachment = {
+      type: 'poll',
+      data: pollData,
+      id: `poll-${Date.now()}-${Math.random()}`
+    };
+    setPostAttachments(prev => [...prev, newAttachment]);
     setShowPollModal(false);
   };
 
-  const handleRemoveAttachment = () => {
-    setPostAttachment(null);
+  const handleRemoveAttachment = (id: string) => {
+    setPostAttachments(prev => prev.filter(att => att.id !== id));
   };
 
   const { createPostWithAttachment, isProcessing: isProcessingAttachment, error: attachmentError } = useAttachments();
@@ -1604,17 +1707,15 @@ export default function CommunityDetailPage() {
     
     setIsCreatingPost(true);
     try {
-      // Preparar datos del adjunto si existe
-      let attachmentData = null;
-      if (postAttachment) {
-        attachmentData = {
-          type: postAttachment.type,
-          ...postAttachment.data
-        };
-        // console.log('🎥 [YOUTUBE] handleCreatePost - TIPO ANTES DE ENVIAR:', postAttachment.type, attachmentData);
-      }
+      // Preparar datos de los adjuntos si existen
+      const attachmentsData = postAttachments.length > 0 
+        ? postAttachments.map(att => ({
+            type: att.type,
+            ...att.data
+          }))
+        : null;
 
-      const result = await createPostWithAttachment(slug, newPostContent, attachmentData);
+      const result = await createPostWithAttachment(slug, newPostContent, attachmentsData);
       
       // Agregar el nuevo post al inicio de la lista con toda la información necesaria
       const newPost = {
@@ -1627,7 +1728,7 @@ export default function CommunityDetailPage() {
       
       setPosts(prev => [newPost, ...prev]);
       setNewPostContent('');
-      setPostAttachment(null);
+      setPostAttachments([]);
       
       // Actualizar contador de posts en la comunidad
       setCommunity(prev => prev ? { ...prev, member_count: prev.member_count + 1 } : null);
@@ -2093,18 +2194,6 @@ export default function CommunityDetailPage() {
                 ))}
               </div>
             </div>
-            <div className="bg-white/70 border border-white/30 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-4 dark:bg-white/5 dark:border-white/10">
-              <p className="text-sm font-medium text-slate-600 dark:text-white/80">Comparte la comunidad</p>
-              <div className="flex gap-3">
-                <button className="flex-1 px-4 py-2 rounded-xl bg-slate-900/5 text-slate-700 hover:bg-slate-900/10 transition-colors dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
-                  <Share2 className="w-4 h-4 inline mr-2" />
-                  Copiar enlace
-                </button>
-                <button className="px-4 py-2 rounded-xl bg-slate-900/5 text-slate-700 hover:bg-slate-900/10 transition-colors dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
-                  <Heart className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
           </motion.div>
         </div>
       </motion.section>
@@ -2156,17 +2245,21 @@ export default function CommunityDetailPage() {
                         placeholder="Escribe algo para la comunidad..."
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
+                        onPaste={handlePasteImage}
                         className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 resize-none focus:outline-none"
                         rows={3}
                       />
-                      {/* Preview del adjunto */}
-                      {postAttachment && (
-                        <div className="mt-4">
-                          <AttachmentPreview
-                            type={postAttachment.type}
-                            data={postAttachment.data}
-                            onRemove={handleRemoveAttachment}
-                          />
+                      {/* Preview de los adjuntos */}
+                      {postAttachments.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          {postAttachments.map((attachment) => (
+                            <AttachmentPreview
+                              key={attachment.id}
+                              type={attachment.type}
+                              data={attachment.data}
+                              onRemove={() => handleRemoveAttachment(attachment.id)}
+                            />
+                          ))}
                         </div>
                       )}
 
@@ -2174,12 +2267,14 @@ export default function CommunityDetailPage() {
                         <div className="w-full sm:flex-1">
                           <InlineAttachmentButtons
                             onAttachmentSelect={handleAttachmentSelect}
+                            currentAttachmentsCount={postAttachments.length}
+                            maxAttachments={3}
                           />
                         </div>
                         <div className="flex-shrink-0 sm:w-auto w-full">
                           <Button
                             onClick={handleCreatePost}
-                            disabled={!newPostContent.trim() || isCreatingPost || isProcessingAttachment}
+                            disabled={!newPostContent.trim() || isCreatingPost || isProcessingAttachment || postAttachments.length > 3}
                             className="btn-primary disabled:opacity-50 w-full sm:w-auto justify-center"
                           >
                             {(isCreatingPost || isProcessingAttachment) ? (

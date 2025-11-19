@@ -38,6 +38,25 @@ export const PostAttachment = memo(function PostAttachment({
 
   if (!attachmentType) return null;
 
+  // Si es múltiple, renderizar todos los adjuntos
+  // Verificar si attachment_data tiene la flag isMultiple o si hay un array de attachments
+  if (attachmentData?.isMultiple && attachmentData?.attachments && Array.isArray(attachmentData.attachments)) {
+    return (
+      <div className={`space-y-3 ${className}`}>
+        {attachmentData.attachments.map((att: any, index: number) => (
+          <PostAttachment
+            key={index}
+            attachmentType={att.attachment_type}
+            attachmentUrl={att.attachment_url}
+            attachmentData={att.attachment_data}
+            postId={postId}
+            communitySlug={communitySlug}
+          />
+        ))}
+      </div>
+    );
+  }
+
   // Validar que tenemos una URL válida para tipos que la requieren
   const hasValidUrl = attachmentUrl && attachmentUrl.trim() !== '';
   const requiresUrl = ['image', 'video', 'document', 'youtube', 'link'].includes(attachmentType);
@@ -325,6 +344,56 @@ export const PostAttachment = memo(function PostAttachment({
 
       case 'link':
         if (!attachmentUrl) return null;
+        
+        // Si es un enlace de YouTube (guardado como 'link' pero con flag isYouTube)
+        if (attachmentData?.isYouTube) {
+          let videoId = attachmentData?.videoId;
+          
+          // Si no hay videoId en attachmentData, intentar extraerlo de la URL
+          if (!videoId && attachmentUrl) {
+            const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/;
+            const match = attachmentUrl.match(regex);
+            videoId = match ? match[1] : null;
+          }
+          
+          const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+          
+          return (
+            <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg overflow-hidden">
+              {embedUrl ? (
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <iframe
+                    src={embedUrl}
+                    className="absolute top-0 left-0 w-full h-full"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={attachmentData?.title || 'Video de YouTube'}
+                  />
+                </div>
+              ) : (
+                <div className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center">
+                      <Youtube className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                        {attachmentData?.title || 'Video de YouTube'}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-slate-400 flex items-center gap-1">
+                        <Youtube className="w-4 h-4" />
+                        YouTube
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+        
+        // Enlace web normal
         return (
           <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg p-4 hover:bg-gray-200 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                onClick={() => window.open(attachmentUrl, '_blank')}>

@@ -26,7 +26,8 @@ import {
   Filter,
   SortAsc,
   SortDesc,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
@@ -204,7 +205,7 @@ export default function MembersPage() {
   const [sortBy, setSortBy] = useState<'rank' | 'points' | 'joined' | 'name'>('rank');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [activeTab, setActiveTab] = useState<'comunidad' | 'miembros' | 'ligas' | 'acerca'>('miembros');
+  const [activeTab, setActiveTab] = useState<'comunidad' | 'miembros' | 'ligas'>('miembros');
   const [isMobile, setIsMobile] = useState(false);
   const headerSectionRef = useRef<HTMLElement | null>(null);
   const contentSectionRef = useRef<HTMLElement | null>(null);
@@ -236,10 +237,9 @@ export default function MembersPage() {
     { id: 'comunidad' as const, label: 'Comunidad', icon: MessageSquare },
     { id: 'miembros' as const, label: 'Miembros', icon: Users },
     { id: 'ligas' as const, label: 'Ligas', icon: Trophy },
-    { id: 'acerca' as const, label: 'Acerca', icon: Info },
   ];
 
-  const handleTabNavigation = (tab: 'comunidad' | 'miembros' | 'ligas' | 'acerca') => {
+  const handleTabNavigation = (tab: 'comunidad' | 'miembros' | 'ligas') => {
     setActiveTab(tab);
 
     switch (tab) {
@@ -248,11 +248,6 @@ export default function MembersPage() {
         return;
       case 'ligas':
         router.push(`/communities/${slug}/leagues`);
-        return;
-      case 'acerca':
-        if (headerSectionRef.current) {
-          headerSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
         return;
       case 'miembros':
       default:
@@ -528,20 +523,20 @@ export default function MembersPage() {
             variants={itemVariants}
           >
             <div className="relative">
-              <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg p-3 hover:bg-slate-700/50 transition-all">
-                <Filter className="w-4 h-4 text-slate-400" />
+              <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-all">
+                <Filter className="w-4 h-4 text-gray-600 dark:text-slate-400" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-transparent text-white border-none outline-none cursor-pointer appearance-none pr-6 font-medium"
+                  className="bg-transparent text-gray-900 dark:text-white border-none outline-none cursor-pointer appearance-none pr-6 font-medium"
                 >
-                  <option value="rank" className="bg-slate-800 text-white">Rango</option>
-                  <option value="points" className="bg-slate-800 text-white">Puntos</option>
-                  <option value="joined" className="bg-slate-800 text-white">Fecha de unión</option>
-                  <option value="name" className="bg-slate-800 text-white">Nombre</option>
+                  <option value="rank" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Rango</option>
+                  <option value="points" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Puntos</option>
+                  <option value="joined" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Fecha de unión</option>
+                  <option value="name" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Nombre</option>
                 </select>
                 <div className="absolute right-2 pointer-events-none">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -550,15 +545,15 @@ export default function MembersPage() {
             
             <button
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg p-3 hover:bg-slate-700/50 transition-all"
+              className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-all"
               title={`Ordenar ${sortOrder === 'asc' ? 'descendente' : 'ascendente'}`}
             >
               {sortOrder === 'asc' ? (
-                <SortAsc className="w-4 h-4 text-slate-400" />
+                <SortAsc className="w-4 h-4 text-gray-600 dark:text-slate-400" />
               ) : (
-                <SortDesc className="w-4 h-4 text-slate-400" />
+                <SortDesc className="w-4 h-4 text-gray-600 dark:text-slate-400" />
               )}
-              <span className="text-slate-300 text-sm font-medium">
+              <span className="text-gray-700 dark:text-slate-300 text-sm font-medium">
                 {sortOrder === 'asc' ? 'Asc' : 'Desc'}
               </span>
             </button>
@@ -798,16 +793,17 @@ export default function MembersPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-md sm:max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto shadow-xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-md sm:max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto shadow-xl scrollbar-hide"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Perfil del Miembro</h2>
                 <button
                   onClick={() => setSelectedMember(null)}
-                  className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  aria-label="Cerrar"
                 >
-                  <ExternalLink className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
