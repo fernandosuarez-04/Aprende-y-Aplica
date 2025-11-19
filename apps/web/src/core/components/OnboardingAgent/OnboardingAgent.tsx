@@ -826,7 +826,7 @@ export function OnboardingAgent() {
                             disabled={isProcessing}
                             className={`relative p-8 rounded-full transition-all shadow-2xl ${
                               isListening 
-                                ? 'bg-red-500 hover:bg-red-600' 
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500' 
                                 : isProcessing
                                 ? 'bg-gray-600 cursor-not-allowed'
                                 : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500'
@@ -835,9 +835,9 @@ export function OnboardingAgent() {
                             whileTap={{ scale: isProcessing ? 1 : 0.95 }}
                             animate={isListening ? {
                               boxShadow: [
-                                '0 0 20px rgba(239, 68, 68, 0.5)',
-                                '0 0 60px rgba(239, 68, 68, 0.8)',
-                                '0 0 20px rgba(239, 68, 68, 0.5)',
+                                '0 0 20px rgba(34, 197, 94, 0.5)',
+                                '0 0 60px rgba(34, 197, 94, 0.8)',
+                                '0 0 20px rgba(34, 197, 94, 0.5)',
                               ]
                             } : {}}
                             transition={{ duration: 1, repeat: Infinity }}
@@ -860,10 +860,10 @@ export function OnboardingAgent() {
                         {/* Estado del micrófono */}
                         <p className="text-sm text-gray-400">
                           {isProcessing 
-                            ? '🤔 Procesando tu pregunta...' 
+                            ? 'Procesando tu pregunta...' 
                             : isListening 
-                            ? '🎤 Escuchando... Habla ahora' 
-                            : '👆 Haz clic en el micrófono para hablar'}
+                            ? 'Escuchando... Habla ahora' 
+                            : 'Haz clic en el micrófono para hablar'}
                         </p>
 
                         {/* ✅ Ocultado: Transcripción y historial de conversación */}
