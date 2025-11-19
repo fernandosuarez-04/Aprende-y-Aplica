@@ -866,40 +866,8 @@ export function OnboardingAgent() {
                             : '👆 Haz clic en el micrófono para hablar'}
                         </p>
 
-                        {/* Transcripción */}
-                        {transcript && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-gray-800/50 rounded-lg p-4 max-w-xl mx-auto"
-                          >
-                            <p className="text-sm text-gray-400 mb-1">Tu pregunta:</p>
-                            <p className="text-white">{transcript}</p>
-                          </motion.div>
-                        )}
-
-                        {/* Historial de conversación */}
-                        {conversationHistory.length > 0 && (
-                          <div className="max-w-2xl mx-auto space-y-3 max-h-48 overflow-y-auto">
-                            {conversationHistory.map((msg, idx) => (
-                              <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className={`p-3 rounded-lg text-sm ${
-                                  msg.role === 'user'
-                                    ? 'bg-blue-600/20 text-blue-200 ml-12'
-                                    : 'bg-purple-600/20 text-purple-200 mr-12'
-                                }`}
-                              >
-                                <p className="font-semibold text-xs mb-1">
-                                  {msg.role === 'user' ? '👤 Tú' : '🤖 LIA'}
-                                </p>
-                                <p>{msg.content}</p>
-                              </motion.div>
-                            ))}
-                          </div>
-                        )}
+                        {/* ✅ Ocultado: Transcripción y historial de conversación */}
+                        {/* Solo se reproduce la voz, sin mostrar el texto en pantalla */}
                       </div>
                     )}
                   </div>
