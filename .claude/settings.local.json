@@ -23,7 +23,11 @@
       "Bash(npm:*)",
       "Bash(npx next info)",
       "Bash(git stash:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(if not exist \"[id]\" mkdir \"[id]\")",
+      "Bash(cmd /c \"if not exist \"\"C:\\Users\\fysg5\\OneDrive\\Escritorio\\Trabajo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\src\\app\\api\\study-planner\\sessions\\[id]\"\" mkdir \"\"C:\\Users\\fysg5\\OneDrive\\Escritorio\\Trabajo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\src\\app\\api\\study-planner\\sessions\\[id]\"\"\")",
+      "Bash(cmd /c \"if not exist \"\"C:\\Users\\fysg5\\OneDrive\\Escritorio\\Trabajo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\src\\app\\study-planner\\session\"\" mkdir \"\"C:\\Users\\fysg5\\OneDrive\\Escritorio\\Trabajo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\src\\app\\study-planner\\session\"\"\")",
+      "Bash(cmd /c:*)"
     ],
     "deny": [],
     "ask": []

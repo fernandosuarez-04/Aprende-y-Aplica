@@ -346,7 +346,34 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                 </button>
               </div>
             ) : (
-              modules.map((module) => (
+              [...modules]
+                .sort((a, b) => {
+                  // Función para extraer número del módulo del título
+                  const extractModuleNumber = (title: string): number => {
+                    const match = title.match(/Módulo\s*(\d+)/i);
+                    return match ? parseInt(match[1], 10) : 999;
+                  };
+
+                  const aNumber = extractModuleNumber(a.module_title);
+                  const bNumber = extractModuleNumber(b.module_title);
+
+                  // Si ambos tienen número en el título, priorizar ese número
+                  if (aNumber !== 999 && bNumber !== 999) {
+                    return aNumber - bNumber;
+                  }
+
+                  // Si solo uno tiene número, priorizarlo
+                  if (aNumber !== 999 && bNumber === 999) return -1;
+                  if (aNumber === 999 && bNumber !== 999) return 1;
+
+                  // Si ninguno tiene número o ambos tienen, usar module_order_index
+                  const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
+                  if (orderDiff !== 0) return orderDiff;
+
+                  // Último recurso: ordenar por título alfabéticamente
+                  return a.module_title.localeCompare(b.module_title);
+                })
+                .map((module) => (
                 <div key={module.module_id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow">
                   {/* Header del Módulo Mejorado */}
                   <div className="p-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">

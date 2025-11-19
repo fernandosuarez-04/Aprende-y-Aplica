@@ -157,8 +157,8 @@ async function loadModulesWithProgress(
   courseId: string,
   userId?: string
 ) {
-  // Obtener módulos del curso
-  const { data: modules, error: modulesError } = await supabase
+  // Obtener TODOS los módulos del curso (sin filtrar por is_published)
+  const { data: allModules, error: allModulesError } = await supabase
     .from('course_modules')
     .select(`
       module_id,
@@ -168,10 +168,18 @@ async function loadModulesWithProgress(
       is_published
     `)
     .eq('course_id', courseId)
-    .eq('is_published', true)
     .order('module_order_index', { ascending: true })
 
-  if (modulesError || !modules) {
+  if (allModulesError || !allModules) {
+    return { modules: [], progress: 0 }
+  }
+
+  // Filtrar solo los publicados si hay alguno publicado, sino mostrar todos
+  // (misma lógica que en /api/courses/[slug]/modules)
+  const publishedModules = (allModules || []).filter(m => m.is_published === true)
+  const modules = publishedModules.length > 0 ? publishedModules : (allModules || [])
+
+  if (modules.length === 0) {
     return { modules: [], progress: 0 }
   }
 
@@ -187,7 +195,7 @@ async function loadModulesWithProgress(
     userEnrollment = enrollment
   }
 
-  // Obtener TODAS las lecciones en una query
+  // Obtener TODAS las lecciones en una query (sin filtrar por is_published primero)
   const { data: allLessonsData } = await supabase
     .from('course_lessons')
     .select(`
@@ -202,7 +210,6 @@ async function loadModulesWithProgress(
       module_id
     `)
     .in('module_id', modules.map((m: any) => m.module_id))
-    .eq('is_published', true)
     .order('lesson_order_index', { ascending: true })
 
   // Obtener progreso del usuario
@@ -279,8 +286,15 @@ async function loadModulesWithProgress(
   // Construir módulos con lecciones
   const modulesWithLessons = modules.map((module: any) => {
     const moduleLessons = lessonsByModule.get(module.module_id) || []
+    
+    // Filtrar solo las lecciones publicadas si hay alguna publicada, sino mostrar todas
+    // (misma lógica que en /api/courses/[slug]/modules)
+    const publishedLessons = moduleLessons.filter(
+      (lesson: any) => lesson.is_published === true
+    )
+    const lessonsToShow = publishedLessons.length > 0 ? publishedLessons : moduleLessons
 
-    const lessonsWithProgress = moduleLessons.map((lesson: any) => {
+    const lessonsWithProgress = lessonsToShow.map((lesson: any) => {
       // Reconstruir URL de video
       let videoUrl = lesson.video_provider_id
       if (lesson.video_provider === 'direct' && videoUrl && !videoUrl.startsWith('http')) {

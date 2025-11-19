@@ -191,6 +191,16 @@ CREATE TABLE public.calendar_integrations (
   CONSTRAINT calendar_integrations_pkey PRIMARY KEY (id),
   CONSTRAINT calendar_integrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.calendar_subscription_tokens (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  token uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+  created_at timestamp with time zone DEFAULT now(),
+  last_used_at timestamp with time zone,
+  usage_count integer DEFAULT 0,
+  CONSTRAINT calendar_subscription_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT calendar_subscription_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.certificate_ledger (
   block_id bigint NOT NULL DEFAULT nextval('certificate_ledger_block_id_seq'::regclass),
   cert_id uuid NOT NULL,
@@ -542,6 +552,20 @@ CREATE TABLE public.courses (
   CONSTRAINT fk_courses_instructor FOREIGN KEY (instructor_id) REFERENCES public.users(id),
   CONSTRAINT courses_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
 );
+CREATE TABLE public.daily_progress (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  progress_date date NOT NULL,
+  sessions_completed integer DEFAULT 0,
+  sessions_missed integer DEFAULT 0,
+  study_minutes integer DEFAULT 0,
+  had_activity boolean DEFAULT false,
+  streak_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.dashboard_layouts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL,
@@ -574,6 +598,7 @@ CREATE TABLE public.lesson_activities (
   is_required boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT now(),
   lesson_id uuid NOT NULL,
+  estimated_time_minutes integer,
   CONSTRAINT lesson_activities_pkey PRIMARY KEY (activity_id),
   CONSTRAINT lesson_activities_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id)
 );
@@ -601,8 +626,26 @@ CREATE TABLE public.lesson_materials (
   is_downloadable boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT now(),
   lesson_id uuid NOT NULL,
+  estimated_time_minutes integer,
   CONSTRAINT lesson_materials_pkey PRIMARY KEY (material_id),
   CONSTRAINT lesson_materials_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id)
+);
+CREATE TABLE public.lesson_time_estimates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lesson_id uuid NOT NULL UNIQUE,
+  video_duration_seconds integer DEFAULT 0,
+  video_minutes numeric DEFAULT round(((video_duration_seconds)::numeric / 60.0), 2),
+  activities_time_minutes numeric DEFAULT 0,
+  reading_time_minutes numeric DEFAULT 0,
+  quiz_time_minutes numeric DEFAULT 0,
+  exercise_time_minutes numeric DEFAULT 0,
+  link_time_minutes numeric DEFAULT 0,
+  interactions_time_minutes numeric DEFAULT 3,
+  total_time_minutes numeric DEFAULT round(((((((((video_duration_seconds)::numeric / 60.0) + COALESCE(activities_time_minutes, (0)::numeric)) + COALESCE(reading_time_minutes, (0)::numeric)) + COALESCE(quiz_time_minutes, (0)::numeric)) + COALESCE(exercise_time_minutes, (0)::numeric)) + COALESCE(link_time_minutes, (0)::numeric)) + COALESCE(interactions_time_minutes, (3)::numeric)), 2),
+  calculated_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lesson_time_estimates_pkey PRIMARY KEY (id),
+  CONSTRAINT lesson_time_estimates_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id)
 );
 CREATE TABLE public.lia_activity_completions (
   completion_id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -665,6 +708,7 @@ CREATE TABLE public.lia_conversations (
   ip_address inet,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  conversation_title character varying,
   CONSTRAINT lia_conversations_pkey PRIMARY KEY (conversation_id),
   CONSTRAINT lia_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT lia_conversations_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
@@ -1157,6 +1201,9 @@ CREATE TABLE public.study_plans (
   preferred_time_blocks jsonb DEFAULT '[]'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  generation_mode text DEFAULT 'manual'::text CHECK (generation_mode = ANY (ARRAY['manual'::text, 'ai_generated'::text])),
+  ai_generation_metadata jsonb DEFAULT '{}'::jsonb,
+  preferred_session_type text DEFAULT 'medium'::text CHECK (preferred_session_type = ANY (ARRAY['short'::text, 'medium'::text, 'long'::text])),
   CONSTRAINT study_plans_pkey PRIMARY KEY (id),
   CONSTRAINT study_plans_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -1170,6 +1217,7 @@ CREATE TABLE public.study_preferences (
   weekly_target_minutes integer NOT NULL DEFAULT 300,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  preferred_session_type text DEFAULT 'medium'::text CHECK (preferred_session_type = ANY (ARRAY['short'::text, 'medium'::text, 'long'::text])),
   CONSTRAINT study_preferences_pkey PRIMARY KEY (id),
   CONSTRAINT study_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -1192,8 +1240,20 @@ CREATE TABLE public.study_sessions (
   external_event_id text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  lesson_id uuid,
+  is_ai_generated boolean DEFAULT false,
+  streak_day integer,
+  lesson_min_time_minutes integer,
+  session_type text DEFAULT 'medium'::text CHECK (session_type = ANY (ARRAY['short'::text, 'medium'::text, 'long'::text])),
+  course_complexity jsonb DEFAULT '{}'::jsonb,
+  completed_at timestamp with time zone,
+  notes text,
+  self_evaluation integer CHECK (self_evaluation IS NULL OR self_evaluation >= 1 AND self_evaluation <= 5),
+  was_rescheduled boolean DEFAULT false,
+  rescheduled_from timestamp with time zone,
   CONSTRAINT study_sessions_pkey PRIMARY KEY (id),
   CONSTRAINT study_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT study_sessions_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.course_lessons(lesson_id),
   CONSTRAINT study_sessions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.study_plans(id)
 );
 CREATE TABLE public.subscriptions (
@@ -1447,6 +1507,26 @@ CREATE TABLE public.user_session (
   revoked boolean NOT NULL DEFAULT false,
   CONSTRAINT user_session_pkey PRIMARY KEY (id),
   CONSTRAINT user_session_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_streaks (
+  user_id uuid NOT NULL,
+  current_streak integer DEFAULT 0,
+  longest_streak integer DEFAULT 0,
+  last_session_date date,
+  total_sessions_completed integer DEFAULT 0,
+  total_study_minutes integer DEFAULT 0,
+  total_sessions_missed integer DEFAULT 0,
+  total_sessions_rescheduled integer DEFAULT 0,
+  weekly_sessions_completed integer DEFAULT 0,
+  weekly_study_minutes integer DEFAULT 0,
+  week_start_date date,
+  monthly_sessions_completed integer DEFAULT 0,
+  monthly_study_minutes integer DEFAULT 0,
+  month_start_date date,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_streaks_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_streaks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.user_warnings (
   warning_id uuid NOT NULL DEFAULT gen_random_uuid(),
