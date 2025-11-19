@@ -45,10 +45,9 @@ export default function CourseDetailPage() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isPurchased, setIsPurchased] = useState(false);
   const [checkingPurchase, setCheckingPurchase] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'content' | 'reviews' | 'instructor'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'content' | 'instructor'>('info');
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [modules, setModules] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
   const [instructorData, setInstructorData] = useState<any>(null);
 
   useEffect(() => {
@@ -59,12 +58,11 @@ export default function CourseDetailPage() {
         setLoading(true);
         setCheckingPurchase(true);
 
-        // ⚡ Paralelizar: Curso + Purchase Check + Modules + Reviews
-        const [courseResponse, purchaseResponse, modulesResponse, reviewsResponse] = await Promise.all([
+        // ⚡ Paralelizar: Curso + Purchase Check + Modules
+        const [courseResponse, purchaseResponse, modulesResponse] = await Promise.all([
           fetch(`/api/courses/${slug}`),
           fetch(`/api/courses/${slug}/check-purchase`),
-          fetch(`/api/courses/${slug}/modules`),
-          fetch(`/api/courses/${slug}/reviews`)
+          fetch(`/api/courses/${slug}/modules`)
         ]);
 
         // Procesar curso
@@ -96,16 +94,6 @@ export default function CourseDetailPage() {
             }
           } else {
             setModules([]);
-          }
-        }
-
-        // Procesar reviews
-        if (reviewsResponse.ok) {
-          const reviewsData = await reviewsResponse.json();
-          if (reviewsData.reviews) {
-            setReviews(reviewsData.reviews);
-          } else if (Array.isArray(reviewsData)) {
-            setReviews(reviewsData);
           }
         }
 
@@ -364,21 +352,23 @@ export default function CourseDetailPage() {
                     {course.title}
                   </h1>
                   <div className="flex items-center gap-6 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <StarRating
-                          rating={course.rating || 0}
-                          size="md"
-                          showRatingNumber={true}
-                          reviewCount={course.review_count}
-                        />
+                    {(course.rating && course.rating > 0) || (course.review_count && course.review_count > 0) ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <StarRating
+                            rating={course.rating || 0}
+                            size="md"
+                            showRatingNumber={course.rating && course.rating > 0}
+                            reviewCount={course.review_count}
+                          />
+                        </div>
+                        {course.review_count && course.review_count > 0 && (
+                          <span className="text-white/80 dark:text-slate-300 text-sm">
+                            ({course.review_count} {course.review_count === 1 ? 'reseña' : 'reseñas'})
+                          </span>
+                        )}
                       </div>
-                      {course.review_count && course.review_count > 0 && (
-                        <span className="text-white/80 dark:text-slate-300 text-sm">
-                          ({course.review_count} {course.review_count === 1 ? 'reseña' : 'reseñas'})
-                        </span>
-                      )}
-                    </div>
+                    ) : null}
                     <div className="flex items-center gap-2 text-white/80 dark:text-slate-300">
                       <Users className="w-5 h-5" />
                       <span>{course.student_count?.toLocaleString() || '0'} estudiantes</span>
@@ -413,7 +403,6 @@ export default function CourseDetailPage() {
               {[
                 { id: 'info', label: 'Información', icon: BookOpen },
                 { id: 'content', label: 'Contenido', icon: FileText },
-                { id: 'reviews', label: 'Reseñas', icon: Star },
                 { id: 'instructor', label: 'Instructor', icon: User }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -608,63 +597,6 @@ export default function CourseDetailPage() {
                             );
                           })}
                         </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-
-                {activeTab === 'reviews' && (
-                  <motion.div
-                    key="reviews"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                  >
-                    <div className="space-y-6">
-                      {reviews.length === 0 ? (
-                        <div className="text-center py-12">
-                          <Star className="w-16 h-16 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-slate-300">Aún no hay reseñas para este curso</p>
-                        </div>
-                      ) : (
-                        reviews.map((review) => (
-                          <div
-                            key={review.id}
-                            className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-none"
-                          >
-                            <div className="flex items-start gap-4 mb-4">
-                              <div className="w-12 h-12 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                                {review.user?.name?.[0]?.toUpperCase() || 'U'}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <h4 className="text-gray-900 dark:text-white font-semibold">{review.user?.name || 'Usuario'}</h4>
-                                </div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star
-                                      key={i}
-                                      className={`w-4 h-4 ${
-                                        i < review.rating
-                                          ? 'text-yellow-400 fill-yellow-400'
-                                          : 'text-gray-300 dark:text-slate-600'
-                                      }`}
-                                    />
-                                  ))}
-                                  <span className="text-gray-600 dark:text-slate-400 text-xs ml-1">
-                                    {formatDate(review.created_at)}
-                                  </span>
-                                </div>
-                                {review.title && (
-                                  <h5 className="text-gray-900 dark:text-white font-medium mb-2">{review.title}</h5>
-                                )}
-                                <p className="text-gray-700 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-line">
-                                  {review.content}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
                       )}
                     </div>
                   </motion.div>
@@ -877,18 +809,18 @@ export default function CourseDetailPage() {
                 </div>
               </div>
 
-              {/* Rating Summary */}
-              {course.rating && course.rating > 0 && (
+              {/* Rating Summary - Solo mostrar si hay rating o reseñas */}
+              {((course.rating && course.rating > 0) || (course.review_count && course.review_count > 0)) ? (
                 <div className="pt-4 border-t border-gray-200 dark:border-slate-700">
                   <StarRating
-                    rating={course.rating}
+                    rating={course.rating || 0}
                     size="lg"
-                    showRatingNumber={true}
+                    showRatingNumber={!!(course.rating && course.rating > 0)}
                     reviewCount={course.review_count}
                     className="justify-center"
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

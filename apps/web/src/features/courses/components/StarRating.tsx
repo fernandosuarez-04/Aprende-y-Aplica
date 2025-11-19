@@ -55,6 +55,11 @@ export function StarRating({
 
   const { star: starSize, gap } = sizeMap[size];
   const displayRating = isHovering && hoveredRating !== null ? hoveredRating : rating;
+  
+  // Si no hay rating ni reseñas y no es editable, no renderizar nada
+  if (!editable && rating === 0 && (!reviewCount || reviewCount === 0)) {
+    return null;
+  }
 
   const handleStarClick = (value: number) => {
     if (editable && onChange) {
@@ -124,9 +129,9 @@ export function StarRating({
         })}
       </div>
 
-      {showRatingNumber && (
+      {showRatingNumber && rating > 0 && (
         <span className="text-sm font-medium text-gray-900 dark:text-white ml-1">
-          {rating > 0 ? rating.toFixed(1) : '0.0'}
+          {rating.toFixed(1)}
         </span>
       )}
 

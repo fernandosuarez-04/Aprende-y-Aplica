@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
 import { RegisterFormData } from '../../types/auth.types';
 import { registerSchema } from '../RegisterForm/RegisterForm.schema';
@@ -28,6 +29,7 @@ export function OrganizationRegisterForm({
   organizationId,
   organizationSlug,
 }: OrganizationRegisterFormProps) {
+  const router = useRouter();
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [selectedCountryCode, setSelectedCountryCode] = useState('MX');
   const [dialCode, setDialCode] = useState('+52');
@@ -91,6 +93,17 @@ export function OrganizationRegisterForm({
       }
     });
   };
+
+  // Redirigir al login cuando se cree exitosamente la cuenta
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        router.push('/auth?tab=login');
+      }, 2000); // Esperar 2 segundos para que el usuario vea el mensaje de éxito
+
+      return () => clearTimeout(timer);
+    }
+  }, [success, router]);
 
   return (
     <>
