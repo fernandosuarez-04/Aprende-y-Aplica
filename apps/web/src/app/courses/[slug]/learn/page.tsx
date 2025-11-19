@@ -2174,7 +2174,32 @@ Antes de cada respuesta, pregúntate:
                         className="overflow-hidden"
                       >
                 {[...modules]
-                  .sort((a, b) => (a.module_order_index || 0) - (b.module_order_index || 0))
+                  .sort((a, b) => {
+                    // Función para extraer número del módulo del título
+                    const extractModuleNumber = (title: string): number => {
+                      const match = title.match(/Módulo\s*(\d+)/i);
+                      return match ? parseInt(match[1], 10) : 999;
+                    };
+
+                    const aNumber = extractModuleNumber(a.module_title);
+                    const bNumber = extractModuleNumber(b.module_title);
+
+                    // Si ambos tienen número en el título, priorizar ese número
+                    if (aNumber !== 999 && bNumber !== 999) {
+                      return aNumber - bNumber;
+                    }
+
+                    // Si solo uno tiene número, priorizarlo
+                    if (aNumber !== 999 && bNumber === 999) return -1;
+                    if (aNumber === 999 && bNumber !== 999) return 1;
+
+                    // Si ninguno tiene número o ambos tienen, usar module_order_index
+                    const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
+                    if (orderDiff !== 0) return orderDiff;
+
+                    // Último recurso: ordenar por título alfabéticamente
+                    return a.module_title.localeCompare(b.module_title);
+                  })
                   .map((module, moduleIndex) => {
                   const isModuleExpanded = expandedModules.has(module.module_id);
                   

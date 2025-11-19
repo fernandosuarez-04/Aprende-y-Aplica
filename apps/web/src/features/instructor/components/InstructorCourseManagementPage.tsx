@@ -278,17 +278,30 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
             ) : (
               [...modules]
                 .sort((a, b) => {
-                  // Primero ordenar por module_order_index
-                  const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
-                  if (orderDiff !== 0) return orderDiff;
-                  
-                  // Si hay empate o valores iguales, extraer número del título como respaldo
+                  // Función para extraer número del módulo del título
                   const extractModuleNumber = (title: string): number => {
                     const match = title.match(/Módulo\s*(\d+)/i);
                     return match ? parseInt(match[1], 10) : 999;
                   };
-                  
-                  return extractModuleNumber(a.module_title) - extractModuleNumber(b.module_title);
+
+                  const aNumber = extractModuleNumber(a.module_title);
+                  const bNumber = extractModuleNumber(b.module_title);
+
+                  // Si ambos tienen número en el título, priorizar ese número
+                  if (aNumber !== 999 && bNumber !== 999) {
+                    return aNumber - bNumber;
+                  }
+
+                  // Si solo uno tiene número, priorizarlo
+                  if (aNumber !== 999 && bNumber === 999) return -1;
+                  if (aNumber === 999 && bNumber !== 999) return 1;
+
+                  // Si ninguno tiene número o ambos tienen, usar module_order_index
+                  const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
+                  if (orderDiff !== 0) return orderDiff;
+
+                  // Último recurso: ordenar por título alfabéticamente
+                  return a.module_title.localeCompare(b.module_title);
                 })
                 .map((module: AdminModule) => (
                 <div key={module.module_id} className="rounded-xl border border-purple-800/30 bg-gray-900/60 overflow-hidden">

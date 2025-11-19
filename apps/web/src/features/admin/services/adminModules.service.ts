@@ -106,13 +106,31 @@ export class AdminModulesService {
     const supabase = await createClient()
 
     try {
-      // Obtener el próximo order_index
-      const { count } = await supabase
-        .from('course_modules')
-        .select('*', { count: 'exact', head: true })
-        .eq('course_id', courseId)
+      // Intentar extraer el número del módulo del título (ej: "Módulo 1" -> 1)
+      const extractModuleNumber = (title: string): number | null => {
+        const match = title.match(/Módulo\s*(\d+)/i);
+        return match ? parseInt(match[1], 10) : null;
+      };
 
-      const nextOrderIndex = (count || 0) + 1
+      let moduleOrderIndex: number;
+      const extractedNumber = extractModuleNumber(moduleData.module_title);
+      
+      if (extractedNumber !== null) {
+        // Si se puede extraer un número del título, usarlo como order_index
+        moduleOrderIndex = extractedNumber;
+      } else {
+        // Si no hay número en el título, usar el máximo order_index + 1
+        const { data: existingModules } = await supabase
+          .from('course_modules')
+          .select('module_order_index')
+          .eq('course_id', courseId)
+          .order('module_order_index', { ascending: false })
+          .limit(1)
+          .single()
+
+        const maxOrderIndex = existingModules?.module_order_index || 0;
+        moduleOrderIndex = maxOrderIndex + 1;
+      }
 
       const { data, error } = await supabase
         .from('course_modules')
@@ -120,7 +138,7 @@ export class AdminModulesService {
           course_id: courseId,
           module_title: moduleData.module_title,
           module_description: moduleData.module_description,
-          module_order_index: nextOrderIndex,
+          module_order_index: moduleOrderIndex,
           module_duration_minutes: 0,
           is_required: moduleData.is_required ?? true,
           is_published: moduleData.is_published ?? false,
