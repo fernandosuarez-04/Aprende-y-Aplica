@@ -44,6 +44,9 @@ export function ContextualVoiceGuide({
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const hasAttemptedOpenRef = useRef<boolean>(false); // Para evitar aperturas múltiples
+  const isOpeningRef = useRef<boolean>(false); // Para evitar aperturas simultáneas
+  const lastPathnameRef = useRef<string>(''); // Para detectar cambios reales de pathname
 
   // Detiene todo audio/voz en reproducciÃ³n (ElevenLabs audio y SpeechSynthesis)
   const stopAllAudio = () => {
@@ -83,22 +86,87 @@ export function ContextualVoiceGuide({
 
   // Verificar si debe mostrar el tour
   useEffect(() => {
+    // Evitar aperturas múltiples
+    if (isOpeningRef.current || hasAttemptedOpenRef.current || isVisible) {
+      return;
+    }
+
     if (requireAuth && !user) return;
+    
+    // Obtener pathname base sin query params para comparación
+    const basePathname = pathname?.split('?')[0] || '';
+    const lastBasePathname = lastPathnameRef.current?.split('?')[0] || '';
     
     const hasSeenTour = localStorage.getItem(storageKey);
     const shouldShow = triggerPaths.some(path => pathname === path || pathname?.startsWith(path));
     
-    if (shouldShow && (!hasSeenTour || isReplayable)) {
+    // Solo abrir automáticamente si:
+    // 1. Debe mostrarse Y
+    // 2. No ha visto el tour Y
+    // 3. El pathname base realmente cambió (no solo query params)
+    // NOTA: isReplayable solo permite apertura MANUAL, no automática
+    if (shouldShow && !hasSeenTour && basePathname !== lastBasePathname && basePathname) {
+      // Marcar que ya intentamos abrir
+      hasAttemptedOpenRef.current = true;
+      isOpeningRef.current = true;
+      
+      // Guardar el pathname base actual
+      lastPathnameRef.current = basePathname;
+      
+      // Pequeño delay para que la página cargue primero
       setTimeout(() => {
-        setIsVisible(true);
+        // Verificar nuevamente antes de abrir (por si el usuario lo cerró rápidamente)
+        const stillHasntSeen = localStorage.getItem(storageKey) !== 'true';
+        if (stillHasntSeen && !isVisible) {
+          setIsVisible(true);
+          // Guardar inmediatamente al abrir por primera vez
+          localStorage.setItem(storageKey, 'opened'); // Usamos 'opened' para diferenciar de 'true' que es cuando se completa
+        }
+        isOpeningRef.current = false;
       }, showDelay);
+    } else if (shouldShow && hasSeenTour) {
+      // Si ya vio el tour, marcar que no debemos intentar abrir automáticamente
+      hasAttemptedOpenRef.current = true;
+      // Actualizar el pathname base para futuras comparaciones
+      if (basePathname) {
+        lastPathnameRef.current = basePathname;
+      }
+    } else if (shouldShow && !hasSeenTour && basePathname === lastBasePathname) {
+      // Si estamos en la misma ruta y no hemos visto el tour, solo actualizar el ref pero no abrir
+      hasAttemptedOpenRef.current = true;
     }
-  }, [pathname, storageKey, triggerPaths, isReplayable, showDelay, requireAuth, user]);
+  }, [pathname, storageKey, triggerPaths, isReplayable, showDelay, requireAuth, user, isVisible]);
 
-  // âœ… Reproducir audio automÃ¡ticamente cuando se abre el modal
+  // ✅ Listener para abrir el tour manualmente (desde "Ver Tour del Curso" u otros botones)
+  useEffect(() => {
+    const handleOpenTour = () => {
+      // Resetear el flag para permitir apertura manual
+      hasAttemptedOpenRef.current = false;
+      isOpeningRef.current = true;
+      
+      // Abrir el modal
+      setIsVisible(true);
+      setCurrentStep(0);
+      
+      // Marcar que ya no estamos abriendo
+      setTimeout(() => {
+        isOpeningRef.current = false;
+      }, 100);
+    };
+
+    // Escuchar evento personalizado para abrir el tour
+    const eventName = `open-tour-${tourId}`;
+    window.addEventListener(eventName, handleOpenTour);
+
+    return () => {
+      window.removeEventListener(eventName, handleOpenTour);
+    };
+  }, [tourId]);
+
+  // ✅ Reproducir audio automáticamente cuando se abre el modal
   useEffect(() => {
     if (isVisible && currentStep === 0 && isAudioEnabled) {
-      // PequeÃ±o delay para asegurar que el modal estÃ© completamente renderizado
+      // Pequeño delay para asegurar que el modal esté completamente renderizado
       const timer = setTimeout(() => {
         speakText(ONBOARDING_STEPS[0].speech);
         setHasUserInteracted(true);
@@ -330,9 +398,9 @@ export function ContextualVoiceGuide({
           }
           lastErrorTimeRef.current = now;
           
-          // Mostrar mensaje de error especÃ­fico solo para errores importantes
+          // Mostrar mensaje de error específico solo para errores importantes
           if (errorType === 'not-allowed') {
-            alert('Necesito permiso para usar el micrÃ³fono.\n\nPor favor:\n1. Haz clic en el icono de micrÃ³fono en la barra de direcciones\n2. Permite el acceso al micrÃ³fono\n3. Intenta de nuevo');
+            alert('Necesito permiso para usar el micrófono.\n\nPor favor:\n1. Haz clic en el icono de micrófono en la barra de direcciones\n2. Permite el acceso al micrófono\n3. Intenta de nuevo');
           } else if (errorType === 'no-speech') {
             // No mostrar error para no-speech, es normal
           } else if (errorType === 'network') {
@@ -377,22 +445,22 @@ export function ContextualVoiceGuide({
       stopAllAudio();
       
       try {
-        // Asegurarse de que el reconocimiento estÃ© detenido antes de iniciarlo
+        // Asegurarse de que el reconocimiento esté detenido antes de iniciarlo
         try {
           recognitionRef.current.stop();
         } catch (e) {
           // Ignorar si ya estÃ¡ detenido
         }
         
-        // PequeÃ±o delay para asegurar que se detuvo completamente
+        // Pequeño delay para asegurar que se detuvo completamente
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Solicitar permisos del micrÃ³fono primero
+        // Solicitar permisos del micrófono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
 
         setTranscript('');
         
-        // Verificar que no estÃ© ya iniciado antes de iniciar
+        // Verificar que no esté ya iniciado antes de iniciar
         try {
           recognitionRef.current.start();
           setIsListening(true);
@@ -405,16 +473,16 @@ export function ContextualVoiceGuide({
           }
         }
       } catch (error: any) {
-        console.error('Error al solicitar permisos de micrÃ³fono:', error);
+        console.error('Error al solicitar permisos de micrófono:', error);
         setIsListening(false);
         
         if (error?.name === 'NotAllowedError') {
-          alert('Necesito permiso para usar el micrÃ³fono.\n\nPor favor permite el acceso al micrÃ³fono en tu navegador y vuelve a intentar.');
+          alert('Necesito permiso para usar el micrófono.\n\nPor favor permite el acceso al micrófono en tu navegador y vuelve a intentar.');
         } else if (error?.message?.includes('already started')) {
           // Ya estÃ¡ iniciado, solo actualizar el estado
           setIsListening(true);
         } else {
-          alert('Error al acceder al micrÃ³fono. Por favor verifica que tu micrÃ³fono estÃ© conectado y funcionando.');
+          alert('Error al acceder al micrófono. Por favor verifica que tu micrófono esté conectado y funcionando.');
         }
       }
     }
@@ -429,7 +497,7 @@ export function ContextualVoiceGuide({
       return;
     }
 
-    // Detener cualquier audio/voz que estÃ© sonando
+    // Detener cualquier audio/voz que esté sonando
     stopAllAudio();
 
     processingRef.current = true;
@@ -505,7 +573,7 @@ export function ContextualVoiceGuide({
 
     } catch (error) {
       console.error('âŒ Error procesando pregunta:', error);
-      const errorMessage = 'Lo siento, tuve un problema procesando tu pregunta. Â¿PodrÃ­as intentarlo de nuevo?';
+      const errorMessage = 'Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?';
       try { await speakText(errorMessage); } catch(e) { /* ignore */ }
     } finally {
       processingRef.current = false;
@@ -556,28 +624,44 @@ export function ContextualVoiceGuide({
   const handleSkip = () => {
     stopAllAudio();
     setIsVisible(false);
-    localStorage.setItem(storageKey, 'true');
+    // Guardar inmediatamente en localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, 'true');
+      // Marcar que ya intentamos abrir para evitar reaperturas
+      hasAttemptedOpenRef.current = true;
+    }
   };
 
   const handleComplete = () => {
     stopAllAudio();
+    // Guardar inmediatamente en localStorage antes de navegar
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, 'true');
+      // Marcar que ya intentamos abrir para evitar reaperturas
+      hasAttemptedOpenRef.current = true;
+    }
+    
     const lastStep = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
+    
+    setIsVisible(false);
     
     if (lastStep.action) {
       router.push(lastStep.action.path);
     }
-    
-    setIsVisible(false);
-    localStorage.setItem(storageKey, 'true');
   };
 
   const handleActionClick = () => {
     const step = ONBOARDING_STEPS[currentStep];
     if (step.action) {
       stopAllAudio();
-      router.push(step.action.path);
+      // Guardar inmediatamente en localStorage antes de navegar
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, 'true');
+        // Marcar que ya intentamos abrir para evitar reaperturas
+        hasAttemptedOpenRef.current = true;
+      }
       setIsVisible(false);
-      localStorage.setItem(storageKey, 'true');
+      router.push(step.action.path);
     }
   };
 
@@ -624,53 +708,9 @@ export function ContextualVoiceGuide({
             >
               {/* Esfera animada estilo JARVIS - MÃ¡s compacta */}
               <div className="relative flex flex-col items-center flex-shrink-0">
-                {/* Esfera central con anillos - MÃ¡s pequeÃ±a para pantallas pequeÃ±as */}
+                {/* Esfera central con anillos - Más pequeña para pantallas pequeñas */}
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
-                  {/* Anillos orbitales externos - MÃ¡s compactos */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-blue-400/30"
-                    animate={{ 
-                      rotate: 360,
-                      scale: [1, 1.03, 1],
-                    }}
-                    transition={{ 
-                      rotate: { duration: 20, repeat: Infinity, ease: 'linear' },
-                      scale: { duration: 2, repeat: Infinity, ease: 'easeInOut' }
-                    }}
-                  />
-                  
-                  <motion.div
-                    className="absolute inset-2 sm:inset-3 rounded-full border-2 border-purple-400/30"
-                    animate={{ 
-                      rotate: -360,
-                      scale: [1, 1.05],
-                    }}
-                    transition={{ 
-                      rotate: { duration: 15, repeat: Infinity, ease: 'linear' },
-                      scale: { 
-                        type: 'tween',
-                        duration: 2.5, 
-                        repeat: Infinity, 
-                        repeatType: 'reverse',
-                        ease: 'easeInOut', 
-                        delay: 0.5 
-                      }
-                    }}
-                  />
-
-                  <motion.div
-                    className="absolute inset-4 sm:inset-6 rounded-full border-2 border-cyan-400/30"
-                    animate={{ 
-                      rotate: 360,
-                      scale: [1, 1.08, 1],
-                    }}
-                    transition={{ 
-                      rotate: { duration: 10, repeat: Infinity, ease: 'linear' },
-                      scale: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1 }
-                    }}
-                  />
-
-                  {/* Esfera central con foto de LIA - MÃ¡s compacta */}
+                  {/* Esfera central con foto de LIA - Más compacta */}
                   <motion.div
                     className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
                     animate={{ 
@@ -928,7 +968,7 @@ export function ContextualVoiceGuide({
                         transition={{ delay: 0.3, duration: 0.4 }}
                         className="mt-2 sm:mt-3 space-y-2 sm:space-y-3"
                       >
-                        {/* BotÃ³n de micrÃ³fono mÃ¡s compacto */}
+                        {/* Botón de micrófono más compacto */}
                         <div className="flex justify-center">
                           <motion.div
                             className="relative"
@@ -1048,7 +1088,7 @@ export function ContextualVoiceGuide({
                           </motion.div>
                         </div>
 
-                        {/* Estado del micrÃ³fono compacto */}
+                        {/* Estado del micrófono compacto */}
                         <motion.p
                           key={isListening ? 'listening' : isProcessing ? 'processing' : 'idle'}
                           initial={{ opacity: 0 }}
@@ -1059,7 +1099,7 @@ export function ContextualVoiceGuide({
                             ? 'Procesando tu pregunta...' 
                             : isListening 
                             ? 'Escuchando... Habla ahora' 
-                            : 'Haz clic en el micrÃ³fono para hablar con LIA'}
+                            : 'Haz clic en el micrófono para hablar con LIA'}
                         </motion.p>
 
                         {/* âœ… Ocultado: TranscripciÃ³n y historial de conversaciÃ³n */}
@@ -1196,13 +1236,13 @@ export function ContextualVoiceGuide({
                               ease: 'easeInOut'
                             }}
                           >
-                            Â¡Comenzar!
+                            ¡Comenzar!
                           </motion.span>
                         </motion.button>
                       )}
                     </div>
 
-                    {/* BotÃ³n de saltar - Con animaciÃ³n mejorada */}
+                    {/* Botón de saltar - Con animación mejorada */}
                     {currentStep < ONBOARDING_STEPS.length - 1 && (
                       <motion.div
                         className="text-center mt-2 sm:mt-3"
@@ -1224,7 +1264,7 @@ export function ContextualVoiceGuide({
                           }}
                           className="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs sm:text-sm transition-colors font-medium group"
                         >
-                          <span className="relative z-10">Saltar introducciÃ³n</span>
+                          <span className="relative z-10">Saltar introducción</span>
                           <motion.div
                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400 dark:bg-gray-500"
                             initial={{ scaleX: 0 }}

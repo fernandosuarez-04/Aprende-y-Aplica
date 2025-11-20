@@ -360,31 +360,40 @@ export default function CourseLearnPage() {
       (item) => item.lesson.lesson_id === lesson.lesson_id
     );
 
-    // Si se está avanzando, validar antes de cambiar
+    // 🚀 OPTIMISTIC UPDATE: Cambiar INMEDIATAMENTE (antes de validar)
     if (selectedIndex > currentIndex) {
-      const canComplete = await markLessonAsCompleted(currentLesson.lesson_id);
-      
-      // Solo cambiar de lección si se pudo completar la actual
-      if (canComplete) {
-        setCurrentLesson(lesson);
-        setActiveTab('video');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        trackUserAction('lesson_opened', {
-          lessonId: lesson.lesson_id,
-          lessonTitle: lesson.lesson_title
-        });
-      } else {
-        // Track que se bloqueó el cambio
-        trackUserAction('attempted_locked_lesson', {
-          targetLessonId: lesson.lesson_id,
-          targetLessonTitle: lesson.lesson_title,
-          reason: 'previous_lesson_not_completed'
-        });
-      }
+      // Guardar lección previa para poder revertir si falla
+      const previousLesson = currentLesson;
+
+      // CAMBIO INSTANTÁNEO (UI no se bloquea)
+      setCurrentLesson(lesson);
+      setActiveTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      trackUserAction('lesson_opened', {
+        lessonId: lesson.lesson_id,
+        lessonTitle: lesson.lesson_title
+      });
+
+      // VALIDAR en segundo plano (async, no bloquea UI)
+      markLessonAsCompleted(previousLesson.lesson_id).then(canComplete => {
+        // Si falla la validación, REVERTIR cambio
+        if (!canComplete) {
+          console.warn('❌ Validación falló, revirtiendo a lección anterior');
+          setCurrentLesson(previousLesson);
+          setActiveTab('video');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          trackUserAction('attempted_locked_lesson', {
+            targetLessonId: lesson.lesson_id,
+            targetLessonTitle: lesson.lesson_title,
+            reason: 'previous_lesson_not_completed'
+          });
+        }
+      });
       return;
     }
-    
-    // Si se está retrocediendo o es la misma, cambiar directamente
+
+    // Si se está retrocediendo, cambiar directamente (sin validación)
     setCurrentLesson(lesson);
     setActiveTab('video');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1511,17 +1520,21 @@ Antes de cada respuesta, pregúntate:
 
           // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
           if (learnData.lastWatchedLessonId && allLessons.length > 0) {
+            console.log('🎯 Auto-redirección: lastWatchedLessonId =', learnData.lastWatchedLessonId);
             const lastWatchedLesson = allLessons.find(
               (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
             );
             if (lastWatchedLesson) {
+              console.log('✅ Auto-redirección: Redirigiendo a lección', lastWatchedLesson.lesson_title);
               setCurrentLesson(lastWatchedLesson);
-            } else if (allLessons.length > 0) {
+            } else {
+              console.log('⚠️ Auto-redirección: No se encontró la lección. Usando fallback.');
               // Fallback: primera lección no completada o primera lección
               const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
               setCurrentLesson(nextIncomplete || allLessons[0]);
             }
           } else if (allLessons.length > 0) {
+            console.log('ℹ️ Auto-redirección: No hay lastWatchedLessonId. Cargando primera lección incompleta.');
             // Si no hay último video visto, cargar primera lección no completada o primera lección
             const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
             setCurrentLesson(nextIncomplete || allLessons[0]);
@@ -1558,25 +1571,27 @@ Antes de cada respuesta, pregúntate:
     }
   }, [slug]);
 
-  // Cargar notas cuando cambia la lección actual
-  useEffect(() => {
-    if (currentLesson && slug) {
-      loadLessonNotes(currentLesson.lesson_id, slug);
-    }
-  }, [currentLesson?.lesson_id, slug]);
+  // 🚀 LAZY LOADING: Las notas se cargan SOLO cuando el usuario abre el panel de notas
+  // (Eliminado useEffect que cargaba notas automáticamente al cambiar de lección)
 
-  // ⚡ OPTIMIZACIÓN: Actualizar last_accessed_at cuando se carga una lección
+  // ⚡ FIRE-AND-FORGET: Actualizar last_accessed_at en segundo plano (no bloquea UI)
   useEffect(() => {
     if (currentLesson && slug) {
-      // Actualizar last_accessed_at en segundo plano (no bloquear UI)
+      // Fire-and-forget: No esperar respuesta, no manejar errores
       fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-      }).catch(() => {
-        // Ignorar errores, es solo para tracking
-      });
+      }).catch(() => null); // Ignorar errores silenciosamente
     }
   }, [currentLesson?.lesson_id, slug]);
+
+  // 🚀 LAZY LOADING: Cargar notas SOLO cuando el usuario expande el panel de notas
+  useEffect(() => {
+    if (!isNotesCollapsed && currentLesson && slug && savedNotes.length === 0) {
+      // Solo cargar si el panel está expandido, hay lección actual y no hay notas cargadas
+      loadLessonNotes(currentLesson.lesson_id, slug);
+    }
+  }, [isNotesCollapsed, currentLesson?.lesson_id, slug]);
 
   // ⚡ OPTIMIZACIÓN: Eliminado prefetch waterfall - datos ya vienen del endpoint unificado
   // El endpoint /learn-data ya incluye transcript, summary, activities, materials y questions
@@ -1635,68 +1650,60 @@ Antes de cada respuesta, pregúntate:
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Función para cargar actividades y materiales de una lección
+  // 🚀 FUNCIÓN OPTIMIZADA: Cargar actividades y materiales de una lección
+  // Ahora usa el endpoint unificado /sidebar-data (3 requests → 1 request)
   const loadLessonActivitiesAndMaterials = async (lessonId: string) => {
     if (!slug) return;
-    
+
     // Solo cargar si no están ya cargados
     if (lessonsActivities[lessonId] !== undefined && lessonsMaterials[lessonId] !== undefined) {
       return; // Ya están cargados
     }
 
     try {
-      const [activitiesResponse, materialsResponse, quizStatusResponse] = await Promise.all([
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/activities`),
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`),
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/quiz/status`)
-      ]);
+      // ⚡ OPTIMIZACIÓN: Una sola petición en lugar de 3
+      const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/sidebar-data`);
 
-      if (activitiesResponse.ok) {
-        const activitiesData = await activitiesResponse.json();
+      if (response.ok) {
+        const data = await response.json();
+
+        // Procesar actividades
         setLessonsActivities(prev => ({
           ...prev,
-          [lessonId]: (activitiesData || []).map((a: any) => ({
+          [lessonId]: (data.activities || []).map((a: any) => ({
             activity_id: a.activity_id,
             activity_title: a.activity_title,
             activity_type: a.activity_type,
             is_required: a.is_required
           }))
         }));
-      } else {
-        // Si falla, establecer como array vacío para no intentar cargar de nuevo
-        setLessonsActivities(prev => ({
-          ...prev,
-          [lessonId]: []
-        }));
-      }
 
-      if (materialsResponse.ok) {
-        const materialsData = await materialsResponse.json();
+        // Procesar materiales
         setLessonsMaterials(prev => ({
           ...prev,
-          [lessonId]: (materialsData || []).map((m: any) => ({
+          [lessonId]: (data.materials || []).map((m: any) => ({
             material_id: m.material_id,
             material_title: m.material_title,
             material_type: m.material_type,
             is_required: m.is_required || m.material_type === 'quiz' // Los quizzes son requeridos por defecto
           }))
         }));
+
+        // Procesar estado de quizzes
+        setLessonsQuizStatus(prev => ({
+          ...prev,
+          [lessonId]: data.quizStatus
+        }));
       } else {
-        // Si falla, establecer como array vacío para no intentar cargar de nuevo
+        // Si falla, establecer como arrays vacíos para no intentar cargar de nuevo
+        setLessonsActivities(prev => ({
+          ...prev,
+          [lessonId]: []
+        }));
         setLessonsMaterials(prev => ({
           ...prev,
           [lessonId]: []
         }));
-      }
-
-      // Procesar estado de quizzes
-      if (quizStatusResponse.ok) {
-        const quizStatusData = await quizStatusResponse.json();
-        setLessonsQuizStatus(prev => ({
-          ...prev,
-          [lessonId]: quizStatusData
-        }));
-      } else {
         setLessonsQuizStatus(prev => ({
           ...prev,
           [lessonId]: null
@@ -1768,6 +1775,44 @@ Antes de cada respuesta, pregúntate:
       }
     }
   }, [currentLesson, modules]);
+
+  // 🚀 PRECARGA INTELIGENTE: Precargar actividades/materiales del módulo actual
+  useEffect(() => {
+    if (!currentLesson || !slug || modules.length === 0) return;
+
+    // Encontrar el módulo de la lección actual
+    const currentModule = modules.find(module =>
+      module.lessons.some(lesson => lesson.lesson_id === currentLesson.lesson_id)
+    );
+
+    if (!currentModule) return;
+
+    // Precargar en segundo plano las lecciones del módulo actual (excepto la actual)
+    const prefetchLessons = async () => {
+      const lessonsToPreload = currentModule.lessons
+        .filter(lesson => lesson.lesson_id !== currentLesson.lesson_id)
+        .filter(lesson => {
+          // Solo precargar si no está ya cargado
+          return lessonsActivities[lesson.lesson_id] === undefined ||
+                 lessonsMaterials[lesson.lesson_id] === undefined;
+        });
+
+      // Limitar a máximo 3 lecciones para no sobrecargar
+      const limitedLessons = lessonsToPreload.slice(0, 3);
+
+      // Precargar en paralelo pero sin esperar (fire and forget)
+      limitedLessons.forEach(lesson => {
+        loadLessonActivitiesAndMaterials(lesson.lesson_id).catch(() => {
+          // Ignorar errores en precarga
+        });
+      });
+    };
+
+    // Ejecutar precarga después de un pequeño delay para no interferir con la carga principal
+    const timeoutId = setTimeout(prefetchLessons, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentLesson, modules, slug, lessonsActivities, lessonsMaterials]);
 
   // Función para encontrar todas las lecciones ordenadas en una lista plana
   const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
@@ -1865,32 +1910,13 @@ Antes de cada respuesta, pregúntate:
     }
   };
 
-  // Función para marcar una lección como completada (local y BD)
+  // ⚡ OPTIMIZADO: Marcar lección como completada con validaciones en paralelo
   const markLessonAsCompleted = async (lessonId: string): Promise<boolean> => {
     if (!canCompleteLesson(lessonId)) {
-      // console.log('No se puede completar la lección porque la anterior no está completada');
       return false;
     }
 
-    // Verificar estado de quizzes obligatorios
-    const quizStatus = await checkQuizStatus(lessonId);
-    if (!quizStatus.canComplete) {
-      // Mostrar modal de validación con el ID de la lección que se intentó completar
-      setValidationModal({
-        isOpen: true,
-        title: 'Hace falta realizar actividad',
-        message: quizStatus.details?.message || quizStatus.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
-        details: quizStatus.details 
-          ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
-          : undefined,
-        type: 'activity',
-        lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
-      });
-      return false;
-    }
-
-    // NO hacer optimistic update del progreso - esperar confirmación del servidor
-    // Solo actualizar el estado visual de la lección
+    // ⚡ OPTIMIZACIÓN: Actualizar estado local INMEDIATAMENTE (optimistic update)
     setModules((prevModules) => {
       return prevModules.map((module) => ({
         ...module,
@@ -1902,19 +1928,56 @@ Antes de cada respuesta, pregúntate:
       }));
     });
 
-    // Actualizar currentLesson si es la lección actual
     if (currentLesson?.lesson_id === lessonId) {
       setCurrentLesson((prev) => prev ? { ...prev, is_completed: true } : null);
     }
 
-    // Guardar en la base de datos
+    // 🚀 PARALLELIZAR: Verificar quizzes Y guardar en BD al mismo tiempo
     try {
-      const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const [quizStatus, saveResponse] = await Promise.all([
+        checkQuizStatus(lessonId),
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+      ]);
+
+      // Verificar si falló validación de quizzes
+      if (!quizStatus.canComplete) {
+        // REVERTIR estado local
+        setModules((prevModules) => {
+          return prevModules.map((module) => ({
+            ...module,
+            lessons: module.lessons.map((lesson) =>
+              lesson.lesson_id === lessonId
+                ? { ...lesson, is_completed: false }
+                : lesson
+            ),
+          }));
+        });
+
+        if (currentLesson?.lesson_id === lessonId) {
+          setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+        }
+
+        // Mostrar modal de validación
+        setValidationModal({
+          isOpen: true,
+          title: 'Hace falta realizar actividad',
+          message: quizStatus.details?.message || quizStatus.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
+          details: quizStatus.details
+            ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
+            : undefined,
+          type: 'activity',
+          lessonId: lessonId,
+        });
+        return false;
+      }
+
+      // Verificar si guardado en BD falló
+      const response = saveResponse;
 
       // Intentar parsear la respuesta primero (puede ser éxito o error)
       let responseData: any;
@@ -2525,6 +2588,36 @@ Antes de cada respuesta, pregúntate:
 
                             {/* Actividades y Materiales desplegables */}
                             <AnimatePresence>
+                              {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
+                              {isExpanded && !isContentLoaded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-blue-200/50 dark:border-blue-800/30">
+                                    {/* Skeleton items */}
+                                    {[1, 2].map((i) => (
+                                      <div
+                                        key={i}
+                                        className="bg-white/50 dark:bg-slate-800/30 border border-gray-200/50 dark:border-slate-700/50 rounded-lg p-3 animate-pulse"
+                                      >
+                                        <div className="flex items-start gap-3">
+                                          <div className="w-8 h-8 bg-gray-200 dark:bg-slate-700 rounded-lg flex-shrink-0"></div>
+                                          <div className="flex-1 space-y-2">
+                                            <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div>
+                                            <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/4"></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              )}
+
+                              {/* Contenido cargado */}
                               {isExpanded && isContentLoaded && hasContent && (
                                 <motion.div
                                   initial={{ height: 0, opacity: 0 }}

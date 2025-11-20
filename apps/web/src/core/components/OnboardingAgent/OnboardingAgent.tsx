@@ -99,6 +99,8 @@ export function OnboardingAgent() {
   const lastErrorTimeRef = useRef<number>(0);
   const router = useRouter();
   const pathname = usePathname();
+  const hasAttemptedOpenRef = useRef<boolean>(false); // Para evitar aperturas múltiples
+  const isOpeningRef = useRef<boolean>(false); // Para evitar aperturas simultáneas
 
   // Detiene todo audio/voz en reproducción (ElevenLabs audio y SpeechSynthesis)
   const stopAllAudio = () => {
@@ -138,16 +140,58 @@ export function OnboardingAgent() {
 
   // Verificar si es la primera visita
   useEffect(() => {
+    // Evitar aperturas múltiples
+    if (isOpeningRef.current || hasAttemptedOpenRef.current || isVisible) {
+      return;
+    }
+
     const hasSeenOnboarding = localStorage.getItem('has-seen-onboarding');
     
     // Solo mostrar en dashboard y si no ha visto el onboarding
     if (!hasSeenOnboarding && pathname === '/dashboard') {
+      // Marcar que ya intentamos abrir
+      hasAttemptedOpenRef.current = true;
+      isOpeningRef.current = true;
+      
       // Pequeño delay para que la página cargue primero
       setTimeout(() => {
-        setIsVisible(true);
+        // Verificar nuevamente antes de abrir (por si el usuario lo cerró rápidamente)
+        const stillHasntSeen = localStorage.getItem('has-seen-onboarding') !== 'true';
+        if (stillHasntSeen && !isVisible) {
+          setIsVisible(true);
+        }
+        isOpeningRef.current = false;
       }, 1000);
+    } else {
+      // Si ya vio el onboarding, marcar que no debemos intentar abrir
+      hasAttemptedOpenRef.current = true;
     }
-  }, [pathname]);
+  }, [pathname, isVisible]);
+
+  // ✅ Listener para abrir el modal manualmente (desde "Ver Tour del Curso" u otros botones)
+  useEffect(() => {
+    const handleOpenOnboarding = () => {
+      // Resetear el flag para permitir apertura manual
+      hasAttemptedOpenRef.current = false;
+      isOpeningRef.current = true;
+      
+      // Abrir el modal
+      setIsVisible(true);
+      setCurrentStep(0);
+      
+      // Marcar que ya no estamos abriendo
+      setTimeout(() => {
+        isOpeningRef.current = false;
+      }, 100);
+    };
+
+    // Escuchar evento personalizado para abrir el onboarding
+    window.addEventListener('open-onboarding', handleOpenOnboarding);
+
+    return () => {
+      window.removeEventListener('open-onboarding', handleOpenOnboarding);
+    };
+  }, []);
 
   // ✅ Reproducir audio automáticamente cuando se abre el modal
   useEffect(() => {
@@ -610,28 +654,44 @@ export function OnboardingAgent() {
   const handleSkip = () => {
     stopAllAudio();
     setIsVisible(false);
-    localStorage.setItem('has-seen-onboarding', 'true');
+    // Guardar inmediatamente en localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('has-seen-onboarding', 'true');
+      // Marcar que ya intentamos abrir para evitar reaperturas
+      hasAttemptedOpenRef.current = true;
+    }
   };
 
   const handleComplete = () => {
     stopAllAudio();
+    // Guardar inmediatamente en localStorage antes de navegar
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('has-seen-onboarding', 'true');
+      // Marcar que ya intentamos abrir para evitar reaperturas
+      hasAttemptedOpenRef.current = true;
+    }
+    
     const lastStep = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
+    
+    setIsVisible(false);
     
     if (lastStep.action) {
       router.push(lastStep.action.path);
     }
-    
-    setIsVisible(false);
-    localStorage.setItem('has-seen-onboarding', 'true');
   };
 
   const handleActionClick = () => {
     const step = ONBOARDING_STEPS[currentStep];
     if (step.action) {
       stopAllAudio();
-      router.push(step.action.path);
+      // Guardar inmediatamente en localStorage antes de navegar
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('has-seen-onboarding', 'true');
+        // Marcar que ya intentamos abrir para evitar reaperturas
+        hasAttemptedOpenRef.current = true;
+      }
       setIsVisible(false);
-      localStorage.setItem('has-seen-onboarding', 'true');
+      router.push(step.action.path);
     }
   };
 
@@ -680,50 +740,6 @@ export function OnboardingAgent() {
               <div className="relative flex flex-col items-center flex-shrink-0">
                 {/* Esfera central con anillos - Más pequeña para pantallas pequeñas */}
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
-                  {/* Anillos orbitales externos - Más compactos */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-blue-400/30"
-                    animate={{ 
-                      rotate: 360,
-                      scale: [1, 1.03, 1],
-                    }}
-                    transition={{ 
-                      rotate: { duration: 20, repeat: Infinity, ease: 'linear' },
-                      scale: { duration: 2, repeat: Infinity, ease: 'easeInOut' }
-                    }}
-                  />
-                  
-                  <motion.div
-                    className="absolute inset-2 sm:inset-3 rounded-full border-2 border-purple-400/30"
-                    animate={{ 
-                      rotate: -360,
-                      scale: [1, 1.05],
-                    }}
-                    transition={{ 
-                      rotate: { duration: 15, repeat: Infinity, ease: 'linear' },
-                      scale: { 
-                        type: 'tween',
-                        duration: 2.5, 
-                        repeat: Infinity, 
-                        repeatType: 'reverse',
-                        ease: 'easeInOut', 
-                        delay: 0.5 
-                      }
-                    }}
-                  />
-
-                  <motion.div
-                    className="absolute inset-4 sm:inset-6 rounded-full border-2 border-cyan-400/30"
-                    animate={{ 
-                      rotate: 360,
-                      scale: [1, 1.08, 1],
-                    }}
-                    transition={{ 
-                      rotate: { duration: 10, repeat: Infinity, ease: 'linear' },
-                      scale: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1 }
-                    }}
-                  />
-
                   {/* Esfera central con foto de LIA - Más compacta */}
                   <motion.div
                     className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
@@ -1107,7 +1123,7 @@ export function OnboardingAgent() {
                           key={isListening ? 'listening' : isProcessing ? 'processing' : 'idle'}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium"
+                          className="text-xs sm:text-sm md:text-base text-gray-800 dark:text-gray-200 font-medium"
                         >
                           {isProcessing 
                             ? 'Procesando tu pregunta...' 
@@ -1276,7 +1292,7 @@ export function OnboardingAgent() {
                             stiffness: 400, 
                             damping: 17 
                           }}
-                          className="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs sm:text-sm transition-colors font-medium group"
+                          className="relative text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs sm:text-sm transition-colors font-medium group"
                         >
                           <span className="relative z-10">Saltar introducción</span>
                           <motion.div

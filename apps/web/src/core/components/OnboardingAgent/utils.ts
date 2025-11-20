@@ -22,6 +22,19 @@ export function useHasSeenOnboarding() {
 }
 
 /**
+ * Función para abrir el onboarding manualmente
+ * Útil para botones como "Ver Tour del Curso"
+ */
+export function openOnboarding() {
+  if (typeof window !== 'undefined') {
+    // Remover el flag para permitir que se abra
+    localStorage.removeItem('has-seen-onboarding');
+    // Disparar evento personalizado para abrir el modal
+    window.dispatchEvent(new CustomEvent('open-onboarding'));
+  }
+}
+
+/**
  * Botón de desarrollo para resetear onboarding
  * Solo visible en desarrollo
  */
