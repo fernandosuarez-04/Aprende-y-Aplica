@@ -219,6 +219,179 @@ export default function CourseLearnPage() {
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [showLiaMenu, setShowLiaMenu] = useState(false);
 
+  // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
+  const [userBehaviorLog, setUserBehaviorLog] = useState<Array<{
+    action: string;
+    timestamp: number;
+    lessonId?: string;
+    lessonTitle?: string;
+    hasCompletedActivities?: boolean;
+    activityDetails?: string;
+    metadata?: any;
+  }>>([]);
+
+  // Función para registrar acciones del usuario
+  const trackUserAction = useCallback((action: string, metadata?: any) => {
+    const logEntry = {
+      action,
+      timestamp: Date.now(),
+      lessonId: currentLesson?.lesson_id,
+      lessonTitle: currentLesson?.lesson_title,
+      metadata
+    };
+    
+    setUserBehaviorLog(prev => {
+      const newLog = [...prev, logEntry];
+      // Mantener solo las últimas 50 acciones para no sobrecargar memoria
+      return newLog.slice(-50);
+    });
+    
+    console.log('🎯 User Action Tracked:', logEntry);
+  }, [currentLesson]);
+
+  // Función para analizar el comportamiento y generar contexto detallado
+  const analyzeUserBehavior = useCallback((): string => {
+    const recentActions = userBehaviorLog.slice(-10); // Últimas 10 acciones
+    const now = Date.now();
+    const last5Minutes = recentActions.filter(a => now - a.timestamp < 300000);
+    
+    let behaviorContext = '';
+    
+    // Detectar intentos de cambiar de lección sin completar
+    const lessonChangeAttempts = last5Minutes.filter(a => a.action === 'attempted_lesson_change_without_completion');
+    if (lessonChangeAttempts.length > 0) {
+      const attemptDetails = lessonChangeAttempts[lessonChangeAttempts.length - 1];
+      behaviorContext += `El usuario ha intentado ${lessonChangeAttempts.length} veces cambiar a otra lección sin completar las actividades requeridas. `;
+      behaviorContext += `Actividades pendientes: ${attemptDetails.metadata?.pendingActivities || 'desconocidas'}. `;
+    }
+    
+    // Detectar clics repetidos en lecciones bloqueadas
+    const blockedAttempts = last5Minutes.filter(a => a.action === 'attempted_locked_lesson');
+    if (blockedAttempts.length > 0) {
+      behaviorContext += `Ha intentado ${blockedAttempts.length} veces acceder a lecciones bloqueadas. `;
+    }
+    
+    // Detectar expansión/colapso frecuente de materiales
+    const expandCollapseActions = last5Minutes.filter(a => a.action === 'expand_lesson_materials' || a.action === 'collapse_lesson_materials');
+    if (expandCollapseActions.length > 3) {
+      behaviorContext += `Está explorando los materiales de forma repetitiva (${expandCollapseActions.length} veces en 5 min). `;
+    }
+    
+    // Detectar cambios frecuentes de tabs
+    const tabChanges = last5Minutes.filter(a => a.action === 'tab_change');
+    if (tabChanges.length > 5) {
+      const tabs = tabChanges.map(a => a.metadata?.tab).filter(Boolean);
+      behaviorContext += `Ha cambiado de sección ${tabChanges.length} veces (${tabs.join(' → ')}), parece estar buscando algo específico. `;
+    }
+    
+    // Detectar tiempo sin interacciones (último registro)
+    if (recentActions.length > 0) {
+      const lastAction = recentActions[recentActions.length - 1];
+      const timeSinceLastAction = (now - lastAction.timestamp) / 1000; // en segundos
+      if (timeSinceLastAction > 120) { // más de 2 minutos
+        behaviorContext += `Lleva ${Math.floor(timeSinceLastAction / 60)} minutos en la misma acción sin interactuar. `;
+      }
+    }
+    
+    // Detectar intentos fallidos de actividades
+    const failedAttempts = last5Minutes.filter(a => a.action === 'activity_failed_attempt');
+    if (failedAttempts.length > 0) {
+      behaviorContext += `Ha fallado ${failedAttempts.length} intentos en actividades. `;
+    }
+    
+    return behaviorContext.trim();
+  }, [userBehaviorLog, currentLesson]);
+
+  // Función mejorada para manejar cambio de lección con tracking
+  const handleLessonChange = useCallback(async (lesson: Lesson) => {
+    // Si es la misma lección, no hacer nada
+    if (currentLesson?.lesson_id === lesson.lesson_id) {
+      return;
+    }
+
+    // Si no hay lección actual, cambiar directamente
+    if (!currentLesson) {
+      setCurrentLesson(lesson);
+      setActiveTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      trackUserAction('lesson_opened', {
+        lessonId: lesson.lesson_id,
+        lessonTitle: lesson.lesson_title
+      });
+      return;
+    }
+
+    // Verificar si hay actividades requeridas sin completar en la lección actual
+    const currentActivities = lessonsActivities[currentLesson.lesson_id] || [];
+    const requiredActivities = currentActivities.filter(a => a.is_required);
+    const pendingRequired = requiredActivities.filter(a => !a.is_completed);
+    
+    if (pendingRequired.length > 0) {
+      const pendingTitles = pendingRequired.map(a => a.activity_title).join(', ');
+      trackUserAction('attempted_lesson_change_without_completion', {
+        currentLessonId: currentLesson.lesson_id,
+        currentLessonTitle: currentLesson.lesson_title,
+        targetLessonId: lesson.lesson_id,
+        targetLessonTitle: lesson.lesson_title,
+        pendingActivities: pendingTitles,
+        pendingCount: pendingRequired.length
+      });
+      
+      console.warn('⚠️ Usuario intenta cambiar de lección con actividades pendientes:', {
+        current: currentLesson.lesson_title,
+        target: lesson.lesson_title,
+        pending: pendingTitles
+      });
+    } else {
+      trackUserAction('lesson_change', {
+        from: currentLesson.lesson_title,
+        to: lesson.lesson_title
+      });
+    }
+
+    // Verificar si está avanzando o retrocediendo
+    const allLessons = getAllLessonsOrdered();
+    const currentIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === currentLesson.lesson_id
+    );
+    const selectedIndex = allLessons.findIndex(
+      (item) => item.lesson.lesson_id === lesson.lesson_id
+    );
+
+    // Si se está avanzando, validar antes de cambiar
+    if (selectedIndex > currentIndex) {
+      const canComplete = await markLessonAsCompleted(currentLesson.lesson_id);
+      
+      // Solo cambiar de lección si se pudo completar la actual
+      if (canComplete) {
+        setCurrentLesson(lesson);
+        setActiveTab('video');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        trackUserAction('lesson_opened', {
+          lessonId: lesson.lesson_id,
+          lessonTitle: lesson.lesson_title
+        });
+      } else {
+        // Track que se bloqueó el cambio
+        trackUserAction('attempted_locked_lesson', {
+          targetLessonId: lesson.lesson_id,
+          targetLessonTitle: lesson.lesson_title,
+          reason: 'previous_lesson_not_completed'
+        });
+      }
+      return;
+    }
+    
+    // Si se está retrocediendo o es la misma, cambiar directamente
+    setCurrentLesson(lesson);
+    setActiveTab('video');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    trackUserAction('lesson_opened', {
+      lessonId: lesson.lesson_id,
+      lessonTitle: lesson.lesson_title
+    });
+  }, [currentLesson, lessonsActivities, trackUserAction]);
+
   // Limpiar prompts cuando se cambia de tab
   useEffect(() => {
     if (activeTab !== 'activities') {
@@ -1886,43 +2059,6 @@ Antes de cada respuesta, pregúntate:
   };
 
 
-  // Función para manejar el cambio de lección desde el panel
-  const handleLessonChange = async (selectedLesson: Lesson) => {
-    if (!currentLesson) {
-      // Si no hay lección actual, cambiar directamente
-      setCurrentLesson(selectedLesson);
-      setActiveTab('video');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    const allLessons = getAllLessonsOrdered();
-    const currentIndex = allLessons.findIndex(
-      (item) => item.lesson.lesson_id === currentLesson.lesson_id
-    );
-    const selectedIndex = allLessons.findIndex(
-      (item) => item.lesson.lesson_id === selectedLesson.lesson_id
-    );
-
-    // Si se está avanzando, validar antes de cambiar
-    if (selectedIndex > currentIndex) {
-      const canComplete = await markLessonAsCompleted(currentLesson.lesson_id);
-      
-      // Solo cambiar de lección si se pudo completar la actual
-      if (canComplete) {
-        setCurrentLesson(selectedLesson);
-        setActiveTab('video');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-      // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
-    } else {
-      // Si se está retrocediendo o es la misma, cambiar directamente
-      setCurrentLesson(selectedLesson);
-      setActiveTab('video');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
   const tabs = [
     { id: 'video' as const, label: 'Video', icon: Play },
     { id: 'transcript' as const, label: 'Transcripción', icon: ScrollText },
@@ -1964,7 +2100,7 @@ Antes de cada respuesta, pregúntate:
       workshopId={course?.id || course?.course_id || slug}
       activityId={currentLesson?.lesson_id || 'no-lesson'}
       enabled={!!course && !!currentLesson}
-      checkInterval={30000}
+      checkInterval={15000}
       assistantPosition="bottom-right"
       assistantCompact={false}
       onDifficultyDetected={(analysis) => {
@@ -1984,8 +2120,50 @@ Antes de cada respuesta, pregúntate:
         // Abrir el panel de LIA (panel derecho)
         setIsRightPanelOpen(true);
         
-        // Construir mensaje visible simple para el usuario
-        const visibleUserMessage = `Necesito ayuda con esta lección`;
+        // Generar mensaje personalizado basado en los patrones detectados
+        const generatePersonalizedMessage = (patterns: any[]) => {
+          // Priorizar patrones por severidad
+          const highSeverityPatterns = patterns.filter(p => p.severity === 'high');
+          const mediumSeverityPatterns = patterns.filter(p => p.severity === 'medium');
+          
+          // Usar el patrón de mayor severidad primero
+          const primaryPattern = highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
+          
+          if (!primaryPattern) {
+            return 'Necesito ayuda con esta lección';
+          }
+          
+          // Mensajes específicos por tipo de patrón
+          const messageMap: Record<string, string> = {
+            'inactivity': 'Llevo varios minutos sin poder avanzar en esta lección',
+            'excessive_scroll': 'Estoy buscando información en la lección pero no encuentro lo que necesito',
+            'failed_attempts': 'He intentado completar la actividad varias veces pero no lo logro',
+            'frequent_deletion': 'Estoy teniendo problemas para escribir la respuesta correcta',
+            'repetitive_cycles': 'Estoy confundido y no sé cómo continuar con esta lección',
+            'erroneous_clicks': 'He intentado varias opciones pero no consigo avanzar',
+            'back_navigation': 'Necesito revisar contenido anterior porque no entiendo esta parte'
+          };
+          
+          // Si hay múltiples patrones de alta severidad, combinarlos
+          if (highSeverityPatterns.length > 1) {
+            const mainIssue = messageMap[primaryPattern.type] || 'Estoy teniendo dificultades con esta lección';
+            return `${mainIssue} y estoy un poco bloqueado`;
+          }
+          
+          return messageMap[primaryPattern.type] || 'Necesito ayuda con esta lección';
+        };
+        
+        // Construir mensaje visible personalizado para el usuario
+        const visibleUserMessage = generatePersonalizedMessage(analysis.patterns);
+        
+        // 🎯 ANÁLISIS PROFUNDO DEL COMPORTAMIENTO DEL USUARIO
+        const behaviorAnalysis = analyzeUserBehavior();
+        
+        // Obtener información sobre actividades pendientes
+        const currentActivities = currentLesson ? (lessonsActivities[currentLesson.lesson_id] || []) : [];
+        const requiredActivities = currentActivities.filter(a => a.is_required);
+        const pendingRequired = requiredActivities.filter(a => !a.is_completed);
+        const completedActivities = currentActivities.filter(a => a.is_completed);
         
         // Construir contexto enriquecido de la lección con información de la dificultad detectada
         const enrichedLessonContext = currentLesson && course ? {
@@ -1996,6 +2174,22 @@ Antes de cada respuesta, pregúntate:
           lessonDescription: currentLesson.lesson_description,
           durationSeconds: currentLesson.duration_seconds,
           userRole: user?.type_rol || undefined,
+          // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
+          activitiesContext: {
+            totalActivities: currentActivities.length,
+            requiredActivities: requiredActivities.length,
+            completedActivities: completedActivities.length,
+            pendingRequiredCount: pendingRequired.length,
+            pendingRequiredTitles: pendingRequired.map(a => a.activity_title).join(', '),
+            activityTypes: currentActivities.map(a => ({
+              title: a.activity_title,
+              type: a.activity_type,
+              isRequired: a.is_required,
+              isCompleted: a.is_completed
+            }))
+          },
+          // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
+          userBehaviorContext: behaviorAnalysis,
           // Agregar información de la dificultad detectada al contexto
           difficultyDetected: {
             patterns: analysis.patterns.map(p => ({

@@ -144,12 +144,16 @@ export function useDifficultyDetection(
         }))
       });
 
-      // Si se debe intervenir y han pasado al menos 5 minutos desde última intervención
+      // Si se debe intervenir y han pasado al menos 2 minutos desde última intervención (reducido para testing)
       const timeSinceLastIntervention = Date.now() - lastInterventionTimeRef.current;
-      const minTimeBetweenInterventions = 5 * 60 * 1000; // 5 minutos
+      const minTimeBetweenInterventions = 2 * 60 * 1000; // 2 minutos (reducido de 5 para testing)
 
       if (currentAnalysis.shouldIntervene && timeSinceLastIntervention > minTimeBetweenInterventions) {
-        console.log('🚨 Dificultad detectada! Ofreciendo ayuda proactiva');
+        console.log('🚨 Dificultad detectada! Ofreciendo ayuda proactiva', {
+          score: currentAnalysis.overallScore,
+          patterns: currentAnalysis.patterns,
+          timeSinceLastIntervention: `${Math.floor(timeSinceLastIntervention / 1000)}s`
+        });
         setAnalysis(currentAnalysis);
         setShouldShowHelp(true);
         lastInterventionTimeRef.current = Date.now();
@@ -159,7 +163,18 @@ export function useDifficultyDetection(
           onDifficultyDetected(currentAnalysis);
         }
       } else if (currentAnalysis.shouldIntervene) {
-        console.log('⏳ Dificultad detectada pero esperando cooldown de intervención');
+        console.log('⏳ Dificultad detectada pero esperando cooldown de intervención', {
+          score: currentAnalysis.overallScore,
+          patternsCount: currentAnalysis.patterns.length,
+          timeSinceLastIntervention: `${Math.floor(timeSinceLastIntervention / 1000)}s`,
+          cooldownRemaining: `${Math.floor((minTimeBetweenInterventions - timeSinceLastIntervention) / 1000)}s`
+        });
+      } else {
+        console.log('✅ Sesión normal - sin patrones de dificultad significativos', {
+          score: currentAnalysis.overallScore,
+          patternsCount: currentAnalysis.patterns.length,
+          threshold: 0.5
+        });
       }
     } catch (error) {
       console.error('❌ Error al analizar sesión:', error);
