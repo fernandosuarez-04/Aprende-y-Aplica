@@ -1806,19 +1806,6 @@ Fecha: ${new Date().toLocaleString()}
                       className="absolute right-9 top-8 bg-white/95 dark:bg-[#0d0d0d] backdrop-blur-md border border-white/30 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
                     >
                       <div className="min-w-[260px] py-2">
-                        {/* NORMAL */}
-                        <button
-                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
-                          onClick={() => { setIsPromptMode(false); setUseContextMode(false); setModeMenuOpen(false); }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-blue-500"></div>
-                            <div className="flex-1">
-                              <div className={`text-sm font-semibold ${currentMode==='normal' ? 'text-blue-600 dark:text-blue-400' : ''}`}>Asistente</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">Conversación general con ayuda contextual ligera.</div>
-                            </div>
-                          </div>
-                        </button>
                         {/* PROMPT */}
                         <button
                           className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
@@ -1832,7 +1819,7 @@ Fecha: ${new Date().toLocaleString()}
                             </div>
                           </div>
                         </button>
-                        {/* ANALISIS */}
+                        {/* CONTEXTO PERSISTENTE */}
                         <button
                           className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
                           onClick={() => { setUseContextMode(true); setIsPromptMode(false); setModeMenuOpen(false); }}
