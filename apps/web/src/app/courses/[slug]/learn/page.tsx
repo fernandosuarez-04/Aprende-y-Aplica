@@ -57,6 +57,8 @@ import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
 import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
 import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
+import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/components/ContextualVoiceGuide';
+import { COURSE_LEARN_TOUR_STEPS } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 
@@ -4094,6 +4096,25 @@ Antes de cada respuesta, pregúntate:
           // Redirigir a la página de certificados después de completar la encuesta
           router.push('/certificates');
         }}
+      />
+
+      {/* Tour de voz contextual para la página de aprendizaje */}
+      <ContextualVoiceGuide
+        tourId="course-learn"
+        steps={COURSE_LEARN_TOUR_STEPS}
+        triggerPaths={['/courses']}
+        isReplayable={true}
+        showDelay={2000}
+        replayButtonLabel="Ver tour del curso"
+        requireAuth={true}
+      />
+
+      {/* Botón para volver a ver el tour */}
+      <ReplayTourButton
+        tourId="course-learn"
+        label="Ver Tour del Curso"
+        allowedPaths={['/courses']}
+        requireAuth={true}
       />
     </div>
     </WorkshopLearningProvider>
