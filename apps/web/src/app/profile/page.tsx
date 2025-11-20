@@ -126,7 +126,7 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4">
               <motion.button
                 onClick={() => router.back()}
-                className="flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-carbon-800"
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-carbon-800"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -136,8 +136,8 @@ export default function ProfilePage() {
             </div>
 
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-text-primary">Mi Perfil</h1>
-              <p className="text-sm text-gray-500 dark:text-text-tertiary">Gestiona tu información personal</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mi Perfil</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Gestiona tu información personal</p>
             </div>
 
             <motion.button
@@ -214,10 +214,10 @@ export default function ProfilePage() {
                   </motion.label>
                 </motion.div>
                 
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-text-primary">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {profile.display_name}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-text-tertiary">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   {profile.type_rol}
                 </p>
               </div>
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                   <div className="w-12 h-12 bg-primary/20 dark:bg-primary/30 rounded-xl flex items-center justify-center mb-2">
                     <Award className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Puntos</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 text-center">Puntos</span>
                   <span className="text-2xl font-bold text-gray-900 dark:text-white">
                     {profile.points.toLocaleString()}
                   </span>
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                   <div className="w-12 h-12 bg-green-500/20 dark:bg-green-500/30 rounded-xl flex items-center justify-center mb-2">
                     <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Cursos Completados</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 text-center">Cursos Completados</span>
                   <span className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats?.completedCourses ?? 0}
                   </span>
@@ -248,7 +248,7 @@ export default function ProfilePage() {
                   <div className="w-12 h-12 bg-blue-500/20 dark:bg-blue-500/30 rounded-xl flex items-center justify-center mb-2">
                     <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Lecciones Completadas</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 text-center">Lecciones Completadas</span>
                   <span className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats?.completedLessons ?? 0}
                   </span>
@@ -258,7 +258,7 @@ export default function ProfilePage() {
                   <div className="w-12 h-12 bg-purple-500/20 dark:bg-purple-500/30 rounded-xl flex items-center justify-center mb-2">
                     <GraduationCap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Certificados</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 text-center">Certificados</span>
                   <span className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats?.certificates ?? 0}
                   </span>
@@ -274,7 +274,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-900 dark:text-white block">Cursos en Progreso</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Continuando tu aprendizaje</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Continuando tu aprendizaje</span>
                     </div>
                   </div>
                   <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                                   {getTypeLabel(subscription.subscription_type)}
                                 </p>
                                 {subscription.course_title && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
                                     {subscription.course_title}
                                   </p>
                                 )}
@@ -380,7 +380,7 @@ export default function ProfilePage() {
                               {getStatusLabel(subscription.subscription_status)}
                             </span>
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-300">
                             <div>
                               <span className="font-medium">Precio:</span> {formatPrice(subscription.price_cents)}
                             </div>
@@ -407,7 +407,7 @@ export default function ProfilePage() {
 
               {/* Info del sistema */}
               <div className="pt-4 border-t border-gray-200 dark:border-carbon-700">
-                <div className="space-y-2 text-xs text-gray-500 dark:text-text-tertiary">
+                <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-3 h-3" />
                     <span>Miembro desde {formatDate(profile.created_at)}</span>
@@ -445,99 +445,99 @@ export default function ProfilePage() {
                     <User className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-text-primary">Información Personal</h2>
-                    <p className="text-sm text-gray-500 dark:text-text-tertiary">Detalles personales y profesionales</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Información Personal</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Detalles personales y profesionales</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Nombre *
                     </label>
                     <input
                       type="text"
                       value={formData.first_name || ''}
                       onChange={(e) => handleInputChange('first_name', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Nombre"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Apellido *
                     </label>
                     <input
                       type="text"
                       value={formData.last_name || ''}
                       onChange={(e) => handleInputChange('last_name', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Apellido"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Nombre de Usuario *
                     </label>
                     <input
                       type="text"
                       value={formData.username || ''}
                       onChange={(e) => handleInputChange('username', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="usuario"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Rol en la Empresa
                     </label>
                     <input
                       type="text"
                       value={formData.type_rol || ''}
                       onChange={(e) => handleInputChange('type_rol', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Ej: CEO, CTO/CIO, Desarrollador UX/UI, Gerencia Media..."
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Teléfono
                     </label>
                     <input
                       type="tel"
                       value={formData.phone || ''}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="+52 55 1234 5678"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Ubicación
                     </label>
                     <input
                       type="text"
                       value={formData.location || ''}
                       onChange={(e) => handleInputChange('location', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Ciudad, País"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Biografía
                     </label>
                     <textarea
                       value={formData.bio || ''}
                       onChange={(e) => handleInputChange('bio', e.target.value)}
                       rows={4}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors resize-none"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors resize-none"
                       placeholder="Cuéntanos sobre ti, tus intereses y objetivos de aprendizaje..."
                     />
                   </div>
@@ -556,54 +556,54 @@ export default function ProfilePage() {
                     <Mail className="w-4 h-4 text-green-500" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-text-primary">Seguridad</h2>
-                    <p className="text-sm text-gray-500 dark:text-text-tertiary">Gestiona tu email y contraseña</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Seguridad</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Gestiona tu email y contraseña</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Correo Electrónico *
                     </label>
                     <input
                       type="email"
                       value={formData.email || ''}
                       onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="tu@email.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Nueva Contraseña
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Mínimo 8 caracteres"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Contraseña Actual
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Ingresa tu contraseña actual"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Confirmar Nueva Contraseña
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="Confirma tu nueva contraseña"
                     />
                   </div>
@@ -622,14 +622,14 @@ export default function ProfilePage() {
                     <FileText className="w-4 h-4 text-blue-500" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-text-primary">Documentos y Links</h2>
-                    <p className="text-sm text-gray-500 dark:text-text-tertiary">Gestiona tu curriculum y perfiles profesionales</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Documentos y Links</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Gestiona tu curriculum y perfiles profesionales</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Curriculum Vitae
                     </label>
                     <div className="space-y-3">
@@ -655,8 +655,8 @@ export default function ProfilePage() {
                         htmlFor="curriculum-upload" 
                         className="flex items-center space-x-2 px-4 py-3 bg-gray-100 dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg hover:bg-gray-200 dark:hover:bg-carbon-600 transition-colors cursor-pointer"
                       >
-                        <Upload className="w-4 h-4 text-gray-600 dark:text-text-secondary" />
-                        <span className="text-gray-700 dark:text-text-secondary">
+                        <Upload className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                        <span className="text-gray-700 dark:text-gray-300">
                           {profile.curriculum_url ? 'Cambiar CV' : 'Subir CV'}
                         </span>
                       </label>
@@ -681,45 +681,45 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Portafolio/Sitio Web
                     </label>
                     <input
                       type="url"
                       value={formData.website_url || ''}
                       onChange={(e) => handleInputChange('website_url', e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                       placeholder="https://tu-portafolio.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       LinkedIn
                     </label>
                     <div className="relative">
-                      <Linkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-text-tertiary" />
+                      <Linkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input
                         type="url"
                         value={formData.linkedin_url || ''}
                         onChange={(e) => handleInputChange('linkedin_url', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                         placeholder="https://linkedin.com/in/tu-perfil"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       GitHub
                     </label>
                     <div className="relative">
-                      <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-text-tertiary" />
+                      <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input
                         type="url"
                         value={formData.github_url || ''}
                         onChange={(e) => handleInputChange('github_url', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
+                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
                         placeholder="https://github.com/tu-usuario"
                       />
                     </div>

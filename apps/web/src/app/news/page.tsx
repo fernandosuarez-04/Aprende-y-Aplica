@@ -386,7 +386,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
         >
         <div className="mx-auto max-w-7xl">
           {/* Controls */}
-          <div className="grid gap-6 lg:grid-cols-[1fr_auto] mb-12">
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto] mb-12" suppressHydrationWarning>
             {/* Search */}
             <motion.div 
               className="flex-1 bg-white/80 dark:bg-gray-900/70 border border-white/40 dark:border-white/5 rounded-3xl shadow-[0_20px_60px_rgba(15,15,15,0.35)] backdrop-blur-xl p-1.5"
