@@ -2,12 +2,21 @@
 
 import React from 'react';
 import { resetOnboarding } from './utils';
+import { useAuth } from '../../../features/auth/hooks/useAuth';
 
 /**
  * Botón para volver a ver la experiencia de bienvenida con LIA
  * Permite al usuario acceder nuevamente al tour guiado con el agente de voz
+ * Solo visible para usuarios autenticados
  */
 export function DevResetButton() {
+  const { user } = useAuth();
+
+  // Solo mostrar si el usuario está autenticado
+  if (!user) {
+    return null;
+  }
+
   return (
     <button
       onClick={() => {
