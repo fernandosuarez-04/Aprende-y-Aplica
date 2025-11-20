@@ -195,7 +195,8 @@ const getContextPrompt = (
   courseContext?: CourseLessonContext,
   pageContext?: PageContext,
   userRole?: string,
-  language: SupportedLanguage = 'es'
+  language: SupportedLanguage = 'es',
+  isFirstMessage: boolean = false  // ✅ Nuevo parámetro para detectar primer mensaje
 ) => {
   // Obtener rol del usuario (priorizar el pasado como parámetro, luego del contexto)
   const role = userRole || courseContext?.userRole;
@@ -204,11 +205,11 @@ const getContextPrompt = (
   const nameGreeting = userName && userName !== 'usuario' 
     ? `INFORMACIÓN DEL USUARIO:
 - El nombre del usuario es: ${userName}
-- DEBES usar su nombre de manera natural y amigable en tus respuestas cuando sea apropiado
-- Dirígete a él/ella usando su nombre, especialmente al inicio de la conversación o cuando quieras crear una conexión más personal
-- Usa un tono cálido y personalizado, como si fueras su tutor personal
-- Ejemplos de cómo usar el nombre: "Hola ${userName}!", "Perfecto ${userName},", "${userName}, te explico...", etc.
-- No abuses del nombre, úsalo estratégicamente para crear una experiencia más personal y cercana`
+- 🚫 NO uses el nombre del usuario en tus respuestas
+- 🚫 NO saludes con "Hola", "Hi", "Bienvenido", etc.
+- Responde de forma directa y natural sin saludos ni nombres
+- Ejemplo CORRECTO: "Claro, déjame explicarte...", "La plataforma contiene..."
+- Ejemplo INCORRECTO: "Hola ${userName}", "Claro ${userName}", cualquier uso del nombre`
     : '';
   
   // Información del rol del usuario para personalización
@@ -753,10 +754,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Obtener el mejor nombre disponible para personalización
-    const displayName = userInfo?.display_name || 
-                        (userInfo?.first_name && userInfo?.last_name ? `${userInfo.first_name} ${userInfo.last_name}` : null) ||
-                        userInfo?.first_name || 
+    // Obtener el mejor nombre disponible para personalización (solo primer nombre)
+    const displayName = userInfo?.first_name || 
+                        userInfo?.display_name || 
                         userInfo?.username || 
                         userName || 
                         'usuario';
@@ -769,8 +769,11 @@ export async function POST(request: NextRequest) {
       courseContext.userRole = userRole;
     }
     
+    // ✅ Detectar si es el primer mensaje de la conversación
+    const isFirstMessage = !conversationHistory || conversationHistory.length === 0;
+    
     // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso y contexto de página
-    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext, userRole);
+    const contextPrompt = getContextPrompt(context, displayName, courseContext, pageContext, userRole, language, isFirstMessage);
 
     // ✅ OPTIMIZACIÓN: Inicializar analytics de forma asíncrona para no bloquear el procesamiento del mensaje
     let conversationId: string | null = existingConversationId || null;
