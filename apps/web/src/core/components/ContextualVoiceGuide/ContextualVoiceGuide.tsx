@@ -462,14 +462,14 @@ export function ContextualVoiceGuide({
 
       // âœ… OPTIMIZACIÃ“N: Llamar directamente a /api/ai-chat (eliminando middleware)
       // Esto reduce la latencia en ~100-200ms al evitar un salto HTTP innecesario
-      const platformContext = getPlatformContext ? getPlatformContext() : undefined;
+      const platformContext = undefined;
 
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: question,
-          context: 'onboarding',
+          context: `tour-${tourId}`,
           conversationHistory: conversationHistory || [],
           userName: undefined,
           pageContext: platformContext,
