@@ -1325,11 +1325,14 @@ export function AIChatAgent({
   const handleClearConversation = () => {
     // Si el modo de contexto está activado, preguntar antes de limpiar
     if (useContextMode && normalMessages.length > 0 && !isPromptMode) {
-      if (!window.confirm('Tienes el modo de contexto persistente activado. ¿Deseas limpiar la conversación y el contexto guardado?')) {
-        return;
-      }
+      setShowClearConfirm(true);
+      return;
     }
     
+    executeClearConversation();
+  };
+
+  const executeClearConversation = () => {
     if (isPromptMode) {
       setPromptMessages([]);
     } else {
@@ -1344,6 +1347,7 @@ export function AIChatAgent({
     setGeneratedPrompt(null);
     setIsPromptPanelOpen(false);
     setSelectedPromptMessageId(null);
+    setShowClearConfirm(false);
   };
 
   const handleDownloadPrompt = () => {
@@ -1436,6 +1440,7 @@ Fecha: ${new Date().toLocaleString()}
 
   // Menu de selección de modo (tipo hamburguesa)
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -2116,6 +2121,66 @@ Fecha: ${new Date().toLocaleString()}
         onClose={() => setIsReportOpen(false)}
         fromLia={true}
       />
+
+      {/* Modal de Confirmación de Limpieza */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowClearConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-gray-200 dark:border-white/10"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Trash2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Limpiar Contexto</h3>
+                    <p className="text-white/80 text-sm">Contexto Persistente activo</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-6">
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                  Tienes <span className="font-semibold text-teal-600 dark:text-teal-400">{normalMessages.length} mensajes</span> guardados en el contexto persistente.
+                </p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mt-3">
+                  ¿Deseas borrar toda la conversación y el contexto guardado?
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 p-6 pt-0">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 px-4 py-3 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={executeClearConversation}
+                  className="flex-1 px-4 py-3 rounded-xl font-medium text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 transition-all shadow-lg shadow-red-500/25"
+                >
+                  Borrar Todo
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
