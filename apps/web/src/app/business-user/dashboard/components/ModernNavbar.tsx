@@ -70,20 +70,20 @@ export function ModernNavbar({
               className="flex items-center gap-3"
             >
               {(organization?.favicon_url || organization?.logo_url) ? (
-                <div className="relative h-9 w-9 rounded-lg overflow-hidden ring-1 ring-gray-200/50 dark:ring-gray-800/50">
+                <div className="relative h-12 w-12 rounded-xl overflow-hidden ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm">
                   <Image
                     src={organization.favicon_url || organization.logo_url || '/icono.png'}
                     alt={organization.name}
                     fill
-                    className="object-contain p-1"
+                    className="object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/icono.png';
                     }}
                   />
                 </div>
               ) : (
-                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center ring-1 ring-gray-200/50 dark:ring-gray-800/50">
-                  <Building2 className="h-5 w-5 text-white" />
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm">
+                  <Building2 className="h-7 w-7 text-white" />
                 </div>
               )}
               <div className="hidden sm:block">
