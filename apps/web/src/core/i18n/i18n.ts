@@ -9,6 +9,9 @@ import commonPt from '../../../public/locales/pt/common.json';
 import dashboardEs from '../../../public/locales/es/dashboard.json';
 import dashboardEn from '../../../public/locales/en/dashboard.json';
 import dashboardPt from '../../../public/locales/pt/dashboard.json';
+import contentEs from '../../../public/locales/es/content.json';
+import contentEn from '../../../public/locales/en/content.json';
+import contentPt from '../../../public/locales/pt/content.json';
 
 export type SupportedLanguage = 'es' | 'en' | 'pt';
 
@@ -16,14 +19,17 @@ const resources: Resource = {
   es: {
     common: commonEs,
     dashboard: dashboardEs,
+    content: contentEs,
   },
   en: {
     common: commonEn,
     dashboard: dashboardEn,
+    content: contentEn,
   },
   pt: {
     common: commonPt,
     dashboard: dashboardPt,
+    content: contentPt,
   },
 };
 
@@ -35,7 +41,7 @@ export const initI18n = () => {
       resources,
       lng: 'es',
       fallbackLng: 'es',
-      ns: ['common', 'dashboard'],
+      ns: ['common', 'dashboard', 'content'],
       defaultNS: 'common',
       interpolation: {
         escapeValue: false,

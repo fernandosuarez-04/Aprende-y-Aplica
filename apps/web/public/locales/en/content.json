@@ -1,0 +1,6 @@
+{
+  "courses": {},
+  "modules": {},
+  "lessons": {},
+  "_instructions": "This file contains translations for dynamic database content. Structure: { 'entity_id': { 'field': 'translated value' } }"
+}
