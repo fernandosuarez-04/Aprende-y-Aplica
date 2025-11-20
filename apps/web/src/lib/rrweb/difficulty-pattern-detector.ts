@@ -418,6 +418,13 @@ export class DifficultyPatternDetector {
       primeras5Ventanas: activeWindows.slice(0, 5)
     });
 
+    // 🛑 VALIDACIÓN CRÍTICA: Solo detectar si hay interacciones reales del usuario
+    // Si no hay clicks, inputs, o teclas presionadas, no hay scroll intencional
+    if (interactionEvents.length < 5) {
+      console.log('⚠️ [DEBUG] Ignorando scroll - sin interacciones reales suficientes');
+      return null;
+    }
+
     // Detectar de dos formas:
     // 1. Cambios de dirección (scroll arriba-abajo-arriba)
     // 2. Volumen alto (15+ segundos de scroll continuo = usuario buscando algo)

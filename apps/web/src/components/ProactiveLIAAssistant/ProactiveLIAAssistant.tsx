@@ -173,27 +173,6 @@ export function ProactiveLIAAssistant({
                 </div>
               </div>
 
-              {/* Patrones detectados (solo si no es compacto) */}
-              {!compact && analysis.patterns.length > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 space-y-2">
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                    Detalles detectados:
-                  </p>
-                  <ul className="space-y-1">
-                    {analysis.patterns.slice(0, 3).map((pattern: any, idx: number) => (
-                      <li key={idx} className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          pattern.severity === 'high' ? 'bg-red-500' :
-                          pattern.severity === 'medium' ? 'bg-yellow-500' :
-                          'bg-blue-500'
-                        }`} />
-                        <span>{pattern.description}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
               {/* Botones de acción */}
               <div className="flex gap-2 pt-2">
                 <button
