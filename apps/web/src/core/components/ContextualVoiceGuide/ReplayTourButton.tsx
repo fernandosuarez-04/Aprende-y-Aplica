@@ -1,0 +1,66 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '../../../features/auth/hooks/useAuth';
+import Image from 'next/image';
+
+interface ReplayTourButtonProps {
+  tourId: string;
+  label?: string;
+  allowedPaths: string[];
+  requireAuth?: boolean;
+}
+
+export function ReplayTourButton({ 
+  tourId, 
+  label = 'Ver tour guiado',
+  allowedPaths,
+  requireAuth = false 
+}: ReplayTourButtonProps) {
+  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  // Verificar si estamos en una ruta permitida
+  const isAllowedPath = allowedPaths.some(path => pathname === path || pathname?.startsWith(path));
+  if (!isAllowedPath) return null;
+
+  // Verificar autenticación si es requerida
+  if (requireAuth && !user) return null;
+
+  const handleReplayTour = () => {
+    const storageKey = `has-seen-tour-${tourId}`;
+    localStorage.removeItem(storageKey);
+    window.location.reload();
+  };
+
+  return (
+    <button
+      onClick={handleReplayTour}
+      className="fixed bottom-20 left-4 z-[10000] px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs rounded-lg shadow-lg transition-all duration-200 font-semibold flex items-center gap-2 hover:scale-105"
+      title={label}
+    >
+      <div className="relative w-6 h-6">
+        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-0.5 animate-pulse-slow">
+          <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden">
+            <Image
+              src="/lia.webp"
+              alt="LIA"
+              width={24}
+              height={24}
+              className="object-cover"
+            />
+          </div>
+        </div>
+      </div>
+      <span>{label}</span>
+    </button>
+  );
+}

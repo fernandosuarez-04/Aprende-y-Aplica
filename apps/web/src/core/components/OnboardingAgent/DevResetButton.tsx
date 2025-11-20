@@ -3,17 +3,19 @@
 import React from 'react';
 import { resetOnboarding } from './utils';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { usePathname } from 'next/navigation';
 
 /**
  * Botón para volver a ver la experiencia de bienvenida con LIA
  * Permite al usuario acceder nuevamente al tour guiado con el agente de voz
- * Solo visible para usuarios autenticados
+ * Solo visible para usuarios autenticados y solo en el dashboard
  */
 export function DevResetButton() {
   const { user } = useAuth();
+  const pathname = usePathname();
 
-  // Solo mostrar si el usuario está autenticado
-  if (!user) {
+  // Solo mostrar si el usuario está autenticado y está en el dashboard
+  if (!user || pathname !== '/dashboard') {
     return null;
   }
 

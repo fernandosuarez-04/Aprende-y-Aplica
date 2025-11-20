@@ -11,6 +11,8 @@ import { usePrompts } from '../../features/ai-directory/hooks/usePrompts';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { PromptFavoritesProvider } from '../../features/ai-directory/context/PromptFavoritesContext';
+import { ContextualVoiceGuide, ReplayTourButton } from '../../core/components/ContextualVoiceGuide';
+import { PROMPT_DIRECTORY_TOUR_STEPS } from '../../features/ai-directory/config/prompt-directory-tour';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -360,6 +362,23 @@ export default function PromptDirectoryPage() {
           </div>
         )}
       </motion.div>
+
+      {/* Tour de voz contextual para prompt-directory */}
+      <ContextualVoiceGuide
+        tourId="prompt-directory"
+        steps={PROMPT_DIRECTORY_TOUR_STEPS}
+        triggerPaths={['/prompt-directory']}
+        isReplayable={true}
+        showDelay={1500}
+        replayButtonLabel="Ver tour del directorio"
+      />
+
+      {/* Botón para volver a ver el tour */}
+      <ReplayTourButton
+        tourId="prompt-directory"
+        label="Ver Tour del Directorio"
+        allowedPaths={['/prompt-directory']}
+      />
     </div>
     </PromptFavoritesProvider>
   );
