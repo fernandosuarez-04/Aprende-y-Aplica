@@ -48,8 +48,29 @@ export interface UpdateProfileRequest {
   country_code?: string
 }
 
+interface UserSubscription {
+  subscription_id: string
+  subscription_type: string
+  subscription_status: string
+  price_cents: number
+  start_date: string
+  end_date: string | null
+  next_billing_date: string | null
+  course_id: string | null
+  course_title?: string | null
+}
+
+interface UserStats {
+  completedCourses: number
+  completedLessons: number
+  certificates: number
+  coursesInProgress: number
+  subscriptions?: UserSubscription[]
+}
+
 interface UseProfileReturn {
   profile: UserProfile | null
+  stats: UserStats | null
   loading: boolean
   error: string | null
   saving: boolean
@@ -62,6 +83,7 @@ interface UseProfileReturn {
 
 export function useProfile(): UseProfileReturn {
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -119,6 +141,35 @@ export function useProfile(): UseProfileReturn {
       
       setProfile(profileData)
       // console.log('🔍 Profile data loaded:', profileData)
+
+      // Obtener estadísticas del usuario desde la API
+      try {
+        const response = await fetch('/api/profile/stats', {
+          method: 'GET',
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const userStats = await response.json()
+          setStats(userStats)
+        } else {
+          // Si falla, usar valores por defecto
+          setStats({
+            completedCourses: 0,
+            averageProgress: 0,
+            totalStudyTime: 0
+          })
+        }
+      } catch (statsError) {
+        // No lanzar error, solo usar valores por defecto
+        // console.error('Error fetching user stats:', statsError)
+        setStats({
+          completedCourses: 0,
+          completedLessons: 0,
+          certificates: 0,
+          coursesInProgress: 0
+        })
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
@@ -360,6 +411,7 @@ export function useProfile(): UseProfileReturn {
 
   return {
     profile,
+    stats,
     loading,
     error,
     saving,

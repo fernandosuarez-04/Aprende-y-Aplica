@@ -1150,7 +1150,8 @@ export function OnboardingAgent() {
                         </motion.button>
                       )}
 
-                      {step.action && (
+                      {/* Solo mostrar el botón de acción si NO es el último paso */}
+                      {step.action && currentStep < ONBOARDING_STEPS.length - 1 && (
                         <motion.button
                           onClick={handleActionClick}
                           whileHover={{ 

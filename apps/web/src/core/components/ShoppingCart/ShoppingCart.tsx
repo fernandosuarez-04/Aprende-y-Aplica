@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { ShoppingCart as ShoppingCartIcon, X } from 'lucide-react';
 import { useShoppingCartStore } from '../../stores/shoppingCartStore';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface ShoppingCartProps {
   className?: string;
@@ -15,7 +16,64 @@ export function ShoppingCart({ className = '' }: ShoppingCartProps) {
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { items, removeItem, getTotal, getItemCount } = useShoppingCartStore();
+  const { user, loading } = useAuth();
+  const { items, removeItem, getTotal, getItemCount, setUserId, userId: cartUserId, removePurchasedCourses } = useShoppingCartStore();
+
+  // ⚠️ CRÍTICO: Sincronizar userId del carrito con el usuario actual
+  // Solo sincronizar cuando la autenticación haya terminado de cargar
+  useEffect(() => {
+    // Esperar a que termine de cargar la autenticación
+    if (loading) {
+      return; // No hacer nada mientras carga
+    }
+
+    // Si hay usuario autenticado
+    if (user?.id) {
+      // Solo actualizar si el userId del carrito es diferente
+      if (cartUserId !== user.id) {
+        setUserId(user.id);
+      }
+
+      // ⚠️ CRÍTICO: Verificar y remover cursos comprados del carrito
+      const checkAndRemovePurchasedCourses = async () => {
+        try {
+          // Obtener lista de cursos comprados
+          const response = await fetch('/api/my-courses', {
+            credentials: 'include',
+            cache: 'no-store',
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              // Extraer IDs de cursos comprados
+              const purchasedCourseIds = data
+                .map((course: any) => course.course_id || course.id)
+                .filter((id: string | undefined): id is string => !!id);
+
+              // Remover cursos comprados del carrito
+              if (purchasedCourseIds.length > 0) {
+                removePurchasedCourses(purchasedCourseIds);
+              }
+            }
+          }
+        } catch (error) {
+          // Si falla, no hacer nada (el carrito se mantiene)
+          // console.error('Error verificando cursos comprados:', error);
+        }
+      };
+
+      // Verificar cursos comprados después de un pequeño delay
+      const timer = setTimeout(checkAndRemovePurchasedCourses, 500);
+      return () => clearTimeout(timer);
+    } else {
+      // Solo limpiar si realmente no hay usuario Y el carrito tiene un userId guardado
+      // Esto evita limpiar el carrito durante la recarga de página
+      if (cartUserId !== null) {
+        setUserId(null);
+      }
+    }
+  }, [user?.id, loading, cartUserId, setUserId, removePurchasedCourses]);
 
   const itemCount = getItemCount();
   const total = getTotal();

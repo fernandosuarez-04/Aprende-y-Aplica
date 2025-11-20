@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { CheckCircle, XCircle, Loader2, Calendar, User, BookOpen, Award, Shield, Copy } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { CheckCircle, XCircle, Loader2, Calendar, User, BookOpen, Award, Shield, Copy, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 
 interface CertificateValidation {
@@ -21,6 +21,7 @@ interface CertificateValidation {
 
 export default function CertificateVerifyPage() {
   const params = useParams()
+  const router = useRouter()
   const hash = params.hash as string
   const [loading, setLoading] = useState(true)
   const [validation, setValidation] = useState<CertificateValidation | null>(null)
@@ -81,6 +82,17 @@ export default function CertificateVerifyPage() {
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-6 md:mb-8">
+          {/* Botón de regresar */}
+          <div className="flex justify-start mb-4">
+            <button
+              onClick={() => router.push('/certificates')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Mis Certificados
+            </button>
+          </div>
+          
           <div className="flex justify-center mb-4">
             <Image
               src="/icono.png"

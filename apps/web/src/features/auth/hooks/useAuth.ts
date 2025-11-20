@@ -78,6 +78,13 @@ export function useAuth() {
 
   const logout = async () => {
     try {
+      // ⚠️ CRÍTICO: Limpiar carrito antes de hacer logout
+      if (typeof window !== 'undefined') {
+        const { useShoppingCartStore } = await import('@/core/stores/shoppingCartStore')
+        useShoppingCartStore.getState().clearCart()
+        useShoppingCartStore.getState().setUserId(null)
+      }
+
       // Llamar a la API de logout
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
@@ -97,6 +104,14 @@ export function useAuth() {
       if (process.env.NODE_ENV === 'development') {
         // console.error('Error during logout:', error)
       }
+      
+      // ⚠️ CRÍTICO: Asegurar limpieza del carrito incluso si hay error
+      if (typeof window !== 'undefined') {
+        const { useShoppingCartStore } = await import('@/core/stores/shoppingCartStore')
+        useShoppingCartStore.getState().clearCart()
+        useShoppingCartStore.getState().setUserId(null)
+      }
+      
       // Fallback: limpiar caché y redirigir a home con recarga completa
       await mutate(null, false)
       window.location.href = '/'

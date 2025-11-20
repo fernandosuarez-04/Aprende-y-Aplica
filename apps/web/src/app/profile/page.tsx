@@ -20,7 +20,13 @@ import {
   Linkedin,
   Award,
   Target,
-  TrendingUp
+  TrendingUp,
+  BookOpen,
+  GraduationCap,
+  PlayCircle,
+  CreditCard,
+  Crown,
+  Zap
 } from 'lucide-react'
 import { useAuth } from '../../features/auth/hooks/useAuth'
 import { useProfile, UserProfile, UpdateProfileRequest } from '../../features/profile/hooks/useProfile'
@@ -31,6 +37,7 @@ export default function ProfilePage() {
   const { user } = useAuth()
   const { 
     profile, 
+    stats,
     loading, 
     error, 
     saving, 
@@ -216,49 +223,187 @@ export default function ProfilePage() {
               </div>
 
               {/* Stats */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-                      <Award className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="text-sm text-gray-600 dark:text-text-secondary">Puntos</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-xl border border-primary/20 dark:border-primary/30 hover:shadow-lg transition-all duration-300">
+                  <div className="w-12 h-12 bg-primary/20 dark:bg-primary/30 rounded-xl flex items-center justify-center mb-2">
+                    <Award className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Puntos</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">
                     {profile.points.toLocaleString()}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
-                      <Check className="w-4 h-4 text-green-500" />
-                    </div>
-                    <span className="text-sm text-gray-600 dark:text-text-secondary">Completados</span>
+                <div className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-green-500/10 to-green-500/5 dark:from-green-500/20 dark:to-green-500/10 rounded-xl border border-green-500/20 dark:border-green-500/30 hover:shadow-lg transition-all duration-300">
+                  <div className="w-12 h-12 bg-green-500/20 dark:bg-green-500/30 rounded-xl flex items-center justify-center mb-2">
+                    <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">8</span>
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Cursos Completados</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats?.completedCourses ?? 0}
+                  </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 text-blue-500" />
-                    </div>
-                    <span className="text-sm text-gray-600 dark:text-text-secondary">Progreso</span>
+                <div className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 dark:from-blue-500/20 dark:to-blue-500/10 rounded-xl border border-blue-500/20 dark:border-blue-500/30 hover:shadow-lg transition-all duration-300">
+                  <div className="w-12 h-12 bg-blue-500/20 dark:bg-blue-500/30 rounded-xl flex items-center justify-center mb-2">
+                    <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">75%</span>
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Lecciones Completadas</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats?.completedLessons ?? 0}
+                  </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-carbon-700 rounded-lg border border-gray-200 dark:border-transparent">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-orange-500" />
-                    </div>
-                    <span className="text-sm text-gray-600 dark:text-text-secondary">Tiempo</span>
+                <div className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-500/10 to-purple-500/5 dark:from-purple-500/20 dark:to-purple-500/10 rounded-xl border border-purple-500/20 dark:border-purple-500/30 hover:shadow-lg transition-all duration-300">
+                  <div className="w-12 h-12 bg-purple-500/20 dark:bg-purple-500/30 rounded-xl flex items-center justify-center mb-2">
+                    <GraduationCap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-text-primary">24h</span>
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">Certificados</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats?.certificates ?? 0}
+                  </span>
                 </div>
               </div>
+
+              {/* Cursos en progreso - Card adicional */}
+              {stats && stats.coursesInProgress > 0 && (
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-500/10 to-orange-500/5 dark:from-orange-500/20 dark:to-orange-500/10 rounded-xl border border-orange-500/20 dark:border-orange-500/30">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-orange-500/20 dark:bg-orange-500/30 rounded-lg flex items-center justify-center">
+                      <PlayCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white block">Cursos en Progreso</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Continuando tu aprendizaje</span>
+                    </div>
+                  </div>
+                  <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                    {stats.coursesInProgress}
+                  </span>
+                </div>
+              )}
+
+              {/* Suscripciones */}
+              {stats && stats.subscriptions && stats.subscriptions.length > 0 && (
+                <div className="pt-4 border-t border-gray-200 dark:border-carbon-700">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
+                    Suscripciones
+                  </h3>
+                  <div className="space-y-2">
+                    {stats.subscriptions.map((subscription) => {
+                      const getStatusColor = (status: string) => {
+                        switch (status) {
+                          case 'active':
+                            return 'text-green-600 dark:text-green-400 bg-green-500/10 dark:bg-green-500/20 border-green-500/20 dark:border-green-500/30'
+                          case 'paused':
+                            return 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 dark:bg-yellow-500/20 border-yellow-500/20 dark:border-yellow-500/30'
+                          case 'cancelled':
+                            return 'text-red-600 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 border-red-500/20 dark:border-red-500/30'
+                          case 'expired':
+                            return 'text-gray-600 dark:text-gray-400 bg-gray-500/10 dark:bg-gray-500/20 border-gray-500/20 dark:border-gray-500/30'
+                          default:
+                            return 'text-gray-600 dark:text-gray-400 bg-gray-500/10 dark:bg-gray-500/20 border-gray-500/20 dark:border-gray-500/30'
+                        }
+                      }
+
+                      const getStatusLabel = (status: string) => {
+                        switch (status) {
+                          case 'active':
+                            return 'Activa'
+                          case 'paused':
+                            return 'Pausada'
+                          case 'cancelled':
+                            return 'Cancelada'
+                          case 'expired':
+                            return 'Expirada'
+                          default:
+                            return status
+                        }
+                      }
+
+                      const getTypeLabel = (type: string) => {
+                        switch (type) {
+                          case 'monthly':
+                            return 'Mensual'
+                          case 'yearly':
+                            return 'Anual'
+                          case 'lifetime':
+                            return 'Vitalicia'
+                          case 'course_access':
+                            return 'Acceso a Curso'
+                          default:
+                            return type
+                        }
+                      }
+
+                      const formatPrice = (cents: number) => {
+                        return `$${(cents / 100).toFixed(2)}`
+                      }
+
+                      const formatDate = (dateString: string | null) => {
+                        if (!dateString) return 'N/A'
+                        return new Date(dateString).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      }
+
+                      return (
+                        <div
+                          key={subscription.subscription_id}
+                          className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-primary/20 dark:bg-primary/30 rounded-lg flex items-center justify-center">
+                                {subscription.subscription_type === 'lifetime' ? (
+                                  <Crown className="w-4 h-4 text-primary" />
+                                ) : subscription.subscription_type === 'course_access' ? (
+                                  <BookOpen className="w-4 h-4 text-primary" />
+                                ) : (
+                                  <CreditCard className="w-4 h-4 text-primary" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {getTypeLabel(subscription.subscription_type)}
+                                </p>
+                                {subscription.course_title && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {subscription.course_title}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(subscription.subscription_status)}`}>
+                              {getStatusLabel(subscription.subscription_status)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+                            <div>
+                              <span className="font-medium">Precio:</span> {formatPrice(subscription.price_cents)}
+                            </div>
+                            {subscription.next_billing_date && subscription.subscription_status === 'active' && (
+                              <div>
+                                <span className="font-medium">Próximo pago:</span> {formatDate(subscription.next_billing_date)}
+                              </div>
+                            )}
+                            {subscription.end_date && (
+                              <div>
+                                <span className="font-medium">Vence:</span> {formatDate(subscription.end_date)}
+                              </div>
+                            )}
+                            <div>
+                              <span className="font-medium">Inicio:</span> {formatDate(subscription.start_date)}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Info del sistema */}
               <div className="pt-4 border-t border-gray-200 dark:border-carbon-700">

@@ -32,6 +32,9 @@ import Image from 'next/image';
 import { CourseService, CourseWithInstructor } from '../../../features/courses/services/course.service';
 import { StarRating } from '../../../features/courses/components/StarRating';
 import { createClient } from '../../../lib/supabase/client';
+import { SuccessModal } from '../../../core/components/SuccessModal';
+import { ErrorModal } from '../../../core/components/ErrorModal';
+import { useShoppingCartStore } from '../../../core/stores/shoppingCartStore';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -49,6 +52,11 @@ export default function CourseDetailPage() {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [modules, setModules] = useState<any[]>([]);
   const [instructorData, setInstructorData] = useState<any>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const { items, removeItem } = useShoppingCartStore();
 
   useEffect(() => {
     async function loadCourseData() {
@@ -148,15 +156,51 @@ export default function CourseDetailPage() {
         throw new Error(data.error || 'Error al adquirir el curso');
       }
 
-      // Mostrar mensaje de éxito
-      alert(`¡Curso "${data.data.course_title}" adquirido exitosamente! 🎉`);
+      // Remover el curso del carrito si está presente
+      // Buscar por itemId (puede ser el ID del curso o el slug)
+      const courseInCart = items.find(
+        (item) => 
+          item.itemType === 'course' && 
+          (item.itemId === course.id || item.itemId === course.slug || item.itemId === slug)
+      );
+      if (courseInCart) {
+        removeItem(courseInCart.id);
+      }
+
+      // También usar el método del store para remover cursos comprados
+      // Esto asegura que se remueva incluso si el ID no coincide exactamente
+      const { removePurchasedCourses } = useShoppingCartStore.getState();
+      removePurchasedCourses([course.id]);
+
+      // Mostrar mensaje de éxito con el modal personalizado
+      setSuccessMessage(`¡Curso "${data.data.course_title}" adquirido exitosamente!`);
+      setShowSuccessModal(true);
       
-      // Actualizar el estado de compra
+      // Actualizar el estado de compra optimísticamente
       setIsPurchased(true);
+
+      // Recargar el estado de compra desde el servidor después de un pequeño delay
+      // para asegurar que la transacción se haya completado en la BD
+      setTimeout(async () => {
+        try {
+          const checkPurchaseResponse = await fetch(`/api/courses/${slug}/check-purchase`, {
+            cache: 'no-store', // Evitar cache para obtener el estado más reciente
+          });
+          if (checkPurchaseResponse.ok) {
+            const purchaseData = await checkPurchaseResponse.json();
+            setIsPurchased(purchaseData.isPurchased || false);
+          }
+        } catch (checkError) {
+          // Si falla la verificación, mantener el estado optimista
+          // console.error('Error verificando compra:', checkError);
+        }
+      }, 500); // Esperar 500ms para que la transacción se complete
       
     } catch (error) {
       // console.error('Error purchasing course:', error);
-      alert(error instanceof Error ? error.message : 'Error al adquirir el curso');
+      // Mostrar error con el modal de error
+      setErrorMessage(error instanceof Error ? error.message : 'Error al adquirir el curso');
+      setShowErrorModal(true);
     } finally {
       setIsPurchasing(false);
     }
@@ -826,6 +870,37 @@ export default function CourseDetailPage() {
         </div>
       </div>
       </div>
+
+      {/* Modal de éxito personalizado */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={async () => {
+          setShowSuccessModal(false);
+          // Recargar el estado de compra después de cerrar el modal
+          try {
+            const checkPurchaseResponse = await fetch(`/api/courses/${slug}/check-purchase`);
+            if (checkPurchaseResponse.ok) {
+              const purchaseData = await checkPurchaseResponse.json();
+              setIsPurchased(purchaseData.isPurchased || false);
+            }
+          } catch (checkError) {
+            // Si falla, mantener el estado actual
+            // console.error('Error verificando compra:', checkError);
+          }
+        }}
+        title={successMessage}
+        message="Ya puedes comenzar a aprender"
+        duration={4000}
+      />
+
+      {/* Modal de error personalizado */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={errorMessage}
+        message="Por favor, intenta de nuevo más tarde"
+        duration={5000}
+      />
     </motion.div>
   );
 }
