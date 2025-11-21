@@ -61,6 +61,7 @@ import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/compone
 import { COURSE_LEARN_TOUR_STEPS } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
@@ -113,6 +114,9 @@ export default function CourseLearnPage() {
 
   // Obtener usuario y su rol
   const { user } = useAuth();
+  
+  // Hook de traducción
+  const { t } = useTranslation('learn');
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -2062,11 +2066,11 @@ Antes de cada respuesta, pregúntate:
 
 
   const tabs = [
-    { id: 'video' as const, label: 'Video', icon: Play },
-    { id: 'transcript' as const, label: 'Transcripción', icon: ScrollText },
-    { id: 'summary' as const, label: 'Resumen', icon: FileText },
-    { id: 'activities' as const, label: 'Actividades', icon: Activity },
-    { id: 'questions' as const, label: 'Preguntas', icon: MessageCircle },
+    { id: 'video' as const, label: t('tabs.video'), icon: Play },
+    { id: 'transcript' as const, label: t('tabs.transcript'), icon: ScrollText },
+    { id: 'summary' as const, label: t('tabs.summary'), icon: FileText },
+    { id: 'activities' as const, label: t('tabs.activities'), icon: Activity },
+    { id: 'questions' as const, label: t('tabs.questions'), icon: MessageCircle },
   ];
 
   if (loading) {
@@ -2074,7 +2078,7 @@ Antes de cada respuesta, pregúntate:
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-lg">Cargando curso...</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">{t('loading.course')}</p>
         </div>
       </div>
     );
@@ -2084,13 +2088,13 @@ Antes de cada respuesta, pregúntate:
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Curso no encontrado</h1>
-          <p className="text-gray-700 dark:text-gray-300 mb-8">El curso que buscas no existe</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{t('errors.courseNotFound')}</h1>
+          <p className="text-gray-700 dark:text-gray-300 mb-8">{t('errors.courseNotFoundMessage')}</p>
           <button 
             onClick={() => router.push('/my-courses')} 
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
-            Volver a Mis Cursos
+            {t('navigation.backToCourses')}
           </button>
         </div>
       </div>
@@ -2245,8 +2249,8 @@ Antes de cada respuesta, pregúntate:
             <button
               onClick={() => router.back()}
               className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-              aria-label="Volver atrás"
-              title="Volver atrás"
+              aria-label={t('header.backButton')}
+              title={t('header.backButton')}
             >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
             </button>
@@ -2256,7 +2260,7 @@ Antes de cada respuesta, pregúntate:
               <h1 className="text-sm md:text-base font-bold text-gray-900 dark:text-white truncate">
                 {course.title || course.course_title}
               </h1>
-              <p className="hidden md:block text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
+              <p className="hidden md:block text-xs text-gray-600 dark:text-slate-400">{t('header.workshop')}</p>
             </div>
           </div>
 
@@ -2322,7 +2326,7 @@ Antes de cada respuesta, pregúntate:
                 <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
                   <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-blue-400" />
-                    Material del Curso
+                    {t('leftPanel.title')}
                   </h2>
                   <button
                     onClick={() => setIsLeftPanelOpen(false)}
@@ -2344,12 +2348,12 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       <Layers className="w-5 h-5 text-blue-400" />
-                      Contenido
+                      {t('leftPanel.content')}
                     </h3>
                     <button
                       onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
                       className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                      title={isMaterialCollapsed ? "Expandir Contenido" : "Colapsar Contenido"}
+                      title={isMaterialCollapsed ? t('leftPanel.expandContent') : t('leftPanel.collapseContent')}
                     >
                       {isMaterialCollapsed ? (
                         <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -2423,7 +2427,7 @@ Antes de cada respuesta, pregúntate:
                         <button
                           onClick={() => toggleModuleExpand(module.module_id)}
                           className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
-                          title={isModuleExpanded ? "Colapsar módulo" : "Expandir módulo"}
+                          title={isModuleExpanded ? t('leftPanel.collapseModule') : t('leftPanel.expandModule')}
                         >
                           {isModuleExpanded ? (
                             <ChevronUp className="w-4 h-4 text-gray-600 dark:text-slate-400" />
@@ -2446,10 +2450,10 @@ Antes de cada respuesta, pregúntate:
                             {/* Estadísticas del módulo mejoradas */}
                             <div className="flex gap-3 mb-4">
                               <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
-                                {completedLessons}/{totalLessons} completados
+                                {completedLessons}/{totalLessons} {t('leftPanel.completed')}
                               </span>
                               <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
-                                {completionPercentage}% completado
+                                {completionPercentage}% {t('leftPanel.completedPercentage')}
                               </span>
                             </div>
 
@@ -3070,7 +3074,7 @@ Antes de cada respuesta, pregúntate:
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-slate-400">Cargando lección...</p>
+                <p className="text-gray-600 dark:text-slate-400">{t('loading.lesson')}</p>
               </div>
             </div>
           )}
@@ -3147,8 +3151,8 @@ Antes de cada respuesta, pregúntate:
                       />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Lia</h3>
-                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{t('lia.title')}</h3>
+                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">{t('lia.subtitle')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 relative">
@@ -3157,7 +3161,7 @@ Antes de cada respuesta, pregúntate:
                       <button
                         onClick={() => setShowLiaMenu(!showLiaMenu)}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                        title="Más opciones"
+                        title={t('lia.moreOptions')}
                       >
                         <MoreVertical className="w-4 h-4 text-gray-700 dark:text-white/70" />
                       </button>
@@ -3181,7 +3185,7 @@ Antes de cada respuesta, pregúntate:
                               className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
                             >
                               <Plus className="w-4 h-4" />
-                              Nueva conversación
+                              {t('lia.newConversation')}
                             </button>
                             <button
                               onClick={() => {
@@ -3194,7 +3198,7 @@ Antes de cada respuesta, pregúntate:
                               className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
                             >
                               <History className="w-4 h-4" />
-                              Ver historial
+                              {t('lia.viewHistory')}
                             </button>
                             <button
                               onClick={() => {
@@ -3204,7 +3208,7 @@ Antes de cada respuesta, pregúntate:
                               className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
                             >
                               <Trash2 className="w-4 h-4" />
-                              Reiniciar conversación
+                              {t('lia.resetConversation')}
                             </button>
                           </div>
                         </>
@@ -3216,7 +3220,7 @@ Antes de cada respuesta, pregúntate:
                       <button
                         onClick={handleToggleLiaExpanded}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                        title={isLiaExpanded ? "Reducir tamaño de Lia" : "Expandir Lia"}
+                        title={isLiaExpanded ? t('lia.minimize') : t('lia.expand')}
                       >
                         {isLiaExpanded ? (
                           <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -3244,11 +3248,11 @@ Antes de cada respuesta, pregúntate:
                 {showHistory && (
                   <div className="absolute top-14 right-0 w-80 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
                     <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Historial de Conversaciones</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{t('lia.conversationHistory')}</h3>
                       <button
                         onClick={() => setShowHistory(false)}
                         className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
-                        title="Cerrar historial"
+                        title={t('lia.closeHistory')}
                       >
                         <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
                       </button>
@@ -3257,11 +3261,11 @@ Antes de cada respuesta, pregúntate:
                       {loadingConversations ? (
                         <div className="p-4 text-center text-gray-500 dark:text-slate-400">
                           <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                          <p className="text-sm">Cargando conversaciones...</p>
+                          <p className="text-sm">{t('loading.conversations')}</p>
                         </div>
                       ) : conversations.length === 0 ? (
                         <div className="p-4 text-center text-gray-500 dark:text-slate-400">
-                          <p className="text-sm">No hay conversaciones anteriores</p>
+                          <p className="text-sm">{t('lia.noConversations')}</p>
                         </div>
                       ) : (
                         conversations.map((conv) => (
@@ -3318,7 +3322,7 @@ Antes de cada respuesta, pregúntate:
                                   ) : (
                                     <>
                                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
-                                        {conv.conversation_title || conv.course?.title || 'Conversación general'}
+                                        {conv.conversation_title || conv.course?.title || t('lia.generalConversation')}
                                       </p>
                                       <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">
                                         {new Date(conv.started_at).toLocaleDateString('es-ES', {
@@ -3329,7 +3333,7 @@ Antes de cada respuesta, pregúntate:
                                         })}
                                       </p>
                                       <p className="text-xs text-gray-400 dark:text-slate-500">
-                                        {conv.total_messages} mensaje{conv.total_messages !== 1 ? 's' : ''}
+                                        {conv.total_messages} {conv.total_messages !== 1 ? t('lia.messagesPlural') : t('lia.messages')}
                                       </p>
                                     </>
                                   )}
@@ -3344,7 +3348,7 @@ Antes de cada respuesta, pregúntate:
                                       setEditingTitle(conv.conversation_title || '');
                                     }}
                                     className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                    title="Editar nombre"
+                                    title={t('lia.editName')}
                                   >
                                     <Edit2 className="w-3.5 h-3.5 text-gray-600 dark:text-slate-400" />
                                   </button>
@@ -3354,7 +3358,7 @@ Antes de cada respuesta, pregúntate:
                                       setDeletingConversationId(conv.conversation_id);
                                     }}
                                     className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                    title="Eliminar conversación"
+                                    title={t('lia.deleteConversation')}
                                   >
                                     <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                                   </button>
@@ -3377,19 +3381,19 @@ Antes de cada respuesta, pregúntate:
                           <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">Eliminar conversación</h3>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">Esta acción no se puede deshacer</p>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">{t('lia.deleteConfirmTitle')}</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-400">{t('lia.deleteConfirmSubtitle')}</p>
                         </div>
                       </div>
                       <p className="text-sm text-gray-700 dark:text-slate-300 mb-6">
-                        ¿Estás seguro de que quieres eliminar esta conversación? Todos los mensajes se perderán permanentemente.
+                        {t('lia.deleteConfirmMessage')}
                       </p>
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setDeletingConversationId(null)}
                           className="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium"
                         >
-                          Cancelar
+                          {t('lia.cancel')}
                         </button>
                         <button
                           onClick={() => {
@@ -3399,7 +3403,7 @@ Antes de cada respuesta, pregúntate:
                           }}
                           className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
                         >
-                          Eliminar
+                          {t('lia.delete')}
                         </button>
                       </div>
                     </div>
@@ -3460,7 +3464,7 @@ Antes de cada respuesta, pregúntate:
                                   }
                                 }}
                                 className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                title="Copiar mensaje"
+                                title={t('lia.copyMessage')}
                               >
                                 {copiedMessageId === message.id ? (
                                   <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -3481,7 +3485,7 @@ Antes de cada respuesta, pregúntate:
                                   setIsNotesModalOpen(true);
                                 }}
                                 className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                title="Crear nota"
+                                title={t('lia.createNote')}
                               >
                                 <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                               </button>

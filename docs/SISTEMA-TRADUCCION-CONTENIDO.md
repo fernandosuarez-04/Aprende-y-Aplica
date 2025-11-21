@@ -2,7 +2,31 @@
 
 ## 🎯 Descripción
 
-Sistema de traducción automática para contenido de base de datos **sin modificar el esquema**. Usa archivos JSON similares a i18next para traducir cursos, módulos y lecciones.
+Sistema completo de traducción para **contenido estático de UI** y **contenido dinámico de base de datos** utilizando react-i18next para la interfaz y un sistema híbrido para el contenido almacenado en la BD.
+
+---
+
+## 📋 Páginas con Traducción Implementada
+
+### ✅ Dashboard (`/dashboard`)
+- **Namespace**: `dashboard`
+- **Contenido traducido**: 
+  - Textos de UI (botones, etiquetas, mensajes)
+  - Contenido dinámico de cursos desde BD
+- **Archivos**: `dashboard.json` (es, en, pt)
+
+### ✅ Página de Aprendizaje (`/courses/[slug]/learn`)
+- **Namespace**: `learn`
+- **Contenido traducido**:
+  - Header y navegación
+  - Panel izquierdo (Material del Curso)
+  - Panel central (Tabs: Video, Transcripción, Resumen, Actividades, Preguntas)
+  - Panel derecho (LIA - Asistente de IA)
+  - Modales y confirmaciones
+  - Mensajes de estado y errores
+- **Archivos**: `learn.json` (es, en, pt)
+
+---
 
 ## ✅ Ventajas
 
@@ -10,23 +34,26 @@ Sistema de traducción automática para contenido de base de datos **sin modific
 - ✅ **Mismo sistema que i18next** - Consistente con UI
 - ✅ **Cambio automático** - Traduce al cambiar idioma
 - ✅ **Fácil de mantener** - Archivos JSON editables
-- ✅ **Rendimiento** - Sin queries extra a BD
+- ✅ **Rendimiento** - Sin queries extra a BD para contenido estático
 
 ## 📁 Estructura de Archivos
 
 ```
 apps/web/public/locales/
 ├── es/
-│   ├── common.json
-│   ├── dashboard.json
+│   ├── common.json      ← Textos comunes (header, footer, etc.)
+│   ├── dashboard.json   ← Dashboard específicos
+│   ├── learn.json       ← Página de aprendizaje
 │   └── content.json     ← Contenido de BD en español
 ├── en/
 │   ├── common.json
 │   ├── dashboard.json
+│   ├── learn.json
 │   └── content.json     ← Contenido de BD en inglés
 └── pt/
     ├── common.json
     ├── dashboard.json
+    ├── learn.json
     └── content.json     ← Contenido de BD en portugués
 ```
 
