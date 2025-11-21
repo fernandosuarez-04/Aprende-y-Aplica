@@ -6,7 +6,7 @@ import { logger } from '../../lib/logger';
  * Roles válidos en el sistema
  * Solo estos valores son aceptados en la base de datos
  */
-export const VALID_ROLES = ['Usuario', 'Instructor', 'Administrador'] as const;
+export const VALID_ROLES = ['Usuario', 'Instructor', 'Administrador', 'Business', 'Business User'] as const;
 export type ValidRole = typeof VALID_ROLES[number];
 
 /**
@@ -15,7 +15,8 @@ export type ValidRole = typeof VALID_ROLES[number];
 export const ROLE_ROUTES = {
   admin: ['/admin'],
   instructor: ['/instructor', '/courses/create', '/courses/edit'],
-  user: ['/dashboard', '/profile', '/communities', '/courses']
+  user: ['/dashboard', '/profile', '/communities', '/courses'],
+  business: ['/business-panel']
 } as const;
 
 /**
@@ -389,14 +390,35 @@ export async function validateInstructorAccess(request: NextRequest): Promise<Ne
  */
 export async function validateUserAccess(request: NextRequest): Promise<NextResponse | null> {
   const result = await validateRoleAccess(request);
-  
+
   if (!result.isValid) {
     if (result.error === 'No session found' || result.error === 'Invalid session' || result.error === 'Session expired') {
       return createUnauthorizedResponse(request);
     }
-    
+
     return createForbiddenResponse(request);
   }
-  
+
+  return null; // null = permitir acceso
+}
+
+/**
+ * Middleware helper para validar acceso de Business
+ */
+export async function validateBusinessAccess(request: NextRequest): Promise<NextResponse | null> {
+  const result = await validateRoleAccess(request);
+
+  if (!result.isValid) {
+    if (result.error === 'No session found' || result.error === 'Invalid session' || result.error === 'Session expired') {
+      return createUnauthorizedResponse(request);
+    }
+    return createForbiddenResponse(request);
+  }
+
+  // Verificar que sea Business o Business User
+  if (result.role !== 'Business' && result.role !== 'Business User') {
+    return createForbiddenResponse(request);
+  }
+
   return null; // null = permitir acceso
 }

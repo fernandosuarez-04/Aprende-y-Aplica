@@ -64,10 +64,37 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
 
       // console.log('🎨 Estilos cargados desde API:', data.styles);
       setStyles(data.styles);
+
+      // Guardar en localStorage como respaldo
+      if (typeof window !== 'undefined' && data.styles) {
+        try {
+          localStorage.setItem(
+            `business-theme-${user.organization_id}`,
+            JSON.stringify(data.styles)
+          );
+        } catch (e) {
+          console.error('Error guardando tema en localStorage:', e);
+        }
+      }
     } catch (err: any) {
       // console.error('Error fetching organization styles:', err);
       setError(err.message || 'Error al obtener estilos');
-      setStyles(null);
+
+      // Intentar cargar desde localStorage como fallback
+      if (typeof window !== 'undefined' && user?.organization_id) {
+        try {
+          const cached = localStorage.getItem(`business-theme-${user.organization_id}`);
+          if (cached) {
+            setStyles(JSON.parse(cached));
+          } else {
+            setStyles(null);
+          }
+        } catch (e) {
+          setStyles(null);
+        }
+      } else {
+        setStyles(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -107,6 +134,19 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
 
       // console.log('✅ Estilos actualizados:', data.styles);
       setStyles(data.styles);
+
+      // Guardar en localStorage
+      if (typeof window !== 'undefined' && user?.organization_id && data.styles) {
+        try {
+          localStorage.setItem(
+            `business-theme-${user.organization_id}`,
+            JSON.stringify(data.styles)
+          );
+        } catch (e) {
+          console.error('Error guardando tema en localStorage:', e);
+        }
+      }
+
       return true;
     } catch (err: any) {
       // console.error('Error updating styles:', err);
@@ -136,6 +176,19 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
 
       // console.log('✅ Tema aplicado:', data.styles);
       setStyles(data.styles);
+
+      // Guardar en localStorage
+      if (typeof window !== 'undefined' && user?.organization_id && data.styles) {
+        try {
+          localStorage.setItem(
+            `business-theme-${user.organization_id}`,
+            JSON.stringify(data.styles)
+          );
+        } catch (e) {
+          console.error('Error guardando tema en localStorage:', e);
+        }
+      }
+
       return true;
     } catch (err: any) {
       // console.error('Error applying theme:', err);
