@@ -115,8 +115,8 @@ export default function CourseLearnPage() {
   // Obtener usuario y su rol
   const { user } = useAuth();
   
-  // Hook de traducción
-  const { t } = useTranslation('learn');
+  // Hook de traducción con verificación de inicialización
+  const { t, i18n, ready } = useTranslation('learn');
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -2073,12 +2073,13 @@ Antes de cada respuesta, pregúntate:
     { id: 'questions' as const, label: t('tabs.questions'), icon: MessageCircle },
   ];
 
-  if (loading) {
+  // Mostrar loading mientras i18n no esté listo o mientras se cargan los datos
+  if (!ready || loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-lg">{t('loading.course')}</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">{ready ? t('loading.course') : 'Loading...'}</p>
         </div>
       </div>
     );
@@ -2517,7 +2518,7 @@ Antes de cada respuesta, pregúntate:
                                   toggleLessonExpand(lesson.lesson_id);
                                 }}
                                 className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
-                                title={isExpanded ? "Colapsar" : "Expandir actividades y materiales"}
+                                title={isExpanded ? t('activities.collapse') : t('activities.expandCollapse')}
                               >
                                 {isExpanded ? (
                                   <ChevronUp className="w-4 h-4 text-gray-500 dark:text-slate-400" />
@@ -2584,7 +2585,7 @@ Antes de cada respuesta, pregúntate:
                                                     {/* Badge Requerida */}
                                                     {isRequired && (
                                                       <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
-                                                        Requerida
+                                                        {t('activities.required')}
                                                       </span>
                                                     )}
                                                   </div>
@@ -4060,12 +4061,12 @@ Antes de cada respuesta, pregúntate:
 
               {/* Título */}
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                ¿Reiniciar conversación con Lia?
+                {t('modals.resetConversation.title')}
               </h3>
 
               {/* Mensaje */}
               <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
-                ¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con Lia.
+                {t('modals.resetConversation.message')}
               </p>
 
               {/* Botones */}
@@ -4074,13 +4075,13 @@ Antes de cada respuesta, pregúntate:
                   onClick={() => setIsClearHistoryModalOpen(false)}
                   className="flex-1 px-6 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white font-medium rounded-xl transition-all duration-200"
                 >
-                  Cancelar
+                  {t('modals.resetConversation.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmClearHistory}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
                 >
-                  Reiniciar conversación
+                  {t('modals.resetConversation.confirm')}
                 </button>
               </div>
             </motion.div>
@@ -4109,14 +4110,14 @@ Antes de cada respuesta, pregúntate:
         triggerPaths={['/courses']}
         isReplayable={true}
         showDelay={2000}
-        replayButtonLabel="Ver tour del curso"
+        replayButtonLabel={t('tour.courseLearnLabel')}
         requireAuth={true}
       />
 
       {/* Botón para volver a ver el tour */}
       <ReplayTourButton
         tourId="course-learn"
-        label="Ver Tour del Curso"
+        label={t('tour.replayLabel')}
         allowedPaths={['/courses']}
         requireAuth={true}
       />
@@ -6390,8 +6391,7 @@ function ActivitiesContent({
             <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">
-                Para avanzar a la siguiente lección, es necesario completar todas las actividades requeridas y aprobar los quizzes correspondientes. 
-                Te recomendamos revisar cada actividad y material con atención para asegurar una comprensión completa del contenido.
+                {t('activities.completionRequirement')}
               </p>
             </div>
           </div>
