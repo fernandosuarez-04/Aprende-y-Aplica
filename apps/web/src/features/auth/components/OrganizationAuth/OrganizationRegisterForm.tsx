@@ -15,6 +15,7 @@ import { CountrySelector } from '../CountrySelector';
 import { registerAction } from '../../actions/register';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 import Link from 'next/link';
+import { ToastNotification } from '../../../../core/components/ToastNotification';
 
 const LegalDocumentsModal = dynamic(() => import('../LegalDocumentsModal').then(mod => ({ default: mod.LegalDocumentsModal })), {
   ssr: false
@@ -133,18 +134,6 @@ export function OrganizationRegisterForm({
           </motion.p>
         </motion.div>
 
-        {/* Error Message */}
-        {error && (
-          <motion.div 
-            className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {error}
-          </motion.div>
-        )}
-
         {/* Success Message */}
         {success && (
           <motion.div 
@@ -243,6 +232,7 @@ export function OrganizationRegisterForm({
                 type="email"
                 placeholder="tu@email.com"
                 {...register('email')}
+                onPaste={(e) => e.preventDefault()}
                 className={`auth-input pl-12 ${errors.email ? 'border-error' : ''}`}
               />
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
@@ -266,6 +256,7 @@ export function OrganizationRegisterForm({
                 type="email"
                 placeholder="tu@email.com"
                 {...register('confirmEmail')}
+                onPaste={(e) => e.preventDefault()}
                 className={`auth-input pl-12 ${errors.confirmEmail ? 'border-error' : ''}`}
               />
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
@@ -440,6 +431,15 @@ export function OrganizationRegisterForm({
       {showLegalModal && (
         <LegalDocumentsModal onClose={() => setShowLegalModal(false)} />
       )}
+
+      {/* Toast Notification para errores */}
+      <ToastNotification
+        isOpen={!!error}
+        onClose={() => setError(null)}
+        message={error || ''}
+        type="error"
+        duration={6000}
+      />
     </>
   );
 }

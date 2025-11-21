@@ -14,6 +14,7 @@ import { PasswordInput } from '../PasswordInput';
 import { loginAction } from '../../actions/login';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 import { getSavedCredentials, saveCredentials, clearSavedCredentials } from '../../../../lib/auth/remember-me';
+import { ToastNotification } from '../../../../core/components/ToastNotification';
 
 export function LoginForm() {
   const [isPending, setIsPending] = useState(false);
@@ -108,6 +109,7 @@ export function LoginForm() {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Welcome Message */}
       <motion.div 
@@ -119,18 +121,6 @@ export function LoginForm() {
         <h2 className="text-2xl font-bold text-color-contrast">Bienvenido de vuelta</h2>
         <p className="text-sm text-text-secondary">Ingresa a tu cuenta para continuar</p>
       </motion.div>
-
-      {/* Error Message */}
-      {error && (
-        <motion.div 
-          className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {error}
-        </motion.div>
-      )}
 
       {/* Email or Username */}
       <motion.div 
@@ -255,5 +245,15 @@ export function LoginForm() {
         <SocialLoginButtons />
       </motion.div>
     </form>
+
+    {/* Toast Notification para errores */}
+    <ToastNotification
+      isOpen={!!error}
+      onClose={() => setError(null)}
+      message={error || ''}
+      type="error"
+      duration={6000}
+    />
+    </>
   );
 }
