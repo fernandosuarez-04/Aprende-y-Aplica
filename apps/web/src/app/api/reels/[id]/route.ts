@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
+import { z } from 'zod';
+
+// ✅ Schema de validación para UUID
+const ReelIdSchema = z.string().uuid('ID de reel inválido');
 
 export async function GET(
   request: NextRequest,
@@ -8,6 +12,16 @@ export async function GET(
   try {
     const supabase = await createClient();
     const { id } = await params;
+
+    // ✅ SEGURIDAD: Validar que el ID sea un UUID válido
+    try {
+      ReelIdSchema.parse(id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'ID de reel inválido' },
+        { status: 400 }
+      );
+    }
 
     // Obtener el reel con información del creador
     const { data: reel, error: reelError } = await supabase
@@ -92,7 +106,7 @@ export async function GET(
     return NextResponse.json({
       reel: {
         ...reel,
-        hashtags: hashtags?.map(h => h.reel_hashtags.name) || []
+        hashtags: hashtags?.map((h: any) => h.reel_hashtags.name) || []
       },
       comments: comments || []
     });
