@@ -14,6 +14,7 @@ import { PasswordInput } from '../PasswordInput';
 import { loginAction } from '../../actions/login';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 import { getSavedCredentials, saveCredentials, clearSavedCredentials } from '../../../../lib/auth/remember-me';
+import { ToastNotification } from '../../../../core/components/ToastNotification';
 
 interface OrganizationLoginFormProps {
   organizationId: string;
@@ -307,6 +308,7 @@ export function OrganizationLoginForm({
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Welcome Message */}
       <motion.div 
@@ -318,61 +320,6 @@ export function OrganizationLoginForm({
         <h2 className="text-3xl font-bold text-color-contrast">Bienvenido de vuelta</h2>
         <p className="text-text-secondary">Ingresa a tu cuenta para continuar</p>
       </motion.div>
-
-      {/* Error Message */}
-      {error && (
-        <motion.div 
-          className="relative overflow-hidden rounded-2xl backdrop-blur-xl bg-gradient-to-br from-red-950/80 via-red-900/60 to-orange-950/60 border border-red-500/30 shadow-2xl shadow-red-500/20"
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {/* Efecto de brillo animado en el borde */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/0 via-red-400/20 to-red-500/0 opacity-50 animate-pulse" />
-          
-          {/* Contenido */}
-          <div className="relative p-6 space-y-4">
-            <div className="flex items-start gap-4">
-              <motion.div
-                className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-red-500/30 to-orange-500/30 flex items-center justify-center border border-red-500/40 shadow-lg shadow-red-500/20"
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              >
-                <AlertCircle className="w-6 h-6 text-red-300" />
-              </motion.div>
-              <div className="flex-1 min-w-0 space-y-3">
-                <p className="text-red-100 font-bold text-lg leading-tight">{error}</p>
-                {redirectInfo && (
-                  <div className="pt-3 border-t border-red-500/30">
-                    <div className="flex items-center gap-3">
-                      <motion.div
-                        className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-red-400/60 border-t-red-400"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                      />
-                      <p className="text-sm text-red-200/90 font-medium flex-1">
-                        {redirectInfo.message.replace('5 segundos', `${redirectInfo.countdown} segundo${redirectInfo.countdown !== 1 ? 's' : ''}`)}
-                      </p>
-                      {redirectInfo.countdown > 0 && (
-                        <motion.span
-                          key={redirectInfo.countdown}
-                          className="inline-flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-lg bg-gradient-to-br from-red-500/30 to-orange-500/30 border border-red-400/40 text-red-100 font-bold text-base shadow-lg shadow-red-500/20"
-                          initial={{ scale: 1.4 }}
-                          animate={{ scale: 1 }}
-                          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                        >
-                          {redirectInfo.countdown}
-                        </motion.span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* Email or Username */}
       <motion.div 
@@ -497,6 +444,26 @@ export function OrganizationLoginForm({
 
       {/* Social Login Buttons - Oculto en login personalizado de organización */}
     </form>
+
+    {/* Toast Notification para errores */}
+    <ToastNotification
+      key={redirectInfo?.countdown || error || 'toast'}
+      isOpen={!!error}
+      onClose={() => {
+        setError(null);
+        setRedirectInfo(null);
+      }}
+      message={
+        error 
+          ? (redirectInfo 
+              ? `${error}. ${redirectInfo.message.replace('5 segundos', `${redirectInfo.countdown} segundo${redirectInfo.countdown !== 1 ? 's' : ''}`)}`
+              : error)
+          : ''
+      }
+      type="error"
+      duration={redirectInfo ? 10000 : 6000}
+    />
+    </>
   );
 }
 
