@@ -243,6 +243,7 @@ export function OrganizationRegisterForm({
                 type="email"
                 placeholder="tu@email.com"
                 {...register('email')}
+                onPaste={(e) => e.preventDefault()}
                 className={`auth-input pl-12 ${errors.email ? 'border-error' : ''}`}
               />
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
@@ -266,6 +267,7 @@ export function OrganizationRegisterForm({
                 type="email"
                 placeholder="tu@email.com"
                 {...register('confirmEmail')}
+                onPaste={(e) => e.preventDefault()}
                 className={`auth-input pl-12 ${errors.confirmEmail ? 'border-error' : ''}`}
               />
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />

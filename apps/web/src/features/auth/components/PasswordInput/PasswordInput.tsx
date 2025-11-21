@@ -25,6 +25,7 @@ export function PasswordInput({
         id={id}
         type={showPassword ? 'text' : 'password'}
         placeholder={placeholder}
+        onPaste={(e) => e.preventDefault()}
         className={`auth-input pr-12 ${error ? 'border-error' : ''} ${className}`}
         {...props}
       />
