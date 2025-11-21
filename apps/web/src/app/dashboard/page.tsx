@@ -383,7 +383,13 @@ export default function DashboardPage() {
                             {t('courses.noRatings')}
                           </div>
                         )}
-                        <span className="text-lg font-bold text-primary">{workshop.price}</span>
+                        <span className="text-lg font-bold text-primary">
+                          {workshop.price && workshop.price !== 'MX$0' && workshop.price !== '$0' ? (
+                            workshop.price
+                          ) : (
+                            'Gratis'
+                          )}
+                        </span>
                       </div>
                     </div>
 

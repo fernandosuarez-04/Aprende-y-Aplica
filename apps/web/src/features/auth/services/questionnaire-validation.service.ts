@@ -74,17 +74,12 @@ export class QuestionnaireValidationService {
   /**
    * Verifica si un usuario requiere completar el cuestionario
    * Retorna true si:
-   * 1. Es usuario de Google OAuth
-   * 2. No ha completado el cuestionario
+   * 1. El usuario no ha completado el cuestionario (todos los usuarios deben completarlo)
+   * 
+   * NOTA: Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
    */
   static async requiresQuestionnaire(userId: string): Promise<boolean> {
     try {
-      const isGoogleUser = await this.isGoogleOAuthUser(userId);
-      
-      if (!isGoogleUser) {
-        return false; // Solo usuarios OAuth requieren cuestionario obligatorio
-      }
-
       const isCompleted = await this.isQuestionnaireCompleted(userId);
       return !isCompleted;
     } catch (error) {
