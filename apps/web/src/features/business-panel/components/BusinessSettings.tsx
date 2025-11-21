@@ -40,14 +40,32 @@ import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
 
 export function BusinessSettings() {
   const { data, isLoading, error, refetch, updateOrganization } = useBusinessSettings()
-  const { canUse } = useSubscriptionFeatures()
+  const { plan, canUse, refetch: refetchSubscription } = useSubscriptionFeatures()
   const [activeTab, setActiveTab] = useState<'organization' | 'subscription' | 'branding' | 'personalization' | 'notifications' | 'certificates'>('organization')
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Validar si puede acceder a tabs premium
+  // Validar si puede acceder a tabs premium (recalcula cuando el plan cambia)
   const canUseBranding = canUse('corporate_branding')
   const canUseCertificates = canUse('custom_certificates')
+
+  // Escuchar eventos de cambio de plan y refrescar características
+  useEffect(() => {
+    const handlePlanChange = () => {
+      refetchSubscription()
+      refetch()
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('subscription-plan-changed', handlePlanChange)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('subscription-plan-changed', handlePlanChange)
+      }
+    }
+  }, [refetchSubscription, refetch])
 
   if (isLoading) {
     return (

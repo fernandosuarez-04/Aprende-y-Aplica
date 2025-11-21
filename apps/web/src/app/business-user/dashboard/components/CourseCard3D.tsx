@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useState, memo } from 'react'
+import { useState, memo, useMemo } from 'react'
 import Image from 'next/image'
 import {
   Award,
@@ -10,6 +10,8 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { ProgressBar3D } from './ProgressBar3D'
+import { StyleConfig } from '@/features/business-panel/hooks/useOrganizationStyles'
+import { hexToRgb } from '@/features/business-panel/utils/styles'
 
 interface CourseCard3DProps {
   course: {
@@ -25,15 +27,61 @@ interface CourseCard3DProps {
   index: number
   onClick: () => void
   onCertificateClick?: () => void
+  styles?: StyleConfig | null
 }
 
 export const CourseCard3D = memo(function CourseCard3D({
   course,
   index,
   onClick,
-  onCertificateClick
+  onCertificateClick,
+  styles
 }: CourseCard3DProps) {
   const [isHovered, setIsHovered] = useState(false)
+
+  // Calcular estilos de la tarjeta basados en los estilos personalizados
+  const cardStyle = useMemo(() => {
+    if (!styles) {
+      return {
+        backgroundColor: 'rgba(30, 41, 59, 0.95)',
+        borderColor: 'rgba(71, 85, 105, 0.5)',
+        color: undefined as string | undefined
+      }
+    }
+
+    const cardBg = styles.card_background || '#1e293b'
+    const cardOpacity = styles.card_opacity !== undefined ? styles.card_opacity : 0.95
+    const borderColor = styles.border_color || 'rgba(71, 85, 105, 0.5)'
+    const textColor = styles.text_color
+
+    // Convertir hex a rgba si es necesario
+    let backgroundColor: string
+    if (cardBg.startsWith('#')) {
+      const rgb = hexToRgb(cardBg)
+      backgroundColor = `rgba(${rgb}, ${cardOpacity})`
+    } else if (cardBg.startsWith('rgba')) {
+      // Si ya es rgba, extraer el valor de opacidad y reemplazarlo
+      const rgbaMatch = cardBg.match(/rgba?\(([^)]+)\)/)
+      if (rgbaMatch) {
+        const parts = rgbaMatch[1].split(',')
+        if (parts.length >= 3) {
+          backgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${cardOpacity})`
+        } else {
+          backgroundColor = cardBg
+        }
+      } else {
+        backgroundColor = cardBg
+      }
+    } else {
+      backgroundColor = cardBg
+    }
+
+    return {
+      backgroundColor,
+      borderColor,
+      color: textColor
+    }
+  }, [styles])
 
   const getStatusConfig = () => {
     switch (course.status) {
@@ -100,191 +148,159 @@ export const CourseCard3D = memo(function CourseCard3D({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{
         delay: index * 0.1,
-        duration: 0.6,
-        ease: [0.16, 1, 0.3, 1]
+        duration: 0.5,
+        ease: 'easeOut'
       }}
       whileHover={{
-        y: -16,
-        scale: 1.02,
+        y: -8,
         transition: { duration: 0.3 }
       }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
+      onClick={onClick}
       className="group relative overflow-hidden 
-        backdrop-blur-xl 
-        bg-gradient-to-br from-carbon-800/95 via-carbon-700/95 to-carbon-800/95 
-        rounded-3xl 
-        border border-carbon-600/50 
-        hover:border-primary/60 
-        transition-all duration-500 
+        rounded-xl 
+        border 
+        backdrop-blur-sm
+        transition-all duration-300 
         cursor-pointer 
-        shadow-2xl shadow-black/30 
-        hover:shadow-2xl hover:shadow-primary/30"
+        shadow-lg
+        hover:shadow-xl hover:border-primary/40"
+      style={{
+        backgroundColor: cardStyle.backgroundColor,
+        borderColor: cardStyle.borderColor,
+        color: cardStyle.color
+      }}
     >
-      {/* Animated background gradient */}
+      {/* Subtle hover gradient */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-success/5"
-        animate={{
-          opacity: isHovered ? 1 : 0,
-        }}
-        transition={{ duration: 0.5 }}
+        className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-success/5 opacity-0 group-hover:opacity-100"
+        transition={{ duration: 0.3 }}
       />
 
-      {/* Glow effects */}
-      <motion.div
-        className="absolute -top-1/2 -left-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl"
-        animate={{
-          opacity: isHovered ? 1 : 0,
-          scale: isHovered ? 1.2 : 0.8,
-        }}
-        transition={{ duration: 0.5 }}
-      />
-      <motion.div
-        className="absolute -bottom-1/2 -right-1/2 w-64 h-64 bg-success/10 rounded-full blur-3xl"
-        animate={{
-          opacity: isHovered ? 1 : 0,
-          scale: isHovered ? 1.2 : 0.8,
-        }}
-        transition={{ duration: 0.5 }}
-      />
-
-      {/* Shine effect */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-        animate={{
-          x: isHovered ? ['-100%', '200%'] : '-100%',
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: isHovered ? Infinity : 0,
-          ease: 'linear',
-          repeatDelay: 0.5,
-        }}
-      />
-
-      <div className="p-8 relative z-10">
-        {/* Header with thumbnail and status */}
-        <div className="flex items-start justify-between mb-6">
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Header: Thumbnail and Status */}
+        <div className="relative">
           {course.thumbnail.startsWith('http') || course.thumbnail.startsWith('/') ? (
-            <motion.div
-              animate={{
-                scale: isHovered ? 1.1 : 1,
-                rotate: isHovered ? 5 : 0,
-              }}
-              transition={{ duration: 0.3 }}
-              className="w-20 h-20 rounded-2xl overflow-hidden shadow-xl shadow-black/40 border-2 border-carbon-600/50 group-hover:border-primary/50 transition-all duration-500"
-            >
-              <Image
-                src={course.thumbnail}
-                alt={course.title}
-                width={80}
-                height={80}
-                className="w-full h-full object-cover"
-              />
-            </motion.div>
+            <div className="relative w-full h-48 overflow-hidden">
+              <motion.div
+                animate={{
+                  scale: isHovered ? 1.05 : 1,
+                }}
+                transition={{ duration: 0.4 }}
+                className="w-full h-full"
+              >
+                <Image
+                  src={course.thumbnail}
+                  alt={course.title}
+                  fill
+                  className="object-cover"
+                />
+              </motion.div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            </div>
           ) : (
-            <motion.div
-              animate={{
-                scale: isHovered ? 1.1 : 1,
-                rotate: isHovered ? 5 : 0,
-              }}
-              transition={{ duration: 0.3 }}
-              className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-success/20 flex items-center justify-center text-4xl shadow-xl shadow-black/40 border-2 border-carbon-600/50 group-hover:border-primary/50 transition-all duration-500"
-            >
-              {course.thumbnail}
-            </motion.div>
+            <div className="relative w-full h-48 bg-gradient-to-br from-primary/20 via-primary/10 to-success/20 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-6xl opacity-20">{course.thumbnail}</div>
+              </div>
+            </div>
           )}
 
-          <motion.div
-            className={`px-4 py-2 rounded-full text-xs font-bold backdrop-blur-sm border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} shadow-lg ${statusConfig.shadow}`}
-            animate={{
-              scale: isHovered ? 1.05 : 1,
-            }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="flex items-center gap-2">
-              <StatusIcon className="w-3.5 h-3.5" />
-              <span>{course.status}</span>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Title */}
-        <motion.h3
-          className="text-2xl font-bold text-white mb-3 leading-tight"
-          animate={{
-            backgroundImage: isHovered
-              ? 'linear-gradient(to right, var(--color-primary), var(--color-success))'
-              : 'none',
-            WebkitBackgroundClip: isHovered ? 'text' : 'initial',
-            WebkitTextFillColor: isHovered ? 'transparent' : 'white',
-            backgroundClip: isHovered ? 'text' : 'initial',
-          }}
-          transition={{ duration: 0.5 }}
-        >
-          {course.title}
-        </motion.h3>
-
-        {/* Instructor */}
-        <p className="text-gray-400 dark:text-gray-300 text-base mb-6 font-medium">
-          Por {course.instructor}
-        </p>
-
-        {/* Progress bar */}
-        <div className="mb-6">
-          <ProgressBar3D
-            progress={course.progress}
-            delay={index * 0.2 + 0.3}
-          />
-        </div>
-
-        {/* Action button */}
-        <motion.button
-          onClick={(e) => {
-            e.stopPropagation()
-            if (course.progress === 100 && course.has_certificate && onCertificateClick) {
-              onCertificateClick()
-            } else {
-              onClick()
-            }
-          }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`
-            w-full flex items-center justify-center gap-3 
-            px-6 py-4 
-            bg-gradient-to-r ${buttonConfig.gradient} 
-            rounded-xl 
-            text-white font-bold text-base 
-            shadow-xl shadow-primary/30 
-            hover:shadow-2xl hover:shadow-primary/50 
-            transition-all duration-500 
-            relative overflow-hidden group/btn
-          `}
-        >
-          {/* Button shine effect */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/30 to-success/0"
-            animate={{
-              x: ['-100%', '200%'],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'linear',
-              repeatDelay: 1,
-            }}
-          />
-
-          <div className="relative z-10 flex items-center gap-3">
-            <ButtonIcon className="w-5 h-5" />
-            <span>{buttonConfig.text}</span>
+          {/* Status Badge - Top Right */}
+          <div className="absolute top-4 right-4">
+            <motion.div
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur-md border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} shadow-lg`}
+              animate={{
+                scale: isHovered ? 1.05 : 1,
+              }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-1.5">
+                <StatusIcon className="w-3.5 h-3.5" />
+                <span>{course.status}</span>
+              </div>
+            </motion.div>
           </div>
-        </motion.button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 flex-1 flex flex-col">
+          {/* Title */}
+          <h3
+            className="text-xl font-bold mb-2 leading-tight line-clamp-2"
+            style={{ 
+              color: cardStyle.color || undefined,
+              backgroundImage: isHovered
+                ? 'linear-gradient(to right, #3b82f6, #10b981)'
+                : undefined,
+              WebkitBackgroundClip: isHovered ? 'text' : undefined,
+              WebkitTextFillColor: isHovered ? 'transparent' : undefined,
+              backgroundClip: isHovered ? 'text' : undefined,
+            }}
+          >
+            {course.title}
+          </h3>
+
+          {/* Instructor */}
+          <p 
+            className="text-sm mb-5 opacity-70"
+            style={{ color: cardStyle.color || undefined }}
+          >
+            Por {course.instructor}
+          </p>
+
+          {/* Progress Section */}
+          <div className="mb-6 mt-auto">
+            <ProgressBar3D
+              progress={course.progress}
+              index={index}
+            />
+          </div>
+
+          {/* Action Button */}
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation()
+              if (course.progress === 100 && course.has_certificate && onCertificateClick) {
+                onCertificateClick()
+              } else {
+                onClick()
+              }
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={`
+              w-full flex items-center justify-center gap-2.5 
+              px-5 py-3.5 
+              bg-gradient-to-r ${buttonConfig.gradient} 
+              rounded-lg 
+              text-white font-semibold text-sm 
+              shadow-lg
+              hover:shadow-xl
+              transition-all duration-300 
+              relative overflow-hidden
+            `}
+          >
+            {/* Subtle shine on hover */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              initial={{ x: '-100%' }}
+              whileHover={{ x: '200%' }}
+              transition={{ duration: 0.6 }}
+            />
+
+            <div className="relative z-10 flex items-center gap-2.5">
+              <ButtonIcon className="w-4 h-4" />
+              <span>{buttonConfig.text}</span>
+            </div>
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   )

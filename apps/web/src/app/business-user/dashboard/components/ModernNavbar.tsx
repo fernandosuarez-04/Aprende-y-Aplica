@@ -10,7 +10,9 @@ import {
   Menu,
   X
 } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { StyleConfig } from '@/features/business-panel/hooks/useOrganizationStyles'
+import { hexToRgb } from '@/features/business-panel/utils/styles'
 
 interface ModernNavbarProps {
   organization: {
@@ -31,6 +33,7 @@ interface ModernNavbarProps {
   getInitials: () => string
   onProfileClick: () => void
   onLogout: () => void
+  styles?: StyleConfig | null
 }
 
 export function ModernNavbar({
@@ -39,11 +42,56 @@ export function ModernNavbar({
   getDisplayName,
   getInitials,
   onProfileClick,
-  onLogout
+  onLogout,
+  styles
 }: ModernNavbarProps) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Calcular estilos del navbar basados en los estilos personalizados
+  const navbarStyle = useMemo(() => {
+    if (!styles) {
+      return {
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        borderColor: 'rgba(229, 231, 235, 0.1)',
+        color: undefined as string | undefined
+      }
+    }
+
+    const sidebarBg = styles.sidebar_background || '#1e293b'
+    const sidebarOpacity = styles.sidebar_opacity !== undefined ? styles.sidebar_opacity : 0.8
+    const borderColor = styles.border_color || 'rgba(229, 231, 235, 0.1)'
+    const textColor = styles.text_color
+
+    // Convertir hex a rgba si es necesario
+    let backgroundColor: string
+    if (sidebarBg.startsWith('#')) {
+      const rgb = hexToRgb(sidebarBg)
+      backgroundColor = `rgba(${rgb}, ${sidebarOpacity})`
+    } else if (sidebarBg.startsWith('rgba')) {
+      // Si ya es rgba, extraer el valor de opacidad y reemplazarlo
+      const rgbaMatch = sidebarBg.match(/rgba?\(([^)]+)\)/)
+      if (rgbaMatch) {
+        const parts = rgbaMatch[1].split(',')
+        if (parts.length >= 3) {
+          backgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${sidebarOpacity})`
+        } else {
+          backgroundColor = sidebarBg
+        }
+      } else {
+        backgroundColor = sidebarBg
+      }
+    } else {
+      backgroundColor = sidebarBg
+    }
+
+    return {
+      backgroundColor,
+      borderColor,
+      color: textColor
+    }
+  }, [styles])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -58,8 +106,15 @@ export function ModernNavbar({
   }, [])
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-gray-200/10 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-gray-950/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav 
+      className="sticky top-0 z-50 w-full border-b backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-gray-950/60"
+      style={{
+        backgroundColor: navbarStyle.backgroundColor,
+        borderColor: navbarStyle.borderColor,
+        color: navbarStyle.color
+      }}
+    >
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20">
         <div className="flex h-16 items-center justify-between">
           {/* Left: Logo y Nombre */}
           <div className="flex items-center gap-3">
@@ -87,10 +142,18 @@ export function ModernNavbar({
                 </div>
               )}
               <div className="hidden sm:block">
-                <h1 className="text-base font-semibold text-gray-900 dark:text-white leading-none">
+                <h1 
+                  className="text-base font-semibold leading-none"
+                  style={{ color: navbarStyle.color || undefined }}
+                >
                   {organization?.name || 'Mi Organización'}
                 </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Panel de aprendizaje</p>
+                <p 
+                  className="text-xs mt-0.5 opacity-70"
+                  style={{ color: navbarStyle.color || undefined }}
+                >
+                  Panel de aprendizaje
+                </p>
               </div>
             </motion.div>
           </div>
@@ -121,10 +184,16 @@ export function ModernNavbar({
                   )}
                 </div>
                 <div className="text-left hidden lg:block">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-none">
+                  <p 
+                    className="text-sm font-medium leading-none"
+                    style={{ color: navbarStyle.color || undefined }}
+                  >
                     {getDisplayName()}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  <p 
+                    className="text-xs mt-0.5 opacity-70"
+                    style={{ color: navbarStyle.color || undefined }}
+                  >
                     {user?.email?.split('@')[0] || 'Usuario'}
                   </p>
                 </div>
@@ -151,10 +220,18 @@ export function ModernNavbar({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200/50 dark:border-gray-800/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl z-[999] overflow-hidden"
+                      className="absolute right-0 mt-2 w-64 rounded-xl border backdrop-blur-xl shadow-xl z-[999] overflow-hidden"
+                      style={{
+                        backgroundColor: navbarStyle.backgroundColor,
+                        borderColor: navbarStyle.borderColor,
+                        color: navbarStyle.color
+                      }}
                     >
                       {/* User Info */}
-                      <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-800/50">
+                      <div 
+                        className="px-4 py-3 border-b"
+                        style={{ borderColor: navbarStyle.borderColor }}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center ring-2 ring-gray-200/50 dark:ring-gray-800/50">
                             {user?.profile_picture_url ? (
@@ -172,10 +249,16 @@ export function ModernNavbar({
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                            <p 
+                              className="text-sm font-semibold truncate"
+                              style={{ color: navbarStyle.color || undefined }}
+                            >
                               {getDisplayName()}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            <p 
+                              className="text-xs truncate opacity-70"
+                              style={{ color: navbarStyle.color || undefined }}
+                            >
                               {user?.email || ''}
                             </p>
                           </div>
@@ -189,14 +272,18 @@ export function ModernNavbar({
                             onProfileClick()
                             setUserDropdownOpen(false)
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:opacity-80"
+                          style={{ color: navbarStyle.color || undefined }}
                           whileHover={{ x: 2 }}
                         >
                           <Edit3 className="h-4 w-4 text-blue-500" />
                           <span>Editar perfil</span>
                         </motion.button>
 
-                        <div className="h-px bg-gray-200/50 dark:bg-gray-800/50 my-1.5" />
+                        <div 
+                          className="h-px my-1.5" 
+                          style={{ backgroundColor: navbarStyle.borderColor }}
+                        />
 
                         <motion.button
                           onClick={() => {
@@ -238,10 +325,18 @@ export function ModernNavbar({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden border-t border-gray-200/50 dark:border-gray-800/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl"
+            className="md:hidden border-t backdrop-blur-xl"
+            style={{
+              backgroundColor: navbarStyle.backgroundColor,
+              borderColor: navbarStyle.borderColor,
+              color: navbarStyle.color
+            }}
           >
             <div className="px-4 py-4 space-y-3">
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-200/50 dark:border-gray-800/50">
+              <div 
+                className="flex items-center gap-3 pb-3 border-b"
+                style={{ borderColor: navbarStyle.borderColor }}
+              >
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                   {user?.profile_picture_url ? (
                     <Image
@@ -258,10 +353,16 @@ export function ModernNavbar({
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <p 
+                    className="text-sm font-semibold"
+                    style={{ color: navbarStyle.color || undefined }}
+                  >
                     {getDisplayName()}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p 
+                    className="text-xs opacity-70"
+                    style={{ color: navbarStyle.color || undefined }}
+                  >
                     {user?.email || ''}
                   </p>
                 </div>
@@ -271,7 +372,8 @@ export function ModernNavbar({
                   onProfileClick()
                   setMobileMenuOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:opacity-80 transition-opacity"
+                style={{ color: navbarStyle.color || undefined }}
               >
                 <Edit3 className="h-4 w-4 text-blue-500" />
                 <span>Editar perfil</span>

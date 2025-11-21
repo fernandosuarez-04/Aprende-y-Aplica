@@ -1,8 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ElementType, useState } from 'react'
+import { ElementType, useState, useMemo } from 'react'
 import { AnimatedCounter } from './AnimatedCounter'
+import { StyleConfig } from '@/features/business-panel/hooks/useOrganizationStyles'
+import { hexToRgb } from '@/features/business-panel/utils/styles'
 
 interface ModernStatsCardProps {
   label: string
@@ -12,6 +14,7 @@ interface ModernStatsCardProps {
   index: number
   onClick?: () => void
   isClickable?: boolean
+  styles?: StyleConfig | null
 }
 
 export function ModernStatsCard({
@@ -21,9 +24,54 @@ export function ModernStatsCard({
   color,
   index,
   onClick,
-  isClickable = false
+  isClickable = false,
+  styles
 }: ModernStatsCardProps) {
   const [isHovered, setIsHovered] = useState(false)
+
+  // Calcular estilos de la tarjeta basados en los estilos personalizados
+  const cardStyle = useMemo(() => {
+    if (!styles) {
+      return {
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        borderColor: 'rgba(229, 231, 235, 0.2)',
+        color: undefined as string | undefined
+      }
+    }
+
+    const cardBg = styles.card_background || '#1e293b'
+    const cardOpacity = styles.card_opacity !== undefined ? styles.card_opacity : 0.95
+    const borderColor = styles.border_color || 'rgba(229, 231, 235, 0.2)'
+    const textColor = styles.text_color
+
+    // Convertir hex a rgba si es necesario
+    let backgroundColor: string
+    if (cardBg.startsWith('#')) {
+      const rgb = hexToRgb(cardBg)
+      backgroundColor = `rgba(${rgb}, ${cardOpacity})`
+    } else if (cardBg.startsWith('rgba')) {
+      // Si ya es rgba, extraer el valor de opacidad y reemplazarlo
+      const rgbaMatch = cardBg.match(/rgba?\(([^)]+)\)/)
+      if (rgbaMatch) {
+        const parts = rgbaMatch[1].split(',')
+        if (parts.length >= 3) {
+          backgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${cardOpacity})`
+        } else {
+          backgroundColor = cardBg
+        }
+      } else {
+        backgroundColor = cardBg
+      }
+    } else {
+      backgroundColor = cardBg
+    }
+
+    return {
+      backgroundColor,
+      borderColor,
+      color: textColor
+    }
+  }, [styles])
 
   const colorClasses = {
     'from-blue-500 to-cyan-500': {
@@ -68,13 +116,17 @@ export function ModernStatsCard({
       onClick={onClick}
       className={`
         relative group rounded-xl border p-5 
-        bg-white/50 dark:bg-gray-900/50 
         backdrop-blur-sm
         ${colors.border} 
         transition-all duration-300
         ${isClickable ? 'cursor-pointer' : ''}
         ${isHovered && isClickable ? `${colors.bg} border-opacity-40` : ''}
       `}
+      style={{
+        backgroundColor: cardStyle.backgroundColor,
+        borderColor: cardStyle.borderColor,
+        color: cardStyle.color
+      }}
     >
       {/* Hover effect */}
       {isHovered && isClickable && (
@@ -93,10 +145,16 @@ export function ModernStatsCard({
             <Icon className={`h-5 w-5 ${colors.icon}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">
+            <p 
+              className="text-xs font-medium uppercase tracking-wider mb-1 opacity-70"
+              style={{ color: cardStyle.color || undefined }}
+            >
               {label}
             </p>
-            <div className={`text-2xl font-bold ${colors.text}`}>
+            <div 
+              className={`text-2xl font-bold ${colors.text}`}
+              style={{ color: cardStyle.color || undefined }}
+            >
               <AnimatedCounter
                 value={value}
                 duration={1.2}

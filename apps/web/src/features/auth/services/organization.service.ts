@@ -12,6 +12,10 @@ export interface Organization {
   description: string | null;
   subscription_plan: 'team' | 'business' | 'enterprise';
   subscription_status: 'active' | 'expired' | 'cancelled' | 'trial' | 'pending';
+  billing_cycle?: 'monthly' | 'yearly' | null;
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
+  max_users?: number;
   is_active: boolean;
   brand_color_primary?: string | null;
   brand_color_secondary?: string | null;

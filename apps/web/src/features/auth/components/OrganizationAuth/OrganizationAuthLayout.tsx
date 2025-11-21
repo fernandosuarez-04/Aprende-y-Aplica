@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { getBackgroundStyle, generateCSSVariables } from '../../../business-panel/utils/styles';
+import { getBackgroundStyle, generateCSSVariables, hexToRgb } from '../../../business-panel/utils/styles';
 import type { StyleConfig } from '../../../business-panel/hooks/useOrganizationStyles';
+
+// Lazy load particles background
+const ParticlesBackground = lazy(() => 
+  import('@/app/business-user/dashboard/components/ParticlesBackground').then(m => ({ default: m.ParticlesBackground }))
+);
 
 interface OrganizationAuthLayoutProps {
   organization: {
@@ -37,7 +42,6 @@ export function OrganizationAuthLayout({
   useEffect(() => {
     const fetchLoginStyles = async () => {
       try {
-        // Obtener el slug desde la organización si está disponible
         const slug = (organization as any).slug;
         if (!slug) return;
 
@@ -65,176 +69,327 @@ export function OrganizationAuthLayout({
   const finalPrimaryColor = loginStyles?.primary_button_color || primaryColor;
   const finalSecondaryColor = loginStyles?.secondary_button_color || secondaryColor;
   
-  // Agregar variable para el fondo de tarjeta si no existe
-  if (loginStyles?.card_background && !cssVariables['--org-card-background-rgb']) {
-    const hexToRgb = (hex: string): string => {
-      if (!hex || !hex.startsWith('#')) return '30, 41, 59';
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      if (!result) return '30, 41, 59';
-      return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
-    };
-    cssVariables['--org-card-background-rgb'] = hexToRgb(loginStyles.card_background);
+  // Calcular estilos de la tarjeta
+  const cardBackground = loginStyles?.card_background || '#1a1a2e';
+  const cardOpacity = loginStyles?.card_opacity !== undefined ? loginStyles.card_opacity : 0.95;
+  const borderColor = loginStyles?.border_color || 'rgba(71, 85, 105, 0.3)';
+  const textColor = loginStyles?.text_color || '#ffffff';
+
+  let cardBackgroundColor: string;
+  if (cardBackground.startsWith('#')) {
+    const rgb = hexToRgb(cardBackground);
+    cardBackgroundColor = `rgba(${rgb}, ${cardOpacity})`;
+  } else if (cardBackground.startsWith('rgba')) {
+    const rgbaMatch = cardBackground.match(/rgba?\(([^)]+)\)/);
+    if (rgbaMatch) {
+      const parts = rgbaMatch[1].split(',');
+      if (parts.length >= 3) {
+        cardBackgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${cardOpacity})`;
+      } else {
+        cardBackgroundColor = cardBackground;
+      }
+    } else {
+      cardBackgroundColor = cardBackground;
+    }
+  } else {
+    cardBackgroundColor = cardBackground;
   }
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-page-enhanced transition-all duration-300"
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-all duration-500"
       style={{
         ...backgroundStyle,
         ...cssVariables
       } as React.CSSProperties}
     >
-      {/* Efectos de Gradiente con Colores de la Organización */}
+      {/* Particles Background - Lazy loaded */}
+      <Suspense fallback={null}>
+        <ParticlesBackground />
+      </Suspense>
+
+      {/* Animated Gradient Orbs */}
       {!loginStyles?.background_type && (
-        <div 
-          className="absolute inset-0 z-0"
-          style={{
-            background: `radial-gradient(circle at 30% 50%, ${finalPrimaryColor}15, transparent 50%), radial-gradient(circle at 70% 50%, ${finalSecondaryColor}15, transparent 50%)`
-          }}
-        />
+        <>
+          <motion.div
+            className="absolute inset-0 z-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+          >
+            {/* Large gradient orbs */}
+            <motion.div
+              className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl opacity-20"
+              style={{
+                background: `radial-gradient(circle, ${finalPrimaryColor}, transparent)`,
+              }}
+              animate={{
+                x: [0, 100, 0],
+                y: [0, 50, 0],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+            <motion.div
+              className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-20"
+              style={{
+                background: `radial-gradient(circle, ${finalSecondaryColor}, transparent)`,
+              }}
+              animate={{
+                x: [0, -100, 0],
+                y: [0, -50, 0],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: 25,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: 1,
+              }}
+            />
+            <motion.div
+              className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full blur-2xl opacity-15"
+              style={{
+                background: `radial-gradient(circle, ${finalPrimaryColor}40, transparent)`,
+              }}
+              animate={{
+                x: ['-50%', '-45%', '-50%'],
+                y: ['-50%', '-55%', '-50%'],
+                scale: [1, 1.3, 1],
+              }}
+              transition={{
+                duration: 15,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: 0.5,
+              }}
+            />
+          </motion.div>
+
+          {/* Animated grid pattern */}
+          <motion.div
+            className="absolute inset-0 z-0 opacity-5"
+            style={{
+              backgroundImage: `
+                linear-gradient(0deg, transparent 24%, ${finalPrimaryColor}15 25%, ${finalPrimaryColor}15 26%, transparent 27%, transparent 74%, ${finalSecondaryColor}15 75%, ${finalSecondaryColor}15 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, ${finalPrimaryColor}15 25%, ${finalPrimaryColor}15 26%, transparent 27%, transparent 74%, ${finalSecondaryColor}15 75%, ${finalSecondaryColor}15 76%, transparent 77%, transparent)
+              `,
+              backgroundSize: '50px 50px',
+            }}
+            animate={{
+              backgroundPosition: ['0% 0%', '50px 50px'],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          />
+        </>
       )}
 
-      {/* Card Principal con Animación */}
+      {/* Main Card with Modern Design */}
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="auth-card-enhanced w-full max-w-md lg:max-w-4xl xl:max-w-5xl relative z-10"
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md lg:max-w-lg xl:max-w-xl relative z-10"
       >
-        {/* Efecto de Brillo en el Borde con Colores de la Organización */}
-        <div 
-          className="absolute inset-0 rounded-2xl blur-xl opacity-50 animate-pulse"
+        {/* Outer Glow Effect */}
+        <motion.div
+          className="absolute -inset-1 rounded-3xl opacity-50 blur-2xl"
           style={{
-            background: `linear-gradient(to right, ${primaryColor}20, ${secondaryColor}20, ${primaryColor}20)`
+            background: `linear-gradient(135deg, ${finalPrimaryColor}40, ${finalSecondaryColor}40, ${finalPrimaryColor}40)`,
+          }}
+          animate={{
+            opacity: [0.3, 0.6, 0.3],
+            scale: [1, 1.02, 1],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: 'easeInOut',
           }}
         />
-        
+
+        {/* Main Card Container */}
         <div 
-          className="relative backdrop-blur-2xl p-8 lg:p-12 xl:p-20 shadow-2xl"
+          className="relative backdrop-blur-2xl p-8 lg:p-10 xl:p-12 shadow-2xl rounded-3xl border overflow-hidden"
           style={{
-            backgroundColor: loginStyles?.card_background || 'rgba(30, 41, 59, 0.95)',
-            borderRadius: '24px',
-            border: `2px solid ${loginStyles?.border_color || '#334155'}`
+            backgroundColor: cardBackgroundColor,
+            borderColor: borderColor,
+            boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px ${borderColor}20`,
           }}
         >
-          {/* Favicon con Animación - Solo mostrar cuando NO está cargando */}
-          {!isLoading && (
-            <motion.div
-              className="flex flex-col items-center gap-6 mb-10"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.7, ease: 'easeOut' }}
-            >
-              <motion.div
-                className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg bg-gray-100/50 dark:bg-transparent"
-                whileHover={{ scale: 1.1 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              >
-                <Image
-                  src={faviconUrl}
-                  alt={`${organization.name} Favicon`}
-                  width={96}
-                  height={96}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/icono.png';
-                  }}
-                />
-              </motion.div>
-              
-              <div className="text-center space-y-3">
-                <motion.h1 
-                  className="text-2xl lg:text-3xl font-bold text-color-contrast"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4, duration: 0.6, ease: 'easeOut' }}
-                  style={{
-                    fontFamily: organization.brand_font_family || undefined,
-                    color: finalPrimaryColor
-                  }}
-                >
-                  {organization.name}
-                </motion.h1>
-                {organization.description && (
-                  <motion.p 
-                    className="text-sm lg:text-base text-text-secondary"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.5 }}
-                  >
-                    {organization.description}
-                  </motion.p>
-                )}
-              </div>
-            </motion.div>
-          )}
+          {/* Inner gradient overlay */}
+          <div 
+            className="absolute inset-0 opacity-10 rounded-3xl pointer-events-none"
+            style={{
+              background: `linear-gradient(135deg, ${finalPrimaryColor}20, transparent, ${finalSecondaryColor}20)`,
+            }}
+          />
 
-          {/* Estados de Carga y Error */}
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-10 gap-6">
-              {/* Favicon/Logo con animación */}
+          {/* Shimmer effect */}
+          <motion.div
+            className="absolute inset-0 opacity-30 pointer-events-none"
+            style={{
+              background: `linear-gradient(135deg, transparent 30%, ${finalPrimaryColor}20 50%, transparent 70%)`,
+            }}
+            animate={{
+              x: ['-100%', '100%'],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          />
+
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Logo Section */}
+            {!isLoading && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="w-20 h-20"
+                className="flex flex-col items-center gap-6 mb-10"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               >
-                <Image
-                  src={faviconUrl}
-                  alt={`${organization.name} Logo`}
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/icono.png';
+                <motion.div
+                  className="relative w-24 h-24 rounded-2xl overflow-hidden shadow-2xl"
+                  style={{
+                    boxShadow: `0 20px 40px -12px ${finalPrimaryColor}40`,
                   }}
-                />
+                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  <Image
+                    src={faviconUrl}
+                    alt={`${organization.name} Logo`}
+                    fill
+                    className="object-cover"
+                    sizes="96px"
+                    style={{
+                      objectFit: 'cover',
+                      objectPosition: 'center',
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/icono.png';
+                    }}
+                  />
+                </motion.div>
+                
+                <div className="text-center space-y-3">
+                  <motion.h1 
+                    className="text-3xl lg:text-4xl font-bold"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    style={{
+                      fontFamily: organization.brand_font_family || undefined,
+                      color: finalPrimaryColor,
+                      textShadow: `0 0 20px ${finalPrimaryColor}30`,
+                    }}
+                  >
+                    {organization.name}
+                  </motion.h1>
+                  {organization.description && (
+                    <motion.p 
+                      className="text-sm lg:text-base opacity-80 leading-relaxed"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.8 }}
+                      transition={{ delay: 0.6, duration: 0.5 }}
+                      style={{ color: textColor }}
+                    >
+                      {organization.description}
+                    </motion.p>
+                  )}
+                </div>
               </motion.div>
-              
-              {/* Texto de carga con color de la organización */}
-              <motion.p
+            )}
+
+            {/* Loading State */}
+            {isLoading && (
+              <motion.div
+                className="flex flex-col items-center justify-center py-16 gap-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-lg font-medium"
-                style={{
-                  color: finalPrimaryColor,
-                  fontFamily: organization.brand_font_family || undefined
-                }}
+                transition={{ duration: 0.5 }}
               >
-                Cargando...
-              </motion.p>
-              
-              {/* Spinner con color de la organización */}
-              <div 
-                className="w-12 h-12 border-4 rounded-full animate-spin"
-                style={{
-                  borderColor: `${finalPrimaryColor}30`,
-                  borderTopColor: finalPrimaryColor
-                }}
-              ></div>
-            </div>
-          )}
+                <motion.div
+                  className="relative w-20 h-20"
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Image
+                    src={faviconUrl}
+                    alt={`${organization.name} Logo`}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/icono.png';
+                    }}
+                  />
+                  <motion.div
+                    className="absolute inset-0 border-4 rounded-full"
+                    style={{
+                      borderColor: `${finalPrimaryColor}30`,
+                      borderTopColor: finalPrimaryColor,
+                    }}
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: 'linear',
+                    }}
+                  />
+                </motion.div>
+                
+                <motion.p
+                  className="text-lg font-medium"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  style={{
+                    color: finalPrimaryColor,
+                    fontFamily: organization.brand_font_family || undefined,
+                  }}
+                >
+                  Cargando...
+                </motion.p>
+              </motion.div>
+            )}
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
+            {/* Error State */}
+            {error && !isLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 rounded-2xl bg-red-500/20 border border-red-500/50 backdrop-blur-sm"
+              >
+                <p className="text-red-400 text-sm text-center">{error}</p>
+              </motion.div>
+            )}
 
-          {/* Contenido Principal */}
-          {!isLoading && !error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.7, ease: 'easeOut' }}
-            >
-              {children}
-            </motion.div>
-          )}
+            {/* Main Content */}
+            {!isLoading && !error && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {children}
+              </motion.div>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>
   );
 }
-

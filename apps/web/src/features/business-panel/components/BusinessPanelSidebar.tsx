@@ -162,7 +162,7 @@ export function BusinessPanelSidebar({
 
   // Lógica para determinar si el sidebar debe estar expandido
   const shouldExpand = isPinned || (isCollapsed && isHovered)
-  const actualWidth = shouldExpand ? 'w-64' : (isCollapsed ? 'w-16' : 'w-64')
+  const actualWidth = shouldExpand ? 'w-64' : (isCollapsed ? 'w-20' : 'w-64')
 
   // Valores por defecto si no hay organización
   const orgName = organization?.name || 'Aprende y Aplica'
@@ -250,12 +250,15 @@ export function BusinessPanelSidebar({
         }}
         className={`
           fixed lg:relative z-50 h-screen lg:h-full flex flex-col
-          border-r border-carbon-600/50
+          border-r backdrop-blur-xl
           transition-all duration-300 ease-in-out
           ${actualWidth}
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           shadow-2xl
         `}
+        style={{
+          borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)'
+        }}
         onMouseEnter={() => {
           if (isCollapsed && !isPinned) {
             setIsHovered(true)
@@ -287,65 +290,72 @@ export function BusinessPanelSidebar({
         }}
       >
         {/* Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-carbon-600/50">
+        <div className="h-16 flex items-center justify-between px-4 border-b backdrop-blur-sm" style={{ borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)' }}>
           {!isCollapsed || shouldExpand ? (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
               className="flex items-center gap-3"
             >
-                  {!loadingOrg && (
-                    <Image
-                  src={orgFavicon}
-                  alt={`${orgName} Favicon`}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 object-contain"
-                      onError={(e) => {
-                    // Fallback al favicon por defecto si hay error cargando el favicon de la organización
-                        (e.target as HTMLImageElement).src = '/icono.png';
-                      }}
-                    />
-                  )}
-              <div>
-                <h2 className="text-sm font-bold" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                  {loadingOrg ? 'Cargando...' : orgName}
-                </h2>
-                <p className="text-xs" style={{ color: 'var(--org-text-color, #cbd5e1)' }}>Business</p>
-              </div>
-            </motion.div>
-          ) : (
-            !loadingOrg && (
+              {!loadingOrg && (
+                <div className="relative h-10 w-10 rounded-xl overflow-hidden ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm">
                   <Image
-                src={orgFavicon}
-                alt={`${orgName} Favicon`}
-                    width={24}
-                    height={24}
-                className="w-6 h-6 object-contain mx-auto"
+                    src={orgFavicon}
+                    alt={`${orgName} Favicon`}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/icono.png';
                     }}
                   />
+                </div>
+              )}
+              <div>
+                <h2 className="text-sm font-semibold leading-none" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #ffffff)' }}>
+                  {loadingOrg ? 'Cargando...' : orgName}
+                </h2>
+                <p className="text-xs mt-0.5 opacity-70" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #cbd5e1)' }}>Business</p>
+              </div>
+            </motion.div>
+          ) : (
+            !loadingOrg && (
+              <div className="relative h-10 w-10 rounded-xl overflow-hidden ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm mx-auto">
+                <Image
+                  src={orgFavicon}
+                  alt={`${orgName} Favicon`}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/icono.png';
+                  }}
+                />
+              </div>
             )
           )}
 
           {/* Botones del Header */}
           <div className="flex items-center gap-2">
             {/* Botón de fijar - siempre visible en desktop */}
-            <button
+            <motion.button
               onClick={(event) => {
                 event.stopPropagation()
                 onTogglePin()
               }}
-              className="hidden lg:block p-2 rounded-lg text-carbon-400 hover:text-white hover:bg-carbon-700 transition-colors"
+              className="hidden lg:block p-2 rounded-lg transition-colors hover:opacity-80"
+              style={{ color: panelStyles?.text_color || 'rgba(203, 213, 225, 0.8)' }}
               title={isPinned ? 'Desfijar panel' : 'Fijar panel'}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
               {isPinned ? (
                 <PinOff className="w-4 h-4" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
               ) : (
                 <Pin className="w-4 h-4" />
               )}
-            </button>
+            </motion.button>
             
             {/* Botón de cerrar en mobile */}
             <button
@@ -353,7 +363,8 @@ export function BusinessPanelSidebar({
                 event.stopPropagation()
                 onClose()
               }}
-              className="lg:hidden p-2 rounded-lg text-carbon-400 hover:text-white hover:bg-carbon-700 transition-colors"
+              className="lg:hidden p-2 rounded-lg transition-colors hover:opacity-80"
+              style={{ color: panelStyles?.text_color || 'rgba(203, 213, 225, 0.8)' }}
             >
               <X className="w-5 h-5" />
             </button>
@@ -361,34 +372,67 @@ export function BusinessPanelSidebar({
         </div>
 
         {/* Indicador de hover para fijar */}
-        {isCollapsed && isHovered && !isPinned && (
-          <div className="px-4 py-1.5 bg-gradient-to-r from-primary/10 to-transparent border-b border-carbon-600/30">
-            <p className="text-xs font-light flex items-center gap-1.5" style={{ color: 'var(--org-text-color, #cbd5e1)' }}>
-              <Pin className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
-              Doble clic para fijar
-            </p>
-          </div>
-        )}
+        <AnimatePresence>
+          {isCollapsed && isHovered && !isPinned && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="px-4 py-1.5 backdrop-blur-sm border-b"
+              style={{ 
+                borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)',
+                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent)'
+              }}
+            >
+              <p className="text-xs font-light flex items-center gap-1.5" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #cbd5e1)' }}>
+                <Pin className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+                Doble clic para fijar
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Indicador de panel fijado */}
-        {isPinned && !isCollapsed && (
-          <div className="px-4 py-1.5 bg-gradient-to-r from-primary/15 to-transparent border-b border-carbon-600/30">
-            <p className="text-xs font-light flex items-center gap-1.5" style={{ color: 'var(--org-text-color, #e0e7ff)' }}>
-              <PinOff className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
-              Panel fijado
-            </p>
-          </div>
-        )}
+        <AnimatePresence>
+          {isPinned && !isCollapsed && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="px-4 py-1.5 backdrop-blur-sm border-b"
+              style={{ 
+                borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)',
+                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.15), transparent)'
+              }}
+            >
+              <p className="text-xs font-light flex items-center gap-1.5" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #e0e7ff)' }}>
+                <PinOff className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+                Panel fijado
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Feedback temporal de doble click */}
-        {showPinFeedback && (
-          <div className="px-4 py-1.5 bg-gradient-to-r from-primary/20 to-transparent border-b border-carbon-700/40">
-            <p className="text-xs font-light flex items-center gap-1.5 animate-in fade-in duration-200" style={{ color: 'var(--org-text-color, #e0e7ff)' }}>
-              <PinOff className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
-              {isPinned ? 'Panel fijado' : 'Panel desfijado'}
-            </p>
-          </div>
-        )}
+        <AnimatePresence>
+          {showPinFeedback && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="px-4 py-1.5 backdrop-blur-sm border-b"
+              style={{ 
+                borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.4)',
+                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.2), transparent)'
+              }}
+            >
+              <p className="text-xs font-light flex items-center gap-1.5" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #e0e7ff)' }}>
+                <PinOff className="w-3 h-3" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+                {isPinned ? 'Panel fijado' : 'Panel desfijado'}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4">
@@ -418,13 +462,21 @@ export function BusinessPanelSidebar({
                       }}
                       className={`
                         group relative flex items-center px-4 py-3 rounded-xl
-                        transition-all duration-200
+                        transition-all duration-200 backdrop-blur-sm
                         ${
                           isActive
-                            ? 'bg-gradient-to-r from-primary/20 to-success/20 text-white shadow-lg shadow-primary/10'
-                            : 'text-carbon-300 hover:bg-carbon-700/50 hover:text-white'
+                            ? 'text-white shadow-lg shadow-primary/10'
+                            : 'hover:opacity-80'
                         }
                       `}
+                      style={{
+                        background: isActive 
+                          ? `linear-gradient(to right, var(--org-primary-button-color, rgba(59, 130, 246, 0.2)), var(--org-secondary-button-color, rgba(16, 185, 129, 0.2)))`
+                          : undefined,
+                        color: isActive 
+                          ? (panelStyles?.text_color || 'var(--org-text-color, #ffffff)')
+                          : (panelStyles?.text_color || 'rgba(203, 213, 225, 0.7)')
+                      }}
                     >
                       {/* Active indicator */}
                       {isActive && (
@@ -439,41 +491,49 @@ export function BusinessPanelSidebar({
                       )}
 
                       {/* Icon */}
-                      <Icon className={`
-                        w-5 h-5 mr-3 transition-colors
-                        ${isActive ? 'text-primary' : 'text-carbon-400 group-hover:text-white'}
-                      `} />
+                      <Icon 
+                        className="w-5 h-5 mr-3 transition-colors flex-shrink-0"
+                        style={{
+                          color: isActive 
+                            ? 'var(--org-primary-button-color, #3b82f6)'
+                            : undefined
+                        }}
+                      />
 
                       {/* Label */}
-                      <span 
-                        className="text-sm font-medium"
-                        style={isActive ? { color: 'var(--org-text-color, #ffffff)' } : {}}
-                      >
+                      <span className="text-sm font-medium">
                         {item.name}
                       </span>
 
                       {/* Hover effect */}
-                      <motion.div
-                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/10 to-success/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                        whileHover={{ scale: 1.02 }}
-                      />
+                      {!isActive && (
+                        <motion.div
+                          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{
+                            background: 'linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1))'
+                          }}
+                        />
+                      )}
                     </Link>
                   ) : (
                     <Link
                       href={item.href}
                       onClick={onClose}
-                      className={`
-                        flex items-center justify-center p-3 rounded-xl
-                        transition-all duration-200
-                        ${
-                          isActive
-                            ? 'bg-gradient-to-r from-primary/20 to-success/20 text-white shadow-lg'
-                            : 'text-carbon-400 hover:bg-carbon-700 hover:text-white'
-                        }
-                      `}
+                      className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 backdrop-blur-sm"
+                      style={{
+                        background: isActive 
+                          ? `linear-gradient(to right, var(--org-primary-button-color, rgba(59, 130, 246, 0.2)), var(--org-secondary-button-color, rgba(16, 185, 129, 0.2)))`
+                          : undefined,
+                        color: isActive 
+                          ? (panelStyles?.text_color || 'var(--org-text-color, #ffffff)')
+                          : (panelStyles?.text_color || 'rgba(203, 213, 225, 0.7)')
+                      }}
                       title={item.name}
                     >
-                      <Icon className="w-6 h-6" />
+                      <Icon 
+                        className="w-6 h-6"
+                        style={isActive ? { color: 'var(--org-primary-button-color, #3b82f6)' } : undefined}
+                      />
                     </Link>
                   )}
                 </motion.div>
