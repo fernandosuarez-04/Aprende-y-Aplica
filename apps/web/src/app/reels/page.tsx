@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { CommentsPanel } from '../../features/reels/components';
 import { Button } from '@aprende-y-aplica/ui';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useShareModalContext } from '../../core/providers/ShareModalProvider';
 import { getBaseUrl } from '../../lib/env';
 
@@ -48,6 +48,7 @@ interface Reel {
 
 export default function ReelsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { openShareModal } = useShareModalContext();
   const [reels, setReels] = useState<Reel[]>([]);
   const [currentReelIndex, setCurrentReelIndex] = useState(0);
@@ -61,6 +62,7 @@ export default function ReelsPage() {
   const [isLoadingLikes, setIsLoadingLikes] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [targetReelId, setTargetReelId] = useState<string | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   // Función para formatear números
@@ -133,6 +135,45 @@ export default function ReelsPage() {
       // console.error('❌ Error liking reel:', error);
     }
   }, [likedReels]);
+
+  // Cargar un reel específico por ID
+  const loadReelById = async (reelId: string): Promise<Reel | null> => {
+    try {
+      const response = await fetch(`/api/reels/${reelId}`);
+      if (response.ok) {
+        const data = await response.json();
+        // La API devuelve { reel: {...}, comments: [...] }
+        const reel = data.reel || data;
+        
+        // Normalizar la estructura del reel para que coincida con el formato esperado
+        return {
+          id: reel.id,
+          title: reel.title,
+          description: reel.description,
+          video_url: reel.video_url,
+          thumbnail_url: reel.thumbnail_url,
+          duration_seconds: reel.duration_seconds,
+          category: reel.category,
+          language: reel.language,
+          is_featured: reel.is_featured,
+          view_count: reel.view_count || 0,
+          like_count: reel.like_count || 0,
+          share_count: reel.share_count || 0,
+          comment_count: reel.comment_count || 0,
+          created_at: reel.created_at,
+          users: reel.users || {
+            id: '',
+            username: 'Usuario',
+            profile_picture_url: undefined
+          }
+        };
+      }
+      return null;
+    } catch (error) {
+      // console.error('Error loading reel by ID:', error);
+      return null;
+    }
+  };
 
   // Cargar reels
   const loadReels = async (pageNum: number = 1) => {
@@ -331,6 +372,74 @@ export default function ReelsPage() {
       });
     }
   }, [reels, likedReels, isLoadingLikes]);
+
+  // Leer parámetro de URL y establecer reel específico
+  useEffect(() => {
+    const reelIdFromUrl = searchParams.get('reel');
+    if (reelIdFromUrl) {
+      setTargetReelId(reelIdFromUrl);
+    }
+  }, [searchParams]);
+
+  // Manejar el reel específico cuando se carga la lista
+  useEffect(() => {
+    const handleTargetReel = async () => {
+      if (!targetReelId) return;
+      
+      // Si aún está cargando, esperar
+      if (isLoading) return;
+
+      // Buscar el reel en la lista cargada
+      const foundIndex = reels.findIndex(reel => reel.id === targetReelId);
+      
+      if (foundIndex !== -1) {
+        // Reel encontrado en la lista, establecer el índice
+        setCurrentReelIndex(foundIndex);
+        setViewMode('feed'); // Asegurar que esté en modo feed
+        // Limpiar el parámetro de la URL
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.delete('reel');
+        const newUrl = newSearchParams.toString() 
+          ? `${window.location.pathname}?${newSearchParams.toString()}`
+          : window.location.pathname;
+        router.replace(newUrl);
+        setTargetReelId(null);
+      } else if (reels.length > 0) {
+        // Solo intentar cargar si ya hay reels cargados (para evitar loops)
+        // Reel no encontrado, cargarlo específicamente
+        const specificReel = await loadReelById(targetReelId);
+        if (specificReel) {
+          // Verificar si el reel ya está en la lista antes de agregarlo
+          const existingIndex = reels.findIndex(r => r.id === specificReel.id);
+          
+          if (existingIndex !== -1) {
+            // Si ya está, establecer el índice
+            setCurrentReelIndex(existingIndex);
+            setViewMode('feed');
+          } else {
+            // Agregar el reel al inicio de la lista
+            setReels(prev => [specificReel, ...prev]);
+            // Establecer el índice en 0 (el reel que acabamos de agregar)
+            setCurrentReelIndex(0);
+            setViewMode('feed');
+          }
+          
+          // Limpiar el parámetro de la URL
+          const newSearchParams = new URLSearchParams(searchParams.toString());
+          newSearchParams.delete('reel');
+          const newUrl = newSearchParams.toString() 
+            ? `${window.location.pathname}?${newSearchParams.toString()}`
+            : window.location.pathname;
+          router.replace(newUrl);
+          setTargetReelId(null);
+        }
+      }
+    };
+
+    if (targetReelId) {
+      handleTargetReel();
+    }
+  }, [targetReelId, reels, isLoading, searchParams, router]);
 
   // Efectos
   useEffect(() => {
