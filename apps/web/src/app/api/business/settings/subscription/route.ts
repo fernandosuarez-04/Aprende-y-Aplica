@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireBusiness } from '@/lib/auth/requireBusiness'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
@@ -22,10 +22,10 @@ export async function GET() {
     const supabase = await createClient()
     const organizationId = auth.organizationId
 
-    // Obtener datos de la organización (incluye información de suscripción)
+    // Obtener datos de la organización (incluye información de suscripción y billing_cycle)
     const { data: organization, error: orgError } = await supabase
       .from('organizations')
-      .select('subscription_plan, subscription_status, subscription_start_date, subscription_end_date')
+      .select('subscription_plan, subscription_status, subscription_start_date, subscription_end_date, billing_cycle, max_users')
       .eq('id', organizationId)
       .single()
 
@@ -64,16 +64,21 @@ export async function GET() {
     const daysUntilExpiration = endDateObj ? Math.ceil((endDateObj.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null
     const isExpiringSoon = daysUntilExpiration !== null && daysUntilExpiration <= 30 && daysUntilExpiration > 0
 
+    // Normalizar el plan a lowercase para consistencia
+    const normalizedPlan = organization.subscription_plan?.toLowerCase()?.trim() || 'team'
+    
     return NextResponse.json({
       success: true,
       subscription: {
-        plan: organization.subscription_plan || 'team',
+        plan: normalizedPlan,
         status: organization.subscription_status || 'active',
+        billing_cycle: organization.billing_cycle?.toLowerCase()?.trim() || 'yearly',
         start_date: startDate,
         end_date: endDate,
         is_expired: isExpired,
         days_until_expiration: daysUntilExpiration,
         is_expiring_soon: isExpiringSoon,
+        max_users: organization.max_users || 10,
         user_subscriptions: userSubscriptions || [],
         active_subscription: activeSubscription
       }
@@ -83,6 +88,153 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       error: 'Error al obtener datos de suscripción'
+    }, { status: 500 })
+  }
+}
+
+/**
+ * PUT /api/business/settings/subscription
+ * Actualiza el plan de suscripción de la organización
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const auth = await requireBusiness()
+    if (auth instanceof NextResponse) return auth
+
+    if (!auth.organizationId) {
+      return NextResponse.json({
+        success: false,
+        error: 'No tienes una organización asignada'
+      }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { planId, billingCycle }: { planId?: string; billingCycle?: 'monthly' | 'yearly' } = body
+
+    const supabase = await createClient()
+    const organizationId = auth.organizationId
+
+    // Obtener datos actuales de la organización
+    const { data: currentOrg, error: orgError } = await supabase
+      .from('organizations')
+      .select('subscription_plan, subscription_status, subscription_start_date, subscription_end_date, billing_cycle, max_users')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgError || !currentOrg) {
+      logger.error('Error fetching organization:', orgError)
+      return NextResponse.json({
+        success: false,
+        error: 'Error al obtener datos de la organización'
+      }, { status: 500 })
+    }
+
+    // Preparar datos de actualización
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    }
+
+    if (planId) {
+      // Validar que el plan existe
+      const validPlans = ['team', 'business', 'enterprise']
+      if (!validPlans.includes(planId.toLowerCase())) {
+        return NextResponse.json({
+          success: false,
+          error: 'Plan inválido. Los planes válidos son: team, business, enterprise'
+        }, { status: 400 })
+      }
+
+      updateData.subscription_plan = planId.toLowerCase()
+
+      // Definir límite de usuarios según el plan
+      const maxUsersByPlan: Record<string, number> = {
+        team: 10,
+        business: 50,
+        enterprise: 999999
+      }
+
+      updateData.max_users = maxUsersByPlan[planId.toLowerCase()] || 10
+    }
+
+    if (billingCycle) {
+      // Validar que el ciclo de facturación es válido
+      if (!['monthly', 'yearly'].includes(billingCycle.toLowerCase())) {
+        return NextResponse.json({
+          success: false,
+          error: 'Ciclo de facturación inválido. Los valores válidos son: monthly, yearly'
+        }, { status: 400 })
+      }
+
+      updateData.billing_cycle = billingCycle.toLowerCase()
+
+      // Si se cambia el ciclo de facturación, recalcular fechas
+      if (currentOrg.subscription_start_date) {
+        const startDate = new Date(currentOrg.subscription_start_date)
+        const endDate = new Date()
+
+        if (billingCycle === 'monthly') {
+          endDate.setMonth(endDate.getMonth() + 1)
+        } else {
+          endDate.setFullYear(endDate.getFullYear() + 1)
+        }
+
+        updateData.subscription_end_date = endDate.toISOString()
+      }
+    }
+
+    // Si se actualizó el plan o el ciclo de facturación, actualizar fechas
+    if (planId && billingCycle && currentOrg.subscription_start_date) {
+      const startDate = new Date()
+      const endDate = new Date()
+
+      if (billingCycle === 'monthly') {
+        endDate.setMonth(endDate.getMonth() + 1)
+      } else {
+        endDate.setFullYear(endDate.getFullYear() + 1)
+      }
+
+      updateData.subscription_start_date = startDate.toISOString()
+      updateData.subscription_end_date = endDate.toISOString()
+    }
+
+    // Actualizar organización
+    const { data: updatedOrg, error: updateError } = await supabase
+      .from('organizations')
+      .update(updateData)
+      .eq('id', organizationId)
+      .select()
+      .single()
+
+    if (updateError || !updatedOrg) {
+      logger.error('Error updating organization subscription:', updateError)
+      return NextResponse.json({
+        success: false,
+        error: 'Error al actualizar el plan de suscripción'
+      }, { status: 500 })
+    }
+
+    logger.info('Subscription plan updated successfully', {
+      organizationId,
+      updates: updateData
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Plan actualizado exitosamente',
+      subscription: {
+        plan: updatedOrg.subscription_plan || 'team',
+        status: updatedOrg.subscription_status || 'active',
+        billing_cycle: updatedOrg.billing_cycle || 'yearly',
+        start_date: updatedOrg.subscription_start_date,
+        end_date: updatedOrg.subscription_end_date,
+        max_users: updatedOrg.max_users || 10
+      }
+    })
+  } catch (error) {
+    logger.error('💥 Error in PUT /api/business/settings/subscription:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Error al actualizar el plan de suscripción'
     }, { status: 500 })
   }
 }

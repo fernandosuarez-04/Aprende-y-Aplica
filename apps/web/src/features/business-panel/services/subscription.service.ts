@@ -1,84 +1,154 @@
-import { createClient } from '@/lib/supabase/server'
+/**
+ * Servicio para manejar cambio de planes de suscripción business
+ */
 
-export class SubscriptionService {
-  /**
-   * Verifica si un usuario tiene una membresía activa
-   */
-  static async hasActiveSubscription(userId: string): Promise<boolean> {
-    try {
-      const supabase = await createClient()
+export type BusinessPlanId = 'team' | 'business' | 'enterprise'
+export type BillingCycle = 'monthly' | 'yearly'
 
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('subscription_id, subscription_status, end_date')
-        .eq('user_id', userId)
-        .eq('subscription_status', 'active')
-        .maybeSingle()
+export interface PlanPricing {
+  priceYearly: number
+  priceMonthly: number
+  yearlyPrice: string
+  monthlyPrice: string
+}
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = no rows returned, lo cual es válido
-        // console.error('Error checking subscription:', error)
-        return false
-      }
+export interface PlanConfig {
+  id: BusinessPlanId
+  name: string
+  tagline: string
+  pricing: PlanPricing
+  maxUsers: number
+}
 
-      if (!data) {
-        return false
-      }
-
-      // Verificar que la membresía no haya expirado
-      if (data.end_date) {
-        const endDate = new Date(data.end_date)
-        const now = new Date()
-        if (endDate < now) {
-          return false
-        }
-      }
-
-      // Si end_date es null, significa lifetime y está activa
-      return true
-    } catch (error) {
-      // console.error('Error in SubscriptionService.hasActiveSubscription:', error)
-      return false
-    }
-  }
-
-  /**
-   * Obtiene la información de la membresía activa del usuario
-   */
-  static async getActiveSubscription(userId: string) {
-    try {
-      const supabase = await createClient()
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('subscription_id, subscription_type, subscription_status, start_date, end_date, price_cents')
-        .eq('user_id', userId)
-        .eq('subscription_status', 'active')
-        .maybeSingle()
-
-      if (error && error.code !== 'PGRST116') {
-        // console.error('Error getting subscription:', error)
-        return null
-      }
-
-      if (!data) {
-        return null
-      }
-
-      // Verificar que la membresía no haya expirado
-      if (data.end_date) {
-        const endDate = new Date(data.end_date)
-        const now = new Date()
-        if (endDate < now) {
-          return null
-        }
-      }
-
-      return data
-    } catch (error) {
-      // console.error('Error in SubscriptionService.getActiveSubscription:', error)
-      return null
-    }
+/**
+ * Configuración de planes business
+ */
+export const BUSINESS_PLANS: Record<BusinessPlanId, PlanConfig> = {
+  team: {
+    id: 'team',
+    name: 'Team',
+    tagline: 'Perfecto para equipos pequeños',
+    pricing: {
+      priceYearly: 4999,
+      priceMonthly: 499,
+      yearlyPrice: '$4,999 /año',
+      monthlyPrice: '$499/mes'
+    },
+    maxUsers: 10
+  },
+  business: {
+    id: 'business',
+    name: 'Business',
+    tagline: 'Ideal para empresas en crecimiento',
+    pricing: {
+      priceYearly: 14999,
+      priceMonthly: 1499,
+      yearlyPrice: '$14,999 /año',
+      monthlyPrice: '$1,499/mes'
+    },
+    maxUsers: 50
+  },
+  enterprise: {
+    id: 'enterprise',
+    name: 'Enterprise',
+    tagline: 'Soluciones a medida para grandes organizaciones',
+    pricing: {
+      priceYearly: 0,
+      priceMonthly: 0,
+      yearlyPrice: 'Personalizado',
+      monthlyPrice: 'Personalizado'
+    },
+    maxUsers: 999999
   }
 }
 
+/**
+ * Obtiene la configuración de un plan por ID
+ */
+export function getPlanById(planId: string): PlanConfig | null {
+  const normalizedPlanId = planId.toLowerCase() as BusinessPlanId
+  return BUSINESS_PLANS[normalizedPlanId] || null
+}
+
+/**
+ * Calcula el precio de un plan según el ciclo de facturación
+ */
+export function calculatePlanPrice(planId: BusinessPlanId, billingCycle: BillingCycle): number {
+  const plan = BUSINESS_PLANS[planId]
+  if (!plan) return 0
+
+  if (planId === 'enterprise') return 0
+
+  return billingCycle === 'yearly' ? plan.pricing.priceYearly : plan.pricing.priceMonthly
+}
+
+/**
+ * Calcula el ahorro anual vs mensual para un plan
+ */
+export function calculateYearlySavings(planId: BusinessPlanId): number {
+  const plan = BUSINESS_PLANS[planId]
+  if (!plan || planId === 'enterprise') return 0
+
+  const monthlyTotal = plan.pricing.priceMonthly * 12
+  const savings = monthlyTotal - plan.pricing.priceYearly
+  const percentage = (savings / monthlyTotal) * 100
+
+  return Math.round(percentage)
+}
+
+/**
+ * Calcula la fecha de vencimiento según el ciclo de facturación
+ */
+export function calculateEndDate(billingCycle: BillingCycle, startDate: Date = new Date()): Date {
+  const endDate = new Date(startDate)
+
+  if (billingCycle === 'monthly') {
+    endDate.setMonth(endDate.getMonth() + 1)
+  } else {
+    endDate.setFullYear(endDate.getFullYear() + 1)
+  }
+
+  return endDate
+}
+
+/**
+ * Calcula el equivalente mensual de un precio anual
+ */
+export function calculateMonthlyEquivalent(planId: BusinessPlanId, billingCycle: BillingCycle): number {
+  const plan = BUSINESS_PLANS[planId]
+  if (!plan || planId === 'enterprise') return 0
+
+  if (billingCycle === 'yearly') {
+    return Math.round(plan.pricing.priceYearly / 12)
+  }
+
+  return plan.pricing.priceMonthly
+}
+
+/**
+ * Formatea el precio según el ciclo de facturación
+ */
+export function formatPlanPrice(planId: BusinessPlanId, billingCycle: BillingCycle): string {
+  const plan = BUSINESS_PLANS[planId]
+  if (!plan || planId === 'enterprise') return 'Personalizado'
+
+  if (billingCycle === 'yearly') {
+    return plan.pricing.yearlyPrice
+  }
+
+  return plan.pricing.monthlyPrice
+}
+
+/**
+ * Valida si un plan ID es válido
+ */
+export function isValidPlanId(planId: string): planId is BusinessPlanId {
+  return ['team', 'business', 'enterprise'].includes(planId.toLowerCase())
+}
+
+/**
+ * Valida si un ciclo de facturación es válido
+ */
+export function isValidBillingCycle(billingCycle: string): billingCycle is BillingCycle {
+  return ['monthly', 'yearly'].includes(billingCycle.toLowerCase())
+}

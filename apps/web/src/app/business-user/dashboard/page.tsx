@@ -21,7 +21,7 @@ import {
     } from 'lucide-react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
-import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
+import { getBackgroundStyle, generateCSSVariables, hexToRgb } from '@/features/business-panel/utils/styles'
 
 // Lazy load components
 const ParticlesBackground = lazy(() => 
@@ -272,18 +272,19 @@ export default function BusinessUserDashboardPage() {
           getInitials={getInitials}
           onProfileClick={handleProfileClick}
           onLogout={handleLogout}
+          styles={userDashboardStyles}
         />
       </Suspense>
 
       {/* Main Content */}
-      <main className="relative overflow-hidden">
+      <main className="relative overflow-hidden min-h-[calc(100vh-4rem)]">
         {/* Background Effects */}
         <Suspense fallback={null}>
           <ParticlesBackground />
           <Background3DEffects />
         </Suspense>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20 py-8">
           {/* Welcome Section */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -298,7 +299,7 @@ export default function BusinessUserDashboardPage() {
           </motion.div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-10">
             <Suspense fallback={
               <>
                 {myStats.map((stat, index) => (
@@ -330,6 +331,7 @@ export default function BusinessUserDashboardPage() {
                     index={index}
                     onClick={isCertificates && stats.certificates > 0 ? handleCertificatesClick : undefined}
                     isClickable={isCertificates && stats.certificates > 0}
+                    styles={userDashboardStyles}
                   />
                 )
               })}
@@ -357,7 +359,7 @@ export default function BusinessUserDashboardPage() {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Tu organización te asignará cursos próximamente</p>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                 <Suspense fallback={
                   <>
                     {assignedCourses.map((_, index) => (
@@ -384,6 +386,7 @@ export default function BusinessUserDashboardPage() {
                           ? () => handleCourseClick(course, 'certificate')
                           : undefined
                       }
+                      styles={userDashboardStyles}
                     />
                   ))}
                 </Suspense>

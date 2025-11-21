@@ -13,6 +13,7 @@ export interface OrganizationData {
   subscription_status?: string
   subscription_start_date?: string | null
   subscription_end_date?: string | null
+  billing_cycle?: 'monthly' | 'yearly' | null
   max_users?: number
   is_active?: boolean
   created_at?: string

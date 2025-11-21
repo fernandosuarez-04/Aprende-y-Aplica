@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { BusinessPanelSidebar } from './BusinessPanelSidebar'
 import { BusinessPanelHeader } from './BusinessPanelHeader'
+import { PremiumLoadingScreen } from './PremiumLoadingScreen'
 import { OrganizationStylesProvider, useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { generateCSSVariables, getBackgroundStyle } from '../utils/styles'
 
@@ -69,19 +70,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
 
   // Mostrar loading spinner si isLoading es true
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-carbon via-carbon to-carbon-dark">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-primary to-success rounded-full animate-pulse"></div>
-            </div>
-          </div>
-          <p className="text-white/70 text-sm font-medium">Cargando panel de gestión...</p>
-        </div>
-      </div>
-    )
+    return <PremiumLoadingScreen />
   }
 
   // Verificar rol
@@ -126,8 +115,10 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 business-panel-content">
-          {children}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content">
+          <div className="w-full max-w-[1920px] mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
