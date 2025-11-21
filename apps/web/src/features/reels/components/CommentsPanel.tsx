@@ -124,12 +124,14 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
           animate={isMobile ? { y: 0 } : { x: 0 }}
           exit={isMobile ? { y: '100%' } : { x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className={`absolute bg-white dark:bg-gray-900 shadow-2xl ${
+          className={`absolute bg-white dark:bg-gray-900 shadow-2xl flex flex-col ${
             isMobile 
               ? 'bottom-0 left-0 right-0 h-4/5 rounded-t-3xl' 
               : 'top-0 right-0 w-[420px] h-full rounded-l-3xl'
           }`}
+          data-comments-panel
           onClick={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
         >
           {/* Header con gradiente */}
           <div className="relative bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-t-3xl">
@@ -180,7 +182,10 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
           </div>
 
           {/* Comentarios */}
-          <div className="flex-1 overflow-y-auto">
+          <div 
+            className="flex-1 overflow-y-auto"
+            onWheel={(e) => e.stopPropagation()}
+          >
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="relative">

@@ -478,6 +478,18 @@ export default function ReelsPage() {
   // Manejo de scroll para cambiar videos
   useEffect(() => {
     const handleScroll = (e: WheelEvent) => {
+      // Si el panel de comentarios está abierto, no cambiar el video
+      if (isCommentsOpen) {
+        return;
+      }
+
+      // Verificar si el evento proviene del panel de comentarios
+      const target = e.target as HTMLElement;
+      const commentsPanel = target.closest('[data-comments-panel]');
+      if (commentsPanel) {
+        return;
+      }
+
       e.preventDefault();
       if (viewMode === 'feed' && reels && Array.isArray(reels)) {
         if (e.deltaY > 0 && currentReelIndex < reels.length - 1) {
@@ -492,7 +504,7 @@ export default function ReelsPage() {
       window.addEventListener('wheel', handleScroll, { passive: false });
       return () => window.removeEventListener('wheel', handleScroll);
     }
-  }, [currentReelIndex, reels, viewMode]);
+  }, [currentReelIndex, reels, viewMode, isCommentsOpen]);
 
   if (isLoading && (!reels || reels.length === 0)) {
     return (
