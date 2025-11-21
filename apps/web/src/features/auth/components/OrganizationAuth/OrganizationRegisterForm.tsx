@@ -15,6 +15,7 @@ import { CountrySelector } from '../CountrySelector';
 import { registerAction } from '../../actions/register';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 import Link from 'next/link';
+import { ToastNotification } from '../../../../core/components/ToastNotification';
 
 const LegalDocumentsModal = dynamic(() => import('../LegalDocumentsModal').then(mod => ({ default: mod.LegalDocumentsModal })), {
   ssr: false
@@ -132,18 +133,6 @@ export function OrganizationRegisterForm({
             Únete a la organización
           </motion.p>
         </motion.div>
-
-        {/* Error Message */}
-        {error && (
-          <motion.div 
-            className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {error}
-          </motion.div>
-        )}
 
         {/* Success Message */}
         {success && (
@@ -442,6 +431,15 @@ export function OrganizationRegisterForm({
       {showLegalModal && (
         <LegalDocumentsModal onClose={() => setShowLegalModal(false)} />
       )}
+
+      {/* Toast Notification para errores */}
+      <ToastNotification
+        isOpen={!!error}
+        onClose={() => setError(null)}
+        message={error || ''}
+        type="error"
+        duration={6000}
+      />
     </>
   );
 }

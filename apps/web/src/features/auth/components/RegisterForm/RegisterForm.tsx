@@ -14,6 +14,7 @@ import { PasswordInput } from '../PasswordInput';
 import { CountrySelector } from '../CountrySelector';
 import { registerAction } from '../../actions/register';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
+import { ToastNotification } from '../../../../core/components/ToastNotification';
 
 const LegalDocumentsModal = dynamic(() => import('../LegalDocumentsModal').then(mod => ({ default: mod.LegalDocumentsModal })), {
   ssr: false
@@ -120,18 +121,6 @@ export function RegisterForm() {
             Únete a la comunidad de aprendizaje IA
           </motion.p>
         </motion.div>
-
-        {/* Error Message */}
-        {error && (
-          <motion.div 
-            className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {error}
-          </motion.div>
-        )}
 
         {/* Success Message */}
         {success && (
@@ -561,6 +550,15 @@ export function RegisterForm() {
         isOpen={showLegalModal}
         onClose={() => setShowLegalModal(false)}
         onAccept={() => setValue('acceptTerms', true)}
+      />
+
+      {/* Toast Notification para errores */}
+      <ToastNotification
+        isOpen={!!error}
+        onClose={() => setError(null)}
+        message={error || ''}
+        type="error"
+        duration={6000}
       />
     </>
   );
