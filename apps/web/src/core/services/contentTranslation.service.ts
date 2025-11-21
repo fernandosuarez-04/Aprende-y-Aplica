@@ -1,91 +1,119 @@
 import { SupportedLanguage } from '../i18n/i18n';
+import { createClient } from '@/lib/supabase/client';
 
 /**
- * Servicio para manejar traducciones de contenido dinámico de base de datos
- * Sin modificar el esquema de la base de datos
+ * Servicio para manejar traducciones de contenido dinámico desde la base de datos
+ * Usa la tabla content_translations con JSONB
  */
 
-type EntityType = 'courses' | 'modules' | 'lessons';
+type EntityType = 'course' | 'module' | 'lesson' | 'activity' | 'material';
 
 interface ContentTranslations {
-  courses: Record<string, Record<string, string>>;
-  modules: Record<string, Record<string, string>>;
-  lessons: Record<string, Record<string, string>>;
+  [key: string]: string; // Cualquier campo traducido
 }
 
 export class ContentTranslationService {
-  private static translations: Map<SupportedLanguage, ContentTranslations> = new Map();
+  private static cache: Map<string, ContentTranslations> = new Map();
 
   /**
-   * Carga las traducciones desde los archivos JSON
+   * Genera clave de caché
    */
-  static async loadTranslations(language: SupportedLanguage): Promise<void> {
-    if (this.translations.has(language)) {
-      return; // Ya están cargadas
+  private static getCacheKey(
+    entityType: EntityType,
+    entityId: string,
+    language: SupportedLanguage
+  ): string {
+    return `${entityType}:${entityId}:${language}`;
+  }
+
+  /**
+   * Obtiene las traducciones de una entidad desde la BD
+   */
+  static async loadTranslations(
+    entityType: EntityType,
+    entityId: string,
+    language: SupportedLanguage
+  ): Promise<ContentTranslations> {
+    // Si es español, retornar vacío (usar valores originales)
+    if (language === 'es') {
+      return {};
+    }
+
+    // Verificar caché
+    const cacheKey = this.getCacheKey(entityType, entityId, language);
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)!;
     }
 
     try {
-      const response = await fetch(`/locales/${language}/content.json`);
-      const data = await response.json();
-      this.translations.set(language, data);
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('content_translations')
+        .select('translations')
+        .eq('entity_type', entityType)
+        .eq('entity_id', entityId)
+        .eq('language_code', language)
+        .single();
+
+      if (error || !data) {
+        console.log(`[ContentTranslationService] No translations found for ${entityType}:${entityId}:${language}`, error);
+        // No hay traducciones, guardar objeto vacío en caché
+        this.cache.set(cacheKey, {});
+        return {};
+      }
+
+      // Guardar en caché
+      const translations = data.translations as ContentTranslations;
+      this.cache.set(cacheKey, translations);
+      return translations;
     } catch (error) {
-      console.error(`Error loading translations for ${language}:`, error);
-      // Inicializar con estructura vacía
-      this.translations.set(language, {
-        courses: {},
-        modules: {},
-        lessons: {},
-      });
+      console.error(`Error loading translations for ${entityType}:${entityId}:`, error);
+      return {};
     }
   }
 
   /**
    * Obtiene la traducción de un campo específico
    */
-  static getTranslation(
-    language: SupportedLanguage,
+  static async getTranslation(
     entityType: EntityType,
     entityId: string,
     field: string,
+    language: SupportedLanguage,
     fallback: string
-  ): string {
-    // Si es español, retornar el valor original
+  ): Promise<string> {
     if (language === 'es') {
       return fallback;
     }
 
-    const translations = this.translations.get(language);
-    if (!translations) {
-      return fallback;
-    }
-
-    const entityTranslations = translations[entityType]?.[entityId];
-    return entityTranslations?.[field] || fallback;
+    const translations = await this.loadTranslations(entityType, entityId, language);
+    return translations[field] || fallback;
   }
 
   /**
    * Traduce un objeto completo
    */
-  static translateObject<T extends Record<string, any>>(
-    language: SupportedLanguage,
+  static async translateObject<T extends Record<string, any>>(
     entityType: EntityType,
     obj: T,
-    fields: string[]
-  ): T {
+    fields: string[],
+    language: SupportedLanguage
+  ): Promise<T> {
     if (language === 'es' || !obj.id) {
       return obj;
     }
 
-    const translated = { ...obj };
+    const translations = await this.loadTranslations(entityType, obj.id, language);
+    
+    if (Object.keys(translations).length === 0) {
+      return obj;
+    }
+
+    const translated = { ...obj } as any;
     fields.forEach(field => {
-      if (obj[field]) {
-        translated[field] = this.getTranslation(
-          language,
-          entityType,
-          obj.id,
-          field,
-          obj[field]
-        );
+      if (translations[field]) {
+        translated[field] = translations[field];
       }
     });
 
@@ -93,71 +121,131 @@ export class ContentTranslationService {
   }
 
   /**
-   * Traduce un array de objetos
+   * Traduce un array de objetos (batch)
    */
-  static translateArray<T extends Record<string, any>>(
-    language: SupportedLanguage,
+  static async translateArray<T extends Record<string, any>>(
     entityType: EntityType,
     array: T[],
-    fields: string[]
-  ): T[] {
-    if (language === 'es') {
+    fields: string[],
+    language: SupportedLanguage
+  ): Promise<T[]> {
+    if (language === 'es' || array.length === 0) {
       return array;
     }
 
-    return array.map(item => this.translateObject(language, entityType, item, fields));
+    try {
+      // Obtener todos los IDs
+      const entityIds = array.map(item => item.id).filter(Boolean);
+      
+      console.log(`[translateArray] Translating ${entityIds.length} ${entityType}s to ${language}`, entityIds);
+      
+      if (entityIds.length === 0) {
+        return array;
+      }
+
+      // Hacer una sola query para todas las traducciones
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('content_translations')
+        .select('entity_id, translations')
+        .eq('entity_type', entityType)
+        .eq('language_code', language)
+        .in('entity_id', entityIds);
+
+      console.log('[translateArray] Query result:', { data, error, count: data?.length });
+
+      if (error || !data) {
+        console.warn('[translateArray] No translations found or error:', error);
+        return array;
+      }
+
+      // Crear mapa de traducciones
+      const translationsMap = new Map<string, ContentTranslations>();
+      data.forEach((item: any) => {
+        translationsMap.set(item.entity_id, item.translations as ContentTranslations);
+        // Guardar en caché
+        const cacheKey = this.getCacheKey(entityType, item.entity_id, language);
+        this.cache.set(cacheKey, item.translations as ContentTranslations);
+      });
+
+      console.log(`[translateArray] Loaded ${translationsMap.size} translation sets`);
+
+      // Aplicar traducciones
+      return array.map(item => {
+        if (!item.id) return item;
+        
+        const translations = translationsMap.get(item.id);
+        if (!translations) {
+          console.log(`[translateArray] No translation for entity ${item.id}`);
+          return item;
+        }
+
+        console.log(`[translateArray] Applying translations for ${item.id}:`, translations);
+
+        const translated = { ...item } as any;
+        fields.forEach(field => {
+          if (translations[field]) {
+            translated[field] = translations[field];
+          }
+        });
+        return translated;
+      });
+    } catch (error) {
+      console.error('Error translating array:', error);
+      return array;
+    }
   }
 
   /**
-   * Verifica si hay traducción disponible para un campo
+   * Guarda o actualiza una traducción (para admin)
    */
-  static hasTranslation(
-    language: SupportedLanguage,
+  static async saveTranslation(
     entityType: EntityType,
     entityId: string,
-    field: string
-  ): boolean {
+    language: SupportedLanguage,
+    translations: ContentTranslations,
+    userId?: string
+  ): Promise<boolean> {
     if (language === 'es') {
+      return false; // No guardar traducciones para español
+    }
+
+    try {
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from('content_translations')
+        .upsert({
+          entity_type: entityType,
+          entity_id: entityId,
+          language_code: language,
+          translations: translations,
+          created_by: userId,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'entity_type,entity_id,language_code'
+        });
+
+      if (error) {
+        console.error('Error saving translation:', error);
+        return false;
+      }
+
+      // Limpiar caché
+      const cacheKey = this.getCacheKey(entityType, entityId, language);
+      this.cache.delete(cacheKey);
+
       return true;
+    } catch (error) {
+      console.error('Error in saveTranslation:', error);
+      return false;
     }
-
-    const translations = this.translations.get(language);
-    return !!translations?.[entityType]?.[entityId]?.[field];
-  }
-
-  /**
-   * Agrega o actualiza una traducción (para admin)
-   */
-  static async updateTranslation(
-    language: SupportedLanguage,
-    entityType: EntityType,
-    entityId: string,
-    field: string,
-    value: string
-  ): Promise<void> {
-    // Cargar traducciones si no están cargadas
-    await this.loadTranslations(language);
-
-    const translations = this.translations.get(language);
-    if (!translations) {
-      return;
-    }
-
-    // Actualizar en memoria
-    if (!translations[entityType][entityId]) {
-      translations[entityType][entityId] = {};
-    }
-    translations[entityType][entityId][field] = value;
-
-    // Nota: En producción, esto debería guardarse en el servidor
-    // Por ahora solo actualiza en memoria
-    console.log(`Translation updated: ${language}/${entityType}/${entityId}/${field}`);
   }
 
   /**
    * Limpia el caché de traducciones
    */
   static clearCache(): void {
-    this.translations.clear();
+    this.cache.clear();
   }
 }

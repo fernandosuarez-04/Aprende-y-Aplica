@@ -30,28 +30,15 @@ import { useShoppingCartStore } from '../../core/stores/shoppingCartStore';
 import { formatRelativeTime } from '../../core/utils/date-utils';
 import { StarRating } from '../../features/courses/components/StarRating';
 import { useTranslation } from 'react-i18next';
+import { useTranslatedContent } from '../../core/hoc/withContentTranslation';
 
 // Los talleres ahora se obtienen únicamente de la API
 
 // Las categorías ahora se obtienen dinámicamente desde la base de datos
 
-const normalizeKey = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-const getCourseTranslationKey = (course: { slug?: string | null; id?: string; title?: string }) => {
-  if (course.slug) return course.slug;
-  if (course.id) return course.id;
-  if (course.title) return normalizeKey(course.title);
-  return undefined;
-};
-
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('workshops');
+  const [mounted, setMounted] = useState(false);
   const { user, loading } = useAuth();
   const router = useRouter();
   const { t } = useTranslation('dashboard');
@@ -67,6 +54,11 @@ export default function DashboardPage() {
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
   const { addItem } = useShoppingCartStore();
+
+  // Evitar hydration error
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Estados para estadísticas y actividad reciente
   const [stats, setStats] = useState({
@@ -183,20 +175,18 @@ export default function DashboardPage() {
     return getCategoryLabel(activeFilter, category?.name || activeFilter);
   }, [activeFilter, categories, getCategoryLabel]);
 
-  const translateCourseTitle = useCallback(
-    (key: string | undefined, fallback: string) => {
-      if (!key) return fallback;
-      return t(`courseTitles.${key}`, { defaultValue: fallback });
-    },
-    [t]
+  // ⚡ Traducir cursos automáticamente según el idioma actual
+  const translatedCourses = useTranslatedContent(
+    'course',
+    filteredCourses,
+    ['title', 'description']
   );
 
   // ⚡ Memoizar transformación de workshops para evitar re-cálculos
   const workshops = React.useMemo(() => {
-    return filteredCourses.map(course => ({
+    return translatedCourses.map(course => ({
       id: course.id,
-      title: course.title,
-    translationKey: getCourseTranslationKey(course),
+      title: course.title, // Ya está traducido por useTranslatedContent
       instructor: course.instructor_name || 'Instructor',
       rating: course.rating || 0,
       price: course.price || 'MX$0',
@@ -205,15 +195,15 @@ export default function DashboardPage() {
       category: course.category || 'General',
       isFavorite: isFavorite(course.id),
     }));
-  }, [filteredCourses, isFavorite, favorites]);
+  }, [translatedCourses, isFavorite, favorites]);
 
   // Mostrar loading mientras se obtienen los datos del usuario
-  if (loading) {
+  if (loading || !mounted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-white">{t('loading')}</p>
+          <p className="text-gray-700 dark:text-white">Cargando dashboard...</p>
         </div>
       </div>
     );
@@ -363,7 +353,7 @@ export default function DashboardPage() {
                   <div className="flex flex-col flex-1 p-6 bg-white dark:bg-slate-800">
                     <div className="flex-1 flex flex-col">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 min-h-[3.5rem] line-clamp-2">
-                        {translateCourseTitle(workshop.translationKey, workshop.title)}
+                        {workshop.title}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 min-h-[1.5rem]">
                         {workshop.instructor}

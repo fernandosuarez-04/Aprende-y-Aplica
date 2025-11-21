@@ -1,76 +1,131 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '../providers/I18nProvider';
 import { ContentTranslationService } from '../services/contentTranslation.service';
 
 /**
- * Higher Order Component que automáticamente traduce el contenido
- * Uso: const TranslatedCourses = withContentTranslation(CoursesComponent, 'courses', ['title', 'description'])
- */
-export function withContentTranslation<P extends { data?: any[] }>(
-  Component: React.ComponentType<P>,
-  entityType: 'courses' | 'modules' | 'lessons',
-  fieldsToTranslate: string[]
-) {
-  return function WithContentTranslation(props: P) {
-    const { language } = useLanguage();
-
-    // Cargar traducciones cuando cambia el idioma
-    useEffect(() => {
-      ContentTranslationService.loadTranslations(language);
-    }, [language]);
-
-    // Traducir los datos si existen
-    const translatedData = props.data
-      ? ContentTranslationService.translateArray(
-          language,
-          entityType,
-          props.data,
-          fieldsToTranslate
-        )
-      : props.data;
-
-    return <Component {...props} data={translatedData} />;
-  };
-}
-
-/**
- * Hook que traduce automáticamente un array de entidades
+ * Hook que traduce automáticamente un array de entidades desde la BD
  */
 export function useTranslatedContent<T extends Record<string, any>>(
-  entityType: 'courses' | 'modules' | 'lessons',
+  entityType: 'course' | 'module' | 'lesson',
   data: T[] | null | undefined,
   fields: string[]
 ): T[] {
   const { language } = useLanguage();
+  const [translatedData, setTranslatedData] = useState<T[]>([]);
+
+  // Crear una clave estable para los datos
+  const dataKey = useMemo(() => {
+    if (!data || data.length === 0) return 'empty';
+    return data.map(item => item.id).join(',');
+  }, [data]);
 
   useEffect(() => {
-    ContentTranslationService.loadTranslations(language);
-  }, [language]);
+    // Si no hay datos, establecer array vacío
+    if (!data || data.length === 0) {
+      setTranslatedData([]);
+      return;
+    }
 
-  if (!data) {
-    return [];
-  }
+    console.log(`[useTranslatedContent] Language: ${language}, EntityType: ${entityType}, Data count: ${data.length}`);
 
-  return ContentTranslationService.translateArray(language, entityType, data, fields);
+    // Si es español, usar datos originales sin traducir
+    if (language === 'es') {
+      console.log('[useTranslatedContent] Using original Spanish data');
+      setTranslatedData(data);
+      return;
+    }
+
+    // Traducir datos para otros idiomas
+    let isCancelled = false;
+
+    const translateData = async () => {
+      try {
+        console.log(`[useTranslatedContent] Starting translation for ${entityType} to ${language}`);
+        const translated = await ContentTranslationService.translateArray(
+          entityType,
+          data,
+          fields,
+          language
+        );
+        
+        console.log('[useTranslatedContent] Translation complete:', translated.length, 'items');
+        
+        if (!isCancelled) {
+          setTranslatedData(translated);
+        }
+      } catch (error) {
+        console.error('Error translating content:', error);
+        if (!isCancelled) {
+          setTranslatedData(data); // Usar datos originales en caso de error
+        }
+      }
+    };
+
+    translateData();
+
+    // Cleanup function
+    return () => {
+      isCancelled = true;
+    };
+  }, [dataKey, language, entityType]); // Removemos 'data' y 'fields' para evitar loops
+
+  return translatedData;
 }
 
 /**
- * Hook que traduce automáticamente un objeto
+ * Hook que traduce automáticamente un objeto desde la BD
  */
 export function useTranslatedObject<T extends Record<string, any>>(
-  entityType: 'courses' | 'modules' | 'lessons',
+  entityType: 'course' | 'module' | 'lesson',
   data: T | null | undefined,
   fields: string[]
 ): T | null {
   const { language } = useLanguage();
+  const [translatedData, setTranslatedData] = useState<T | null>(null);
+
+  // Crear clave estable para el objeto
+  const dataKey = useMemo(() => {
+    return data?.id || 'empty';
+  }, [data?.id]);
 
   useEffect(() => {
-    ContentTranslationService.loadTranslations(language);
-  }, [language]);
+    if (!data) {
+      setTranslatedData(null);
+      return;
+    }
 
-  if (!data) {
-    return null;
-  }
+    if (language === 'es') {
+      setTranslatedData(data);
+      return;
+    }
 
-  return ContentTranslationService.translateObject(language, entityType, data, fields);
+    let isCancelled = false;
+
+    const translateData = async () => {
+      try {
+        const translated = await ContentTranslationService.translateObject(
+          entityType,
+          data,
+          fields,
+          language
+        );
+        if (!isCancelled) {
+          setTranslatedData(translated);
+        }
+      } catch (error) {
+        console.error('Error translating object:', error);
+        if (!isCancelled) {
+          setTranslatedData(data);
+        }
+      }
+    };
+
+    translateData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dataKey, language, entityType]);
+
+  return translatedData;
 }
