@@ -9,6 +9,7 @@ import { NotificationProvider } from '../features/notifications/context/Notifica
 import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
 import { GlobalRecorderProvider } from '../core/components/GlobalRecorderProvider';
 import { I18nProvider } from '../core/providers/I18nProvider';
+import { ShareModalProvider } from '../core/providers/ShareModalProvider';
 import { OnboardingAgent } from '../core/components/OnboardingAgent';
 import { DevResetButton } from '../core/components/OnboardingAgent/DevResetButton';
 
@@ -137,20 +138,22 @@ export default function RootLayout({
           <SWRProvider>
             <I18nProvider>
               <ThemeProvider>
-                <NotificationProvider pollingInterval={60000}>
-                  <PrefetchManager />
-                  <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
-                    <ConditionalNavbar>
-                      {children}
-                    </ConditionalNavbar>
-                  </div>
-                  {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
-                  <ConditionalAIChatAgent />
-                  {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
-                  <OnboardingAgent />
-                  {/* Botón de desarrollo para resetear onboarding */}
-                  <DevResetButton />
-                </NotificationProvider>
+                <ShareModalProvider>
+                  <NotificationProvider pollingInterval={60000}>
+                    <PrefetchManager />
+                    <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
+                      <ConditionalNavbar>
+                        {children}
+                      </ConditionalNavbar>
+                    </div>
+                    {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+                    <ConditionalAIChatAgent />
+                    {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
+                    <OnboardingAgent />
+                    {/* Botón de desarrollo para resetear onboarding */}
+                    <DevResetButton />
+                  </NotificationProvider>
+                </ShareModalProvider>
               </ThemeProvider>
             </I18nProvider>
           </SWRProvider>
