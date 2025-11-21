@@ -33,45 +33,27 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
   
   const angleStep = (2 * Math.PI) / dimensions.length;
   
-  // Calcular puntos para cada dimensión con escala ULTRA EXTREMA para llenar completamente el radar
+  // Log de depuración
+  console.log('📊 RadarChart - Datos recibidos:', data);
+  console.log('📊 RadarChart - Dimensiones:', dimensions);
+  
+  // Calcular puntos para cada dimensión usando valores reales
   const points = dimensions.map((dimension, index) => {
-    const value = data.find(d => d.dimension === dimension)?.score || 0;
-    // ✅ Escala ULTRA EXTREMA para llenar completamente el radar
-    let scaledValue;
-    if (value === 0) {
-      scaledValue = 35; // Mínimo visible ultra grande
-    } else if (value <= 3) {
-      scaledValue = value * 12; // 12x para valores muy bajos
-    } else if (value <= 5) {
-      scaledValue = value * 10; // 10x para valores muy bajos
-    } else if (value <= 8) {
-      scaledValue = value * 8; // 8x para valores bajos
-    } else if (value <= 12) {
-      scaledValue = value * 7; // 7x para valores medios-bajos
-    } else if (value <= 15) {
-      scaledValue = value * 6; // 6x para valores medios-bajos
-    } else if (value <= 20) {
-      scaledValue = value * 5; // 5x para valores bajos-medios
-    } else if (value <= 25) {
-      scaledValue = value * 4.5; // 4.5x para valores medios
-    } else if (value <= 35) {
-      scaledValue = value * 4; // 4x para valores medios
-    } else if (value <= 50) {
-      scaledValue = value * 3; // 3x para valores medios-altos
-    } else if (value <= 70) {
-      scaledValue = value * 2.5; // 2.5x para valores altos
-    } else {
-      scaledValue = value * 2; // 2x para valores muy altos
-    }
+    const dataItem = data.find(d => d.dimension === dimension);
+    const value = dataItem?.score ?? 0;
     
-    // Asegurar que nunca sea menor a 35 para máxima visibilidad
-    scaledValue = Math.max(scaledValue, 35);
+    console.log(`📊 ${dimension}: valor = ${value}`, dataItem);
+    
+    // Usar el valor real directamente (ya está en escala 0-100)
+    const scaledValue = value;
     
     const angle = index * angleStep - Math.PI / 2; // Empezar desde arriba
     const x = centerX + (radius * (scaledValue / maxValue)) * Math.cos(angle);
     const y = centerY + (radius * (scaledValue / maxValue)) * Math.sin(angle);
     return { x, y, value, scaledValue, dimension, angle };
   });
+  
+  console.log('📊 RadarChart - Puntos calculados:', points);
   
   // Crear path para el polígono
   const pathData = points.map((point, index) => 
@@ -406,7 +388,8 @@ export default function StatisticsResultsPage() {
             peso,
             escala,
             scoring,
-            respuesta_correcta
+            respuesta_correcta,
+            texto
           )
         `)
         .eq('user_perfil_id', userProfile.id);
@@ -425,8 +408,22 @@ export default function StatisticsResultsPage() {
         // console.warn('Error al obtener datos de adopción:', adoptionError);
       }
 
+      // Log detallado de respuestas recibidas
+      console.log('📋 Total de respuestas recibidas:', responses?.length || 0);
+      if (responses && responses.length > 0) {
+        console.log('📋 Primeras 3 respuestas completas:', responses.slice(0, 3).map(r => ({
+          pregunta_id: r.pregunta_id,
+          valor: r.valor,
+          valor_tipo: typeof r.valor,
+          section: r.preguntas?.section,
+          bloque: r.preguntas?.bloque,
+          texto: r.preguntas?.texto?.substring(0, 50) + '...'
+        })));
+      }
+      
       // Procesar datos para el radar
       const processedRadarData = processRadarData(responses || []);
+      console.log('📊 Datos del radar procesados:', processedRadarData);
       setRadarData(processedRadarData);
 
       // Procesar análisis
@@ -450,25 +447,99 @@ export default function StatisticsResultsPage() {
 
   const processRadarData = (responses: any[]) => {
     const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
-    const sectionMapping = {
-      'Adopción': 'Aplicación',
-      'Conocimiento': 'Conocimiento',
-      'Técnico': 'Conocimiento'
-    };
-
+    
+    console.log('🔍 Procesando radar con', responses.length, 'respuestas');
+    
+    // Log de todas las secciones y bloques únicos para debugging
+    const uniqueSections = [...new Set(responses.map(r => r.preguntas?.section).filter(Boolean))];
+    const uniqueBloques = [...new Set(responses.map(r => r.preguntas?.bloque).filter(Boolean))];
+    console.log('📋 Secciones únicas encontradas:', uniqueSections);
+    console.log('📋 Bloques únicos encontrados:', uniqueBloques);
+    
     const scores = dimensions.map(dimension => {
       const relevantResponses = responses.filter(response => {
         const section = response.preguntas?.section || '';
-        const mappedDimension = sectionMapping[section as keyof typeof sectionMapping] || dimension;
+        const bloque = response.preguntas?.bloque || '';
+        const texto = response.preguntas?.texto?.toLowerCase() || '';
+        
+        // Mapear sección/bloque a dimensión
+        let mappedDimension = dimension;
+        
+        // Primero verificar por bloque directo
+        if (bloque === 'Productividad' || bloque === 'productividad') {
+          mappedDimension = 'Productividad';
+        } else if (bloque === 'Estrategia' || bloque === 'estrategia') {
+          mappedDimension = 'Estrategia';
+        } else if (bloque === 'Inversión' || bloque === 'Inversion' || bloque === 'inversión' || bloque === 'inversion') {
+          mappedDimension = 'Inversión';
+        } else if (section === 'Adopción' || bloque === 'Adopción') {
+          mappedDimension = 'Aplicación';
+        } else if (section === 'Conocimiento' || bloque === 'Conocimiento' || bloque === 'Técnico') {
+          mappedDimension = 'Conocimiento';
+        } else if (section === 'Cuestionario') {
+          // Para preguntas generales, distribuir entre dimensiones basándose en texto o bloque
+          if (texto.includes('productividad') || texto.includes('eficiencia') || bloque.toLowerCase().includes('productividad')) {
+            mappedDimension = 'Productividad';
+          } else if (texto.includes('estrategia') || texto.includes('planificación') || bloque.toLowerCase().includes('estrategia')) {
+            mappedDimension = 'Estrategia';
+          } else if (texto.includes('inversión') || texto.includes('presupuesto') || texto.includes('inversion') || bloque.toLowerCase().includes('inversión') || bloque.toLowerCase().includes('inversion')) {
+            mappedDimension = 'Inversión';
+          } else {
+            mappedDimension = 'Aplicación';
+          }
+        }
+        
         return mappedDimension === dimension;
       });
+
+      console.log(`📈 ${dimension}: ${relevantResponses.length} respuestas relevantes`);
+      if (relevantResponses.length > 0 && relevantResponses.length <= 5) {
+        console.log(`   Ejemplos de respuestas para ${dimension}:`, relevantResponses.map(r => ({
+          pregunta_id: r.pregunta_id,
+          section: r.preguntas?.section,
+          bloque: r.preguntas?.bloque,
+          valor: r.valor,
+          valor_tipo: typeof r.valor
+        })));
+      }
 
       let totalScore = 0;
       let totalWeight = 0;
 
-      relevantResponses.forEach(response => {
+      relevantResponses.forEach((response, idx) => {
         const weight = response.preguntas?.peso || 1;
-        const value = response.valor;
+        let value = response.valor;
+        
+        // Log detallado para las primeras respuestas de cada dimensión
+        if (idx < 2) {
+          console.log(`   🔍 ${dimension} - Respuesta ${idx + 1}:`, {
+            pregunta_id: response.pregunta_id,
+            valor_original: value,
+            valor_tipo: typeof value,
+            valor_stringified: JSON.stringify(value)
+          });
+        }
+        
+        // Manejar valor como jsonb - Supabase normalmente devuelve jsonb ya parseado
+        // Pero puede venir como string si es un JSON string anidado
+        if (value != null) {
+          // Si es un string, verificar si necesita parsing
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            // Si parece un JSON string (empieza y termina con comillas dobles)
+            if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length > 2) {
+              try {
+                value = JSON.parse(value);
+                if (idx < 2) {
+                  console.log(`   🔍 ${dimension} - Respuesta ${idx + 1} después de parse:`, value);
+                }
+              } catch (e) {
+                // Si falla, mantener el valor original
+                console.warn('⚠️ Error parsing JSON value:', value, e);
+              }
+            }
+          }
+        }
         
         // Calcular puntuación basada en el tipo de respuesta
         let score = 0;
@@ -479,13 +550,26 @@ export default function StatisticsResultsPage() {
             score = escala[value] || 0;
           } else {
             // Puntuación por defecto basada en la respuesta
-            score = value.includes('A)') ? 0 : 
-                   value.includes('B)') ? 25 :
-                   value.includes('C)') ? 50 :
-                   value.includes('D)') ? 75 : 100;
+            if (value.includes('A)')) score = 0;
+            else if (value.includes('B)')) score = 25;
+            else if (value.includes('C)')) score = 50;
+            else if (value.includes('D)')) score = 75;
+            else if (value.includes('E)')) score = 100;
+            else {
+              score = 50; // Respuesta por defecto
+              if (idx < 2) {
+                console.warn(`   ⚠️ ${dimension} - Respuesta ${idx + 1} sin patrón reconocido:`, value);
+              }
+            }
           }
         } else if (typeof value === 'number') {
           score = value;
+        } else {
+          console.warn(`   ⚠️ ${dimension} - Respuesta ${idx + 1} - Valor de tipo inesperado:`, typeof value, value);
+        }
+        
+        if (idx < 2) {
+          console.log(`   ✅ ${dimension} - Respuesta ${idx + 1} - Score:`, score, 'Peso:', weight);
         }
 
         totalScore += score * weight;
@@ -493,6 +577,8 @@ export default function StatisticsResultsPage() {
       });
 
       const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+      
+      console.log(`✅ ${dimension}: Score = ${finalScore} (de ${relevantResponses.length} respuestas)`);
       
       return {
         dimension,
@@ -515,13 +601,24 @@ export default function StatisticsResultsPage() {
     let adoptionScore = 0;
     if (adoptionResponses.length > 0) {
       const totalAdoption = adoptionResponses.reduce((sum, response) => {
-        const value = response.valor;
+        let value = response.valor;
+        
+        // Manejar valor como jsonb
+        if (value && typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            // Si falla el parse, usar el valor original
+          }
+        }
+        
         let score = 0;
         if (typeof value === 'string') {
           score = value.includes('A)') ? 0 : 
                  value.includes('B)') ? 25 :
                  value.includes('C)') ? 50 :
-                 value.includes('D)') ? 75 : 100;
+                 value.includes('D)') ? 75 : 
+                 value.includes('E)') ? 100 : 50;
         }
         return sum + score;
       }, 0);
@@ -534,7 +631,17 @@ export default function StatisticsResultsPage() {
     if (knowledgeResponses.length > 0) {
       knowledgeResponses.forEach(response => {
         const correctAnswer = response.preguntas?.respuesta_correcta;
-        const userAnswer = response.valor;
+        let userAnswer = response.valor;
+        
+        // Manejar valor como jsonb
+        if (userAnswer && typeof userAnswer === 'string' && userAnswer.startsWith('"') && userAnswer.endsWith('"')) {
+          try {
+            userAnswer = JSON.parse(userAnswer);
+          } catch (e) {
+            // Si falla el parse, usar el valor original
+          }
+        }
+        
         if (correctAnswer && userAnswer === correctAnswer) {
           correctAnswers++;
         }
