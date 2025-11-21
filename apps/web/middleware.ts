@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from './src/lib/supabase/middleware'
 import { RefreshTokenService } from './src/lib/auth/refreshToken.service'
-import { 
-  validateAdminAccess, 
-  validateInstructorAccess, 
+import {
+  validateAdminAccess,
+  validateInstructorAccess,
   validateUserAccess,
-  ROLE_ROUTES 
+  validateBusinessAccess,
+  ROLE_ROUTES
 } from './src/core/middleware/auth.middleware'
 import { applyRateLimit, RATE_LIMITS, addRateLimitHeaders, checkRateLimit } from './src/core/lib/rate-limit'
 
@@ -72,10 +73,11 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = ROLE_ROUTES.admin.some(route => pathname.startsWith(route));
   const isInstructorRoute = ROLE_ROUTES.instructor.some(route => pathname.startsWith(route));
   const isUserRoute = ROLE_ROUTES.user.some(route => pathname.startsWith(route));
+  const isBusinessRoute = ROLE_ROUTES.business.some(route => pathname.startsWith(route));
   const authRoutes = ['/auth'];
-  
+
   // Verificar si es una ruta protegida
-  const isProtectedRoute = isAdminRoute || isInstructorRoute || isUserRoute;
+  const isProtectedRoute = isAdminRoute || isInstructorRoute || isUserRoute || isBusinessRoute;
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
   
   // console.log('📍 Ruta protegida:', isProtectedRoute, 'Ruta auth:', isAuthRoute);
@@ -140,18 +142,21 @@ export async function middleware(request: NextRequest) {
     // console.log('🔐 Validando permisos de rol para:', pathname);
     
     let roleValidationResponse: NextResponse | null = null;
-    
+
     if (isAdminRoute) {
       // console.log('🔐 Validando acceso de Administrador');
       roleValidationResponse = await validateAdminAccess(request);
     } else if (isInstructorRoute) {
       // console.log('🔐 Validando acceso de Instructor');
       roleValidationResponse = await validateInstructorAccess(request);
+    } else if (isBusinessRoute) {
+      // console.log('🔐 Validando acceso de Business');
+      roleValidationResponse = await validateBusinessAccess(request);
     } else if (isUserRoute) {
       // console.log('🔐 Validando acceso de Usuario');
       roleValidationResponse = await validateUserAccess(request);
     }
-    
+
     // Si la validación de rol devuelve una respuesta, significa que el acceso fue denegado
     if (roleValidationResponse) {
       // console.log('❌ Acceso denegado por validación de rol');
