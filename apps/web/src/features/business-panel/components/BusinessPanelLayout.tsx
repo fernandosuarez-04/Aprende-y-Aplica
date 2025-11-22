@@ -63,20 +63,37 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     }
   }, [styles])
 
+  // Efecto para redireccionar usuarios no autenticados o con rol incorrecto
+  // SOLO después de que la carga inicial haya terminado completamente
   useEffect(() => {
-    // Solo ejecutar lógica de redirección cuando loading sea explícitamente false
-    if (isLoading === false) {
-      if (!user) {
-        router.push('/auth')
-        return
+    // Esperar a que termine de cargar Y a que se haya intentado obtener el usuario
+    if (isLoading === false && user === null) {
+      // Usuario no autenticado - obtener organization_slug de localStorage si existe
+      let redirectPath = '/auth';
+
+      if (typeof window !== 'undefined') {
+        try {
+          // Intentar obtener el slug de la organización del usuario desde localStorage
+          const lastOrgSlug = localStorage.getItem('last_organization_slug');
+          if (lastOrgSlug) {
+            redirectPath = `/auth/${lastOrgSlug}`;
+          }
+        } catch (error) {
+          // console.error('Error reading localStorage:', error);
+        }
       }
 
-      // Normalizar rol para comparación
-      const normalizedRole = user.cargo_rol?.toLowerCase().trim()
+      router.push(redirectPath);
+      return;
+    }
+
+    // Usuario autenticado pero con rol incorrecto
+    if (isLoading === false && user) {
+      const normalizedRole = user.cargo_rol?.toLowerCase().trim();
 
       if (normalizedRole !== 'business') {
-        router.push('/dashboard')
-        return
+        router.push('/dashboard');
+        return;
       }
     }
   }, [user, isLoading, router])
