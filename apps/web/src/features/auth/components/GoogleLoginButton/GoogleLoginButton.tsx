@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { initiateGoogleLogin } from '../../actions/oauth';
 
 // SVG del logo de Google
 const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
     <path
       d="M17.64 9.20443C17.64 8.56625 17.5827 7.95262 17.4764 7.36353H9V10.8449H13.8436C13.635 11.9699 13.0009 12.9231 12.0477 13.5613V15.8194H14.9564C16.6582 14.2526 17.64 11.9453 17.64 9.20443Z"
       fill="#4285F4"
@@ -51,35 +52,31 @@ export function GoogleLoginButton() {
   };
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={handleGoogleLogin}
       disabled={isLoading}
       className="
-        w-full px-4 py-2.5 rounded-lg
+        w-12 h-12 sm:w-14 sm:h-14
+        rounded-full
         bg-white dark:bg-gray-800
-        border-2 border-gray-300 dark:border-gray-600
-        text-gray-700 dark:text-gray-200
-        font-medium text-sm
+        border border-gray-300 dark:border-gray-600
         hover:bg-gray-50 dark:hover:bg-gray-700
         hover:border-gray-400 dark:hover:border-gray-500
         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
         disabled:opacity-50 disabled:cursor-not-allowed
         transition-all duration-200
-        flex items-center justify-center space-x-3
+        flex items-center justify-center
+        shadow-sm hover:shadow-md
       "
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
     >
       {isLoading ? (
-        <>
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Conectando...</span>
-        </>
+        <Loader2 className="h-5 w-5 animate-spin text-gray-600 dark:text-gray-300" />
       ) : (
-        <>
-          <GoogleIcon />
-          <span>Continuar con Google</span>
-        </>
+        <GoogleIcon />
       )}
-    </button>
+    </motion.button>
   );
 }
