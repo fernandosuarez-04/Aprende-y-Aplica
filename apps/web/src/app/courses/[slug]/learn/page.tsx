@@ -49,7 +49,6 @@ import {
   Edit2,
   MoreVertical,
 } from 'lucide-react';
-import { UserDropdown } from '../../../../core/components/UserDropdown';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
@@ -2340,11 +2339,6 @@ Antes de cada respuesta, pregúntate:
             <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0">
               {courseProgress}%
             </span>
-          </div>
-
-          {/* Sección derecha: Usuario - Oculto en móviles */}
-          <div className="hidden md:flex items-center gap-2 shrink-0">
-            <UserDropdown />
           </div>
         </div>
       </motion.div>
