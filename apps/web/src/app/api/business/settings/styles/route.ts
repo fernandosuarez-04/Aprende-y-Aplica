@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireBusiness } from '@/lib/auth/requireBusiness';
-import { PRESET_THEMES, getThemeById } from '@/features/business-panel/config/preset-themes';
+import { PRESET_THEMES, getThemeById, generateBrandingTheme } from '@/features/business-panel/config/preset-themes';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('📡 [API /business/settings/styles GET] Request recibida');
+
     const auth = await requireBusiness();
-    if (auth instanceof NextResponse) return auth;
+    if (auth instanceof NextResponse) {
+      console.log('❌ [API] requireBusiness falló - usuario no autorizado');
+      return auth;
+    }
 
     const { userId, organizationId } = auth;
+    console.log('👤 [API] Auth info:', { userId, organizationId });
+
     const supabase = await createClient();
 
     if (!organizationId) {
+      console.log('❌ [API] organizationId es undefined/null');
       return NextResponse.json(
         { success: false, error: 'Organización no encontrada' },
         { status: 404 }
@@ -19,6 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener estilos de la organización
+    console.log('🔍 [API] Consultando estilos para organization:', organizationId);
     const { data: organization, error: orgError } = await supabase
       .from('organizations')
       .select('panel_styles, user_dashboard_styles, login_styles, selected_theme')
@@ -26,11 +35,19 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (orgError || !organization) {
+      console.log('❌ [API] Error al consultar BD:', orgError);
       return NextResponse.json(
         { success: false, error: 'Error al obtener estilos' },
         { status: 500 }
       );
     }
+
+    console.log('✅ [API] Estilos obtenidos desde BD:', {
+      selectedTheme: organization.selected_theme,
+      hasPanelStyles: !!organization.panel_styles,
+      hasUserDashboardStyles: !!organization.user_dashboard_styles,
+      hasLoginStyles: !!organization.login_styles
+    });
 
     return NextResponse.json({
       success: true,
@@ -42,7 +59,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    // console.error('Error en GET /api/business/settings/styles:', error);
+    console.error('❌ [API] Error en GET /api/business/settings/styles:', error);
     return NextResponse.json(
       { success: false, error: 'Error al obtener estilos' },
       { status: 500 }
@@ -170,15 +187,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener tema predefinido
-    const theme = getThemeById(themeId);
-    if (!theme) {
-      return NextResponse.json(
-        { success: false, error: 'Tema no encontrado' },
-        { status: 404 }
-      );
-    }
-
     if (!organizationId) {
       return NextResponse.json(
         { success: false, error: 'Organización no encontrada' },
@@ -186,7 +194,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Aplicar tema predefinido
+    // Obtener tema predefinido o generar tema de branding
+    let theme;
+
+    if (themeId === 'branding-personalizado') {
+      // Para tema de branding, necesitamos obtener los colores de branding primero
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('brand_color_primary, brand_color_secondary, brand_color_accent')
+        .eq('id', organizationId)
+        .single();
+
+      if (orgError || !orgData) {
+        return NextResponse.json(
+          { success: false, error: 'No se pudieron obtener los colores de branding' },
+          { status: 500 }
+        );
+      }
+
+      // Generar tema desde colores de branding
+      theme = generateBrandingTheme({
+        color_primary: orgData.brand_color_primary || '#3b82f6',
+        color_secondary: orgData.brand_color_secondary || '#10b981',
+        color_accent: orgData.brand_color_accent || '#8b5cf6'
+      });
+    } else {
+      // Obtener tema predefinido
+      theme = getThemeById(themeId);
+      if (!theme) {
+        return NextResponse.json(
+          { success: false, error: 'Tema no encontrado' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Aplicar tema
     const { data: updatedOrg, error: updateError } = await supabase
       .from('organizations')
       .update({

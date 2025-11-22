@@ -43,7 +43,15 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   const [error, setError] = useState<string | null>(null);
 
   const fetchStyles = async () => {
+    console.log('🔄 [OrganizationStylesContext] fetchStyles llamado:', {
+      hasUser: !!user,
+      userId: user?.id,
+      organizationId: user?.organization_id,
+      userRole: user?.role
+    });
+
     if (!user?.organization_id) {
+      console.log('⚠️ [OrganizationStylesContext] No hay organization_id, abortando fetch');
       setLoading(false);
       return;
     }
@@ -52,17 +60,29 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
       setLoading(true);
       setError(null);
 
+      console.log('📡 [OrganizationStylesContext] Haciendo fetch a /api/business/settings/styles');
       const response = await fetch('/api/business/settings/styles', {
         credentials: 'include',
       });
 
       const data = await response.json();
+      console.log('📥 [OrganizationStylesContext] Respuesta recibida:', {
+        success: data.success,
+        hasStyles: !!data.styles,
+        error: data.error
+      });
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al obtener estilos');
       }
 
-      // console.log('🎨 Estilos cargados desde API:', data.styles);
+      console.log('🎨 [OrganizationStylesContext] Estilos cargados desde API:', {
+        selectedTheme: data.styles?.selectedTheme,
+        panelPrimaryColor: data.styles?.panel?.primary_button_color,
+        userDashboardPrimaryColor: data.styles?.userDashboard?.primary_button_color,
+        loginPrimaryColor: data.styles?.login?.primary_button_color,
+        fullData: data.styles
+      });
       setStyles(data.styles);
 
       // Guardar en localStorage como respaldo
@@ -101,6 +121,10 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   };
 
   useEffect(() => {
+    console.log('🔄 [OrganizationStylesContext] useEffect triggered - fetchStyles', {
+      hasUser: !!user,
+      organizationId: user?.organization_id
+    });
     fetchStyles();
   }, [user?.organization_id]);
 

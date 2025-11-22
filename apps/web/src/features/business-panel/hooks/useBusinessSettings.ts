@@ -8,6 +8,9 @@ export interface OrganizationData {
   contact_phone?: string | null
   website_url?: string | null
   logo_url?: string | null
+  brand_logo_url?: string | null
+  brand_favicon_url?: string | null
+  favicon_url?: string | null
   slug?: string | null
   subscription_plan?: string
   subscription_status?: string

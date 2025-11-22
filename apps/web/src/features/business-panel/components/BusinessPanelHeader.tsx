@@ -162,9 +162,9 @@ export function BusinessPanelHeader({ onMenuClick, title, isCollapsed, onToggleC
                 }}
                 onClick={() => setOrgInfoOpen(!orgInfoOpen)}
               >
-                {(organization?.favicon_url || organization?.logo_url) ? (
+                {(organization?.brand_favicon_url || organization?.favicon_url || organization?.brand_logo_url || organization?.logo_url) ? (
                   <Image
-                    src={organization?.favicon_url || organization?.logo_url || '/icono.png'}
+                    src={organization?.brand_favicon_url || organization?.favicon_url || organization?.brand_logo_url || organization?.logo_url || '/icono.png'}
                     alt={organization?.name || 'Organización'}
                     width={48}
                     height={48}
@@ -174,7 +174,7 @@ export function BusinessPanelHeader({ onMenuClick, title, isCollapsed, onToggleC
                     }}
                   />
                 ) : (
-                  <div 
+                  <div
                     className="h-full w-full flex items-center justify-center rounded-xl"
                     style={{
                       background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))'
