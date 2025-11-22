@@ -247,41 +247,27 @@ export function BusinessPanelSidebar({
           }
         }}
       >
-        {/* Header - Botones de control */}
-        <div className="h-16 flex items-center justify-end px-4 border-b backdrop-blur-sm" style={{ borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)' }}>
-          <div className="flex items-center gap-2">
-            {/* Botón de fijar - siempre visible en desktop */}
+        {/* Botón de cerrar en mobile - Overlay flotante */}
+        <AnimatePresence>
+          {isOpen && (
             <motion.button
-              onClick={(event) => {
-                event.stopPropagation()
-                onTogglePin()
-              }}
-              className="hidden lg:block p-2 rounded-lg transition-colors hover:opacity-80"
-              style={{ color: panelStyles?.text_color || 'rgba(203, 213, 225, 0.8)' }}
-              title={isPinned ? 'Desfijar panel' : 'Fijar panel'}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              {isPinned ? (
-                <PinOff className="w-4 h-4" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
-              ) : (
-                <Pin className="w-4 h-4" />
-              )}
-            </motion.button>
-            
-            {/* Botón de cerrar en mobile */}
-            <button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
               onClick={(event) => {
                 event.stopPropagation()
                 onClose()
               }}
-              className="lg:hidden p-2 rounded-lg transition-colors hover:opacity-80"
-              style={{ color: panelStyles?.text_color || 'rgba(203, 213, 225, 0.8)' }}
+              className="lg:hidden absolute top-4 right-4 z-10 p-2 rounded-lg backdrop-blur-md transition-opacity hover:opacity-80 shadow-lg"
+              style={{ 
+                color: panelStyles?.text_color || 'rgba(203, 213, 225, 0.9)',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)'
+              }}
             >
               <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         {/* Indicador de hover para fijar */}
         <AnimatePresence>
@@ -290,10 +276,11 @@ export function BusinessPanelSidebar({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="px-4 py-1.5 backdrop-blur-sm border-b"
+              transition={{ duration: 0.2 }}
+              className="px-4 py-2 backdrop-blur-sm border-b"
               style={{ 
                 borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)',
-                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent)'
+                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.08), transparent)'
               }}
             >
               <p className="text-xs font-light flex items-center gap-1.5" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #cbd5e1)' }}>
@@ -311,10 +298,11 @@ export function BusinessPanelSidebar({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="px-4 py-1.5 backdrop-blur-sm border-b"
+              transition={{ duration: 0.2 }}
+              className="px-4 py-2 backdrop-blur-sm border-b"
               style={{ 
                 borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)',
-                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.15), transparent)'
+                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.12), transparent)'
               }}
             >
               <p className="text-xs font-light flex items-center gap-1.5" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #e0e7ff)' }}>
@@ -332,10 +320,11 @@ export function BusinessPanelSidebar({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="px-4 py-1.5 backdrop-blur-sm border-b"
+              transition={{ duration: 0.2 }}
+              className="px-4 py-2 backdrop-blur-sm border-b"
               style={{ 
                 borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.4)',
-                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.2), transparent)'
+                background: 'linear-gradient(to right, rgba(59, 130, 246, 0.15), transparent)'
               }}
             >
               <p className="text-xs font-light flex items-center gap-1.5" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #e0e7ff)' }}>
@@ -347,7 +336,7 @@ export function BusinessPanelSidebar({
         </AnimatePresence>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 overflow-y-auto pt-4 pb-2">
           <div className="px-2 space-y-1">
             {navigation.map((item, index) => {
               const Icon = item.icon
@@ -356,9 +345,13 @@ export function BusinessPanelSidebar({
               return (
                 <motion.div
                   key={item.name}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ 
+                    delay: index * 0.03,
+                    duration: 0.2,
+                    ease: 'easeOut'
+                  }}
                 >
                   {!isCollapsed || shouldExpand ? (
                     <Link
@@ -374,11 +367,11 @@ export function BusinessPanelSidebar({
                       }}
                       className={`
                         group relative flex items-center px-4 py-3 rounded-xl
-                        transition-all duration-200 backdrop-blur-sm
+                        transition-all duration-200 ease-out backdrop-blur-sm
                         ${
                           isActive
-                            ? 'text-white shadow-lg shadow-primary/10'
-                            : 'hover:opacity-80'
+                            ? 'text-white'
+                            : 'hover:opacity-90'
                         }
                       `}
                       style={{
@@ -398,13 +391,13 @@ export function BusinessPanelSidebar({
                           style={{
                             backgroundImage: `linear-gradient(to bottom, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))`
                           }}
-                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                         />
                       )}
 
                       {/* Icon */}
                       <Icon 
-                        className="w-5 h-5 mr-3 transition-colors flex-shrink-0"
+                        className="w-5 h-5 mr-3 transition-colors duration-200 flex-shrink-0"
                         style={{
                           color: isActive 
                             ? 'var(--org-primary-button-color, #3b82f6)'
@@ -420,9 +413,9 @@ export function BusinessPanelSidebar({
                       {/* Hover effect */}
                       {!isActive && (
                         <motion.div
-                          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           style={{
-                            background: 'linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1))'
+                            background: 'linear-gradient(to right, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08))'
                           }}
                         />
                       )}
@@ -431,7 +424,7 @@ export function BusinessPanelSidebar({
                     <Link
                       href={item.href}
                       onClick={onClose}
-                      className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 backdrop-blur-sm"
+                      className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 ease-out backdrop-blur-sm hover:opacity-90"
                       style={{
                         background: isActive 
                           ? `linear-gradient(to right, var(--org-primary-button-color, rgba(59, 130, 246, 0.2)), var(--org-secondary-button-color, rgba(16, 185, 129, 0.2)))`
@@ -443,7 +436,7 @@ export function BusinessPanelSidebar({
                       title={item.name}
                     >
                       <Icon 
-                        className="w-6 h-6"
+                        className="w-5 h-5 transition-colors duration-200"
                         style={isActive ? { color: 'var(--org-primary-button-color, #3b82f6)' } : undefined}
                       />
                     </Link>
@@ -453,6 +446,46 @@ export function BusinessPanelSidebar({
             })}
           </div>
         </nav>
+
+        {/* Footer con botón de pin */}
+        <div className="flex-shrink-0 border-t backdrop-blur-sm" style={{ borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)' }}>
+          <div className="p-4">
+            <motion.button
+              onClick={(event) => {
+                event.stopPropagation()
+                onTogglePin()
+                setShowPinFeedback(true)
+                setTimeout(() => setShowPinFeedback(false), 2000)
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 ease-out hover:opacity-90"
+              style={{ 
+                color: panelStyles?.text_color || 'rgba(203, 213, 225, 0.8)',
+                backgroundColor: isPinned 
+                  ? 'rgba(59, 130, 246, 0.1)' 
+                  : 'transparent'
+              }}
+              title={isPinned ? 'Desfijar panel' : 'Fijar panel'}
+              whileHover={{ opacity: 0.9 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {isPinned ? (
+                <>
+                  <PinOff className="w-4 h-4" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+                  {(!isCollapsed || shouldExpand) && (
+                    <span className="text-xs font-medium">Desfijar</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Pin className="w-4 h-4" />
+                  {(!isCollapsed || shouldExpand) && (
+                    <span className="text-xs font-medium">Fijar</span>
+                  )}
+                </>
+              )}
+            </motion.button>
+          </div>
+        </div>
 
       </motion.div>
     </>
