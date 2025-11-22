@@ -355,10 +355,13 @@ export function LoginForm() {
           disabled={isPending}
           className="w-full relative overflow-hidden group rounded-xl py-2.5 sm:py-3 px-4 sm:px-5 font-semibold text-xs sm:text-sm text-white transition-all duration-300 border-2"
           style={{
-            background: isPending
+            backgroundImage: isPending
               ? 'linear-gradient(135deg, rgba(30, 64, 175, 0.6), rgba(6, 182, 212, 0.6))'
               : 'linear-gradient(135deg, #1e40af, #3b82f6, #60a5fa, #06b6d4)',
             backgroundSize: '200% 200%',
+            backgroundPosition: !isPending ? '0% 50%' : 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundColor: 'transparent',
             borderColor: isPending ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
             boxShadow: isPending 
               ? '0 4px 14px 0 rgba(30, 64, 175, 0.3)' 
