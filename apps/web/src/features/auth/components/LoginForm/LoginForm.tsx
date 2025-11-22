@@ -109,6 +109,7 @@ export function LoginForm() {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-2.5 sm:space-y-3">
       {/* Welcome Message */}
       <motion.div 
