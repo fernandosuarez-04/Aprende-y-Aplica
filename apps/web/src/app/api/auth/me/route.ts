@@ -11,12 +11,19 @@ const orgCache = new MemoryCache<any>(5, 5 * 60 * 1000);
 export async function GET() {
   try {
     const user = await SessionService.getCurrentUser();
-    
+
+    console.log('🔐 [API /auth/me] Usuario obtenido:', {
+      userId: user?.id,
+      email: user?.email,
+      organizationId: user?.organization_id,
+      hasOrganizationId: !!user?.organization_id
+    });
+
     if (!user) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'No autenticado' 
-      }, { 
+      return NextResponse.json({
+        success: false,
+        error: 'No autenticado'
+      }, {
         status: 401,
         headers: cacheHeaders.private // NO cachear - datos sensibles
       });
@@ -42,7 +49,7 @@ export async function GET() {
           // Query 1: organization_users
           supabase
             .from('organization_users')
-            .select('organization_id, joined_at, organizations!inner(id, name, logo_url, brand_favicon_url, slug)')
+            .select('organization_id, joined_at, organizations!inner(id, name, logo_url, brand_logo_url, brand_favicon_url, slug)')
             .eq('user_id', user.id)
             .eq('status', 'active')
             .order('joined_at', { ascending: false })
@@ -52,7 +59,7 @@ export async function GET() {
           user.organization_id
             ? supabase
                 .from('organizations')
-                .select('id, name, logo_url, brand_favicon_url, slug')
+                .select('id, name, logo_url, brand_logo_url, brand_favicon_url, slug')
                 .eq('id', user.organization_id)
                 .single()
             : Promise.resolve({ data: null, error: null })
@@ -65,6 +72,8 @@ export async function GET() {
             id: org.id,
             name: org.name,
             logo_url: org.logo_url,
+            brand_logo_url: org.brand_logo_url,
+            brand_favicon_url: org.brand_favicon_url,
             favicon_url: org.brand_favicon_url,
             slug: org.slug
           };
@@ -76,6 +85,8 @@ export async function GET() {
             id: orgData.id,
             name: orgData.name,
             logo_url: orgData.logo_url,
+            brand_logo_url: orgData.brand_logo_url,
+            brand_favicon_url: orgData.brand_favicon_url,
             favicon_url: orgData.brand_favicon_url,
             slug: orgData.slug
           };
@@ -90,11 +101,12 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       user: {
         ...user,
-        organization: organization
+        organization_id: user.organization_id, // ✅ CRÍTICO: Incluir organization_id directo
+        organization: organization // Información completa de la organización (opcional)
       }
     }, {
       headers: cacheHeaders.private // NO cachear - datos de usuario

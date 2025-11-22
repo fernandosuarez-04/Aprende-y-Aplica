@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { BusinessPanelSidebar } from './BusinessPanelSidebar'
@@ -16,7 +16,7 @@ interface BusinessPanelLayoutProps {
 function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { styles } = useOrganizationStylesContext()
+  const { styles, loading: stylesLoading } = useOrganizationStylesContext()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -36,6 +36,33 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   // Asegurar que isLoading sea siempre un booleano
   const isLoading = typeof authLoading === 'boolean' ? authLoading : true;
 
+  // Memorizar estilos personalizados ANTES de cualquier return (Regla de Hooks)
+  const panelStyles = useMemo(() => styles?.panel, [styles])
+  const backgroundStyle = useMemo(() => getBackgroundStyle(panelStyles), [panelStyles])
+  const cssVariables = useMemo(() => generateCSSVariables(panelStyles), [panelStyles])
+
+  // Debug: Log cuando los estilos se aplican
+  useEffect(() => {
+    console.log('🖼️ [BusinessPanelLayout] Estilos recibidos del contexto:', {
+      hasStyles: !!styles,
+      selectedTheme: styles?.selectedTheme,
+      panel: {
+        hasBackground: !!styles?.panel?.background_value,
+        backgroundType: styles?.panel?.background_type,
+        primaryColor: styles?.panel?.primary_button_color,
+        secondaryColor: styles?.panel?.secondary_button_color
+      }
+    });
+
+    if (styles?.panel) {
+      console.log('✅ [BusinessPanelLayout] Estilos aplicados correctamente al layout:', {
+        theme: styles.selectedTheme,
+        backgroundValue: styles.panel.background_value?.substring(0, 50),
+        primaryColor: styles.panel.primary_button_color
+      });
+    }
+  }, [styles])
+
   useEffect(() => {
     // Solo ejecutar lógica de redirección cuando loading sea explícitamente false
     if (isLoading === false) {
@@ -43,10 +70,10 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         router.push('/auth')
         return
       }
-      
+
       // Normalizar rol para comparación
       const normalizedRole = user.cargo_rol?.toLowerCase().trim()
-      
+
       if (normalizedRole !== 'business') {
         router.push('/dashboard')
         return
@@ -79,13 +106,14 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     return null
   }
 
-  // Aplicar estilos personalizados
-  const panelStyles = styles?.panel
-  const backgroundStyle = getBackgroundStyle(panelStyles)
-  const cssVariables = generateCSSVariables(panelStyles)
+  // Mostrar loading mientras se cargan los estilos
+  if (stylesLoading) {
+    return <PremiumLoadingScreen />
+  }
 
   return (
-    <div 
+    <div
+      key={styles?.selectedTheme || 'default-theme'}
       className="h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
       style={{
         ...backgroundStyle,

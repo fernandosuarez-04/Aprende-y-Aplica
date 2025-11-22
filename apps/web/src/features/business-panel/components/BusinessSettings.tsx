@@ -70,7 +70,13 @@ export function BusinessSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+        <div
+          className="w-16 h-16 border-4 rounded-full animate-spin"
+          style={{
+            borderColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)',
+            borderTopColor: 'var(--org-primary-button-color, #3b82f6)'
+          }}
+        ></div>
       </div>
     )
   }
@@ -105,9 +111,13 @@ export function BusinessSettings() {
             onClick={() => setActiveTab('organization')}
             className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'organization'
-                ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                ? 'border-b-2 bg-carbon-900'
                 : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
             }`}
+            style={activeTab === 'organization' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <Building2 className="w-5 h-5" />
             Datos de la Empresa
@@ -116,9 +126,13 @@ export function BusinessSettings() {
             onClick={() => setActiveTab('subscription')}
             className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'subscription'
-                ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                ? 'border-b-2 bg-carbon-900'
                 : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
             }`}
+            style={activeTab === 'subscription' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <CreditCard className="w-5 h-5" />
             Suscripción
@@ -128,9 +142,13 @@ export function BusinessSettings() {
               onClick={() => setActiveTab('branding')}
               className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'branding'
-                  ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                  ? 'border-b-2 bg-carbon-900'
                   : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
               }`}
+              style={activeTab === 'branding' ? {
+                color: 'var(--org-primary-button-color, #3b82f6)',
+                borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+              } : {}}
             >
               <Palette className="w-5 h-5" />
               Branding
@@ -140,9 +158,13 @@ export function BusinessSettings() {
             onClick={() => setActiveTab('personalization')}
             className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'personalization'
-                ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                ? 'border-b-2 bg-carbon-900'
                 : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
             }`}
+            style={activeTab === 'personalization' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <Palette className="w-5 h-5" />
             Personalización
@@ -151,9 +173,13 @@ export function BusinessSettings() {
             onClick={() => setActiveTab('notifications')}
             className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'notifications'
-                ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                ? 'border-b-2 bg-carbon-900'
                 : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
             }`}
+            style={activeTab === 'notifications' ? {
+              color: 'var(--org-primary-button-color, #3b82f6)',
+              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
           >
             <Bell className="w-5 h-5" />
             Notificaciones
@@ -163,9 +189,13 @@ export function BusinessSettings() {
               onClick={() => setActiveTab('certificates')}
               className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'certificates'
-                  ? 'text-primary border-b-2 border-primary bg-carbon-900'
+                  ? 'border-b-2 bg-carbon-900'
                   : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
               }`}
+              style={activeTab === 'certificates' ? {
+                color: 'var(--org-primary-button-color, #3b82f6)',
+                borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
+              } : {}}
             >
               <Award className="w-5 h-5" />
               Certificados
@@ -340,7 +370,7 @@ function OrganizationTab({
             value={formData.name}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
             placeholder="Nombre de tu empresa"
           />
         </div>
@@ -355,7 +385,7 @@ function OrganizationTab({
             value={formData.description}
             onChange={handleChange}
             rows={4}
-            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none resize-none"
             placeholder="Describe tu empresa..."
           />
         </div>
@@ -380,7 +410,7 @@ function OrganizationTab({
               name="contact_email"
               value={formData.contact_email}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
               placeholder="contacto@empresa.com"
             />
           </div>
@@ -396,7 +426,7 @@ function OrganizationTab({
               name="contact_phone"
               value={formData.contact_phone}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
               placeholder="+1 234 567 8900"
             />
           </div>
@@ -413,7 +443,7 @@ function OrganizationTab({
             name="website_url"
             value={formData.website_url}
             onChange={handleChange}
-            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
             placeholder="https://www.empresa.com"
           />
         </div>
@@ -441,7 +471,7 @@ function OrganizationTab({
             value={formData.max_users}
             onChange={handleChange}
             min="1"
-            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
             placeholder="10"
           />
           <p className="mt-2 text-sm text-carbon-400">
@@ -599,7 +629,7 @@ function LoginPersonalizadoSection({ organization }: { organization: Organizatio
               type="text"
               value={loginUrl}
               readOnly
-              className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white text-sm focus:outline-none"
             />
             <button
               type="button"
@@ -637,7 +667,7 @@ function LoginPersonalizadoSection({ organization }: { organization: Organizatio
               type="text"
               value={registerUrl}
               readOnly
-              className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white text-sm focus:outline-none"
             />
             <button
               type="button"
@@ -667,12 +697,19 @@ function LoginPersonalizadoSection({ organization }: { organization: Organizatio
       </div>
 
       {/* Información adicional */}
-      <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+      <div className="rounded-lg p-4 border" style={{
+        backgroundColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.1)',
+        borderColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)'
+      }}>
         <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{
+            color: 'var(--org-primary-button-color, #3b82f6)'
+          }} />
           <div className="flex-1">
-            <p className="text-sm text-primary">
-              <strong>Nota:</strong> Los usuarios que accedan a estos links verán el login personalizado con tu logo y nombre de empresa. 
+            <p className="text-sm" style={{
+              color: 'var(--org-primary-button-color, #3b82f6)'
+            }}>
+              <strong>Nota:</strong> Los usuarios que accedan a estos links verán el login personalizado con tu logo y nombre de empresa.
               Si intentan acceder al login principal, serán redirigidos automáticamente a tu login personalizado.
             </p>
           </div>
@@ -738,7 +775,7 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
     expired: 'text-red-400 bg-red-400/20 border-red-400/50',
     cancelled: 'text-red-400 bg-red-400/20 border-red-400/50',
     trial: 'text-yellow-400 bg-yellow-400/20 border-yellow-400/50',
-    pending: 'text-blue-400 bg-blue-400/20 border-blue-400/50'
+    pending: 'text-cyan-400 bg-cyan-400/20 border-cyan-400/50'
   }
 
   const formatDate = (date: string | null | undefined) => {
@@ -965,7 +1002,13 @@ function BrandingTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+        <div
+          className="w-16 h-16 border-4 rounded-full animate-spin"
+          style={{
+            borderColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)',
+            borderTopColor: 'var(--org-primary-button-color, #3b82f6)'
+          }}
+        ></div>
       </div>
     )
   }
@@ -1063,7 +1106,7 @@ function BrandingTab() {
                 onChange={handleChange}
                 name="color_primary"
                 placeholder="#3b82f6"
-                className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
               />
             </div>
           </div>
@@ -1087,7 +1130,7 @@ function BrandingTab() {
                 onChange={handleChange}
                 name="color_secondary"
                 placeholder="#10b981"
-                className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
               />
             </div>
           </div>
@@ -1111,7 +1154,7 @@ function BrandingTab() {
                 onChange={handleChange}
                 name="color_accent"
                 placeholder="#8b5cf6"
-                className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex-1 px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none"
               />
             </div>
           </div>
@@ -1133,7 +1176,7 @@ function BrandingTab() {
             name="font_family"
             value={branding.font_family}
             onChange={handleChange}
-            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-lg text-white focus:outline-none"
           >
             <option value="Inter">Inter</option>
             <option value="Montserrat">Montserrat</option>

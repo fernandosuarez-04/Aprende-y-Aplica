@@ -1,11 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { hexToRgb } from '../utils/styles'
 
 export function PremiumLoadingScreen() {
   const { styles } = useOrganizationStylesContext()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Calcular estilos del fondo basados en los estilos personalizados
   const backgroundStyle = {
@@ -234,28 +240,35 @@ export function PremiumLoadingScreen() {
         </motion.div>
       </div>
 
-      {/* Floating Particles */}
-      {[...Array(6)].map((_, i) => (
+      {/* Floating Particles - Solo renderizar en cliente para evitar hydration mismatch */}
+      {mounted && [
+        { left: 15, top: 20, delay: 0, xOffset: 5 },
+        { left: 85, top: 30, delay: 0.5, xOffset: -8 },
+        { left: 25, top: 70, delay: 1, xOffset: 3 },
+        { left: 75, top: 60, delay: 1.5, xOffset: -5 },
+        { left: 45, top: 15, delay: 0.8, xOffset: 7 },
+        { left: 55, top: 85, delay: 1.2, xOffset: -3 },
+      ].map((particle, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 rounded-full"
           style={{
             backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
             opacity: 0.3,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            left: `${particle.left}%`,
+            top: `${particle.top}%`,
           }}
           animate={{
             y: [0, -30, 0],
-            x: [0, Math.random() * 20 - 10, 0],
+            x: [0, particle.xOffset, 0],
             opacity: [0.3, 0.6, 0.3],
             scale: [1, 1.5, 1],
           }}
           transition={{
-            duration: 3 + Math.random() * 2,
+            duration: 4,
             repeat: Infinity,
             ease: 'easeInOut',
-            delay: Math.random() * 2,
+            delay: particle.delay,
           }}
         />
       ))}

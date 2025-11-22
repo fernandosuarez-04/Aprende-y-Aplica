@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { getBackgroundStyle } from '../utils/styles'
-import { 
-  Home, 
-  Users, 
-  BookOpen, 
+import {
+  Home,
+  Users,
+  BookOpen,
   BarChart3,
   FileText,
   Settings,
@@ -20,13 +19,6 @@ import {
   Pin,
   PinOff
 } from 'lucide-react'
-
-interface Organization {
-  id: string;
-  name: string;
-  logo_url?: string | null;
-  favicon_url?: string | null;
-}
 
 interface BusinessPanelSidebarProps {
   isOpen: boolean
@@ -65,8 +57,6 @@ export function BusinessPanelSidebar({
   const [isClicking, setIsClicking] = useState(false)
   const [showPinFeedback, setShowPinFeedback] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
-  const [organization, setOrganization] = useState<Organization | null>(null)
-  const [loadingOrg, setLoadingOrg] = useState(true)
 
   // Aplicar estilos personalizados del sidebar
   const panelStyles = styles?.panel
@@ -132,41 +122,9 @@ export function BusinessPanelSidebar({
     return result;
   }, [sidebarBackground, panelStyles])
 
-  // Obtener información de la organización
-  useEffect(() => {
-    const fetchOrganization = async () => {
-      try {
-        const response = await fetch('/api/auth/me', {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.user?.organization) {
-            setOrganization(data.user.organization)
-          }
-        }
-      } catch (error) {
-        // console.error('Error fetching organization:', error)
-      } finally {
-        setLoadingOrg(false)
-      }
-    }
-
-    fetchOrganization()
-  }, [])
-
   // Lógica para determinar si el sidebar debe estar expandido
   const shouldExpand = isPinned || (isCollapsed && isHovered)
   const actualWidth = shouldExpand ? 'w-64' : (isCollapsed ? 'w-20' : 'w-64')
-
-  // Valores por defecto si no hay organización
-  const orgName = organization?.name || 'Aprende y Aplica'
-  const orgFavicon = organization?.favicon_url || organization?.logo_url || '/icono.png'
 
   // Detectar clics fuera del sidebar para cerrarlo
   useEffect(() => {
@@ -289,54 +247,8 @@ export function BusinessPanelSidebar({
           }
         }}
       >
-        {/* Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b backdrop-blur-sm" style={{ borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)' }}>
-          {!isCollapsed || shouldExpand ? (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center gap-3"
-            >
-              {!loadingOrg && (
-                <div className="relative h-10 w-10 rounded-xl overflow-hidden ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm">
-                  <Image
-                    src={orgFavicon}
-                    alt={`${orgName} Favicon`}
-                    width={40}
-                    height={40}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/icono.png';
-                    }}
-                  />
-                </div>
-              )}
-              <div>
-                <h2 className="text-sm font-semibold leading-none" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #ffffff)' }}>
-                  {loadingOrg ? 'Cargando...' : orgName}
-                </h2>
-                <p className="text-xs mt-0.5 opacity-70" style={{ color: panelStyles?.text_color || 'var(--org-text-color, #cbd5e1)' }}>Business</p>
-              </div>
-            </motion.div>
-          ) : (
-            !loadingOrg && (
-              <div className="relative h-10 w-10 rounded-xl overflow-hidden ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm mx-auto">
-                <Image
-                  src={orgFavicon}
-                  alt={`${orgName} Favicon`}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/icono.png';
-                  }}
-                />
-              </div>
-            )
-          )}
-
-          {/* Botones del Header */}
+        {/* Header - Botones de control */}
+        <div className="h-16 flex items-center justify-end px-4 border-b backdrop-blur-sm" style={{ borderColor: panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)' }}>
           <div className="flex items-center gap-2">
             {/* Botón de fijar - siempre visible en desktop */}
             <motion.button

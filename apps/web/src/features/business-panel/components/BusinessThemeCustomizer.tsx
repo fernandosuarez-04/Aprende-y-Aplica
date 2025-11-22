@@ -14,11 +14,12 @@ import {
   Image as ImageIcon,
   Droplet,
   Layers,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext';
 import type { StyleConfig } from '../contexts/OrganizationStylesContext';
-import { PRESET_THEMES, getAllThemes, ThemeConfig } from '../config/preset-themes';
+import { PRESET_THEMES, getAllThemes, ThemeConfig, generateBrandingTheme, BrandingColors } from '../config/preset-themes';
 import { ImageUpload } from '../../admin/components/ImageUpload';
 import { ImageAdjustmentModal, type ImageAdjustments } from './ImageAdjustmentModal';
 import { isValidHexColor } from '../utils/styles';
@@ -31,6 +32,8 @@ export function BusinessThemeCustomizer() {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [brandingColors, setBrandingColors] = useState<BrandingColors | null>(null);
+  const [loadingBranding, setLoadingBranding] = useState(true);
 
   // Función para obtener estilo por defecto
   const getDefaultStyle = (): StyleConfig => ({
@@ -53,14 +56,53 @@ export function BusinessThemeCustomizer() {
   const [userDashboardStyles, setUserDashboardStyles] = useState<StyleConfig | null>(() => getDefaultStyle());
   const [loginStyles, setLoginStyles] = useState<StyleConfig | null>(() => getDefaultStyle());
 
-  // Cargar estilos cuando se obtengan
+  // Cargar estilos cuando se obtengan o cambien
+  // IMPORTANTE: No usar condicional 'if (styles)' para que siempre se sincronice,
+  // incluso cuando styles pasa de null a un objeto cargado desde la BD
   useEffect(() => {
-    if (styles) {
-      setPanelStyles(styles.panel || getDefaultStyle());
-      setUserDashboardStyles(styles.userDashboard || getDefaultStyle());
-      setLoginStyles(styles.login || getDefaultStyle());
-    }
+    console.log('🎨 [BusinessThemeCustomizer] Sincronizando estilos desde contexto:', {
+      hasStyles: !!styles,
+      selectedTheme: styles?.selectedTheme,
+      panelPrimaryColor: styles?.panel?.primary_button_color,
+      userDashboardPrimaryColor: styles?.userDashboard?.primary_button_color,
+      loginPrimaryColor: styles?.login?.primary_button_color
+    });
+
+    // Siempre actualizar el estado local cuando el contexto cambie
+    // Esto asegura que los valores de la BD se carguen correctamente
+    setPanelStyles(styles?.panel || getDefaultStyle());
+    setUserDashboardStyles(styles?.userDashboard || getDefaultStyle());
+    setLoginStyles(styles?.login || getDefaultStyle());
   }, [styles]);
+
+  // Cargar colores de branding para generar tema automático
+  useEffect(() => {
+    const fetchBrandingColors = async () => {
+      try {
+        setLoadingBranding(true);
+        const response = await fetch('/api/business/settings/branding', {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.branding) {
+            setBrandingColors({
+              color_primary: result.branding.color_primary,
+              color_secondary: result.branding.color_secondary,
+              color_accent: result.branding.color_accent
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching branding colors:', err);
+      } finally {
+        setLoadingBranding(false);
+      }
+    };
+
+    fetchBrandingColors();
+  }, []);
 
   const handleApplyTheme = async (themeId: string) => {
     setIsSaving(true);
@@ -158,7 +200,18 @@ export function BusinessThemeCustomizer() {
     }
   }, [activePanel, panelStyles, userDashboardStyles, loginStyles]);
 
-  const allThemes = getAllThemes();
+  // Generar todos los temas disponibles (8 predefinidos + 1 automático si hay branding)
+  const allThemes = useMemo(() => {
+    const presetThemes = getAllThemes();
+
+    // Si ya cargamos los colores de branding, generar el tema automático
+    if (brandingColors && !loadingBranding) {
+      const brandingTheme = generateBrandingTheme(brandingColors);
+      return [...presetThemes, brandingTheme];
+    }
+
+    return presetThemes;
+  }, [brandingColors, loadingBranding]);
 
   // Returns condicionales DESPUÉS de todos los hooks
   if (loading) {
@@ -219,13 +272,24 @@ export function BusinessThemeCustomizer() {
             >
               <div className="flex items-center gap-3 mb-2">
                 <div
-                  className="w-8 h-8 rounded-lg"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
                   style={{
                     background: theme.panel.background_value
                   }}
-                />
-                <div>
-                  <h4 className="font-medium" style={{ color: 'var(--org-text-color, #ffffff)' }}>{theme.name}</h4>
+                >
+                  {theme.id === 'branding-personalizado' && (
+                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium" style={{ color: 'var(--org-text-color, #ffffff)' }}>{theme.name}</h4>
+                    {theme.id === 'branding-personalizado' && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50">
+                        Auto
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-carbon-400">{theme.description}</p>
                 </div>
               </div>
