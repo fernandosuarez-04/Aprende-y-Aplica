@@ -372,7 +372,7 @@ export function CustomVideoPlayer({
       <video
         ref={videoRef}
         src={src}
-        className="w-full h-full"
+        className="w-full h-full object-contain"
         playsInline
         onClick={togglePlay}
       />
@@ -402,24 +402,24 @@ export function CustomVideoPlayer({
             className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-40 pointer-events-none"
           >
             {/* Top Controls - Botones de navegación rápida */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-auto">
+            <div className="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
               <button
                 onClick={() => skip(-10)}
-                className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg transition-all duration-200 group/btn"
+                className="p-1.5 sm:p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg transition-all duration-200 group/btn"
                 title="Retroceder 10s"
               >
-                <ChevronLeft className="w-5 h-5 text-white group-hover/btn:scale-110 transition-transform" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-white bg-black/80 px-2 py-1 rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap">
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover/btn:scale-110 transition-transform" />
+                <span className="absolute -bottom-7 sm:-bottom-8 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs text-white bg-black/80 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap">
                   10s
                 </span>
               </button>
               <button
                 onClick={() => skip(10)}
-                className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg transition-all duration-200 group/btn"
+                className="p-1.5 sm:p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg transition-all duration-200 group/btn"
                 title="Avanzar 10s"
               >
-                <ChevronRight className="w-5 h-5 text-white group-hover/btn:scale-110 transition-transform" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-white bg-black/80 px-2 py-1 rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap">
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover/btn:scale-110 transition-transform" />
+                <span className="absolute -bottom-7 sm:-bottom-8 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs text-white bg-black/80 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap">
                   10s
                 </span>
               </button>
@@ -427,19 +427,21 @@ export function CustomVideoPlayer({
 
             {/* Center Play Button */}
             {!isPlaying && (
-              <motion.button
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                onClick={togglePlay}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-200 pointer-events-auto group"
-              >
-                <Play className="w-8 h-8 text-white ml-1 group-hover:scale-110 transition-transform" />
-              </motion.button>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                <motion.button
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  onClick={togglePlay}
+                  className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-200 pointer-events-auto group"
+                >
+                  <Play className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white group-hover:scale-110 transition-transform ml-0.5" />
+                </motion.button>
+              </div>
             )}
 
             {/* Bottom Controls */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-auto">
+            <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 md:p-4 pointer-events-auto">
               {/* Progress Bar */}
               <div
                 ref={progressBarRef}
@@ -451,7 +453,7 @@ export function CustomVideoPlayer({
                 onTouchStart={handleProgressTouchStart}
                 onTouchMove={handleProgressTouchMove}
                 onTouchEnd={handleProgressTouchEnd}
-                className={`w-full h-1.5 bg-white/20 rounded-full mb-4 cursor-pointer group/progress hover:h-2 transition-all duration-200 ${
+                className={`w-full h-1 sm:h-1.5 bg-white/20 rounded-full mb-2 sm:mb-3 md:mb-4 cursor-pointer group/progress hover:h-2 transition-all duration-200 ${
                   isDraggingProgress ? 'h-2' : ''
                 }`}
                 style={{ userSelect: 'none' }}
@@ -461,25 +463,25 @@ export function CustomVideoPlayer({
                   style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                   initial={false}
                 >
-                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full transition-opacity shadow-lg ${
+                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full transition-opacity shadow-lg ${
                     isDraggingProgress || isHovering ? 'opacity-100' : 'opacity-0 group-hover/progress:opacity-100'
                   }`} />
                 </motion.div>
               </div>
 
               {/* Control Buttons */}
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
                   {/* Play/Pause */}
                   <button
                     onClick={togglePlay}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                    className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
                     title={isPlaying ? 'Pausar' : 'Reproducir'}
                   >
                     {isPlaying ? (
-                      <Pause className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                      <Pause className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
                     ) : (
-                      <Play className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                      <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
                     )}
                   </button>
 
@@ -491,13 +493,13 @@ export function CustomVideoPlayer({
                   >
                     <button
                       onClick={toggleMute}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                      className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
                       title={isMuted ? 'Activar sonido' : 'Silenciar'}
                     >
                       {isMuted || volume === 0 ? (
-                        <VolumeX className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                        <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
                       ) : (
-                        <Volume2 className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                        <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
                       )}
                     </button>
 
@@ -535,20 +537,20 @@ export function CustomVideoPlayer({
                   </div>
 
                   {/* Time Display */}
-                  <div className="text-white text-sm font-medium tabular-nums">
+                  <div className="text-white text-xs sm:text-sm font-medium tabular-nums">
                     {formatTime(currentTime)} / {formatTime(duration)}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   {/* Settings Menu */}
                   <div className="relative">
                     <button
                       onClick={() => setShowSettings(!showSettings)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                      className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
                       title="Configuración"
                     >
-                      <Settings className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                      <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
                     </button>
 
                     {/* Settings Dropdown */}
@@ -558,7 +560,7 @@ export function CustomVideoPlayer({
                           initial={{ opacity: 0, y: 10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className="absolute bottom-full right-0 mb-2 w-48 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/10 overflow-hidden"
+                          className="absolute bottom-full right-0 mb-2 w-40 sm:w-48 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/10 overflow-hidden"
                         >
                           {/* Velocidad de reproducción */}
                           <div className="p-2 border-b border-white/10">
@@ -598,13 +600,13 @@ export function CustomVideoPlayer({
                   {/* Fullscreen */}
                   <button
                     onClick={toggleFullscreen}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                    className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-all duration-200 group"
                     title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
                   >
                     {isFullscreen ? (
-                      <Minimize className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                      <Minimize className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
                     ) : (
-                      <Maximize className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                      <Maximize className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
                     )}
                   </button>
                 </div>

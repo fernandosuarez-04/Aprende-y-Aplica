@@ -175,7 +175,7 @@ export function OrganizationLoginForm({
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
     setIsPending(true);
-    
+
     try {
       if (data.rememberMe) {
         saveCredentials({
@@ -185,7 +185,16 @@ export function OrganizationLoginForm({
       } else {
         clearSavedCredentials();
       }
-      
+
+      // Guardar slug de organización en localStorage para futuras redirecciones
+      if (typeof window !== 'undefined' && organizationSlug) {
+        try {
+          localStorage.setItem('last_organization_slug', organizationSlug);
+        } catch (error) {
+          // console.error('Error saving organization slug:', error);
+        }
+      }
+
       const formData = new FormData();
       formData.append('emailOrUsername', data.emailOrUsername);
       formData.append('password', data.password);
