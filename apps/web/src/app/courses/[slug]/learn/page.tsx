@@ -62,6 +62,7 @@ import { COURSE_LEARN_TOUR_STEPS } from '../../../../features/courses/config/cou
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
+import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
@@ -3065,6 +3066,7 @@ Antes de cada respuesta, pregúntate:
                         userRole={user?.type_rol}
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
                         t={t}
+                        language={i18n.language}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -5610,7 +5612,8 @@ function ActivitiesContent({
   onStartInteraction,
   userRole,
   generateRoleBasedPrompts,
-  t
+  t,
+  language
 }: {
   lesson: Lesson;
   slug: string;
@@ -5619,6 +5622,7 @@ function ActivitiesContent({
   userRole?: string;
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
   t: (key: string) => string;
+  language: string;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -5703,9 +5707,20 @@ function ActivitiesContent({
           fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/quiz/status`)
         ]);
 
-        // Procesar actividades
+        // Procesar actividades con traducción
         if (activitiesResponse.ok) {
-          const activitiesData = await activitiesResponse.json();
+          let activitiesData = await activitiesResponse.json();
+          
+          // Aplicar traducciones si no es español
+          if (language !== 'es' && activitiesData && activitiesData.length > 0) {
+            activitiesData = await ContentTranslationService.translateArray(
+              'activity',
+              activitiesData.map((a: any) => ({ ...a, id: a.activity_id })),
+              ['activity_title', 'activity_description', 'activity_content'],
+              language as any
+            );
+          }
+          
           setActivities(activitiesData || []);
         } else {
           setActivities([]);
@@ -5737,7 +5752,7 @@ function ActivitiesContent({
     }
 
     loadActivitiesAndMaterials();
-  }, [lesson?.lesson_id, slug]);
+  }, [lesson?.lesson_id, slug, language]);
 
   // Refs para almacenar las funciones y evitar loops infinitos
   const generateRoleBasedPromptsRef = useRef(generateRoleBasedPrompts);
