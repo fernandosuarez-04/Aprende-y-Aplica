@@ -3064,6 +3064,7 @@ Antes de cada respuesta, pregúntate:
                         onStartInteraction={handleStartActivityInteraction}
                         userRole={user?.type_rol}
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
+                        t={t}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -5608,7 +5609,8 @@ function ActivitiesContent({
   onPromptsChange, 
   onStartInteraction,
   userRole,
-  generateRoleBasedPrompts
+  generateRoleBasedPrompts,
+  t
 }: {
   lesson: Lesson;
   slug: string;
@@ -5616,6 +5618,7 @@ function ActivitiesContent({
   onStartInteraction?: (content: string, title: string) => void;
   userRole?: string;
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
+  t: (key: string) => string;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
