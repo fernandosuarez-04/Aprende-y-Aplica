@@ -1,6 +1,7 @@
  'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -48,6 +49,7 @@ import {
   History,
   Edit2,
   MoreVertical,
+  RefreshCw,
 } from 'lucide-react';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
@@ -198,6 +200,8 @@ export default function CourseLearnPage() {
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
+  // Ref para el botón del menú de Lia
+  const liaMenuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Estados para historial de conversaciones
   const [showHistory, setShowHistory] = useState(false);
@@ -219,6 +223,20 @@ export default function CourseLearnPage() {
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [showLiaMenu, setShowLiaMenu] = useState(false);
+  const [liaMenuPosition, setLiaMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+  // Calcular posición del menú cuando se abre
+  useEffect(() => {
+    if (showLiaMenu && liaMenuButtonRef.current) {
+      const buttonRect = liaMenuButtonRef.current.getBoundingClientRect();
+      setLiaMenuPosition({
+        top: buttonRect.bottom + 8, // 8px de margen (mt-2)
+        right: window.innerWidth - buttonRect.right
+      });
+    } else {
+      setLiaMenuPosition(null);
+    }
+  }, [showLiaMenu]);
 
   // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
   const [userBehaviorLog, setUserBehaviorLog] = useState<Array<{
@@ -426,7 +444,10 @@ export default function CourseLearnPage() {
 
   // Callback memoizado para evitar loops infinitos
   const handlePromptsChange = useCallback((prompts: string[]) => {
+    console.log('[handlePromptsChange] Recibiendo prompts:', prompts.length);
+    console.log('[handlePromptsChange] Prompts recibidos:', prompts);
     setCurrentActivityPrompts(prompts);
+    console.log('[handlePromptsChange] Estado actualizado');
   }, []);
 
   // Detectar tamaño de pantalla y ajustar estado inicial de paneles
@@ -974,7 +995,14 @@ export default function CourseLearnPage() {
     activityTitle: string,
     userRole?: string
   ): Promise<string[]> => {
+    console.log('[generateRoleBasedPrompts] Iniciando con:', {
+      basePrompts: basePrompts.length,
+      activityTitle,
+      userRole
+    });
+
     if (!userRole || basePrompts.length === 0) {
+      console.log('[generateRoleBasedPrompts] Sin rol o sin prompts base, retornando originales');
       return basePrompts; // Retornar prompts originales si no hay rol
     }
 
@@ -998,6 +1026,8 @@ INSTRUCCIONES:
 
 PROMPTS ADAPTADOS:`;
 
+      console.log('[generateRoleBasedPrompts] Llamando a /api/ai-chat...');
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -1011,12 +1041,16 @@ PROMPTS ADAPTADOS:`;
         }),
       });
 
+      console.log('[generateRoleBasedPrompts] Respuesta HTTP:', response.status, response.statusText);
+
       if (!response.ok) {
+        console.warn('[generateRoleBasedPrompts] Respuesta no OK, usando fallback');
         return basePrompts; // Fallback a prompts originales
       }
 
       const data = await response.json();
       const generatedText = data.response || '';
+      console.log('[generateRoleBasedPrompts] Texto generado:', generatedText.substring(0, 200) + '...');
 
       // Extraer prompts de la respuesta (cada línea es un prompt)
       const adaptedPrompts = generatedText
@@ -1025,9 +1059,17 @@ PROMPTS ADAPTADOS:`;
         .filter((line: string) => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
         .slice(0, basePrompts.length); // Limitar al número de prompts originales
 
-      return adaptedPrompts.length > 0 ? adaptedPrompts : basePrompts;
+      console.log('[generateRoleBasedPrompts] Prompts adaptados extraídos:', adaptedPrompts.length);
+
+      if (adaptedPrompts.length === 0) {
+        console.warn('[generateRoleBasedPrompts] No se extrajeron prompts, usando originales');
+        return basePrompts;
+      }
+
+      console.log('[generateRoleBasedPrompts] ✓ Personalización exitosa');
+      return adaptedPrompts;
     } catch (error) {
-      console.error('Error generando prompts adaptados:', error);
+      console.error('[generateRoleBasedPrompts] ✗ Error:', error);
       return basePrompts; // Fallback a prompts originales
     }
   }, []); // Sin dependencias ya que no usa variables del scope
@@ -3146,6 +3188,8 @@ Antes de cada respuesta, pregúntate:
                         onStartInteraction={handleStartActivityInteraction}
                         userRole={user?.type_rol}
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
+                        onNavigateNext={navigateToNextLesson}
+                        getNextLesson={getNextLesson}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -3242,6 +3286,7 @@ Antes de cada respuesta, pregúntate:
                     {/* Menú de opciones (tres puntos) */}
                     <div className="relative">
                       <button
+                        ref={liaMenuButtonRef}
                         onClick={() => setShowLiaMenu(!showLiaMenu)}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
                         title="Más opciones"
@@ -3249,52 +3294,67 @@ Antes de cada respuesta, pregúntate:
                         <MoreVertical className="w-4 h-4 text-gray-700 dark:text-white/70" />
                       </button>
                       
-                      {/* Menú dropdown */}
-                      {showLiaMenu && (
+                      {/* Menú dropdown - Renderizado con portal fuera del stacking context */}
+                      {showLiaMenu && liaMenuPosition && typeof window !== 'undefined' && createPortal(
                         <>
                           {/* Overlay para cerrar el menú al hacer clic fuera */}
                           <div
-                            className="fixed inset-0 z-40"
+                            className="fixed inset-0 z-[190]"
                             onClick={() => setShowLiaMenu(false)}
                           />
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                            <button
-                              onClick={() => {
-                                clearLiaHistory();
-                                setShowHistory(true);
-                                loadConversations();
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Nueva conversación
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowHistory(!showHistory);
-                                if (!showHistory) {
+                          <div 
+                            className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-gray-200 dark:border-slate-700"
+                            style={{ 
+                              top: `${liaMenuPosition.top}px`,
+                              right: `${liaMenuPosition.right}px`,
+                              backgroundColor: 'rgb(255, 255, 255)',
+                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                            }}
+                          >
+                            <div 
+                              className="hidden dark:block absolute inset-0 rounded-lg"
+                              style={{ backgroundColor: 'rgb(30, 41, 59)' }}
+                            />
+                            <div className="relative">
+                              <button
+                                onClick={() => {
+                                  clearLiaHistory();
+                                  setShowHistory(true);
                                   loadConversations();
-                                }
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <History className="w-4 h-4" />
-                              Ver historial
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleOpenClearHistoryModal();
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Reiniciar conversación
-                            </button>
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Nueva conversación
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowHistory(!showHistory);
+                                  if (!showHistory) {
+                                    loadConversations();
+                                  }
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <History className="w-4 h-4" />
+                                Ver historial
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleOpenClearHistoryModal();
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Reiniciar conversación
+                              </button>
+                            </div>
                           </div>
-                        </>
+                        </>,
+                        document.body
                       )}
                     </div>
 
@@ -3598,7 +3658,16 @@ Antes de cada respuesta, pregúntate:
 
                 {/* Prompts Flotantes tipo NotebookLM */}
                 <AnimatePresence>
-                  {currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen && (
+                  {(() => {
+                    const shouldShow = currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen;
+                    console.log('[PROMPTS UI] Condiciones de visibilidad:', {
+                      prompts: currentActivityPrompts.length,
+                      activeTab,
+                      isRightPanelOpen,
+                      shouldShow
+                    });
+                    return shouldShow;
+                  })() && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -5219,48 +5288,68 @@ function QuizRenderer({
 
       {/* Resultados */}
       {showResults && (
-        <div className={`mt-6 p-6 rounded-lg border-2 ${
-          passed
-            ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
-            : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
-        }`}>
-          <div className="text-center">
-            {/* Mensaje informativo del servidor */}
-            {serverMessage && (
-              <div className={`mb-4 p-3 rounded-lg border ${
-                serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                  ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
-                  : passed
-                  ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
-                  : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
-              }`}>
-                <p className={`text-sm ${
+        <>
+          <div className={`mt-6 p-6 rounded-lg border-2 ${
+            passed
+              ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
+              : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
+          }`}>
+            <div className="text-center">
+              {/* Mensaje informativo del servidor */}
+              {serverMessage && (
+                <div className={`mb-4 p-3 rounded-lg border ${
                   serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                    ? 'text-yellow-800 dark:text-yellow-200'
+                    ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
                     : passed
-                    ? 'text-green-800 dark:text-green-200'
-                    : 'text-blue-800 dark:text-blue-200'
+                    ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
+                    : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
                 }`}>
-                  {serverMessage}
-                </p>
-              </div>
-            )}
-            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
-            </h3>
-            <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-              Obtuviste {score} de {totalQuestions} correctas
-            </p>
-            {totalPoints !== undefined && (
+                  <p className={`text-sm ${
+                    serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
+                      ? 'text-yellow-800 dark:text-yellow-200'
+                      : passed
+                      ? 'text-green-800 dark:text-green-200'
+                      : 'text-blue-800 dark:text-blue-200'
+                  }`}>
+                    {serverMessage}
+                  </p>
+                </div>
+              )}
+              <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
+              </h3>
               <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-                Puntos: {pointsEarned} de {totalPoints}
+                Obtuviste {score} de {totalQuestions} correctas
               </p>
-            )}
-            <p className="text-gray-700 dark:text-slate-200 text-sm">
-              Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
-            </p>
+              {totalPoints !== undefined && (
+                <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
+                  Puntos: {pointsEarned} de {totalPoints}
+                </p>
+              )}
+              <p className="text-gray-700 dark:text-slate-200 text-sm">
+                Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
+              </p>
+            </div>
           </div>
-        </div>
+          
+          {/* Botón de reiniciar cuestionario */}
+          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
+            <button
+              onClick={() => {
+                setSelectedAnswers({});
+                setShowResults(false);
+                setScore(0);
+                setPointsEarned(0);
+                setSubmitError(null);
+                setServerMessage(null);
+              }}
+              className="px-6 py-3 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reiniciar Cuestionario
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -5466,8 +5555,88 @@ function ReadingContentRenderer({ content }: { content: any }) {
   );
 }
 
-// Componente para renderizar contenido formateado (actividades, materiales de lectura, etc.)
-function FormattedContentRenderer({ content }: { content: any }) {
+// Componente para renderizar items de checklist
+function ChecklistItem({ 
+  content, 
+  checked: initialChecked, 
+  activityId, 
+  lineIndex 
+}: { 
+  content: string; 
+  checked: boolean; 
+  activityId?: string; 
+  lineIndex: number;
+}) {
+  const storageKey = activityId ? `checklist-${activityId}-${lineIndex}` : `checklist-global-${lineIndex}`;
+  const [checked, setChecked] = useState(() => {
+    if (typeof window !== 'undefined' && activityId) {
+      const saved = localStorage.getItem(storageKey);
+      return saved !== null ? saved === 'true' : initialChecked;
+    }
+    return initialChecked;
+  });
+
+  const handleToggle = () => {
+    const newChecked = !checked;
+    setChecked(newChecked);
+    if (typeof window !== 'undefined' && activityId) {
+      localStorage.setItem(storageKey, String(newChecked));
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3 my-3 pl-2">
+      <button
+        onClick={handleToggle}
+        className={`
+          mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
+          ${checked 
+            ? 'bg-blue-500 border-blue-500 dark:bg-blue-600 dark:border-blue-600' 
+            : 'bg-white dark:bg-carbon-800 border-gray-300 dark:border-carbon-600 hover:border-blue-400 dark:hover:border-blue-500'
+          }
+          focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1
+        `}
+        aria-checked={checked}
+        role="checkbox"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+      >
+        {checked && (
+          <svg 
+            className="w-3 h-3 text-white" 
+            fill="none" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth="3" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+      <p 
+        className={`
+          flex-1 text-base leading-relaxed cursor-pointer
+          ${checked 
+            ? 'text-gray-600 dark:text-slate-400 line-through' 
+            : 'text-gray-800 dark:text-slate-200'
+          }
+        `}
+        onClick={handleToggle}
+      >
+        {content}
+      </p>
+    </div>
+  );
+}
+
+function FormattedContentRenderer({ content, activityId }: { content: any; activityId?: string }) {
   let readingContent = content;
   
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
@@ -5501,13 +5670,30 @@ function FormattedContentRenderer({ content }: { content: any }) {
   // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
   const lines = readingContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
   const formattedContent: Array<{ 
-    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
+    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight' | 'checklist';
     content: string;
     level?: number;
+    checked?: boolean;
+    originalLine?: string;
   }> = [];
 
   lines.forEach((line: string, index: number) => {
     const trimmedLine = line.trim();
+    
+    // Detectar checklists: [] o [ ] o [x] o [X] al inicio de línea
+    const checklistPattern = /^\[([\sxX])\]\s*(.+)$/;
+    const checklistMatch = trimmedLine.match(checklistPattern);
+    if (checklistMatch) {
+      const [, checkboxContent, checklistText] = checklistMatch;
+      const isChecked = checkboxContent.toLowerCase() === 'x';
+      formattedContent.push({ 
+        type: 'checklist', 
+        content: checklistText.trim(), 
+        checked: isChecked,
+        originalLine: trimmedLine
+      });
+      return;
+    }
     
     // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
     const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
@@ -5633,6 +5819,19 @@ function FormattedContentRenderer({ content }: { content: any }) {
               );
             }
             
+            // Checklists
+            if (item.type === 'checklist') {
+              return (
+                <ChecklistItem
+                  key={`checklist-${index}`}
+                  content={item.content}
+                  checked={item.checked || false}
+                  activityId={activityId}
+                  lineIndex={index}
+                />
+              );
+            }
+            
             // Listas
             if (item.type === 'list') {
               const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
@@ -5690,7 +5889,9 @@ function ActivitiesContent({
   onPromptsChange, 
   onStartInteraction,
   userRole,
-  generateRoleBasedPrompts
+  generateRoleBasedPrompts,
+  onNavigateNext,
+  getNextLesson
 }: {
   lesson: Lesson;
   slug: string;
@@ -5698,6 +5899,8 @@ function ActivitiesContent({
   onStartInteraction?: (content: string, title: string) => void;
   userRole?: string;
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
+  onNavigateNext?: () => void | Promise<void>;
+  getNextLesson?: () => Lesson | null;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -5839,6 +6042,10 @@ function ActivitiesContent({
       const allPrompts: string[] = [];
       const activityPromptsMap: Map<string, { prompts: string[], content: string, title: string }> = new Map();
 
+      console.log('[LIA PROMPTS] Iniciando procesamiento de prompts...');
+      console.log('[LIA PROMPTS] Total actividades:', activities.length);
+      console.log('[LIA PROMPTS] Usuario tiene rol:', userRole || 'Sin rol');
+
       // Primero, extraer todos los prompts base de las actividades
       activities.forEach(activity => {
         if (activity.ai_prompts) {
@@ -5879,44 +6086,86 @@ function ActivitiesContent({
                 content: activity.activity_content || '',
                 title: activity.activity_title || ''
               });
+              console.log('[LIA PROMPTS] Actividad:', activity.activity_title, '| Prompts extraídos:', cleanPrompts.length);
             }
           } catch (error) {
-            // console.warn('Error parsing prompts:', error);
+            console.warn('[LIA PROMPTS] Error parsing prompts para actividad:', activity.activity_title, error);
           }
         }
       });
 
+      console.log('[LIA PROMPTS] Total actividades con prompts:', activityPromptsMap.size);
+
       // Si hay rol del usuario y función de generación, adaptar prompts
       if (userRole && generateRoleBasedPromptsRef.current && activityPromptsMap.size > 0) {
+        console.log('[LIA PROMPTS] Iniciando personalización para rol:', userRole);
         try {
-          // Generar prompts adaptados para cada actividad
-          for (const [activityId, activityData] of activityPromptsMap.entries()) {
-            if (!isMounted) break; // Salir si el componente se desmontó
-            const adaptedPrompts = await generateRoleBasedPromptsRef.current(
-              activityData.prompts,
-              activityData.content,
-              activityData.title,
-              userRole
-            );
-            allPrompts.push(...adaptedPrompts);
-          }
+          // Generar prompts adaptados para cada actividad EN PARALELO
+          const adaptationPromises = Array.from(activityPromptsMap.entries()).map(
+            async ([activityId, activityData]) => {
+              if (!isMounted) return []; // Salir si el componente se desmontó
+
+              console.log('[LIA PROMPTS] Personalizando prompts para:', activityData.title);
+              try {
+                const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+                  activityData.prompts,
+                  activityData.content,
+                  activityData.title,
+                  userRole
+                );
+                console.log('[LIA PROMPTS] ✓ Personalización exitosa para:', activityData.title, '| Prompts:', adaptedPrompts.length);
+                return adaptedPrompts;
+              } catch (error) {
+                console.error('[LIA PROMPTS] ✗ Error personalizando:', activityData.title, error);
+                // Fallback: retornar prompts originales
+                return activityData.prompts;
+              }
+            }
+          );
+
+          // Esperar a que todas las personalizaciones terminen (con timeout)
+          const timeoutPromise = new Promise<string[][]>((resolve) => {
+            setTimeout(() => {
+              console.warn('[LIA PROMPTS] Timeout en personalización, usando prompts originales');
+              resolve(Array.from(activityPromptsMap.values()).map(data => data.prompts));
+            }, 10000); // 10 segundos de timeout
+          });
+
+          const results = await Promise.race([
+            Promise.all(adaptationPromises),
+            timeoutPromise
+          ]);
+
+          // Agregar todos los prompts adaptados
+          results.forEach(prompts => {
+            allPrompts.push(...prompts);
+          });
+
+          console.log('[LIA PROMPTS] Personalización completada. Total prompts adaptados:', allPrompts.length);
         } catch (error) {
-          console.error('Error generando prompts adaptados:', error);
+          console.error('[LIA PROMPTS] Error generando prompts adaptados:', error);
           // Fallback: usar prompts originales
           activityPromptsMap.forEach(activityData => {
             allPrompts.push(...activityData.prompts);
           });
+          console.log('[LIA PROMPTS] Usando prompts originales por error. Total:', allPrompts.length);
         }
       } else {
         // Sin rol o sin función de generación, usar prompts originales
+        console.log('[LIA PROMPTS] Usando prompts originales (sin personalización)');
         activityPromptsMap.forEach(activityData => {
           allPrompts.push(...activityData.prompts);
         });
+        console.log('[LIA PROMPTS] Total prompts originales:', allPrompts.length);
       }
 
       // Notificar cambios al componente padre solo si el componente sigue montado
       if (isMounted && onPromptsChangeRef.current) {
+        console.log('[LIA PROMPTS] Notificando cambios al componente padre. Prompts finales:', allPrompts.length);
+        console.log('[LIA PROMPTS] Prompts:', allPrompts);
         onPromptsChangeRef.current(allPrompts);
+      } else {
+        console.warn('[LIA PROMPTS] Componente desmontado o sin callback, no se notifican cambios');
       }
     };
 
@@ -6228,7 +6477,7 @@ function ActivitiesContent({
                     }
                   })()}
                   {activity.activity_type !== 'quiz' && (
-                    <FormattedContentRenderer content={activity.activity_content} />
+                    <FormattedContentRenderer content={activity.activity_content} activityId={activity.activity_id} />
                   )}
                   </div>
                 )}
@@ -6423,7 +6672,7 @@ function ActivitiesContent({
                       />
                     )}
                     {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
-                      <FormattedContentRenderer content={material.content_data} />
+                      <FormattedContentRenderer content={material.content_data} activityId={material.material_id} />
                     )}
                   </div>
                 )}
@@ -6478,6 +6727,19 @@ function ActivitiesContent({
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Botón para avanzar al siguiente video */}
+      {getNextLesson && getNextLesson() && onNavigateNext && (
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onNavigateNext}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+          >
+            <ChevronRight className="w-5 h-5" />
+            Avanzar al Siguiente Video
+          </button>
         </div>
       )}
     </div>
