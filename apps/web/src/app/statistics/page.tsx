@@ -7,7 +7,6 @@ import { Sparkles } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useQuestionnaireValidation } from '../../features/auth/hooks/useQuestionnaireValidation';
-import { SelectField, type SelectOption } from '@/core/components/SelectField/SelectField';
 import { PAISES_WITH_FLAGS } from '@/core/components/SelectField/country-flags';
 
 interface ProfileData {
@@ -448,7 +447,10 @@ export default function StatisticsPage() {
                   transition={{ duration: 0.5, delay: 0.8 }}
                   className="flex flex-col"
                 >
-                  <SelectField
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1.5 text-text-secondary transition-all duration-200">
+                    Sector
+                  </label>
+                  <select
                     value={formData.sector_id}
                     onChange={(e) => handleInputChange('sector_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
@@ -472,7 +474,10 @@ export default function StatisticsPage() {
                   transition={{ duration: 0.5, delay: 0.6 }}
                   className="flex flex-col"
                 >
-                  <SelectField
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    Área Funcional <span className="text-red-500 dark:text-red-400">*</span>
+                  </label>
+                  <select
                     value={formData.area_id}
                     disabled
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white opacity-60 cursor-not-allowed min-h-[48px] [&::-ms-expand]:hidden [&::-webkit-appearance]:none appearance-none"
@@ -494,7 +499,10 @@ export default function StatisticsPage() {
                   transition={{ duration: 0.5, delay: 0.7 }}
                   className="flex flex-col"
                 >
-                  <SelectField
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    Tipo de Relación <span className="text-red-500 dark:text-red-400">*</span>
+                  </label>
+                  <select
                     value={formData.relacion_id}
                     onChange={(e) => handleInputChange('relacion_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
@@ -515,7 +523,10 @@ export default function StatisticsPage() {
                   transition={{ duration: 0.5, delay: 0.8 }}
                   className="flex flex-col"
                 >
-                  <SelectField
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    Tamaño de Empresa
+                  </label>
+                  <select
                     value={formData.tamano_id}
                     onChange={(e) => handleInputChange('tamano_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
@@ -536,15 +547,18 @@ export default function StatisticsPage() {
                   transition={{ duration: 0.5, delay: 0.9 }}
                   className="flex flex-col"
                 >
-                  <SelectField
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    País
+                  </label>
+                  <select
                     value={formData.pais}
                     onChange={(e) => handleInputChange('pais', e.target.value)}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
                   >
                     <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu país</option>
-                    {PAISES.map(pais => (
-                      <option key={pais} value={pais} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                        {pais}
+                    {PAISES_WITH_FLAGS.map(pais => (
+                      <option key={pais.value} value={pais.value} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                        {pais.label}
                       </option>
                     ))}
                   </select>
