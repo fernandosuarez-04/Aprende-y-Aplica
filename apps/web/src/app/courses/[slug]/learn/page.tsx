@@ -1504,10 +1504,28 @@ Antes de cada respuesta, pregúntate:
         }
 
         if (learnData.modules) {
-          setModules(learnData.modules);
+          // Traducir títulos y descripciones de lecciones según idioma
+          const translatedModules = await Promise.all(
+            learnData.modules.map(async (m: Module) => {
+              const translatedLessons = await Promise.all(
+                m.lessons.map(async (l: Lesson) => {
+                  // Aseguramos que el objeto tenga el campo 'id' para la traducción
+                  const lessonWithId = { ...l, id: l.lesson_id };
+                  return await ContentTranslationService.translateObject(
+                    'lesson',
+                    lessonWithId,
+                    ['lesson_title', 'lesson_description'],
+                    i18n.language
+                  );
+                })
+              );
+              return { ...m, lessons: translatedLessons };
+            })
+          );
+          setModules(translatedModules);
 
           // Calcular progreso
-          const allLessons = learnData.modules.flatMap((m: Module) => m.lessons);
+          const allLessons = translatedModules.flatMap((m: Module) => m.lessons);
           const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
           const totalProgress = allLessons.length > 0
             ? Math.round((completedLessons.length / allLessons.length) * 100)
@@ -1561,7 +1579,7 @@ Antes de cada respuesta, pregúntate:
     if (slug) {
       loadCourse();
     }
-  }, [slug]);
+  }, [slug, i18n.language]);
 
   // Cargar notas cuando cambia la lección actual
   useEffect(() => {
@@ -2080,7 +2098,7 @@ Antes de cada respuesta, pregúntate:
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-lg">{ready ? t('loading.course') : 'Loading...'}</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">Loading...</p>
         </div>
       </div>
     );

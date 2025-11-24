@@ -65,6 +65,7 @@ export class ContentTranslationService {
 
       // Guardar en caché
       const translations = data.translations as ContentTranslations;
+      console.log(`[ContentTranslationService] Traducciones obtenidas para ${entityType}:${entityId}:${language}:`, translations);
       this.cache.set(cacheKey, translations);
       return translations;
     } catch (error) {
