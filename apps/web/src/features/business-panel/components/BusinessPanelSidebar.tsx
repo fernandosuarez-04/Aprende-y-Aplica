@@ -17,7 +17,8 @@ import {
   Building2,
   ClipboardCheck,
   Pin,
-  PinOff
+  PinOff,
+  UsersRound
 } from 'lucide-react'
 
 interface BusinessPanelSidebarProps {
@@ -35,6 +36,7 @@ const navigation = [
   { name: 'Dashboard', href: '/business-panel/dashboard', icon: Home },
   { name: 'Usuarios', href: '/business-panel/users', icon: Users },
   { name: 'Cursos', href: '/business-panel/courses', icon: BookOpen },
+  { name: 'Equipos', href: '/business-panel/teams', icon: UsersRound },
   { name: 'Progreso', href: '/business-panel/progress', icon: ClipboardCheck },
   { name: 'Reportes', href: '/business-panel/reports', icon: FileText },
   { name: 'Analytics', href: '/business-panel/analytics', icon: BarChart3 },

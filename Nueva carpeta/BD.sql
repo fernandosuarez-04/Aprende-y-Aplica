@@ -364,6 +364,18 @@ CREATE TABLE public.community_videos (
   CONSTRAINT community_videos_pkey PRIMARY KEY (id),
   CONSTRAINT community_videos_community_id_fkey FOREIGN KEY (community_id) REFERENCES public.communities(id)
 );
+CREATE TABLE public.content_translations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entity_type text NOT NULL CHECK (entity_type = ANY (ARRAY['course'::text, 'module'::text, 'lesson'::text, 'activity'::text, 'material'::text, 'community'::text, 'news'::text])),
+  entity_id uuid NOT NULL,
+  language_code text NOT NULL CHECK (language_code = ANY (ARRAY['en'::text, 'pt'::text, 'fr'::text, 'de'::text, 'it'::text, 'zh'::text, 'ja'::text, 'ko'::text])),
+  translations jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT content_translations_pkey PRIMARY KEY (id),
+  CONSTRAINT content_translations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.coupons (
   coupon_id uuid NOT NULL DEFAULT gen_random_uuid(),
   coupon_code character varying NOT NULL UNIQUE,
@@ -889,6 +901,42 @@ CREATE TABLE public.organization_course_assignments (
   CONSTRAINT organization_course_assignments_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id),
   CONSTRAINT organization_course_assignments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
 );
+CREATE TABLE public.organization_course_purchases (
+  purchase_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  purchased_by uuid NOT NULL,
+  transaction_id uuid,
+  coupon_id uuid,
+  payment_method_id uuid,
+  original_price_cents integer NOT NULL CHECK (original_price_cents >= 0),
+  discounted_price_cents integer NOT NULL CHECK (discounted_price_cents >= 0),
+  final_price_cents integer NOT NULL CHECK (final_price_cents >= 0),
+  discount_type character varying CHECK (discount_type IS NULL OR (discount_type::text = ANY (ARRAY['percentage'::character varying::text, 'fixed_amount'::character varying::text]))),
+  discount_value numeric CHECK (discount_value IS NULL OR discount_value >= 0::numeric),
+  discount_cents integer DEFAULT 0 CHECK (discount_cents >= 0),
+  currency character varying NOT NULL DEFAULT 'USD'::character varying CHECK (currency::text = upper(currency::text)),
+  access_status character varying NOT NULL DEFAULT 'active'::character varying CHECK (access_status::text = ANY (ARRAY['active'::character varying::text, 'suspended'::character varying::text, 'expired'::character varying::text, 'cancelled'::character varying::text])),
+  purchased_at timestamp with time zone NOT NULL DEFAULT now(),
+  access_granted_at timestamp with time zone,
+  expires_at timestamp with time zone,
+  billing_month date NOT NULL,
+  billing_year integer NOT NULL,
+  billing_month_number integer NOT NULL CHECK (billing_month_number >= 1 AND billing_month_number <= 12),
+  purchase_method character varying CHECK (purchase_method IS NULL OR (purchase_method::text = ANY (ARRAY['subscription_benefit'::character varying::text, 'direct_purchase'::character varying::text, 'gift'::character varying::text]))),
+  purchase_notes text,
+  internal_notes text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT organization_course_purchases_pkey PRIMARY KEY (purchase_id),
+  CONSTRAINT organization_course_purchases_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(transaction_id),
+  CONSTRAINT organization_course_purchases_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(coupon_id),
+  CONSTRAINT organization_course_purchases_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT organization_course_purchases_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT organization_course_purchases_purchased_by_fkey FOREIGN KEY (purchased_by) REFERENCES public.users(id),
+  CONSTRAINT organization_course_purchases_payment_method_id_fkey FOREIGN KEY (payment_method_id) REFERENCES public.payment_methods(payment_method_id)
+);
 CREATE TABLE public.organization_notification_preferences (
   preference_id uuid NOT NULL DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL,
@@ -944,6 +992,7 @@ CREATE TABLE public.organizations (
   user_dashboard_styles jsonb,
   login_styles jsonb,
   selected_theme character varying DEFAULT NULL::character varying,
+  billing_cycle character varying CHECK (billing_cycle IS NULL OR (billing_cycle::text = ANY (ARRAY['monthly'::character varying::text, 'yearly'::character varying::text]))),
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.password_reset_tokens (
@@ -986,9 +1035,13 @@ CREATE TABLE public.preguntas (
   scoring jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   respuesta_correcta text,
+  dimension jsonb,
+  exclusivo_nivel_id integer,
+  dificultad integer CHECK (dificultad IS NULL OR dificultad >= 1 AND dificultad <= 5),
   CONSTRAINT preguntas_pkey PRIMARY KEY (id),
   CONSTRAINT preguntas_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id),
-  CONSTRAINT preguntas_exclusivo_rol_id_fkey FOREIGN KEY (exclusivo_rol_id) REFERENCES public.roles(id)
+  CONSTRAINT preguntas_exclusivo_rol_id_fkey FOREIGN KEY (exclusivo_rol_id) REFERENCES public.roles(id),
+  CONSTRAINT preguntas_exclusivo_nivel_id_fkey FOREIGN KEY (exclusivo_nivel_id) REFERENCES public.niveles(id)
 );
 CREATE TABLE public.prompt_favorites (
   favorite_id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -1268,6 +1321,7 @@ CREATE TABLE public.subscriptions (
   updated_at timestamp with time zone DEFAULT now(),
   user_id uuid NOT NULL,
   course_id uuid,
+  plan_id character varying CHECK (plan_id IS NULL OR (plan_id::text = ANY (ARRAY['team'::character varying::text, 'business'::character varying::text, 'enterprise'::character varying::text]))),
   CONSTRAINT subscriptions_pkey PRIMARY KEY (subscription_id),
   CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT subscriptions_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
@@ -1584,3 +1638,149 @@ CREATE TABLE public.users (
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
+
+-- Tablas para Sistema de Equipos de Trabajo
+CREATE TABLE public.work_teams (
+  team_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  team_leader_id uuid,
+  created_by uuid NOT NULL,
+  course_id uuid,
+  status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'archived'::character varying]::text[])),
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT work_teams_pkey PRIMARY KEY (team_id),
+  CONSTRAINT work_teams_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT work_teams_team_leader_id_fkey FOREIGN KEY (team_leader_id) REFERENCES public.users(id),
+  CONSTRAINT work_teams_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT work_teams_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+
+CREATE TABLE public.work_team_members (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role character varying DEFAULT 'member'::character varying CHECK (role::text = ANY (ARRAY['member'::character varying, 'leader'::character varying, 'co-leader'::character varying]::text[])),
+  joined_at timestamp with time zone NOT NULL DEFAULT now(),
+  status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT work_team_members_pkey PRIMARY KEY (id),
+  CONSTRAINT work_team_members_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.work_teams(team_id) ON DELETE CASCADE,
+  CONSTRAINT work_team_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE,
+  CONSTRAINT work_team_members_unique UNIQUE (team_id, user_id)
+);
+
+CREATE TABLE public.work_team_course_assignments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  assigned_by uuid NOT NULL,
+  assigned_at timestamp with time zone NOT NULL DEFAULT now(),
+  due_date timestamp with time zone,
+  message text,
+  status character varying DEFAULT 'assigned'::character varying CHECK (status::text = ANY (ARRAY['assigned'::character varying, 'in_progress'::character varying, 'completed'::character varying]::text[])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT work_team_course_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT work_team_course_assignments_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.work_teams(team_id) ON DELETE CASCADE,
+  CONSTRAINT work_team_course_assignments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT work_team_course_assignments_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES public.users(id),
+  CONSTRAINT work_team_course_assignments_unique UNIQUE (team_id, course_id)
+);
+
+CREATE TABLE public.work_team_objectives (
+  objective_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  course_id uuid,
+  title character varying NOT NULL,
+  description text,
+  target_value numeric NOT NULL CHECK (target_value >= 0),
+  current_value numeric DEFAULT 0 CHECK (current_value >= 0),
+  metric_type character varying NOT NULL CHECK (metric_type::text = ANY (ARRAY['completion_percentage'::character varying, 'average_score'::character varying, 'participation_rate'::character varying, 'engagement_rate'::character varying, 'custom'::character varying]::text[])),
+  deadline timestamp with time zone,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'in_progress'::character varying, 'achieved'::character varying, 'failed'::character varying]::text[])),
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT work_team_objectives_pkey PRIMARY KEY (objective_id),
+  CONSTRAINT work_team_objectives_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.work_teams(team_id) ON DELETE CASCADE,
+  CONSTRAINT work_team_objectives_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT work_team_objectives_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.work_team_messages (
+  message_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  course_id uuid,
+  sender_id uuid NOT NULL,
+  content text NOT NULL,
+  message_type character varying DEFAULT 'text'::character varying CHECK (message_type::text = ANY (ARRAY['text'::character varying, 'file'::character varying, 'link'::character varying, 'achievement'::character varying]::text[])),
+  reply_to_message_id uuid,
+  is_pinned boolean DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT work_team_messages_pkey PRIMARY KEY (message_id),
+  CONSTRAINT work_team_messages_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.work_teams(team_id) ON DELETE CASCADE,
+  CONSTRAINT work_team_messages_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT work_team_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id),
+  CONSTRAINT work_team_messages_reply_to_fkey FOREIGN KEY (reply_to_message_id) REFERENCES public.work_team_messages(message_id)
+);
+
+CREATE TABLE public.work_team_feedback (
+  feedback_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  from_user_id uuid NOT NULL,
+  to_user_id uuid NOT NULL,
+  course_id uuid,
+  feedback_type character varying NOT NULL CHECK (feedback_type::text = ANY (ARRAY['peer_review'::character varying, 'achievement'::character varying, 'suggestion'::character varying, 'question'::character varying]::text[])),
+  content text NOT NULL,
+  rating integer CHECK (rating IS NULL OR (rating >= 1 AND rating <= 5)),
+  is_anonymous boolean DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT work_team_feedback_pkey PRIMARY KEY (feedback_id),
+  CONSTRAINT work_team_feedback_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.work_teams(team_id) ON DELETE CASCADE,
+  CONSTRAINT work_team_feedback_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id),
+  CONSTRAINT work_team_feedback_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES public.users(id),
+  CONSTRAINT work_team_feedback_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+
+CREATE TABLE public.work_team_statistics (
+  stat_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL,
+  course_id uuid,
+  stat_date date NOT NULL,
+  total_members integer DEFAULT 0 CHECK (total_members >= 0),
+  active_members integer DEFAULT 0 CHECK (active_members >= 0),
+  average_completion_percentage numeric DEFAULT 0 CHECK (average_completion_percentage >= 0 AND average_completion_percentage <= 100),
+  average_score numeric DEFAULT 0 CHECK (average_score >= 0),
+  total_interactions integer DEFAULT 0 CHECK (total_interactions >= 0),
+  total_messages integer DEFAULT 0 CHECK (total_messages >= 0),
+  total_feedback_given integer DEFAULT 0 CHECK (total_feedback_given >= 0),
+  metadata jsonb DEFAULT '{}'::jsonb,
+  calculated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT work_team_statistics_pkey PRIMARY KEY (stat_id),
+  CONSTRAINT work_team_statistics_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.work_teams(team_id) ON DELETE CASCADE,
+  CONSTRAINT work_team_statistics_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT work_team_statistics_unique UNIQUE (team_id, course_id, stat_date)
+);
+
+-- Índices para optimización
+CREATE INDEX idx_work_teams_organization_id ON public.work_teams(organization_id);
+CREATE INDEX idx_work_teams_status ON public.work_teams(status);
+CREATE INDEX idx_work_team_members_team_id ON public.work_team_members(team_id);
+CREATE INDEX idx_work_team_members_user_id ON public.work_team_members(user_id);
+CREATE INDEX idx_work_team_course_assignments_team_id ON public.work_team_course_assignments(team_id);
+CREATE INDEX idx_work_team_course_assignments_course_id ON public.work_team_course_assignments(course_id);
+CREATE INDEX idx_work_team_objectives_team_id ON public.work_team_objectives(team_id);
+CREATE INDEX idx_work_team_objectives_status ON public.work_team_objectives(status);
+CREATE INDEX idx_work_team_messages_team_id ON public.work_team_messages(team_id);
+CREATE INDEX idx_work_team_messages_created_at ON public.work_team_messages(created_at);
+CREATE INDEX idx_work_team_feedback_team_id ON public.work_team_feedback(team_id);
+CREATE INDEX idx_work_team_feedback_to_user_id ON public.work_team_feedback(to_user_id);
+CREATE INDEX idx_work_team_statistics_team_id ON public.work_team_statistics(team_id);
+CREATE INDEX idx_work_team_statistics_stat_date ON public.work_team_statistics(stat_date);

@@ -11,12 +11,25 @@ export async function GET(
 ) {
   try {
     const auth = await requireBusiness()
-    if (auth instanceof NextResponse) return auth
+    if (auth instanceof NextResponse) {
+      logger.error('❌ Authentication failed in /api/business/courses/[id]')
+      return auth
+    }
 
     const { id } = await params
+    logger.info(`🔍 Fetching course with ID: ${id}`)
+    
+    if (!id || id === 'undefined' || id === 'null') {
+      logger.error('❌ Invalid course ID:', id)
+      return NextResponse.json({ 
+        success: false,
+        error: 'ID de curso no válido'
+      }, { status: 400 })
+    }
+
     const supabase = await createClient()
 
-    // Obtener información del curso
+    // Obtener información del curso (buscar por ID)
     const { data: course, error: courseError } = await supabase
       .from('courses')
       .select(`
@@ -39,16 +52,40 @@ export async function GET(
         updated_at
       `)
       .eq('id', id)
-      .eq('is_active', true)
       .single()
 
-    if (courseError || !course) {
-      logger.error('Error fetching course:', courseError)
+    if (courseError) {
+      logger.error('❌ Error fetching course:', {
+        error: courseError,
+        code: courseError.code,
+        message: courseError.message,
+        details: courseError.details,
+        hint: courseError.hint,
+        courseId: id
+      })
+      
+      if (courseError.code === 'PGRST116') {
+        return NextResponse.json({ 
+          success: false,
+          error: `Curso con ID "${id}" no encontrado en la base de datos`
+        }, { status: 404 })
+      }
+      
       return NextResponse.json({ 
         success: false,
-        error: 'Curso no encontrado'
+        error: `Error al obtener el curso: ${courseError.message || 'Error desconocido'}`
+      }, { status: 500 })
+    }
+
+    if (!course) {
+      logger.error('❌ Course not found (null result):', id)
+      return NextResponse.json({ 
+        success: false,
+        error: `Curso con ID "${id}" no encontrado`
       }, { status: 404 })
     }
+
+    logger.info(`✅ Course found: ${course.title} (${course.id})`)
 
     // Obtener información del instructor
     let instructor = null
@@ -81,7 +118,7 @@ export async function GET(
       }
     }
 
-    // Obtener módulos del curso
+    // Obtener módulos del curso (usar course.id, no el parámetro id)
     const { data: modules, error: modulesError } = await supabase
       .from('course_modules')
       .select(`
@@ -93,7 +130,7 @@ export async function GET(
         is_required,
         is_published
       `)
-      .eq('course_id', id)
+      .eq('course_id', course.id)
       .eq('is_published', true)
       .order('module_order_index', { ascending: true })
 
@@ -123,23 +160,36 @@ export async function GET(
       })
     )
 
-    // Obtener reviews recientes
-    const { data: reviews, error: reviewsError } = await supabase
-      .from('course_reviews')
-      .select(`
-        review_id,
-        review_title,
-        review_content,
-        rating,
-        is_verified,
-        created_at,
-        user_id,
-        users!inner (display_name, first_name, last_name, username, profile_picture_url)
-      `)
-      .eq('course_id', id)
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
-      .limit(10)
+    // Obtener reviews recientes (usar course.id, no el parámetro id)
+    let reviews: any[] = []
+    try {
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('course_reviews')
+        .select(`
+          review_id,
+          review_title,
+          review_content,
+          rating,
+          is_verified,
+          created_at,
+          user_id,
+          users!inner (display_name, first_name, last_name, username, profile_picture_url)
+        `)
+        .eq('course_id', course.id)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      
+      if (reviewsError) {
+        logger.warn('⚠️ Error fetching reviews (non-critical):', reviewsError)
+        reviews = []
+      } else {
+        reviews = reviewsData || []
+      }
+    } catch (reviewsErr) {
+      logger.warn('⚠️ Exception fetching reviews (non-critical):', reviewsErr)
+      reviews = []
+    }
 
     // Calcular estadísticas de módulos y lecciones
     const totalModules = modulesWithLessons.length
@@ -152,27 +202,59 @@ export async function GET(
       return sum + Math.max(moduleDuration, lessonsDuration)
     }, 0)
 
-    // Verificar membresía y estado de compra del usuario
-    const currentUser = await SessionService.getCurrentUser()
+    // Verificar membresía y estado de compra a nivel de organización
     let hasSubscription = false
-    let isPurchased = false
+    let isOrganizationPurchased = false
     let canAssign = false
+    let canPurchaseForFree = false
+    let monthlyCourseCount = 0
+    let maxCoursesPerPeriod = 10
 
-    if (currentUser) {
-      // Verificar membresía activa
-      hasSubscription = await SubscriptionService.hasActiveSubscription(currentUser.id)
+    try {
+      const currentUser = await SessionService.getCurrentUser()
+      
+      if (currentUser && auth.organizationId) {
+        try {
+          // Verificar membresía activa
+          hasSubscription = await SubscriptionService.hasActiveSubscription(currentUser.id)
+        } catch (subError) {
+          logger.warn('⚠️ Error checking subscription (non-critical):', subError)
+          hasSubscription = false
+        }
 
-      // Verificar si el usuario ya adquirió el curso
-      const { data: purchase } = await supabase
-        .from('course_purchases')
-        .select('purchase_id')
-        .eq('user_id', currentUser.id)
-        .eq('course_id', course.id)
-        .eq('access_status', 'active')
-        .maybeSingle()
+        try {
+          // Verificar si la organización ya compró el curso
+          const { data: orgPurchase } = await supabase
+            .from('organization_course_purchases')
+            .select('purchase_id')
+            .eq('organization_id', auth.organizationId)
+            .eq('course_id', course.id)
+            .eq('access_status', 'active')
+            .maybeSingle()
 
-      isPurchased = !!purchase
-      canAssign = hasSubscription && isPurchased
+          isOrganizationPurchased = !!orgPurchase
+
+          // Si no está comprado, verificar si puede comprarlo gratis
+          if (!isOrganizationPurchased && hasSubscription) {
+            const limitCheck = await SubscriptionService.canOrganizationPurchaseCourse(
+              auth.organizationId,
+              10
+            )
+            canPurchaseForFree = limitCheck.canPurchase
+            monthlyCourseCount = limitCheck.currentCount
+            maxCoursesPerPeriod = limitCheck.maxCourses
+          }
+
+          canAssign = hasSubscription && isOrganizationPurchased
+        } catch (purchaseError) {
+          logger.warn('⚠️ Error checking organization purchase (non-critical):', purchaseError)
+          isOrganizationPurchased = false
+          canAssign = false
+        }
+      }
+    } catch (userError) {
+      logger.warn('⚠️ Error getting current user (non-critical):', userError)
+      // Continuar sin información de usuario
     }
 
     return NextResponse.json({
@@ -200,7 +282,7 @@ export async function GET(
           total_duration_minutes: totalDuration
         },
         modules: modulesWithLessons,
-        reviews: reviews?.map((review: any) => ({
+        reviews: (reviews || []).map((review: any) => ({
           id: review.review_id,
           title: review.review_title,
           content: review.review_content,
@@ -217,16 +299,29 @@ export async function GET(
         })) || [],
         subscription_status: {
           has_subscription: hasSubscription,
-          is_purchased: isPurchased,
-          can_assign: canAssign
+          is_purchased: isOrganizationPurchased, // Mantener para compatibilidad
+          is_organization_purchased: isOrganizationPurchased,
+          can_assign: canAssign,
+          can_purchase_for_free: canPurchaseForFree,
+          monthly_course_count: monthlyCourseCount,
+          max_courses_per_period: maxCoursesPerPeriod
         }
       }
     })
   } catch (error) {
     logger.error('💥 Error in /api/business/courses/[id]:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
+    logger.error('💥 Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      error
+    })
+    
     return NextResponse.json({
       success: false,
-      error: 'Error al obtener detalles del curso'
+      error: `Error al obtener detalles del curso: ${errorMessage}`
     }, { status: 500 })
   }
 }

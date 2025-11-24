@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X, AlertTriangle, Trash2 } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
 import { BusinessUser } from '../services/businessUsers.service'
@@ -35,74 +36,155 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
   const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
-      <div className="backdrop-blur-md rounded-2xl shadow-2xl border border-red-500/30 w-full max-w-md m-4" style={{ backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-modal-opacity, 0.95))` }}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-carbon-600">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-500" />
-            Eliminar Usuario
-          </h2>
-          <button
-            onClick={onClose}
-            disabled={isLoading}
-            className="p-2 hover:bg-carbon-700 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-carbon-400 hover:text-white" />
-          </button>
-        </div>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop premium */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+        />
 
-        {/* Content */}
-        <div className="p-6 space-y-4">
-          {/* Error message */}
-          {error && (
-            <div className="p-4 bg-red-900/20 border border-red-500/50 rounded-xl text-red-400">
-              {error}
+        {/* Modal */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="relative backdrop-blur-xl rounded-3xl shadow-2xl border w-full max-w-md m-4 overflow-hidden"
+          style={{ 
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            borderColor: 'rgba(239, 68, 68, 0.3)'
+          }}
+        >
+          {/* Header */}
+          <div className="relative border-b p-6 backdrop-blur-sm" style={{ 
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+            borderColor: 'rgba(51, 65, 85, 0.3)'
+          }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  initial={{ scale: 0.9, rotate: -5 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.1, type: 'spring' }}
+                  className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center"
+                >
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </motion.div>
+                <div>
+                  <h2 className="text-heading text-2xl font-bold text-white tracking-tight">
+                    Eliminar Usuario
+                  </h2>
+                  <p className="text-body text-sm text-carbon-400 mt-1">
+                    Acción irreversible
+                  </p>
+                </div>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                disabled={isLoading}
+                className="p-2 rounded-xl transition-all duration-200 hover:bg-carbon-700/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <X className="w-5 h-5 text-carbon-400 hover:text-white transition-colors" />
+              </motion.button>
             </div>
-          )}
-
-          {/* Warning message */}
-          <div className="p-4 bg-red-900/10 border border-red-500/20 rounded-xl">
-            <p className="text-white mb-2">
-              ¿Estás seguro de que deseas eliminar a <span className="font-bold text-red-400">{displayName}</span> de tu organización?
-            </p>
-            <p className="text-carbon-400 text-sm">
-              Esta acción no se puede deshacer. El usuario perderá acceso inmediatamente.
-            </p>
           </div>
 
-          {/* User details */}
-          <div className="p-4 bg-carbon-700/30 rounded-xl">
-            <p className="text-sm text-carbon-400 mb-1">Email</p>
-            <p className="text-white font-medium">{user.email}</p>
-            <p className="text-sm text-carbon-400 mb-1 mt-2">Rol</p>
-            <p className="text-white font-medium">{user.org_role || 'member'}</p>
-          </div>
+          {/* Content */}
+          <div className="p-6 space-y-5">
+            {/* Error message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400 backdrop-blur-sm"
+                >
+                  <span className="text-body text-sm">{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-4 pt-4 border-t border-carbon-600">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
+            {/* Warning message */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="p-5 bg-red-900/10 border border-red-500/20 rounded-xl backdrop-blur-sm"
             >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              variant="gradient"
-              onClick={handleConfirm}
-              disabled={isLoading}
-              className="bg-red-600 hover:bg-red-700"
+              <p className="text-body text-white mb-2 leading-relaxed">
+                ¿Estás seguro de que deseas eliminar a <span className="font-heading font-bold text-red-400">{displayName}</span> de tu organización?
+              </p>
+              <p className="text-body text-carbon-400 text-sm">
+                Esta acción no se puede deshacer. El usuario perderá acceso inmediatamente.
+              </p>
+            </motion.div>
+
+            {/* User details */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
+              className="p-5 bg-carbon-800/30 rounded-xl border border-carbon-700/30 backdrop-blur-sm"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {isLoading ? 'Eliminando...' : 'Eliminar Usuario'}
-            </Button>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-body text-xs text-carbon-400 mb-1.5 uppercase tracking-wider">Email</p>
+                  <p className="text-body text-white font-medium">{user.email}</p>
+                </div>
+                <div>
+                  <p className="text-body text-xs text-carbon-400 mb-1.5 uppercase tracking-wider">Rol</p>
+                  <p className="text-body text-white font-medium capitalize">{user.org_role || 'member'}</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t" style={{ borderColor: 'rgba(51, 65, 85, 0.3)' }}>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="font-heading text-sm transition-all duration-200"
+                >
+                  Cancelar
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  type="button"
+                  variant="gradient"
+                  onClick={handleConfirm}
+                  disabled={isLoading}
+                  className="bg-red-600 hover:bg-red-700 font-heading text-sm transition-all duration-200"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Eliminando...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar Usuario
+                    </span>
+                  )}
+                </Button>
+              </motion.div>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   )
 }
 

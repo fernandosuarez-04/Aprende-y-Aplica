@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
   },
   
   // Configuración para resolver advertencia de múltiples lockfiles
-  outputFileTracingRoot: '../../',
+  outputFileTracingRoot: path.resolve(__dirname, '../../'),
   
   // Optimización de imágenes
   images: {
@@ -71,7 +71,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_NAME: 'Aprende y Aplica',
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
   },
-  i18n: i18nConfig.i18n,
+  // i18n: i18nConfig.i18n, // Comentado: Next.js 15 con App Router no soporta esta configuración
 
   // 🔒 Headers de Seguridad HTTP
   async headers() {
@@ -90,7 +90,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https://*.supabase.co https://via.placeholder.com https://picsum.photos https://images.unsplash.com https://img.youtube.com https://*.googleusercontent.com",
               "media-src 'self' blob: https://*.supabase.co",
-              "connect-src 'self' https://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
               "frame-src 'self' https://accounts.google.com https://www.youtube.com https://*.supabase.co",
               "object-src 'none'",
               "base-uri 'self'",

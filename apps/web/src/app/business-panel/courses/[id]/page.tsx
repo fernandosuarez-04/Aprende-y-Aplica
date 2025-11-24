@@ -96,8 +96,12 @@ interface CourseDetail {
   }>
   subscription_status?: {
     has_subscription: boolean
-    is_purchased: boolean
+    is_purchased: boolean // Mantener para compatibilidad
+    is_organization_purchased: boolean
     can_assign: boolean
+    can_purchase_for_free?: boolean
+    monthly_course_count?: number
+    max_courses_per_period?: number
   }
 }
 
@@ -118,20 +122,56 @@ export default function BusinessCourseDetailPage() {
 
   useEffect(() => {
     const fetchCourse = async () => {
+      if (!courseId) {
+        setError('ID de curso no válido')
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         setError(null)
 
+        console.log('🔍 Fetching course with ID:', courseId)
+
         const response = await fetch(`/api/business/courses/${courseId}`, {
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
         })
 
-        if (!response.ok) {
-          throw new Error('Curso no encontrado')
+        console.log('📡 Response status:', response.status)
+
+        let data
+        try {
+          const responseText = await response.text()
+          console.log('📦 Response text:', responseText.substring(0, 500))
+          
+          if (!responseText) {
+            throw new Error('Respuesta vacía del servidor')
+          }
+          
+          data = JSON.parse(responseText)
+          console.log('📦 Parsed data:', data)
+        } catch (jsonError) {
+          console.error('❌ Failed to parse JSON response:', jsonError)
+          throw new Error(`Error al procesar la respuesta del servidor (${response.status})`)
         }
 
-        const data = await response.json()
+        if (!response.ok) {
+          const errorMessage = data?.error || `Error ${response.status}: ${response.statusText}`
+          console.error('❌ API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: data?.error,
+            fullData: data
+          })
+          throw new Error(errorMessage)
+        }
+
         if (data.success && data.course) {
+          console.log('✅ Course loaded successfully:', data.course.title)
           setCourse(data.course)
           // Expandir el primer módulo por defecto
           if (data.course.modules && data.course.modules.length > 0) {
@@ -141,16 +181,15 @@ export default function BusinessCourseDetailPage() {
           throw new Error(data.error || 'Error al cargar el curso')
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar el curso')
-        // console.error('Error loading course:', err)
+        const errorMessage = err instanceof Error ? err.message : 'Error al cargar el curso'
+        console.error('❌ Error loading course:', err)
+        setError(errorMessage)
       } finally {
         setLoading(false)
       }
     }
 
-    if (courseId) {
-      fetchCourse()
-    }
+    fetchCourse()
   }, [courseId])
 
   const toggleModule = (moduleId: string) => {
@@ -270,18 +309,24 @@ export default function BusinessCourseDetailPage() {
       <div className="w-full">
         <div className="mb-6">
           <Button
-            onClick={() => router.back()}
+            onClick={() => router.push('/business-panel/courses')}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 font-heading"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver
           </Button>
         </div>
-        <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-12 border border-carbon-600 text-center">
-          <BookOpen className="w-16 h-16 text-carbon-500 mx-auto mb-4" />
-          <p className="text-carbon-400 text-lg mb-2">
+        <div className="rounded-2xl p-12 border text-center backdrop-blur-sm" style={{ 
+          backgroundColor: 'rgba(30, 41, 59, 0.8)',
+          borderColor: 'rgba(51, 65, 85, 0.3)'
+        }}>
+          <BookOpen className="w-16 h-16 mx-auto mb-4" style={{ color: '#f8fafc', opacity: 0.5 }} />
+          <p className="font-body text-lg mb-2" style={{ color: '#f8fafc' }}>
             {error || 'Curso no encontrado'}
+          </p>
+          <p className="font-body text-sm mt-2" style={{ color: '#f8fafc', opacity: 0.7 }}>
+            El curso con ID "{courseId}" no existe o no tienes acceso a él.
           </p>
         </div>
       </div>
@@ -680,18 +725,9 @@ export default function BusinessCourseDetailPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-2xl font-bold text-white mb-2">{course.instructor.name}</h3>
-                          {(course.instructor.cargo_rol || course.instructor.type_rol) && (
-                            <p className="text-carbon-300 text-lg mb-3">
-                              {course.instructor.cargo_rol || course.instructor.type_rol}
-                            </p>
-                          )}
-                          {course.instructor.location && (
-                            <div className="flex items-center gap-2 text-carbon-400 mb-4">
-                              <span className="text-sm">{course.instructor.location}</span>
-                            </div>
-                          )}
+                          <p className="text-carbon-300 text-lg mb-4">Instructor</p>
                           {/* Social Links */}
-                          <div className="flex items-center gap-3 flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap mb-4">
                             {course.instructor.linkedin_url && (
                               <a
                                 href={course.instructor.linkedin_url}
@@ -759,35 +795,62 @@ export default function BusinessCourseDetailPage() {
 
                       {/* Bio */}
                       {course.instructor.bio && (
-                        <div>
-                          <h4 className="text-lg font-bold text-white mb-3">Biografía</h4>
-                          <p className="text-carbon-300 leading-relaxed whitespace-pre-line">
+                        <div className="bg-carbon-800/50 rounded-xl p-5 border border-carbon-600">
+                          <h4 className="text-lg font-bold text-white mb-3 font-heading">Biografía</h4>
+                          <p className="text-carbon-300 leading-relaxed whitespace-pre-line font-body">
                             {course.instructor.bio}
                           </p>
                         </div>
                       )}
 
-                      {/* Stats or Additional Info */}
-                      {(course.instructor.cargo_rol || course.instructor.type_rol || course.instructor.location) && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {course.instructor.cargo_rol && (
-                            <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
-                              <p className="text-carbon-400 text-sm mb-1">Rol</p>
-                              <p className="text-white font-semibold">{course.instructor.cargo_rol}</p>
-                            </div>
-                          )}
-                          {course.instructor.type_rol && course.instructor.type_rol !== course.instructor.cargo_rol && (
-                            <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
-                              <p className="text-carbon-400 text-sm mb-1">Tipo</p>
-                              <p className="text-white font-semibold">{course.instructor.type_rol}</p>
-                            </div>
-                          )}
-                          {course.instructor.location && (
-                            <div className="bg-carbon-800/50 rounded-xl p-4 border border-carbon-600">
-                              <p className="text-carbon-400 text-sm mb-1">Ubicación</p>
-                              <p className="text-white font-semibold">{course.instructor.location}</p>
-                            </div>
-                          )}
+                      {/* Social Links Section - Only show if there are links */}
+                      {(course.instructor.linkedin_url || course.instructor.github_url || course.instructor.website_url) && (
+                        <div className="bg-carbon-800/50 rounded-xl p-5 border border-carbon-600">
+                          <h4 className="text-lg font-bold text-white mb-4 font-heading">Enlaces del Perfil</h4>
+                          <div className="flex flex-col gap-3">
+                            {course.instructor.linkedin_url && (
+                              <a
+                                href={course.instructor.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 px-4 py-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-xl border border-blue-600/30 transition-colors font-body"
+                              >
+                                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                </svg>
+                                <span className="font-medium">LinkedIn</span>
+                                <span className="text-sm text-carbon-400 ml-auto truncate max-w-[200px]">{course.instructor.linkedin_url}</span>
+                              </a>
+                            )}
+                            {course.instructor.github_url && (
+                              <a
+                                href={course.instructor.github_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 px-4 py-3 bg-gray-700/20 hover:bg-gray-700/30 text-gray-300 rounded-xl border border-gray-600/30 transition-colors font-body"
+                              >
+                                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd"/>
+                                </svg>
+                                <span className="font-medium">GitHub</span>
+                                <span className="text-sm text-carbon-400 ml-auto truncate max-w-[200px]">{course.instructor.github_url}</span>
+                              </a>
+                            )}
+                            {course.instructor.website_url && (
+                              <a
+                                href={course.instructor.website_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 px-4 py-3 bg-primary/20 hover:bg-primary/30 text-primary rounded-xl border border-primary/30 transition-colors font-body"
+                              >
+                                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
+                                <span className="font-medium">Portafolio</span>
+                                <span className="text-sm text-carbon-400 ml-auto truncate max-w-[200px]">{course.instructor.website_url}</span>
+                              </a>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -809,7 +872,14 @@ export default function BusinessCourseDetailPage() {
               {/* Price */}
               <div>
                 <div className="flex items-baseline gap-2 mb-2">
-                  {course.price && course.price > 0 ? (
+                  {course.subscription_status?.is_organization_purchased ? (
+                    // Ya comprado - mostrar como adquirido
+                    <span className="text-3xl font-bold text-success">Adquirido</span>
+                  ) : course.subscription_status?.can_purchase_for_free ? (
+                    // Puede comprar gratis
+                    <span className="text-3xl font-bold text-primary">Gratis</span>
+                  ) : course.price && course.price > 0 ? (
+                    // Debe pagar precio del curso
                     <>
                       <span className="text-3xl font-bold text-white">
                         ${course.price.toFixed(2)}
@@ -820,6 +890,20 @@ export default function BusinessCourseDetailPage() {
                     <span className="text-3xl font-bold text-primary">Gratis</span>
                   )}
                 </div>
+                {!course.subscription_status?.is_organization_purchased && 
+                 course.subscription_status?.has_subscription && 
+                 course.subscription_status.monthly_course_count !== undefined && (
+                  <p className="text-carbon-400 text-xs mt-1 font-body">
+                    {course.subscription_status.monthly_course_count} de {course.subscription_status.max_courses_per_period} cursos usados este período
+                  </p>
+                )}
+                {!course.subscription_status?.is_organization_purchased && 
+                 course.subscription_status?.has_subscription && 
+                 !course.subscription_status?.can_purchase_for_free && (
+                  <p className="text-yellow-400 text-xs mt-1 font-body">
+                    Límite mensual alcanzado. Se aplicará el precio del curso.
+                  </p>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -856,7 +940,7 @@ export default function BusinessCourseDetailPage() {
                     <AlertCircle className="w-5 h-5 mr-2" />
                     Requiere membresía
                   </Button>
-                ) : course.subscription_status?.is_purchased ? (
+                ) : course.subscription_status?.is_organization_purchased ? (
                   <Button
                     variant="gradient"
                     className="w-full"
@@ -877,12 +961,12 @@ export default function BusinessCourseDetailPage() {
                     {isPurchasing ? (
                       <span className="flex items-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Adquiriendo...
+                        Comprando...
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
                         <Play className="w-5 h-5" />
-                        Adquirir Curso
+                        Comprar Curso
                       </span>
                     )}
                   </Button>

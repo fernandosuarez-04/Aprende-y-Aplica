@@ -140,102 +140,112 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop con blur */}
+        {/* Backdrop premium */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleClose}
-          className="absolute inset-0 bg-carbon-900/80 backdrop-blur-md"
+          className="absolute inset-0 bg-black/60 backdrop-blur-xl"
         />
 
         {/* Modal */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.96, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', duration: 0.3 }}
-          className="relative rounded-2xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10"
+          exit={{ opacity: 0, scale: 0.96, y: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="relative backdrop-blur-xl rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10"
           style={{ 
-            backgroundColor: '#1e293b',
-            borderColor: '#334155'
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            borderColor: 'rgba(51, 65, 85, 0.3)'
           }}
         >
           {/* Header */}
-          <div className="relative border-b p-6" style={{ 
-            backgroundColor: '#0f172a',
-            borderColor: '#334155'
+          <div className="relative border-b p-6 backdrop-blur-sm" style={{ 
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+            borderColor: 'rgba(51, 65, 85, 0.3)'
           }}>
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-success flex items-center justify-center shadow-lg">
+                <motion.div
+                  initial={{ scale: 0.9, rotate: -5 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.1, type: 'spring' }}
+                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-success flex items-center justify-center shadow-lg"
+                >
                   <Upload className="w-6 h-6 text-white" />
-                </div>
+                </motion.div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
+                  <h2 className="text-heading text-2xl font-bold text-white tracking-tight">
                     Importar Usuarios
                   </h2>
-                  <p className="text-sm text-gray-300 mt-0.5">
+                  <p className="text-body text-sm text-carbon-400 mt-1">
                     Importa múltiples usuarios desde un archivo CSV
                   </p>
                 </div>
               </div>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={handleClose}
                 disabled={isImporting}
-                className="p-2 rounded-lg transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ 
-                  backgroundColor: 'transparent'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                className="p-2 rounded-xl transition-all duration-200 hover:bg-carbon-700/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <X className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
-              </button>
+                <X className="w-5 h-5 text-carbon-400 hover:text-white transition-colors" />
+              </motion.button>
             </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Descargar plantilla */}
-            <div className="flex items-center justify-between p-4 rounded-xl border" style={{
-              backgroundColor: '#0f172a',
-              borderColor: '#334155'
-            }}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-primary" />
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="flex items-center justify-between p-5 rounded-xl border backdrop-blur-sm" style={{
+                backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                borderColor: 'rgba(51, 65, 85, 0.3)'
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Plantilla CSV</p>
-                  <p className="text-xs text-gray-400">Descarga el formato necesario para importar usuarios</p>
+                  <p className="text-body text-sm font-heading font-semibold text-white">Plantilla CSV</p>
+                  <p className="text-body text-xs text-carbon-400 mt-0.5">Descarga el formato necesario para importar usuarios</p>
                 </div>
               </div>
-              <Button
-                onClick={handleDownloadTemplate}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Descargar Plantilla
-              </Button>
-            </div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={handleDownloadTemplate}
+                  variant="outline"
+                  className="flex items-center gap-2 font-heading text-sm transition-all duration-200"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar Plantilla
+                </Button>
+              </motion.div>
+            </motion.div>
 
             {/* Error message */}
             <AnimatePresence>
               {error && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-4 rounded-xl text-red-400 flex items-center gap-3 border"
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-4 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
                   style={{ 
-                    backgroundColor: '#7f1d1d',
-                    borderColor: '#dc2626'
+                    backgroundColor: 'rgba(127, 29, 29, 0.2)',
+                    borderColor: 'rgba(220, 38, 38, 0.3)'
                   }}
                 >
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <span>{error}</span>
+                  <span className="text-body text-sm">{error}</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -248,77 +258,93 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                 className="space-y-4"
               >
                 {/* Resumen */}
-                <div className="p-4 rounded-xl border" style={{
-                  backgroundColor: '#0f172a',
-                  borderColor: '#334155'
-                }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-5 rounded-xl border backdrop-blur-sm" style={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                    borderColor: 'rgba(51, 65, 85, 0.3)'
+                  }}
+                >
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Resumen de Importación</h3>
+                    <h3 className="text-heading text-lg font-semibold text-white">Resumen de Importación</h3>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2 text-green-400">
                         <CheckCircle className="w-5 h-5" />
-                        <span className="font-semibold">{importResult.imported} exitosos</span>
+                        <span className="text-body font-heading font-semibold">{importResult.imported} exitosos</span>
                       </div>
                       {importResult.errors > 0 && (
                         <div className="flex items-center gap-2 text-red-400">
                           <XCircle className="w-5 h-5" />
-                          <span className="font-semibold">{importResult.errors} errores</span>
+                          <span className="text-body font-heading font-semibold">{importResult.errors} errores</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-body text-sm text-carbon-400">
                     Total procesado: {importResult.total} usuarios
                   </p>
-                </div>
+                </motion.div>
 
                 {/* Detalles de errores */}
                 {importResult.errors > 0 && importResult.details.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-white">Detalles de errores:</h4>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="space-y-3"
+                  >
+                    <h4 className="text-body text-sm font-heading font-semibold text-white">Detalles de errores:</h4>
                     <div className="max-h-48 overflow-y-auto space-y-2">
                       {importResult.details.slice(0, 10).map((detail, index) => (
-                        <div
+                        <motion.div
                           key={index}
-                          className="p-3 rounded-lg border text-sm"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="p-3 rounded-xl border text-sm backdrop-blur-sm"
                           style={{
-                            backgroundColor: '#7f1d1d',
-                            borderColor: '#dc2626'
+                            backgroundColor: 'rgba(127, 29, 29, 0.2)',
+                            borderColor: 'rgba(220, 38, 38, 0.3)'
                           }}
                         >
-                          <p className="text-red-400 font-medium">Fila {detail.row}: {detail.error}</p>
+                          <p className="text-body text-red-400 font-heading font-medium">Fila {detail.row}: {detail.error}</p>
                           {detail.data?.username && (
-                            <p className="text-red-300 text-xs mt-1">
+                            <p className="text-body text-red-300 text-xs mt-1">
                               Usuario: {detail.data.username} | Email: {detail.data.email || 'N/A'}
                             </p>
                           )}
-                        </div>
+                        </motion.div>
                       ))}
                       {importResult.details.length > 10 && (
-                        <p className="text-xs text-gray-400 text-center py-2">
+                        <p className="text-body text-xs text-carbon-400 text-center py-2">
                           Y {importResult.details.length - 10} errores más...
                         </p>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </motion.div>
             )}
 
             {/* Zona de carga */}
             {!importResult && (
-              <div
+              <motion.div
                 ref={dropAreaRef}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${
-                  isDragging ? 'border-primary bg-primary/10' : 'border-gray-600 hover:border-primary'
-                }`}
-                style={{
-                  backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.1)' : '#0f172a'
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1,
+                  borderColor: isDragging ? 'rgba(59, 130, 246, 0.5)' : 'rgba(51, 65, 85, 0.5)',
+                  backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.3)'
                 }}
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+                className="relative border-2 border-dashed rounded-xl p-12 text-center cursor-pointer backdrop-blur-sm"
               >
                 <input
                   ref={fileInputRef}
@@ -330,99 +356,123 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                 />
 
                 {isImporting ? (
-                  <div className="space-y-4">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-5"
+                  >
                     <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto"></div>
                     <div>
-                      <p className="text-white font-semibold">Importando usuarios...</p>
-                      <p className="text-gray-400 text-sm mt-1">Por favor espera, esto puede tardar unos momentos</p>
+                      <p className="text-body text-white font-heading font-semibold">Importando usuarios...</p>
+                      <p className="text-body text-carbon-400 text-sm mt-1.5">Por favor espera, esto puede tardar unos momentos</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
-                      <Upload className="w-8 h-8 text-primary" />
-                    </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-5"
+                  >
+                    <motion.div
+                      animate={isDragging ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto"
+                    >
+                      <Upload className="w-10 h-10 text-primary" />
+                    </motion.div>
                     <div>
-                      <p className="text-white font-semibold text-lg">
+                      <p className="text-body text-white font-heading font-semibold text-lg">
                         {isDragging ? 'Suelta el archivo aquí' : 'Arrastra un archivo CSV aquí'}
                       </p>
-                      <p className="text-gray-400 text-sm mt-2">
+                      <p className="text-body text-carbon-400 text-sm mt-2">
                         o haz clic para seleccionar un archivo
                       </p>
-                      <p className="text-gray-500 text-xs mt-4">
+                      <p className="text-body text-carbon-500 text-xs mt-4">
                         Solo se aceptan archivos CSV (.csv)
                       </p>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {/* Instrucciones */}
             {!importResult && (
-              <div className="p-4 rounded-xl border" style={{
-                backgroundColor: '#0f172a',
-                borderColor: '#334155'
-              }}>
-                <h4 className="text-sm font-semibold text-white mb-3">Instrucciones:</h4>
-                <ul className="space-y-2 text-sm text-gray-400">
-                  <li className="flex items-start gap-2">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="p-5 rounded-xl border backdrop-blur-sm" style={{
+                  backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                  borderColor: 'rgba(51, 65, 85, 0.3)'
+                }}
+              >
+                <h4 className="text-body text-sm font-heading font-semibold text-white mb-4">Instrucciones:</h4>
+                <ul className="space-y-2.5 text-body text-sm text-carbon-400">
+                  <li className="flex items-start gap-2.5">
                     <span className="text-primary mt-0.5">•</span>
                     <span>Descarga la plantilla CSV para ver el formato correcto</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2.5">
                     <span className="text-primary mt-0.5">•</span>
-                    <span>Los campos <strong className="text-white">username</strong>, <strong className="text-white">email</strong> y <strong className="text-white">password</strong> son obligatorios</span>
+                    <span>Los campos <strong className="text-white font-heading">username</strong>, <strong className="text-white font-heading">email</strong> y <strong className="text-white font-heading">password</strong> son obligatorios</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2.5">
                     <span className="text-primary mt-0.5">•</span>
-                    <span>El campo <strong className="text-white">password</strong> debe tener al menos 6 caracteres</span>
+                    <span>El campo <strong className="text-white font-heading">password</strong> debe tener al menos 6 caracteres</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2.5">
                     <span className="text-primary mt-0.5">•</span>
-                    <span>El campo <strong className="text-white">org_role</strong> puede ser: member, admin u owner</span>
+                    <span>El campo <strong className="text-white font-heading">org_role</strong> puede ser: member, admin u owner</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2.5">
                     <span className="text-primary mt-0.5">•</span>
                     <span>No se pueden importar usuarios que ya existan (mismo email o username)</span>
                   </li>
                 </ul>
-              </div>
+              </motion.div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="border-t p-6" style={{ 
-            backgroundColor: '#1e293b',
-            borderColor: '#334155'
+          <div className="border-t p-6 backdrop-blur-sm" style={{ 
+            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            borderColor: 'rgba(51, 65, 85, 0.3)'
           }}>
-            <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center justify-end gap-3">
               {importResult ? (
-                <Button
-                  onClick={handleReset}
-                  variant="outline"
-                  className="min-w-[120px]"
-                >
-                  Importar Otro
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={handleReset}
+                    variant="outline"
+                    className="min-w-[120px] font-heading text-sm transition-all duration-200"
+                  >
+                    Importar Otro
+                  </Button>
+                </motion.div>
               ) : (
-                <Button
-                  onClick={handleClose}
-                  variant="outline"
-                  disabled={isImporting}
-                  className="min-w-[120px]"
-                >
-                  Cancelar
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={handleClose}
+                    variant="outline"
+                    disabled={isImporting}
+                    className="min-w-[120px] font-heading text-sm transition-all duration-200"
+                  >
+                    Cancelar
+                  </Button>
+                </motion.div>
               )}
               {importResult && (
-                <Button
-                  onClick={handleClose}
-                  variant="gradient"
-                  className="min-w-[120px]"
-                >
-                  Cerrar
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={handleClose}
+                    variant="gradient"
+                    className="min-w-[120px] font-heading text-sm transition-all duration-200"
+                  >
+                    Cerrar
+                  </Button>
+                </motion.div>
               )}
             </div>
           </div>

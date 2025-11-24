@@ -59,6 +59,7 @@ export function useBusinessUsers() {
     first_name?: string
     last_name?: string
     display_name?: string
+    type_rol: string
     org_role?: 'owner' | 'admin' | 'member'
     send_invitation?: boolean
   }) => {

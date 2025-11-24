@@ -1452,6 +1452,44 @@ input[type="range"]::-moz-range-thumb {
   color: rgb(255, 255, 255) !important;
 }
 
+/* Estilos premium para combobox del panel de usuarios */
+select {
+  background-image: none !important;
+}
+
+select option {
+  background-color: rgb(15, 23, 42) !important;
+  color: rgb(255, 255, 255) !important;
+  padding: 0.75rem 1rem !important;
+  font-family: var(--font-inter), sans-serif !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: rgb(255, 255, 255) !important;
+}
+
+/* Mejorar el scrollbar del select en navegadores que lo soporten */
+select::-webkit-scrollbar {
+  width: 6px;
+}
+
+select::-webkit-scrollbar-track {
+  background: rgb(15, 23, 42);
+  border-radius: 3px;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: rgb(51, 65, 85);
+  border-radius: 3px;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: rgb(71, 85, 105);
+}
+
 /* Estilos para el editor de notas - Listas */
 .notes-editor ul,
 .notes-editor ol {
