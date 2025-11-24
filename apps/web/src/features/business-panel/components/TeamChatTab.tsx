@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { MessageSquare, Send, User, Pin, Reply, MoreVertical } from 'lucide-react'
+import { MessageSquare, Send, User } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, WorkTeamMessage } from '../services/teams.service'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { createClient } from '@/lib/supabase/client'
 
 interface TeamChatTabProps {
   teamId: string
@@ -30,12 +31,92 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
   const [newMessage, setNewMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const channelRef = useRef<any>(null)
 
+  // Configurar Realtime y cargar mensajes iniciales
   useEffect(() => {
-    fetchMessages()
-    // Auto-refresh cada 10 segundos
-    const interval = setInterval(fetchMessages, 10000)
-    return () => clearInterval(interval)
+    if (!teamId) return
+
+    const supabase = createClient()
+    
+    // Función para cargar mensajes iniciales
+    const loadMessages = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const fetchedMessages = await TeamsService.getTeamMessages(teamId, undefined, 50, 0)
+        setMessages(fetchedMessages.reverse()) // Mostrar más recientes al final
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar mensajes')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    // Cargar mensajes iniciales
+    loadMessages()
+
+    // Configurar suscripción Realtime
+    const channel = supabase
+      .channel(`team-messages:${teamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'work_team_messages',
+          filter: `team_id=eq.${teamId}`
+        },
+        async (payload) => {
+          // Nuevo mensaje recibido en tiempo real
+          const newMessage = payload.new as any
+          
+          // Enriquecer con información del usuario
+          const { data: sender } = await supabase
+            .from('users')
+            .select('id, display_name, first_name, last_name, email, profile_picture_url')
+            .eq('id', newMessage.sender_id)
+            .single()
+
+          const enrichedMessage: WorkTeamMessage = {
+            ...newMessage,
+            sender: sender ? {
+              id: sender.id,
+              name: sender.display_name || `${sender.first_name || ''} ${sender.last_name || ''}`.trim() || sender.email,
+              email: sender.email,
+              profile_picture_url: sender.profile_picture_url,
+              display_name: sender.display_name
+            } : null
+          }
+
+          // Agregar mensaje a la lista (evitar duplicados)
+          setMessages(prev => {
+            // Verificar si el mensaje ya existe
+            if (prev.some(m => m.message_id === enrichedMessage.message_id)) {
+              return prev
+            }
+            return [...prev, enrichedMessage]
+          })
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Suscrito a mensajes en tiempo real')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Error en la suscripción Realtime')
+          setError('Error de conexión en tiempo real')
+        }
+      })
+
+    channelRef.current = channel
+
+    // Cleanup: remover suscripción al desmontar
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
   }, [teamId])
 
   useEffect(() => {
@@ -46,29 +127,16 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const fetchMessages = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const fetchedMessages = await TeamsService.getTeamMessages(teamId, undefined, 50, 0)
-      setMessages(fetchedMessages.reverse()) // Mostrar más recientes al final
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar mensajes')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() || isSending) return
 
     setIsSending(true)
     try {
-      const message = await TeamsService.createTeamMessage(teamId, {
+      // El mensaje se agregará automáticamente vía Realtime
+      await TeamsService.createTeamMessage(teamId, {
         content: newMessage.trim()
       })
-      setMessages(prev => [...prev, message])
       setNewMessage('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al enviar mensaje')

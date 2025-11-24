@@ -51,13 +51,37 @@ export function BusinessAssignCourseToTeamModal({
       return
     }
 
+    // Validar que el curso seleccionado existe
+    const selectedCourse = courses.find(c => c.id === selectedCourseId)
+    if (!selectedCourse) {
+      setError('El curso seleccionado no es válido')
+      return
+    }
+
     setIsAssigning(true)
     setError(null)
 
     try {
-      await TeamsService.assignCourseToTeam(teamId, {
+      // Formatear la fecha si existe (el input date devuelve YYYY-MM-DD)
+      let formattedDueDate: string | undefined = undefined
+      if (dueDate) {
+        // Validar que la fecha no sea anterior a hoy
+        const selectedDate = new Date(dueDate)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
+        if (selectedDate < today) {
+          setError('La fecha límite no puede ser anterior a hoy')
+          setIsAssigning(false)
+          return
+        }
+        
+        formattedDueDate = dueDate // Ya está en formato YYYY-MM-DD que PostgreSQL acepta
+      }
+
+      const result = await TeamsService.assignCourseToTeam(teamId, {
         course_id: selectedCourseId,
-        due_date: dueDate || undefined,
+        due_date: formattedDueDate,
         message: customMessage.trim() || undefined
       })
 
@@ -65,10 +89,18 @@ export function BusinessAssignCourseToTeamModal({
       setSelectedCourseId('')
       setDueDate('')
       setCustomMessage('')
-      onAssignComplete()
-      onClose()
+      
+      // Mostrar mensaje de éxito si está disponible
+      if (result) {
+        onAssignComplete()
+        onClose()
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al asignar curso')
+      console.error('Error al asignar curso:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error al asignar curso'
+      setError(errorMessage.includes('adquirir') 
+        ? errorMessage 
+        : `Error al asignar curso: ${errorMessage}. Verifica que el curso esté disponible y que tu organización tenga acceso.`)
     } finally {
       setIsAssigning(false)
     }
@@ -94,7 +126,7 @@ export function BusinessAssignCourseToTeamModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
+          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-visible flex flex-col z-10 backdrop-blur-xl"
           style={{ 
             backgroundColor: modalBg,
             borderColor: modalBorder
@@ -161,15 +193,27 @@ export function BusinessAssignCourseToTeamModal({
                 <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
                   Curso <span className="text-red-400">*</span>
                 </label>
-                <PremiumSelect
-                  value={selectedCourseId}
-                  onValueChange={setSelectedCourseId}
-                  placeholder="Seleccionar curso..."
-                  options={courses.map(course => ({
-                    value: course.id,
-                    label: course.title
-                  }))}
-                />
+                <div className="relative">
+                  <PremiumSelect
+                    value={selectedCourseId}
+                    onValueChange={(value) => {
+                      console.log('Curso seleccionado:', value)
+                      setSelectedCourseId(value)
+                      setError(null) // Limpiar error al cambiar selección
+                    }}
+                    placeholder="Seleccionar curso..."
+                    options={courses.map(course => ({
+                      value: course.id,
+                      label: course.title
+                    }))}
+                    className="w-full"
+                  />
+                </div>
+                {courses.length === 0 && (
+                  <p className="text-xs font-body opacity-70 mt-2" style={{ color: textColor }}>
+                    No hay cursos disponibles. Asegúrate de que tu organización haya adquirido cursos.
+                  </p>
+                )}
                 {selectedCourse && (
                   <div className="mt-3 p-3 rounded-xl border" style={{ backgroundColor: sectionBg, borderColor: modalBorder }}>
                     <p className="text-sm font-body opacity-70 mb-1">Curso seleccionado:</p>
@@ -207,6 +251,7 @@ export function BusinessAssignCourseToTeamModal({
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
                     style={{ 
                       borderColor: modalBorder,
@@ -214,6 +259,15 @@ export function BusinessAssignCourseToTeamModal({
                       color: textColor
                     }}
                   />
+                  {dueDate && (
+                    <p className="text-xs font-body opacity-70 mt-1">
+                      Fecha límite: {new Date(dueDate).toLocaleDateString('es-ES', { 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>

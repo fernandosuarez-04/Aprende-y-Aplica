@@ -7,6 +7,7 @@ import { Button } from '@aprende-y-aplica/ui'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, WorkTeamObjective } from '../services/teams.service'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { TeamObjectiveModal } from './TeamObjectiveModal'
 
 interface TeamObjectivesTabProps {
   teamId: string
@@ -24,6 +25,8 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
   const [objectives, setObjectives] = useState<WorkTeamObjective[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingObjective, setEditingObjective] = useState<WorkTeamObjective | null>(null)
 
   useEffect(() => {
     fetchObjectives()
@@ -100,7 +103,10 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
           </p>
         </div>
         <Button
-          onClick={() => {/* TODO: Abrir modal de crear objetivo */}}
+          onClick={() => {
+            setEditingObjective(null)
+            setIsModalOpen(true)
+          }}
           variant="gradient"
           size="lg"
           className="font-body"
@@ -186,7 +192,10 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
             Crea objetivos para medir el progreso del equipo
           </p>
           <Button
-            onClick={() => {/* TODO: Abrir modal */}}
+            onClick={() => {
+              setEditingObjective(null)
+              setIsModalOpen(true)
+            }}
             variant="gradient"
             className="font-body"
             style={{
@@ -224,14 +233,26 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {/* TODO: Editar */}}
+                    onClick={() => {
+                      setEditingObjective(objective)
+                      setIsModalOpen(true)
+                    }}
                     className="p-2 rounded-lg hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: `${primaryColor}20` }}
                   >
                     <Edit className="w-4 h-4" style={{ color: primaryColor }} />
                   </button>
                   <button
-                    onClick={() => {/* TODO: Eliminar */}}
+                    onClick={async () => {
+                      if (confirm('¿Estás seguro de que deseas eliminar este objetivo?')) {
+                        try {
+                          await TeamsService.deleteTeamObjective(teamId, objective.objective_id)
+                          fetchObjectives()
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : 'Error al eliminar objetivo')
+                        }
+                      }
+                    }}
                     className="p-2 rounded-lg hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: 'rgba(220, 38, 38, 0.2)' }}
                   >
@@ -280,6 +301,20 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
           ))}
         </div>
       )}
+
+      {/* Modal de Crear/Editar Objetivo */}
+      <TeamObjectiveModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingObjective(null)
+        }}
+        teamId={teamId}
+        objective={editingObjective}
+        onComplete={() => {
+          fetchObjectives()
+        }}
+      />
     </div>
   )
 }

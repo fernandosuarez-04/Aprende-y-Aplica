@@ -36,8 +36,52 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
     member_ids: [] as string[]
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+
+  // Cargar datos del equipo si está en modo edición
+  useEffect(() => {
+    const loadTeamData = async () => {
+      if (!teamId || !isOpen) return
+
+      try {
+        setIsLoadingTeam(true)
+        const teamData = await TeamsService.getTeam(teamId)
+        const members = await TeamsService.getTeamMembers(teamId)
+        
+        setFormData({
+          name: teamData.name,
+          description: teamData.description || '',
+          team_leader_id: teamData.team_leader_id || '',
+          course_id: teamData.course_id || '',
+          member_ids: members.map(m => m.user_id)
+        })
+      } catch (err) {
+        console.error('Error loading team data:', err)
+        setError('Error al cargar datos del equipo')
+      } finally {
+        setIsLoadingTeam(false)
+      }
+    }
+
+    loadTeamData()
+  }, [teamId, isOpen])
+
+  // Resetear formulario cuando se cierra el modal
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        name: '',
+        description: '',
+        team_leader_id: '',
+        course_id: '',
+        member_ids: []
+      })
+      setSearchTerm('')
+      setError(null)
+    }
+  }, [isOpen])
 
   // Filtrar usuarios para selección
   const filteredUsers = users.filter(user => {
@@ -179,6 +223,14 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+            {isLoadingTeam ? (
+              <div className="flex-1 flex items-center justify-center p-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-2" style={{ borderColor: primaryColor }}></div>
+                  <p className="text-sm font-body opacity-70" style={{ color: textColor }}>Cargando datos del equipo...</p>
+                </div>
+              </div>
+            ) : (
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {error && (
                 <motion.div
@@ -318,6 +370,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                 </div>
               </div>
             </div>
+            )}
 
             {/* Footer */}
             <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3" style={{ 
@@ -336,7 +389,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
               <Button
                 type="submit"
                 variant="gradient"
-                disabled={isLoading}
+                disabled={isLoading || isLoadingTeam}
                 className="font-body"
                 style={{
                   background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,

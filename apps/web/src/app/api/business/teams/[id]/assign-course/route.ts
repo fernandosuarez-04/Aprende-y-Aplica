@@ -52,6 +52,33 @@ export async function POST(
       }, { status: 400 })
     }
 
+    // Validar y formatear la fecha límite si existe
+    let formattedDueDate: string | null = null
+    if (due_date) {
+      try {
+        // El input date devuelve YYYY-MM-DD, convertirlo a Date
+        const date = new Date(due_date + 'T00:00:00') // Agregar hora para evitar problemas de zona horaria
+        if (!isNaN(date.getTime())) {
+          // Asegurar que la fecha sea al menos hoy
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          date.setHours(0, 0, 0, 0)
+          
+          if (date < today) {
+            return NextResponse.json({
+              success: false,
+              error: 'La fecha límite no puede ser anterior a hoy'
+            }, { status: 400 })
+          }
+          // Convertir a formato ISO para PostgreSQL (YYYY-MM-DDTHH:mm:ss.sssZ)
+          formattedDueDate = date.toISOString()
+        }
+      } catch (err) {
+        logger.warn('Error parsing due_date:', err)
+        // Si hay error, simplemente no asignamos fecha límite
+      }
+    }
+
     const supabase = await createClient()
 
     // Verificar que el equipo existe y pertenece a la organización
@@ -147,7 +174,7 @@ export async function POST(
         team_id: teamId,
         course_id: course_id,
         assigned_by: currentUser.id,
-        due_date: due_date || null,
+        due_date: formattedDueDate,
         message: message?.trim() || null,
         status: 'assigned'
       })
@@ -169,7 +196,7 @@ export async function POST(
       course_id: course_id,
       assigned_by: currentUser.id,
       assigned_at: new Date().toISOString(),
-      due_date: due_date || null,
+      due_date: formattedDueDate,
       message: message?.trim() || null,
       status: 'assigned',
       completion_percentage: 0

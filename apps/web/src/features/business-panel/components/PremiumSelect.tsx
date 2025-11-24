@@ -11,7 +11,8 @@ interface Option {
 
 interface PremiumSelectProps {
   value: string
-  onChange: (value: string) => void
+  onChange?: (value: string) => void
+  onValueChange?: (value: string) => void
   options: Option[]
   placeholder?: string
   icon?: React.ReactNode
@@ -21,6 +22,7 @@ interface PremiumSelectProps {
 export function PremiumSelect({
   value,
   onChange,
+  onValueChange,
   options,
   placeholder = 'Seleccionar...',
   icon,
@@ -28,9 +30,12 @@ export function PremiumSelect({
 }: PremiumSelectProps) {
   const [open, setOpen] = useState(false)
   const selectedOption = options.find(opt => opt.value === value)
+  
+  // Usar onValueChange si está disponible, sino onChange
+  const handleValueChange = onValueChange || onChange || (() => {})
 
   return (
-    <Select.Root value={value} onValueChange={onChange} onOpenChange={setOpen}>
+    <Select.Root value={value} onValueChange={handleValueChange} onOpenChange={setOpen}>
       <Select.Trigger
         className={`group relative w-full pl-10 pr-9 py-2.5 bg-carbon-900/20 border border-carbon-700/5 rounded-lg font-body text-white text-sm focus:outline-none focus:ring-0 focus:border-primary/40 hover:border-carbon-600/10 hover:bg-carbon-900/30 transition-all duration-200 cursor-pointer flex items-center justify-between ${className}`}
       >
@@ -55,7 +60,8 @@ export function PremiumSelect({
         <Select.Content
           position="popper"
           sideOffset={6}
-          className="min-w-[var(--radix-select-trigger-width)] bg-carbon-900/98 backdrop-blur-xl border border-carbon-700/20 rounded-lg shadow-2xl overflow-hidden z-[100]"
+          className="min-w-[var(--radix-select-trigger-width)] bg-carbon-900/98 backdrop-blur-xl border border-carbon-700/20 rounded-lg shadow-2xl overflow-hidden"
+          style={{ zIndex: 9999 }}
         >
           <Select.Viewport className="p-1.5">
             {options.map((option, index) => (

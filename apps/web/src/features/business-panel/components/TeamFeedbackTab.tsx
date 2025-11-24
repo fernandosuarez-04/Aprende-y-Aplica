@@ -7,6 +7,7 @@ import { Button } from '@aprende-y-aplica/ui'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, WorkTeamFeedback } from '../services/teams.service'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { TeamFeedbackModal } from './TeamFeedbackModal'
 
 interface TeamFeedbackTabProps {
   teamId: string
@@ -27,6 +28,7 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'received' | 'given'>('all')
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     fetchFeedback()
@@ -51,6 +53,10 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleFeedbackCreated = () => {
+    fetchFeedback()
   }
 
   const getFeedbackTypeIcon = (type: string) => {
@@ -118,7 +124,7 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
             <option value="given">Enviados</option>
           </select>
           <Button
-            onClick={() => {/* TODO: Abrir modal de crear feedback */}}
+            onClick={() => setIsModalOpen(true)}
             variant="gradient"
             size="lg"
             className="font-body"
@@ -153,7 +159,7 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
             Comparte feedback con los miembros del equipo
           </p>
           <Button
-            onClick={() => {/* TODO: Abrir modal */}}
+            onClick={() => setIsModalOpen(true)}
             variant="gradient"
             className="font-body"
             style={{
@@ -210,20 +216,37 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
                       {getFeedbackTypeLabel(fb.feedback_type)}
                     </span>
                   </div>
-                  <p className="text-sm font-body mb-3">{fb.content}</p>
-                  <div className="flex items-center gap-4 text-xs font-body opacity-70">
+                  <div 
+                    className="p-3 rounded-xl mb-3"
+                    style={{ backgroundColor: `${cardBorder}20` }}
+                  >
+                    <p className="text-sm font-body whitespace-pre-wrap leading-relaxed">{fb.content}</p>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs font-body">
                     {fb.rating && (
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span>{fb.rating}/5</span>
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ backgroundColor: `${primaryColor}20` }}>
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${
+                              i < fb.rating!
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-400'
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-1 font-semibold">{fb.rating}/5</span>
                       </div>
                     )}
-                    <span>{new Date(fb.created_at).toLocaleDateString('es-ES', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}</span>
+                    <span className="opacity-70">
+                      {new Date(fb.created_at).toLocaleDateString('es-ES', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -231,6 +254,15 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
           ))}
         </div>
       )}
+
+      {/* Modal de Feedback */}
+      <TeamFeedbackModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        teamId={teamId}
+        teamMembers={teamMembers}
+        onFeedbackCreated={handleFeedbackCreated}
+      />
     </div>
   )
 }

@@ -173,6 +173,96 @@ export interface WorkTeamStatistics {
   calculated_at: string
 }
 
+// Interfaces para auditoría detallada
+export interface LessonTimeData {
+  lesson_id: string
+  lesson_title: string
+  time_spent_minutes: number
+  completion_status: string
+  course_id: string
+  course_title: string
+}
+
+export interface LessonTimeByCourse {
+  course_id: string
+  course_title: string
+  lessons: LessonTimeData[]
+}
+
+export interface LIAMessageData {
+  message_id: string
+  content: string
+  created_at: string
+  conversation_id: string
+  role: 'user' | 'assistant' | 'system'
+  message_sequence?: number
+}
+
+export interface LIAConversation {
+  conversation_id: string
+  started_at: string
+  duration_seconds: number
+  messages: LIAMessageData[]
+}
+
+export interface LIAInteractionData {
+  total_conversations: number
+  total_messages: number
+  total_duration_seconds: number
+  conversations: LIAConversation[]
+}
+
+export interface ChatMessageData {
+  message_id: string
+  content: string
+  created_at: string
+}
+
+export interface ChatActivityData {
+  total_messages: number
+  messages: ChatMessageData[]
+}
+
+export interface NoteData {
+  note_id: string
+  note_title: string
+  note_content: string
+  lesson_title: string
+  created_at: string
+}
+
+export interface QuizAttemptData {
+  submission_id: string
+  lesson_title: string
+  lesson_id: string
+  score: number
+  percentage_score: number
+  is_passed: boolean
+  completed_at: string
+  attempt_number: number
+  total_attempts_for_lesson: number
+}
+
+export interface QuizSummary {
+  total_attempts: number
+  best_score: number
+  average_score: number
+  passed_count: number
+}
+
+export interface UserDetailedAudit {
+  user_id: string
+  user_name: string
+  user_email: string
+  profile_picture_url: string | null
+  lesson_time: LessonTimeByCourse[]
+  lia_interactions: LIAInteractionData
+  chat_activity: ChatActivityData
+  notes: NoteData[]
+  quiz_attempts: QuizAttemptData[]
+  quiz_summary: QuizSummary
+}
+
 // Request interfaces
 export interface CreateWorkTeamRequest {
   name: string
@@ -409,7 +499,7 @@ export class TeamsService {
     }
 
     const data = await response.json()
-    return data.assignment
+    return data.data?.assignment || data.assignment
   }
 
   /**
@@ -620,6 +710,29 @@ export class TeamsService {
 
     const data = await response.json()
     return data.statistics || []
+  }
+
+  /**
+   * Obtiene auditoría detallada por usuario de un equipo
+   */
+  static async getTeamDetailedAnalytics(teamId: string, courseId?: string): Promise<UserDetailedAudit[]> {
+    const params = new URLSearchParams()
+    if (courseId) params.append('course_id', courseId)
+
+    const response = await fetch(`/api/business/teams/${teamId}/analytics/detailed?${params}`, {
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Error al obtener auditoría detallada' }))
+      throw new Error(errorData.error || 'Error al obtener auditoría detallada')
+    }
+
+    const data = await response.json()
+    if (!data.success) {
+      throw new Error(data.error || 'Error al obtener auditoría detallada')
+    }
+    return data.users || []
   }
 }
 
