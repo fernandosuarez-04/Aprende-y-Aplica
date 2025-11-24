@@ -32,41 +32,15 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
   const radius = 180;   // ✅ Aumentado para hacer el radar más grande
   
   const angleStep = (2 * Math.PI) / dimensions.length;
-  
-  // Calcular puntos para cada dimensión con escala ULTRA EXTREMA para llenar completamente el radar
+
+  // Calcular puntos para cada dimensión usando valores reales
   const points = dimensions.map((dimension, index) => {
-    const value = data.find(d => d.dimension === dimension)?.score || 0;
-    // ✅ Escala ULTRA EXTREMA para llenar completamente el radar
-    let scaledValue;
-    if (value === 0) {
-      scaledValue = 35; // Mínimo visible ultra grande
-    } else if (value <= 3) {
-      scaledValue = value * 12; // 12x para valores muy bajos
-    } else if (value <= 5) {
-      scaledValue = value * 10; // 10x para valores muy bajos
-    } else if (value <= 8) {
-      scaledValue = value * 8; // 8x para valores bajos
-    } else if (value <= 12) {
-      scaledValue = value * 7; // 7x para valores medios-bajos
-    } else if (value <= 15) {
-      scaledValue = value * 6; // 6x para valores medios-bajos
-    } else if (value <= 20) {
-      scaledValue = value * 5; // 5x para valores bajos-medios
-    } else if (value <= 25) {
-      scaledValue = value * 4.5; // 4.5x para valores medios
-    } else if (value <= 35) {
-      scaledValue = value * 4; // 4x para valores medios
-    } else if (value <= 50) {
-      scaledValue = value * 3; // 3x para valores medios-altos
-    } else if (value <= 70) {
-      scaledValue = value * 2.5; // 2.5x para valores altos
-    } else {
-      scaledValue = value * 2; // 2x para valores muy altos
-    }
-    
-    // Asegurar que nunca sea menor a 35 para máxima visibilidad
-    scaledValue = Math.max(scaledValue, 35);
-    
+    const dataItem = data.find(d => d.dimension === dimension);
+    const value = dataItem?.score ?? 0;
+
+    // Usar el valor real directamente (ya está en escala 0-100)
+    const scaledValue = value;
+
     const angle = index * angleStep - Math.PI / 2; // Empezar desde arriba
     const x = centerX + (radius * (scaledValue / maxValue)) * Math.cos(angle);
     const y = centerY + (radius * (scaledValue / maxValue)) * Math.sin(angle);
@@ -406,7 +380,8 @@ export default function StatisticsResultsPage() {
             peso,
             escala,
             scoring,
-            respuesta_correcta
+            respuesta_correcta,
+            texto
           )
         `)
         .eq('user_perfil_id', userProfile.id);
@@ -425,8 +400,21 @@ export default function StatisticsResultsPage() {
         // console.warn('Error al obtener datos de adopción:', adoptionError);
       }
 
+      // Log simplificado de respuestas recibidas
+      console.log('📋 Total de respuestas recibidas:', responses?.length || 0);
+
+      // Log para debug de Inversión
+      console.log('📋 Preguntas 16-18:', responses?.filter(r => r.pregunta_id >= 16 && r.pregunta_id <= 18).map(r => ({
+        id: r.pregunta_id,
+        bloque: r.preguntas?.bloque,
+        section: r.preguntas?.section,
+        texto: r.preguntas?.texto?.substring(0, 80) + '...',
+        valor: r.valor
+      })));
+      
       // Procesar datos para el radar
       const processedRadarData = processRadarData(responses || []);
+      console.log('📊 Datos del radar procesados:', processedRadarData);
       setRadarData(processedRadarData);
 
       // Procesar análisis
@@ -450,39 +438,193 @@ export default function StatisticsResultsPage() {
 
   const processRadarData = (responses: any[]) => {
     const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
-    const sectionMapping = {
-      'Adopción': 'Aplicación',
-      'Conocimiento': 'Conocimiento',
-      'Técnico': 'Conocimiento'
-    };
-
+    
+    // Procesar scores por dimensión
+    
     const scores = dimensions.map(dimension => {
       const relevantResponses = responses.filter(response => {
         const section = response.preguntas?.section || '';
-        const mappedDimension = sectionMapping[section as keyof typeof sectionMapping] || dimension;
+        const bloque = response.preguntas?.bloque || '';
+        const texto = response.preguntas?.texto?.toLowerCase() || '';
+        const preguntaId = response.pregunta_id;
+
+        // Log de debug para preguntas 13-18 (todas las de Conocimiento)
+        if (preguntaId >= 13 && preguntaId <= 18) {
+          console.log(`🔍 Evaluando pregunta ${preguntaId} para dimensión ${dimension}:`, {
+            preguntaId,
+            bloque,
+            section,
+            texto_preview: texto.substring(0, 50)
+          });
+        }
+
+        // Mapear sección/bloque a dimensión de manera más inteligente
+        let mappedDimension = '';
+
+        // 1. Mapeo directo por bloque (si existe)
+        if (bloque === 'Productividad' || bloque === 'productividad') {
+          mappedDimension = 'Productividad';
+        } else if (bloque === 'Estrategia' || bloque === 'estrategia') {
+          mappedDimension = 'Estrategia';
+        } else if (bloque === 'Inversión' || bloque === 'Inversion' || bloque === 'inversión' || bloque === 'inversion') {
+          mappedDimension = 'Inversión';
+        } else if (bloque === 'Adopción') {
+          // 2. Para bloque "Adopción", distribuir por ID de pregunta
+          // IDs 7-8: Aplicación (uso frecuente de herramientas)
+          // IDs 9-10: Productividad (frecuencia de uso)
+          // IDs 11-12: Estrategia (planificación y adopción estratégica)
+          if (preguntaId >= 7 && preguntaId <= 8) {
+            mappedDimension = 'Aplicación';
+          } else if (preguntaId >= 9 && preguntaId <= 10) {
+            mappedDimension = 'Productividad';
+          } else if (preguntaId >= 11 && preguntaId <= 12) {
+            mappedDimension = 'Estrategia';
+          } else {
+            // Fallback: distribuir por texto
+            if (texto.includes('frecuencia') || texto.includes('uso') || texto.includes('aplicación') || texto.includes('aplicar')) {
+              mappedDimension = 'Aplicación';
+            } else if (texto.includes('productividad') || texto.includes('eficiencia') || texto.includes('optimizar')) {
+              mappedDimension = 'Productividad';
+            } else if (texto.includes('estrategia') || texto.includes('planificación') || texto.includes('plan')) {
+              mappedDimension = 'Estrategia';
+            } else {
+              mappedDimension = 'Aplicación'; // Default para Adopción
+            }
+          }
+        } else if (bloque === 'Conocimiento') {
+          // 3. Para "Conocimiento", distribuir por ID de pregunta
+          // IDs 13-15: Conocimiento (conceptos básicos)
+          // IDs 16-17: Inversión (presupuesto, capacitación)
+          // ID 18: Estrategia (contratos, gobernanza)
+
+          // Log para debug
+          if (preguntaId >= 16 && preguntaId <= 18) {
+            console.log(`🔍 Mapeando pregunta ${preguntaId}:`, {
+              preguntaId,
+              tipo_preguntaId: typeof preguntaId,
+              comparacion_16_17: preguntaId >= 16 && preguntaId <= 17,
+              comparacion_18: preguntaId === 18
+            });
+          }
+
+          if (preguntaId >= 13 && preguntaId <= 15) {
+            mappedDimension = 'Conocimiento';
+          } else if (preguntaId >= 16 && preguntaId <= 17) {
+            mappedDimension = 'Inversión';
+            console.log(`✅ Pregunta ${preguntaId} mapeada a Inversión`);
+          } else if (preguntaId === 18) {
+            mappedDimension = 'Estrategia';
+            console.log(`✅ Pregunta ${preguntaId} mapeada a Estrategia (desde Conocimiento)`);
+          } else {
+            // Fallback: distribuir por texto
+            if (texto.includes('inversión') || texto.includes('presupuesto') || texto.includes('capacitación') || texto.includes('formación')) {
+              mappedDimension = 'Inversión';
+            } else {
+              mappedDimension = 'Conocimiento'; // Default para Conocimiento
+            }
+          }
+        } else {
+          // 4. Fallback general por texto
+          if (texto.includes('productividad') || texto.includes('eficiencia')) {
+            mappedDimension = 'Productividad';
+          } else if (texto.includes('estrategia') || texto.includes('planificación')) {
+            mappedDimension = 'Estrategia';
+          } else if (texto.includes('inversión') || texto.includes('presupuesto')) {
+            mappedDimension = 'Inversión';
+          } else if (texto.includes('conocimiento') || texto.includes('conceptos')) {
+            mappedDimension = 'Conocimiento';
+          } else {
+            mappedDimension = 'Aplicación';
+          }
+        }
+
+        // Log del resultado del mapeo para preguntas 16-18
+        if (preguntaId >= 16 && preguntaId <= 18) {
+          console.log(`✅ Pregunta ${preguntaId} mapeada a: "${mappedDimension}" (buscando: "${dimension}")`);
+        }
+
         return mappedDimension === dimension;
       });
+
+      // Log simplificado
+      if (relevantResponses.length > 0) {
+        console.log(`📈 ${dimension}: ${relevantResponses.length} respuestas`);
+      }
 
       let totalScore = 0;
       let totalWeight = 0;
 
-      relevantResponses.forEach(response => {
+      relevantResponses.forEach((response, idx) => {
+        const preguntaId = response.pregunta_id;
         const weight = response.preguntas?.peso || 1;
-        const value = response.valor;
+        let value = response.valor;
+        
+        // Manejar valor como jsonb - Supabase normalmente devuelve jsonb ya parseado
+        // Pero puede venir como string si es un JSON string anidado
+        if (value != null) {
+          // Si es un string, verificar si necesita parsing
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            // Si parece un JSON string (empieza y termina con comillas dobles)
+            if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length > 2) {
+              try {
+                value = JSON.parse(value);
+              } catch (e) {
+                // Si falla, mantener el valor original
+              }
+            }
+          }
+        }
         
         // Calcular puntuación basada en el tipo de respuesta
         let score = 0;
-        if (typeof value === 'string') {
-          // Para respuestas de texto, usar escala si está disponible
+
+        // 🔍 PASO 1: Verificar si la pregunta tiene respuesta_correcta (preguntas de conocimiento)
+        const correctAnswer = response.preguntas?.respuesta_correcta;
+
+        if (correctAnswer) {
+          // ✅ Pregunta de conocimiento: correcto = 100, incorrecto = 0
+          if (typeof value === 'string') {
+            score = value.trim() === correctAnswer.trim() ? 100 : 0;
+          }
+        } else if (typeof value === 'string') {
+          // 📊 Pregunta de adopción/frecuencia: usar escala A-E
           const escala = response.preguntas?.escala;
-          if (escala && typeof escala === 'object') {
+
+          if (escala && typeof escala === 'object' && Object.keys(escala).length > 0) {
+            // Intentar encontrar el score en la escala
+            // La clave puede ser el valor completo o solo la letra (A, B, C, D, E)
             score = escala[value] || 0;
+
+            // Si no encontró score, intentar con solo la primera letra
+            if (score === 0 && value.length > 0) {
+              const firstChar = value.trim()[0].toUpperCase();
+              score = escala[firstChar] || escala[firstChar.toLowerCase()] || 0;
+
+              // Si aún no encuentra, buscar claves que empiecen con la letra
+              if (score === 0) {
+                for (const key of Object.keys(escala)) {
+                  if (key.trim().toUpperCase().startsWith(firstChar)) {
+                    score = escala[key];
+                    break;
+                  }
+                }
+              }
+            }
           } else {
             // Puntuación por defecto basada en la respuesta
-            score = value.includes('A)') ? 0 : 
-                   value.includes('B)') ? 25 :
-                   value.includes('C)') ? 50 :
-                   value.includes('D)') ? 75 : 100;
+            // ⚠️ IMPORTANTE: Buscar el patrón al INICIO del string (usando startsWith o regex)
+            // para evitar falsos positivos (ej: "D) Frecuente" contiene 'A' en "Frecuente")
+            const trimmedValue = value.trim();
+
+            if (trimmedValue.startsWith('E)') || /^E\)/i.test(trimmedValue)) score = 100;
+            else if (trimmedValue.startsWith('D)') || /^D\)/i.test(trimmedValue)) score = 75;
+            else if (trimmedValue.startsWith('C)') || /^C\)/i.test(trimmedValue)) score = 50;
+            else if (trimmedValue.startsWith('B)') || /^B\)/i.test(trimmedValue)) score = 25;
+            else if (trimmedValue.startsWith('A)') || /^A\)/i.test(trimmedValue)) score = 0;
+            else {
+              score = 50; // Respuesta por defecto
+            }
           }
         } else if (typeof value === 'number') {
           score = value;
@@ -490,15 +632,31 @@ export default function StatisticsResultsPage() {
 
         totalScore += score * weight;
         totalWeight += weight;
+
+        // Log detallado para Conocimiento (preguntas 13-15)
+        if (dimension === 'Conocimiento' && preguntaId >= 13 && preguntaId <= 15) {
+          console.log(`📝 Conocimiento - Pregunta ${preguntaId}:`, {
+            valor: value,
+            respuesta_correcta: correctAnswer,
+            es_correcta: correctAnswer ? (value.trim() === correctAnswer.trim()) : 'N/A',
+            score,
+            weight,
+            runningTotal: totalScore,
+            runningWeight: totalWeight
+          });
+        }
       });
 
       const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
-      
+
       return {
         dimension,
         score: Math.min(100, Math.max(0, finalScore))
       };
     });
+
+    // Log final de scores
+    console.log('📊 Scores finales por dimensión:', scores.map(s => `${s.dimension}: ${s.score}`).join(', '));
 
     return scores;
   };
@@ -515,13 +673,27 @@ export default function StatisticsResultsPage() {
     let adoptionScore = 0;
     if (adoptionResponses.length > 0) {
       const totalAdoption = adoptionResponses.reduce((sum, response) => {
-        const value = response.valor;
+        let value = response.valor;
+
+        // Manejar valor como jsonb
+        if (value && typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            // Si falla el parse, usar el valor original
+          }
+        }
+
         let score = 0;
         if (typeof value === 'string') {
-          score = value.includes('A)') ? 0 : 
-                 value.includes('B)') ? 25 :
-                 value.includes('C)') ? 50 :
-                 value.includes('D)') ? 75 : 100;
+          const trimmedValue = value.trim();
+          // Buscar el patrón al INICIO del string para evitar falsos positivos
+          if (trimmedValue.startsWith('E)') || /^E\)/i.test(trimmedValue)) score = 100;
+          else if (trimmedValue.startsWith('D)') || /^D\)/i.test(trimmedValue)) score = 75;
+          else if (trimmedValue.startsWith('C)') || /^C\)/i.test(trimmedValue)) score = 50;
+          else if (trimmedValue.startsWith('B)') || /^B\)/i.test(trimmedValue)) score = 25;
+          else if (trimmedValue.startsWith('A)') || /^A\)/i.test(trimmedValue)) score = 0;
+          else score = 50;
         }
         return sum + score;
       }, 0);
@@ -534,7 +706,17 @@ export default function StatisticsResultsPage() {
     if (knowledgeResponses.length > 0) {
       knowledgeResponses.forEach(response => {
         const correctAnswer = response.preguntas?.respuesta_correcta;
-        const userAnswer = response.valor;
+        let userAnswer = response.valor;
+        
+        // Manejar valor como jsonb
+        if (userAnswer && typeof userAnswer === 'string' && userAnswer.startsWith('"') && userAnswer.endsWith('"')) {
+          try {
+            userAnswer = JSON.parse(userAnswer);
+          } catch (e) {
+            // Si falla el parse, usar el valor original
+          }
+        }
+        
         if (correctAnswer && userAnswer === correctAnswer) {
           correctAnswers++;
         }

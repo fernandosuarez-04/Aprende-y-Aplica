@@ -17,6 +17,7 @@ interface ProfileData {
   tamano_id: number;
   sector_id: number;
   pais: string;
+  uso_ia: string; // Respuesta sobre uso de IA
 }
 
 interface ReferenceData {
@@ -78,7 +79,8 @@ export default function StatisticsPage() {
     relacion_id: 0,
     tamano_id: 0,
     sector_id: 0,
-    pais: ''
+    pais: '',
+    uso_ia: ''
   });
 
   useEffect(() => {
@@ -150,28 +152,54 @@ export default function StatisticsPage() {
     }
   };
 
-  // Función para mapear cargo_titulo a rol_id
-  const mapCargoToRolId = (cargo: string): number => {
-    const cargoLower = cargo.toLowerCase();
+  // Función para mapear rol_id a nivel_id según la lógica de la BD
+  const mapearRolANivel = (rol_id: number): number | null => {
+    // CEO
+    if (rol_id === 1) return 6; // CEO → Nivel 6
     
-    // Mapeo basado en el análisis completo de perfiles y diferenciación jerárquica
-    if (cargoLower.includes('ceo') || cargoLower.includes('director general') || cargoLower.includes('presidente')) {
-      return 1; // CEO
-    } else if (cargoLower.includes('cto') || cargoLower.includes('cio') || cargoLower.includes('director de tecnología') || cargoLower.includes('gerente de ti') || cargoLower.includes('analista de ti') || cargoLower.includes('especialista ti') || cargoLower.includes('desarrollador') || cargoLower.includes('programador')) {
-      return 2; // CTO / Director(a) de Tecnología y roles técnicos
-    } else if (cargoLower.includes('cmo') || cargoLower.includes('director de marketing') || cargoLower.includes('gerente de marketing')) {
-      return 3; // CMO / Director(a) de Marketing
-    } else if (cargoLower.includes('dirección de ventas') || cargoLower.includes('director de ventas')) {
-      return 11; // Dirección de Ventas (estratégico)
-    } else if (cargoLower.includes('líder de ventas') || cargoLower.includes('gerente de ventas') || cargoLower.includes('miembros de ventas') || cargoLower.includes('cso') || cargoLower.includes('director comercial')) {
-      return 17; // Miembros de Ventas (operativo)
-    } else if (cargoLower.includes('educación') || cargoLower.includes('docentes') || cargoLower.includes('profesor')) {
-      return 9; // Educación/Docentes
-    } else if (cargoLower.includes('cfo') || cargoLower.includes('director financiero') || cargoLower.includes('gerente de finanzas') || cargoLower.includes('contabilidad') || cargoLower.includes('rrhh') || cargoLower.includes('operaciones') || cargoLower.includes('compras') || cargoLower.includes('gerencia media') || cargoLower.includes('academia') || cargoLower.includes('investigación') || cargoLower.includes('investigador') || cargoLower.includes('diseño') || cargoLower.includes('industrias creativas') || cargoLower.includes('creativo') || cargoLower.includes('freelancer') || cargoLower.includes('consultor')) {
-      return 1; // Roles estratégicos y especializados usan preguntas de CEO
+    // Dirección de Área
+    if ([2, 3, 11, 12, 13, 14, 15, 16, 27].includes(rol_id)) return 2; // CMO, CTO, Direcciones → Nivel 2
+    
+    // Gerencia
+    if ([4, 5, 6, 24].includes(rol_id)) return 3; // Gerentes → Nivel 3
+    
+    // Miembros/Colaboradores
+    if ([7, 8, 9, 10, 17, 18, 19, 20, 21, 22, 23, 28].includes(rol_id)) return 4; // Miembros → Nivel 4
+    
+    // Freelancer, Consultor (sin nivel específico, usar 4 por defecto)
+    if ([25, 26].includes(rol_id)) return 4;
+    
+    return null;
+  };
+
+  // Función para obtener area_id del rol seleccionado
+  const obtenerAreaDelRol = (rol_id: number): number | null => {
+    const rol = referenceData?.roles.find(r => r.id === rol_id);
+    return rol?.area_id || null;
+  };
+
+  // Función para obtener el nivel de dificultad DIRECTAMENTE del uso de IA
+  // La dificultad es literalmente el valor del uso de IA:
+  // - "Nunca" → dificultad_id = 1
+  // - "Rara vez" → dificultad_id = 2
+  // - "A veces" → dificultad_id = 3
+  // - "Frecuentemente" → dificultad_id = 4
+  // - "Siempre" → dificultad_id = 5
+  const calcularDificultad = (uso_ia: string): number => {
+    const usoIALower = uso_ia.toLowerCase().trim();
+    
+    // Mapeo directo del uso de IA a dificultad
+    if (usoIALower.includes('siempre') || usoIALower.includes('todos los días') || usoIALower.includes('todos o casi todos los días')) {
+      return 5; // Siempre
+    } else if (usoIALower.includes('frecuentemente') || usoIALower.includes('casi siempre') || usoIALower.includes('3-4 veces por semana')) {
+      return 4; // Frecuentemente
+    } else if (usoIALower.includes('a veces') || usoIALower.includes('ocasionalmente') || usoIALower.includes('1-2 veces por semana')) {
+      return 3; // A veces
+    } else if (usoIALower.includes('rara vez') || usoIALower.includes('casi nunca') || usoIALower.includes('1-2 veces al mes')) {
+      return 2; // Rara vez
+    } else {
+      return 1; // Nunca (por defecto)
     }
-    
-    return 0; // Sin rol específico
   };
 
   const handleSaveProfile = async () => {
@@ -179,18 +207,29 @@ export default function StatisticsPage() {
       setSaving(true);
       
       // Validar que los campos requeridos estén llenos
-      if (!formData.cargo_titulo || !formData.nivel_id || !formData.area_id || !formData.relacion_id) {
+      if (!formData.rol_id || !formData.nivel_id || !formData.area_id || !formData.relacion_id || !formData.uso_ia) {
         alert('Por favor completa todos los campos requeridos (marcados con *)');
         return;
       }
 
-      // Mapear cargo_titulo a rol_id
-      const rol_id = mapCargoToRolId(formData.cargo_titulo);
+      // Obtener dificultad directamente del uso de IA (sin cálculo)
+      const dificultad_id = calcularDificultad(formData.uso_ia);
+      
+      console.log('Dificultad asignada:', {
+        uso_ia: formData.uso_ia,
+        dificultad_id
+      });
+      
+      // Obtener nombre del cargo desde el rol seleccionado
+      const rolSeleccionado = referenceData?.roles.find(r => r.id === formData.rol_id);
+      const cargo_titulo = rolSeleccionado?.nombre || '';
       
       // Preparar datos para envío
       const profileData = {
         ...formData,
-        rol_id: rol_id
+        cargo_titulo: cargo_titulo,
+        dificultad_id: dificultad_id,
+        uso_ia_respuesta: formData.uso_ia
       };
 
       // console.log('Enviando datos:', profileData);
@@ -210,8 +249,11 @@ export default function StatisticsPage() {
         setRecommendedProfile(profile);
         setShowProfileConfirmation(true);
       } else {
-        // console.error('Error en la API:', result.error);
-        alert(`Error: ${result.error || 'Error desconocido'}`);
+        // console.error('Error en la API:', result);
+        const errorMessage = result.details 
+          ? `${result.error}: ${result.details}` 
+          : result.error || 'Error desconocido';
+        alert(`Error: ${errorMessage}`);
       }
     } catch (error) {
       // console.error('Error saving profile:', error);
@@ -229,16 +271,20 @@ export default function StatisticsPage() {
     const relacion = refData.relaciones.find(r => r.id === data.relacion_id);
     const tamano = refData.tamanos_empresa.find(t => t.id === data.tamano_id);
     const sector = refData.sectores.find(s => s.id === data.sector_id);
+    
+    // Obtener el nombre del cargo desde el rol seleccionado
+    const rol = refData.roles.find(r => r.id === data.rol_id);
+    const cargo_titulo = rol?.nombre || data.cargo_titulo || '';
 
     return {
-      cargo: data.cargo_titulo,
+      cargo: cargo_titulo,
       area: area?.nombre || '',
       nivel: nivel?.nombre || '',
       relacion: relacion?.nombre || '',
       sector: sector?.nombre || '', // Usar sector_id, no pais
       tamano: tamano?.nombre || '',
       pais: data.pais || '', // País por separado
-      description: generateProfileDescription(data.cargo_titulo, area?.nombre)
+      description: generateProfileDescription(cargo_titulo, area?.nombre)
     };
   };
 
@@ -270,7 +316,27 @@ export default function StatisticsPage() {
   };
 
   const handleInputChange = (field: keyof ProfileData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Si se cambia el rol_id, actualizar automáticamente nivel_id y area_id
+      if (field === 'rol_id' && typeof value === 'number') {
+        const nivel_id = mapearRolANivel(value);
+        const area_id = obtenerAreaDelRol(value);
+        
+        if (nivel_id !== null) {
+          updated.nivel_id = nivel_id;
+        }
+        if (area_id !== null) {
+          updated.area_id = area_id;
+        }
+      }
+      
+      return updated;
+    });
   };
 
   if (loading) {
@@ -326,39 +392,71 @@ export default function StatisticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-6">
-                {/* Cargo / Título */}
+                {/* Cargo / Título - Cambiado a combobox */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.6 }}
+                  className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Cargo / Título <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.cargo_titulo}
-                    onChange={(e) => handleInputChange('cargo_titulo', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200"
-                    placeholder="Ej: Gerente de Marketing, CEO, Desarrollador..."
-                  />
+                  <select
+                    value={formData.rol_id}
+                    onChange={(e) => handleInputChange('rol_id', parseInt(e.target.value))}
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                  >
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo</option>
+                    {referenceData?.roles.map(rol => (
+                      <option key={rol.id} value={rol.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                        {rol.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </motion.div>
 
-                {/* Nivel Organizacional */}
+                {/* Pregunta sobre uso de IA */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.7 }}
+                  transition={{ duration: 0.5, delay: 0.65 }}
+                  className="flex flex-col"
+                >
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                    ¿Qué tanto utilizas la IA en tu ámbito laboral? <span className="text-red-500 dark:text-red-400">*</span>
+                  </label>
+                  <select
+                    value={formData.uso_ia}
+                    onChange={(e) => handleInputChange('uso_ia', e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                  >
+                    <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona una opción</option>
+                    <option value="Nunca" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Nunca</option>
+                    <option value="Rara vez" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Rara vez (1-2 veces al mes)</option>
+                    <option value="A veces" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">A veces (1-2 veces por semana)</option>
+                    <option value="Frecuentemente" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Frecuentemente (3-4 veces por semana)</option>
+                    <option value="Siempre" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Siempre (todos o casi todos los días)</option>
+                  </select>
+                </motion.div>
+
+                {/* Nivel Organizacional - Configurado automáticamente */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.7, delay: 0.7 }}
+                  className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Nivel Organizacional <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <select
                     value={formData.nivel_id}
-                    onChange={(e) => handleInputChange('nivel_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    disabled
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white opacity-60 cursor-not-allowed min-h-[48px] [&::-ms-expand]:hidden [&::-webkit-appearance]:none appearance-none"
+                    style={{ backgroundImage: 'none' }}
                   >
-                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu nivel</option>
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo primero</option>
                     {referenceData?.niveles.map(nivel => (
                       <option key={nivel.id} value={nivel.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {nivel.nombre}
@@ -372,6 +470,7 @@ export default function StatisticsPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.8 }}
+                  className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Sector (Opcional)
@@ -379,7 +478,7 @@ export default function StatisticsPage() {
                   <select
                     value={formData.sector_id}
                     onChange={(e) => handleInputChange('sector_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu sector</option>
                     {referenceData?.sectores.map(sector => (
@@ -393,21 +492,23 @@ export default function StatisticsPage() {
 
               {/* Right Column */}
               <div className="space-y-6">
-                {/* Área Funcional */}
+                {/* Área Funcional - Configurada automáticamente */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.6 }}
+                  className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Área Funcional <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <select
                     value={formData.area_id}
-                    onChange={(e) => handleInputChange('area_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    disabled
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white opacity-60 cursor-not-allowed min-h-[48px] [&::-ms-expand]:hidden [&::-webkit-appearance]:none appearance-none"
+                    style={{ backgroundImage: 'none' }}
                   >
-                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu área</option>
+                    <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo primero</option>
                     {referenceData?.areas.map(area => (
                       <option key={area.id} value={area.id} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {area.nombre}
@@ -421,6 +522,7 @@ export default function StatisticsPage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.7 }}
+                  className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Tipo de Relación <span className="text-red-500 dark:text-red-400">*</span>
@@ -428,7 +530,7 @@ export default function StatisticsPage() {
                   <select
                     value={formData.relacion_id}
                     onChange={(e) => handleInputChange('relacion_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu relación</option>
                     {referenceData?.relaciones.map(relacion => (
@@ -444,6 +546,7 @@ export default function StatisticsPage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.8 }}
+                  className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     Tamaño de Empresa (Opcional)
@@ -451,7 +554,7 @@ export default function StatisticsPage() {
                   <select
                     value={formData.tamano_id}
                     onChange={(e) => handleInputChange('tamano_id', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona el tamaño</option>
                     {referenceData?.tamanos_empresa.map(tamano => (
@@ -467,6 +570,7 @@ export default function StatisticsPage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.9 }}
+                  className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
                     País (Opcional)
@@ -474,7 +578,7 @@ export default function StatisticsPage() {
                   <select
                     value={formData.pais}
                     onChange={(e) => handleInputChange('pais', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
                   >
                     <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu país</option>
                     {PAISES.map(pais => (
