@@ -1,0 +1,224 @@
+{
+  "loading": {
+    "course": "Carregando curso...",
+    "lesson": "Carregando lição...",
+    "notes": "Carregando notas...",
+    "conversations": "Carregando conversas..."
+  },
+  "header": {
+    "backButton": "Voltar",
+    "workshop": "Workshop Aprende y Aplica",
+    "progress": "Progresso"
+  },
+  "leftPanel": {
+    "title": "Material do Curso",
+    "content": "Conteúdo",
+    "notes": "Notas",
+    "expandContent": "Expandir Conteúdo",
+    "collapseContent": "Recolher Conteúdo",
+    "expandModule": "Expandir módulo",
+    "collapseModule": "Recolher módulo",
+    "completed": "concluídos",
+    "completedPercentage": "concluído"
+  },
+  "tabs": {
+    "video": "Vídeo",
+    "transcript": "Transcrição",
+    "summary": "Resumo",
+    "activities": "Atividades",
+    "questions": "Perguntas"
+  },
+  "lesson": {
+    "duration": "duração",
+    "completed": "Concluído",
+    "inProgress": "Em Andamento",
+    "locked": "Bloqueado"
+  },
+  "navigation": {
+    "previous": "Anterior",
+    "next": "Próximo",
+    "backToCourses": "Voltar aos Meus Cursos",
+    "completeCourse": "Concluir Curso"
+  },
+  "lia": {
+    "title": "Lia",
+    "subtitle": "Sua tutora personalizada",
+    "placeholder": "Digite sua mensagem aqui...",
+    "send": "Enviar",
+    "newConversation": "Nova conversa",
+    "viewHistory": "Ver histórico",
+    "resetConversation": "Reiniciar conversa",
+    "expand": "Expandir Lia",
+    "minimize": "Minimizar Lia",
+    "moreOptions": "Mais opções",
+    "copyMessage": "Copiar mensagem",
+    "createNote": "Criar nota",
+    "conversationHistory": "Histórico de Conversas",
+    "closeHistory": "Fechar histórico",
+    "noConversations": "Sem conversas anteriores",
+    "generalConversation": "Conversa geral",
+    "messages": "mensagem",
+    "messagesPlural": "mensagens",
+    "editName": "Editar nome",
+    "deleteConversation": "Excluir conversa",
+    "deleteConfirmTitle": "Excluir conversa",
+    "deleteConfirmSubtitle": "Esta ação não pode ser desfeita",
+    "deleteConfirmMessage": "Tem certeza de que deseja excluir esta conversa? Todas as mensagens serão perdidas permanentemente.",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "save": "Salvar"
+  },
+  "notes": {
+    "title": "Notas do Curso",
+    "createNote": "Criar Nota",
+    "editNote": "Editar Nota",
+    "deleteNote": "Excluir Nota",
+    "total": "Total de notas",
+    "lessonsWithNotes": "Lições com notas",
+    "lastUpdate": "Última atualização",
+    "now": "Agora",
+    "search": "Buscar notas...",
+    "filterByLesson": "Filtrar por lição",
+    "allLessons": "Todas as lições",
+    "noNotes": "Ainda não há notas",
+    "noNotesSubtitle": "Crie sua primeira nota enquanto aprende",
+    "noResults": "Nenhuma nota encontrada",
+    "noResultsSubtitle": "Tente outros termos de busca",
+    "noteTitle": "Título da nota",
+    "noteContent": "Conteúdo da nota",
+    "tags": "Etiquetas",
+    "tagsPlaceholder": "Adicionar etiquetas (separadas por vírgulas)",
+    "lesson": "Lição",
+    "saveNote": "Salvar Nota",
+    "saving": "Salvando...",
+    "deleting": "Excluindo...",
+    "deleteConfirmTitle": "Excluir esta nota?",
+    "deleteConfirmMessage": "Esta ação não pode ser desfeita"
+  },
+  "activities": {
+    "title": "Atividades",
+    "required": "Obrigatória",
+    "optional": "Opcional",
+    "complete": "Concluir",
+    "completed": "Concluída",
+    "inProgress": "Em Andamento",
+    "notStarted": "Não Iniciada",
+    "suggestedPrompts": "Prompts Sugeridos",
+    "expandPrompts": "Expandir prompts",
+    "collapsePrompts": "Recolher prompts",
+    "typeYourAnswer": "Digite sua resposta aqui...",
+    "submit": "Enviar",
+    "submitting": "Enviando...",
+    "completionRequirement": "Para avançar para a próxima lição, é necessário completar todas as atividades obrigatórias e passar nos quizzes correspondentes. Recomendamos revisar cada atividade e material com atenção para garantir uma compreensão completa do conteúdo.",
+    "expandCollapse": "Expandir atividades e materiais",
+    "expand": "Expandir",
+    "collapse": "Recolher"
+  },
+  "video": {
+    "title": "Lição",
+    "description": "Descrição",
+    "previousLesson": "Lição Anterior",
+    "nextLesson": "Próxima Lição",
+    "markComplete": "Marcar como Concluída",
+    "completeToUnlock": "Complete esta lição para desbloquear a próxima"
+  },
+  "errors": {
+    "courseNotFound": "Curso não encontrado",
+    "courseNotFoundMessage": "O curso que você procura não existe",
+    "lessonNotFound": "Lição não encontrada",
+    "loadingError": "Erro ao carregar",
+    "savingError": "Erro ao salvar",
+    "genericError": "Ocorreu um erro",
+    "tryAgain": "Tentar novamente"
+  },
+  "modals": {
+    "courseCompleted": {
+      "title": "Parabéns!",
+      "message": "Você concluiu o curso com sucesso",
+      "rateNow": "Avaliar agora",
+      "rateLater": "Mais tarde"
+    },
+    "cannotComplete": {
+      "title": "Você ainda não pode avançar",
+      "message": "Você deve completar as atividades obrigatórias desta lição antes de continuar",
+      "pendingActivities": "Atividades pendentes",
+      "understand": "Entendido"
+    },
+    "close": "Fechar",
+    "resetConversation": {
+      "title": "Reiniciar conversa com Lia?",
+      "message": "Deseja limpar o histórico da conversa e começar de novo? O chat será reiniciado e você começará uma nova conversa com Lia.",
+      "cancel": "Cancelar",
+      "confirm": "Reiniciar conversa"
+    },
+    "understand": "Entendido"
+  },
+  "transcript": {
+    "title": "Transcrição do Vídeo",
+    "loading": "Carregando transcrição...",
+    "notAvailable": "Transcrição não disponível",
+    "notAvailableMessage": "Esta lição ainda não possui transcrição disponível. A transcrição será adicionada em breve.",
+    "createNoteFromSelection": "Criar nota a partir da seleção",
+    "selectText": "Selecione o texto para criar uma nota",
+    "selectLesson": "Selecione uma lição",
+    "selectLessonMessage": "Selecione uma lição do painel esquerdo para ver sua transcrição",
+    "completeTranscription": "Transcrição Completa",
+    "characters": "caracteres",
+    "readTime": "min de leitura",
+    "copy": "Copiar",
+    "copied": "Copiado!",
+    "download": "Baixar",
+    "saveToNotes": "Salvar nas notas",
+    "savingToNotes": "Salvando...",
+    "lastUpdate": "Última atualização",
+    "tips": {
+      "checkAudio": "Verifique se o vídeo possui áudio",
+      "autoGenerated": "A transcrição é gerada automaticamente",
+      "contactInstructor": "Entre em contato com o instrutor se precisar de ajuda"
+    }
+  },
+  "summary": {
+    "title": "Resumo",
+    "loading": "Carregando resumo...",
+    "notAvailable": "Resumo não disponível",
+    "keyPoints": "Pontos-chave",
+    "objectives": "Objetivos",
+    "keySummary": "Resumo Principal",
+    "readTime": "min de leitura"
+  },
+  "questions": {
+    "title": "Perguntas",
+    "askQuestion": "Fazer uma pergunta",
+    "yourQuestion": "Sua pergunta",
+    "questionPlaceholder": "Escreva sua pergunta sobre o curso...",
+    "submit": "Enviar pergunta",
+    "noQuestions": "Ainda não há perguntas",
+    "noQuestionsSubtitle": "Seja o primeiro a fazer uma pergunta",
+    "answers": "resposta",
+    "answersPlural": "respostas",
+    "reply": "Responder",
+    "like": "Curtir",
+    "views": "visualização",
+    "viewsPlural": "visualizações"
+  },
+  "quiz": {
+    "submit": "Enviar Respostas",
+    "unansweredQuestions": "Por favor, responda todas as perguntas ({{count}} sem resposta)",
+    "score": "Pontuação",
+    "of": "de",
+    "points": "pontos",
+    "correctAnswers": "Respostas corretas: {{correct}}/{{total}}",
+    "passed": "Aprovado!",
+    "failed": "Precisa melhorar",
+    "tryAgain": "Tentar novamente",
+    "correct": "Correto",
+    "incorrect": "Incorreto",
+    "yourAnswer": "Sua resposta",
+    "correctAnswer": "Resposta correta",
+    "explanation": "Explicação"
+  },
+  "tour": {
+    "courseLearnLabel": "Ver tour do curso",
+    "replayLabel": "Ver Tour do Curso"
+  }
+}
