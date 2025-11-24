@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["packages/shared/src/*"],
+      "@ui/*": ["packages/ui/src/*"],
+      "@features/*": ["apps/web/src/features/*"],
+      "@/features/*": ["apps/web/src/features/*"],
+      "@core/*": ["apps/web/src/core/*"],
+      "@/app/*": ["apps/web/src/app/*"],
+      "@/components/*": ["apps/web/src/shared/components/*"],
+      "@/lib/*": ["apps/web/src/lib/*"],
+      "@/utils/*": ["apps/web/src/shared/utils/*"],
+      "@/hooks/*": ["apps/web/src/shared/hooks/*"]
+    }
+  },
+  "include": [
+    "apps/web/src/**/*",
+    "apps/api/src/**/*",
+    "packages/shared/src/**/*",
+    "packages/ui/src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist",
+    "build"
+  ]
+}
+

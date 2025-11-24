@@ -1,0 +1,57 @@
+{
+  "name": "Aprende y Aplica - Plataforma de IA",
+  "short_name": "Aprende y Aplica",
+  "description": "Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icono.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity", "business"],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Comunidades",
+      "short_name": "Comunidades",
+      "description": "Ver todas las comunidades",
+      "url": "/communities",
+      "icons": [{ "src": "/icono.png", "sizes": "any" }]
+    },
+    {
+      "name": "Noticias",
+      "short_name": "Noticias",
+      "description": "Últimas noticias de IA",
+      "url": "/news",
+      "icons": [{ "src": "/icono.png", "sizes": "any" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Tu panel de control",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icono.png", "sizes": "any" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

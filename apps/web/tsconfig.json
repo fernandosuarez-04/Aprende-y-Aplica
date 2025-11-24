@@ -1,0 +1,61 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@aprende-y-aplica/ui": [
+        "../../packages/ui/src"
+      ],
+      "@aprende-y-aplica/shared": [
+        "../../packages/shared/src"
+      ],
+      "@shared/*": [
+        "../../packages/shared/src/*"
+      ],
+      "@/shared/*": [
+        "../shared/src/*"
+      ],
+      "@/ui/*": [
+        "../ui/src/*"
+      ],
+      "@/features/*": [
+        "./src/features/*"
+      ],
+      "@/core/*": [
+        "./src/core/*"
+      ],
+      "@/app/*": [
+        "./src/app/*"
+      ],
+      "@/components/*": [
+        "./src/shared/components/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/utils/*": [
+        "./src/shared/utils/*"
+      ],
+      "@/hooks/*": [
+        "./src/shared/hooks/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    "./.next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,0 +1,1 @@
+export { LegalDocumentsModal } from './LegalDocumentsModal';

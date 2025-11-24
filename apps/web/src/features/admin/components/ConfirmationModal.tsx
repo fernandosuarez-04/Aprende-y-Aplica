@@ -1,0 +1,136 @@
+'use client'
+
+import { Fragment } from 'react'
+import { Dialog, Transition } from '@headlessui/react'
+import { ExclamationTriangleIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+
+interface ConfirmationModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title: string
+  message: string
+  confirmText?: string
+  cancelText?: string
+  type?: 'warning' | 'success' | 'danger'
+  isLoading?: boolean
+}
+
+export function ConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  type = 'warning',
+  isLoading = false
+}: ConfirmationModalProps) {
+  const getIconAndColors = () => {
+    switch (type) {
+      case 'success':
+        return {
+          icon: CheckCircleIcon,
+          iconColor: 'text-green-400',
+          iconBg: 'bg-green-100 dark:bg-green-900/30',
+          confirmBg: 'bg-green-600 hover:bg-green-700 focus:ring-green-500',
+          borderColor: 'border-green-200 dark:border-green-800'
+        }
+      case 'danger':
+        return {
+          icon: XCircleIcon,
+          iconColor: 'text-red-400',
+          iconBg: 'bg-red-100 dark:bg-red-900/30',
+          confirmBg: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+          borderColor: 'border-red-200 dark:border-red-800'
+        }
+      default:
+        return {
+          icon: ExclamationTriangleIcon,
+          iconColor: 'text-yellow-400',
+          iconBg: 'bg-yellow-100 dark:bg-yellow-900/30',
+          confirmBg: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+          borderColor: 'border-yellow-200 dark:border-yellow-800'
+        }
+    }
+  }
+
+  const { icon: Icon, iconColor, iconBg, confirmBg, borderColor } = getIconAndColors()
+
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-gray-800 p-6 text-left align-middle shadow-xl transition-all border border-gray-700">
+                <div className="flex items-center space-x-4">
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-full ${iconBg} flex items-center justify-center`}>
+                    <Icon className={`w-6 h-6 ${iconColor}`} />
+                  </div>
+                  <div className="flex-1">
+                    <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-white">
+                      {title}
+                    </Dialog.Title>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-300">
+                        {message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex justify-center rounded-lg border border-gray-600 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors"
+                    onClick={onClose}
+                    disabled={isLoading}
+                  >
+                    {cancelText}
+                  </button>
+                  <button
+                    type="button"
+                    className={`inline-flex justify-center rounded-lg px-4 py-2 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 transition-colors ${confirmBg}`}
+                    onClick={onConfirm}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Procesando...
+                      </div>
+                    ) : (
+                      confirmText
+                    )}
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  )
+}

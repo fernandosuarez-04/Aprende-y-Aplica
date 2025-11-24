@@ -1,0 +1,67 @@
+{
+  "appName": "Aprende y Aplica",
+  "welcome": "Bienvenido",
+  "language": "Idioma",
+  "change_language": "Cambiar idioma",
+  "languages": {
+    "es": "Español",
+    "en": "Inglés",
+    "pt": "Portugués"
+  },
+  "languageSelector": {
+    "label": "Idioma: {{language}}",
+    "active": "Activo"
+  },
+  "dashboardNav": {
+    "workshops": "Talleres",
+    "directory": "Directorio IA",
+    "community": "Comunidad",
+    "news": "Noticias",
+    "promptDirectory": {
+      "title": "Prompt Directory",
+      "description": "Colección de prompts de IA"
+    },
+    "appsDirectory": {
+      "title": "Apps Directory",
+      "description": "Herramientas de IA disponibles"
+    }
+  },
+  "navbar": {
+    "home": "Inicio",
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "logoAlt": "Logo de Aprende y Aplica",
+    "clickCounter": "Contador: {{current}}/{{total}}"
+  },
+  "aiChat": {
+    "placeholder": "Escribe tu pregunta...",
+    "online": "En línea",
+    "pressEnter": "Presiona Enter para enviar",
+    "clickToSend": "Clic para enviar",
+    "clickToDictate": "Clic para dictar",
+    "responseFallback": "Lo siento, no pude procesar tu mensaje en este momento.",
+    "errorGeneric": "Lo siento, ocurrió un error. Por favor intenta de nuevo.",
+    "helpPrompt": "¿Qué puedo hacer aquí? Ayúdame",
+    "helpFallback": "Lo siento, no pude generar una respuesta.",
+    "helpError": "Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo."
+  },
+  "menu": {
+    "stats": "Mis Estadísticas",
+    "learning": "Mi aprendizaje",
+    "certificates": "Mis Certificados",
+    "profile": "Editar perfil",
+    "account": "Configuración de la cuenta",
+    "subscriptions": "Suscripciones",
+    "paymentMethods": "Métodos de pago",
+    "purchaseHistory": "Historial de compras",
+    "theme": {
+      "system": "Modo sistema",
+      "light": "Modo claro",
+      "dark": "Modo oscuro"
+    },
+    "adminPanel": "Panel de Administración",
+    "instructorPanel": "Panel de Instructor",
+    "logout": "Cerrar sesión"
+  }
+}
+

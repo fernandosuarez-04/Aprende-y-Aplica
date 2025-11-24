@@ -1,0 +1,69 @@
+[build]
+  # Directorio base del monorepo
+  base = "."
+  
+  # Comando usando script bash que maneja NODE_ENV correctamente
+  # El script asegura que devDependencies (TypeScript) se instalen correctamente
+  command = "bash scripts/netlify-build.sh"
+  
+  # Directorio de publicación (Next.js con Netlify plugin maneja esto automáticamente)
+  publish = "apps/web/.next"
+
+[build.environment]
+  # Versión de Node.js (lee automáticamente desde .nvmrc)
+  # Actualizado a Node.js 20 para compatibilidad con Supabase (Node.js 18 está deprecado)
+  NODE_VERSION = "20"
+  
+  # Habilitar plugin de Next.js
+  NETLIFY_NEXT_PLUGIN_SKIP = "false"
+
+# Configuración para Next.js con serverless functions
+# Este plugin maneja automáticamente el build y deployment de Next.js
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirecciones automáticas para Next.js (el plugin las maneja)
+# Solo necesitamos mantener esto para rutas específicas si es necesario
+
+# Headers de seguridad
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    Content-Security-Policy = 'default-src "self"; script-src "self" "unsafe-inline" "unsafe-eval" https://cdn.jsdelivr.net https://www.youtube.com; style-src "self" "unsafe-inline" https://fonts.googleapis.com; font-src "self" https://fonts.gstatic.com; img-src "self" data: https:; connect-src "self" https://*.supabase.co wss://*.supabase.co https://api.openai.com; frame-src "self" https://www.youtube.com;'
+
+# Cache para assets estáticos
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/public/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Configuración de funciones para Next.js
+# El plugin de Next.js convierte automáticamente las API routes en Netlify Functions
+# No necesitas un Functions directory separado para Next.js API routes
+[functions]
+  # Directorio para funciones tradicionales de Netlify (opcional)
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["sharp", "canvas"]
+
+# Configuración específica para diferentes contextos (opcional)
+# Si no se especifica, se usa el comando de [build]
+[context.production]
+  command = "bash scripts/netlify-build.sh"
+
+[context.branch-deploys]
+  command = "bash scripts/netlify-build.sh"
+
+[context.deploy-preview]
+  command = "bash scripts/netlify-build.sh"
+

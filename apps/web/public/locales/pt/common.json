@@ -1,0 +1,67 @@
+{
+  "appName": "Aprende y Aplica",
+  "welcome": "Bem-vindo",
+  "language": "Idioma",
+  "change_language": "Mudar idioma",
+  "languages": {
+    "es": "Espanhol",
+    "en": "Inglês",
+    "pt": "Português"
+  },
+  "languageSelector": {
+    "label": "Idioma: {{language}}",
+    "active": "Ativo"
+  },
+  "dashboardNav": {
+    "workshops": "Talleres",
+    "directory": "Diretório IA",
+    "community": "Comunidade",
+    "news": "Notícias",
+    "promptDirectory": {
+      "title": "Prompt Directory",
+      "description": "Coleção de prompts de IA"
+    },
+    "appsDirectory": {
+      "title": "Apps Directory",
+      "description": "Ferramentas de IA disponíveis"
+    }
+  },
+  "navbar": {
+    "home": "Início",
+    "login": "Entrar",
+    "register": "Criar conta",
+    "logoAlt": "Logo da Aprende y Aplica",
+    "clickCounter": "Contador: {{current}}/{{total}}"
+  },
+  "aiChat": {
+    "placeholder": "Digite sua pergunta...",
+    "online": "Online",
+    "pressEnter": "Pressione Enter para enviar",
+    "clickToSend": "Clique para enviar",
+    "clickToDictate": "Clique para ditar",
+    "responseFallback": "Desculpe, não consegui processar sua mensagem agora.",
+    "errorGeneric": "Desculpe, ocorreu um erro. Tente novamente.",
+    "helpPrompt": "O que posso fazer aqui? Ajude-me",
+    "helpFallback": "Desculpe, não consegui gerar uma resposta.",
+    "helpError": "Desculpe, ocorreu um erro ao processar seu pedido de ajuda. Tente novamente."
+  },
+  "menu": {
+    "stats": "Minhas estatísticas",
+    "learning": "Meu aprendizado",
+    "certificates": "Meus certificados",
+    "profile": "Editar perfil",
+    "account": "Configurações da conta",
+    "subscriptions": "Assinaturas",
+    "paymentMethods": "Métodos de pagamento",
+    "purchaseHistory": "Histórico de compras",
+    "theme": {
+      "system": "Modo do sistema",
+      "light": "Modo claro",
+      "dark": "Modo escuro"
+    },
+    "adminPanel": "Painel de administração",
+    "instructorPanel": "Painel do instrutor",
+    "logout": "Sair"
+  }
+}
+

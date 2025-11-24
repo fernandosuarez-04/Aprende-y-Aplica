@@ -1,0 +1,170 @@
+# Especificaciones del Proyecto - Aprende y Aplica
+
+## 📋 Información General
+- **Nombre del Proyecto**: Aprende y Aplica
+- **Tipo**: Aplicación web full-stack
+- **Arquitectura**: Monorepo con Next.js (frontend) y Node.js/Express (backend)
+- **Base de datos**: Supabase
+- **Autenticación**: Supabase Auth
+
+## 🏗️ Arquitectura del Proyecto
+
+### Estructura del Monorepo
+```
+├── apps/
+│   ├── web/          # Frontend Next.js
+│   └── api/          # Backend Node.js/Express
+├── packages/
+│   ├── shared/      # Utilidades compartidas
+│   └── ui/           # Componentes UI compartidos
+└── docs/             # Documentación
+```
+
+### Tecnologías Principales
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express, TypeScript
+- **Base de datos**: Supabase (PostgreSQL)
+- **Autenticación**: Supabase Auth
+- **UI**: Componentes personalizados + Tailwind CSS
+
+## 🎨 Estándares de Diseño
+
+### Colores y Temas
+- **Tema claro**: Colores principales definidos en `tailwind.config.js`
+- **Tema oscuro**: Implementado con `next-themes`
+- **Tokens de diseño**: Documentados en `docs/THEME_AND_TOKENS.md`
+
+### Componentes UI
+- Usar componentes del paquete `packages/ui/`
+- Seguir patrones de diseño consistentes
+- Implementar responsive design (mobile-first)
+
+## 🔧 Estándares de Código
+
+### TypeScript
+- **Configuración**: Usar `tsconfig.json` base
+- **Tipos**: Definir interfaces claras
+- **Imports**: Usar paths absolutos cuando sea posible
+
+### Estructura de Carpetas
+- **Features**: Organizar por funcionalidades (`features/`)
+- **Components**: Componentes reutilizables en `core/components/`
+- **Services**: Lógica de negocio en `services/`
+- **Hooks**: Custom hooks en `hooks/`
+
+### Naming Conventions
+- **Archivos**: kebab-case (ej: `user-profile.tsx`)
+- **Componentes**: PascalCase (ej: `UserProfile`)
+- **Variables**: camelCase
+- **Constantes**: UPPER_SNAKE_CASE
+
+## 🚀 Funcionalidades Principales
+
+### Autenticación
+- Login/Registro con Supabase Auth
+- Protección de rutas
+- Gestión de sesiones
+
+### Directorio de IA
+- Catálogo de aplicaciones de IA
+- Categorización
+- Sistema de favoritos
+
+### Comunidades
+- Creación y gestión de comunidades
+- Sistema de solicitud de acceso
+- Moderación
+
+### Noticias
+- Sistema de artículos
+- Estadísticas de lectura
+- Categorización
+
+### Perfil de Usuario
+- Gestión de perfil
+- Preferencias
+- Historial de actividad
+
+## 📱 Responsive Design
+- **Mobile First**: Diseño optimizado para móviles
+- **Breakpoints**: Usar breakpoints estándar de Tailwind
+- **Componentes**: Adaptables a diferentes tamaños de pantalla
+
+## 🔒 Seguridad
+- **Autenticación**: Supabase Auth
+- **Autorización**: Middleware de protección de rutas
+- **Validación**: Validación en frontend y backend
+- **Sanitización**: Sanitizar inputs del usuario
+
+## 🧪 Testing
+- **Unit Tests**: Para lógica de negocio
+- **Integration Tests**: Para APIs
+- **E2E Tests**: Para flujos críticos
+
+## 📦 Gestión de Dependencias
+- **Monorepo**: Usar workspaces de npm
+- **Dependencias**: Mantener actualizadas
+- **Lock files**: Commitear `package-lock.json`
+
+## 🚀 Deployment
+- **Frontend**: Vercel (recomendado)
+- **Backend**: Vercel Functions o Railway
+- **Base de datos**: Supabase (hosted)
+
+## 📝 Documentación
+- **README**: Mantener actualizado
+- **API Docs**: Documentar endpoints
+- **Component Docs**: Documentar componentes complejos
+
+## 🔄 Flujo de Trabajo
+1. **Desarrollo**: Feature branches
+2. **Testing**: Tests automáticos
+3. **Review**: Code review obligatorio
+4. **Deploy**: Deploy automático en staging
+5. **Production**: Deploy manual a producción
+
+## 🎯 Reglas Específicas de Desarrollo
+
+### Al crear componentes:
+- Usar TypeScript estricto
+- Implementar responsive design
+- Seguir patrones de diseño consistentes
+- Documentar props complejas
+
+### Al crear APIs:
+- Validar inputs
+- Manejar errores apropiadamente
+- Usar tipos TypeScript
+- Implementar autenticación cuando sea necesario
+- **NO usar Webhooks** - Siempre usar API REST para comunicación
+
+### Al trabajar con la base de datos:
+- Usar Supabase client
+- Implementar tipos de TypeScript
+- Manejar errores de conexión
+- Optimizar consultas
+
+### Al trabajar con autenticación:
+- Usar Supabase Auth
+- Proteger rutas sensibles
+- Manejar estados de autenticación
+- Implementar logout seguro
+
+## 📌 Notas Importantes
+- **Siempre** seguir estos estándares en cada desarrollo
+- **Mantener** consistencia en el código
+- **Documentar** cambios importantes
+- **Testear** antes de hacer commit
+- **Revisar** código antes de merge
+- **Usar** el sistema de monorepo correctamente
+- **Mantener** separación entre frontend y backend
+- **Implementar** responsive design en todos los componentes
+- **Seguir** las convenciones de naming establecidas
+- **Usar** TypeScript en todo el proyecto
+- **Mantener** la arquitectura de features organizada
+
+---
+
+*Este archivo se carga automáticamente en Cursor*
+*Última actualización: Diciembre 2024*
+*Versión: 1.0*

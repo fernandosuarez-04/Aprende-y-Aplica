@@ -1,0 +1,1 @@
+export { PostAttachment } from './PostAttachment';
