@@ -284,3 +284,4 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
   )
 }
 
+
