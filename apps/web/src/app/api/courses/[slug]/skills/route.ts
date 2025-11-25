@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { logger } from '@/lib/utils/logger'
-import { requireAuth } from '@/lib/auth/requireAuth'
+import { logger } from '@/lib/logger'
+import { SessionService } from '@/features/auth/services/session.service'
 
 /**
  * Función helper para detectar si un string es UUID
@@ -199,11 +199,17 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const auth = await requireAuth()
-    if (auth instanceof NextResponse) return auth
-
     const { slug: identifier } = await params
     const supabase = await createClient()
+
+    // Verificar autenticación
+    const currentUser = await SessionService.getCurrentUser()
+    if (!currentUser) {
+      return NextResponse.json({
+        success: false,
+        error: 'No autenticado'
+      }, { status: 401 })
+    }
 
     // Determinar si el identificador es UUID o slug y buscar el curso
     let course
@@ -245,9 +251,23 @@ export async function POST(
       courseId = courseData.id
     }
 
+    // Obtener información del usuario para verificar rol
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id, cargo_rol')
+      .eq('id', currentUser.id)
+      .single()
+
+    if (!userData) {
+      return NextResponse.json({
+        success: false,
+        error: 'Usuario no encontrado'
+      }, { status: 404 })
+    }
+
     // Verificar permisos: instructor del curso o admin
-    const isInstructor = course.instructor_id === auth.user.id
-    const isAdmin = auth.user.cargo_rol === 'Administrador'
+    const isInstructor = course.instructor_id === currentUser.id
+    const isAdmin = userData.cargo_rol === 'Administrador'
 
     if (!isInstructor && !isAdmin) {
       return NextResponse.json({

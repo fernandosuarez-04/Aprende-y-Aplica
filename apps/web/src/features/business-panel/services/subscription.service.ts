@@ -1,21 +1,12 @@
 /**
  * Servicio para manejar cambio de planes de suscripción business
- * SOLO PARA USO EN SERVER COMPONENTS - Usa funciones de utilidad de subscription.utils.ts en componentes cliente
+ * Este archivo contiene funciones que requieren acceso al servidor
+ * Para funciones de utilidad sin dependencias de servidor, ver subscription.utils.ts
  */
 
-// Re-exportar tipos y funciones de utilidad para compatibilidad
-export type { BusinessPlanId, BillingCycle, PlanPricing, PlanConfig } from './subscription.utils'
-export {
-  BUSINESS_PLANS,
-  getPlanById,
-  calculatePlanPrice,
-  calculateYearlySavings,
-  calculateEndDate,
-  calculateMonthlyEquivalent,
-  formatPlanPrice,
-  isValidPlanId,
-  isValidBillingCycle
-} from './subscription.utils'
+import 'server-only'
+
+import type { BusinessPlanId, BillingCycle } from './subscription.utils'
 
 /**
  * Servicio estático para verificar suscripciones

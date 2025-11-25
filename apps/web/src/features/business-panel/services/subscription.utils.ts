@@ -1,6 +1,6 @@
 /**
  * Utilidades para planes de suscripción business (sin dependencias de servidor)
- * Estas funciones pueden usarse en componentes cliente
+ * Estas funciones pueden ser usadas en componentes cliente
  */
 
 export type BusinessPlanId = 'team' | 'business' | 'enterprise'
