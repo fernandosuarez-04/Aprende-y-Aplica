@@ -1824,7 +1824,7 @@ CREATE TABLE public.skills (
   color character varying DEFAULT '#3b82f6'::character varying,
   level character varying DEFAULT 'beginner'::character varying CHECK (
     level::text = ANY (
-      ARRAY['beginner'::character varying::text, 'intermediate'::character varying::text, 'advanced'::character varying::text, 'expert'::character varying::text]
+      ARRAY['beginner'::character varying::text, 'intermediate'::character varying::text, 'advanced'::character varying::text, 'expert'::character varying::text, 'master'::character varying::text]
     )
   ),
   is_active boolean DEFAULT true,

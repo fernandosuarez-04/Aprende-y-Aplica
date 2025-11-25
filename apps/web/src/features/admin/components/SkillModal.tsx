@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Save } from 'lucide-react'
+import { X, Save, Upload, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { AdminSkill } from '../services/adminSkills.service'
 import { SkillBadgeUpload } from './SkillBadgeUpload'
 import { SkillLevel } from '@/features/skills/constants/skillLevels'
@@ -46,21 +46,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Otros'
 }
 
-const LEVELS = ['beginner', 'intermediate', 'advanced', 'expert']
+const LEVELS = ['beginner', 'intermediate', 'advanced', 'expert', 'master']
 const LEVEL_LABELS: Record<string, string> = {
   beginner: 'Principiante',
   intermediate: 'Intermedio',
   advanced: 'Avanzado',
-  expert: 'Experto'
+  expert: 'Experto',
+  master: 'Maestro'
 }
 
-const ICON_TYPES = ['image', 'svg', 'emoji', 'font_icon']
-const ICON_TYPE_LABELS: Record<string, string> = {
-  image: 'Imagen (URL)',
-  svg: 'SVG (URL)',
-  emoji: 'Emoji',
-  font_icon: 'Icono de Fuente'
-}
+// Iconos solo por imagen (upload)
 
 export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) {
   const [formData, setFormData] = useState({
@@ -71,7 +66,6 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
     icon_url: '',
     icon_type: 'image',
     icon_name: '',
-    color: '#3b82f6',
     level: 'beginner',
     is_active: true,
     is_featured: false,
@@ -87,6 +81,9 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
     diamond: null
   })
   const [loadingBadges, setLoadingBadges] = useState(false)
+  const [iconPreview, setIconPreview] = useState<string | null>(null)
+  const [uploadingIcon, setUploadingIcon] = useState(false)
+  const iconFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (skill) {
@@ -98,12 +95,15 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
         icon_url: skill.icon_url || '',
         icon_type: skill.icon_type || 'image',
         icon_name: skill.icon_name || '',
-        color: skill.color || '#3b82f6',
         level: skill.level || 'beginner',
         is_active: skill.is_active !== false,
         is_featured: skill.is_featured || false,
         display_order: skill.display_order || 0
       })
+      setIconPreview(skill.icon_url || null)
+      
+      // Cargar badges existentes
+      loadBadges(skill.skill_id)
     } else {
       setFormData({
         name: '',
@@ -113,15 +113,60 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
         icon_url: '',
         icon_type: 'image',
         icon_name: '',
-        color: '#3b82f6',
         level: 'beginner',
         is_active: true,
         is_featured: false,
         display_order: 0
       })
+      setIconPreview(null)
+      // Resetear badges
+      setBadges({
+        green: null,
+        bronze: null,
+        silver: null,
+        gold: null,
+        diamond: null
+      })
     }
     setError(null)
   }, [skill, isOpen])
+
+  const loadBadges = async (skillId: string) => {
+    if (!skillId) return
+    
+    setLoadingBadges(true)
+    try {
+      const response = await fetch(`/api/admin/skills/${skillId}/badges`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.badges) {
+          // Mapear badges a nuestro formato
+          const badgesMap: Record<SkillLevel, string | null> = {
+            green: null,
+            bronze: null,
+            silver: null,
+            gold: null,
+            diamond: null
+          }
+          
+          data.badges.forEach((badge: any) => {
+            if (badge.level && badgesMap.hasOwnProperty(badge.level)) {
+              badgesMap[badge.level as SkillLevel] = badge.badge_url
+            }
+          })
+          
+          setBadges(badgesMap)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading badges:', error)
+    } finally {
+      setLoadingBadges(false)
+    }
+  }
 
   const generateSlug = (name: string) => {
     return name
@@ -140,6 +185,68 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
     }))
   }
 
+  const handleIconUpload = async (file: File) => {
+    if (!formData.slug) {
+      setError('Primero debes crear un slug para la skill')
+      return
+    }
+
+    // Validar tipo
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml']
+    if (!allowedTypes.includes(file.type)) {
+      setError('Solo se permiten archivos de imagen (PNG, JPEG, JPG, GIF, WebP, SVG)')
+      return
+    }
+
+    // Validar tamaño (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('El archivo no puede ser mayor a 5MB')
+      return
+    }
+
+    setUploadingIcon(true)
+    setError(null)
+
+    try {
+      // Crear preview local
+      const previewUrl = URL.createObjectURL(file)
+      setIconPreview(previewUrl)
+
+      // Subir al servidor
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', file)
+      uploadFormData.append('skillSlug', formData.slug)
+
+      const response = await fetch('/api/admin/upload/skill-icon', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include'
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Error al subir el icono')
+      }
+
+      // Actualizar el formData con la URL
+      setFormData(prev => ({
+        ...prev,
+        icon_url: data.icon.url,
+        icon_type: 'image'
+      }))
+    } catch (error) {
+      setIconPreview(null)
+      setError(error instanceof Error ? error.message : 'Error al subir el icono')
+    } finally {
+      setUploadingIcon(false)
+    }
+  }
+
+  const handleBadgeChange = (level: SkillLevel, url: string | null) => {
+    setBadges(prev => ({ ...prev, [level]: url }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -154,9 +261,66 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
       return
     }
 
+    if (!formData.icon_url.trim()) {
+      setError('El icono es requerido. Por favor sube una imagen.')
+      return
+    }
+
     try {
       setIsSaving(true)
       await onSave(formData)
+      
+      // Si es una skill nueva y hay badges pendientes, asociarlos
+      if (!skill) {
+        const pendingBadges = Object.entries(badges).filter(([_, url]) => url !== null) as [SkillLevel, string][]
+        
+        if (pendingBadges.length > 0) {
+          // Esperar un momento para que la skill se guarde en la BD
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Buscar la skill recién creada por slug
+          try {
+            const skillResponse = await fetch(`/api/admin/skills`, {
+              credentials: 'include'
+            })
+            
+            if (skillResponse.ok) {
+              const skillData = await skillResponse.json()
+              const savedSkill = skillData.skills?.find((s: any) => s.slug === formData.slug)
+              
+              if (savedSkill?.skill_id) {
+                // Asociar cada badge pendiente
+                for (const [level, badgeUrl] of pendingBadges) {
+                  try {
+                    // Crear registro en BD usando el endpoint de badges
+                    const createResponse = await fetch(`/api/admin/skills/${savedSkill.skill_id}/badges`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      credentials: 'include',
+                      body: JSON.stringify({
+                        level,
+                        badge_url: badgeUrl,
+                        storage_path: `${formData.slug}-${level}.png`
+                      })
+                    })
+                    
+                    if (!createResponse.ok) {
+                      const errorData = await createResponse.json().catch(() => ({}))
+                      console.error(`Error asociando badge ${level}:`, errorData.error || 'Error desconocido')
+                    }
+                  } catch (err) {
+                    console.error(`Error asociando badge ${level}:`, err)
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Error buscando skill recién creada:', err)
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar la skill')
     } finally {
@@ -268,89 +432,94 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tipo de Icono
-                </label>
-                <select
-                  value={formData.icon_type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon_type: e.target.value }))}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {ICON_TYPES.map(type => (
-                    <option key={type} value={type}>{ICON_TYPE_LABELS[type]}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Color
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                    className="w-16 h-10 rounded-lg border border-gray-300 dark:border-gray-700 cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={formData.color}
-                    onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="#3b82f6"
-                  />
-                </div>
-              </div>
+            {/* Upload de Icono - Solo Imágenes */}
+            {/* Upload de Icono - Solo Imágenes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Icono de la Skill *
+              </label>
+                
+                {/* Preview o Upload */}
+                {iconPreview || formData.icon_url ? (
+                  <div className="space-y-3">
+                    <div className="relative w-32 h-32 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <img
+                        src={iconPreview || formData.icon_url}
+                        alt="Icono de skill"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <label className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer transition-colors">
+                        <Upload className="w-4 h-4" />
+                        {uploadingIcon ? 'Subiendo...' : 'Cambiar'}
+                        <input
+                          ref={iconFileInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleIconUpload(file)
+                          }}
+                          disabled={uploadingIcon || !formData.slug}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIconPreview(null)
+                          setFormData(prev => ({ ...prev, icon_url: '' }))
+                          if (iconFileInputRef.current) {
+                            iconFileInputRef.current.value = ''
+                          }
+                        }}
+                        className="px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                    {uploadingIcon && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Subiendo icono...</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                      <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Sube una imagen para el icono de la skill
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+                        Formatos: PNG, JPEG, JPG, GIF, WebP, SVG (máx. 5MB)
+                      </p>
+                      <label className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer transition-colors">
+                        <Upload className="w-4 h-4" />
+                        Subir Imagen
+                        <input
+                          ref={iconFileInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleIconUpload(file)
+                          }}
+                          disabled={uploadingIcon || !formData.slug}
+                        />
+                      </label>
+                      {!formData.slug && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                          ⚠️ Primero debes crear un slug para poder subir el icono
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
             </div>
-
-            {(formData.icon_type === 'image' || formData.icon_type === 'svg') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  URL del Icono
-                </label>
-                <input
-                  type="url"
-                  value={formData.icon_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon_url: e.target.value }))}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://ejemplo.com/icono.png"
-                />
-              </div>
-            )}
-
-            {formData.icon_type === 'font_icon' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre del Icono
-                </label>
-                <input
-                  type="text"
-                  value={formData.icon_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon_name: e.target.value }))}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="react, python, javascript"
-                />
-              </div>
-            )}
-
-            {formData.icon_type === 'emoji' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Emoji
-                </label>
-                <input
-                  type="text"
-                  value={formData.icon_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon_name: e.target.value }))}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-2xl"
-                  placeholder="🚀"
-                  maxLength={2}
-                />
-              </div>
-            )}
 
             {/* Upload de Badges por Nivel */}
             {formData.slug && (

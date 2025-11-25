@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { logger } from '@/lib/utils/logger'
-import { requireAuth } from '@/lib/auth/requireAuth'
+import { logger } from '@/lib/logger'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 /**
  * GET /api/admin/skills
@@ -9,16 +9,8 @@ import { requireAuth } from '@/lib/auth/requireAuth'
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
-
-    // Verificar que es administrador
-    if (auth.user.cargo_rol !== 'Administrador') {
-      return NextResponse.json({
-        success: false,
-        error: 'No tienes permisos para acceder a esta ruta'
-      }, { status: 403 })
-    }
 
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
@@ -63,16 +55,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
-
-    // Verificar que es administrador
-    if (auth.user.cargo_rol !== 'Administrador') {
-      return NextResponse.json({
-        success: false,
-        error: 'No tienes permisos para crear skills'
-      }, { status: 403 })
-    }
 
     const body = await request.json()
     const {

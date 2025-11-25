@@ -45,7 +45,17 @@ export function SkillBadgeUpload({
   })
 
   const handleFileSelect = async (level: SkillLevel, file: File | null) => {
-    if (!file || !skillId) return
+    // Limpiar errores previos
+    setErrors(prev => ({ ...prev, [level]: null }))
+    
+    if (!file) {
+      return
+    }
+
+    if (!skillSlug || skillSlug.trim() === '') {
+      setErrors(prev => ({ ...prev, [level]: 'Primero debes crear un slug para la skill' }))
+      return
+    }
 
     // Validar tipo
     if (file.type !== 'image/png') {
@@ -59,15 +69,16 @@ export function SkillBadgeUpload({
       return
     }
 
-    setErrors(prev => ({ ...prev, [level]: null }))
     setUploading(prev => ({ ...prev, [level]: true }))
 
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('skillId', skillId)
+      if (skillId) {
+        formData.append('skillId', skillId)
+      }
       formData.append('level', level)
-      formData.append('skillSlug', skillSlug)
+      formData.append('skillSlug', skillSlug.trim())
 
       const response = await fetch('/api/admin/upload/skill-badge', {
         method: 'POST',
@@ -81,8 +92,14 @@ export function SkillBadgeUpload({
         throw new Error(data.error || 'Error al subir el badge')
       }
 
-      onBadgeChange(level, data.badge.badge_url)
+      // Actualizar el badge con la URL recibida
+      if (data.badge?.badge_url) {
+        onBadgeChange(level, data.badge.badge_url)
+      } else {
+        throw new Error('No se recibió la URL del badge')
+      }
     } catch (error) {
+      console.error(`Error uploading badge for level ${level}:`, error)
       setErrors(prev => ({
         ...prev,
         [level]: error instanceof Error ? error.message : 'Error al subir el badge'
@@ -180,11 +197,15 @@ export function SkillBadgeUpload({
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     No hay badge subido
                   </p>
-                  {!disabled && (
-                    <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer transition-colors">
+                  {!disabled && !isUploading && (
+                    <label 
+                      htmlFor={`badge-upload-${level}`}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer transition-colors"
+                    >
                       <Upload className="w-4 h-4" />
                       Subir PNG
                       <input
+                        id={`badge-upload-${level}`}
                         ref={(el) => {
                           fileInputRefs.current[level] = el
                         }}
@@ -193,7 +214,15 @@ export function SkillBadgeUpload({
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0]
-                          if (file) handleFileSelect(level, file)
+                          if (file) {
+                            handleFileSelect(level, file)
+                            // Resetear el input para permitir subir el mismo archivo de nuevo si es necesario
+                            e.target.value = ''
+                          }
+                        }}
+                        onClick={(e) => {
+                          // Asegurar que el click se propaga correctamente
+                          e.stopPropagation()
                         }}
                         disabled={disabled || isUploading}
                       />
@@ -219,15 +248,27 @@ export function SkillBadgeUpload({
 
               {/* Botón para cambiar badge */}
               {badgeUrl && !disabled && !isUploading && (
-                <label className="block w-full text-center px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors">
+                <label 
+                  htmlFor={`badge-change-${level}`}
+                  className="block w-full text-center px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors"
+                >
                   Cambiar
                   <input
+                    id={`badge-change-${level}`}
                     type="file"
                     accept="image/png"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
-                      if (file) handleFileSelect(level, file)
+                      if (file) {
+                        handleFileSelect(level, file)
+                        // Resetear el input para permitir subir el mismo archivo de nuevo si es necesario
+                        e.target.value = ''
+                      }
+                    }}
+                    onClick={(e) => {
+                      // Asegurar que el click se propaga correctamente
+                      e.stopPropagation()
                     }}
                     disabled={disabled || isUploading}
                   />

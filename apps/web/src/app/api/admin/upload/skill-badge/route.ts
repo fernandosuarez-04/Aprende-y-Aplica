@@ -14,15 +14,35 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const skillId = formData.get('skillId') as string
+    const skillId = formData.get('skillId') as string | null
     const level = formData.get('level') as string
     const skillSlug = formData.get('skillSlug') as string
 
-    if (!file || !skillId || !level || !skillSlug) {
+    if (!file || !level || !skillSlug) {
       return NextResponse.json({
         success: false,
-        error: 'Faltan parámetros requeridos (file, skillId, level, skillSlug)'
+        error: 'Faltan parámetros requeridos (file, level, skillSlug)'
       }, { status: 400 })
+    }
+
+    // Si no hay skillId, buscar la skill por slug
+    let finalSkillId = skillId
+    let skillExists = false
+    if (!finalSkillId) {
+      const supabase = await createClient()
+      const { data: skillData, error: skillError } = await supabase
+        .from('skills')
+        .select('skill_id')
+        .eq('slug', skillSlug)
+        .maybeSingle()
+
+      if (!skillError && skillData) {
+        finalSkillId = skillData.skill_id
+        skillExists = true
+      }
+      // Si no existe, continuamos igual pero no guardaremos en BD todavía
+    } else {
+      skillExists = true
     }
 
     // Validar tipo de archivo (solo PNG)
@@ -101,42 +121,58 @@ export async function POST(request: NextRequest) {
       .from('Skills')
       .getPublicUrl(fileName)
 
-    // Guardar o actualizar en la tabla skill_badges usando cliente normal
-    const supabase = await createClient()
-    const { data: badgeData, error: badgeError } = await supabase
-      .from('skill_badges')
-      .upsert({
-        skill_id: skillId,
-        level: level,
-        badge_url: urlData.publicUrl,
-        storage_path: fileName,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'skill_id,level'
-      })
-      .select()
-      .single()
+    // Solo guardar en BD si la skill ya existe
+    if (skillExists && finalSkillId) {
+      const supabase = await createClient()
+      const { data: badgeData, error: badgeError } = await supabase
+        .from('skill_badges')
+        .upsert({
+          skill_id: finalSkillId,
+          level: level,
+          badge_url: urlData.publicUrl,
+          storage_path: fileName,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'skill_id,level'
+        })
+        .select()
+        .single()
 
-    if (badgeError) {
-      logger.error('Error saving badge to database:', badgeError)
-      // Intentar eliminar el archivo subido si falla la BD
-      await supabaseAdmin.storage.from('Skills').remove([fileName])
-      return NextResponse.json({
-        success: false,
-        error: 'Error al guardar el badge en la base de datos'
-      }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      success: true,
-      badge: {
-        id: badgeData.id,
-        skill_id: badgeData.skill_id,
-        level: badgeData.level,
-        badge_url: badgeData.badge_url,
-        storage_path: badgeData.storage_path
+      if (badgeError) {
+        logger.error('Error saving badge to database:', badgeError)
+        // Intentar eliminar el archivo subido si falla la BD
+        await supabaseAdmin.storage.from('Skills').remove([fileName])
+        return NextResponse.json({
+          success: false,
+          error: 'Error al guardar el badge en la base de datos'
+        }, { status: 500 })
       }
-    })
+
+      return NextResponse.json({
+        success: true,
+        badge: {
+          id: badgeData.id,
+          skill_id: badgeData.skill_id,
+          level: badgeData.level,
+          badge_url: badgeData.badge_url,
+          storage_path: badgeData.storage_path
+        }
+      })
+    } else {
+      // La skill no existe todavía, solo retornar la URL del archivo
+      // Se asociará cuando se guarde la skill
+      return NextResponse.json({
+        success: true,
+        badge: {
+          id: null,
+          skill_id: null,
+          level: level,
+          badge_url: urlData.publicUrl,
+          storage_path: fileName
+        },
+        pending: true // Indica que falta asociar con la skill
+      })
+    }
   } catch (error) {
     logger.error('💥 Error in /api/admin/upload/skill-badge POST:', error)
     return NextResponse.json({
