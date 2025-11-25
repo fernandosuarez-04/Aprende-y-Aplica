@@ -19,7 +19,23 @@
     "expandModule": "Expandir módulo",
     "collapseModule": "Colapsar módulo",
     "completed": "completados",
-    "completedPercentage": "completado"
+    "completedPercentage": "completado",
+    "notesSection": {
+      "myNotes": "Mis Notas",
+      "newNote": "Nueva Nota",
+      "expandNotes": "Expandir Notas",
+      "collapseNotes": "Colapsar Notas",
+      "savedNotes": "Notas guardadas",
+      "noSavedNotes": "No hay notas guardadas aún",
+      "saveFirstNote": "Guarda tu primera nota para comenzar",
+      "editNote": "Editar nota",
+      "deleteNote": "Eliminar nota",
+      "notesProgress": "Progreso de Notas",
+      "notesCreated": "Notas creadas",
+      "lessonsWithNotes": "Lecciones con notas",
+      "lastUpdate": "Última actualización",
+      "viewNotes": "Ver notas"
+    }
   },
   "tabs": {
     "video": "Video",

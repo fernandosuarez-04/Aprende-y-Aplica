@@ -2793,14 +2793,14 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
                       <FileText className="w-5 h-5 text-blue-400" />
-                      Mis Notas
+                      {t('leftPanel.notesSection.myNotes')}
                     </h3>
                     <div className="flex items-center gap-2">
                       {!isNotesCollapsed && (
                         <button
                           onClick={openNewNoteModal}
                           className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                          title="Nueva Nota"
+                          title={t('leftPanel.notesSection.newNote')}
                         >
                           <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
                         </button>
@@ -2808,7 +2808,7 @@ Antes de cada respuesta, pregúntate:
                       <button
                         onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
                         className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                        title={isNotesCollapsed ? "Expandir Notas" : "Colapsar Notas"}
+                        title={isNotesCollapsed ? t('leftPanel.notesSection.expandNotes') : t('leftPanel.notesSection.collapseNotes')}
                       >
                         {isNotesCollapsed ? (
                           <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -2832,12 +2832,12 @@ Antes de cada respuesta, pregúntate:
 
             {/* Notas guardadas */}
             <div className="space-y-3 mb-6">
-              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">Notas guardadas</h3>
+              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">{t('leftPanel.notesSection.savedNotes')}</h3>
               <div className="space-y-2">
                 {savedNotes.length === 0 ? (
                   <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 border border-gray-200 dark:border-slate-600/30 text-center">
-                    <p className="text-sm text-gray-600 dark:text-slate-400">No hay notas guardadas aún</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
+                    <p className="text-sm text-gray-600 dark:text-slate-400">{t('leftPanel.notesSection.noSavedNotes')}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">{t('leftPanel.notesSection.saveFirstNote')}</p>
                   </div>
                 ) : (
                   savedNotes.map((note) => (
@@ -2856,7 +2856,7 @@ Antes de cada respuesta, pregúntate:
                                       openEditNoteModal(note);
                                     }}
                                     className="p-1 hover:bg-blue-500/20 rounded text-blue-400 hover:text-blue-300 transition-colors"
-                                    title="Editar nota"
+                                    title={t('leftPanel.notesSection.editNote')}
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -2868,7 +2868,7 @@ Antes de cada respuesta, pregúntate:
                                       handleDeleteNote(note.id);
                                     }}
                                     className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
-                                    title="Eliminar nota"
+                                    title={t('leftPanel.notesSection.deleteNote')}
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2902,19 +2902,19 @@ Antes de cada respuesta, pregúntate:
                   <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
               <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
                       <TrendingUp className="w-4 h-4 text-green-400" />
-                      Progreso de Notas
+                      {t('leftPanel.notesSection.notesProgress')}
                     </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Notas creadas</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.notesCreated')}</span>
                   <span className="text-green-600 dark:text-green-400 font-medium">{notesStats.totalNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Lecciones con notas</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lessonsWithNotes')}</span>
                   <span className="text-blue-600 dark:text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Última actualización</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lastUpdate')}</span>
                   <span className="text-gray-600 dark:text-slate-400">{notesStats.lastUpdate}</span>
                     </div>
                     </div>
@@ -2981,7 +2981,7 @@ Antes de cada respuesta, pregúntate:
                   }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
-                title="Ver notas"
+                title={t('leftPanel.notesSection.viewNotes')}
               >
                 <FileText className="w-4 h-4 text-gray-700 dark:text-white/80" />
               </button>
@@ -2999,7 +2999,7 @@ Antes de cada respuesta, pregúntate:
                   }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg shadow-blue-500/25"
-                title="Nueva nota"
+                title={t('leftPanel.notesSection.newNote')}
               >
                 <Plus className="w-4 h-4 text-white" />
               </button>
