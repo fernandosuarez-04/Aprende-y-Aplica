@@ -166,7 +166,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Error al guardar la configuración')
+        // Mostrar errores de validación si existen
+        if (data?.errors && Array.isArray(data.errors)) {
+          const errorMessages = data.errors.map((e: any) => `${e.field}: ${e.message}`).join('\n')
+          throw new Error(`Errores de validación:\n${errorMessages}`)
+        }
+        throw new Error(data?.error || data?.message || 'Error al guardar la configuración')
       }
       // Guardar skills
       await handleSaveSkills()
