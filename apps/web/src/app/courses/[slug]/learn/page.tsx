@@ -66,11 +66,7 @@ import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
-const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
-  loading: () => <div className="flex items-center justify-center p-8">Cargando notas...</div>,
-  ssr: false // Modal no necesita SSR
-});
-
+// VideoPlayer se define fuera para que pueda ser usado en componentes hijos
 const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlayer').then(mod => ({ default: mod.VideoPlayer })), {
   loading: () => <div className="flex items-center justify-center aspect-video bg-gray-900 rounded-lg">Cargando video...</div>,
   ssr: false
@@ -119,6 +115,21 @@ export default function CourseLearnPage() {
   
   // Hook de traducción con verificación de inicialización
   const { t, i18n, ready } = useTranslation('learn');
+  // Detectar idioma seleccionado
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  
+  // Estado para evitar errores de hidratación
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Crear componentes dinámicos con loaders traducidos
+  const NotesModal = useMemo(() => dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
+    loading: () => <div className="flex items-center justify-center p-8">{mounted && ready ? t('loading.notes') : 'Cargando notas...'}</div>,
+    ssr: false
+  }), [t, mounted, ready]);
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -1544,9 +1555,16 @@ Antes de cada respuesta, pregúntate:
         // ⚡ OPTIMIZACIÓN CRÍTICA: Usar endpoint unificado para reducir de 7 requests a 1
         // Determinar lessonId para incluir datos de lección actual (opcional)
         const lessonId = currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
-        const queryParams = lessonId ? `?lessonId=${lessonId}` : '';
+        // Pasar el idioma para obtener transcript y summary desde la tabla correcta
+        const queryParams = new URLSearchParams();
+        if (lessonId) {
+          queryParams.append('lessonId', lessonId);
+        }
+        queryParams.append('language', selectedLang);
+        const queryString = queryParams.toString();
+        const fullQuery = queryString ? `?${queryString}` : '';
 
-        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${queryParams}`);
+        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${fullQuery}`);
 
         // Extraer datos del response unificado
         if (learnData.course) {
@@ -1554,22 +1572,38 @@ Antes de cada respuesta, pregúntate:
         }
 
         if (learnData.modules) {
-          // Traducir títulos y descripciones de lecciones según idioma
+          // Traducir títulos de módulos y títulos/descripciones de lecciones según idioma
           const translatedModules = await Promise.all(
             learnData.modules.map(async (m: Module) => {
+              // Traducir el título del módulo
+              const moduleWithId = { ...m, id: m.module_id };
+              const translatedModule = await ContentTranslationService.translateObject(
+                'module',
+                moduleWithId,
+                ['module_title'],
+                i18n.language
+              );
+
+              // Traducir las lecciones del módulo
               const translatedLessons = await Promise.all(
                 m.lessons.map(async (l: Lesson) => {
-                  // Aseguramos que el objeto tenga el campo 'id' para la traducción
                   const lessonWithId = { ...l, id: l.lesson_id };
-                  return await ContentTranslationService.translateObject(
+                  // Solo traducir lesson_title desde content_translations
+                  // lesson_description, summary_content y transcript_content vienen desde la tabla correcta según idioma
+                  const translated = await ContentTranslationService.translateObject(
                     'lesson',
                     lessonWithId,
-                    ['lesson_title', 'lesson_description'],
+                    ['lesson_title'],
                     i18n.language
                   );
+                  // Mantener lesson_description, summary_content y transcript_content desde la tabla por idioma
+                  translated.lesson_description = l.lesson_description;
+                  translated.summary_content = l.summary_content;
+                  translated.transcript_content = l.transcript_content;
+                  return translated;
                 })
               );
-              return { ...m, lessons: translatedLessons };
+              return { ...translatedModule, lessons: translatedLessons };
             })
           );
           setModules(translatedModules);
@@ -2202,7 +2236,9 @@ Antes de cada respuesta, pregúntate:
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-lg">Loading...</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">
+            {mounted && ready ? t('loading.general') : 'Cargando...'}
+          </p>
         </div>
       </div>
     );
@@ -2897,14 +2933,14 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
                       <FileText className="w-5 h-5 text-blue-400" />
-                      Mis Notas
+                      {t('leftPanel.notesSection.myNotes')}
                     </h3>
                     <div className="flex items-center gap-2">
                       {!isNotesCollapsed && (
                         <button
                           onClick={openNewNoteModal}
                           className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                          title="Nueva Nota"
+                          title={t('leftPanel.notesSection.newNote')}
                         >
                           <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
                         </button>
@@ -2912,7 +2948,7 @@ Antes de cada respuesta, pregúntate:
                       <button
                         onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
                         className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                        title={isNotesCollapsed ? "Expandir Notas" : "Colapsar Notas"}
+                        title={isNotesCollapsed ? t('leftPanel.notesSection.expandNotes') : t('leftPanel.notesSection.collapseNotes')}
                       >
                         {isNotesCollapsed ? (
                           <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -2936,12 +2972,12 @@ Antes de cada respuesta, pregúntate:
 
             {/* Notas guardadas */}
             <div className="space-y-3 mb-6">
-              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">Notas guardadas</h3>
+              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">{t('leftPanel.notesSection.savedNotes')}</h3>
               <div className="space-y-2">
                 {savedNotes.length === 0 ? (
                   <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 border border-gray-200 dark:border-slate-600/30 text-center">
-                    <p className="text-sm text-gray-600 dark:text-slate-400">No hay notas guardadas aún</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
+                    <p className="text-sm text-gray-600 dark:text-slate-400">{t('leftPanel.notesSection.noSavedNotes')}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">{t('leftPanel.notesSection.saveFirstNote')}</p>
                   </div>
                 ) : (
                   savedNotes.map((note) => (
@@ -2960,7 +2996,7 @@ Antes de cada respuesta, pregúntate:
                                       openEditNoteModal(note);
                                     }}
                                     className="p-1 hover:bg-blue-500/20 rounded text-blue-400 hover:text-blue-300 transition-colors"
-                                    title="Editar nota"
+                                    title={t('leftPanel.notesSection.editNote')}
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -2972,7 +3008,7 @@ Antes de cada respuesta, pregúntate:
                                       handleDeleteNote(note.id);
                                     }}
                                     className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
-                                    title="Eliminar nota"
+                                    title={t('leftPanel.notesSection.deleteNote')}
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -3006,19 +3042,19 @@ Antes de cada respuesta, pregúntate:
                   <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
               <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
                       <TrendingUp className="w-4 h-4 text-green-400" />
-                      Progreso de Notas
+                      {t('leftPanel.notesSection.notesProgress')}
                     </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Notas creadas</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.notesCreated')}</span>
                   <span className="text-green-600 dark:text-green-400 font-medium">{notesStats.totalNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Lecciones con notas</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lessonsWithNotes')}</span>
                   <span className="text-blue-600 dark:text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Última actualización</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lastUpdate')}</span>
                   <span className="text-gray-600 dark:text-slate-400">{notesStats.lastUpdate}</span>
                     </div>
                     </div>
@@ -3085,7 +3121,7 @@ Antes de cada respuesta, pregúntate:
                   }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
-                title="Ver notas"
+                title={t('leftPanel.notesSection.viewNotes')}
               >
                 <FileText className="w-4 h-4 text-gray-700 dark:text-white/80" />
               </button>
@@ -3103,7 +3139,7 @@ Antes de cada respuesta, pregúntate:
                   }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg shadow-blue-500/25"
-                title="Nueva nota"
+                title={t('leftPanel.notesSection.newNote')}
               >
                 <Plus className="w-4 h-4 text-white" />
               </button>
@@ -3267,21 +3303,12 @@ Antes de cada respuesta, pregúntate:
                 style={
                   isMobile
                     ? {
-                        // En móvil, ajustar el bottom para respetar la navegación inferior
-                        // El contenedor tiene bottom-0 en la clase, pero necesitamos sobrescribirlo
-                        // cuando hay navegación inferior visible para evitar que se corte el textarea
-                        bottom: isMobileBottomNavVisible
-                          ? `${MOBILE_BOTTOM_NAV_HEIGHT_PX}px`
-                          : 0,
-                        // Usar height cuando visualViewport está disponible (teclado abierto)
-                        // para asegurar que el textbox siempre esté visible
                         ...(calculateLiaMaxHeight && {
                           height: calculateLiaMaxHeight,
                           maxHeight: calculateLiaMaxHeight,
                         }),
                       }
                     : {
-                        // En desktop, usar toda la altura disponible del contenedor padre
                         ...(calculateLiaMaxHeight && {
                           height: calculateLiaMaxHeight,
                           maxHeight: calculateLiaMaxHeight,
@@ -3797,7 +3824,7 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex gap-2 items-end min-w-0">
                     <textarea
                       ref={liaTextareaRef}
-                      placeholder="Escribe tu pregunta a Lia..."
+                      placeholder={t('lia.placeholder')}
                       value={liaMessage}
                       onChange={(e) => {
                         setLiaMessage(e.target.value);
@@ -4507,6 +4534,8 @@ function TranscriptContent({
   onNoteCreated: (noteData: any, lessonId: string) => void;
   onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation('learn');
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [transcriptContent, setTranscriptContent] = useState<string | null>(null);
@@ -4522,7 +4551,7 @@ function TranscriptContent({
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript`);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript?language=${selectedLang}`);
         if (response.ok) {
           const data = await response.json();
           setTranscriptContent(data.transcript_content || null);
@@ -4538,7 +4567,7 @@ function TranscriptContent({
     }
 
     loadTranscript();
-  }, [lesson?.lesson_id, slug]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Verificar si existe contenido de transcripción
   const hasTranscript = transcriptContent && transcriptContent.trim().length > 0;
@@ -4681,7 +4710,7 @@ function TranscriptContent({
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <ScrollText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando transcripción...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.transcript')}</p>
         </div>
       </div>
     );
@@ -4774,6 +4803,8 @@ function TranscriptContent({
 }
 
 function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+  const { t, i18n } = useTranslation('learn');
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [summaryContent, setSummaryContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -4787,7 +4818,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary`);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary?language=${selectedLang}`);
         if (response.ok) {
           const data = await response.json();
           setSummaryContent(data.summary_content || null);
@@ -4803,7 +4834,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     }
 
     loadSummary();
-  }, [lesson?.lesson_id, slug]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Verificar si existe contenido de resumen
   const hasSummary = summaryContent && summaryContent.trim().length > 0;
@@ -4824,7 +4855,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando resumen...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.summary')}</p>
         </div>
       </div>
     );
@@ -6227,7 +6258,7 @@ function ActivitiesContent({
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando actividades...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.activities')}</p>
         </div>
       </div>
     );
@@ -6781,6 +6812,7 @@ function ActivitiesContent({
 }
 
 function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: string }) {
+  const { t } = useTranslation('learn');
   const [questions, setQuestions] = useState<Array<{
     id: string;
     title?: string;
@@ -7110,7 +7142,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando preguntas...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.questions')}</p>
         </div>
       </div>
     );
@@ -7326,7 +7358,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 {loadingMore ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Cargando...</span>
+                    <span>{t('loading.general')}</span>
                   </>
                 ) : (
                   <>

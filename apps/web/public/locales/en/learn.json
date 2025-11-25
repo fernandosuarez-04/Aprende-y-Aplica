@@ -3,7 +3,13 @@
     "course": "Loading course...",
     "lesson": "Loading lesson...",
     "notes": "Loading notes...",
-    "conversations": "Loading conversations..."
+    "conversations": "Loading conversations...",
+    "video": "Loading video...",
+    "transcript": "Loading transcript...",
+    "summary": "Loading summary...",
+    "activities": "Loading activities...",
+    "questions": "Loading questions...",
+    "general": "Loading..."
   },
   "header": {
     "backButton": "Go back",
@@ -19,7 +25,23 @@
     "expandModule": "Expand module",
     "collapseModule": "Collapse module",
     "completed": "completed",
-    "completedPercentage": "complete"
+    "completedPercentage": "complete",
+    "notesSection": {
+      "myNotes": "My Notes",
+      "newNote": "New Note",
+      "expandNotes": "Expand Notes",
+      "collapseNotes": "Collapse Notes",
+      "savedNotes": "Saved notes",
+      "noSavedNotes": "No saved notes yet",
+      "saveFirstNote": "Save your first note to get started",
+      "editNote": "Edit note",
+      "deleteNote": "Delete note",
+      "notesProgress": "Notes Progress",
+      "notesCreated": "Notes created",
+      "lessonsWithNotes": "Lessons with notes",
+      "lastUpdate": "Last update",
+      "viewNotes": "View notes"
+    }
   },
   "tabs": {
     "video": "Video",

@@ -88,9 +88,16 @@ export async function GET(
       module_id: string;
     }> = [];
 
+    // Detectar idioma por query param (?lang=es|en|pt)
+    const url = new URL(request.url);
+    const lang = url.searchParams.get('lang') || 'es';
+    let lessonsTable = 'course_lessons';
+    if (lang === 'en') lessonsTable = 'course_lessons_en';
+    if (lang === 'pt') lessonsTable = 'course_lessons_pt';
+
     if (modules.length > 0) {
       const { data: lessonsData } = await supabase
-        .from('course_lessons')
+        .from(lessonsTable)
         .select(`
           lesson_id,
           lesson_title,
@@ -100,11 +107,18 @@ export async function GET(
           video_provider_id,
           video_provider,
           is_published,
-          module_id
+          module_id,
+          transcript_content,
+          summary_content,
+          created_at,
+          updated_at,
+          instructor_id
         `)
         .in('module_id', modules.map((m) => m.module_id))
         .order('lesson_order_index', { ascending: true });
 
+      // No es necesario modificar la consulta, ya que transcript_content y summary_content existen en todas las tablas
+      // Solo aseguramos que lessonsTable apunte a la tabla correcta según el idioma
       allLessonsData = lessonsData ?? [];
     }
 
@@ -176,6 +190,8 @@ export async function GET(
           video_provider: lesson.video_provider,
           is_completed: progress?.is_completed || false,
           progress_percentage: progress?.video_progress_percentage || 0,
+          transcript_content: lesson.transcript_content,
+          summary_content: lesson.summary_content,
         };
       });
 

@@ -3,7 +3,13 @@
     "course": "Carregando curso...",
     "lesson": "Carregando lição...",
     "notes": "Carregando notas...",
-    "conversations": "Carregando conversas..."
+    "conversations": "Carregando conversas...",
+    "video": "Carregando vídeo...",
+    "transcript": "Carregando transcrição...",
+    "summary": "Carregando resumo...",
+    "activities": "Carregando atividades...",
+    "questions": "Carregando perguntas...",
+    "general": "Carregando..."
   },
   "header": {
     "backButton": "Voltar",
@@ -19,7 +25,23 @@
     "expandModule": "Expandir módulo",
     "collapseModule": "Recolher módulo",
     "completed": "concluídos",
-    "completedPercentage": "concluído"
+    "completedPercentage": "concluído",
+    "notesSection": {
+      "myNotes": "Minhas Notas",
+      "newNote": "Nova Nota",
+      "expandNotes": "Expandir Notas",
+      "collapseNotes": "Recolher Notas",
+      "savedNotes": "Notas salvas",
+      "noSavedNotes": "Ainda não há notas salvas",
+      "saveFirstNote": "Salve sua primeira nota para começar",
+      "editNote": "Editar nota",
+      "deleteNote": "Excluir nota",
+      "notesProgress": "Progresso das Notas",
+      "notesCreated": "Notas criadas",
+      "lessonsWithNotes": "Lições com notas",
+      "lastUpdate": "Última atualização",
+      "viewNotes": "Ver notas"
+    }
   },
   "tabs": {
     "video": "Vídeo",
