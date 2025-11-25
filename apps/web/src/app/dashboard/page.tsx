@@ -43,6 +43,7 @@ import { CourseWithInstructor } from '../../features/courses/services/course.ser
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('workshops');
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, loading } = useAuth();
   const router = useRouter();
   const { t } = useTranslation('dashboard');
@@ -216,7 +217,7 @@ export default function DashboardPage() {
       );
     }
     
-    return translated.map(course => ({
+    return translatedCourses.map(course => ({
       id: course.id,
       title: course.title, // Ya está traducido por useTranslatedContent
       instructor: course.instructor_name || 'Instructor',
