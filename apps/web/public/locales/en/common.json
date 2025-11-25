@@ -101,6 +101,34 @@
       "replay": "View directory tour",
       "replayButton": "View Directory Tour"
     }
+  },
+  "appsDirectory": {
+    "badge": "Apps Directory",
+    "title": "AI Tools",
+    "description": "Discover the best artificial intelligence tools to boost your productivity and creativity",
+    "searchPlaceholder": "Search AI tools by name, category or description...",
+    "filters": {
+      "featured": "Featured"
+    },
+    "results": {
+      "loading": "Loading...",
+      "found": "{{count}} Tools Found",
+      "filtersApplied": "Filters applied:",
+      "featured": "Featured"
+    },
+    "error": {
+      "loadingApps": "Error loading tools",
+      "retry": "Retry"
+    },
+    "empty": {
+      "title": "No tools found",
+      "description": "Try adjusting your search filters or explore different tools",
+      "clearFilters": "Clear Filters"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
+    }
   }
 }
 

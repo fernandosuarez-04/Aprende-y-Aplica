@@ -101,6 +101,34 @@
       "replay": "Ver tour do diretório",
       "replayButton": "Ver Tour do Diretório"
     }
+  },
+  "appsDirectory": {
+    "badge": "Apps Directory",
+    "title": "Ferramentas de IA",
+    "description": "Descubra as melhores ferramentas de inteligência artificial para potencializar sua produtividade e criatividade",
+    "searchPlaceholder": "Buscar ferramentas de IA por nome, categoria ou descrição...",
+    "filters": {
+      "featured": "Destaques"
+    },
+    "results": {
+      "loading": "Carregando...",
+      "found": "{{count}} Ferramentas Encontradas",
+      "filtersApplied": "Filtros aplicados:",
+      "featured": "Destaques"
+    },
+    "error": {
+      "loadingApps": "Erro ao carregar as ferramentas",
+      "retry": "Tentar novamente"
+    },
+    "empty": {
+      "title": "Nenhuma ferramenta encontrada",
+      "description": "Tente ajustar seus filtros de busca ou explorar ferramentas diferentes",
+      "clearFilters": "Limpar Filtros"
+    },
+    "pagination": {
+      "previous": "Anterior",
+      "next": "Próximo"
+    }
   }
 }
 
