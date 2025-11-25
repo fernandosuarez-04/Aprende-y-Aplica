@@ -1529,14 +1529,16 @@ Antes de cada respuesta, pregúntate:
               const translatedLessons = await Promise.all(
                 m.lessons.map(async (l: Lesson) => {
                   const lessonWithId = { ...l, id: l.lesson_id };
+                  // Solo traducir lesson_title desde content_translations
+                  // lesson_description, summary_content y transcript_content vienen desde la tabla correcta según idioma
                   const translated = await ContentTranslationService.translateObject(
                     'lesson',
                     lessonWithId,
-                    ['lesson_title', 'lesson_description'],
+                    ['lesson_title'],
                     i18n.language
                   );
-                  // summary_content y transcript_content ya vienen desde la tabla correcta según idioma
-                  // desde el endpoint learn-data, así que los mantenemos tal cual
+                  // Mantener lesson_description, summary_content y transcript_content desde la tabla por idioma
+                  translated.lesson_description = l.lesson_description;
                   translated.summary_content = l.summary_content;
                   translated.transcript_content = l.transcript_content;
                   return translated;

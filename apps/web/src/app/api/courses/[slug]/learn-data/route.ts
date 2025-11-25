@@ -213,7 +213,7 @@ async function loadModulesWithProgress(
   }
 
   // Obtener TODAS las lecciones en una query (sin filtrar por is_published primero)
-  // Usar la tabla correcta según el idioma para obtener transcript y summary
+  // Usar la tabla correcta según el idioma para obtener lesson_description, transcript y summary
   const lessonsTableName = getLessonsTableName(language)
   const { data: allLessonsData } = await supabase
     .from(lessonsTableName)
@@ -374,7 +374,7 @@ async function loadLessonData(
   lessonId: string,
   language: string = 'es'
 ) {
-  // Usar la tabla correcta según el idioma para obtener transcript y summary
+  // Usar la tabla correcta según el idioma para obtener lesson_description, transcript y summary
   const lessonsTableName = getLessonsTableName(language)
   
   // Validar que la lección pertenece al curso
