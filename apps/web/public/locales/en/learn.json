@@ -3,7 +3,13 @@
     "course": "Loading course...",
     "lesson": "Loading lesson...",
     "notes": "Loading notes...",
-    "conversations": "Loading conversations..."
+    "conversations": "Loading conversations...",
+    "video": "Loading video...",
+    "transcript": "Loading transcript...",
+    "summary": "Loading summary...",
+    "activities": "Loading activities...",
+    "questions": "Loading questions...",
+    "general": "Loading..."
   },
   "header": {
     "backButton": "Go back",

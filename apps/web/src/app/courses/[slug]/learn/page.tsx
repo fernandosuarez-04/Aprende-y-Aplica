@@ -65,11 +65,7 @@ import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
-const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
-  loading: () => <div className="flex items-center justify-center p-8">Cargando notas...</div>,
-  ssr: false // Modal no necesita SSR
-});
-
+// VideoPlayer se define fuera para que pueda ser usado en componentes hijos
 const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlayer').then(mod => ({ default: mod.VideoPlayer })), {
   loading: () => <div className="flex items-center justify-center aspect-video bg-gray-900 rounded-lg">Cargando video...</div>,
   ssr: false
@@ -120,6 +116,19 @@ export default function CourseLearnPage() {
   const { t, i18n, ready } = useTranslation('learn');
   // Detectar idioma seleccionado
   const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  
+  // Estado para evitar errores de hidratación
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Crear componentes dinámicos con loaders traducidos
+  const NotesModal = useMemo(() => dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
+    loading: () => <div className="flex items-center justify-center p-8">{mounted && ready ? t('loading.notes') : 'Cargando notas...'}</div>,
+    ssr: false
+  }), [t, mounted, ready]);
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -2123,7 +2132,9 @@ Antes de cada respuesta, pregúntate:
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-lg">Loading...</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">
+            {mounted && ready ? t('loading.general') : 'Cargando...'}
+          </p>
         </div>
       </div>
     );
@@ -3659,7 +3670,7 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex gap-2 items-end min-w-0">
                     <textarea
                       ref={liaTextareaRef}
-                      placeholder="Escribe tu pregunta a Lia..."
+                      placeholder={t('lia.placeholder')}
                       value={liaMessage}
                       onChange={(e) => {
                         setLiaMessage(e.target.value);
@@ -4369,7 +4380,7 @@ function TranscriptContent({
   onNoteCreated: (noteData: any, lessonId: string) => void;
   onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
 }) {
-  const { i18n } = useTranslation('learn');
+  const { t, i18n } = useTranslation('learn');
   const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -4545,7 +4556,7 @@ function TranscriptContent({
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <ScrollText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando transcripción...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.transcript')}</p>
         </div>
       </div>
     );
@@ -4638,7 +4649,7 @@ function TranscriptContent({
 }
 
 function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
-  const { i18n } = useTranslation('learn');
+  const { t, i18n } = useTranslation('learn');
   const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [summaryContent, setSummaryContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -4690,7 +4701,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando resumen...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.summary')}</p>
         </div>
       </div>
     );
@@ -5917,7 +5928,7 @@ function ActivitiesContent({
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando actividades...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.activities')}</p>
         </div>
       </div>
     );
@@ -6458,6 +6469,7 @@ function ActivitiesContent({
 }
 
 function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: string }) {
+  const { t } = useTranslation('learn');
   const [questions, setQuestions] = useState<Array<{
     id: string;
     title?: string;
@@ -6787,7 +6799,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando preguntas...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.questions')}</p>
         </div>
       </div>
     );
@@ -7003,7 +7015,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 {loadingMore ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Cargando...</span>
+                    <span>{t('loading.general')}</span>
                   </>
                 ) : (
                   <>

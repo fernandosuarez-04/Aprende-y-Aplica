@@ -3,7 +3,13 @@
     "course": "Cargando curso...",
     "lesson": "Cargando lección...",
     "notes": "Cargando notas...",
-    "conversations": "Cargando conversaciones..."
+    "conversations": "Cargando conversaciones...",
+    "video": "Cargando video...",
+    "transcript": "Cargando transcripción...",
+    "summary": "Cargando resumen...",
+    "activities": "Cargando actividades...",
+    "questions": "Cargando preguntas...",
+    "general": "Cargando..."
   },
   "header": {
     "backButton": "Volver atrás",
