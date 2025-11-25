@@ -91,7 +91,7 @@ export async function GET(
           course_id: userSkill.course_id,
           proficiency_level: userSkill.proficiency_level,
           obtained_at: userSkill.obtained_at,
-          is_displayed: userSkill.is_displayed,
+          is_displayed: userSkill.is_displayed !== false, // Si es null o undefined, tratarlo como true
           display_order: userSkill.display_order,
           level: level,
           course_count: courseCount,

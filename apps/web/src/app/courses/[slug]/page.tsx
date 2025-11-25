@@ -538,6 +538,7 @@ export default function CourseDetailPage() {
                             }))}
                             showFilter={false}
                             size="sm"
+                            layout="overlap"
                           />
                         </div>
                       )}
