@@ -62,6 +62,45 @@
     "adminPanel": "Admin panel",
     "instructorPanel": "Instructor panel",
     "logout": "Sign out"
+  },
+  "promptDirectory": {
+    "badge": "Prompt Directory",
+    "title": "Prompt Collection",
+    "description": "Discover and use the best AI prompts to maximize your productivity and creativity",
+    "createButton": "Create Prompt with AI",
+    "exploreText": "or explore our collection",
+    "searchPlaceholder": "Search prompts by name, category or description...",
+    "filters": {
+      "featured": "Featured",
+      "favorites": "Favorites",
+      "loginToViewFavorites": "Sign in to view your favorites",
+      "hideFavorites": "Hide favorites",
+      "showFavorites": "Show favorites"
+    },
+    "results": {
+      "loading": "Loading...",
+      "found": "{{count}} Prompts Found",
+      "filtersApplied": "Filters applied:",
+      "featured": "Featured",
+      "favorites": "Favorites"
+    },
+    "error": {
+      "loadingPrompts": "Error loading prompts",
+      "retry": "Retry"
+    },
+    "empty": {
+      "title": "No prompts found",
+      "description": "Try adjusting your search filters or explore different prompts",
+      "clearFilters": "Clear Filters"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "tour": {
+      "replay": "View directory tour",
+      "replayButton": "View Directory Tour"
+    }
   }
 }
 

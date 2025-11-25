@@ -13,6 +13,7 @@ import { useAuth } from '../../features/auth/hooks/useAuth';
 import { PromptFavoritesProvider } from '../../features/ai-directory/context/PromptFavoritesContext';
 import { ContextualVoiceGuide, ReplayTourButton } from '../../core/components/ContextualVoiceGuide';
 import { PROMPT_DIRECTORY_TOUR_STEPS } from '../../features/ai-directory/config/prompt-directory-tour';
+import { useTranslation } from 'react-i18next';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -40,6 +41,7 @@ const itemVariants = {
 export default function PromptDirectoryPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFeatured, setShowFeatured] = useState(false);
@@ -121,24 +123,24 @@ export default function PromptDirectoryPage() {
               variants={itemVariants}
             >
               <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Prompt Directory</span>
+              <span className="text-sm font-medium text-purple-700 dark:text-purple-300">{t('promptDirectory.badge')}</span>
             </motion.div>
 
             <motion.h1
               className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-purple-700 to-pink-700 dark:from-white dark:via-purple-200 dark:to-pink-200 bg-clip-text text-transparent"
               variants={itemVariants}
             >
-              Colección de Prompts
+              {t('promptDirectory.title')}
             </motion.h1>
 
             <motion.p
               className="text-xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto"
               variants={itemVariants}
             >
-              Descubre y utiliza los mejores prompts de IA para maximizar tu productividad y creatividad
+              {t('promptDirectory.description')}
             </motion.p>
 
-            <motion.div 
+            <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8"
               variants={itemVariants}
             >
@@ -147,26 +149,26 @@ export default function PromptDirectoryPage() {
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Wand2 className="w-5 h-5 mr-2" />
-                Crear Prompt con IA
+                {t('promptDirectory.createButton')}
               </Button>
-              
+
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                o explora nuestra colección
+                {t('promptDirectory.exploreText')}
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               variants={itemVariants}
               className="flex flex-col sm:flex-row gap-4 items-center justify-center max-w-3xl mx-auto"
             >
               <div className="flex-1 w-full">
                 <SearchBar
                   onSearch={handleSearch}
-                  placeholder="Buscar prompts por nombre, categoría o descripción..."
+                  placeholder={t('promptDirectory.searchPlaceholder')}
                   className="w-full"
                 />
               </div>
-              
+
               <div className="flex gap-3">
                 {/* Featured Toggle */}
                 <button
@@ -178,7 +180,7 @@ export default function PromptDirectoryPage() {
                   }`}
                 >
                   <Star className="w-4 h-4" />
-                  <span className="text-sm">Destacados</span>
+                  <span className="text-sm">{t('promptDirectory.filters.featured')}</span>
                 </button>
 
                 {/* Favorites Toggle */}
@@ -193,10 +195,10 @@ export default function PromptDirectoryPage() {
                         ? 'bg-red-500/20 dark:bg-red-500/20 border-red-500 dark:border-red-500 text-red-700 dark:text-red-300'
                         : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
                     }`}
-                    title={!user ? 'Inicia sesión para ver tus favoritos' : showFavorites ? 'Ocultar favoritos' : 'Mostrar favoritos'}
+                    title={!user ? t('promptDirectory.filters.loginToViewFavorites') : showFavorites ? t('promptDirectory.filters.hideFavorites') : t('promptDirectory.filters.showFavorites')}
                   >
                     <Heart className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`} />
-                    <span className="text-sm">Favoritos</span>
+                    <span className="text-sm">{t('promptDirectory.filters.favorites')}</span>
                   </button>
                 )}
               </div>
@@ -217,13 +219,13 @@ export default function PromptDirectoryPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              {loading ? 'Cargando...' : `${pagination?.total || 0} Prompts Encontrados`}
+              {loading ? t('promptDirectory.results.loading') : t('promptDirectory.results.found', { count: pagination?.total || 0 })}
             </h2>
             {hasActiveFilters && (
               <p className="text-gray-600 dark:text-gray-400">
-                Filtros aplicados: {searchQuery && `"${searchQuery}"`} 
-                {showFeatured && ' • Destacados'}
-                {showFavorites && ' • Favoritos'}
+                {t('promptDirectory.results.filtersApplied')} {searchQuery && `"${searchQuery}"`}
+                {showFeatured && ` • ${t('promptDirectory.results.featured')}`}
+                {showFavorites && ` • ${t('promptDirectory.results.favorites')}`}
               </p>
             )}
           </div>
@@ -263,9 +265,9 @@ export default function PromptDirectoryPage() {
         {/* Error State */}
         {error && (
           <div className="text-center py-12">
-            <div className="text-red-400 mb-4">Error al cargar los prompts</div>
+            <div className="text-red-400 mb-4">{t('promptDirectory.error.loadingPrompts')}</div>
             <Button onClick={() => refetch()} variant="primary">
-              Reintentar
+              {t('promptDirectory.error.retry')}
             </Button>
           </div>
         )}
@@ -307,12 +309,12 @@ export default function PromptDirectoryPage() {
             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
               <Search className="w-12 h-12 text-gray-600 dark:text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No se encontraron prompts</h3>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('promptDirectory.empty.title')}</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Intenta ajustar tus filtros de búsqueda o explorar diferentes prompts
+              {t('promptDirectory.empty.description')}
             </p>
             <Button onClick={clearFilters} variant="primary">
-              Limpiar Filtros
+              {t('promptDirectory.empty.clearFilters')}
             </Button>
           </div>
         )}
@@ -328,9 +330,9 @@ export default function PromptDirectoryPage() {
                   // Handle previous page
                 }}
               >
-                Anterior
+                {t('promptDirectory.pagination.previous')}
               </Button>
-              
+
               <div className="flex items-center gap-1">
                 {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                   const page = i + 1;
@@ -348,7 +350,7 @@ export default function PromptDirectoryPage() {
                   );
                 })}
               </div>
-              
+
               <Button
                 variant="ghost"
                 disabled={pagination.page === pagination.totalPages}
@@ -356,7 +358,7 @@ export default function PromptDirectoryPage() {
                   // Handle next page
                 }}
               >
-                Siguiente
+                {t('promptDirectory.pagination.next')}
               </Button>
             </div>
           </div>
@@ -370,13 +372,13 @@ export default function PromptDirectoryPage() {
         triggerPaths={['/prompt-directory']}
         isReplayable={true}
         showDelay={1500}
-        replayButtonLabel="Ver tour del directorio"
+        replayButtonLabel={t('promptDirectory.tour.replay')}
       />
 
       {/* Botón para volver a ver el tour */}
       <ReplayTourButton
         tourId="prompt-directory"
-        label="Ver Tour del Directorio"
+        label={t('promptDirectory.tour.replayButton')}
         allowedPaths={['/prompt-directory']}
       />
     </div>

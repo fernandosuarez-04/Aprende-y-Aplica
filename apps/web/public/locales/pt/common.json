@@ -62,6 +62,45 @@
     "adminPanel": "Painel de administração",
     "instructorPanel": "Painel do instrutor",
     "logout": "Sair"
+  },
+  "promptDirectory": {
+    "badge": "Prompt Directory",
+    "title": "Coleção de Prompts",
+    "description": "Descubra e use os melhores prompts de IA para maximizar sua produtividade e criatividade",
+    "createButton": "Criar Prompt com IA",
+    "exploreText": "ou explore nossa coleção",
+    "searchPlaceholder": "Buscar prompts por nome, categoria ou descrição...",
+    "filters": {
+      "featured": "Destaques",
+      "favorites": "Favoritos",
+      "loginToViewFavorites": "Entre para ver seus favoritos",
+      "hideFavorites": "Ocultar favoritos",
+      "showFavorites": "Mostrar favoritos"
+    },
+    "results": {
+      "loading": "Carregando...",
+      "found": "{{count}} Prompts Encontrados",
+      "filtersApplied": "Filtros aplicados:",
+      "featured": "Destaques",
+      "favorites": "Favoritos"
+    },
+    "error": {
+      "loadingPrompts": "Erro ao carregar os prompts",
+      "retry": "Tentar novamente"
+    },
+    "empty": {
+      "title": "Nenhum prompt encontrado",
+      "description": "Tente ajustar seus filtros de busca ou explorar prompts diferentes",
+      "clearFilters": "Limpar Filtros"
+    },
+    "pagination": {
+      "previous": "Anterior",
+      "next": "Próximo"
+    },
+    "tour": {
+      "replay": "Ver tour do diretório",
+      "replayButton": "Ver Tour do Diretório"
+    }
   }
 }
 
