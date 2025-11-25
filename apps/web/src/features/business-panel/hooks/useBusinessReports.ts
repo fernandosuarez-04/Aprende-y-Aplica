@@ -30,7 +30,19 @@ export function useBusinessReports() {
       const typeToFetch = type || reportType
       const filtersToUse = { ...filters, ...customFilters }
 
-      // console.log('📡 Fetching report:', typeToFetch, 'with filters:', filtersToUse)
+      // Validar que el tipo de reporte sea válido
+      if (!typeToFetch) {
+        throw new Error('Tipo de reporte no especificado')
+      }
+
+      // Validar fechas si están presentes
+      if (filtersToUse.start_date && filtersToUse.end_date) {
+        const startDate = new Date(filtersToUse.start_date)
+        const endDate = new Date(filtersToUse.end_date)
+        if (startDate > endDate) {
+          throw new Error('La fecha de inicio no puede ser posterior a la fecha de fin')
+        }
+      }
 
       const params = new URLSearchParams({
         type: typeToFetch
@@ -56,22 +68,23 @@ export function useBusinessReports() {
       }
 
       const url = `/api/business/reports/data?${params.toString()}`
-      // console.log('🌐 Fetching URL:', url)
 
       const response = await fetch(url, {
         credentials: 'include'
       })
 
-      // console.log('📥 Response status:', response.status, response.statusText)
-
       if (!response.ok) {
-        const errorText = await response.text()
-        // console.error('❌ Error response:', errorText)
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        let errorMessage = `Error ${response.status}: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // Si no se puede parsear el JSON, usar el mensaje por defecto
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
-      // console.log('✅ Response data:', data)
 
       if (data.success && data.data) {
         setReportData({
@@ -80,14 +93,13 @@ export function useBusinessReports() {
           data: data.data,
           generated_at: data.generated_at
         })
-        // console.log('✅ Report data set successfully')
       } else {
         throw new Error(data.error || 'Error al obtener el reporte')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al cargar el reporte'
       setError(errorMessage)
-      // console.error('❌ Error fetching report:', err)
+      console.error('Error fetching report:', err)
     } finally {
       setIsLoading(false)
     }
