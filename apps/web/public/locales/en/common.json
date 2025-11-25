@@ -129,6 +129,176 @@
       "previous": "Previous",
       "next": "Next"
     }
+  },
+  "communities": {
+    "title": "Community of",
+    "brandName": "Aprende y Aplica",
+    "description": "Connect with other students, share knowledge and participate in discussions about artificial intelligence and educational technology",
+    "stats": {
+      "members": "MEMBERS",
+      "communities": "COMMUNITIES"
+    },
+    "searchPlaceholder": "Search communities or content...",
+    "filterButton": "Categories",
+    "categories": {
+      "all": "All",
+      "general": "General",
+      "ai": "AI",
+      "data": "Data",
+      "development": "Development",
+      "design": "Design",
+      "it": "IT & Software",
+      "marketing": "Marketing",
+      "business": "Business"
+    },
+    "accessTypes": {
+      "free": "Member",
+      "invitation_only": "Invitation",
+      "paid": "Payment"
+    },
+    "labels": {
+      "updated": "Updated",
+      "members": "Members",
+      "publicCommunity": "Open community",
+      "moderatedAccess": "Moderated access",
+      "active": "Active",
+      "paused": "Paused",
+      "alreadyMember": "Already a member",
+      "requestSent": "Request sent"
+    },
+    "buttons": {
+      "viewDetails": "View details",
+      "enter": "Enter",
+      "pendingRequest": "Pending request",
+      "join": "Join",
+      "understood": "Understood",
+      "enterCommunity": "Enter Community",
+      "close": "Close",
+      "viewRules": "View Community Rules"
+    },
+    "errors": {
+      "loadingError": "Error loading communities",
+      "errorMessage": "An error occurred trying to load communities",
+      "retry": "Retry"
+    },
+    "empty": {
+      "noCommunities": "No communities available",
+      "noCommunitiesDesc": "No communities have been created on the platform yet",
+      "noResults": "No communities found",
+      "noResultsDesc": "Try adjusting your search filters"
+    },
+    "rulesModal": {
+      "title": "Community Rules",
+      "description": "Help us maintain a respectful and constructive environment",
+      "respectful": {
+        "title": "Be Respectful",
+        "description": "Treat all members with respect and courtesy. We do not tolerate harassment or discrimination."
+      },
+      "shareKnowledge": {
+        "title": "Share Knowledge",
+        "description": "Contribute useful and constructive information. Help others learn and grow."
+      },
+      "privacy": {
+        "title": "Maintain Privacy",
+        "description": "Do not share personal information of other members without their consent."
+      },
+      "reportProblems": {
+        "title": "Report Problems",
+        "description": "If you see inappropriate content, report it immediately to the moderators."
+      }
+    },
+    "detailsModal": {
+      "communityLabel": "Community",
+      "visibility": {
+        "public": "Public",
+        "private": "Private"
+      },
+      "accessType": {
+        "free": "Free access",
+        "invitationOnly": "Invitation only",
+        "premium": "Premium access"
+      },
+      "stats": {
+        "members": "Members",
+        "posts": "Posts published",
+        "created": "Created"
+      },
+      "keyInfo": "Key information",
+      "moderation": {
+        "title": "Active moderation",
+        "description": "A dedicated team maintains healthy and focused conversations."
+      },
+      "collaboration": {
+        "title": "Constant collaboration",
+        "description": "Share ideas, questions and resources with like-minded professionals."
+      },
+      "admins": "Administrators",
+      "roles": {
+        "creator": "Creator",
+        "moderator": "Moderator",
+        "admin": "Administrator",
+        "member": "Member"
+      },
+      "recentMembers": "Recent members",
+      "firstToJoin": "Be the first to join this community.",
+      "loadError": "Could not load all details. Try again later.",
+      "noAdmins": "No additional administrators assigned yet.",
+      "defaultTeam": "Aprende y Aplica Team"
+    }
+  },
+  "landing": {
+    "loading": "Loading...",
+    "errors": {
+      "title": "Error",
+      "loadContent": "Error loading content",
+      "noContent": "Could not load content",
+      "retry": "Retry"
+    }
+  },
+  "myCourses": {
+    "loading": "Loading your courses...",
+    "title": "My Learning",
+    "subtitle": "Continue where you left off",
+    "stats": {
+      "total": "Total Courses",
+      "completed": "Completed",
+      "inProgress": "In Progress",
+      "totalTime": "Total Time"
+    },
+    "searchPlaceholder": "Search my courses...",
+    "filters": {
+      "all": "All",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "notStarted": "Not Started"
+    },
+    "empty": {
+      "title": "You don't have any courses yet",
+      "description": "Get courses to start your learning journey",
+      "button": "Explore Courses"
+    },
+    "buttons": {
+      "continue": "Continue",
+      "start": "Start"
+    }
+  },
+  "news": {
+    "tabs": {
+      "news": "News",
+      "newsCaption": "Curated articles",
+      "reels": "Reels",
+      "reelsCaption": "Trending clips"
+    },
+    "viewOptions": {
+      "grid": "Cards",
+      "list": "List"
+    },
+    "stats": {
+      "news": "News",
+      "categories": "Categories",
+      "views": "Views"
+    },
+    "searchPlaceholder": "Search news..."
   }
 }
 

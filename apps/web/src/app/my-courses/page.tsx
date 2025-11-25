@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { 
-  BookOpen, 
-  Clock, 
-  Play, 
+import {
+  BookOpen,
+  Clock,
+  Play,
   Award,
   TrendingUp,
   CheckCircle2,
@@ -18,6 +18,7 @@ import {
   TrendingDown
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { useTranslation } from 'react-i18next';
 
 interface Course {
   purchase_id: string;
@@ -48,6 +49,8 @@ interface Stats {
 }
 
 export default function MyCoursesPage() {
+  const { t } = useTranslation();
+  const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [stats, setStats] = useState<Stats>({
     total_courses: 0,
@@ -136,7 +139,7 @@ export default function MyCoursesPage() {
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full mx-auto mb-4"
           />
-          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando tus cursos...</p>
+          <p className="text-gray-700 dark:text-white/70 text-lg">{t('myCourses.loading')}</p>
         </div>
       </div>
     );
@@ -155,9 +158,9 @@ export default function MyCoursesPage() {
             <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Mi Aprendizaje</h1>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('myCourses.title')}</h1>
           </div>
-          <p className="text-gray-600 dark:text-slate-400 text-lg">Continúa donde lo dejaste</p>
+          <p className="text-gray-600 dark:text-slate-400 text-lg">{t('myCourses.subtitle')}</p>
         </motion.div>
 
         {/* Stats Cards */}
@@ -172,7 +175,7 @@ export default function MyCoursesPage() {
               <div className="p-2 rounded-lg bg-blue-500/20">
                 <Target className="w-5 h-5 text-blue-400" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">Total de Cursos</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('myCourses.stats.total')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total_courses}</p>
           </motion.div>
@@ -187,7 +190,7 @@ export default function MyCoursesPage() {
               <div className="p-2 rounded-lg bg-green-500/20">
                 <CheckCircle2 className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">Completados</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('myCourses.stats.completed')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.completed_courses}</p>
           </motion.div>
@@ -202,7 +205,7 @@ export default function MyCoursesPage() {
               <div className="p-2 rounded-lg bg-purple-500/20">
                 <TrendingUp className="w-5 h-5 text-purple-400" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">En Progreso</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('myCourses.stats.inProgress')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.in_progress_courses}</p>
           </motion.div>
@@ -217,7 +220,7 @@ export default function MyCoursesPage() {
               <div className="p-2 rounded-lg bg-cyan-500/20">
                 <Clock className="w-5 h-5 text-cyan-400" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">Tiempo Total</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('myCourses.stats.totalTime')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatDuration(stats.total_time_minutes)}</p>
           </motion.div>
@@ -234,22 +237,22 @@ export default function MyCoursesPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar en mis cursos..."
+              placeholder={t('myCourses.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
             />
           </div>
-          
+
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
-            <option value="all">Todos</option>
-            <option value="in_progress">En Progreso</option>
-            <option value="completed">Completados</option>
-            <option value="not_started">No Iniciados</option>
+            <option value="all">{t('myCourses.filters.all')}</option>
+            <option value="in_progress">{t('myCourses.filters.inProgress')}</option>
+            <option value="completed">{t('myCourses.filters.completed')}</option>
+            <option value="not_started">{t('myCourses.filters.notStarted')}</option>
           </select>
         </motion.div>
 
@@ -265,13 +268,13 @@ export default function MyCoursesPage() {
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-12 h-12 text-gray-400 dark:text-slate-400" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No tienes cursos aún</h3>
-              <p className="text-gray-600 dark:text-slate-400 mb-6">Adquiere cursos para comenzar tu aprendizaje</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('myCourses.empty.title')}</h3>
+              <p className="text-gray-600 dark:text-slate-400 mb-6">{t('myCourses.empty.description')}</p>
               <Button
                 onClick={() => router.push('/dashboard')}
                 variant="gradient"
               >
-                Explorar Cursos
+                {t('myCourses.empty.button')}
               </Button>
             </motion.div>
           ) : (
@@ -367,7 +370,7 @@ export default function MyCoursesPage() {
                         className="flex-1 group/btn h-12 rounded-xl shadow-[0_10px_25px_rgba(37,99,235,0.25)]"
                       >
                         <Play className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
-                        {course.progress_percentage > 0 ? 'Continuar' : 'Iniciar'}
+                        {course.progress_percentage > 0 ? t('myCourses.buttons.continue') : t('myCourses.buttons.start')}
                       </Button>
                       
                       {course.progress_percentage === 100 && (
