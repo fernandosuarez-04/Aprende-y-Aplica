@@ -21,7 +21,7 @@ import {
   Info
 } from 'lucide-react'
 import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
-import { getPlanById, calculatePlanPrice, formatPlanPrice, type BusinessPlanId, type BillingCycle } from '../services/subscription.service'
+import { getPlanById, calculatePlanPrice, formatPlanPrice, type BusinessPlanId, type BillingCycle } from '../services/subscription.utils'
 
 interface PlanFeature {
   name: string
