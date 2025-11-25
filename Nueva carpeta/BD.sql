@@ -1784,3 +1784,276 @@ CREATE INDEX idx_work_team_feedback_team_id ON public.work_team_feedback(team_id
 CREATE INDEX idx_work_team_feedback_to_user_id ON public.work_team_feedback(to_user_id);
 CREATE INDEX idx_work_team_statistics_team_id ON public.work_team_statistics(team_id);
 CREATE INDEX idx_work_team_statistics_stat_date ON public.work_team_statistics(stat_date);
+
+-- =====================================================
+-- Sistema de Skills para Cursos y Usuarios
+-- =====================================================
+
+-- Tabla: skills - Catálogo de skills disponibles
+CREATE TABLE public.skills (
+  skill_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL UNIQUE,
+  slug character varying NOT NULL UNIQUE,
+  description text,
+  category character varying NOT NULL DEFAULT 'general'::character varying CHECK (
+    category::text = ANY (
+      ARRAY[
+        'general'::character varying::text,
+        'programming'::character varying::text,
+        'design'::character varying::text,
+        'marketing'::character varying::text,
+        'business'::character varying::text,
+        'data'::character varying::text,
+        'ai'::character varying::text,
+        'cloud'::character varying::text,
+        'security'::character varying::text,
+        'devops'::character varying::text,
+        'leadership'::character varying::text,
+        'communication'::character varying::text,
+        'other'::character varying::text
+      ]
+    )
+  ),
+  icon_url text,
+  icon_type character varying DEFAULT 'image'::character varying CHECK (
+    icon_type::text = ANY (
+      ARRAY['image'::character varying::text, 'svg'::character varying::text, 'emoji'::character varying::text, 'font_icon'::character varying::text]
+    )
+  ),
+  icon_name character varying,
+  color character varying DEFAULT '#3b82f6'::character varying,
+  level character varying DEFAULT 'beginner'::character varying CHECK (
+    level::text = ANY (
+      ARRAY['beginner'::character varying::text, 'intermediate'::character varying::text, 'advanced'::character varying::text, 'expert'::character varying::text, 'master'::character varying::text]
+    )
+  ),
+  is_active boolean DEFAULT true,
+  is_featured boolean DEFAULT false,
+  display_order integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT skills_pkey PRIMARY KEY (skill_id)
+);
+
+CREATE INDEX idx_skills_category ON public.skills(category);
+CREATE INDEX idx_skills_is_active ON public.skills(is_active);
+CREATE INDEX idx_skills_slug ON public.skills(slug);
+
+-- Tabla: course_skills - Relación entre cursos y skills
+CREATE TABLE public.course_skills (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  course_id uuid NOT NULL,
+  skill_id uuid NOT NULL,
+  is_primary boolean DEFAULT false,
+  is_required boolean DEFAULT true,
+  proficiency_level character varying DEFAULT 'beginner'::character varying CHECK (
+    proficiency_level::text = ANY (
+      ARRAY['beginner'::character varying::text, 'intermediate'::character varying::text, 'advanced'::character varying::text]
+    )
+  ),
+  display_order integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT course_skills_pkey PRIMARY KEY (id),
+  CONSTRAINT course_skills_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE,
+  CONSTRAINT course_skills_skill_id_fkey FOREIGN KEY (skill_id) REFERENCES public.skills(skill_id) ON DELETE CASCADE,
+  CONSTRAINT course_skills_unique UNIQUE (course_id, skill_id)
+);
+
+CREATE INDEX idx_course_skills_course_id ON public.course_skills(course_id);
+CREATE INDEX idx_course_skills_skill_id ON public.course_skills(skill_id);
+CREATE INDEX idx_course_skills_is_primary ON public.course_skills(is_primary);
+
+-- Tabla: user_skills - Skills obtenidas por usuarios
+CREATE TABLE public.user_skills (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  skill_id uuid NOT NULL,
+  course_id uuid,
+  enrollment_id uuid,
+  proficiency_level character varying DEFAULT 'beginner'::character varying CHECK (
+    proficiency_level::text = ANY (
+      ARRAY['beginner'::character varying::text, 'intermediate'::character varying::text, 'advanced'::character varying::text, 'expert'::character varying::text]
+    )
+  ),
+  obtained_at timestamp with time zone NOT NULL DEFAULT now(),
+  verified boolean DEFAULT true,
+  verified_by uuid,
+  is_displayed boolean DEFAULT true,
+  display_order integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_skills_pkey PRIMARY KEY (id),
+  CONSTRAINT user_skills_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE,
+  CONSTRAINT user_skills_skill_id_fkey FOREIGN KEY (skill_id) REFERENCES public.skills(skill_id) ON DELETE CASCADE,
+  CONSTRAINT user_skills_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE SET NULL,
+  CONSTRAINT user_skills_enrollment_id_fkey FOREIGN KEY (enrollment_id) REFERENCES public.user_course_enrollments(enrollment_id) ON DELETE SET NULL,
+  CONSTRAINT user_skills_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(id) ON DELETE SET NULL,
+  CONSTRAINT user_skills_unique UNIQUE (user_id, skill_id, course_id)
+);
+
+CREATE INDEX idx_user_skills_user_id ON public.user_skills(user_id);
+CREATE INDEX idx_user_skills_skill_id ON public.user_skills(skill_id);
+CREATE INDEX idx_user_skills_course_id ON public.user_skills(course_id);
+CREATE INDEX idx_user_skills_is_displayed ON public.user_skills(is_displayed);
+CREATE INDEX idx_user_skills_obtained_at ON public.user_skills(obtained_at);
+
+-- Función: Asignar skills al completar curso
+CREATE OR REPLACE FUNCTION public.assign_skills_on_course_completion()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.enrollment_status = 'completed' AND 
+     (OLD.enrollment_status IS NULL OR OLD.enrollment_status != 'completed') AND
+     NEW.completed_at IS NOT NULL THEN
+    
+    INSERT INTO public.user_skills (
+      user_id,
+      skill_id,
+      course_id,
+      enrollment_id,
+      proficiency_level,
+      verified,
+      verified_by,
+      obtained_at
+    )
+    SELECT 
+      NEW.user_id,
+      cs.skill_id,
+      NEW.course_id,
+      NEW.enrollment_id,
+      cs.proficiency_level,
+      true,
+      NULL,
+      NEW.completed_at
+    FROM public.course_skills cs
+    WHERE cs.course_id = NEW.course_id
+      AND cs.is_required = true
+      AND NOT EXISTS (
+        SELECT 1 
+        FROM public.user_skills us
+        WHERE us.user_id = NEW.user_id
+          AND us.skill_id = cs.skill_id
+          AND us.course_id = NEW.course_id
+      );
+    
+    UPDATE public.user_skills us
+    SET 
+      proficiency_level = GREATEST(
+        us.proficiency_level::text,
+        cs.proficiency_level::text
+      )::character varying,
+      updated_at = now()
+    FROM public.course_skills cs
+    WHERE us.user_id = NEW.user_id
+      AND us.skill_id = cs.skill_id
+      AND cs.course_id = NEW.course_id
+      AND cs.proficiency_level::text > us.proficiency_level::text
+      AND us.course_id != NEW.course_id;
+    
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para ejecutar la función automáticamente
+CREATE TRIGGER trigger_assign_skills_on_completion
+  AFTER UPDATE ON public.user_course_enrollments
+  FOR EACH ROW
+  WHEN (NEW.enrollment_status = 'completed' AND 
+        (OLD.enrollment_status IS NULL OR OLD.enrollment_status != 'completed'))
+  EXECUTE FUNCTION public.assign_skills_on_course_completion();
+
+-- =====================================================
+-- Sistema de Badges de Skills por Nivel
+-- =====================================================
+
+-- Tabla: skill_badges - Badges por nivel de skill
+CREATE TABLE public.skill_badges (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  skill_id uuid NOT NULL,
+  level character varying NOT NULL CHECK (
+    level::text = ANY (
+      ARRAY['green'::character varying::text, 'bronze'::character varying::text, 'silver'::character varying::text, 'gold'::character varying::text, 'diamond'::character varying::text]
+    )
+  ),
+  badge_url text NOT NULL,
+  storage_path text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT skill_badges_pkey PRIMARY KEY (id),
+  CONSTRAINT skill_badges_skill_id_fkey FOREIGN KEY (skill_id) REFERENCES public.skills(skill_id) ON DELETE CASCADE,
+  CONSTRAINT skill_badges_unique UNIQUE (skill_id, level)
+);
+
+CREATE INDEX idx_skill_badges_skill_id ON public.skill_badges(skill_id);
+CREATE INDEX idx_skill_badges_level ON public.skill_badges(level);
+
+-- Función: Calcular nivel de skill basado en cursos completados
+CREATE OR REPLACE FUNCTION public.calculate_skill_level(course_count integer)
+RETURNS character varying AS $$
+BEGIN
+  CASE
+    WHEN course_count >= 5 THEN RETURN 'diamond';
+    WHEN course_count >= 4 THEN RETURN 'gold';
+    WHEN course_count >= 3 THEN RETURN 'silver';
+    WHEN course_count >= 2 THEN RETURN 'bronze';
+    WHEN course_count >= 1 THEN RETURN 'green';
+    ELSE RETURN NULL;
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Función: Obtener nivel de skill para un usuario
+CREATE OR REPLACE FUNCTION public.get_user_skill_level(
+  p_user_id uuid,
+  p_skill_id uuid
+)
+RETURNS TABLE (
+  course_count bigint,
+  level character varying,
+  next_level_courses_needed integer
+) AS $$
+DECLARE
+  v_course_count bigint;
+  v_level character varying;
+  v_next_level_courses_needed integer;
+BEGIN
+  -- Contar cursos completados con esa skill
+  SELECT COUNT(DISTINCT uce.course_id) INTO v_course_count
+  FROM public.user_course_enrollments uce
+  INNER JOIN public.course_skills cs ON cs.course_id = uce.course_id
+  WHERE uce.user_id = p_user_id
+    AND cs.skill_id = p_skill_id
+    AND uce.enrollment_status = 'completed'
+    AND uce.completed_at IS NOT NULL;
+
+  -- Calcular nivel actual
+  v_level := public.calculate_skill_level(v_course_count::integer);
+
+  -- Calcular cursos necesarios para siguiente nivel
+  CASE v_level
+    WHEN 'green' THEN v_next_level_courses_needed := 2 - v_course_count;
+    WHEN 'bronze' THEN v_next_level_courses_needed := 3 - v_course_count;
+    WHEN 'silver' THEN v_next_level_courses_needed := 4 - v_course_count;
+    WHEN 'gold' THEN v_next_level_courses_needed := 5 - v_course_count;
+    WHEN 'diamond' THEN v_next_level_courses_needed := 0; -- Ya es el nivel máximo
+    ELSE v_next_level_courses_needed := 1 - v_course_count;
+  END CASE;
+
+  RETURN QUERY SELECT v_course_count, v_level, GREATEST(0, v_next_level_courses_needed);
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Políticas RLS para Storage Bucket "Skills"
+-- 
+-- IMPORTANTE: Las políticas RLS para Storage deben ejecutarse en Supabase Dashboard
+-- o mediante el archivo separado: RLS_POLICIES_SKILLS_STORAGE.sql
+-- 
+-- Las políticas incluyen:
+-- 1. Lectura pública (SELECT) - Cualquiera puede ver los badges
+-- 2. Inserción solo administradores (INSERT) - Solo admins pueden subir
+-- 3. Actualización solo administradores (UPDATE) - Solo admins pueden actualizar
+-- 4. Eliminación solo administradores (DELETE) - Solo admins pueden eliminar
+--
+-- Ver archivo: Nueva carpeta/RLS_POLICIES_SKILLS_STORAGE.sql para las políticas completas

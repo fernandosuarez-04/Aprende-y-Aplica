@@ -1,3 +1,5 @@
+import 'server-only'
+
 import { createClient } from '../../../lib/supabase/server'
 import { BusinessUsersService, BusinessUser, BusinessUserStats, CreateBusinessUserRequest, UpdateBusinessUserRequest } from './businessUsers.service'
 import bcrypt from 'bcryptjs'
