@@ -18,6 +18,7 @@ import { ActivityModal } from '@/features/admin/components/ActivityModal'
 import { ImageUploadCourse } from './ImageUploadCourse'
 import { CertificateTemplatePreview } from '@/features/admin/components/CertificateTemplatePreview'
 import { InstructorSignatureUpload } from './InstructorSignatureUpload'
+import { CourseSkillsSelector, CourseSkill } from '@/features/courses/components/CourseSkillsSelector'
 
 interface InstructorCourseManagementPageProps {
   courseId: string
@@ -60,6 +61,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [selectedCertificateTemplate, setSelectedCertificateTemplate] = useState<string>('default')
   const [instructorSignatureUrl, setInstructorSignatureUrl] = useState<string | null>(null)
   const [instructorSignatureName, setInstructorSignatureName] = useState<string | null>(null)
+  const [courseSkills, setCourseSkills] = useState<CourseSkill[]>([])
+  const [savingSkills, setSavingSkills] = useState(false)
   const [configData, setConfigData] = useState({
     title: '',
     description: '',
@@ -165,6 +168,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
         const data = await res.json().catch(() => ({}))
         throw new Error(data?.error || 'Error al guardar la configuración')
       }
+      // Guardar skills
+      await handleSaveSkills()
       // refrescar preview
       const refreshed = await fetch(`/api/instructor/workshops/${courseId}`).then(r => r.json())
       if (refreshed?.workshop) setWorkshopPreview(refreshed.workshop)
@@ -173,6 +178,27 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       alert(err instanceof Error ? err.message : 'Error al guardar')
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  const handleSaveSkills = async () => {
+    try {
+      setSavingSkills(true)
+      const res = await fetch(`/api/courses/${courseId}/skills`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skills: courseSkills }),
+        credentials: 'include'
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Error al guardar skills')
+      }
+    } catch (err) {
+      console.error('Error saving skills:', err)
+      throw err
+    } finally {
+      setSavingSkills(false)
     }
   }
 
@@ -559,6 +585,20 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                   <label className="block text-sm font-medium text-purple-200 mb-2">Slug (URL)</label>
                   <input name="slug" value={configData.slug} onChange={handleConfigChange} className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2" />
+                </div>
+                <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                  <label className="block text-sm font-medium text-purple-200 mb-4">
+                    Skills que se Aprenden en este Curso
+                  </label>
+                  <p className="text-xs text-purple-300/70 mb-4">
+                    Selecciona las skills que los estudiantes obtendrán al completar este curso. Estas aparecerán en su perfil.
+                  </p>
+                  <CourseSkillsSelector
+                    courseId={courseId}
+                    selectedSkills={courseSkills}
+                    onSkillsChange={setCourseSkills}
+                    disabled={savingConfig || savingSkills}
+                  />
                 </div>
               </div>
               <div className="space-y-4">

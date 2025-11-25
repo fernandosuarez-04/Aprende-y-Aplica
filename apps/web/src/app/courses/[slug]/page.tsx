@@ -35,6 +35,7 @@ import { createClient } from '../../../lib/supabase/client';
 import { SuccessModal } from '../../../core/components/SuccessModal';
 import { ErrorModal } from '../../../core/components/ErrorModal';
 import { useShoppingCartStore } from '../../../core/stores/shoppingCartStore';
+import { SkillBadgeList } from '../../../features/skills/components/SkillBadgeList';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -56,6 +57,7 @@ export default function CourseDetailPage() {
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [courseSkills, setCourseSkills] = useState<any[]>([]);
   const { items, removeItem } = useShoppingCartStore();
 
   useEffect(() => {
@@ -80,6 +82,21 @@ export default function CourseDetailPage() {
         const courseData = await courseResponse.json();
         setCourse(courseData);
         setIsFavorite(courseData.isFavorite || false);
+
+        // Cargar skills del curso
+        if (courseData.id) {
+          try {
+            const skillsResponse = await fetch(`/api/courses/${courseData.id}/skills`);
+            if (skillsResponse.ok) {
+              const skillsData = await skillsResponse.json();
+              if (skillsData.success && Array.isArray(skillsData.skills)) {
+                setCourseSkills(skillsData.skills);
+              }
+            }
+          } catch (err) {
+            console.error('Error loading course skills:', err);
+          }
+        }
 
         // Procesar purchase
         if (purchaseResponse.ok) {
@@ -500,6 +517,27 @@ export default function CourseDetailPage() {
                           <p className="text-gray-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
                             {course.description}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Skills que Aprenderás */}
+                      {courseSkills.length > 0 && (
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Skills que Aprenderás</h3>
+                          <SkillBadgeList
+                            skills={courseSkills.map(skill => ({
+                              skill_id: skill.skill_id,
+                              name: skill.name,
+                              slug: skill.slug,
+                              description: skill.description,
+                              category: skill.category,
+                              level: skill.user_level || null,
+                              badge_url: skill.user_badge_url || null,
+                              course_count: skill.user_course_count || 0
+                            }))}
+                            showFilter={true}
+                            size="md"
+                          />
                         </div>
                       )}
 
