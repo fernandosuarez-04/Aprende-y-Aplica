@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { logger } from '@/lib/utils/logger'
-import { requireAuth } from '@/lib/auth/requireAuth'
+import { logger } from '@/lib/logger'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 /**
  * DELETE /api/admin/skills/[id]/badges/[level]
@@ -12,16 +12,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; level: string }> }
 ) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
-
-    // Verificar que es administrador
-    if (auth.user.cargo_rol !== 'Administrador') {
-      return NextResponse.json({
-        success: false,
-        error: 'No tienes permisos para eliminar badges'
-      }, { status: 403 })
-    }
 
     const { id: skillId, level } = await params
     const supabase = await createClient()
@@ -50,9 +42,20 @@ export async function DELETE(
       }, { status: 404 })
     }
 
-    // Eliminar archivo del storage
-    if (badge.storage_path) {
-      const { error: storageError } = await supabase.storage
+    // Usar Service Role Key para eliminar del storage (bypass RLS)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (supabaseServiceKey && badge.storage_path) {
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+      const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
+
+      const { error: storageError } = await supabaseAdmin.storage
         .from('Skills')
         .remove([badge.storage_path])
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { logger } from '@/lib/utils/logger'
-import { requireAuth } from '@/lib/auth/requireAuth'
+import { logger } from '@/lib/logger'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 /**
  * POST /api/admin/upload/skill-badge
@@ -9,16 +9,8 @@ import { requireAuth } from '@/lib/auth/requireAuth'
  */
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth()
+    const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
-
-    // Verificar que es administrador
-    if (auth.user.cargo_rol !== 'Administrador') {
-      return NextResponse.json({
-        success: false,
-        error: 'No tienes permisos para subir badges'
-      }, { status: 403 })
-    }
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -59,7 +51,26 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    // Usar Service Role Key para bypass de RLS en Storage
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (!supabaseServiceKey) {
+      logger.error('Missing SUPABASE_SERVICE_ROLE_KEY')
+      return NextResponse.json({
+        success: false,
+        error: 'Configuración del servidor incompleta'
+      }, { status: 500 })
+    }
+
+    // Crear cliente con service role key para bypass de RLS
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+    const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
     // Generar nombre de archivo: {skill-slug}-{level}.png
     const fileName = `${skillSlug}-${level}.png`
@@ -68,8 +79,8 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Subir el archivo al bucket Skills
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Subir el archivo al bucket Skills usando service role (bypass RLS)
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('Skills')
       .upload(fileName, buffer, {
         cacheControl: '3600',
@@ -86,11 +97,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener la URL pública del archivo
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from('Skills')
       .getPublicUrl(fileName)
 
-    // Guardar o actualizar en la tabla skill_badges
+    // Guardar o actualizar en la tabla skill_badges usando cliente normal
+    const supabase = await createClient()
     const { data: badgeData, error: badgeError } = await supabase
       .from('skill_badges')
       .upsert({
@@ -108,7 +120,7 @@ export async function POST(request: NextRequest) {
     if (badgeError) {
       logger.error('Error saving badge to database:', badgeError)
       // Intentar eliminar el archivo subido si falla la BD
-      await supabase.storage.from('Skills').remove([fileName])
+      await supabaseAdmin.storage.from('Skills').remove([fileName])
       return NextResponse.json({
         success: false,
         error: 'Error al guardar el badge en la base de datos'

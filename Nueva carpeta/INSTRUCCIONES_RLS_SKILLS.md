@@ -7,11 +7,15 @@
    - Verifica que existe el bucket llamado "Skills"
    - Si no existe, créalo con acceso público para lectura
 
-2. **RLS debe estar habilitado en storage.objects**
-   - Esto se hace automáticamente al ejecutar las políticas
+2. **Configurar el bucket como público**
+   - Ve a: Supabase Dashboard > Storage > Buckets > Skills
+   - Marca la opción "Public bucket" para permitir lectura pública
+   - Esto permite que las imágenes sean accesibles públicamente
 
-3. **Los usuarios administradores deben tener `cargo_rol = 'Administrador'`**
-   - Verifica en la tabla `users` que los administradores tengan este campo correcto
+3. **IMPORTANTE: Este proyecto NO usa Supabase Auth**
+   - Usa autenticación personalizada basada en JWT y cookies
+   - Las operaciones de escritura se manejan desde el backend usando Service Role Key
+   - Solo necesitamos política de lectura pública
 
 ## 🚀 Pasos para Configurar las Políticas
 
@@ -29,7 +33,7 @@
 
 4. **Crea las políticas manualmente:**
    
-   **Política 1: Lectura Pública**
+   **Política ÚNICA: Lectura Pública**
    - Click en "New Policy"
    - Nombre: `Public read access for Skills bucket`
    - Allowed operation: `SELECT`
@@ -38,67 +42,28 @@
    bucket_id = 'Skills'
    ```
 
-   **Política 2: Inserción Solo Admin**
-   - Click en "New Policy"
-   - Nombre: `Admin insert access for Skills bucket`
-   - Allowed operation: `INSERT`
-   - Policy definition:
-   ```sql
-   bucket_id = 'Skills' AND
-   auth.uid() IN (
-     SELECT id FROM public.users 
-     WHERE cargo_rol = 'Administrador' AND id = auth.uid()
-   )
-   ```
-
-   **Política 3: Actualización Solo Admin**
-   - Click en "New Policy"
-   - Nombre: `Admin update access for Skills bucket`
-   - Allowed operation: `UPDATE`
-   - Policy definition (USING):
-   ```sql
-   bucket_id = 'Skills' AND
-   auth.uid() IN (
-     SELECT id FROM public.users 
-     WHERE cargo_rol = 'Administrador' AND id = auth.uid()
-   )
-   ```
-   - Policy definition (WITH CHECK):
-   ```sql
-   bucket_id = 'Skills' AND
-   auth.uid() IN (
-     SELECT id FROM public.users 
-     WHERE cargo_rol = 'Administrador' AND id = auth.uid()
-   )
-   ```
-
-   **Política 4: Eliminación Solo Admin**
-   - Click en "New Policy"
-   - Nombre: `Admin delete access for Skills bucket`
-   - Allowed operation: `DELETE`
-   - Policy definition:
-   ```sql
-   bucket_id = 'Skills' AND
-   auth.uid() IN (
-     SELECT id FROM public.users 
-     WHERE cargo_rol = 'Administrador' AND id = auth.uid()
-   )
-   ```
+   **NOTA IMPORTANTE:**
+   - NO necesitas crear políticas para INSERT, UPDATE o DELETE
+   - Estas operaciones se manejan desde el backend usando Service Role Key
+   - El backend verifica que el usuario sea Administrador antes de permitir uploads
+   - Si intentas crear políticas para INSERT/UPDATE/DELETE, obtendrás el error:
+     "must be owner of table objects"
 
 ### Opción 2: Usando SQL Editor
 
 1. **Abre SQL Editor en Supabase Dashboard**
    - Ve a **SQL Editor** en el menú lateral
 
-2. **Copia y pega el contenido del archivo**
+2. **Copia y pega SOLO la política de SELECT**
    - Abre el archivo: `Nueva carpeta/RLS_POLICIES_SKILLS_STORAGE.sql`
-   - Copia todo el contenido
+   - Copia SOLO la política de SELECT (líneas 25-28)
+   - O usa el archivo simplificado: `RLS_POLICIES_SKILLS_STORAGE_SIMPLIFIED.sql`
 
 3. **Ejecuta el script**
    - Pega el contenido en el SQL Editor
    - Haz clic en "Run" o presiona `Ctrl+Enter`
 
-4. **Verifica que las políticas se crearon**
+4. **Verifica que la política se creó**
    - Ejecuta esta consulta para verificar:
    ```sql
    SELECT * FROM pg_policies 
@@ -106,21 +71,27 @@
      AND schemaname = 'storage'
      AND policyname LIKE '%Skills%';
    ```
+   - Deberías ver solo 1 política (la de SELECT)
 
 ## ✅ Verificación
 
 Para verificar que todo funciona correctamente:
 
-1. **Como Administrador:**
-   - Intenta subir un badge desde el panel de administración
-   - Debe funcionar sin errores
+1. **Configurar el bucket como público:**
+   - Ve a Supabase Dashboard > Storage > Buckets > Skills
+   - Marca "Public bucket" si no está marcado
+   - Esto permite lectura pública sin necesidad de autenticación
 
-2. **Como Usuario Regular:**
+2. **Como Administrador:**
+   - Intenta subir un badge desde el panel de administración
+   - Debe funcionar sin errores (usa Service Role Key)
+
+3. **Como Usuario Regular:**
    - Intenta acceder a una URL de badge
    - Debe poder ver la imagen (lectura pública)
-   - No debe poder subir/editar/eliminar (debe dar error 403)
+   - No debe poder subir/editar/eliminar (el backend lo bloquea)
 
-3. **Verificar en la consola del navegador:**
+4. **Verificar en la consola del navegador:**
    - No debe haber errores de permisos
    - Las imágenes deben cargarse correctamente
 
