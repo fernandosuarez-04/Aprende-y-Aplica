@@ -118,6 +118,8 @@ export default function CourseLearnPage() {
   
   // Hook de traducción con verificación de inicialización
   const { t, i18n, ready } = useTranslation('learn');
+  // Detectar idioma seleccionado
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -1494,9 +1496,16 @@ Antes de cada respuesta, pregúntate:
         // ⚡ OPTIMIZACIÓN CRÍTICA: Usar endpoint unificado para reducir de 7 requests a 1
         // Determinar lessonId para incluir datos de lección actual (opcional)
         const lessonId = currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
-        const queryParams = lessonId ? `?lessonId=${lessonId}` : '';
+        // Pasar el idioma para obtener transcript y summary desde la tabla correcta
+        const queryParams = new URLSearchParams();
+        if (lessonId) {
+          queryParams.append('lessonId', lessonId);
+        }
+        queryParams.append('language', selectedLang);
+        const queryString = queryParams.toString();
+        const fullQuery = queryString ? `?${queryString}` : '';
 
-        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${queryParams}`);
+        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${fullQuery}`);
 
         // Extraer datos del response unificado
         if (learnData.course) {
@@ -1504,22 +1513,36 @@ Antes de cada respuesta, pregúntate:
         }
 
         if (learnData.modules) {
-          // Traducir títulos y descripciones de lecciones según idioma
+          // Traducir títulos de módulos y títulos/descripciones de lecciones según idioma
           const translatedModules = await Promise.all(
             learnData.modules.map(async (m: Module) => {
+              // Traducir el título del módulo
+              const moduleWithId = { ...m, id: m.module_id };
+              const translatedModule = await ContentTranslationService.translateObject(
+                'module',
+                moduleWithId,
+                ['module_title'],
+                i18n.language
+              );
+
+              // Traducir las lecciones del módulo
               const translatedLessons = await Promise.all(
                 m.lessons.map(async (l: Lesson) => {
-                  // Aseguramos que el objeto tenga el campo 'id' para la traducción
                   const lessonWithId = { ...l, id: l.lesson_id };
-                  return await ContentTranslationService.translateObject(
+                  const translated = await ContentTranslationService.translateObject(
                     'lesson',
                     lessonWithId,
                     ['lesson_title', 'lesson_description'],
                     i18n.language
                   );
+                  // summary_content y transcript_content ya vienen desde la tabla correcta según idioma
+                  // desde el endpoint learn-data, así que los mantenemos tal cual
+                  translated.summary_content = l.summary_content;
+                  translated.transcript_content = l.transcript_content;
+                  return translated;
                 })
               );
-              return { ...m, lessons: translatedLessons };
+              return { ...translatedModule, lessons: translatedLessons };
             })
           );
           setModules(translatedModules);
@@ -3138,21 +3161,12 @@ Antes de cada respuesta, pregúntate:
                 style={
                   isMobile
                     ? {
-                        // En móvil, ajustar el bottom para respetar la navegación inferior
-                        // El contenedor tiene bottom-0 en la clase, pero necesitamos sobrescribirlo
-                        // cuando hay navegación inferior visible para evitar que se corte el textarea
-                        bottom: isMobileBottomNavVisible
-                          ? `${MOBILE_BOTTOM_NAV_HEIGHT_PX}px`
-                          : 0,
-                        // Usar height cuando visualViewport está disponible (teclado abierto)
-                        // para asegurar que el textbox siempre esté visible
                         ...(calculateLiaMaxHeight && {
                           height: calculateLiaMaxHeight,
                           maxHeight: calculateLiaMaxHeight,
                         }),
                       }
                     : {
-                        // En desktop, usar toda la altura disponible del contenedor padre
                         ...(calculateLiaMaxHeight && {
                           height: calculateLiaMaxHeight,
                           maxHeight: calculateLiaMaxHeight,
@@ -4353,6 +4367,8 @@ function TranscriptContent({
   onNoteCreated: (noteData: any, lessonId: string) => void;
   onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
 }) {
+  const { i18n } = useTranslation('learn');
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [transcriptContent, setTranscriptContent] = useState<string | null>(null);
@@ -4368,7 +4384,7 @@ function TranscriptContent({
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript`);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript?language=${selectedLang}`);
         if (response.ok) {
           const data = await response.json();
           setTranscriptContent(data.transcript_content || null);
@@ -4384,7 +4400,7 @@ function TranscriptContent({
     }
 
     loadTranscript();
-  }, [lesson?.lesson_id, slug]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Verificar si existe contenido de transcripción
   const hasTranscript = transcriptContent && transcriptContent.trim().length > 0;
@@ -4620,6 +4636,8 @@ function TranscriptContent({
 }
 
 function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+  const { i18n } = useTranslation('learn');
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [summaryContent, setSummaryContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -4633,7 +4651,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary`);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary?language=${selectedLang}`);
         if (response.ok) {
           const data = await response.json();
           setSummaryContent(data.summary_content || null);
@@ -4649,7 +4667,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     }
 
     loadSummary();
-  }, [lesson?.lesson_id, slug]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Verificar si existe contenido de resumen
   const hasSummary = summaryContent && summaryContent.trim().length > 0;
