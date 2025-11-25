@@ -203,11 +203,12 @@ export default function DashboardPage() {
 
   // ⚡ Memoizar transformación de workshops para evitar re-cálculos
   const workshops = React.useMemo(() => {
-    let filtered = filteredCourses;
+    let filtered = filteredCourses || [];
     
     // Filtrar por búsqueda
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    const currentSearchQuery = searchQuery || '';
+    if (currentSearchQuery.trim()) {
+      const query = currentSearchQuery.toLowerCase();
       filtered = filtered.filter(course => 
         course.title?.toLowerCase().includes(query) ||
         course.instructor_name?.toLowerCase().includes(query) ||
