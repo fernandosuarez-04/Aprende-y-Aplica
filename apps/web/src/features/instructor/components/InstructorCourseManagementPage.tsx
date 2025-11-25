@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, Trash2, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Award } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, Trash2, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Award, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from '@/features/admin/components/AdvancedCharts'
 import { useInstructorModules } from '@/features/instructor/hooks/useInstructorModules'
 import { useInstructorLessons } from '@/features/instructor/hooks/useInstructorLessons'
@@ -43,6 +43,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false)
   const [deletingLesson, setDeletingLesson] = useState<AdminLesson | null>(null)
   const [showDeleteLessonModal, setShowDeleteLessonModal] = useState(false)
+  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useInstructorModules()
   const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useInstructorLessons(courseId)
@@ -150,6 +152,22 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
     }
   }, [activeTab, courseId])
 
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current)
+      }
+    }
+  }, [])
+
+  const showFeedbackMessage = (type: 'success' | 'error', message: string) => {
+    setFeedbackMessage({ type, message })
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current)
+    }
+    feedbackTimerRef.current = setTimeout(() => setFeedbackMessage(null), 4000)
+  }
+
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setConfigData(prev => ({ ...prev, [name]: name === 'price' || name === 'duration_total_minutes' ? Number(value) : value }))
@@ -173,9 +191,9 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       // refrescar preview
       const refreshed = await fetch(`/api/instructor/workshops/${courseId}`).then(r => r.json())
       if (refreshed?.workshop) setWorkshopPreview(refreshed.workshop)
-      alert('Configuración guardada')
+      showFeedbackMessage('success', 'Configuración guardada correctamente')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al guardar')
+      showFeedbackMessage('error', err instanceof Error ? err.message : 'Error al guardar la configuración')
     } finally {
       setSavingConfig(false)
     }
@@ -233,6 +251,29 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/10 to-gray-900">
+      {feedbackMessage && (
+        <div className="fixed top-4 right-4 z-50">
+          <div
+            className={`flex items-start gap-3 rounded-2xl px-4 py-3 shadow-2xl border backdrop-blur-md transition-all duration-300 ${
+              feedbackMessage.type === 'success'
+                ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-100'
+                : 'bg-rose-500/15 border-rose-400/40 text-rose-100'
+            }`}
+          >
+            {feedbackMessage.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-300 flex-shrink-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-rose-300 flex-shrink-0" />
+            )}
+            <div>
+              <p className="font-semibold text-sm">
+                {feedbackMessage.type === 'success' ? '¡Configuración guardada!' : 'No pudimos completar la acción'}
+              </p>
+              <p className="text-sm opacity-90">{feedbackMessage.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <button
@@ -1162,8 +1203,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       setShowDeleteModuleModal(false)
                       setDeletingModule(null)
                     } catch (error) {
-                      // console.error('Error deleting module:', error)
-                      alert('Error al eliminar el módulo')
+                      showFeedbackMessage('error', 'No se pudo eliminar el módulo')
                     }
                   }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"
@@ -1204,8 +1244,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       setShowDeleteLessonModal(false)
                       setDeletingLesson(null)
                     } catch (error) {
-                      // console.error('Error deleting lesson:', error)
-                      alert('Error al eliminar la lección')
+                      showFeedbackMessage('error', 'No se pudo eliminar la lección')
                     }
                   }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"

@@ -42,6 +42,8 @@ export function UserSkillsSection({
   const [hiddenSkills, setHiddenSkills] = useState<Set<string>>(new Set())
 
   const displayedSkills = useMemo(() => {
+    // Mostrar todas las skills que no estén explícitamente ocultas (is_displayed !== false)
+    // Si is_displayed es null o undefined, también se muestran
     return skills.filter(s => s.is_displayed !== false)
   }, [skills])
 
@@ -105,6 +107,7 @@ export function UserSkillsSection({
     slug: skill.skill.slug,
     description: skill.skill.description,
     category: skill.skill.category,
+    icon_url: skill.skill.icon_url || null,
     level: skill.level,
     badge_url: skill.badge_url,
     course_count: skill.course_count
@@ -157,19 +160,36 @@ export function UserSkillsSection({
         >
           Todas
         </button>
-        {categories.map(category => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-colors ${
-              selectedCategory === category
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            {category}
-          </button>
-        ))}
+        {categories.map(category => {
+          const categoryLabels: Record<string, string> = {
+            general: 'General',
+            programming: 'Programación',
+            design: 'Diseño',
+            marketing: 'Marketing',
+            business: 'Negocios',
+            data: 'Datos',
+            ai: 'Inteligencia Artificial',
+            cloud: 'Cloud Computing',
+            security: 'Seguridad',
+            devops: 'DevOps',
+            leadership: 'Liderazgo',
+            communication: 'Comunicación',
+            other: 'Otros'
+          }
+          return (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-colors ${
+                selectedCategory === category
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {categoryLabels[category] || category}
+            </button>
+          )
+        })}
       </div>
 
       {/* Lista de Skills */}
@@ -177,7 +197,8 @@ export function UserSkillsSection({
         skills={skillsForList}
         showFilter={false}
         showHideOption={true}
-        size="md"
+        size="sm"
+        layout="overlap"
       />
     </div>
   )

@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
+import { SkillBadgeList } from '@/features/skills/components/SkillBadgeList';
 
 interface Member {
   id: string;
@@ -207,6 +208,8 @@ export default function MembersPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [activeTab, setActiveTab] = useState<'comunidad' | 'miembros' | 'ligas'>('miembros');
   const [isMobile, setIsMobile] = useState(false);
+  const [memberSkills, setMemberSkills] = useState<any[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(false);
   const headerSectionRef = useRef<HTMLElement | null>(null);
   const contentSectionRef = useRef<HTMLElement | null>(null);
 
@@ -232,6 +235,42 @@ export default function MembersPage() {
 
     return () => window.removeEventListener('resize', checkViewport);
   }, []);
+
+  useEffect(() => {
+    if (selectedMember?.user?.id) {
+      loadMemberSkills(selectedMember.user.id);
+    } else {
+      setMemberSkills([]);
+    }
+  }, [selectedMember?.user?.id]);
+
+  const loadMemberSkills = async (userId: string) => {
+    setLoadingSkills(true);
+    try {
+      const response = await fetch(`/api/users/${userId}/skills`);
+      const data = await response.json();
+      if (data.success && data.skills) {
+        // Transformar datos al formato esperado
+        const formattedSkills = data.skills.map((skill: any) => ({
+          skill_id: skill.skill_id,
+          name: skill.skill?.name || '',
+          slug: skill.skill?.slug || '',
+          description: skill.skill?.description || null,
+          category: skill.skill?.category || 'other',
+          icon_url: skill.skill?.icon_url || null,
+          level: skill.level || null,
+          badge_url: skill.badge_url || null,
+          course_count: skill.course_count || 0
+        }));
+        setMemberSkills(formattedSkills);
+      }
+    } catch (error) {
+      console.error('Error loading member skills:', error);
+      setMemberSkills([]);
+    } finally {
+      setLoadingSkills(false);
+    }
+  };
 
   const memberTabs = [
     { id: 'comunidad' as const, label: 'Comunidad', icon: MessageSquare },
@@ -889,6 +928,21 @@ export default function MembersPage() {
                       <div className="text-xs text-gray-600 dark:text-slate-400">Rango</div>
                     </div>
                   </div>
+
+                  {/* Skills Section */}
+                  {memberSkills.length > 0 && (
+                    <div className="mb-8">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Skills
+                      </h4>
+                      <SkillBadgeList
+                        skills={memberSkills}
+                        showFilter={false}
+                        size="sm"
+                        layout="overlap"
+                      />
+                    </div>
+                  )}
 
                   {/* Contact Info */}
                   <div className="space-y-4">

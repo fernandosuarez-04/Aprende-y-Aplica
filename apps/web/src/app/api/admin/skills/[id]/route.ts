@@ -61,10 +61,10 @@ export async function PUT(
 
     const supabase = await createClient()
 
-    // Verificar que la skill existe y obtener su slug actual
+    // Verificar que la skill existe y obtener su slug e icon_url actual
     const { data: existingSkill, error: fetchError } = await supabase
       .from('skills')
-      .select('skill_id, slug')
+      .select('skill_id, slug, icon_url')
       .eq('skill_id', skillId)
       .single()
 
@@ -101,12 +101,59 @@ export async function PUT(
       }
     }
 
+    // Manejar eliminación/actualización del icono
+    const newIconUrl = body.icon_url === '' || body.icon_url === null ? null : body.icon_url
+    const iconUrlChanged = existingSkill.icon_url !== newIconUrl
+
+    // Si el icono cambió o se está eliminando, eliminar el icono anterior del storage
+    if (iconUrlChanged && existingSkill.icon_url) {
+      try {
+        // Usar Service Role Key para bypass de RLS en Storage
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+        if (supabaseServiceKey) {
+          const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+          const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          })
+
+          // Intentar eliminar el icono anterior (puede tener diferentes extensiones)
+          const iconExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']
+          for (const ext of iconExtensions) {
+            const iconPath = `${existingSkill.slug}-icon.${ext}`
+            await supabaseAdmin.storage
+              .from('Skills')
+              .remove([iconPath])
+              .catch(() => {
+                // Ignorar errores si el archivo no existe
+              })
+          }
+          logger.log(`Icono anterior eliminado del storage para skill ${skillId}`)
+        }
+      } catch (iconDeleteError) {
+        logger.warn('Error eliminando icono anterior del storage:', iconDeleteError)
+        // Continuar con la actualización aunque falle la eliminación del icono anterior
+      }
+    }
+
+    // Preparar datos para actualizar (convertir string vacío a null para icon_url)
+    const updateData: any = {
+      ...body,
+      updated_at: new Date().toISOString()
+    }
+
+    // Si icon_url viene vacío, establecerlo como null
+    if (body.icon_url === '' || body.icon_url === null) {
+      updateData.icon_url = null
+    }
+
     const { data: skill, error } = await supabase
       .from('skills')
-      .update({
-        ...body,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('skill_id', skillId)
       .select()
       .single()
@@ -134,7 +181,7 @@ export async function PUT(
 
 /**
  * DELETE /api/admin/skills/[id]
- * Elimina una skill (soft delete)
+ * Elimina una skill permanentemente (hard delete)
  */
 export async function DELETE(
   request: NextRequest,
@@ -182,19 +229,51 @@ export async function DELETE(
       }, { status: 404 })
     }
 
-    // Eliminar badges de storage primero
+    // 1. Eliminar relaciones en course_skills primero
+    const { error: courseSkillsError } = await supabaseAdmin
+      .from('course_skills')
+      .delete()
+      .eq('skill_id', skillId)
+
+    if (courseSkillsError) {
+      logger.warn('Error deleting course_skills:', courseSkillsError)
+      // Continuar aunque falle, puede que no haya relaciones
+    }
+
+    // 2. Eliminar relaciones en user_skills
+    const { error: userSkillsError } = await supabaseAdmin
+      .from('user_skills')
+      .delete()
+      .eq('skill_id', skillId)
+
+    if (userSkillsError) {
+      logger.warn('Error deleting user_skills:', userSkillsError)
+      // Continuar aunque falle, puede que no haya relaciones
+    }
+
+    // 3. Eliminar badges de la base de datos y storage
     const { data: badges } = await supabaseAdmin
       .from('skill_badges')
       .select('storage_path')
       .eq('skill_id', skillId)
 
     if (badges && badges.length > 0) {
+      // Eliminar registros de skill_badges
+      const { error: badgesDeleteError } = await supabaseAdmin
+        .from('skill_badges')
+        .delete()
+        .eq('skill_id', skillId)
+
+      if (badgesDeleteError) {
+        logger.warn('Error deleting skill_badges records:', badgesDeleteError)
+      }
+
+      // Eliminar archivos del storage
       const filesToDelete = badges
         .map(b => b.storage_path)
         .filter((path): path is string => path !== null && path !== undefined)
       
       if (filesToDelete.length > 0) {
-        // Eliminar archivos del storage
         const { error: storageError } = await supabaseAdmin.storage
           .from('Skills')
           .remove(filesToDelete)
@@ -206,7 +285,7 @@ export async function DELETE(
       }
     }
 
-    // Eliminar icono de storage si existe
+    // 4. Eliminar icono de storage si existe
     if (existingSkill.slug) {
       // Intentar eliminar el icono (puede tener diferentes extensiones)
       const iconExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']
@@ -221,20 +300,17 @@ export async function DELETE(
       }
     }
 
-    // Soft delete: marcar como inactiva
-    const { error: updateError } = await supabaseAdmin
+    // 5. Eliminar la skill de la base de datos (hard delete)
+    const { error: deleteError } = await supabaseAdmin
       .from('skills')
-      .update({
-        is_active: false,
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('skill_id', skillId)
 
-    if (updateError) {
-      logger.error('Error deleting skill:', updateError)
+    if (deleteError) {
+      logger.error('Error deleting skill:', deleteError)
       return NextResponse.json({
         success: false,
-        error: `Error al eliminar la skill: ${updateError.message || 'Error desconocido'}`
+        error: `Error al eliminar la skill: ${deleteError.message || 'Error desconocido'}`
       }, { status: 500 })
     }
 

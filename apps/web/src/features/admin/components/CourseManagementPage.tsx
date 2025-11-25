@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, GripVertical, Book, FileText, ClipboardList, Flag, Clock, BarChart3, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Pencil, Trash2, Settings, Eye, Award } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, GripVertical, Book, FileText, ClipboardList, Flag, Clock, BarChart3, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Pencil, Trash2, Settings, Eye, Award, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from './AdvancedCharts'
 import { useAdminModules } from '../hooks/useAdminModules'
 import { useAdminLessons } from '../hooks/useAdminLessons'
@@ -33,6 +33,8 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const [showLessonModal, setShowLessonModal] = useState(false)
   const [showMaterialModal, setShowMaterialModal] = useState(false)
   const [showActivityModal, setShowActivityModal] = useState(false)
+  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [selectedModule, setSelectedModule] = useState<AdminModule | null>(null)
   const [selectedLesson, setSelectedLesson] = useState<AdminLesson | null>(null)
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null)
@@ -130,6 +132,22 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   }, [workshopPreview])
 
   useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current)
+      }
+    }
+  }, [])
+
+  const showFeedbackMessage = (type: 'success' | 'error', message: string) => {
+    setFeedbackMessage({ type, message })
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current)
+    }
+    feedbackTimerRef.current = setTimeout(() => setFeedbackMessage(null), 4000)
+  }
+
+  useEffect(() => {
     if (activeTab === 'stats') {
       ;(async () => {
         try {
@@ -173,14 +191,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         }
         throw new Error(data?.error || data?.message || 'Error al guardar la configuración')
       }
-      // Guardar skills
       await handleSaveSkills()
-      // Refrescar preview
       const refreshed = await fetch(`/api/admin/workshops/${courseId}`).then(r => r.json())
       if (refreshed?.workshop) setWorkshopPreview(refreshed.workshop)
-      alert('Configuración guardada')
+      showFeedbackMessage('success', 'Configuración guardada correctamente')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al guardar')
+      showFeedbackMessage('error', err instanceof Error ? err.message : 'Error al guardar la configuración')
     } finally {
       setSavingConfig(false)
     }
@@ -244,7 +260,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
   const handleCreateLesson = async (data: any) => {
     if (!editingModuleId) {
-      alert('Error: No se ha seleccionado un módulo. Por favor, seleccione un módulo primero.')
+      showFeedbackMessage('error', 'Selecciona un módulo antes de crear una lección')
       return
     }
 
@@ -254,7 +270,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       await fetchLessons(editingModuleId, courseId)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido al crear la lección'
-      alert(`Error al crear la lección: ${errorMessage}`)
+      showFeedbackMessage('error', errorMessage)
       throw error // Re-lanzar para que el modal pueda manejarlo si es necesario
     }
   }
@@ -287,6 +303,29 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {feedbackMessage && (
+        <div className="fixed top-4 right-4 z-50">
+          <div
+            className={`flex items-start gap-3 rounded-2xl px-4 py-3 shadow-2xl border backdrop-blur-md transition-all duration-300 ${
+              feedbackMessage.type === 'success'
+                ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-100'
+                : 'bg-rose-500/15 border-rose-400/40 text-rose-100'
+            }`}
+          >
+            {feedbackMessage.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-300 flex-shrink-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-rose-300 flex-shrink-0" />
+            )}
+            <div>
+              <p className="font-semibold text-sm">
+                {feedbackMessage.type === 'success' ? '¡Configuración guardada!' : 'Ocurrió un problema'}
+              </p>
+              <p className="text-sm opacity-90">{feedbackMessage.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Mejorado */}
         <div className="mb-8">

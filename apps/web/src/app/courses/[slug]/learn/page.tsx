@@ -50,6 +50,8 @@ import {
   Edit2,
   MoreVertical,
   RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
@@ -6022,6 +6024,10 @@ function ActivitiesContent({
       percentage: number;
     }>;
   } | null>(null);
+  
+  // Feedback de la lección completa
+  const [lessonFeedback, setLessonFeedback] = useState<'like' | 'dislike' | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   useEffect(() => {
     async function loadActivitiesAndMaterials() {
@@ -6086,6 +6092,62 @@ function ActivitiesContent({
 
     loadActivitiesAndMaterials();
   }, [lesson?.lesson_id, slug, language]);
+
+  // Cargar feedback de la lección
+  useEffect(() => {
+    async function loadLessonFeedback() {
+      if (!lesson?.lesson_id || !slug) {
+        setLessonFeedback(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setLessonFeedback(data.feedback_type ?? null);
+        } else {
+          setLessonFeedback(null);
+        }
+      } catch (error) {
+        setLessonFeedback(null);
+      }
+    }
+
+    loadLessonFeedback();
+  }, [lesson?.lesson_id, slug]);
+
+  const handleLessonFeedback = async (feedbackType: 'like' | 'dislike') => {
+    if (!lesson?.lesson_id || !slug || feedbackLoading) {
+      return;
+    }
+
+    setFeedbackLoading(true);
+    try {
+      const url = `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback_type: feedbackType }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLessonFeedback(data.feedback_type ?? null);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('Error al guardar feedback:', errorData);
+        // Mostrar error al usuario de forma no intrusiva
+        // Podrías agregar un toast aquí si tienes un sistema de notificaciones
+      }
+    } catch (error) {
+      console.error('Error de red al guardar feedback:', error);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   // Refs para almacenar las funciones y evitar loops infinitos
   const generateRoleBasedPromptsRef = useRef(generateRoleBasedPrompts);
@@ -6795,16 +6857,60 @@ function ActivitiesContent({
         </div>
       )}
 
-      {/* Botón para avanzar al siguiente video */}
-      {getNextLesson && getNextLesson() && onNavigateNext && (
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onNavigateNext}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
-          >
-            <ChevronRight className="w-5 h-5" />
-            Avanzar al Siguiente Video
-          </button>
+      {/* Feedback de la lección y botón de avanzar */}
+      {lesson && (
+        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <span className="text-sm font-semibold text-gray-800 dark:text-slate-100">
+              ¿Qué te pareció esta lección?
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleLessonFeedback('like')}
+                disabled={feedbackLoading}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
+                  lessonFeedback === 'like'
+                    ? 'bg-green-500/20 text-green-400 border-2 border-green-500/50 shadow-lg shadow-green-500/20'
+                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                title="Me gustó la lección"
+              >
+                {feedbackLoading && lessonFeedback === null ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ThumbsUp className={`w-4 h-4 transition-all ${lessonFeedback === 'like' ? 'fill-current scale-110' : ''}`} />
+                )}
+                <span className="text-sm font-medium">Me gusta</span>
+              </button>
+              <button
+                onClick={() => handleLessonFeedback('dislike')}
+                disabled={feedbackLoading}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
+                  lessonFeedback === 'dislike'
+                    ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/20'
+                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                title="No me gustó la lección"
+              >
+                {feedbackLoading && lessonFeedback === null ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ThumbsDown className={`w-4 h-4 transition-all ${lessonFeedback === 'dislike' ? 'fill-current scale-110' : ''}`} />
+                )}
+                <span className="text-sm font-medium">No me gusta</span>
+              </button>
+            </div>
+          </div>
+
+          {getNextLesson && getNextLesson() && onNavigateNext && (
+            <button
+              onClick={onNavigateNext}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+            >
+              <ChevronRight className="w-5 h-5" />
+              Avanzar al Siguiente Video
+            </button>
+          )}
         </div>
       )}
     </div>

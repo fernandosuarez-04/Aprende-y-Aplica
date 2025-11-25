@@ -261,14 +261,19 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
       return
     }
 
-    if (!formData.icon_url.trim()) {
+    if (!formData.icon_url || !formData.icon_url.trim()) {
       setError('El icono es requerido. Por favor sube una imagen.')
       return
     }
 
     try {
       setIsSaving(true)
-      await onSave(formData)
+      // Asegurar que icon_url se envíe correctamente (null si está vacío)
+      const skillDataToSave = {
+        ...formData,
+        icon_url: formData.icon_url.trim() || null
+      }
+      await onSave(skillDataToSave)
       
       // Si es una skill nueva y hay badges pendientes, asociarlos
       if (!skill) {
@@ -467,7 +472,27 @@ export function SkillModal({ isOpen, onClose, skill, onSave }: SkillModalProps) 
                       </label>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
+                          // Si es una skill existente, eliminar del servidor
+                          if (skill?.skill_id && formData.icon_url) {
+                            try {
+                              const response = await fetch(`/api/admin/skills/${skill.skill_id}/icon`, {
+                                method: 'DELETE',
+                                credentials: 'include'
+                              })
+
+                              const data = await response.json()
+
+                              if (!response.ok || !data.success) {
+                                throw new Error(data.error || 'Error al eliminar el icono')
+                              }
+                            } catch (error) {
+                              setError(error instanceof Error ? error.message : 'Error al eliminar el icono')
+                              return
+                            }
+                          }
+
+                          // Limpiar estado local
                           setIconPreview(null)
                           setFormData(prev => ({ ...prev, icon_url: '' }))
                           if (iconFileInputRef.current) {
