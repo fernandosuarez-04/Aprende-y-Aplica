@@ -11,6 +11,7 @@ export interface SkillBadgeProps {
     slug: string
     level?: SkillLevel | null
     badge_url?: string | null
+    icon_url?: string | null
     course_count?: number
   }
   size?: 'sm' | 'md' | 'lg'
@@ -20,9 +21,9 @@ export interface SkillBadgeProps {
 }
 
 const sizeClasses = {
-  sm: 'w-12 h-12',
-  md: 'w-16 h-16',
-  lg: 'w-24 h-24'
+  sm: 'w-32 h-32',
+  md: 'w-40 h-40',
+  lg: 'w-48 h-48'
 }
 
 export function SkillBadge({
@@ -35,10 +36,14 @@ export function SkillBadge({
   const [imageError, setImageError] = useState(false)
   const level = skill.level || null
   const badgeUrl = skill.badge_url || null
+  const iconUrl = skill.icon_url || null
   const levelInfo = level ? getLevelInfo(level) : null
 
-  // Si no hay badge URL o hay error, mostrar fallback
-  const showFallback = !badgeUrl || imageError || !level
+  // Si hay nivel, usar badge_url; si no, usar icon_url
+  const imageUrl = level && badgeUrl ? badgeUrl : iconUrl
+  
+  // Si no hay imagen o hay error, mostrar fallback
+  const showFallback = !imageUrl || imageError
 
   return (
     <div className={`relative inline-block ${className}`}>
@@ -66,11 +71,11 @@ export function SkillBadge({
             </span>
           </div>
         ) : (
-          // Mostrar badge desde URL
+          // Mostrar badge o icono desde URL
           <img
-            src={badgeUrl}
-            alt={`${skill.name} - ${levelInfo?.displayName || level}`}
-            className="w-full h-full object-contain"
+            src={imageUrl}
+            alt={`${skill.name}${levelInfo ? ` - ${levelInfo.displayName}` : ''}`}
+            className="w-full h-full object-contain p-1"
             onError={() => setImageError(true)}
           />
         )}

@@ -531,12 +531,13 @@ export default function CourseDetailPage() {
                               slug: skill.slug,
                               description: skill.description,
                               category: skill.category,
+                              icon_url: skill.icon_url || null,
                               level: skill.user_level || null,
                               badge_url: skill.user_badge_url || null,
                               course_count: skill.user_course_count || 0
                             }))}
-                            showFilter={true}
-                            size="md"
+                            showFilter={false}
+                            size="sm"
                           />
                         </div>
                       )}

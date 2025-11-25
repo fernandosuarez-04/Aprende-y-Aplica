@@ -105,6 +105,7 @@ export function UserSkillsSection({
     slug: skill.skill.slug,
     description: skill.skill.description,
     category: skill.skill.category,
+    icon_url: skill.skill.icon_url || null,
     level: skill.level,
     badge_url: skill.badge_url,
     course_count: skill.course_count

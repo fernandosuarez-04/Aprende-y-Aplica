@@ -31,6 +31,8 @@ import {
 import { useAuth } from '../../features/auth/hooks/useAuth'
 import { useProfile, UserProfile, UpdateProfileRequest } from '../../features/profile/hooks/useProfile'
 import { useRouter } from 'next/navigation'
+import { useUserSkills } from '../../features/skills/hooks/useUserSkills'
+import { UserSkillsSection } from '../../features/profile/components/UserSkillsSection'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -46,6 +48,7 @@ export default function ProfilePage() {
     uploadCurriculum 
   } = useProfile()
   const [formData, setFormData] = useState<UpdateProfileRequest>({})
+  const { skills: userSkills, isLoading: skillsLoading, refreshSkills } = useUserSkills(user?.id || null)
 
   // Sincronizar formData con profile
   useEffect(() => {
@@ -725,6 +728,66 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+
+              {/* Skills Obtenidas */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="bg-white dark:bg-carbon-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-carbon-700"
+              >
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <Award className="w-4 h-4 text-green-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Mis Skills</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Skills obtenidas al completar cursos</p>
+                  </div>
+                </div>
+                {skillsLoading ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p>Cargando skills...</p>
+                  </div>
+                ) : userSkills.length > 0 ? (
+                  <UserSkillsSection
+                    userId={user?.id || ''}
+                    skills={userSkills.map(skill => ({
+                      id: skill.id,
+                      skill_id: skill.skill_id,
+                      skill: {
+                        ...skill.skill,
+                        icon_url: skill.skill.icon_url || null
+                      },
+                      level: skill.level as any,
+                      course_count: skill.course_count,
+                      badge_url: skill.badge_url,
+                      is_displayed: skill.is_displayed !== false
+                    }))}
+                    onToggleDisplay={async (skillId, isDisplayed) => {
+                      try {
+                        const response = await fetch(`/api/users/${user?.id}/skills/${skillId}/display`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ is_displayed: isDisplayed })
+                        })
+                        if (response.ok) {
+                          refreshSkills()
+                        }
+                      } catch (error) {
+                        console.error('Error updating skill display:', error)
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Award className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                    <p>No has obtenido skills aún</p>
+                    <p className="text-sm mt-2">Completa cursos para obtener skills e insignias</p>
+                  </div>
+                )}
               </motion.div>
             </div>
           </motion.div>

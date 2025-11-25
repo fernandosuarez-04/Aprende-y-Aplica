@@ -7,7 +7,7 @@ import { SkillBadge, SkillBadgeProps } from './SkillBadge'
 import { SkillLevel } from '../constants/skillLevels'
 
 export interface SkillBadgeListProps {
-  skills: Array<SkillBadgeProps['skill']>
+  skills: Array<SkillBadgeProps['skill'] & { icon_url?: string | null }>
   showFilter?: boolean
   showHideOption?: boolean
   onSkillClick?: (skill: SkillBadgeProps['skill']) => void
@@ -147,7 +147,7 @@ export function SkillBadgeList({
           <p>No se encontraron skills con los filtros aplicados</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className={`grid ${size === 'sm' ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4'}`}>
           {filteredAndSortedSkills.map((skill, index) => (
             <motion.div
               key={skill.skill_id}
@@ -162,16 +162,18 @@ export function SkillBadgeList({
                 showTooltip={true}
                 onClick={() => onSkillClick?.(skill)}
               />
-              <div className="text-center">
-                <p className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
-                  {skill.name}
-                </p>
-                {skill.level && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {skill.course_count || 0} curso{skill.course_count !== 1 ? 's' : ''}
+              {size !== 'sm' && (
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">
+                    {skill.name}
                   </p>
-                )}
-              </div>
+                  {skill.level && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {skill.course_count || 0} curso{skill.course_count !== 1 ? 's' : ''}
+                    </p>
+                  )}
+                </div>
+              )}
               {showHideOption && (
                 <button
                   onClick={() => toggleSkillVisibility(skill.skill_id)}
