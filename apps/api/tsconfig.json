@@ -17,6 +17,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "../node_modules/@types", "../../node_modules/@types"],
     "paths": {
       "@shared/*": ["../../packages/shared/src/*"],
       "@/features/*": ["./src/features/*"],

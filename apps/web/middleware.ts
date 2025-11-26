@@ -94,10 +94,10 @@ export async function middleware(request: NextRequest) {
   
   // Para debugging: mostrar cookies
   // console.log('🍪 Cookies detectadas:', {
-    legacy: hasLegacySession,
-    access: hasAccessToken,
-    refresh: hasRefreshToken
-  });
+  // legacy: hasLegacySession,
+  // access: hasAccessToken,
+  // refresh: hasRefreshToken
+  // });
   
   // Si es una ruta protegida, verificar y refrescar tokens si es necesario
   if (isProtectedRoute) {

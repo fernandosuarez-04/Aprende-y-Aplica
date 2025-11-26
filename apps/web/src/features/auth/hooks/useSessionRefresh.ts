@@ -132,7 +132,7 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
       // Ya expiró o está a punto de expirar, refrescar inmediatamente
       refreshToken();
     } else {
-      } minutos`);
+      // console.log(`🔄 Próximo refresh programado en ${refreshTime / 60000} minutos`);
       refreshTimerRef.current = setTimeout(() => {
         refreshToken();
       }, refreshTime);
@@ -193,3 +193,4 @@ export function useSessionRefresh(options: UseSessionRefreshOptions = {}) {
     isRefreshing: isRefreshingRef.current
   };
 }
+

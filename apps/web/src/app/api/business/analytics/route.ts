@@ -89,79 +89,85 @@ export async function GET() {
       })
     }
 
-    // 2. Obtener asignaciones de cursos
-    const { data: assignments, error: assignmentsError } = await supabase
-      .from('organization_course_assignments')
-      .select(`
-        id,
-        user_id,
-        course_id,
-        status,
-        completion_percentage,
-        assigned_at,
-        completed_at,
-        due_date
-      `)
-      .eq('organization_id', organizationId)
-      .in('user_id', userIds)
-      .order('assigned_at', { ascending: false })
+    // 2-5. Obtener TODAS las consultas en paralelo para máximo rendimiento
+    const [
+      { data: assignments, error: assignmentsError },
+      { data: enrollments, error: enrollmentsError },
+      { data: lessonProgress, error: lessonProgressError },
+      { data: certificates, error: certificatesError }
+    ] = await Promise.all([
+      // 2. Asignaciones de cursos
+      supabase
+        .from('organization_course_assignments')
+        .select(`
+          id,
+          user_id,
+          course_id,
+          status,
+          completion_percentage,
+          assigned_at,
+          completed_at,
+          due_date
+        `)
+        .eq('organization_id', organizationId)
+        .in('user_id', userIds)
+        .order('assigned_at', { ascending: false }),
 
+      // 3. Enrollments
+      supabase
+        .from('user_course_enrollments')
+        .select(`
+          enrollment_id,
+          user_id,
+          course_id,
+          enrollment_status,
+          overall_progress_percentage,
+          enrolled_at,
+          completed_at,
+          last_accessed_at
+        `)
+        .in('user_id', userIds)
+        .order('enrolled_at', { ascending: false }),
+
+      // 4. Progreso de lecciones
+      supabase
+        .from('user_lesson_progress')
+        .select(`
+          user_id,
+          time_spent_minutes,
+          is_completed,
+          completed_at,
+          started_at
+        `)
+        .in('user_id', userIds),
+
+      // 5. Certificados con información enriquecida
+      supabase
+        .from('user_course_certificates')
+        .select(`
+          user_id,
+          course_id,
+          issued_at,
+          courses (
+            id,
+            title,
+            instructor_id
+          )
+        `)
+        .in('user_id', userIds)
+        .order('issued_at', { ascending: false })
+    ])
+
+    // Log de errores (no bloqueantes)
     if (assignmentsError) {
       logger.error('Error fetching assignments for analytics:', assignmentsError)
     }
-
-    // 3. Obtener enrollments
-    const { data: enrollments, error: enrollmentsError } = await supabase
-      .from('user_course_enrollments')
-      .select(`
-        enrollment_id,
-        user_id,
-        course_id,
-        enrollment_status,
-        overall_progress_percentage,
-        enrolled_at,
-        completed_at,
-        last_accessed_at
-      `)
-      .in('user_id', userIds)
-      .order('enrolled_at', { ascending: false })
-
     if (enrollmentsError) {
       logger.error('Error fetching enrollments for analytics:', enrollmentsError)
     }
-
-    // 4. Obtener progreso de lecciones
-    const { data: lessonProgress, error: lessonProgressError } = await supabase
-      .from('user_lesson_progress')
-      .select(`
-        user_id,
-        time_spent_minutes,
-        is_completed,
-        completed_at,
-        started_at
-      `)
-      .in('user_id', userIds)
-
     if (lessonProgressError) {
       logger.error('Error fetching lesson progress for analytics:', lessonProgressError)
     }
-
-    // 5. Obtener certificados con información enriquecida
-    const { data: certificates, error: certificatesError } = await supabase
-      .from('user_course_certificates')
-      .select(`
-        user_id,
-        course_id,
-        issued_at,
-        courses (
-          id,
-          title,
-          instructor_id
-        )
-      `)
-      .in('user_id', userIds)
-      .order('issued_at', { ascending: false })
-
     if (certificatesError) {
       logger.error('Error fetching certificates for analytics:', certificatesError)
     }

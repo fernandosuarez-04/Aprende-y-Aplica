@@ -29,7 +29,14 @@
       "Bash(cmd /c \"if not exist \"\"C:\\Users\\fysg5\\OneDrive\\Escritorio\\Trabajo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\src\\app\\study-planner\\session\"\" mkdir \"\"C:\\Users\\fysg5\\OneDrive\\Escritorio\\Trabajo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\src\\app\\study-planner\\session\"\"\")",
       "Bash(cmd /c:*)",
       "Bash(timeout 10 bash:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(\"c:/Users/fysg5/OneDrive/Escritorio/Ecos de Liderazgo/Aprende y Aplica AI/Aprende-y-Aplica/apps/web/src/lib/supabase/types.ts\")",
+      "Bash(echo:*)",
+      "Bash(npx supabase:*)",
+      "Bash(types_new.ts)",
+      "Bash(tee:*)",
+      "Bash(NODE_OPTIONS='--trace-warnings' npm run build:*)",
+      "Bash(set NODE_OPTIONS=--trace-warnings)"
     ],
     "deny": [],
     "ask": []
