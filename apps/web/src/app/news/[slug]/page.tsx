@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { 
@@ -34,6 +34,11 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
   const resolvedParams = React.use(params)
   const { news, loading, error } = useNewsDetail(resolvedParams.slug)
   const [imageError, setImageError] = useState(false)
+
+  // Scroll al top cuando se carga la página o cambia el slug
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [resolvedParams.slug])
 
   if (loading) {
     return (

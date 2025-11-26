@@ -292,6 +292,9 @@ export default function StatisticsResultsPage() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [countryData, setCountryData] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [showDifficultyModal, setShowDifficultyModal] = useState(false);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
+  const [updatingDifficulty, setUpdatingDifficulty] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -471,6 +474,74 @@ export default function StatisticsResultsPage() {
     const normalizedScore = (score * maxScore) / 100;
     
     return Math.round(normalizedScore);
+  };
+
+  // Función para calcular la dificultad desde el uso de IA
+  const calcularDificultad = (uso_ia: string): number => {
+    const usoIALower = uso_ia.toLowerCase().trim();
+    
+    if (usoIALower.includes('siempre') || usoIALower.includes('todos los días') || usoIALower.includes('todos o casi todos los días')) {
+      return 5;
+    } else if (usoIALower.includes('frecuentemente') || usoIALower.includes('casi siempre') || usoIALower.includes('3-4 veces por semana')) {
+      return 4;
+    } else if (usoIALower.includes('a veces') || usoIALower.includes('ocasionalmente') || usoIALower.includes('1-2 veces por semana')) {
+      return 3;
+    } else if (usoIALower.includes('rara vez') || usoIALower.includes('casi nunca') || usoIALower.includes('1-2 veces al mes')) {
+      return 2;
+    } else {
+      return 1; // Nunca (por defecto)
+    }
+  };
+
+  // Función para actualizar la dificultad del usuario
+  const handleUpdateDifficulty = async () => {
+    if (!selectedDifficulty) {
+      alert('Por favor selecciona una opción');
+      return;
+    }
+
+    try {
+      setUpdatingDifficulty(true);
+      const supabase = createClient();
+
+      if (!user || !userProfile) {
+        alert('Error: Usuario no autenticado');
+        return;
+      }
+
+      // Calcular la nueva dificultad
+      const nuevaDificultad = calcularDificultad(selectedDifficulty);
+
+      // Actualizar el perfil del usuario
+      const { error: updateError } = await supabase
+        .from('user_perfil')
+        .update({ 
+          dificultad_id: nuevaDificultad,
+          uso_ia_respuesta: selectedDifficulty
+        })
+        .eq('id', userProfile.id);
+
+      if (updateError) {
+        console.error('Error al actualizar dificultad:', updateError);
+        alert('Error al actualizar la dificultad. Por favor intenta de nuevo.');
+        return;
+      }
+
+      // Actualizar el estado local
+      setUserProfile({
+        ...userProfile,
+        dificultad_id: nuevaDificultad
+      });
+
+      // Cerrar el modal y redirigir al cuestionario
+      setShowDifficultyModal(false);
+      router.push('/questionnaire/direct');
+    } catch (error) {
+      console.error('Error al actualizar dificultad:', error);
+      alert('Error al actualizar la dificultad. Por favor intenta de nuevo.');
+    } finally {
+      setUpdatingDifficulty(false);
+    }
   };
 
   const processRadarData = (responses: any[], userDifficulty: number | null | undefined = null) => {
@@ -894,6 +965,117 @@ export default function StatisticsResultsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+      {/* Modal de Dificultad */}
+      <AnimatePresence>
+        {showDifficultyModal && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDifficultyModal(false)}
+              className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 backdrop-blur-sm"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 border border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                    <Brain className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Actualizar Nivel de Dificultad
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-white/60 mt-1">
+                      Selecciona tu nivel actual de uso de IA
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-3">
+                    ¿Qué tanto utilizas la IA en tu ámbito laboral? <span className="text-red-500 dark:text-red-400">*</span>
+                  </label>
+                  <select
+                    value={selectedDifficulty}
+                    onChange={(e) => setSelectedDifficulty(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Selecciona una opción
+                    </option>
+                    <option value="Nunca" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Nunca
+                    </option>
+                    <option value="Rara vez" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Rara vez (1-2 veces al mes)
+                    </option>
+                    <option value="A veces" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      A veces (1-2 veces por semana)
+                    </option>
+                    <option value="Frecuentemente" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Frecuentemente (3-4 veces por semana)
+                    </option>
+                    <option value="Siempre" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Siempre (todos o casi todos los días)
+                    </option>
+                  </select>
+                  
+                  {userProfile?.dificultad_id && (
+                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Nivel actual:</strong> {userProfile.dificultad_id} 
+                        {userProfile.dificultad_id < 5 && (
+                          <span className="block mt-1 text-blue-700 dark:text-blue-300">
+                            Si crees que puedes hacer el siguiente nivel, selecciona una opción más alta.
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDifficultyModal(false)}
+                    disabled={updatingDifficulty}
+                    className="flex-1 px-4 py-3 bg-gray-200 dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleUpdateDifficulty}
+                    disabled={!selectedDifficulty || updatingDifficulty}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-lg hover:from-primary/80 hover:to-purple-500/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {updatingDifficulty ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Actualizando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Continuar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -910,7 +1092,20 @@ export default function StatisticsResultsPage() {
             </div>
             
             <button
-              onClick={() => router.push('/questionnaire/direct')}
+              onClick={() => {
+                // Obtener la dificultad actual del usuario para pre-seleccionarla
+                if (userProfile?.dificultad_id) {
+                  const dificultadMap: { [key: number]: string } = {
+                    1: 'Nunca',
+                    2: 'Rara vez',
+                    3: 'A veces',
+                    4: 'Frecuentemente',
+                    5: 'Siempre'
+                  };
+                  setSelectedDifficulty(dificultadMap[userProfile.dificultad_id] || '');
+                }
+                setShowDifficultyModal(true);
+              }}
               className="flex items-center px-4 py-2 bg-primary/20 dark:bg-primary/20 hover:bg-primary/30 dark:hover:bg-primary/30 border border-primary/30 dark:border-primary/30 hover:border-primary/50 dark:hover:border-primary/50 text-primary dark:text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
             >
               <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
