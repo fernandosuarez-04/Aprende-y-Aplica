@@ -384,10 +384,10 @@ export class DifficultyPatternDetector {
       return data.source === 1 || data.source === 2 || data.source === 5;
     });
     
-    // ⚡ ULTRA SENSIBLE: Solo 2 interacciones necesarias (de 10)
-    // Detecta búsqueda activa inmediatamente
-    if (interactionEvents.length < 2) {
-      console.log('⚠️ [DEBUG] Pocas interacciones:', interactionEvents.length, '< 2. Usuario leyendo o explorando.');
+    // ⚡ BALANCEADO: 5 interacciones necesarias (punto medio entre 2 y 10)
+    // Detecta búsqueda activa con balance entre sensibilidad y precisión
+    if (interactionEvents.length < 5) {
+      console.log('⚠️ [DEBUG] Pocas interacciones:', interactionEvents.length, '< 5. Usuario leyendo o explorando.');
       return null;
     }
     
@@ -404,10 +404,10 @@ export class DifficultyPatternDetector {
       }))
     });
     
-    // ⚡ ULTRA SENSIBLE: Solo 50 snapshots necesarios (de 150)
-    // Detecta búsqueda activa inmediatamente
-    if (incrementalSnapshots.length < 50) {
-      console.log('⚠️ [DEBUG] Analizando actividad de scroll:', incrementalSnapshots.length, '< 50 eventos');
+    // ⚡ BALANCEADO: 100 snapshots necesarios (punto medio entre 50 y 150)
+    // Detecta búsqueda activa con balance entre sensibilidad y precisión
+    if (incrementalSnapshots.length < 100) {
+      console.log('⚠️ [DEBUG] Analizando actividad de scroll:', incrementalSnapshots.length, '< 100 eventos');
       return null;
     }
     
@@ -446,19 +446,19 @@ export class DifficultyPatternDetector {
       primeras5Ventanas: activeWindows.slice(0, 5)
     });
 
-    // ⚡ ULTRA SENSIBLE: Solo 3 interacciones necesarias (de 8)
-    // Detecta búsqueda intencional inmediatamente
-    if (interactionEvents.length < 3) {
-      console.log('⚠️ [DEBUG] Scroll sin suficiente intención:', interactionEvents.length, '< 3 interacciones');
+    // ⚡ BALANCEADO: 5 interacciones necesarias (punto medio entre 3 y 8)
+    // Detecta búsqueda intencional con balance entre sensibilidad y precisión
+    if (interactionEvents.length < 5) {
+      console.log('⚠️ [DEBUG] Scroll sin suficiente intención:', interactionEvents.length, '< 5 interacciones');
       return null;
     }
 
-    // ⚡ ULTRA SENSIBLE: Detectar de dos formas (UMBRALES ULTRA REDUCIDOS)
+    // ⚡ BALANCEADO: Detectar de dos formas (UMBRALES EQUILIBRADOS)
     // 1. Cambios de dirección (scroll arriba-abajo-arriba)
-    // 2. Volumen (4+ segundos de scroll continuo = usuario buscando)
-    //    🔥 REDUCIDO de 12 a 4 para detección INMEDIATA
+    // 2. Volumen (8+ segundos de scroll continuo = usuario buscando)
+    //    ⚖️ PUNTO MEDIO: 8 ventanas (entre 4 y 12) para balance sensibilidad/precisión
     const detectedByChanges = directionChanges >= this.thresholds.scrollRepeatThreshold;
-    const detectedByVolume = activeWindows.length >= 4;
+    const detectedByVolume = activeWindows.length >= 8;
 
     if (detectedByChanges || detectedByVolume) {
       return {

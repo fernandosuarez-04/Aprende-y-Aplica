@@ -83,24 +83,24 @@ export class SessionRecorder {
         recordCrossOriginIframes: false, // No grabar iframes externos
         collectFonts: false, // No recolectar fuentes (reduce tamaño)
         inlineStylesheet: false, // No inline CSS (reduce eventos)
-        // ⚡ SAMPLING OPTIMIZADO para detectar dificultad sin perder interacciones críticas
+        // ⚡ SAMPLING BALANCEADO para detectar dificultad sin sobrecargar
         sampling: {
           mousemove: true,
-          mousemoveCallback: 250, // 250ms para detectar movimientos erráticos (reducido de 500ms)
+          mousemoveCallback: 375, // 375ms - punto medio entre 250ms y 500ms
           mouseInteraction: {
             MouseUp: true, // ✅ ACTIVADO - detectar intentos de interacción
             MouseDown: true, // ✅ ACTIVADO - detectar intentos de interacción
             Click: true, // ✅ Clicks (crítico)
             ContextMenu: false, // No menu contextual
             DblClick: true, // ✅ Double clicks (importante)
-            Focus: true, // ✅ ACTIVADO - detectar cambios de foco
-            Blur: true, // ✅ ACTIVADO - detectar pérdida de foco
+            Focus: false, // ❌ Desactivado - genera ruido
+            Blur: false, // ❌ Desactivado - genera ruido
             TouchStart: true, // ✅ ACTIVADO - soporte móvil
             TouchEnd: true, // ✅ ACTIVADO - soporte móvil
           },
-          scroll: 150, // 150ms para detectar scroll excesivo (reducido de 300ms)
+          scroll: 225, // 225ms - punto medio entre 150ms y 300ms
           media: 800, // Sample media cada 800ms (mantener)
-          input: 'all', // ✅ TODOS los inputs para detectar backspace y delete (cambio crítico)
+          input: 'all', // ✅ TODOS los inputs para detectar backspace y delete
         },
         // Ignorar ciertos elementos que generan mucho ruido
         ignoreClass: 'rr-ignore',
