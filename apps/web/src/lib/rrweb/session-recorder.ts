@@ -83,24 +83,24 @@ export class SessionRecorder {
         recordCrossOriginIframes: false, // No grabar iframes externos
         collectFonts: false, // No recolectar fuentes (reduce tamaño)
         inlineStylesheet: false, // No inline CSS (reduce eventos)
-        // Sampling agresivo para reducir ruido
+        // ⚡ SAMPLING OPTIMIZADO para detectar dificultad sin perder interacciones críticas
         sampling: {
           mousemove: true,
-          mousemoveCallback: 500, // Sample mousemove cada 500ms (más espaciado)
+          mousemoveCallback: 250, // 250ms para detectar movimientos erráticos (reducido de 500ms)
           mouseInteraction: {
-            MouseUp: false, // No capturar mouse up
-            MouseDown: false, // No capturar mouse down
-            Click: true, // Solo clicks (importante para reproducir acciones)
+            MouseUp: true, // ✅ ACTIVADO - detectar intentos de interacción
+            MouseDown: true, // ✅ ACTIVADO - detectar intentos de interacción
+            Click: true, // ✅ Clicks (crítico)
             ContextMenu: false, // No menu contextual
-            DblClick: true, // Double clicks (importante)
-            Focus: false, // No focus events
-            Blur: false, // No blur events
-            TouchStart: false, // No touch start
-            TouchEnd: false, // No touch end
+            DblClick: true, // ✅ Double clicks (importante)
+            Focus: true, // ✅ ACTIVADO - detectar cambios de foco
+            Blur: true, // ✅ ACTIVADO - detectar pérdida de foco
+            TouchStart: true, // ✅ ACTIVADO - soporte móvil
+            TouchEnd: true, // ✅ ACTIVADO - soporte móvil
           },
-          scroll: 300, // Sample scroll cada 300ms (más espaciado)
-          media: 800, // Sample media cada 800ms
-          input: 'last', // Solo el último valor de inputs (no cada keystroke)
+          scroll: 150, // 150ms para detectar scroll excesivo (reducido de 300ms)
+          media: 800, // Sample media cada 800ms (mantener)
+          input: 'all', // ✅ TODOS los inputs para detectar backspace y delete (cambio crítico)
         },
         // Ignorar ciertos elementos que generan mucho ruido
         ignoreClass: 'rr-ignore',

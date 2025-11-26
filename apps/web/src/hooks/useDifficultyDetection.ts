@@ -144,9 +144,9 @@ export function useDifficultyDetection(
         }))
       });
 
-      // Si se debe intervenir y han pasado al menos 2 minutos desde última intervención (reducido para testing)
+      // ⚡ SISTEMA MÁGICO: Cooldown reducido a 2 minutos para ser más responsivo
       const timeSinceLastIntervention = Date.now() - lastInterventionTimeRef.current;
-      const minTimeBetweenInterventions = 2 * 60 * 1000; // 2 minutos (reducido de 5 para testing)
+      const minTimeBetweenInterventions = 2 * 60 * 1000; // 2 minutos (reducido de 5 para detección más frecuente)
 
       if (currentAnalysis.shouldIntervene && timeSinceLastIntervention > minTimeBetweenInterventions) {
         console.log('🚨 Dificultad detectada! Ofreciendo ayuda proactiva', {

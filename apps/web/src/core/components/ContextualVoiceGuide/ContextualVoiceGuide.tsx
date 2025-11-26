@@ -84,16 +84,19 @@ export function ContextualVoiceGuide({
   // Verificar si debe mostrar el tour
   useEffect(() => {
     if (requireAuth && !user) return;
-    
+
     const hasSeenTour = localStorage.getItem(storageKey);
     const shouldShow = triggerPaths.some(path => pathname === path || pathname?.startsWith(path));
-    
-    if (shouldShow && (!hasSeenTour || isReplayable)) {
+
+    // 🔧 FIX: Solo mostrar automáticamente si NO ha visto el tour
+    // El tour solo se muestra de nuevo si el usuario presiona el botón de replay
+    // (que borra el localStorage y recarga la página)
+    if (shouldShow && !hasSeenTour) {
       setTimeout(() => {
         setIsVisible(true);
       }, showDelay);
     }
-  }, [pathname, storageKey, triggerPaths, isReplayable, showDelay, requireAuth, user]);
+  }, [pathname, storageKey, triggerPaths, showDelay, requireAuth, user]);
 
   // âœ… Reproducir audio automÃ¡ticamente cuando se abre el modal
   useEffect(() => {
