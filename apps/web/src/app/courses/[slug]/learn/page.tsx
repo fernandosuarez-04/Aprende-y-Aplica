@@ -3250,8 +3250,8 @@ Antes de cada respuesta, pregúntate:
                         onStartInteraction={handleStartActivityInteraction}
                         userRole={user?.type_rol}
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
-                        t={t}
-                        language={i18n.language}
+                        onNavigateNext={navigateToNextLesson}
+                        hasNextLesson={!!getNextLesson()}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -5947,8 +5947,8 @@ function ActivitiesContent({
   onStartInteraction,
   userRole,
   generateRoleBasedPrompts,
-  t,
-  language
+  onNavigateNext,
+  hasNextLesson
 }: {
   lesson: Lesson;
   slug: string;
@@ -5956,8 +5956,8 @@ function ActivitiesContent({
   onStartInteraction?: (content: string, title: string) => void;
   userRole?: string;
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
-  t: (key: string) => string;
-  language: string;
+  onNavigateNext?: () => void | Promise<void>;
+  hasNextLesson?: boolean;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -6902,7 +6902,7 @@ function ActivitiesContent({
             </div>
           </div>
 
-          {getNextLesson && getNextLesson() && onNavigateNext && (
+          {hasNextLesson && onNavigateNext && (
             <button
               onClick={onNavigateNext}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
