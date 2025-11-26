@@ -34,51 +34,71 @@ const itemVariants = {
 };
 
 export default function AppsDirectoryPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // Detectar idioma seleccionado desde el contexto global (igual que en /learn)
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showFeatured, setShowFeatured] = useState(false);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mounted, setMounted] = useState(false);
-  
-  // Cargar el modo de vista guardado después del montaje
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem('apps-view-mode')
-    if (saved === 'grid' || saved === 'list') {
-      setViewMode(saved)
-    }
-  }, []);
-  
-  // Guardar el modo de vista en localStorage cuando cambie
-  useEffect(() => {
-    if (mounted && typeof window !== 'undefined') {
-      localStorage.setItem('apps-view-mode', viewMode)
-    }
-  }, [viewMode, mounted])
 
-  const { apps, loading, error, pagination, refetch } = useApps({
-    search: searchQuery,
-    featured: showFeatured,
-    sortBy,
-    sortOrder
-  });
+  // Variable para saber si hay filtros activos
+  const hasActiveFilters = !!searchQuery || !!showFeatured;
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleFeaturedToggle = () => {
-    setShowFeatured(!showFeatured);
-  };
-
+  // Función para limpiar filtros
   const clearFilters = () => {
     setSearchQuery('');
     setShowFeatured(false);
   };
 
-  const hasActiveFilters = searchQuery || showFeatured;
+  // Definir handleSearch para el SearchBar
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  // Definir handleFeaturedToggle para el botón destacado
+  const handleFeaturedToggle = () => {
+    setShowFeatured((prev) => !prev);
+  };
+
+  // Hook de apps con valores por defecto para evitar errores de referencia
+  const {
+    apps = [],
+    loading = false,
+    error = null,
+    pagination = { page: 1, limit: 12, total: 0, totalPages: 1 },
+    refetch = () => {}
+  } = useApps({
+    search: searchQuery,
+    featured: showFeatured,
+    sortBy,
+    sortOrder,
+    lang: selectedLang // Usar selectedLang del contexto global
+  });
+  
+  // Cargar el modo de vista guardado después del montaje
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('apps-view-mode');
+    if (saved === 'grid' || saved === 'list') {
+      setViewMode(saved);
+    }
+  }, []);
+
+  // Guardar el modo de vista en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('apps-view-mode', viewMode);
+    }
+  }, [viewMode, mounted]);
+  if (!mounted) {
+    // Evita hydration error mostrando un placeholder hasta que el idioma esté listo
+    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900"><LoadingSpinner /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative pb-12">

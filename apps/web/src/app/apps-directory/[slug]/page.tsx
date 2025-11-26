@@ -10,6 +10,7 @@ import { Button } from '@aprende-y-aplica/ui';
 import { LoadingSpinner } from '../../../features/ai-directory/components/LoadingSpinner';
 import { StarRating } from '../../../features/courses/components/StarRating';
 import { AppRatingInline } from '../../../features/ai-directory/components/AppRatingInline';
+import { useTranslation } from 'react-i18next';
 
 interface App {
   app_id: string;
@@ -67,6 +68,11 @@ const pricingLabels = {
 
 export default function AppDetailPage() {
   const params = useParams();
+  const { i18n } = useTranslation();
+
+  // Detectar idioma seleccionado desde el contexto global (igual que en /learn)
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+
   const [app, setApp] = useState<App | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,23 +80,19 @@ export default function AppDetailPage() {
   const fetchApp = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/ai-directory/apps/${params.slug}`);
-      
+      const response = await fetch(`/api/ai-directory/apps/${params.slug}?lang=${selectedLang}`);
       if (!response.ok) {
         throw new Error('App not found');
       }
-
       const data = await response.json();
       setApp(data.app);
       setError(null);
-
       // Incrementar contador de visualizaciones
       try {
         await fetch(`/api/ai-directory/apps/${params.slug}/view`, {
           method: 'POST',
         });
       } catch (viewError) {
-        // No fallar si el incremento de vistas falla
         console.error('Error incrementing view count:', viewError);
       }
     } catch (err) {
@@ -105,7 +107,8 @@ export default function AppDetailPage() {
       fetchApp();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.slug]);
+  }, [params.slug, i18n.language]); // Escuchar cambios en i18n.language
+
 
   if (loading) {
     return (
@@ -137,26 +140,7 @@ export default function AppDetailPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-100 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl" />
-        
         <div className="container mx-auto px-4 relative z-10">
-          {/* Back Button */}
-          <motion.div
-            className="mb-6"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <Link href="/apps-directory">
-              <Button variant="ghost" className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Volver al Directorio
-              </Button>
-            </Link>
-          </motion.div>
-
           {/* Header Content */}
           <motion.div
             className="max-w-4xl mx-auto"
