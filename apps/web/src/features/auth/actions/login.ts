@@ -44,14 +44,41 @@ export async function loginAction(formData: FormData) {
 
     // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
     // Buscar usuario por username o email (case-insensitive match exacto)
-    let { data: user, error } = await supabase
+    console.log('🔍 [loginAction] Buscando usuario con:', parsed.emailOrUsername);
+    
+    // Intentar buscar por username primero
+    let { data: userByUsername, error: usernameError } = await supabase
       .from('users')
       .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason, organization_id')
-      .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
-      .single()
+      .ilike('username', parsed.emailOrUsername)
+      .maybeSingle()
+
+    // Si no se encuentra por username, buscar por email
+    let { data: userByEmail, error: emailError } = await supabase
+      .from('users')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason, organization_id')
+      .ilike('email', parsed.emailOrUsername)
+      .maybeSingle()
+
+    // Determinar qué usuario usar (prioridad: username > email)
+    const user = userByUsername || userByEmail
+    const error = userByUsername ? usernameError : emailError
+
+    console.log('🔍 [loginAction] Resultado de búsqueda:', {
+      foundByUsername: !!userByUsername,
+      foundByEmail: !!userByEmail,
+      usernameError: usernameError?.message,
+      emailError: emailError?.message,
+      userFound: !!user
+    });
 
     if (error || !user) {
-      console.log('❌ [loginAction] Usuario no encontrado');
+      console.log('❌ [loginAction] Usuario no encontrado', {
+        error: error?.message,
+        searchedValue: parsed.emailOrUsername,
+        usernameError: usernameError?.message,
+        emailError: emailError?.message
+      });
       return { error: 'Credenciales inválidas' }
     }
 
