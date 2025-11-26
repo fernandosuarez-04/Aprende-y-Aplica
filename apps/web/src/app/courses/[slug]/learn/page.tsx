@@ -3191,7 +3191,7 @@ Antes de cada respuesta, pregúntate:
                         userRole={user?.type_rol}
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
                         onNavigateNext={navigateToNextLesson}
-                        getNextLesson={getNextLesson}
+                        hasNextLesson={!!getNextLesson()}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -5893,7 +5893,7 @@ function ActivitiesContent({
   userRole,
   generateRoleBasedPrompts,
   onNavigateNext,
-  getNextLesson
+  hasNextLesson
 }: {
   lesson: Lesson;
   slug: string;
@@ -5902,7 +5902,7 @@ function ActivitiesContent({
   userRole?: string;
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
   onNavigateNext?: () => void | Promise<void>;
-  getNextLesson?: () => Lesson | null;
+  hasNextLesson?: boolean;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -6837,7 +6837,7 @@ function ActivitiesContent({
             </div>
           </div>
 
-          {getNextLesson && getNextLesson() && onNavigateNext && (
+          {hasNextLesson && onNavigateNext && (
             <button
               onClick={onNavigateNext}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
