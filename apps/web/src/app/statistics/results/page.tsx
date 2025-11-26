@@ -381,7 +381,9 @@ export default function StatisticsResultsPage() {
             escala,
             scoring,
             respuesta_correcta,
-            texto
+            texto,
+            dimension,
+            dificultad
           )
         `)
         .eq('user_perfil_id', userProfile.id);
@@ -412,8 +414,8 @@ export default function StatisticsResultsPage() {
         valor: r.valor
       })));
       
-      // Procesar datos para el radar
-      const processedRadarData = processRadarData(responses || []);
+      // Procesar datos para el radar (pasar dificultad_id del usuario)
+      const processedRadarData = processRadarData(responses || [], userProfile.dificultad_id);
       console.log('📊 Datos del radar procesados:', processedRadarData);
       setRadarData(processedRadarData);
 
@@ -436,13 +438,57 @@ export default function StatisticsResultsPage() {
     }
   };
 
-  const processRadarData = (responses: any[]) => {
+  /**
+   * Normaliza el score según la dificultad del usuario
+   * - Dificultad 1: máximo 20 puntos (20%) - escala proporcional
+   * - Dificultad 2: máximo 40 puntos (40%) - escala proporcional
+   * - Dificultad 3: máximo 60 puntos (60%) - escala proporcional
+   * - Dificultad 4: máximo 80 puntos (80%) - escala proporcional
+   * - Dificultad 5: máximo 100 puntos (100%) - sin escalar
+   * 
+   * Ejemplo: Si el usuario tiene dificultad 1 y obtiene 50 puntos (50%),
+   * el score normalizado será 10 puntos (50% de 20 = 10)
+   */
+  const normalizeScoreByDifficulty = (score: number, userDifficulty: number | null | undefined): number => {
+    if (!userDifficulty || userDifficulty < 1 || userDifficulty > 5) {
+      // Si no hay dificultad definida, retornar el score sin normalizar
+      return score;
+    }
+
+    const maxScoreByDifficulty: { [key: number]: number } = {
+      1: 20,
+      2: 40,
+      3: 60,
+      4: 80,
+      5: 100
+    };
+
+    const maxScore = maxScoreByDifficulty[userDifficulty] || 100;
+    
+    // Normalización proporcional: escalar el score según el máximo permitido
+    // Si el score es 50 y el máximo es 20, entonces: 50 * 20 / 100 = 10
+    // Si el score es 100 y el máximo es 20, entonces: 100 * 20 / 100 = 20
+    const normalizedScore = (score * maxScore) / 100;
+    
+    return Math.round(normalizedScore);
+  };
+
+  const processRadarData = (responses: any[], userDifficulty: number | null | undefined = null) => {
     const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
     
     // Procesar scores por dimensión
     
     const scores = dimensions.map(dimension => {
       const relevantResponses = responses.filter(response => {
+        // Usar el campo dimension directamente de la pregunta (es un array jsonb)
+        const questionDimensions = response.preguntas?.dimension;
+        
+        // Si la pregunta tiene el campo dimension, usarlo directamente
+        if (questionDimensions && Array.isArray(questionDimensions)) {
+          return questionDimensions.includes(dimension);
+        }
+        
+        // Fallback: usar la lógica anterior si no hay campo dimension
         const section = response.preguntas?.section || '';
         const bloque = response.preguntas?.bloque || '';
         const texto = response.preguntas?.texto?.toLowerCase() || '';
@@ -648,10 +694,15 @@ export default function StatisticsResultsPage() {
       });
 
       const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+      
+      // Aplicar normalización por dificultad del usuario
+      const normalizedScore = normalizeScoreByDifficulty(finalScore, userDifficulty);
 
       return {
         dimension,
-        score: Math.min(100, Math.max(0, finalScore))
+        score: Math.min(100, Math.max(0, normalizedScore)),
+        rawScore: finalScore, // Guardar el score sin normalizar para referencia
+        maxPossibleScore: userDifficulty ? (userDifficulty * 20) : 100 // Máximo posible según dificultad
       };
     });
 
@@ -883,10 +934,29 @@ export default function StatisticsResultsPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Radar de Competencias en IA</h2>
             </div>
-            <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto">
+            <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto mb-4">
               Visualización de tus fortalezas por área funcional basada en tu cuestionario. 
               Cada dimensión se evalúa en una escala de 0 a 100 puntos.
             </p>
+            {userProfile?.dificultad_id && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <p className="font-semibold mb-1">Nivel de Dificultad: {userProfile.dificultad_id}</p>
+                    <p>
+                      Tus scores están normalizados según tu nivel de dificultad. 
+                      El máximo posible para tu nivel es {userProfile.dificultad_id * 20} puntos.
+                      {userProfile.dificultad_id < 5 && (
+                        <span className="block mt-1 text-blue-700 dark:text-blue-300">
+                          A medida que avances en tu conocimiento de IA, podrás alcanzar niveles más altos.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex flex-col lg:flex-row gap-8 items-center">
