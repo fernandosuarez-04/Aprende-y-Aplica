@@ -3,6 +3,21 @@ import { createClient } from '@/lib/supabase/server';
 import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
 
 /**
+ * Obtiene el nombre de la tabla de lecciones según el idioma
+ */
+function getLessonsTableName(language: string): string {
+  switch (language) {
+    case 'en':
+      return 'course_lessons_en'
+    case 'pt':
+      return 'course_lessons_pt'
+    case 'es':
+    default:
+      return 'course_lessons'
+  }
+}
+
+/**
  * GET /api/courses/[slug]/lessons/[lessonId]/transcript
  * Obtiene la transcripción de una lección
  */
@@ -12,6 +27,8 @@ export async function GET(
 ) {
   try {
     const { slug, lessonId } = await params;
+    const { searchParams } = new URL(request.url);
+    const language = searchParams.get('language') || 'es'; // Por defecto español
     const supabase = await createClient();
 
     // Optimización: Obtener curso primero, luego validar lección y módulo en una consulta
@@ -28,9 +45,12 @@ export async function GET(
       );
     }
 
+    // Usar la tabla correcta según el idioma
+    const lessonsTableName = getLessonsTableName(language);
+    
     // Optimización: Verificar lección y módulo en una sola consulta con JOIN
     const { data: lesson, error: lessonError } = await supabase
-      .from('course_lessons')
+      .from(lessonsTableName)
       .select(`
         lesson_id,
         module_id,
@@ -50,9 +70,9 @@ export async function GET(
       );
     }
 
-    // Obtener transcripción de la lección
+    // Obtener transcripción de la lección desde la tabla correcta según idioma
     const { data: lessonData, error: transcriptError } = await supabase
-      .from('course_lessons')
+      .from(lessonsTableName)
       .select('transcript_content')
       .eq('lesson_id', lessonId)
       .single();

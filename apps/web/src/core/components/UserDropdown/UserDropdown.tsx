@@ -20,7 +20,8 @@ import {
   Settings,
   Receipt,
   Award,
-  Languages as LanguagesIcon
+  Languages as LanguagesIcon,
+  Bell
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
@@ -165,6 +166,15 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
       icon: Award,
       onClick: () => {
         router.push('/certificates')
+        setIsOpen(false)
+      }
+    },
+    {
+      id: 'notifications',
+      label: t('menu.notifications'),
+      icon: Bell,
+      onClick: () => {
+        router.push('/dashboard/notifications')
         setIsOpen(false)
       }
     },

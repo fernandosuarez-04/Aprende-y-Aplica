@@ -156,7 +156,17 @@ function processRadarData(responses: any[]) {
 
     relevantResponses.forEach(response => {
       const weight = response.preguntas?.peso || 1;
-      const value = response.valor;
+      let value = response.valor;
+      
+      // Manejar valor como jsonb - puede venir como string JSON o ya parseado
+      if (value && typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+        // Si es un string JSON, parsearlo
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          // Si falla el parse, usar el valor original
+        }
+      }
       
       // Calcular puntuación basada en el tipo de respuesta
       let score = 0;
@@ -210,7 +220,17 @@ function processAnalysis(responses: any[], userProfile: any) {
   let adoptionScore = 0;
   if (adoptionResponses.length > 0) {
     const totalAdoption = adoptionResponses.reduce((sum, response) => {
-      const value = response.valor;
+      let value = response.valor;
+      
+      // Manejar valor como jsonb
+      if (value && typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          // Si falla el parse, usar el valor original
+        }
+      }
+      
       let score = 0;
       if (typeof value === 'string') {
         if (value.includes('A)')) score = 0;
@@ -231,7 +251,17 @@ function processAnalysis(responses: any[], userProfile: any) {
   if (knowledgeResponses.length > 0) {
     knowledgeResponses.forEach(response => {
       const correctAnswer = response.preguntas?.respuesta_correcta;
-      const userAnswer = response.valor;
+      let userAnswer = response.valor;
+      
+      // Manejar valor como jsonb
+      if (userAnswer && typeof userAnswer === 'string' && userAnswer.startsWith('"') && userAnswer.endsWith('"')) {
+        try {
+          userAnswer = JSON.parse(userAnswer);
+        } catch (e) {
+          // Si falla el parse, usar el valor original
+        }
+      }
+      
       if (correctAnswer && userAnswer === correctAnswer) {
         correctAnswers++;
       }

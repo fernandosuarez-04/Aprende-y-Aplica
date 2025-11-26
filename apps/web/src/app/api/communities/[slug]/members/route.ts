@@ -18,6 +18,19 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar si el usuario necesita completar el cuestionario
+    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
+    const { QuestionnaireValidationService } = await import('../../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de Mis Estadísticas antes de acceder a comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
+    }
+
     // Obtener la comunidad por slug
     const { data: community, error: communityError } = await supabase
       .from('communities')

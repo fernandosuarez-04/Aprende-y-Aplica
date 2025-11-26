@@ -13,6 +13,7 @@ import { PasswordInput } from '../PasswordInput';
 import { loginAction } from '../../actions/login';
 import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 import { getSavedCredentials, saveCredentials, clearSavedCredentials } from '../../../../lib/auth/remember-me';
+import { ToastNotification } from '../../../../core/components/ToastNotification';
 
 export function LoginForm() {
   const [isPending, setIsPending] = useState(false);
@@ -108,6 +109,7 @@ export function LoginForm() {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-2.5 sm:space-y-3">
       {/* Welcome Message */}
       <motion.div 
@@ -510,5 +512,15 @@ export function LoginForm() {
         <SocialLoginButtons />
       </motion.div>
     </form>
+
+    {/* Toast Notification para errores */}
+    <ToastNotification
+      isOpen={!!error}
+      onClose={() => setError(null)}
+      message={error || ''}
+      type="error"
+      duration={6000}
+    />
+    </>
   );
 }

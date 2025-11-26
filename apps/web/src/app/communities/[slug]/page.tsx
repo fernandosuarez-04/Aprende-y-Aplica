@@ -78,6 +78,7 @@ const InfinitePostsFeed = dynamic(() => import('../../../features/communities/co
 });
 import { InlineAttachmentButtons, AttachmentPreview, PostAttachment } from '../../../features/communities/components';
 import { formatRelativeTime } from '../../../core/utils/date-utils';
+import { getBaseUrl } from '../../../lib/env';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
 // import { useAuth } from '../../../features/auth/hooks/useAuth';
@@ -265,7 +266,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const postUrl = `${window.location.origin}/communities/${communitySlug}#post-${postId}`;
+  const postUrl = `${getBaseUrl()}/communities/${communitySlug}#post-${postId}`;
   const shareText = `Mira este post de ${communityName}: "${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}"`;
 
   const copyToClipboard = async (text: string) => {

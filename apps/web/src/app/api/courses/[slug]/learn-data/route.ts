@@ -49,6 +49,7 @@ export async function GET(
     const { slug } = await params
     const { searchParams } = new URL(request.url)
     const lessonId = searchParams.get('lessonId')
+    const language = searchParams.get('language') || 'es' // Por defecto español
 
     const supabase = await createClient()
 
@@ -79,7 +80,7 @@ export async function GET(
       lessonDataResult
     ] = await Promise.all([
       // Query 1: Módulos y lecciones con progreso
-      loadModulesWithProgress(supabase, courseId, currentUser?.id),
+      loadModulesWithProgress(supabase, courseId, currentUser?.id, language),
 
       // Query 2: Preguntas del curso
       loadCourseQuestions(supabase, courseId, currentUser?.id),
@@ -91,7 +92,7 @@ export async function GET(
 
       // Query 4: Datos de lección actual (solo si se especificó lessonId)
       lessonId
-        ? loadLessonData(supabase, courseId, lessonId)
+        ? loadLessonData(supabase, courseId, lessonId, language)
         : Promise.resolve(null)
     ])
 
@@ -150,12 +151,28 @@ export async function GET(
 }
 
 /**
+ * Obtiene el nombre de la tabla de lecciones según el idioma
+ */
+function getLessonsTableName(language: string): string {
+  switch (language) {
+    case 'en':
+      return 'course_lessons_en'
+    case 'pt':
+      return 'course_lessons_pt'
+    case 'es':
+    default:
+      return 'course_lessons'
+  }
+}
+
+/**
  * Carga módulos y lecciones con progreso del usuario
  */
 async function loadModulesWithProgress(
   supabase: any,
   courseId: string,
-  userId?: string
+  userId?: string,
+  language: string = 'es'
 ) {
   // Obtener TODOS los módulos del curso (sin filtrar por is_published)
   const { data: allModules, error: allModulesError } = await supabase
@@ -196,8 +213,10 @@ async function loadModulesWithProgress(
   }
 
   // Obtener TODAS las lecciones en una query (sin filtrar por is_published primero)
+  // Usar la tabla correcta según el idioma para obtener lesson_description, transcript y summary
+  const lessonsTableName = getLessonsTableName(language)
   const { data: allLessonsData } = await supabase
-    .from('course_lessons')
+    .from(lessonsTableName)
     .select(`
       lesson_id,
       lesson_title,
@@ -207,7 +226,9 @@ async function loadModulesWithProgress(
       video_provider_id,
       video_provider,
       is_published,
-      module_id
+      module_id,
+      transcript_content,
+      summary_content
     `)
     .in('module_id', modules.map((m: any) => m.module_id))
     .order('lesson_order_index', { ascending: true })
@@ -349,7 +370,9 @@ async function loadModulesWithProgress(
         video_provider_id: videoUrl,
         video_provider: lesson.video_provider,
         is_completed: progress?.is_completed || false,
-        progress_percentage: progress?.video_progress_percentage || 0
+        progress_percentage: progress?.video_progress_percentage || 0,
+        transcript_content: lesson.transcript_content || null,
+        summary_content: lesson.summary_content || null
       }
     })
 
@@ -381,11 +404,15 @@ async function loadModulesWithProgress(
 async function loadLessonData(
   supabase: any,
   courseId: string,
-  lessonId: string
+  lessonId: string,
+  language: string = 'es'
 ) {
+  // Usar la tabla correcta según el idioma para obtener lesson_description, transcript y summary
+  const lessonsTableName = getLessonsTableName(language)
+  
   // Validar que la lección pertenece al curso
   const { data: lesson, error: lessonError } = await supabase
-    .from('course_lessons')
+    .from(lessonsTableName)
     .select(`
       lesson_id,
       module_id,

@@ -60,6 +60,20 @@ export async function GET(
       );
     }
 
+    // Verificar si el usuario necesita completar el cuestionario
+    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
+    const { QuestionnaireValidationService } = await import('../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      logger.log('🔒 User needs to complete questionnaire before accessing communities');
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de Mis Estadísticas antes de acceder a comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
+    }
+
     // Verificar si el usuario tiene CUALQUIER membresía activa en otras comunidades
     const { data: allMemberships, error: allMembershipsError } = await supabase
       .from('community_members')
