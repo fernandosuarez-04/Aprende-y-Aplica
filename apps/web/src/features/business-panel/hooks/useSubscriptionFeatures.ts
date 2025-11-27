@@ -47,88 +47,72 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
 
     try {
       setLoading(true)
-      // Obtener plan desde la API de suscripción
-      const response = await fetch('/api/business/settings/subscription', {
-        credentials: 'include',
-      })
 
-      if (response.ok) {
-        const data = await response.json()
+      // Obtener AMBOS endpoints en paralelo para máximo rendimiento
+      const [subscriptionResponse, orgResponse] = await Promise.all([
+        fetch('/api/business/settings/subscription', { credentials: 'include' }),
+        fetch('/api/business/settings/organization', { credentials: 'include' })
+      ])
+
+      let planValue: string | null = null
+      let billingCycleValue: string = 'yearly'
+      let subscriptionData: any = null
+
+      // Primero intentar desde subscription
+      if (subscriptionResponse.ok) {
+        const data = await subscriptionResponse.json()
         if (data.success && data.subscription) {
-          const subscriptionData = data.subscription
-          
-          // Obtener plan desde subscription.plan o intentar desde organization si no está disponible
-          let planValue = subscriptionData.plan?.toLowerCase()?.trim()
+          subscriptionData = data.subscription
+          planValue = subscriptionData.plan?.toLowerCase()?.trim()
+          billingCycleValue = subscriptionData.billing_cycle?.toLowerCase() || 'yearly'
+        }
+      }
 
-          // Si no hay plan en subscription, intentar obtenerlo desde organization
-          if (!planValue) {
-            try {
-              const orgResponse = await fetch('/api/business/settings/organization', {
-                credentials: 'include',
-              })
-              if (orgResponse.ok) {
-                const orgData = await orgResponse.json()
-                if (orgData.success && orgData.organization?.subscription_plan) {
-                  planValue = orgData.organization.subscription_plan.toLowerCase()?.trim()
-                }
-              }
-            } catch (e) {
-              // Silent fail - plan will remain null
+      // Si no hay plan en subscription, usar organization (ya cargado en paralelo)
+      if (!planValue && orgResponse.ok) {
+        const orgData = await orgResponse.json()
+        if (orgData.success && orgData.organization?.subscription_plan) {
+          planValue = orgData.organization.subscription_plan.toLowerCase()?.trim()
+          billingCycleValue = orgData.organization.billing_cycle?.toLowerCase() || 'yearly'
+
+          // Si no había subscriptionData, crearlo desde organization
+          if (!subscriptionData) {
+            subscriptionData = {
+              plan: planValue,
+              billing_cycle: billingCycleValue,
+              status: orgData.organization.subscription_status,
+              start_date: orgData.organization.subscription_start_date,
+              end_date: orgData.organization.subscription_end_date,
+              max_users: orgData.organization.max_users
             }
-          }
-
-          // Validar y establecer el plan
-          if (planValue && ['team', 'business', 'enterprise'].includes(planValue)) {
-            setPlan(planValue as SubscriptionPlan)
-          } else {
-            // Si el plan es inválido, establecer null explícitamente
-            setPlan(null)
-          }
-
-          const billingCycleValue = subscriptionData.billing_cycle?.toLowerCase() || 'yearly'
-          if (['monthly', 'yearly'].includes(billingCycleValue)) {
-            setBillingCycle(billingCycleValue as BillingCycle)
-          } else {
-            // Default a yearly si no está especificado
-            setBillingCycle('yearly')
-          }
-
-          setSubscription({
-            plan: (planValue && ['team', 'business', 'enterprise'].includes(planValue) ? planValue as SubscriptionPlan : null),
-            billing_cycle: billingCycleValue as BillingCycle || 'yearly',
-            status: subscriptionData.status,
-            start_date: subscriptionData.start_date,
-            end_date: subscriptionData.end_date,
-            max_users: subscriptionData.max_users
-          })
-        } else {
-          // Si no hay subscription, intentar obtener plan desde organization directamente
-          try {
-            const orgResponse = await fetch('/api/business/settings/organization', {
-              credentials: 'include',
-            })
-            if (orgResponse.ok) {
-              const orgData = await orgResponse.json()
-              if (orgData.success && orgData.organization?.subscription_plan) {
-                const orgPlanValue = orgData.organization.subscription_plan.toLowerCase()
-                if (['team', 'business', 'enterprise'].includes(orgPlanValue)) {
-                  setPlan(orgPlanValue as SubscriptionPlan)
-                  setBillingCycle(orgData.organization.billing_cycle?.toLowerCase() || 'yearly')
-                  setSubscription({
-                    plan: orgPlanValue as SubscriptionPlan,
-                    billing_cycle: (orgData.organization.billing_cycle?.toLowerCase() || 'yearly') as BillingCycle,
-                    status: orgData.organization.subscription_status,
-                    start_date: orgData.organization.subscription_start_date,
-                    end_date: orgData.organization.subscription_end_date,
-                    max_users: orgData.organization.max_users
-                  })
-                }
-              }
-            }
-          } catch (e) {
-            // Error al obtener de organization
           }
         }
+      }
+
+      // Validar y establecer el plan
+      if (planValue && ['team', 'business', 'enterprise'].includes(planValue)) {
+        setPlan(planValue as SubscriptionPlan)
+      } else {
+        setPlan(null)
+      }
+
+      // Establecer billing cycle
+      if (['monthly', 'yearly'].includes(billingCycleValue)) {
+        setBillingCycle(billingCycleValue as BillingCycle)
+      } else {
+        setBillingCycle('yearly')
+      }
+
+      // Establecer subscription
+      if (subscriptionData) {
+        setSubscription({
+          plan: (planValue && ['team', 'business', 'enterprise'].includes(planValue) ? planValue as SubscriptionPlan : null),
+          billing_cycle: billingCycleValue as BillingCycle || 'yearly',
+          status: subscriptionData.status,
+          start_date: subscriptionData.start_date,
+          end_date: subscriptionData.end_date,
+          max_users: subscriptionData.max_users
+        })
       }
     } catch (error) {
       // console.error('Error fetching subscription plan:', error)

@@ -77,6 +77,26 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Headers específicos para chunks estáticos - Caché largo pero con validación
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Headers para otros archivos estáticos
+        source: '/_next/static/chunks/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         // Aplicar headers de seguridad a todas las rutas
         source: '/:path*',
         headers: [
@@ -136,7 +156,7 @@ const nextConfig: NextConfig = {
   },
   
   // Configuración de Webpack para resolver alias en el monorepo
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@/features': path.resolve(__dirname, 'src/features'),
@@ -158,19 +178,26 @@ const nextConfig: NextConfig = {
       };
       
       // Optimización para Nivo: dividir chunks grandes
+      // Mejorar estabilidad de chunks para evitar ChunkLoadError
       config.optimization = {
         ...config.optimization,
         splitChunks: {
           chunks: 'all',
+          maxInitialRequests: 25,
+          minSize: 20000,
           cacheGroups: {
-            default: false,
-            vendors: false,
+            default: {
+              minChunks: 2,
+              priority: -20,
+              reuseExistingChunk: true,
+            },
             // Chunk separado para Nivo (biblioteca grande)
             nivo: {
               name: 'nivo',
               test: /[\\/]node_modules[\\/]@nivo[\\/]/,
               priority: 20,
               reuseExistingChunk: true,
+              enforce: true,
             },
             // Chunk para otras librerías grandes
             vendor: {
@@ -178,9 +205,21 @@ const nextConfig: NextConfig = {
               test: /[\\/]node_modules[\\/]/,
               priority: 10,
               reuseExistingChunk: true,
+              minChunks: 1,
+            },
+            // Chunk para React y React DOM (muy estables)
+            react: {
+              name: 'react',
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 30,
+              reuseExistingChunk: true,
+              enforce: true,
             },
           },
         },
+        // Mejorar nombres de chunks para mejor caché
+        moduleIds: dev ? 'named' : 'deterministic',
+        chunkIds: dev ? 'named' : 'deterministic',
       };
     }
 

@@ -57,79 +57,73 @@ export async function GET(request: NextRequest) {
     logger.log('🔄 Obteniendo estadísticas detalladas del instructor:', instructorId, 'período:', period)
 
     // ========== ESTADÍSTICAS DE RRHH ==========
-    
-    // Obtener IDs de cursos del instructor
-    const { data: instructorCourses } = await supabase
-      .from('courses')
-      .select('id')
-      .eq('instructor_id', instructorId)
+
+    // 🚀 OPTIMIZACIÓN: Obtener IDs de cursos y comunidades en paralelo
+    const [
+      { data: instructorCourses },
+      { data: instructorCommunities }
+    ] = await Promise.all([
+      supabase.from('courses').select('id').eq('instructor_id', instructorId),
+      supabase.from('communities').select('id').eq('creator_id', instructorId)
+    ])
 
     const courseIds = (instructorCourses || []).map(c => c.id)
-
-    // Obtener IDs de comunidades del instructor
-    const { data: instructorCommunities } = await supabase
-      .from('communities')
-      .select('id')
-      .eq('creator_id', instructorId)
-
     const communityIds = (instructorCommunities || []).map(c => c.id)
 
-    // Obtener usuarios que interactuaron con el instructor (inscritos a cursos, miembros de comunidades)
+    // 🚀 OPTIMIZACIÓN: Obtener usuarios de cursos y comunidades en paralelo
     let userIds: string[] = []
 
-    if (courseIds.length > 0) {
-      const { data: enrollments } = await supabase
-        .from('user_course_enrollments')
-        .select('user_id')
-        .in('course_id', courseIds)
-        .gte('enrolled_at', startDate.toISOString())
-        .lte('enrolled_at', endDate.toISOString())
+    const enrollmentsPromise = courseIds.length > 0
+      ? supabase
+          .from('user_course_enrollments')
+          .select('user_id')
+          .in('course_id', courseIds)
+          .gte('enrolled_at', startDate.toISOString())
+          .lte('enrolled_at', endDate.toISOString())
+      : Promise.resolve({ data: [] })
 
-      userIds = [...new Set([...userIds, ...((enrollments || []).map(e => e.user_id))])]
-    }
+    const membersPromise = communityIds.length > 0
+      ? supabase
+          .from('community_members')
+          .select('user_id')
+          .in('community_id', communityIds)
+          .gte('joined_at', startDate.toISOString())
+          .lte('joined_at', endDate.toISOString())
+      : Promise.resolve({ data: [] })
 
-    if (communityIds.length > 0) {
-      const { data: members } = await supabase
-        .from('community_members')
-        .select('user_id')
-        .in('community_id', communityIds)
-        .gte('joined_at', startDate.toISOString())
-        .lte('joined_at', endDate.toISOString())
+    const [{ data: enrollments }, { data: members }] = await Promise.all([
+      enrollmentsPromise,
+      membersPromise
+    ])
 
-      userIds = [...new Set([...userIds, ...((members || []).map(m => m.user_id))])]
-    }
+    userIds = [...new Set([
+      ...((enrollments || []).map(e => e.user_id)),
+      ...((members || []).map(m => m.user_id))
+    ])]
 
-    // Usuarios por país
+    // 🚀 OPTIMIZACIÓN: Combinar queries de usuarios (country_code + created_at en una sola query)
     const usersByCountry: Record<string, number> = {}
+    const registrationsByDate: Record<string, number> = {}
+
     if (userIds.length > 0) {
       const { data: users } = await supabase
         .from('users')
-        .select('country_code')
+        .select('country_code, created_at')
         .in('id', userIds)
-        .not('country_code', 'is', null)
 
       ;(users || []).forEach(user => {
+        // Usuarios por país
         if (user.country_code) {
-          // Convertir de ISO alpha-2 a ISO alpha-3 para el GeoJSON
           const countryCode = countryCodeToAlpha3[user.country_code.toUpperCase()] || user.country_code.toUpperCase()
           usersByCountry[countryCode] = (usersByCountry[countryCode] || 0) + 1
         }
-      })
-    }
 
-    // Registros por fecha (calendario)
-    const registrationsByDate: Record<string, number> = {}
-    if (userIds.length > 0) {
-      const { data: users } = await supabase
-        .from('users')
-        .select('created_at')
-        .in('id', userIds)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-
-      ;(users || []).forEach(user => {
-        const date = new Date(user.created_at).toISOString().split('T')[0]
-        registrationsByDate[date] = (registrationsByDate[date] || 0) + 1
+        // Registros por fecha (solo dentro del rango)
+        const createdAt = new Date(user.created_at)
+        if (createdAt >= startDate && createdAt <= endDate) {
+          const date = createdAt.toISOString().split('T')[0]
+          registrationsByDate[date] = (registrationsByDate[date] || 0) + 1
+        }
       })
     }
 
@@ -145,30 +139,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (userIds.length > 0) {
-      // Obtener perfiles de usuarios
-      const { data: profiles } = await supabase
-        .from('user_perfil')
-        .select(`
-          rol_id,
-          nivel_id,
-          area_id,
-          sector_id,
-          tamano_id,
-          relacion_id
-        `)
-        .in('user_id', userIds)
-
-      // Obtener usuarios verificados
-      const { data: verified } = await supabase
-        .from('users')
-        .select('id')
-        .in('id', userIds)
-        .eq('email_verified', true)
-
-      demographics.verifiedUsers = verified?.length || 0
-
-      // Obtener datos de lookup tables
-      const [rolesRes, nivelesRes, areasRes, sectoresRes, tamanosRes, relacionesRes] = await Promise.all([
+      // 🚀 OPTIMIZACIÓN: Obtener perfiles, usuarios verificados y lookup tables en paralelo
+      const [
+        { data: profiles },
+        { data: verified },
+        rolesRes,
+        nivelesRes,
+        areasRes,
+        sectoresRes,
+        tamanosRes,
+        relacionesRes
+      ] = await Promise.all([
+        supabase.from('user_perfil').select('rol_id, nivel_id, area_id, sector_id, tamano_id, relacion_id').in('user_id', userIds),
+        supabase.from('users').select('id').in('id', userIds).eq('email_verified', true),
         supabase.from('roles').select('id, nombre'),
         supabase.from('niveles').select('id, nombre'),
         supabase.from('areas').select('id, nombre'),
@@ -176,6 +159,8 @@ export async function GET(request: NextRequest) {
         supabase.from('tamanos_empresa').select('id, nombre'),
         supabase.from('relaciones').select('id, nombre')
       ])
+
+      demographics.verifiedUsers = verified?.length || 0
 
       const rolesMap = new Map((rolesRes.data || []).map(r => [r.id, r.nombre]))
       const nivelesMap = new Map((nivelesRes.data || []).map(n => [n.id, n.nombre]))
@@ -228,30 +213,32 @@ export async function GET(request: NextRequest) {
     }
 
     if (courseIds.length > 0) {
-      // Obtener cursos con detalles
-      const { data: courses } = await supabase
-        .from('courses')
-        .select('id, title, student_count, average_rating')
-        .eq('instructor_id', instructorId)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-
-      // Obtener enrollments
-      const { data: enrollments } = await supabase
-        .from('user_course_enrollments')
-        .select('course_id, overall_progress_percentage, enrollment_status, enrolled_at')
-        .in('course_id', courseIds)
-        .gte('enrolled_at', startDate.toISOString())
-        .lte('enrolled_at', endDate.toISOString())
-
-      // Obtener compras
-      const { data: purchases } = await supabase
-        .from('course_purchases')
-        .select('course_id, final_price_cents')
-        .in('course_id', courseIds)
-        .eq('access_status', 'active')
-        .gte('purchased_at', startDate.toISOString())
-        .lte('purchased_at', endDate.toISOString())
+      // 🚀 OPTIMIZACIÓN: Obtener cursos, enrollments y compras en paralelo
+      const [
+        { data: courses },
+        { data: enrollments },
+        { data: purchases }
+      ] = await Promise.all([
+        supabase
+          .from('courses')
+          .select('id, title, student_count, average_rating')
+          .eq('instructor_id', instructorId)
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString()),
+        supabase
+          .from('user_course_enrollments')
+          .select('course_id, overall_progress_percentage, enrollment_status, enrolled_at')
+          .in('course_id', courseIds)
+          .gte('enrolled_at', startDate.toISOString())
+          .lte('enrolled_at', endDate.toISOString()),
+        supabase
+          .from('course_purchases')
+          .select('course_id, final_price_cents')
+          .in('course_id', courseIds)
+          .eq('access_status', 'active')
+          .gte('purchased_at', startDate.toISOString())
+          .lte('purchased_at', endDate.toISOString())
+      ])
 
       // Procesar datos
       ;(courses || []).forEach(course => {
@@ -327,33 +314,38 @@ export async function GET(request: NextRequest) {
     }
 
     if (communityIds.length > 0) {
-      const { data: communities } = await supabase
-        .from('communities')
-        .select('id, name, member_count')
-        .eq('creator_id', instructorId)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-
-      const { data: members } = await supabase
-        .from('community_members')
-        .select('community_id')
-        .in('community_id', communityIds)
-        .gte('joined_at', startDate.toISOString())
-        .lte('joined_at', endDate.toISOString())
-
-      const { data: posts } = await supabase
-        .from('community_posts')
-        .select('community_id, created_at, likes_count, comments_count')
-        .in('community_id', communityIds)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-
-      const { data: comments } = await supabase
-        .from('community_comments')
-        .select('community_id, created_at')
-        .in('community_id', communityIds)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
+      // 🚀 OPTIMIZACIÓN: Obtener comunidades, miembros, posts y comentarios en paralelo
+      const [
+        { data: communities },
+        { data: members },
+        { data: posts },
+        { data: comments }
+      ] = await Promise.all([
+        supabase
+          .from('communities')
+          .select('id, name, member_count')
+          .eq('creator_id', instructorId)
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString()),
+        supabase
+          .from('community_members')
+          .select('community_id')
+          .in('community_id', communityIds)
+          .gte('joined_at', startDate.toISOString())
+          .lte('joined_at', endDate.toISOString()),
+        supabase
+          .from('community_posts')
+          .select('community_id, created_at, likes_count, comments_count')
+          .in('community_id', communityIds)
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString()),
+        supabase
+          .from('community_comments')
+          .select('community_id, created_at')
+          .in('community_id', communityIds)
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString())
+      ])
 
       ;(communities || []).forEach(community => {
         const communityMembers = (members || []).filter(m => m.community_id === community.id)
@@ -416,14 +408,26 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // ========== ESTADÍSTICAS DE NOTICIAS ==========
-    
-    const { data: instructorNews } = await supabase
-      .from('news')
-      .select('id, title, slug, status, metrics, created_at, published_at')
-      .eq('created_by', instructorId)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+    // ========== ESTADÍSTICAS DE NOTICIAS Y REELS ==========
+
+    // 🚀 OPTIMIZACIÓN: Obtener news y reels en paralelo
+    const [
+      { data: instructorNews },
+      { data: instructorReels }
+    ] = await Promise.all([
+      supabase
+        .from('news')
+        .select('id, title, slug, status, metrics, created_at, published_at')
+        .eq('created_by', instructorId)
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString()),
+      supabase
+        .from('reels')
+        .select('id, title, view_count, like_count, share_count, comment_count, is_active, created_at, published_at')
+        .eq('created_by', instructorId)
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+    ])
 
     const newsData = {
       totalNews: instructorNews?.length || 0,
@@ -462,15 +466,6 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.views - a.views)
       .slice(0, 5)
       .map(n => ({ newsId: n.newsId, newsTitle: n.newsTitle, views: n.views }))
-
-    // ========== ESTADÍSTICAS DE REELS ==========
-    
-    const { data: instructorReels } = await supabase
-      .from('reels')
-      .select('id, title, view_count, like_count, share_count, comment_count, is_active, created_at, published_at')
-      .eq('created_by', instructorId)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
 
     const reelsData = {
       totalReels: instructorReels?.length || 0,
@@ -536,7 +531,11 @@ export async function GET(request: NextRequest) {
     }
 
     logger.log('✅ Estadísticas detalladas obtenidas exitosamente')
-    return NextResponse.json(response)
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=120'
+      }
+    })
 
   } catch (error) {
     logger.error('💥 Error obteniendo estadísticas detalladas:', error)

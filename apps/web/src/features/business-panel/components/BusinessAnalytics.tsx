@@ -51,7 +51,7 @@ export function BusinessAnalytics() {
   const { data, isLoading, error, refetch } = useBusinessAnalytics()
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
-  
+
   const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
   const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
   const textColor = panelStyles?.text_color || '#f8fafc'
@@ -62,6 +62,38 @@ export function BusinessAnalytics() {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'trends' | 'roles' | 'skills'>('overview')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState<'all' | 'owner' | 'admin' | 'member'>('all')
+
+  // Pre-cargar skills data en paralelo para mejorar rendimiento
+  const [skillsData, setSkillsData] = useState<any>(null)
+  const [skillsLoading, setSkillsLoading] = useState(true)
+  const [skillsError, setSkillsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Pre-cargar skills data en paralelo con analytics principal
+    const fetchSkillsData = async () => {
+      try {
+        setSkillsLoading(true)
+        setSkillsError(null)
+
+        const response = await fetch('/api/business/analytics/skills', {
+          credentials: 'include'
+        })
+        const data = await response.json()
+
+        if (data.success) {
+          setSkillsData(data)
+        } else {
+          setSkillsError(data.error || 'Error al obtener datos de skills')
+        }
+      } catch (err) {
+        setSkillsError(err instanceof Error ? err.message : 'Error al cargar skills')
+      } finally {
+        setSkillsLoading(false)
+      }
+    }
+
+    fetchSkillsData()
+  }, [])
 
   const filteredUsers = useMemo(() => {
     if (!data?.user_analytics) return []
@@ -314,6 +346,9 @@ export function BusinessAnalytics() {
                 secondaryColor={secondaryColor}
                 sectionBg={sectionBg}
                 panelStyles={panelStyles}
+                skillsData={skillsData}
+                skillsLoading={skillsLoading}
+                skillsError={skillsError}
               />
             )}
           </motion.div>
@@ -1196,7 +1231,10 @@ function SkillsTab({
   primaryColor,
   secondaryColor,
   sectionBg,
-  panelStyles
+  panelStyles,
+  skillsData: preloadedSkillsData,
+  skillsLoading: preloadedSkillsLoading,
+  skillsError: preloadedSkillsError
 }: {
   cardBg: string
   cardBorder: string
@@ -1205,21 +1243,28 @@ function SkillsTab({
   secondaryColor: string
   sectionBg: string
   panelStyles: any
+  skillsData: any
+  skillsLoading: boolean
+  skillsError: string | null
 }) {
-  const [skillsData, setSkillsData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Usar datos pre-cargados del componente padre
+  const [skillsData, setSkillsData] = useState<any>(preloadedSkillsData)
+  const [isLoading, setIsLoading] = useState(preloadedSkillsLoading)
+  const [error, setError] = useState<string | null>(preloadedSkillsError)
   const [activeSubTab, setActiveSubTab] = useState<'users' | 'courses'>('users')
 
+  // Sincronizar con datos pre-cargados cuando cambien
   useEffect(() => {
-    fetchSkillsData()
-  }, [])
+    setSkillsData(preloadedSkillsData)
+    setIsLoading(preloadedSkillsLoading)
+    setError(preloadedSkillsError)
+  }, [preloadedSkillsData, preloadedSkillsLoading, preloadedSkillsError])
 
   const fetchSkillsData = async () => {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const response = await fetch('/api/business/analytics/skills', {
         credentials: 'include'
       })

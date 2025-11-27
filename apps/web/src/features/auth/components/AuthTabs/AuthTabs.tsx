@@ -166,7 +166,7 @@ export function AuthTabs() {
   return (
     <div className="space-y-4 relative">
       {/* Tabs - Animaciones reducidas */}
-      <div ref={tabsContainerRef} className="flex gap-4 relative">
+      <div ref={tabsContainerRef} className="flex gap-4 relative bg-gray-100/50 dark:bg-slate-800/30 p-1 rounded-lg">
         {/* Indicador de Tab Activo - Posicionado exactamente sobre el botón activo */}
         <motion.div
           className="absolute bg-primary rounded-lg"
@@ -182,9 +182,9 @@ export function AuthTabs() {
             duration: 0.3
           }}
           style={{ 
-            top: 0,
-            bottom: 0,
-            height: '100%'
+            top: '4px',
+            bottom: '4px',
+            height: 'calc(100% - 8px)'
           }}
         />
 

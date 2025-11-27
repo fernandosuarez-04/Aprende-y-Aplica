@@ -13,7 +13,7 @@ export function SocialLoginButtons() {
           <div className="w-full border-t border-gray-300/30 dark:border-gray-600/30"></div>
         </div>
         <div className="relative flex justify-center">
-          <span className="px-3 text-xs font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900">
+          <span className="px-3 text-xs font-medium text-gray-500 dark:text-gray-400 bg-white/95 dark:bg-slate-900/85 backdrop-blur-sm">
             O continuar con
           </span>
         </div>

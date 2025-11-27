@@ -102,8 +102,25 @@ export function LoginForm() {
       }
       
       // Solo mostrar error si NO es una redirección
-      // console.error('❌ Error inesperado:', error);
-      setError('Error inesperado al iniciar sesión');
+      console.error('❌ Error inesperado en login:', error);
+      
+      // Proporcionar mensaje de error más específico
+      let errorMessage = 'Error inesperado al iniciar sesión';
+      
+      if (error instanceof Error) {
+        // Errores de red/conexión
+        if (error.message.includes('ERR_SSL_PROTOCOL_ERROR') || 
+            error.message.includes('Failed to fetch') ||
+            error.message.includes('NetworkError')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet e intenta nuevamente.';
+        } else if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+          errorMessage = 'La solicitud tardó demasiado. Por favor, intenta nuevamente.';
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+      }
+      
+      setError(errorMessage);
       setIsPending(false);
     }
   };
@@ -118,8 +135,8 @@ export function LoginForm() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-color-contrast tracking-tight">Bienvenido de vuelta</h2>
-        <p className="text-xs text-text-secondary opacity-70 font-normal">Ingresa a tu cuenta para continuar</p>
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-slate-100 tracking-tight">Bienvenido de vuelta</h2>
+        <p className="text-xs text-gray-600 dark:text-slate-400 opacity-70 font-normal">Ingresa a tu cuenta para continuar</p>
       </motion.div>
 
       {/* Error Message */}
@@ -137,8 +154,8 @@ export function LoginForm() {
             }}
           >
             <div className="flex items-start gap-2 sm:gap-3">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs sm:text-sm text-red-300 font-medium leading-snug flex-1">{error}</p>
+              <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs sm:text-sm text-red-600 dark:text-red-300 font-medium leading-snug flex-1">{error}</p>
             </div>
           </motion.div>
         )}
@@ -153,31 +170,27 @@ export function LoginForm() {
       >
         <label 
           htmlFor="emailOrUsername" 
-          className="block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200"
-          style={{ 
-            color: focusedField === 'emailOrUsername' ? 'var(--color-primary, #3b82f6)' : 'var(--text-color, rgba(203, 213, 225, 0.9))',
-            opacity: focusedField === 'emailOrUsername' ? 1 : 0.7
-          }}
+          className={`block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200 ${
+            focusedField === 'emailOrUsername' 
+              ? 'text-primary dark:text-primary' 
+              : 'text-gray-700 dark:text-slate-300'
+          } ${focusedField === 'emailOrUsername' ? 'opacity-100' : 'opacity-70'}`}
         >
           Correo o Usuario
         </label>
         <div className="relative group">
           <motion.div
-            className="relative rounded-xl border transition-all duration-300 overflow-hidden"
-            style={{
-              backgroundColor: focusedField === 'emailOrUsername' 
-                ? 'rgba(30, 41, 59, 0.7)' 
-                : 'rgba(30, 41, 59, 0.5)',
-              borderColor: focusedField === 'emailOrUsername' 
-                ? 'var(--color-primary, #3b82f6)' 
-                : errors.emailOrUsername 
-                  ? '#ef4444' 
-                  : 'rgba(71, 85, 105, 0.5)',
-              borderWidth: focusedField === 'emailOrUsername' ? '2px' : '1px',
-              boxShadow: focusedField === 'emailOrUsername'
-                ? '0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 12px -2px rgba(0, 0, 0, 0.2)'
-                : 'none',
-            }}
+            className={`relative rounded-xl border transition-all duration-300 overflow-hidden ${
+              focusedField === 'emailOrUsername'
+                ? 'dark:bg-slate-800/70 bg-gray-50 dark:border-primary border-primary'
+                : errors.emailOrUsername
+                  ? 'dark:bg-slate-800/50 bg-gray-50 dark:border-red-500 border-red-500'
+                  : 'dark:bg-slate-800/50 bg-gray-50 dark:border-slate-600/50 border-gray-300/50'
+            } ${focusedField === 'emailOrUsername' ? 'border-2' : 'border'} ${
+              focusedField === 'emailOrUsername'
+                ? 'dark:shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_4px_12px_-2px_rgba(0,0,0,0.2)] shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_4px_12px_-2px_rgba(0,0,0,0.1)]'
+                : ''
+            }`}
             animate={{
               scale: focusedField === 'emailOrUsername' ? 1.005 : 1,
             }}
@@ -196,10 +209,11 @@ export function LoginForm() {
             )}
             <div className="flex items-center px-3 sm:px-4 py-2.5 sm:py-3">
               <Mail 
-                className="w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200" 
-                style={{ 
-                  color: focusedField === 'emailOrUsername' ? 'var(--color-primary, #3b82f6)' : 'rgba(203, 213, 225, 0.5)'
-                }}
+                className={`w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200 ${
+                  focusedField === 'emailOrUsername' 
+                    ? 'text-primary' 
+                    : 'text-gray-400 dark:text-slate-500'
+                }`}
               />
               <input
                 id="emailOrUsername"
@@ -208,10 +222,7 @@ export function LoginForm() {
                 {...register('emailOrUsername')}
                 onFocus={() => setFocusedField('emailOrUsername')}
                 onBlur={() => setFocusedField(null)}
-                className="flex-1 w-full bg-transparent outline-none placeholder:opacity-40 transition-colors text-sm font-normal"
-                style={{
-                  color: 'var(--text-color, rgba(203, 213, 225, 0.9))',
-                }}
+                className="flex-1 w-full bg-transparent outline-none placeholder:opacity-40 transition-colors text-sm font-normal text-gray-900 dark:text-slate-200 placeholder:text-gray-400 dark:placeholder:text-slate-500"
               />
             </div>
           </motion.div>
@@ -219,7 +230,7 @@ export function LoginForm() {
         <AnimatePresence>
           {errors.emailOrUsername && (
             <motion.p 
-              className="text-xs text-red-400 flex items-center gap-1.5 px-1 mt-1"
+              className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5 px-1 mt-1"
               initial={{ opacity: 0, y: -3 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -241,11 +252,11 @@ export function LoginForm() {
       >
         <label 
           htmlFor="password" 
-          className="block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200"
-          style={{ 
-            color: focusedField === 'password' ? 'var(--color-primary, #3b82f6)' : 'var(--text-color, rgba(203, 213, 225, 0.9))',
-            opacity: focusedField === 'password' ? 1 : 0.7
-          }}
+          className={`block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200 ${
+            focusedField === 'password' 
+              ? 'text-primary dark:text-primary' 
+              : 'text-gray-700 dark:text-slate-300'
+          } ${focusedField === 'password' ? 'opacity-100' : 'opacity-70'}`}
         >
           Contraseña
         </label>
@@ -261,7 +272,7 @@ export function LoginForm() {
         <AnimatePresence>
           {errors.password && (
             <motion.p 
-              className="text-xs text-red-400 flex items-center gap-1.5 px-1 mt-1"
+              className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5 px-1 mt-1"
               initial={{ opacity: 0, y: -3 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -325,7 +336,7 @@ export function LoginForm() {
               </motion.svg>
             </motion.div>
           </div>
-          <span className="text-xs font-medium transition-colors select-none" style={{ color: 'var(--text-color, rgba(203, 213, 225, 0.7))' }}>
+          <span className="text-xs font-medium transition-colors select-none text-gray-700 dark:text-slate-300">
             Recordarme
           </span>
         </label>

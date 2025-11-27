@@ -43,13 +43,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-r from-primary/20 via-success/20 to-primary/20 blur-xl opacity-50 animate-pulse" />
 
         <div 
-          className="relative backdrop-blur-2xl p-3 sm:p-5 lg:p-7 xl:p-9 shadow-2xl rounded-3xl border overflow-hidden transition-all duration-500" 
-          style={{ 
-            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-            borderColor: 'rgba(71, 85, 105, 0.3)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(71, 85, 105, 0.2)',
-            WebkitBoxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(71, 85, 105, 0.2)',
-          }}
+          className="relative backdrop-blur-2xl p-3 sm:p-5 lg:p-7 xl:p-9 shadow-2xl rounded-3xl border overflow-hidden transition-all duration-500 dark:bg-slate-900/85 bg-white/95 dark:border-slate-700/50 border-gray-200/50 dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(71,85,105,0.2)] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.1)]" 
         >
           {/* Logo - Optimizado para mobile */}
           <div className="flex flex-col items-center gap-1.5 sm:gap-2.5 mb-2.5 sm:mb-4">

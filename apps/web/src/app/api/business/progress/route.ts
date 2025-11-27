@@ -77,23 +77,77 @@ export async function GET() {
       })
     }
 
-    // 2. Obtener asignaciones de cursos de la organización
-    const { data: assignments, error: assignmentsError } = await supabase
-      .from('organization_course_assignments')
-      .select(`
-        id,
-        user_id,
-        course_id,
-        status,
-        completion_percentage,
-        assigned_at,
-        due_date,
-        completed_at
-      `)
-      .eq('organization_id', auth.organizationId)
-      .in('user_id', userIds)
-      .order('assigned_at', { ascending: false })
+    // 2-5. Obtener TODAS las consultas en paralelo para máximo rendimiento
+    const [
+      { data: assignments, error: assignmentsError },
+      { data: enrollments, error: enrollmentsError },
+      { data: lessonProgress, error: lessonProgressError },
+      { data: certificates, error: certificatesError }
+    ] = await Promise.all([
+      // 2. Asignaciones de cursos de la organización
+      supabase
+        .from('organization_course_assignments')
+        .select(`
+          id,
+          user_id,
+          course_id,
+          status,
+          completion_percentage,
+          assigned_at,
+          due_date,
+          completed_at
+        `)
+        .eq('organization_id', auth.organizationId)
+        .in('user_id', userIds)
+        .order('assigned_at', { ascending: false }),
 
+      // 3. Enrollments de los usuarios
+      supabase
+        .from('user_course_enrollments')
+        .select(`
+          enrollment_id,
+          user_id,
+          course_id,
+          enrollment_status,
+          overall_progress_percentage,
+          enrolled_at,
+          completed_at,
+          last_accessed_at
+        `)
+        .in('user_id', userIds)
+        .order('enrolled_at', { ascending: false }),
+
+      // 4. Progreso detallado de lecciones
+      supabase
+        .from('user_lesson_progress')
+        .select(`
+          progress_id,
+          user_id,
+          lesson_id,
+          is_completed,
+          time_spent_minutes,
+          completed_at,
+          started_at,
+          enrollment_id,
+          user_course_enrollments!inner (
+            course_id
+          )
+        `)
+        .in('user_id', userIds),
+
+      // 5. Certificados
+      supabase
+        .from('user_course_certificates')
+        .select(`
+          certificate_id,
+          user_id,
+          course_id,
+          issued_at
+        `)
+        .in('user_id', userIds)
+    ])
+
+    // Log de errores y estadísticas
     if (assignmentsError) {
       logger.error('Error fetching assignments:', assignmentsError)
     } else {
@@ -102,13 +156,22 @@ export async function GET() {
         logger.log('📊 Primeras asignaciones:', JSON.stringify(assignments.slice(0, 3), null, 2))
       }
     }
+    if (enrollmentsError) {
+      logger.error('Error fetching enrollments:', enrollmentsError)
+    }
+    if (lessonProgressError) {
+      logger.error('Error fetching lesson progress:', lessonProgressError)
+    }
+    if (certificatesError) {
+      logger.error('Error fetching certificates:', certificatesError)
+    }
 
-    // Obtener información de cursos por separado si hay asignaciones
+    // Obtener información de cursos en paralelo (ya no depende de assignments)
     let courseInfoMap = new Map<string, { id: string; title: string; slug: string | null; thumbnail_url: string | null }>()
     if (assignments && assignments.length > 0) {
       const courseIds = [...new Set(assignments.map(a => a.course_id))]
       logger.log('📚 IDs de cursos a buscar:', courseIds)
-      
+
       const { data: coursesData, error: coursesError } = await supabase
         .from('courses')
         .select('id, title, slug, thumbnail_url')
@@ -130,63 +193,6 @@ export async function GET() {
           logger.log('📊 Map de cursos creado con', courseInfoMap.size, 'entradas')
         }
       }
-    }
-
-    // 3. Obtener enrollments de los usuarios
-    const { data: enrollments, error: enrollmentsError } = await supabase
-      .from('user_course_enrollments')
-      .select(`
-        enrollment_id,
-        user_id,
-        course_id,
-        enrollment_status,
-        overall_progress_percentage,
-        enrolled_at,
-        completed_at,
-        last_accessed_at
-      `)
-      .in('user_id', userIds)
-      .order('enrolled_at', { ascending: false })
-
-    if (enrollmentsError) {
-      logger.error('Error fetching enrollments:', enrollmentsError)
-    }
-
-    // 4. Obtener progreso detallado de lecciones
-    const { data: lessonProgress, error: lessonProgressError } = await supabase
-      .from('user_lesson_progress')
-      .select(`
-        progress_id,
-        user_id,
-        lesson_id,
-        is_completed,
-        time_spent_minutes,
-        completed_at,
-        started_at,
-        enrollment_id,
-        user_course_enrollments!inner (
-          course_id
-        )
-      `)
-      .in('user_id', userIds)
-
-    if (lessonProgressError) {
-      logger.error('Error fetching lesson progress:', lessonProgressError)
-    }
-
-    // 5. Obtener certificados
-    const { data: certificates, error: certificatesError } = await supabase
-      .from('user_course_certificates')
-      .select(`
-        certificate_id,
-        user_id,
-        course_id,
-        issued_at
-      `)
-      .in('user_id', userIds)
-
-    if (certificatesError) {
-      logger.error('Error fetching certificates:', certificatesError)
     }
 
     // Calcular métricas generales

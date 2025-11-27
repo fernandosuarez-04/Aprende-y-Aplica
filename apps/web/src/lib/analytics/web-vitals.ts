@@ -51,13 +51,12 @@ export function reportWebVitals(metric: NextWebVitalsMetric) {
   // Log en desarrollo
   if (process.env.NODE_ENV === 'development') {
     // console.log('📊 Web Vital:', {
-      // name: metric.name,
-      // value: metric.value,
-      // rating: metric.rating,
+    // // name: metric.name,
+    // // value: metric.value,
+    // // rating: metric.rating,
     // })
-  // }
-// }
-// 
+  }
+}
 // /**
  // * Thresholds para Core Web Vitals
  // * Fuente: https://web.dev/vitals/

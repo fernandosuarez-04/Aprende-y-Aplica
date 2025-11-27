@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sanitizeBio } from '../../../../lib/sanitize/html-sanitizer';
 import { 
@@ -214,14 +214,55 @@ export default function MembersPage() {
   const contentSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (slug) {
-      fetchMembers();
-    }
-  }, [slug]);
+    fetchMembers();
+  }, [fetchMembers]);
 
-  useEffect(() => {
-    filterAndSortMembers();
+  // 🚀 OPTIMIZACIÓN: Memoizar el filtrado y ordenamiento para evitar cálculos innecesarios
+  const filteredAndSortedMembers = useMemo(() => {
+    let filtered = members;
+
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(member =>
+        member.user.first_name?.toLowerCase().includes(query) ||
+        member.user.last_name?.toLowerCase().includes(query) ||
+        member.user.username?.toLowerCase().includes(query) ||
+        member.user.email?.toLowerCase().includes(query)
+      );
+    }
+
+    // Ordenar
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'rank':
+          comparison = a.rank - b.rank;
+          break;
+        case 'points':
+          comparison = a.stats.points - b.stats.points;
+          break;
+        case 'joined':
+          comparison = new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
+          break;
+        case 'name':
+          const nameA = `${a.user.first_name || ''} ${a.user.last_name || ''}`.trim();
+          const nameB = `${b.user.first_name || ''} ${b.user.last_name || ''}`.trim();
+          comparison = nameA.localeCompare(nameB);
+          break;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
   }, [members, searchQuery, sortBy, sortOrder]);
+
+  // Sincronizar con el estado filteredMembers solo cuando cambie el resultado memoizado
+  useEffect(() => {
+    setFilteredMembers(filteredAndSortedMembers);
+  }, [filteredAndSortedMembers]);
 
   useEffect(() => {
     const checkViewport = () => {
@@ -297,21 +338,22 @@ export default function MembersPage() {
     }
   };
 
-  const fetchMembers = async () => {
+  // 🚀 OPTIMIZACIÓN: Memoizar fetchMembers con useCallback para evitar recreaciones
+  const fetchMembers = useCallback(async () => {
     try {
       setIsLoading(true);
-      // console.log('🔍 Fetching members for community:', slug);
-      
-      const response = await fetch(`/api/communities/${slug}/members`);
-      
+
+      const response = await fetch(`/api/communities/${slug}/members`, {
+        // Agregar caché para mejorar performance en navegaciones repetidas
+        next: { revalidate: 60 } // Revalidar cada 60 segundos
+      });
+
       if (response.ok) {
         const data = await response.json();
-        // console.log('✅ Members data received:', data);
         setCommunity(data.community);
         setMembers(data.members || []);
       } else {
         const errorData = await response.json();
-        // console.error('❌ API Error:', errorData);
         if (response.status === 401) {
           router.push('/auth');
         } else if (response.status === 403) {
@@ -319,52 +361,11 @@ export default function MembersPage() {
         }
       }
     } catch (error) {
-      // console.error('❌ Network error fetching members:', error);
+      console.error('Error fetching members:', error);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const filterAndSortMembers = () => {
-    let filtered = members;
-
-    // Filtrar por búsqueda
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(member =>
-        member.user.first_name?.toLowerCase().includes(query) ||
-        member.user.last_name?.toLowerCase().includes(query) ||
-        member.user.username?.toLowerCase().includes(query) ||
-        member.user.email?.toLowerCase().includes(query)
-      );
-    }
-
-    // Ordenar
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'rank':
-          comparison = a.rank - b.rank;
-          break;
-        case 'points':
-          comparison = a.stats.points - b.stats.points;
-          break;
-        case 'joined':
-          comparison = new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
-          break;
-        case 'name':
-          const nameA = `${a.user.first_name || ''} ${a.user.last_name || ''}`.trim();
-          const nameB = `${b.user.first_name || ''} ${b.user.last_name || ''}`.trim();
-          comparison = nameA.localeCompare(nameB);
-          break;
-      }
-      
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    setFilteredMembers(filtered);
-  };
+  }, [slug, router]);
 
   const formatJoinDate = (dateString: string) => {
     const date = new Date(dateString);

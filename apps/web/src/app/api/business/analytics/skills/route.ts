@@ -23,10 +23,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('user_id')
 
-    // Obtener usuarios de la organización
+    // 🚀 OPTIMIZACIÓN: Query organization users sin esperar para obtener targetUserIds
     const { data: orgUsers, error: orgUsersError } = await supabase
       .from('organization_users')
-      .select('user_id, users!organization_users_user_id_fkey(id, cargo_rol, type_rol)')
+      .select('user_id, users!organization_users_user_id_fkey(id, cargo_rol, type_rol, display_name, username)')
       .eq('organization_id', auth.organizationId)
       .eq('status', 'active')
 
@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    const targetUserIds = userId 
-      ? [userId] 
+    const targetUserIds = userId
+      ? [userId]
       : orgUsers?.map(ou => ou.user_id).filter(Boolean) || []
 
     if (targetUserIds.length === 0) {
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Obtener cursos completados por los usuarios
+    // 🚀 OPTIMIZACIÓN: Obtener cursos completados (ahora ya conocemos targetUserIds)
     const { data: completedCourses, error: coursesError } = await supabase
       .from('user_course_enrollments')
       .select(`
@@ -167,7 +167,49 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Generar recomendaciones de cursos para cerrar gaps
+    // 🚀 OPTIMIZACIÓN: Crear índice de cursos por habilidad una sola vez
+    // Antes: O(gaps * missing_skills * completedCourses) = O(n³)
+    // Después: O(completedCourses) para indexar + O(gaps * missing_skills) para lookup = O(n²)
+    const skillToCourses: Record<string, Array<{ id: string; title: string; category: string }>> = {}
+
+    completedCourses?.forEach((e: any) => {
+      const course = e.courses
+      if (!course) return
+
+      const courseData = {
+        id: course.id,
+        title: course.title,
+        category: course.category
+      }
+
+      // Index by category skills
+      const categorySkills = categoryToSkillMapping[course.category] || []
+      categorySkills.forEach(skill => {
+        if (!skillToCourses[skill]) skillToCourses[skill] = []
+        if (!skillToCourses[skill].some(c => c.id === courseData.id)) {
+          skillToCourses[skill].push(courseData)
+        }
+      })
+
+      // Index by learning objectives
+      if (course.learning_objectives && Array.isArray(course.learning_objectives)) {
+        course.learning_objectives.forEach((obj: string) => {
+          const objLower = obj.toLowerCase()
+          Object.keys(roleSkillMapping).forEach(role => {
+            roleSkillMapping[role].forEach(skill => {
+              if (objLower.includes(skill.toLowerCase())) {
+                if (!skillToCourses[skill]) skillToCourses[skill] = []
+                if (!skillToCourses[skill].some(c => c.id === courseData.id)) {
+                  skillToCourses[skill].push(courseData)
+                }
+              }
+            })
+          })
+        })
+      }
+    })
+
+    // Generar recomendaciones usando el índice
     const recommendations: Array<{
       user_id: string
       gap_skill: string
@@ -176,25 +218,7 @@ export async function GET(request: NextRequest) {
 
     gaps.forEach(gap => {
       gap.missing_skills.forEach(skill => {
-        // Buscar cursos que podrían enseñar esta habilidad
-        const relevantCourses = completedCourses
-          ?.filter((e: any) => {
-            const course = e.courses
-            if (!course) return false
-            const categorySkills = categoryToSkillMapping[course.category] || []
-            return categorySkills.includes(skill) || 
-                   (course.learning_objectives && 
-                    Array.isArray(course.learning_objectives) &&
-                    course.learning_objectives.some((obj: string) => 
-                      obj.toLowerCase().includes(skill.toLowerCase())
-                    ))
-          })
-          .map((e: any) => ({
-            id: e.courses.id,
-            title: e.courses.title,
-            category: e.courses.category
-          })) || []
-
+        const relevantCourses = skillToCourses[skill] || []
         if (relevantCourses.length > 0) {
           recommendations.push({
             user_id: gap.user_id,
@@ -261,6 +285,10 @@ export async function GET(request: NextRequest) {
         learned_skills: Array.from(data.learned),
         courses_count: data.courses.length
       }))
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=120, stale-while-revalidate=240'
+      }
     })
   } catch (error) {
     logger.error('💥 Error in /api/business/analytics/skills:', error)
