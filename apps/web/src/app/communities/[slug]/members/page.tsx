@@ -213,9 +213,50 @@ export default function MembersPage() {
   const headerSectionRef = useRef<HTMLElement | null>(null);
   const contentSectionRef = useRef<HTMLElement | null>(null);
 
+  // 🚀 OPTIMIZACIÓN: Cargar miembros cuando cambie el slug
   useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
+    if (!slug) return;
+
+    let isMounted = true;
+
+    async function loadMembers() {
+      try {
+        setIsLoading(true);
+
+        const response = await fetch(`/api/communities/${slug}/members`, {
+          // Agregar caché para mejorar performance en navegaciones repetidas
+          next: { revalidate: 60 } // Revalidar cada 60 segundos
+        });
+
+        if (!isMounted) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          setCommunity(data.community);
+          setMembers(data.members || []);
+        } else {
+          const errorData = await response.json();
+          if (response.status === 401) {
+            router.push('/auth');
+          } else if (response.status === 403) {
+            router.push(`/communities/${slug}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching members:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadMembers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug, router]);
 
   // 🚀 OPTIMIZACIÓN: Memoizar el filtrado y ordenamiento para evitar cálculos innecesarios
   const filteredAndSortedMembers = useMemo(() => {
@@ -337,35 +378,6 @@ export default function MembersPage() {
         return;
     }
   };
-
-  // 🚀 OPTIMIZACIÓN: Memoizar fetchMembers con useCallback para evitar recreaciones
-  const fetchMembers = useCallback(async () => {
-    try {
-      setIsLoading(true);
-
-      const response = await fetch(`/api/communities/${slug}/members`, {
-        // Agregar caché para mejorar performance en navegaciones repetidas
-        next: { revalidate: 60 } // Revalidar cada 60 segundos
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCommunity(data.community);
-        setMembers(data.members || []);
-      } else {
-        const errorData = await response.json();
-        if (response.status === 401) {
-          router.push('/auth');
-        } else if (response.status === 403) {
-          router.push(`/communities/${slug}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching members:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [slug, router]);
 
   const formatJoinDate = (dateString: string) => {
     const date = new Date(dateString);
