@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft,
@@ -180,14 +180,24 @@ export default function LeaguesPage() {
   const standingsSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (slug) {
-      fetchLeaguesData();
-    }
-  }, [slug]);
+    fetchLeaguesData();
+  }, [fetchLeaguesData]);
 
-  useEffect(() => {
-    filterMembers();
+  // 🚀 OPTIMIZACIÓN: Memoizar el filtrado para evitar cálculos innecesarios
+  const filteredAndSortedMembers = useMemo(() => {
+    let filtered = members;
+
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter(member => member.league === activeFilter);
+    }
+
+    return filtered;
   }, [members, activeFilter]);
+
+  // Sincronizar con el estado filteredMembers solo cuando cambie el resultado memoizado
+  useEffect(() => {
+    setFilteredMembers(filteredAndSortedMembers);
+  }, [filteredAndSortedMembers]);
 
   useEffect(() => {
     const checkViewport = () => {
@@ -232,16 +242,18 @@ export default function LeaguesPage() {
     }
   };
 
-  const fetchLeaguesData = async () => {
+  // 🚀 OPTIMIZACIÓN: Memoizar fetchLeaguesData con useCallback
+  const fetchLeaguesData = useCallback(async () => {
     try {
       setIsLoading(true);
-      // console.log('🔍 Fetching leagues data for community:', slug);
-      
-      const response = await fetch(`/api/communities/${slug}/leagues`);
-      
+
+      const response = await fetch(`/api/communities/${slug}/leagues`, {
+        // Agregar caché para mejorar performance en navegaciones repetidas
+        next: { revalidate: 60 } // Revalidar cada 60 segundos
+      });
+
       if (response.ok) {
         const data = await response.json();
-        // console.log('✅ Leagues data received:', data);
         setCommunity(data.community);
         setCurrentUser(data.currentUser);
         setMembers(data.members || []);
@@ -250,7 +262,6 @@ export default function LeaguesPage() {
         setLeagueStats(data.leagueStats);
       } else {
         const errorData = await response.json();
-        // console.error('❌ API Error:', errorData);
         if (response.status === 401) {
           router.push('/auth');
         } else if (response.status === 403) {
@@ -258,21 +269,11 @@ export default function LeaguesPage() {
         }
       }
     } catch (error) {
-      // console.error('❌ Network error fetching leagues:', error);
+      console.error('Error fetching leagues:', error);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const filterMembers = () => {
-    let filtered = members;
-    
-    if (activeFilter !== 'all') {
-      filtered = filtered.filter(member => member.league === activeFilter);
-    }
-    
-    setFilteredMembers(filtered);
-  };
+  }, [slug, router]);
 
   const getProgressPercentage = (points: number, league: string) => {
     if (!leagueSystem) return 0;

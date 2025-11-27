@@ -54,12 +54,31 @@ export interface UserStats {
   administrators: number
 }
 
+export interface GetUsersOptions {
+  page?: number
+  limit?: number
+  search?: string
+}
+
+export interface GetUsersResult {
+  users: AdminUser[]
+  total: number
+  page: number
+  totalPages: number
+}
+
 export class AdminUsersService {
-  static async getUsers(): Promise<AdminUser[]> {
+  static async getUsers(options: GetUsersOptions = {}): Promise<GetUsersResult> {
     const supabase = await createClient()
+    const { page = 1, limit = 50, search } = options
 
     try {
-      const { data, error } = await supabase
+      // 🚀 OPTIMIZACIÓN: Calcular offset para paginación
+      const from = (page - 1) * limit
+      const to = from + limit - 1
+
+      // 🚀 OPTIMIZACIÓN: Solo seleccionar campos necesarios (reducido de 24 a 12 campos esenciales)
+      let query = supabase
         .from('users')
         .select(`
           id,
@@ -69,32 +88,37 @@ export class AdminUsersService {
           last_name,
           display_name,
           cargo_rol,
-          type_rol,
           email_verified,
-          email_verified_at,
-          phone,
-          bio,
-          location,
           profile_picture_url,
-          curriculum_url,
-          linkedin_url,
-          github_url,
-          website_url,
-          role_zoom,
           points,
-          country_code,
           created_at,
-          updated_at,
           last_login_at
-        `)
+        `, { count: 'exact' })
+
+      // 🚀 Aplicar búsqueda si se proporciona
+      if (search && search.trim()) {
+        query = query.or(`email.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%,username.ilike.%${search}%`)
+      }
+
+      // 🚀 Aplicar paginación y ordenamiento
+      const { data, error, count } = await query
         .order('created_at', { ascending: false })
+        .range(from, to)
 
       if (error) {
         // console.error('❌ Error fetching users:', error)
         throw error
       }
 
-      return data || []
+      const total = count || 0
+      const totalPages = Math.ceil(total / limit)
+
+      return {
+        users: data || [],
+        total,
+        page,
+        totalPages
+      }
     } catch (error) {
       // console.error('💥 Error in AdminUsersService.getUsers:', error)
       throw error
@@ -105,22 +129,35 @@ export class AdminUsersService {
     const supabase = await createClient()
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('cargo_rol, email_verified')
+      // 🚀 OPTIMIZACIÓN: Usar queries agregadas en paralelo en lugar de filtrado en cliente
+      // ANTES: 1 query grande + filtrado en cliente
+      // DESPUÉS: 4 queries agregadas en paralelo (mucho más eficiente)
 
-      if (error) {
-        // console.error('Error fetching user stats:', error)
-        throw error
-      }
+      const [totalResult, verifiedResult, instructorsResult, adminsResult] = await Promise.all([
+        // Total de usuarios
+        supabase.from('users').select('id', { count: 'exact', head: true }),
 
-      const users = data || []
-      
+        // Usuarios verificados
+        supabase.from('users').select('id', { count: 'exact', head: true }).eq('email_verified', true),
+
+        // Instructores
+        supabase.from('users').select('id', { count: 'exact', head: true }).eq('cargo_rol', 'Instructor'),
+
+        // Administradores
+        supabase.from('users').select('id', { count: 'exact', head: true }).eq('cargo_rol', 'Administrador')
+      ])
+
+      // Verificar errores
+      if (totalResult.error) throw totalResult.error
+      if (verifiedResult.error) throw verifiedResult.error
+      if (instructorsResult.error) throw instructorsResult.error
+      if (adminsResult.error) throw adminsResult.error
+
       const stats: UserStats = {
-        totalUsers: users.length,
-        verifiedUsers: users.filter(u => u.email_verified).length,
-        instructors: users.filter(u => u.cargo_rol === 'Instructor').length,
-        administrators: users.filter(u => u.cargo_rol === 'Administrador').length
+        totalUsers: totalResult.count || 0,
+        verifiedUsers: verifiedResult.count || 0,
+        instructors: instructorsResult.count || 0,
+        administrators: adminsResult.count || 0
       }
 
       return stats
