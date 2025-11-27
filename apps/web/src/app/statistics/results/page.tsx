@@ -292,6 +292,9 @@ export default function StatisticsResultsPage() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [countryData, setCountryData] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [showDifficultyModal, setShowDifficultyModal] = useState(false);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
+  const [updatingDifficulty, setUpdatingDifficulty] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -381,7 +384,9 @@ export default function StatisticsResultsPage() {
             escala,
             scoring,
             respuesta_correcta,
-            texto
+            texto,
+            dimension,
+            dificultad
           )
         `)
         .eq('user_perfil_id', userProfile.id);
@@ -412,8 +417,8 @@ export default function StatisticsResultsPage() {
         valor: r.valor
       })));
       
-      // Procesar datos para el radar
-      const processedRadarData = processRadarData(responses || []);
+      // Procesar datos para el radar (pasar dificultad_id del usuario)
+      const processedRadarData = processRadarData(responses || [], userProfile.dificultad_id);
       console.log('📊 Datos del radar procesados:', processedRadarData);
       setRadarData(processedRadarData);
 
@@ -436,13 +441,125 @@ export default function StatisticsResultsPage() {
     }
   };
 
-  const processRadarData = (responses: any[]) => {
+  /**
+   * Normaliza el score según la dificultad del usuario
+   * - Dificultad 1: máximo 20 puntos (20%) - escala proporcional
+   * - Dificultad 2: máximo 40 puntos (40%) - escala proporcional
+   * - Dificultad 3: máximo 60 puntos (60%) - escala proporcional
+   * - Dificultad 4: máximo 80 puntos (80%) - escala proporcional
+   * - Dificultad 5: máximo 100 puntos (100%) - sin escalar
+   * 
+   * Ejemplo: Si el usuario tiene dificultad 1 y obtiene 50 puntos (50%),
+   * el score normalizado será 10 puntos (50% de 20 = 10)
+   */
+  const normalizeScoreByDifficulty = (score: number, userDifficulty: number | null | undefined): number => {
+    if (!userDifficulty || userDifficulty < 1 || userDifficulty > 5) {
+      // Si no hay dificultad definida, retornar el score sin normalizar
+      return score;
+    }
+
+    const maxScoreByDifficulty: { [key: number]: number } = {
+      1: 20,
+      2: 40,
+      3: 60,
+      4: 80,
+      5: 100
+    };
+
+    const maxScore = maxScoreByDifficulty[userDifficulty] || 100;
+    
+    // Normalización proporcional: escalar el score según el máximo permitido
+    // Si el score es 50 y el máximo es 20, entonces: 50 * 20 / 100 = 10
+    // Si el score es 100 y el máximo es 20, entonces: 100 * 20 / 100 = 20
+    const normalizedScore = (score * maxScore) / 100;
+    
+    return Math.round(normalizedScore);
+  };
+
+  // Función para calcular la dificultad desde el uso de IA
+  const calcularDificultad = (uso_ia: string): number => {
+    const usoIALower = uso_ia.toLowerCase().trim();
+    
+    if (usoIALower.includes('siempre') || usoIALower.includes('todos los días') || usoIALower.includes('todos o casi todos los días')) {
+      return 5;
+    } else if (usoIALower.includes('frecuentemente') || usoIALower.includes('casi siempre') || usoIALower.includes('3-4 veces por semana')) {
+      return 4;
+    } else if (usoIALower.includes('a veces') || usoIALower.includes('ocasionalmente') || usoIALower.includes('1-2 veces por semana')) {
+      return 3;
+    } else if (usoIALower.includes('rara vez') || usoIALower.includes('casi nunca') || usoIALower.includes('1-2 veces al mes')) {
+      return 2;
+    } else {
+      return 1; // Nunca (por defecto)
+    }
+  };
+
+  // Función para actualizar la dificultad del usuario
+  const handleUpdateDifficulty = async () => {
+    if (!selectedDifficulty) {
+      alert('Por favor selecciona una opción');
+      return;
+    }
+
+    try {
+      setUpdatingDifficulty(true);
+      const supabase = createClient();
+
+      if (!user || !userProfile) {
+        alert('Error: Usuario no autenticado');
+        return;
+      }
+
+      // Calcular la nueva dificultad
+      const nuevaDificultad = calcularDificultad(selectedDifficulty);
+
+      // Actualizar el perfil del usuario
+      const { error: updateError } = await supabase
+        .from('user_perfil')
+        .update({ 
+          dificultad_id: nuevaDificultad,
+          uso_ia_respuesta: selectedDifficulty
+        })
+        .eq('id', userProfile.id);
+
+      if (updateError) {
+        console.error('Error al actualizar dificultad:', updateError);
+        alert('Error al actualizar la dificultad. Por favor intenta de nuevo.');
+        return;
+      }
+
+      // Actualizar el estado local
+      setUserProfile({
+        ...userProfile,
+        dificultad_id: nuevaDificultad
+      });
+
+      // Cerrar el modal y redirigir al cuestionario
+      setShowDifficultyModal(false);
+      router.push('/questionnaire/direct');
+    } catch (error) {
+      console.error('Error al actualizar dificultad:', error);
+      alert('Error al actualizar la dificultad. Por favor intenta de nuevo.');
+    } finally {
+      setUpdatingDifficulty(false);
+    }
+  };
+
+  const processRadarData = (responses: any[], userDifficulty: number | null | undefined = null) => {
     const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
     
     // Procesar scores por dimensión
     
     const scores = dimensions.map(dimension => {
       const relevantResponses = responses.filter(response => {
+        // Usar el campo dimension directamente de la pregunta (es un array jsonb)
+        const questionDimensions = response.preguntas?.dimension;
+        
+        // Si la pregunta tiene el campo dimension, usarlo directamente
+        if (questionDimensions && Array.isArray(questionDimensions)) {
+          return questionDimensions.includes(dimension);
+        }
+        
+        // Fallback: usar la lógica anterior si no hay campo dimension
         const section = response.preguntas?.section || '';
         const bloque = response.preguntas?.bloque || '';
         const texto = response.preguntas?.texto?.toLowerCase() || '';
@@ -648,10 +765,15 @@ export default function StatisticsResultsPage() {
       });
 
       const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+      
+      // Aplicar normalización por dificultad del usuario
+      const normalizedScore = normalizeScoreByDifficulty(finalScore, userDifficulty);
 
       return {
         dimension,
-        score: Math.min(100, Math.max(0, finalScore))
+        score: Math.min(100, Math.max(0, normalizedScore)),
+        rawScore: finalScore, // Guardar el score sin normalizar para referencia
+        maxPossibleScore: userDifficulty ? (userDifficulty * 20) : 100 // Máximo posible según dificultad
       };
     });
 
@@ -843,6 +965,117 @@ export default function StatisticsResultsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+      {/* Modal de Dificultad */}
+      <AnimatePresence>
+        {showDifficultyModal && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDifficultyModal(false)}
+              className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 backdrop-blur-sm"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 border border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                    <Brain className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Actualizar Nivel de Dificultad
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-white/60 mt-1">
+                      Selecciona tu nivel actual de uso de IA
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-3">
+                    ¿Qué tanto utilizas la IA en tu ámbito laboral? <span className="text-red-500 dark:text-red-400">*</span>
+                  </label>
+                  <select
+                    value={selectedDifficulty}
+                    onChange={(e) => setSelectedDifficulty(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Selecciona una opción
+                    </option>
+                    <option value="Nunca" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Nunca
+                    </option>
+                    <option value="Rara vez" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Rara vez (1-2 veces al mes)
+                    </option>
+                    <option value="A veces" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      A veces (1-2 veces por semana)
+                    </option>
+                    <option value="Frecuentemente" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Frecuentemente (3-4 veces por semana)
+                    </option>
+                    <option value="Siempre" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Siempre (todos o casi todos los días)
+                    </option>
+                  </select>
+                  
+                  {userProfile?.dificultad_id && (
+                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Nivel actual:</strong> {userProfile.dificultad_id} 
+                        {userProfile.dificultad_id < 5 && (
+                          <span className="block mt-1 text-blue-700 dark:text-blue-300">
+                            Si crees que puedes hacer el siguiente nivel, selecciona una opción más alta.
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDifficultyModal(false)}
+                    disabled={updatingDifficulty}
+                    className="flex-1 px-4 py-3 bg-gray-200 dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleUpdateDifficulty}
+                    disabled={!selectedDifficulty || updatingDifficulty}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-lg hover:from-primary/80 hover:to-purple-500/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {updatingDifficulty ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Actualizando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Continuar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -859,7 +1092,20 @@ export default function StatisticsResultsPage() {
             </div>
             
             <button
-              onClick={() => router.push('/questionnaire/direct')}
+              onClick={() => {
+                // Obtener la dificultad actual del usuario para pre-seleccionarla
+                if (userProfile?.dificultad_id) {
+                  const dificultadMap: { [key: number]: string } = {
+                    1: 'Nunca',
+                    2: 'Rara vez',
+                    3: 'A veces',
+                    4: 'Frecuentemente',
+                    5: 'Siempre'
+                  };
+                  setSelectedDifficulty(dificultadMap[userProfile.dificultad_id] || '');
+                }
+                setShowDifficultyModal(true);
+              }}
               className="flex items-center px-4 py-2 bg-primary/20 dark:bg-primary/20 hover:bg-primary/30 dark:hover:bg-primary/30 border border-primary/30 dark:border-primary/30 hover:border-primary/50 dark:hover:border-primary/50 text-primary dark:text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
             >
               <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
@@ -883,10 +1129,29 @@ export default function StatisticsResultsPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Radar de Competencias en IA</h2>
             </div>
-            <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto">
+            <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto mb-4">
               Visualización de tus fortalezas por área funcional basada en tu cuestionario. 
               Cada dimensión se evalúa en una escala de 0 a 100 puntos.
             </p>
+            {userProfile?.dificultad_id && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <p className="font-semibold mb-1">Nivel de Dificultad: {userProfile.dificultad_id}</p>
+                    <p>
+                      Tus scores están normalizados según tu nivel de dificultad. 
+                      El máximo posible para tu nivel es {userProfile.dificultad_id * 20} puntos.
+                      {userProfile.dificultad_id < 5 && (
+                        <span className="block mt-1 text-blue-700 dark:text-blue-300">
+                          A medida que avances en tu conocimiento de IA, podrás alcanzar niveles más altos.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex flex-col lg:flex-row gap-8 items-center">

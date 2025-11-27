@@ -61,6 +61,9 @@ export class DifficultyPatternDetector {
   private deleteKeyPresses: number = 0;
   private submitAttempts: number = 0;
 
+  // 🆕 Timestamp de inicio de sesión para período de warm-up
+  private sessionStartTime: number = Date.now();
+
   constructor(thresholds: Partial<DetectionThresholds> = {}) {
     this.thresholds = { ...DEFAULT_THRESHOLDS, ...thresholds };
   }
@@ -71,16 +74,28 @@ export class DifficultyPatternDetector {
   public detect(events: eventWithTime[]): DifficultyAnalysis {
     const now = Date.now();
     const patterns: DifficultyPattern[] = [];
-    
+
+    // 🆕 FASE 1: Validación de Warm-Up (no intervenir en los primeros 45 segundos)
+    // Esto evita falsos positivos cuando el usuario apenas está familiarizándose con la interfaz
+    const sessionDuration = now - this.sessionStartTime;
+    const warmUpPeriod = 45 * 1000; // 45 segundos
+
+    if (sessionDuration < warmUpPeriod) {
+      const remainingSeconds = Math.ceil((warmUpPeriod - sessionDuration) / 1000);
+      console.log(`⏳ [WARM-UP] Esperando ${remainingSeconds}s antes de iniciar detección de dificultad`);
+      return this.createAnalysis(0, [], false, '');
+    }
+
     // Filtrar eventos dentro de la ventana de análisis
     const recentEvents = this.filterRecentEvents(events, this.thresholds.analysisWindow);
-    
+
     console.log('🔍 [DEBUG] Analizando eventos:', {
       totalEvents: events.length,
       recentEvents: recentEvents.length,
-      analysisWindow: this.thresholds.analysisWindow
+      analysisWindow: this.thresholds.analysisWindow,
+      sessionDuration: `${Math.floor(sessionDuration / 1000)}s`
     });
-    
+
     if (recentEvents.length === 0) {
       return this.createAnalysis(0, [], false, '');
     }
@@ -588,6 +603,7 @@ export class DifficultyPatternDetector {
    */
   public reset(): void {
     this.lastActivityTimestamp = Date.now();
+    this.sessionStartTime = Date.now(); // 🆕 Resetear también el contador de sesión
     this.scrollPositions = [];
     this.clickTargets = [];
     this.deleteKeyPresses = 0;

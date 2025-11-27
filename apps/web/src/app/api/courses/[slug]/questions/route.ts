@@ -138,17 +138,18 @@ export async function GET(
         user_reaction: userReactionsMap.get(question.id) || null
       }));
 
-      // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+      // ⚡ OPTIMIZACIÓN: Sin caché para datos en tiempo real (realtime subscriptions)
+      // El caché causaba delays en mostrar nuevas preguntas/respuestas/reacciones
       return withCacheHeaders(
         NextResponse.json(questionsWithCounts || []),
-        cacheHeaders.semiStatic
+        cacheHeaders.noCache
       );
     }
 
-    // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos semi-estáticos - 5 minutos)
+    // ⚡ OPTIMIZACIÓN: Sin caché para datos en tiempo real
     return withCacheHeaders(
       NextResponse.json(questions || []),
-      cacheHeaders.semiStatic
+      cacheHeaders.noCache
     );
   } catch (error) {
     // console.error('Error in questions API:', error);

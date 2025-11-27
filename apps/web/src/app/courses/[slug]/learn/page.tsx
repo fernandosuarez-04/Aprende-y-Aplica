@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { dedupedFetch } from '../../../../lib/supabase/request-deduplication';
+import { createClient } from '../../../../lib/supabase/client';
 import {
   Play,
   BookOpen,
@@ -6930,6 +6931,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     is_resolved: boolean;
     created_at: string;
     updated_at: string;
+    course_id?: string;
     user: {
       id: string;
       username: string;
@@ -6949,6 +6951,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   const [hasMore, setHasMore] = useState(true);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({}); // questionId -> reaction_type
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({}); // questionId -> count
+  const [courseId, setCourseId] = useState<string | null>(null);
 
   // Función para ejecutar búsqueda
   const handleSearch = () => {
@@ -6999,6 +7002,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         const data = await response.json();
         setQuestions(data || []);
         
+        // Extraer courseId de la primera pregunta si está disponible
+        if (data && data.length > 0 && data[0].course_id && !courseId) {
+          setCourseId(data[0].course_id);
+        }
+        
         // Verificar si hay más preguntas
         setHasMore(data && data.length === 20);
         
@@ -7012,6 +7020,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
             countsMap[q.id] = q.reaction_count || 0;
             if (q.user_reaction) {
               reactionsMap[q.id] = q.user_reaction;
+            }
+            // También extraer courseId si está disponible
+            if (q.course_id && !courseId) {
+              setCourseId(q.course_id);
             }
           });
           
@@ -7034,6 +7046,183 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   useEffect(() => {
     reloadQuestions();
   }, [reloadQuestions]);
+
+  // ⚡ OPTIMIZACIÓN CRÍTICA: Supabase Realtime subscriptions para actualizaciones en tiempo real
+  useEffect(() => {
+    if (!courseId) return; // Esperar a tener courseId
+
+    const supabase = createClient();
+
+    // Suscripción para nuevas preguntas y actualizaciones
+    const questionsChannel = supabase
+      .channel(`course-questions-${courseId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_questions',
+          filter: `course_id=eq.${courseId}`,
+        },
+        async (payload) => {
+          // Solo agregar si no está en búsqueda activa (para evitar duplicados)
+          if (!activeSearchQuery) {
+            // Obtener datos completos de la nueva pregunta (con usuario)
+            try {
+              const response = await fetch(`/api/courses/${slug}/questions/${payload.new.id}`);
+              if (response.ok) {
+                const newQuestion = await response.json();
+                setQuestions((prev) => {
+                  // Verificar que no exista ya
+                  if (prev.some((q) => q.id === newQuestion.id)) {
+                    return prev;
+                  }
+                  // Agregar al inicio (preguntas más recientes primero)
+                  return [newQuestion, ...prev];
+                });
+              }
+            } catch (error) {
+              // Si falla, recargar todas las preguntas
+              reloadQuestions();
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'course_questions',
+          filter: `course_id=eq.${courseId}`,
+        },
+        async (payload) => {
+          // Actualizar pregunta existente
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === payload.new.id
+                ? { ...q, ...payload.new, updated_at: payload.new.updated_at || q.updated_at }
+                : q
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_questions',
+          filter: `course_id=eq.${courseId}`,
+        },
+        (payload) => {
+          // Eliminar pregunta
+          setQuestions((prev) => prev.filter((q) => q.id !== payload.old.id));
+        }
+      )
+      .subscribe();
+
+    // Suscripción para nuevas respuestas
+    const responsesChannel = supabase
+      .channel(`course-responses-${courseId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_responses',
+        },
+        async (payload) => {
+          // Incrementar contador de respuestas para la pregunta
+          const questionId = payload.new.question_id;
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, response_count: (q.response_count || 0) + 1 }
+                : q
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_responses',
+        },
+        (payload) => {
+          // Decrementar contador de respuestas
+          const questionId = payload.old.question_id;
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, response_count: Math.max(0, (q.response_count || 0) - 1) }
+                : q
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    // Suscripción para reacciones
+    const reactionsChannel = supabase
+      .channel(`course-reactions-${courseId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_reactions',
+        },
+        (payload) => {
+          const questionId = payload.new.question_id;
+          // Incrementar contador de reacciones
+          setReactionCounts((prev) => ({
+            ...prev,
+            [questionId]: (prev[questionId] || 0) + 1,
+          }));
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, reaction_count: (q.reaction_count || 0) + 1 }
+                : q
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_reactions',
+        },
+        (payload) => {
+          const questionId = payload.old.question_id;
+          // Decrementar contador de reacciones
+          setReactionCounts((prev) => ({
+            ...prev,
+            [questionId]: Math.max(0, (prev[questionId] || 0) - 1),
+          }));
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, reaction_count: Math.max(0, (q.reaction_count || 0) - 1) }
+                : q
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    // Cleanup: Desuscribirse cuando el componente se desmonte o cambie courseId
+    return () => {
+      supabase.removeChannel(questionsChannel);
+      supabase.removeChannel(responsesChannel);
+      supabase.removeChannel(reactionsChannel);
+    };
+  }, [courseId, slug, activeSearchQuery, reloadQuestions]);
 
   // Función para cargar más preguntas
   const loadMoreQuestions = async () => {
@@ -7482,10 +7671,23 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         <CreateQuestionForm
           slug={slug}
           onClose={() => setShowCreateForm(false)}
-          onSuccess={() => {
+          onSuccess={(newQuestion) => {
             setShowCreateForm(false);
-            // Recargar preguntas sin recargar toda la página
-            reloadQuestions();
+            // ⚡ OPTIMIZACIÓN: Agregar pregunta optimistamente al estado
+            // El realtime la actualizará con datos completos cuando llegue
+            if (newQuestion) {
+              setQuestions((prev) => {
+                // Verificar que no exista ya (evitar duplicados)
+                if (prev.some((q) => q.id === newQuestion.id)) {
+                  return prev;
+                }
+                // Agregar al inicio (preguntas más recientes primero)
+                return [newQuestion, ...prev];
+              });
+            } else {
+              // Si no se recibió la pregunta, recargar todas
+              reloadQuestions();
+            }
           }}
         />
       )}
@@ -7597,6 +7799,205 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
     return () => {
       cancelled = true;
+    };
+  }, [questionId, slug]);
+
+  // ⚡ OPTIMIZACIÓN CRÍTICA: Supabase Realtime subscriptions para respuestas y reacciones
+  useEffect(() => {
+    if (!questionId) return;
+
+    const supabase = createClient();
+
+    // Función helper para agregar respuesta al estado (maneja respuestas anidadas)
+    const addResponseToState = (newResponse: any, parentId?: string) => {
+      setResponses((prev) => {
+        // Si tiene parent_id, es una respuesta anidada
+        if (parentId) {
+          return prev.map((r) => {
+            if (r.id === parentId) {
+              return {
+                ...r,
+                replies: [...(r.replies || []), newResponse],
+              };
+            }
+            // Buscar recursivamente en replies
+            if (r.replies && r.replies.length > 0) {
+              return {
+                ...r,
+                replies: r.replies.map((reply: any) => {
+                  if (reply.id === parentId) {
+                    return {
+                      ...reply,
+                      replies: [...(reply.replies || []), newResponse],
+                    };
+                  }
+                  return reply;
+                }),
+              };
+            }
+            return r;
+          });
+        } else {
+          // Es una respuesta de nivel superior
+          // Verificar que no exista ya
+          if (prev.some((r) => r.id === newResponse.id)) {
+            return prev;
+          }
+          return [...prev, newResponse];
+        }
+      });
+    };
+
+    // Suscripción para nuevas respuestas
+    const responsesChannel = supabase
+      .channel(`question-responses-${questionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_responses',
+          filter: `question_id=eq.${questionId}`,
+        },
+        async (payload) => {
+          // Recargar todas las respuestas para obtener la estructura completa con usuario
+          // Esto es más confiable que intentar construir la respuesta manualmente
+          try {
+            const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
+            if (responsesRes.ok) {
+              const responsesData = await responsesRes.json();
+              setResponses(responsesData || []);
+              
+              // Actualizar contadores de reacciones
+              const countsMap: Record<string, number> = {};
+              const reactionsMap: Record<string, string> = {};
+              
+              const initCountsFromResponses = (responses: any[]) => {
+                responses.forEach((r: any) => {
+                  if (r.id) {
+                    countsMap[r.id] = r.reaction_count || 0;
+                    if (r.user_reaction) {
+                      reactionsMap[r.id] = r.user_reaction;
+                    }
+                  }
+                  if (r.replies && r.replies.length > 0) {
+                    initCountsFromResponses(r.replies);
+                  }
+                });
+              };
+              
+              initCountsFromResponses(responsesData);
+              setResponseReactionCounts(countsMap);
+              setResponseReactions(reactionsMap);
+            }
+          } catch (error) {
+            // Silenciar error, la próxima actualización lo corregirá
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'course_question_responses',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Actualizar respuesta existente
+          setResponses((prev) => {
+            const updateResponse = (responses: any[]): any[] => {
+              return responses.map((r) => {
+                if (r.id === payload.new.id) {
+                  return { ...r, ...payload.new };
+                }
+                if (r.replies && r.replies.length > 0) {
+                  return { ...r, replies: updateResponse(r.replies) };
+                }
+                return r;
+              });
+            };
+            return updateResponse(prev);
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_responses',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Eliminar respuesta (maneja respuestas anidadas)
+          setResponses((prev) => {
+            const removeResponse = (responses: any[]): any[] => {
+              return responses
+                .filter((r) => r.id !== payload.old.id)
+                .map((r) => {
+                  if (r.replies && r.replies.length > 0) {
+                    return { ...r, replies: removeResponse(r.replies) };
+                  }
+                  return r;
+                });
+            };
+            return removeResponse(prev);
+          });
+        }
+      )
+      .subscribe();
+
+    // Suscripción para reacciones de respuestas
+    // Nota: Las reacciones de respuestas usan la misma tabla course_question_reactions con response_id
+    const responseReactionsChannel = supabase
+      .channel(`response-reactions-${questionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_reactions',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Solo procesar si tiene response_id (es reacción a respuesta, no a pregunta)
+          if (payload.new.response_id) {
+            const responseId = payload.new.response_id;
+            // Incrementar contador de reacciones
+            setResponseReactionCounts((prev) => ({
+              ...prev,
+              [responseId]: (prev[responseId] || 0) + 1,
+            }));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_reactions',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Solo procesar si tiene response_id (es reacción a respuesta, no a pregunta)
+          if (payload.old.response_id) {
+            const responseId = payload.old.response_id;
+            // Decrementar contador de reacciones
+            setResponseReactionCounts((prev) => ({
+              ...prev,
+              [responseId]: Math.max(0, (prev[responseId] || 0) - 1),
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup: Desuscribirse cuando el componente se desmonte o cambie questionId
+    return () => {
+      supabase.removeChannel(responsesChannel);
+      supabase.removeChannel(responseReactionsChannel);
     };
   }, [questionId, slug]);
 
@@ -8173,7 +8574,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   );
 }
 
-function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClose: () => void; onSuccess: () => void }) {
+function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClose: () => void; onSuccess: (question?: any) => void }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -8194,7 +8595,12 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
       });
 
       if (response.ok) {
-        onSuccess();
+        // ⚡ OPTIMIZACIÓN: Pasar la pregunta creada al callback para actualización optimista
+        const newQuestion = await response.json();
+        onSuccess(newQuestion);
+        // Limpiar formulario
+        setTitle('');
+        setContent('');
       } else {
         const errorData = await response.json();
         alert(`Error: ${errorData.error}`);

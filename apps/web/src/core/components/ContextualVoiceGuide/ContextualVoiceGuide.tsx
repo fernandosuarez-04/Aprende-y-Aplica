@@ -86,68 +86,65 @@ export function ContextualVoiceGuide({
 
   // Verificar si debe mostrar el tour
   useEffect(() => {
+    // ✅ CORRECCIÓN: Verificar PRIMERO si el usuario ya vio el tour
+    // Si ya lo vio (tiene cualquier valor en localStorage), NUNCA abrir automáticamente
+    const hasSeenTour = localStorage.getItem(storageKey);
+    if (hasSeenTour) {
+      // Marcar que no debemos intentar abrir automáticamente
+      hasAttemptedOpenRef.current = true;
+      return;
+    }
+
     // Evitar aperturas múltiples
     if (isOpeningRef.current || hasAttemptedOpenRef.current || isVisible) {
       return;
     }
 
     if (requireAuth && !user) return;
-    
+
     // Obtener pathname base sin query params para comparación
     const basePathname = pathname?.split('?')[0] || '';
     const lastBasePathname = lastPathnameRef.current?.split('?')[0] || '';
-    
-    const hasSeenTour = localStorage.getItem(storageKey);
+
     const shouldShow = triggerPaths.some(path => pathname === path || pathname?.startsWith(path));
-    
-    // Solo abrir automáticamente si:
-    // 1. Debe mostrarse Y
-    // 2. No ha visto el tour Y
-    // 3. El pathname base realmente cambió (no solo query params)
-    // NOTA: isReplayable solo permite apertura MANUAL, no automática
-    if (shouldShow && !hasSeenTour && basePathname !== lastBasePathname && basePathname) {
-      // Marcar que ya intentamos abrir
+
+    // ✅ CORRECCIÓN: Solo abrir automáticamente si:
+    // 1. NO ha visto el tour NUNCA (localStorage es null)
+    // 2. Debe mostrarse en esta ruta
+    // 3. Es la primera vez que se monta el componente (hasAttemptedOpenRef es false)
+    if (shouldShow && !hasSeenTour) {
+      // Marcar que ya intentamos abrir (para evitar reaperturas)
       hasAttemptedOpenRef.current = true;
       isOpeningRef.current = true;
-      
+
       // Guardar el pathname base actual
       lastPathnameRef.current = basePathname;
-      
+
       // Pequeño delay para que la página cargue primero
       setTimeout(() => {
-        // Verificar nuevamente antes de abrir (por si el usuario lo cerró rápidamente)
-        const stillHasntSeen = localStorage.getItem(storageKey) !== 'true';
+        // ✅ Verificar nuevamente que no se ha marcado como visto
+        const stillHasntSeen = !localStorage.getItem(storageKey);
         if (stillHasntSeen && !isVisible) {
           setIsVisible(true);
-          // Guardar inmediatamente al abrir por primera vez
-          localStorage.setItem(storageKey, 'opened'); // Usamos 'opened' para diferenciar de 'true' que es cuando se completa
+          // ✅ Guardar inmediatamente al abrir por primera vez para evitar reaperturas
+          localStorage.setItem(storageKey, 'true');
         }
         isOpeningRef.current = false;
       }, showDelay);
-    } else if (shouldShow && hasSeenTour) {
-      // Si ya vio el tour, marcar que no debemos intentar abrir automáticamente
-      hasAttemptedOpenRef.current = true;
-      // Actualizar el pathname base para futuras comparaciones
-      if (basePathname) {
-        lastPathnameRef.current = basePathname;
-      }
-    } else if (shouldShow && !hasSeenTour && basePathname === lastBasePathname) {
-      // Si estamos en la misma ruta y no hemos visto el tour, solo actualizar el ref pero no abrir
-      hasAttemptedOpenRef.current = true;
     }
   }, [pathname, storageKey, triggerPaths, isReplayable, showDelay, requireAuth, user, isVisible]);
 
   // ✅ Listener para abrir el tour manualmente (desde "Ver Tour del Curso" u otros botones)
   useEffect(() => {
     const handleOpenTour = () => {
-      // Resetear el flag para permitir apertura manual
-      hasAttemptedOpenRef.current = false;
+      // ✅ CORRECCIÓN: NO resetear hasAttemptedOpenRef para evitar reaperturas automáticas
+      // Solo marcar que estamos abriendo
       isOpeningRef.current = true;
-      
+
       // Abrir el modal
       setIsVisible(true);
       setCurrentStep(0);
-      
+
       // Marcar que ya no estamos abriendo
       setTimeout(() => {
         isOpeningRef.current = false;
