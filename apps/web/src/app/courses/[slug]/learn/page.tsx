@@ -3253,6 +3253,7 @@ Antes de cada respuesta, pregúntate:
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
                         onNavigateNext={navigateToNextLesson}
                         hasNextLesson={!!getNextLesson()}
+                        selectedLang={selectedLang}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -5941,15 +5942,16 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
   );
 }
 
-function ActivitiesContent({ 
-  lesson, 
-  slug, 
-  onPromptsChange, 
+function ActivitiesContent({
+  lesson,
+  slug,
+  onPromptsChange,
   onStartInteraction,
   userRole,
   generateRoleBasedPrompts,
   onNavigateNext,
-  hasNextLesson
+  hasNextLesson,
+  selectedLang
 }: {
   lesson: Lesson;
   slug: string;
@@ -5959,7 +5961,11 @@ function ActivitiesContent({
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
   onNavigateNext?: () => void | Promise<void>;
   hasNextLesson?: boolean;
+  selectedLang: string;
 }) {
+  // Hook de traducción
+  const { t } = useTranslation('learn');
+
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
     activity_title: string;
@@ -6052,12 +6058,12 @@ function ActivitiesContent({
           let activitiesData = await activitiesResponse.json();
           
           // Aplicar traducciones si no es español
-          if (language !== 'es' && activitiesData && activitiesData.length > 0) {
+          if (selectedLang !== 'es' && activitiesData && activitiesData.length > 0) {
             activitiesData = await ContentTranslationService.translateArray(
               'activity',
               activitiesData.map((a: any) => ({ ...a, id: a.activity_id })),
               ['activity_title', 'activity_description', 'activity_content'],
-              language as any
+              selectedLang as any
             );
           }
           
@@ -6092,7 +6098,7 @@ function ActivitiesContent({
     }
 
     loadActivitiesAndMaterials();
-  }, [lesson?.lesson_id, slug, language]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Cargar feedback de la lección
   useEffect(() => {
