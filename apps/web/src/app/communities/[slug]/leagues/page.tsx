@@ -179,9 +179,54 @@ export default function LeaguesPage() {
   const headerSectionRef = useRef<HTMLElement | null>(null);
   const standingsSectionRef = useRef<HTMLElement | null>(null);
 
+  // 🚀 OPTIMIZACIÓN: Cargar datos de ligas cuando cambie el slug
   useEffect(() => {
-    fetchLeaguesData();
-  }, [fetchLeaguesData]);
+    if (!slug) return;
+
+    let isMounted = true;
+
+    async function loadLeaguesData() {
+      try {
+        setIsLoading(true);
+
+        const response = await fetch(`/api/communities/${slug}/leagues`, {
+          // Agregar caché para mejorar performance en navegaciones repetidas
+          next: { revalidate: 60 } // Revalidar cada 60 segundos
+        });
+
+        if (!isMounted) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          setCommunity(data.community);
+          setCurrentUser(data.currentUser);
+          setMembers(data.members || []);
+          setLeagueSystem(data.leagueSystem);
+          setPointsSystem(data.pointsSystem);
+          setLeagueStats(data.leagueStats);
+        } else {
+          const errorData = await response.json();
+          if (response.status === 401) {
+            router.push('/auth');
+          } else if (response.status === 403) {
+            router.push(`/communities/${slug}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching leagues:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadLeaguesData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug, router]);
 
   // 🚀 OPTIMIZACIÓN: Memoizar el filtrado para evitar cálculos innecesarios
   const filteredAndSortedMembers = useMemo(() => {
@@ -241,39 +286,6 @@ export default function LeaguesPage() {
         }
     }
   };
-
-  // 🚀 OPTIMIZACIÓN: Memoizar fetchLeaguesData con useCallback
-  const fetchLeaguesData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-
-      const response = await fetch(`/api/communities/${slug}/leagues`, {
-        // Agregar caché para mejorar performance en navegaciones repetidas
-        next: { revalidate: 60 } // Revalidar cada 60 segundos
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCommunity(data.community);
-        setCurrentUser(data.currentUser);
-        setMembers(data.members || []);
-        setLeagueSystem(data.leagueSystem);
-        setPointsSystem(data.pointsSystem);
-        setLeagueStats(data.leagueStats);
-      } else {
-        const errorData = await response.json();
-        if (response.status === 401) {
-          router.push('/auth');
-        } else if (response.status === 403) {
-          router.push(`/communities/${slug}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching leagues:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [slug, router]);
 
   const getProgressPercentage = (points: number, league: string) => {
     if (!leagueSystem) return 0;

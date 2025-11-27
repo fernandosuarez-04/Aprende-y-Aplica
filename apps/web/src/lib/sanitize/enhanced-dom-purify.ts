@@ -8,7 +8,13 @@
  * @see https://owasp.org/www-community/attacks/xss/
  */
 
-import DOMPurify from 'dompurify';
+// Importación dinámica de DOMPurify solo en el cliente
+let DOMPurify: any = null;
+
+if (typeof window !== 'undefined') {
+  // Solo importar DOMPurify en el cliente
+  DOMPurify = require('dompurify');
+}
 
 /**
  * Lista de protocolos peligrosos que deben ser bloqueados
@@ -78,6 +84,11 @@ const BLOCKED_URL_PATTERNS = [
  * Configura hooks de DOMPurify para validación adicional
  */
 export function setupDOMPurifyHooks(): void {
+  // Solo funciona en el cliente
+  if (typeof window === 'undefined' || !DOMPurify) {
+    return;
+  }
+
   // Hook: Validar atributos antes de ser añadidos
   DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
     const { attrName, attrValue } = data;
@@ -162,7 +173,7 @@ export function setupDOMPurifyHooks(): void {
       if (formElement.hasAttribute('action')) {
         const action = formElement.getAttribute('action') || '';
 
-        if (action.startsWith('http') && !action.includes(window.location.hostname)) {
+        if (action.startsWith('http') && typeof window !== 'undefined' && window.location && !action.includes(window.location.hostname)) {
           formElement.removeAttribute('action');
           // console.warn('[DOMPurify] Removed external form action');
         }
@@ -193,7 +204,7 @@ export function setupDOMPurifyHooks(): void {
 
       // Agregar indicador visual para links externos
       const href = linkElement.getAttribute('href') || '';
-      if (href.startsWith('http') && !href.includes(window.location.hostname)) {
+      if (href.startsWith('http') && typeof window !== 'undefined' && window.location && !href.includes(window.location.hostname)) {
         linkElement.setAttribute('data-external', 'true');
       }
     }
@@ -294,6 +305,16 @@ export function enhancedSanitizeHTML(
     return '';
   }
 
+  // Si estamos en el servidor, usar sanitización básica
+  if (typeof window === 'undefined' || !DOMPurify) {
+    // Sanitización básica para servidor
+    return dirty
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/javascript:/gi, '');
+  }
+
   // Asegurar que los hooks están configurados
   setupDOMPurifyHooks();
 
@@ -318,6 +339,11 @@ export function enhancedSanitizeHTML(
 export function sanitizePlainText(dirty: string | null | undefined): string {
   if (!dirty) {
     return '';
+  }
+
+  // Si estamos en el servidor, remover todo HTML
+  if (typeof window === 'undefined' || !DOMPurify) {
+    return dirty.replace(/<[^>]*>/g, '');
   }
 
   return DOMPurify.sanitize(dirty, {
@@ -372,7 +398,7 @@ export function extractTextFromHTML(html: string | null | undefined): string {
  * Llamar esto en _app.tsx o layout.tsx
  */
 export function initializeSecureDOMPurify(): void {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || !DOMPurify) {
     return;
   }
 
@@ -389,6 +415,6 @@ export function initializeSecureDOMPurify(): void {
 }
 
 // Auto-inicializar en el browser
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && DOMPurify) {
   initializeSecureDOMPurify();
 }
