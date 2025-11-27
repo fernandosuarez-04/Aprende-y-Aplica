@@ -62,6 +62,22 @@ export default function DirectQuestionnairePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Función para mezclar aleatoriamente un array (Fisher-Yates shuffle)
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Función para verificar si una pregunta es de conocimiento
+  const isKnowledgeQuestion = (question: Question): boolean => {
+    if (!question.bloque) return false;
+    return question.bloque.toLowerCase().includes('conocimiento');
+  };
+
   useEffect(() => {
     // Solo cargar preguntas si el usuario está autenticado
     if (!authLoading && isAuthenticated && user) {
@@ -368,6 +384,12 @@ export default function DirectQuestionnairePage() {
             console.warn('Formato de opciones desconocido:', typeof question.opciones);
             opcionesParsed = [];
           }
+        }
+        
+        // Mezclar aleatoriamente las opciones SOLO para preguntas de conocimiento
+        // Las preguntas de adopción mantienen su orden original
+        if (opcionesParsed.length > 0 && isKnowledgeQuestion(question)) {
+          opcionesParsed = shuffleArray(opcionesParsed);
         }
         
         return {
