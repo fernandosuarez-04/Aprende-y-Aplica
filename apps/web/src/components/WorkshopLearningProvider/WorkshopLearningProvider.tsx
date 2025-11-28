@@ -23,7 +23,6 @@
 import { useState, useCallback, ReactNode } from 'react';
 import { useDifficultyDetection } from '../../hooks/useDifficultyDetection';
 import { ProactiveLIAAssistant } from '../ProactiveLIAAssistant';
-import { sessionRecorder } from '../../lib/rrweb/session-recorder';
 import type { DifficultyAnalysis } from '../../lib/rrweb/difficulty-pattern-detector';
 
 export interface WorkshopLearningProviderProps {

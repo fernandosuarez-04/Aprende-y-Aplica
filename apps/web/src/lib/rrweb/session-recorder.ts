@@ -3,7 +3,6 @@
  * Graba sesiones del usuario para debugging y reportes de problemas
  */
 
-import { record, EventType } from 'rrweb';
 import type { eventWithTime } from '@rrweb/types';
 
 export interface RecordingSession {
@@ -34,7 +33,13 @@ export class SessionRecorder {
    * Inicia la grabación de la sesión
    * @param maxDuration Duración máxima en ms (por defecto 60 segundos)
    */
-  startRecording(maxDuration?: number): void {
+  async startRecording(maxDuration?: number): Promise<void> {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      console.warn('⚠️ session-recorder solo funciona en el navegador');
+      return;
+    }
+
     if (this.isRecording) {
       console.warn('⚠️ Ya hay una grabación en curso');
       return;
@@ -50,6 +55,9 @@ export class SessionRecorder {
     this.isRecording = true;
 
     try {
+      // Importación dinámica de rrweb (solo en el cliente)
+      const { record } = await import('rrweb');
+
       this.stopRecording = record({
         emit: (event) => {
           // Guardar el snapshot inicial (tipo 2) por separado

@@ -3,8 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { sessionRecorder } from './session-recorder';
-import type { RecordingSession } from './session-recorder';
+import { sessionRecorderClient, type RecordingSession } from './session-recorder-client';
 
 interface UseSessionRecorderOptions {
   autoStart?: boolean;
@@ -38,7 +37,7 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
 
     // Cleanup al desmontar
     return () => {
-      if (sessionRecorder.isActive()) {
+      if (sessionRecorderClient.isActive()) {
         stopRecording();
       }
     };
@@ -48,11 +47,11 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
   useEffect(() => {
     if (!isRecording) return;
 
-    const interval = setInterval(() => {
-      const session = sessionRecorder.getCurrentSession();
+    const interval = setInterval(async () => {
+      const session = await sessionRecorderClient.getCurrentSession();
       if (session) {
         setCurrentSession(session);
-        const size = sessionRecorder.getSessionSizeFormatted(session);
+        const size = sessionRecorderClient.getSessionSizeFormatted(session);
         setRecordingSize(size);
       }
     }, 5000);
@@ -60,14 +59,14 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  const startRecording = useCallback(() => {
-    if (sessionRecorder.isActive()) {
+  const startRecording = useCallback(async () => {
+    if (sessionRecorderClient.isActive()) {
       console.warn('⚠️ Ya hay una grabación activa');
       return;
     }
 
     try {
-      sessionRecorder.startRecording(maxDuration);
+      await sessionRecorderClient.startRecording(maxDuration);
       setIsRecording(true);
       console.log('✅ Grabación iniciada');
     } catch (error) {
@@ -75,14 +74,14 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
     }
   }, [maxDuration]);
 
-  const stopRecording = useCallback(() => {
-    if (!sessionRecorder.isActive()) {
+  const stopRecording = useCallback(async () => {
+    if (!sessionRecorderClient.isActive()) {
       console.warn('⚠️ No hay grabación activa');
       return null;
     }
 
     try {
-      const session = sessionRecorder.stop();
+      const session = await sessionRecorderClient.stop();
       setIsRecording(false);
       setCurrentSession(session);
       console.log('✅ Grabación detenida');
@@ -93,15 +92,15 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
     }
   }, []);
 
-  const getSession = useCallback(() => {
-    return currentSession || sessionRecorder.getCurrentSession();
+  const getSession = useCallback(async () => {
+    return currentSession || await sessionRecorderClient.getCurrentSession();
   }, [currentSession]);
 
   const exportSessionBase64 = useCallback((sessionToExport?: RecordingSession | null) => {
-    const session = sessionToExport || getSession();
+    const session = sessionToExport || currentSession;
     if (!session) return null;
-    return sessionRecorder.exportSessionBase64(session);
-  }, [getSession]);
+    return sessionRecorderClient.exportSessionBase64(session);
+  }, [currentSession]);
 
   const clearSession = useCallback(() => {
     setCurrentSession(null);

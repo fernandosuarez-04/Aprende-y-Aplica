@@ -63,6 +63,9 @@ import { CourseRatingService } from '../../../../features/courses/services/cours
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
+// ✨ NUEVO: Sistema de ayuda contextual hiperpersonalizada
+import { useContextualHelp } from '../../../../hooks/useContextualHelp';
+import { ContextualHelpDialog } from '../../../../features/courses/components/ContextualHelpDialog';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -204,7 +207,7 @@ export default function CourseLearnPage() {
     loadConversation,
     currentConversationId
   } = useLiaChat(null);
-  
+
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
   const [isLiaRecording, setIsLiaRecording] = useState(false);
@@ -215,6 +218,81 @@ export default function CourseLearnPage() {
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
+
+  // ✨ NUEVO: Estado para controlar si el sistema de ayuda está habilitado
+  const [isContextualHelpEnabled, setIsContextualHelpEnabled] = useState(false);
+  const [currentActivityId, setCurrentActivityId] = useState('');
+
+  // ✨ NUEVO: Sistema de ayuda contextual hiperpersonalizada
+  const contextualHelp = useContextualHelp({
+    activityId: currentActivityId,
+    workshopId: slug,
+    enabled: isContextualHelpEnabled,
+    analysisInterval: 15000, // Analizar cada 15 segundos
+    detectionConfig: {
+      maxAttemptsBeforeIntervention: 3,
+      skipThreshold: 2,
+      repeatedMistakeThreshold: 2,
+      timeThresholdMs: 5000,
+    },
+    onHelpNeeded: (analysis) => {
+      console.log('🆘 [CONTEXTUAL HELP] Ayuda detectada:', {
+        score: analysis.overallScore.toFixed(2),
+        priority: analysis.interventionPriority,
+        patterns: analysis.errorPatterns.length,
+        stats: analysis.stats
+      });
+    },
+    onHelpAccepted: (analysis) => {
+      console.log('✅ [CONTEXTUAL HELP] Usuario aceptó ayuda');
+
+      // Abrir LIA con contexto específico
+      if (analysis.errorPatterns.length > 0) {
+        const pattern = analysis.errorPatterns[0];
+        const liaContextMessage = `Hola, necesito ayuda con esta pregunta:\n\n"${pattern.questionText}"\n\nHe intentado ${pattern.context.totalAttempts} veces y no logro entenderla.\n\n${pattern.context.suggestedHelp}\n\n¿Puedes explicármelo de manera más clara?`;
+
+        // Expandir LIA
+        setIsLiaExpanded(true);
+
+        // Enviar mensaje contextual a LIA
+        sendLiaMessage(liaContextMessage, {
+          lessonId: currentLesson?.lesson_id || '',
+          lessonTitle: currentLesson?.lesson_title || '',
+          courseId: course?.course_id || course?.id || '',
+          courseTitle: course?.course_title || course?.title || '',
+          difficulty: 'high',
+          errorContext: {
+            questionId: pattern.questionId,
+            attempts: pattern.context.totalAttempts,
+            errorType: pattern.errorType
+          }
+        } as CourseLessonContext);
+
+        console.log('💬 [CONTEXTUAL HELP] Mensaje enviado a LIA:', liaContextMessage);
+      }
+    },
+    onHelpDismissed: (analysis) => {
+      console.log('❌ [CONTEXTUAL HELP] Usuario rechazó ayuda');
+    }
+  });
+
+  // ✨ NUEVO: Activar/desactivar ayuda contextual según el tab activo
+  useEffect(() => {
+    const shouldEnable = activeTab === 'activities';
+    setIsContextualHelpEnabled(shouldEnable);
+
+    if (!shouldEnable && contextualHelp.reset) {
+      // Reset cuando sale del tab de actividades
+      contextualHelp.reset();
+      console.log('🔄 [CONTEXTUAL HELP] Sistema reseteado (salió del tab de actividades)');
+    }
+
+    console.log('🎯 [CONTEXTUAL HELP] Estado actualizado:', {
+      tab: activeTab,
+      enabled: shouldEnable,
+      isActive: contextualHelp.isActive
+    });
+  }, [activeTab, contextualHelp.reset, contextualHelp.isActive]);
 
   // Estados para historial de conversaciones
   const [showHistory, setShowHistory] = useState(false);
@@ -4169,6 +4247,40 @@ Antes de cada respuesta, pregúntate:
         allowedPaths={['/courses']}
         requireAuth={true}
       />
+
+      {/* ✨ NUEVO: Diálogo de ayuda contextual hiperpersonalizada */}
+      <ContextualHelpDialog
+        isOpen={contextualHelp.shouldShowHelp}
+        onClose={contextualHelp.dismissHelp}
+        onAccept={contextualHelp.acceptHelp}
+        helpData={contextualHelp.helpData}
+        onActionClick={(actionType) => {
+          console.log('🎯 [CONTEXTUAL HELP] Acción ejecutada:', actionType);
+          // Aquí puedes implementar acciones específicas según el tipo
+          switch (actionType) {
+            case 'show_hint':
+              // TODO: Mostrar pista de la pregunta
+              console.log('💡 Mostrar pista');
+              break;
+            case 'review_concept':
+              // TODO: Abrir material relacionado
+              console.log('📚 Revisar concepto');
+              break;
+            case 'show_example':
+              // TODO: Mostrar ejemplo similar
+              console.log('📝 Mostrar ejemplo');
+              break;
+            case 'simplify_question':
+              // TODO: Mostrar versión simplificada
+              console.log('🔍 Simplificar pregunta');
+              break;
+            case 'contact_instructor':
+              // TODO: Abrir chat con instructor
+              console.log('👨‍🏫 Contactar instructor');
+              break;
+          }
+        }}
+      />
     </div>
     </WorkshopLearningProvider>
   );
@@ -4769,13 +4881,14 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 }
 
 // Componente para renderizar quizzes
-function QuizRenderer({ 
-  quizData, 
+function QuizRenderer({
+  quizData,
   totalPoints,
   lessonId,
   slug,
   materialId,
-  activityId
+  activityId,
+  contextualHelp // ✨ NUEVO: Funciones de ayuda contextual
 }: {
   quizData: Array<{
     id: string;
@@ -4791,6 +4904,11 @@ function QuizRenderer({
   slug?: string;
   materialId?: string;
   activityId?: string;
+  contextualHelp?: { // ✨ NUEVO
+    startQuestion: (questionId: string) => void;
+    recordAnswer: (params: any) => void;
+    recordSkip: (params: any) => void;
+  };
 }) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
   const [showResults, setShowResults] = useState(false);
@@ -4805,6 +4923,32 @@ function QuizRenderer({
       ...prev,
       [questionId]: answer
     }));
+
+    // ✨ NUEVO: Registrar intento en sistema de ayuda contextual
+    if (contextualHelp && !showResults) {
+      const question = normalizedQuizData.find(q => q.id === questionId);
+      if (question) {
+        const isCorrect = isAnswerCorrect(question, answer);
+
+        contextualHelp.recordAnswer({
+          questionId,
+          questionText: question.question || '',
+          questionType: (question.questionType as any) || 'multiple_choice',
+          selectedAnswer: answer,
+          correctAnswer: question.correctAnswer,
+          isCorrect,
+          topic: 'Quiz', // Puedes personalizar esto según tu estructura de datos
+          difficulty: 'medium' // Puedes personalizar esto según tu estructura de datos
+        });
+
+        console.log('📝 [CONTEXTUAL HELP] Respuesta registrada:', {
+          questionId,
+          isCorrect,
+          selectedAnswer: answer,
+          correctAnswer: question.correctAnswer
+        });
+      }
+    }
   };
 
   // Función para normalizar strings y comparar opciones
@@ -4885,7 +5029,7 @@ function QuizRenderer({
   const normalizedQuizData = quizData.map((question) => {
     if (question.questionType === 'true_false') {
       // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
-      if (!question.options || question.options.length !== 2 || 
+      if (!question.options || question.options.length !== 2 ||
           (question.options[0] !== 'Verdadero' && question.options[0] !== 'Falso') ||
           (question.options[1] !== 'Verdadero' && question.options[1] !== 'Falso')) {
         return {
@@ -4896,6 +5040,34 @@ function QuizRenderer({
     }
     return question;
   });
+
+  // ✨ NUEVO: Iniciar tracking de todas las preguntas al montar el componente
+  useEffect(() => {
+    if (contextualHelp && normalizedQuizData.length > 0) {
+      // Iniciar tracking de la primera pregunta visible
+      normalizedQuizData.forEach((question, index) => {
+        if (index === 0) {
+          // Solo iniciar la primera pregunta
+          contextualHelp.startQuestion(question.id);
+          console.log('🏁 [CONTEXTUAL HELP] Pregunta iniciada:', question.id);
+        }
+      });
+    }
+  }, [contextualHelp]);
+
+  // ✨ NUEVO: Tracking cuando el usuario cambia a otra pregunta (detectar scroll o interacción)
+  useEffect(() => {
+    // Detectar cuando responde una pregunta para iniciar tracking de la siguiente
+    if (contextualHelp && !showResults) {
+      const answeredCount = Object.keys(selectedAnswers).length;
+      const nextUnanswered = normalizedQuizData.find(q => !selectedAnswers[q.id]);
+
+      if (nextUnanswered && answeredCount > 0) {
+        contextualHelp.startQuestion(nextUnanswered.id);
+        console.log('🏁 [CONTEXTUAL HELP] Nueva pregunta activa:', nextUnanswered.id);
+      }
+    }
+  }, [selectedAnswers, contextualHelp, showResults]);
 
   const handleSubmit = async () => {
     // Validar que todas las preguntas tengan respuesta
@@ -5986,17 +6158,74 @@ function ActivitiesContent({
           <div className="p-6 space-y-4">
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
-              
+
+
+              // Integración rrweb: grabar y analizar al expandir actividad
+              const {
+                startRecording,
+                stopRecording,
+                isRecording,
+                getSession
+              } = useSessionRecorder({ autoStart: false, maxDuration: 60000 });
+
+              // Estado para mostrar ayuda proactiva
+              const [showHelp, setShowHelp] = useState(false);
+              const [helpMessage, setHelpMessage] = useState('');
+
+              useEffect(() => {
+                let analysisInterval: NodeJS.Timeout | null = null;
+                if (!isCollapsed) {
+                  startRecording();
+                  // Analizar eventos cada 10 segundos
+                  analysisInterval = setInterval(() => {
+                    const session = getSession();
+                    if (session && session.events && session.events.length > 0) {
+                      // Analizar patrones de dificultad
+                      const { DifficultyPatternDetector } = require('../../../../lib/rrweb/difficulty-pattern-detector');
+                      const { SessionAnalyzer } = require('../../../../lib/rrweb/session-analyzer');
+                      const detector = new DifficultyPatternDetector();
+                      const analysis = detector.detect(session.events);
+                      if (analysis.shouldIntervene) {
+                        setShowHelp(true);
+                        setHelpMessage(analysis.interventionMessage || '¿Necesitas ayuda con esta actividad?');
+                      } else {
+                        setShowHelp(false);
+                        setHelpMessage('');
+                      }
+                      // Opcional: generar resumen contextual para IA
+                      // const analyzer = new SessionAnalyzer();
+                      // const context = analyzer.analyzeSession(session.events);
+                      // const summary = analyzer.generateContextSummary(context);
+                    }
+                  }, 10000);
+                } else {
+                  if (isRecording) stopRecording();
+                  setShowHelp(false);
+                  setHelpMessage('');
+                  if (analysisInterval) clearInterval(analysisInterval);
+                }
+                return () => {
+                  if (isRecording) stopRecording();
+                  if (analysisInterval) clearInterval(analysisInterval);
+                };
+              }, [isCollapsed]);
+
               return (
-              <div
-                key={activity.activity_id}
-                className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden"
-              >
-                {/* Header de la actividad con botón de colapsar/expandir */}
-                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
+                <div
+                  key={activity.activity_id}
+                  className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden"
+                >
+                  {/* Header de la actividad con botón de colapsar/expandir */}
+                  {showHelp && !isCollapsed && (
+                    <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-500 rounded-r-lg p-4 mb-3 flex items-center gap-3 animate-pulse">
+                      <HelpCircle className="w-6 h-6 text-yellow-500" />
+                      <span className="text-yellow-800 dark:text-yellow-200 font-semibold">{helpMessage}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
                       {activity.is_required && (
                         <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
                           Requerida
@@ -6175,12 +6404,17 @@ function ActivitiesContent({
 
                         if (hasValidStructure) {
                           return (
-                            <QuizRenderer 
-                              quizData={questionsArray} 
+                            <QuizRenderer
+                              quizData={questionsArray}
                               totalPoints={totalPoints}
                               lessonId={lesson.lesson_id}
                               slug={slug}
                               activityId={activity.activity_id}
+                              contextualHelp={{ // ✨ NUEVO: Pasar funciones de ayuda contextual
+                                startQuestion: contextualHelp.startQuestion,
+                                recordAnswer: contextualHelp.recordAnswer,
+                                recordSkip: contextualHelp.recordSkip
+                              }}
                             />
                           );
                         }

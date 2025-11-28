@@ -18,11 +18,11 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { sessionRecorder } from '../lib/rrweb/session-recorder';
-import { 
+import { sessionRecorderClient } from '../lib/rrweb/session-recorder-client';
+import {
   DifficultyPatternDetector,
   type DifficultyAnalysis,
-  type DetectionThresholds 
+  type DetectionThresholds
 } from '../lib/rrweb/difficulty-pattern-detector';
 
 export interface UseDifficultyDetectionOptions {
@@ -116,12 +116,12 @@ export function useDifficultyDetection(
   }, [enabled, thresholds, workshopId, activityId, checkInterval]);
 
   // Función de análisis
-  const analyzeSession = useCallback(() => {
+  const analyzeSession = useCallback(async () => {
     if (!enabled || !detectorRef.current) return;
 
     try {
       // Capturar snapshot de la sesión actual
-      const snapshot = sessionRecorder.captureSnapshot();
+      const snapshot = await sessionRecorderClient.captureSnapshot();
       
       if (!snapshot || snapshot.events.length === 0) {
         console.log('⚠️ No hay eventos para analizar');

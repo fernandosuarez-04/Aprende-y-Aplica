@@ -4,7 +4,7 @@ import { Fragment, useState, useMemo, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, UserIcon, ComputerDesktopIcon, PhotoIcon, LinkIcon, CalendarIcon, PencilIcon, PlayIcon, VideoCameraIcon } from '@heroicons/react/24/outline'
 import { AdminReporte } from '../services/adminReportes.service'
-import type { RecordingSession } from '../../../lib/rrweb/session-recorder'
+import type { RecordingSession } from '../../../lib/rrweb/session-recorder-client'
 
 // Importar componentes directamente (solo se cargan en el cliente)
 import { SessionPlayer, SessionInfo } from '../../../core/components/SessionPlayer/SessionPlayer'
