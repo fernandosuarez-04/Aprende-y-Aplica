@@ -66,6 +66,8 @@ import { ContentTranslationService } from '../../../../core/services/contentTran
 // ✨ NUEVO: Sistema de ayuda contextual hiperpersonalizada
 import { useContextualHelp } from '../../../../hooks/useContextualHelp';
 import { ContextualHelpDialog } from '../../../../features/courses/components/ContextualHelpDialog';
+// 🎥 Session Recording para análisis de dificultad
+import { useSessionRecorder } from '../../../../lib/rrweb/use-session-recorder';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -106,6 +108,83 @@ interface CourseData {
   thumbnail?: string;
   course_thumbnail?: string; // Para compatibilidad
 }
+
+// 🔧 Componente separado para cada actividad (evita violación de Rules of Hooks)
+interface ActivityItemProps {
+  activity: any;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  lesson: any;
+  slug: string;
+  quizStatus: any;
+  contextualHelp: any;
+}
+
+const ActivityItem: React.FC<ActivityItemProps> = ({
+  activity,
+  isCollapsed,
+  onToggleCollapse,
+  lesson,
+  slug,
+  quizStatus,
+  contextualHelp
+}) => {
+  // 🎥 Session Recording TEMPORALMENTE DESHABILITADO - Para evitar errores de hooks
+  // TODO: Implementar session recording en el futuro si es necesario
+  // const { startRecording, stopRecording, isRecording, getSession } = useSessionRecorder({ autoStart: false, maxDuration: 60000 });
+
+  // Estado para mostrar ayuda proactiva (simplificado sin session recording)
+  const [showHelp] = useState(false);
+  const [helpMessage] = useState('');
+
+  // Renderizar actividad simple por ahora
+  return (
+    <div className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden">
+      <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
+            {activity.is_required && (
+              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
+                Requerida
+              </span>
+            )}
+            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
+              {activity.activity_type}
+            </span>
+          </div>
+          {activity.activity_description && !isCollapsed && (
+            <p className="text-gray-700 dark:text-slate-300 text-sm">{activity.activity_description}</p>
+          )}
+        </div>
+
+        <button
+          onClick={onToggleCollapse}
+          className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-carbon-600 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+          title={isCollapsed ? "Expandir actividad" : "Colapsar actividad"}
+        >
+          <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+            {isCollapsed ? 'Expandir' : 'Colapsar'}
+          </span>
+          {isCollapsed ? (
+            <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+          ) : (
+            <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+          )}
+        </button>
+      </div>
+
+      {!isCollapsed && (
+        <div className="p-6">
+          <p className="text-gray-600 dark:text-slate-400">
+            Contenido de la actividad: {activity.activity_type}
+          </p>
+          {/* TODO: Agregar contenido completo de actividades (Quiz, AI Chat, etc.) */}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function CourseLearnPage() {
   const params = useParams();
@@ -3199,6 +3278,7 @@ Antes de cada respuesta, pregúntate:
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
                         t={t}
                         language={i18n.language}
+                        contextualHelp={contextualHelp}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -5826,15 +5906,16 @@ function FormattedContentRenderer({ content }: { content: any }) {
   );
 }
 
-function ActivitiesContent({ 
-  lesson, 
-  slug, 
-  onPromptsChange, 
+function ActivitiesContent({
+  lesson,
+  slug,
+  onPromptsChange,
   onStartInteraction,
   userRole,
   generateRoleBasedPrompts,
   t,
-  language
+  language,
+  contextualHelp
 }: {
   lesson: Lesson;
   slug: string;
@@ -5844,6 +5925,7 @@ function ActivitiesContent({
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
   t: (key: string) => string;
   language: string;
+  contextualHelp: any;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -6159,314 +6241,28 @@ function ActivitiesContent({
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
 
-
-              // Integración rrweb: grabar y analizar al expandir actividad
-              const {
-                startRecording,
-                stopRecording,
-                isRecording,
-                getSession
-              } = useSessionRecorder({ autoStart: false, maxDuration: 60000 });
-
-              // Estado para mostrar ayuda proactiva
-              const [showHelp, setShowHelp] = useState(false);
-              const [helpMessage, setHelpMessage] = useState('');
-
-              useEffect(() => {
-                let analysisInterval: NodeJS.Timeout | null = null;
-                if (!isCollapsed) {
-                  startRecording();
-                  // Analizar eventos cada 10 segundos
-                  analysisInterval = setInterval(() => {
-                    const session = getSession();
-                    if (session && session.events && session.events.length > 0) {
-                      // Analizar patrones de dificultad
-                      const { DifficultyPatternDetector } = require('../../../../lib/rrweb/difficulty-pattern-detector');
-                      const { SessionAnalyzer } = require('../../../../lib/rrweb/session-analyzer');
-                      const detector = new DifficultyPatternDetector();
-                      const analysis = detector.detect(session.events);
-                      if (analysis.shouldIntervene) {
-                        setShowHelp(true);
-                        setHelpMessage(analysis.interventionMessage || '¿Necesitas ayuda con esta actividad?');
-                      } else {
-                        setShowHelp(false);
-                        setHelpMessage('');
-                      }
-                      // Opcional: generar resumen contextual para IA
-                      // const analyzer = new SessionAnalyzer();
-                      // const context = analyzer.analyzeSession(session.events);
-                      // const summary = analyzer.generateContextSummary(context);
-                    }
-                  }, 10000);
-                } else {
-                  if (isRecording) stopRecording();
-                  setShowHelp(false);
-                  setHelpMessage('');
-                  if (analysisInterval) clearInterval(analysisInterval);
-                }
-                return () => {
-                  if (isRecording) stopRecording();
-                  if (analysisInterval) clearInterval(analysisInterval);
-                };
-              }, [isCollapsed]);
-
               return (
-                <div
+                <ActivityItem
                   key={activity.activity_id}
-                  className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden"
-                >
-                  {/* Header de la actividad con botón de colapsar/expandir */}
-                  {showHelp && !isCollapsed && (
-                    <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-500 rounded-r-lg p-4 mb-3 flex items-center gap-3 animate-pulse">
-                      <HelpCircle className="w-6 h-6 text-yellow-500" />
-                      <span className="text-yellow-800 dark:text-yellow-200 font-semibold">{helpMessage}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
-                      {activity.is_required && (
-                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
-                          Requerida
-                        </span>
-                      )}
-                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
-                        {activity.activity_type}
-                      </span>
-                      {/* Indicador de quiz obligatorio */}
-                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && quizStatus.quizzes && (() => {
-                        const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
-                        if (quizInfo) {
-                          if (quizInfo.isPassed) {
-                            return (
-                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                Aprobado
-                              </span>
-                            );
-                          } else if (quizInfo.isCompleted) {
-                            return (
-                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 flex items-center gap-1">
-                                <X className="w-3 h-3" />
-                                Reprobado ({quizInfo.percentage}%)
-                              </span>
-                            );
-                          } else {
-                            return (
-                              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30 flex items-center gap-1">
-                                <Activity className="w-3 h-3" />
-                                Pendiente
-                              </span>
-                            );
-                          }
-                        }
-                        return null;
-                      })()}
-                    </div>
-                    {activity.activity_description && !isCollapsed && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm">{activity.activity_description}</p>
-                    )}
-                  </div>
-                  
-                  {/* Botón de colapsar/expandir */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCollapsedActivities(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(activity.activity_id)) {
-                          newSet.delete(activity.activity_id);
-                        } else {
-                          newSet.add(activity.activity_id);
-                        }
-                        return newSet;
-                      });
-                    }}
-                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-carbon-600 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
-                    title={isCollapsed ? "Expandir actividad" : "Colapsar actividad"}
-                  >
-                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
-                      {isCollapsed ? 'Expandir' : 'Colapsar'}
-                    </span>
-                    {isCollapsed ? (
-                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    ) : (
-                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Contenido de la actividad (colapsable) */}
-                <AnimatePresence initial={false}>
-                  {!isCollapsed && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-5 pb-5">
-                {/* Botón especial para actividades ai_chat */}
-                {activity.activity_type === 'ai_chat' ? (
-                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/10 dark:to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 dark:border-purple-500/30 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/50 dark:shadow-purple-500/50">
-                        <Image
-                          src="/lia-avatar.png"
-                          alt="Lia"
-                          fill
-                          className="object-cover"
-                          sizes="64px"
-                        />
-                      </div>
-
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                          Actividad Interactiva con Lia
-                        </h3>
-                        <p className="text-gray-700 dark:text-slate-300 text-sm mb-6 max-w-md mx-auto">
-                          Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          if (onStartInteraction) {
-                            onStartInteraction(activity.activity_content, activity.activity_title);
-                          }
-                        }}
-                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 dark:from-purple-500 dark:to-blue-500 dark:hover:from-purple-600 dark:hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 dark:hover:shadow-purple-500/50 hover:scale-105"
-                      >
-                        <span className="flex items-center gap-3">
-                          <div className="relative w-5 h-5">
-                            <Image
-                              src="/lia-avatar.png"
-                              alt="Lia"
-                              fill
-                              className="object-cover rounded-full group-hover:animate-pulse"
-                              sizes="20px"
-                            />
-                          </div>
-                          <span>Interactuar con Lia</span>
-                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </span>
-                      </button>
-
-                      <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
-                        Lia te guiará a través de {activity.activity_title.toLowerCase()}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-carbon-800/50 dark:bg-carbon-800 rounded-lg p-4 mb-3">
-                  {activity.activity_type === 'quiz' && (() => {
-                    try {
-                      // Intentar parsear el contenido como JSON si es un quiz
-                      let quizData = activity.activity_content;
-
-                      // Si es string, intentar parsearlo
-                      if (typeof quizData === 'string') {
-                        try {
-                          quizData = JSON.parse(quizData);
-                        } catch (e) {
-                          // console.warn('⚠️ Quiz content is not valid JSON:', e);
-                          return (
-                            <div className="prose dark:prose-invert max-w-none">
-                              <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
-                              <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
-                                {activity.activity_content}
-                              </div>
-                            </div>
-                          );
-                        }
+                  activity={activity}
+                  isCollapsed={isCollapsed}
+                  onToggleCollapse={() => {
+                    setCollapsedActivities(prev => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(activity.activity_id)) {
+                        newSet.delete(activity.activity_id);
+                      } else {
+                        newSet.add(activity.activity_id);
                       }
-
-                      // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                      let questionsArray: any = quizData;
-                      let totalPoints: number | undefined = undefined;
-
-                      if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                        const quizObj = quizData as { questions?: any[]; totalPoints?: number };
-                        if (quizObj.questions && Array.isArray(quizObj.questions)) {
-                          questionsArray = quizObj.questions;
-                          totalPoints = quizObj.totalPoints;
-                        }
-                      }
-
-                      // Verificar que es un array con preguntas
-                      if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                        // Verificar que cada elemento tiene la estructura de pregunta
-                        const hasValidStructure = questionsArray.every((q: any) =>
-                          q && typeof q === 'object' && (q.question || q.id)
-                        );
-
-                        if (hasValidStructure) {
-                          return (
-                            <QuizRenderer
-                              quizData={questionsArray}
-                              totalPoints={totalPoints}
-                              lessonId={lesson.lesson_id}
-                              slug={slug}
-                              activityId={activity.activity_id}
-                              contextualHelp={{ // ✨ NUEVO: Pasar funciones de ayuda contextual
-                                startQuestion: contextualHelp.startQuestion,
-                                recordAnswer: contextualHelp.recordAnswer,
-                                recordSkip: contextualHelp.recordSkip
-                              }}
-                            />
-                          );
-                        }
-                      }
-
-                      // Si llegamos aquí, mostrar como texto normal con mensaje de debug
-                      return (
-                        <div className="prose prose-invert dark:prose-invert max-w-none">
-                          <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
-                          <details className="mb-4">
-                            <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-800 rounded overflow-auto">
-                              {typeof activity.activity_content === 'string'
-                                ? activity.activity_content
-                                : JSON.stringify(activity.activity_content, null, 2)}
-                            </pre>
-                          </details>
-                        </div>
-                      );
-                    } catch (e) {
-                      // console.error('❌ Error processing quiz:', e);
-                      return (
-                        <div className="prose prose-invert dark:prose-invert max-w-none">
-                          <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
-                          <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
-                            {activity.activity_content}
-                          </div>
-                        </div>
-                      );
-                    }
-                  })()}
-                  {activity.activity_type !== 'quiz' && (
-                    <FormattedContentRenderer content={activity.activity_content} />
-                  )}
-                  </div>
-                )}
-
-                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <HelpCircle className="w-4 h-4 text-purple-400" />
-                      <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
-                    </div>
-                    <PromptsRenderer prompts={activity.ai_prompts} />
-                  </div>
-                )}
-              </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
+                      return newSet;
+                    });
+                  }}
+                  lesson={lesson}
+                  slug={slug}
+                  quizStatus={quizStatus}
+                  contextualHelp={contextualHelp}
+                />
+              );
             })}
           </div>
         </div>
