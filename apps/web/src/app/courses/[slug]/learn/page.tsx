@@ -176,10 +176,40 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
 
       {!isCollapsed && (
         <div className="p-6">
+          {/* 🆕 Sistema de Ayuda Inteligente Integrado */}
+          {activity.activity_type === 'quiz' ? (
+            // Quiz con ayuda hiperpersonalizada con IA
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r-lg mb-4">
+              <h5 className="text-blue-900 dark:text-blue-300 font-semibold mb-2 flex items-center gap-2">
+                🤖 Sistema de Ayuda Inteligente Activado
+              </h5>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Este quiz cuenta con ayuda hiperpersonalizada con IA. Si te equivocas,
+                el sistema detectará automáticamente tu error y te dará pistas específicas
+                para que aprendas sin revelar la respuesta correcta.
+              </p>
+            </div>
+          ) : null}
+
           <p className="text-gray-600 dark:text-slate-400">
             Contenido de la actividad: {activity.activity_type}
           </p>
-          {/* TODO: Agregar contenido completo de actividades (Quiz, AI Chat, etc.) */}
+
+          {/* Mensaje informativo para quiz */}
+          {activity.activity_type === 'quiz' && (
+            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                📝 <strong>Próximamente:</strong> El quiz interactivo se mostrará aquí con:
+              </p>
+              <ul className="mt-2 ml-6 text-sm text-gray-600 dark:text-gray-400 list-disc space-y-1">
+                <li>Detección automática de errores</li>
+                <li>Ayuda hiperpersonalizada con IA</li>
+                <li>Pistas específicas según tu error</li>
+                <li>Explicaciones paso a paso</li>
+                <li>Sistema proactivo de aprendizaje</li>
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -36,6 +36,12 @@ import {
   type ContextualDetectionConfig
 } from '../lib/rrweb/contextual-difficulty-detector';
 import { useDifficultyDetection } from './useDifficultyDetection';
+import {
+  generatePersonalizedHelp,
+  generateQuickHelpMessage,
+  type QuizErrorContext,
+  type PersonalizedHelpResponse
+} from '../lib/ai/contextual-help-ai';
 
 export interface UseContextualHelpOptions {
   /** ID de la actividad actual */
@@ -64,6 +70,16 @@ export interface UseContextualHelpOptions {
 
   /** Combinar con detección de patrones de navegación (default: true) */
   enableNavigationPatterns?: boolean;
+
+  /** 🆕 Contexto del curso para ayuda más personalizada */
+  courseContext?: {
+    courseName: string;
+    lessonName: string;
+    activityName: string;
+  };
+
+  /** 🆕 Habilitar ayuda con IA (default: true) */
+  enableAIHelp?: boolean;
 }
 
 export interface HelpData {
@@ -85,6 +101,12 @@ export interface HelpData {
     label: string;
     action: () => void;
   }>;
+
+  /** 🆕 Respuesta hiperpersonalizada de IA */
+  aiHelp?: PersonalizedHelpResponse;
+
+  /** 🆕 Contexto completo del error */
+  errorContext?: QuizErrorContext;
 }
 
 export interface UseContextualHelpReturn {
@@ -146,7 +168,9 @@ export function useContextualHelp(
     onHelpNeeded,
     onHelpAccepted,
     onHelpDismissed,
-    enableNavigationPatterns = true
+    enableNavigationPatterns = true,
+    courseContext,
+    enableAIHelp = true
   } = options;
 
   const [shouldShowHelp, setShouldShowHelp] = useState(false);
@@ -157,6 +181,7 @@ export function useContextualHelp(
   const detectorRef = useRef<ContextualDifficultyDetector | null>(null);
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastInterventionTimeRef = useRef<number>(0);
+  const lastErrorContextRef = useRef<QuizErrorContext | null>(null); // 🆕 Almacenar último error
 
   // Integrar con detección de patrones de navegación (rrweb)
   const navigationDetection = useDifficultyDetection({
@@ -212,7 +237,7 @@ export function useContextualHelp(
       const minTimeBetweenInterventions = 3 * 60 * 1000; // 3 minutos
 
       if (analysis.shouldIntervene && timeSinceLastIntervention > minTimeBetweenInterventions) {
-        const helpDataToShow = generateHelpData(analysis);
+        const helpDataToShow = generateHelpData(analysis, lastErrorContextRef.current);
         setHelpData(helpDataToShow);
         setShouldShowHelp(true);
         lastInterventionTimeRef.current = Date.now();
@@ -220,7 +245,8 @@ export function useContextualHelp(
         console.log('🆘 [CONTEXTUAL] Ayuda necesaria!', {
           priority: analysis.interventionPriority,
           message: analysis.interventionMessage,
-          actions: analysis.suggestedActions.length
+          actions: analysis.suggestedActions.length,
+          hasAIHelp: !!helpDataToShow.aiHelp
         });
 
         if (onHelpNeeded) {
@@ -266,7 +292,7 @@ export function useContextualHelp(
   }, []);
 
   // Función para registrar una respuesta
-  const recordAnswer = useCallback((params: {
+  const recordAnswer = useCallback(async (params: {
     questionId: string;
     questionText: string;
     questionType: QuestionAttempt['questionType'];
@@ -275,6 +301,7 @@ export function useContextualHelp(
     isCorrect: boolean;
     topic?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
+    options?: Array<{ id: string | number; text: string }>; // 🆕 Opciones del quiz
   }) => {
     if (!detectorRef.current) return;
 
@@ -289,12 +316,63 @@ export function useContextualHelp(
       difficulty: params.difficulty
     });
 
-    // Si es incorrecto, analizar inmediatamente
+    // Si es incorrecto, generar ayuda con IA y analizar inmediatamente
     if (!params.isCorrect) {
-      console.log('❌ [CONTEXTUAL] Respuesta incorrecta detectada, analizando...');
+      console.log('❌ [CONTEXTUAL] Respuesta incorrecta detectada');
+
+      // 🆕 Obtener historial de la pregunta
+      const history = detectorRef.current.getQuestionHistory(params.questionId);
+      const attemptNumber = history.attempts.length;
+
+      // 🆕 Construir contexto del error
+      const errorContext: QuizErrorContext = {
+        questionId: params.questionId,
+        questionText: params.questionText,
+        questionType: params.questionType,
+        selectedAnswer: params.selectedAnswer,
+        correctAnswer: params.correctAnswer,
+        options: params.options,
+        topic: params.topic,
+        difficulty: params.difficulty,
+        attemptNumber,
+        previousAttempts: history.attempts.slice(0, -1).map(a => ({
+          selectedAnswer: a.selectedAnswer,
+          timestamp: a.timestamp
+        })),
+        courseContext
+      };
+
+      lastErrorContextRef.current = errorContext;
+
+      // 🆕 Generar ayuda con IA si está habilitada
+      if (enableAIHelp) {
+        console.log('🤖 [CONTEXTUAL] Generando ayuda personalizada con IA...');
+        try {
+          const aiHelp = await generatePersonalizedHelp(errorContext, {
+            detailLevel: attemptNumber > 2 ? 'comprehensive' : 'detailed',
+            includeExample: true,
+            includeStepByStep: attemptNumber > 1
+          });
+
+          console.log('✅ [CONTEXTUAL] Ayuda IA generada:', aiHelp);
+
+          // Actualizar helpData con la ayuda de IA
+          setHelpData(prev => ({
+            ...prev!,
+            aiHelp,
+            errorContext,
+            message: generateQuickHelpMessage(errorContext)
+          }));
+
+        } catch (error) {
+          console.error('❌ [CONTEXTUAL] Error al generar ayuda con IA:', error);
+        }
+      }
+
+      // Analizar inmediatamente
       setTimeout(() => analyzeAndDetect(), 1000);
     }
-  }, [analyzeAndDetect]);
+  }, [analyzeAndDetect, courseContext, enableAIHelp]);
 
   // Función para registrar un skip
   const recordSkip = useCallback((params: {
@@ -376,7 +454,10 @@ export function useContextualHelp(
 /**
  * Genera datos de ayuda personalizados basados en el análisis
  */
-function generateHelpData(analysis: ContextualDifficultyAnalysis): HelpData {
+function generateHelpData(
+  analysis: ContextualDifficultyAnalysis,
+  errorContext: QuizErrorContext | null
+): HelpData {
   // Encontrar el patrón más severo
   const sortedPatterns = [...analysis.errorPatterns].sort((a, b) => {
     const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -392,7 +473,8 @@ function generateHelpData(analysis: ContextualDifficultyAnalysis): HelpData {
       helpType: null,
       targetQuestionId: null,
       message: 'Parece que estás teniendo algunas dificultades. ¿Te gustaría ayuda?',
-      recommendedActions: []
+      recommendedActions: [],
+      errorContext: errorContext || undefined
     };
   }
 
@@ -416,7 +498,9 @@ function generateHelpData(analysis: ContextualDifficultyAnalysis): HelpData {
       type: action.type,
       label: getActionLabel(action.type),
       action: () => console.log('Acción ejecutada:', action)
-    }))
+    })),
+    errorContext: errorContext || undefined
+    // aiHelp se agregará dinámicamente cuando esté disponible
   };
 }
 

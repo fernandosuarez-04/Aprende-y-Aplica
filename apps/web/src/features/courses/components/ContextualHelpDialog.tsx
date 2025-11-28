@@ -160,6 +160,72 @@ export function ContextualHelpDialog({
                   </p>
                 </div>
 
+                {/* 🆕 Ayuda Hiperpersonalizada con IA */}
+                {helpData.aiHelp && (
+                  <div className="mb-6 space-y-4">
+                    {/* Explicación del Error */}
+                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
+                      <h5 className="text-sm font-semibold text-red-900 dark:text-red-300 mb-2 flex items-center gap-2">
+                        <ExclamationTriangleIcon className="h-4 w-4" />
+                        ¿Por qué está mal?
+                      </h5>
+                      <p className="text-sm text-red-800 dark:text-red-200">
+                        {helpData.aiHelp.whyWrong}
+                      </p>
+                    </div>
+
+                    {/* Pista Específica */}
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-yellow-500">
+                      <h5 className="text-sm font-semibold text-yellow-900 dark:text-yellow-300 mb-2 flex items-center gap-2">
+                        <LightBulbIcon className="h-4 w-4" />
+                        Pista para ti
+                      </h5>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        {helpData.aiHelp.hint}
+                      </p>
+                    </div>
+
+                    {/* Ejemplo (si está disponible) */}
+                    {helpData.aiHelp.example && (
+                      <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500">
+                        <h5 className="text-sm font-semibold text-green-900 dark:text-green-300 mb-2 flex items-center gap-2">
+                          <DocumentTextIcon className="h-4 w-4" />
+                          Ejemplo
+                        </h5>
+                        <p className="text-sm text-green-800 dark:text-green-200">
+                          {helpData.aiHelp.example}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Paso a Paso (si está disponible) */}
+                    {helpData.aiHelp.stepByStep && helpData.aiHelp.stepByStep.length > 0 && (
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
+                        <h5 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
+                          <BookOpenIcon className="h-4 w-4" />
+                          Cómo resolverlo
+                        </h5>
+                        <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
+                          {helpData.aiHelp.stepByStep.map((step, idx) => (
+                            <li key={idx}>{step}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {/* Concepto Clave */}
+                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <h5 className="text-xs font-semibold text-purple-900 dark:text-purple-300 mb-1 flex items-center gap-2">
+                        <SparklesIcon className="h-3 w-3" />
+                        Concepto clave a revisar
+                      </h5>
+                      <p className="text-sm text-purple-800 dark:text-purple-200">
+                        {helpData.aiHelp.keyConceptToReview}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Estadísticas (si disponibles) */}
                 {helpData.contextualAnalysis && (
                   <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
