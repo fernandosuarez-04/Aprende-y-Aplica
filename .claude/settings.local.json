@@ -12,7 +12,9 @@
       "Bash(powershell -Command \"Stop-Process -Id 3496 -Force\")",
       "Bash(powershell -Command \"Get-Process | Where-Object {$_Name -eq ''node''} | Stop-Process -Force\")",
       "Bash(if exist \".next\" rmdir /s /q \".next\")",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

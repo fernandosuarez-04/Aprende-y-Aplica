@@ -3,7 +3,12 @@
  * Carga dinámicamente el módulo solo en el cliente
  */
 
-import type { RecordingSession } from './session-recorder';
+// Definir el tipo localmente para evitar imports de rrweb en el servidor
+export interface RecordingSession {
+  events: any[];
+  startTime: number;
+  endTime?: number;
+}
 
 let sessionRecorderInstance: any = null;
 
@@ -81,6 +86,3 @@ export const sessionRecorderClient = {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 };
-
-// Re-export del tipo
-export type { RecordingSession };

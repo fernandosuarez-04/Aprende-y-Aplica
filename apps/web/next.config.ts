@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 import path from "path";
-import i18nConfig from "./next-i18next.config";
 
 // Bundle Analyzer (opcional - deshabilitado)
 let withBundleAnalyzer: (config: NextConfig) => NextConfig = (config) => config;
@@ -71,7 +70,6 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_NAME: 'Aprende y Aplica',
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
   },
-  i18n: i18nConfig.i18n,
 
   // 🔒 Headers de Seguridad HTTP
   async headers() {
