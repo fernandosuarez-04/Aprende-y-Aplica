@@ -186,17 +186,7 @@ export function InstructorUserDropdown({ user }: InstructorUserDropdownProps) {
                 </button>
               )}
             </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
-                <button
-                  onClick={handleSettings}
-                  className={`${active ? 'bg-purple-700/50' : ''} flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
-                >
-                  <Cog6ToothIcon className="w-4 h-4 mr-3" />
-                  Configuración
-                </button>
-              )}
-            </Menu.Item>
+            {/* Configuración eliminada por solicitud */}
             <div className="border-t border-purple-700/50 my-2"></div>
             {/* Opciones de Tema */}
             <div className="px-2 py-1">
