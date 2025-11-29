@@ -324,9 +324,17 @@ export default function CourseLearnPage() {
   // 🆕 Ref para evitar múltiples envíos simultáneos
   const isGeneratingFeedbackRef = useRef(false);
   const lastFeedbackMessageRef = useRef<string>('');
+  const lastAddedMessageIdRef = useRef<string | null>(null); // 🆕 Para evitar duplicados
 
   // 🆕 Callback para manejar respuestas incorrectas y enviar retroalimentación a LIA
   const handleIncorrectAnswers = useCallback(async (incorrectAnswers: QuizErrorContext[]) => {
+    console.log('🔔 [LIA AUTO] handleIncorrectAnswers LLAMADO con:', {
+      incorrectAnswersCount: incorrectAnswers.length,
+      questionIds: incorrectAnswers.map(a => a.questionId),
+      timestamp: new Date().toISOString(),
+      isGenerating: isGeneratingFeedbackRef.current
+    });
+
     // Evitar múltiples llamadas simultáneas
     if (isGeneratingFeedbackRef.current) {
       console.log('⏳ [LIA AUTO] Ya hay un mensaje en generación, esperando...');
@@ -360,12 +368,31 @@ export default function CourseLearnPage() {
       }
 
       lastFeedbackMessageRef.current = '';
+      lastAddedMessageIdRef.current = null; // 🆕 Limpiar también el ID del último mensaje
       return;
     }
 
     try {
       isGeneratingFeedbackRef.current = true;
       console.log('🤖 [LIA AUTO] Generando mensaje de retroalimentación para', incorrectAnswers.length, 'respuesta(s) incorrecta(s)');
+
+      // 🆕 Log detallado del array que se envía a LIA
+      console.log('📤 [LIA AUTO] Array de respuestas incorrectas que se envía a LIA:', {
+        totalIncorrectAnswers: incorrectAnswers.length,
+        incorrectAnswers: incorrectAnswers.map(answer => ({
+          questionId: answer.questionId,
+          questionText: answer.questionText?.substring(0, 100) || 'N/A',
+          selectedAnswer: answer.selectedAnswer,
+          correctAnswer: answer.correctAnswer,
+          questionType: answer.questionType,
+          topic: answer.topic,
+          difficulty: answer.difficulty,
+          attemptNumber: answer.attemptNumber,
+          hasOptions: !!answer.options && answer.options.length > 0,
+          optionsCount: answer.options?.length || 0
+        })),
+        fullArray: incorrectAnswers
+      });
 
       // Generar mensaje agrupado con IA (llamar a API route del servidor)
       const response = await fetch('/api/lia/grouped-feedback', {
@@ -413,6 +440,9 @@ export default function CourseLearnPage() {
         return;
       }
 
+      // 🆕 Guardar la clave ANTES de agregar el mensaje para evitar duplicados si se ejecuta dos veces
+      lastFeedbackMessageRef.current = messageKey;
+
       console.log('📤 [LIA AUTO] Preparando envío de mensaje a LIA:', {
         messageLength: feedbackMessage.length,
         messagePreview: feedbackMessage.substring(0, 150) + '...',
@@ -424,12 +454,7 @@ export default function CourseLearnPage() {
       // Expandir LIA si no está expandido
       if (!isLiaExpanded) {
         console.log('📂 [LIA AUTO] Expandiendo panel de LIA');
-        setIsLiaExpanded(true);
-        // Si el panel izquierdo está abierto, cerrarlo para dar más espacio al panel central
-        if (isLeftPanelOpen) {
-          console.log('📂 [LIA AUTO] Cerrando panel izquierdo para dar más espacio');
-          setIsLeftPanelOpen(false);
-        }
+        expandLiaSafely();
         // Dar un pequeño delay para que el panel se expanda antes de enviar el mensaje
         await new Promise(resolve => setTimeout(resolve, 300));
       }
@@ -487,22 +512,58 @@ export default function CourseLearnPage() {
           contextKeys: Object.keys(enrichedContext)
         });
 
-        console.log('📤 [LIA AUTO] Llamando a sendLiaMessage con:', {
+        // 🆕 Agregar mensaje directamente como respuesta de LIA (assistant)
+        // El mensaje ya fue generado por IA en /api/lia/grouped-feedback, así que
+        // lo mostramos directamente como respuesta de LIA, no como mensaje de usuario
+        // Agregamos un prefijo para indicar que es una retroalimentación automática de LIA
+        const autoFeedbackLabel = '💡 Retroalimentación automática de LIA:\n\n';
+        const feedbackWithLabel = autoFeedbackLabel + feedbackMessage;
+        
+        // 🆕 Log detallado antes de agregar el mensaje
+        console.log('🤖 [LIA AUTO] Agregando mensaje de retroalimentación auto-generado:', {
+          messageId: `auto-${Date.now()}`,
+          source: 'auto-feedback',
+          generatedBy: 'lia-grouped-feedback',
+          incorrectAnswersCount: incorrectAnswers.length,
           messageLength: feedbackMessage.length,
-          messagePreview: feedbackMessage.substring(0, 200),
-          hasContext: !!enrichedContext,
-          isSystemMessage: false,
-          contextType: enrichedContext ? 'course' : 'general'
+          messagePreview: feedbackMessage.substring(0, 150),
+          fullMessage: feedbackWithLabel,
+          timestamp: new Date().toISOString()
+        });
+        
+        // 🆕 Verificar una vez más que no se haya agregado ya (protección contra duplicados)
+        const messageId = `auto-${Date.now()}-${messageKey}`;
+        if (lastAddedMessageIdRef.current === messageId) {
+          console.log('⏭️ [LIA AUTO] Mensaje ya fue agregado previamente, evitando duplicado', {
+            messageId,
+            lastMessageId: lastAddedMessageIdRef.current
+          });
+          return;
+        }
+
+        // Verificar también en los mensajes existentes
+        const alreadyExists = liaMessages.some(msg => 
+          msg.metadata?.isAutoGenerated && 
+          msg.metadata?.generatedBy === 'lia-grouped-feedback' &&
+          msg.content.includes(feedbackMessage.substring(0, 100))
+        );
+        
+        if (alreadyExists) {
+          console.log('⏭️ [LIA AUTO] Mensaje similar ya existe en el chat, evitando duplicado');
+          return;
+        }
+
+        // Agregar mensaje con metadata para identificar que es auto-generado
+        addLiaMessage(feedbackWithLabel, 'assistant', {
+          isAutoGenerated: true,
+          source: 'auto-feedback',
+          generatedBy: 'lia-grouped-feedback'
         });
 
-        // Enviar mensaje a LIA para que lo procese y responda con el contexto
-        // El mensaje de retroalimentación se envía como mensaje de usuario
-        // y LIA lo procesará con todo el contexto del curso/lección
-        await sendLiaMessage(feedbackMessage, enrichedContext, false); // false = mensaje visible, LIA responderá
+        // Guardar el ID del mensaje agregado
+        lastAddedMessageIdRef.current = messageId;
 
-        // Guardar clave del mensaje para comparación futura
-        lastFeedbackMessageRef.current = messageKey;
-        console.log('✅ [LIA AUTO] Mensaje de retroalimentación enviado a LIA exitosamente, esperando respuesta de LIA...');
+        console.log('✅ [LIA AUTO] Mensaje de retroalimentación agregado como respuesta de LIA (generado automáticamente por LIA basado en respuestas incorrectas)');
         
         // Hacer scroll al final del chat después de que LIA responda
         setTimeout(() => {
@@ -557,11 +618,7 @@ export default function CourseLearnPage() {
         const liaContextMessage = `Hola, necesito ayuda con esta pregunta:\n\n"${pattern.questionText}"\n\nHe intentado ${pattern.context.totalAttempts} veces y no logro entenderla.\n\n${pattern.context.suggestedHelp}\n\n¿Puedes explicármelo de manera más clara?`;
 
         // Expandir LIA
-        setIsLiaExpanded(true);
-        // Si el panel izquierdo está abierto, cerrarlo para dar más espacio al panel central
-        if (isLeftPanelOpen) {
-          setIsLeftPanelOpen(false);
-        }
+        expandLiaSafely();
 
         // Enviar mensaje contextual a LIA
         sendLiaMessage(liaContextMessage, {
@@ -1492,6 +1549,10 @@ CONTENIDO ADAPTADO:`;
     // Abrir el panel de LIA si está cerrado
     if (!isRightPanelOpen) {
       setIsRightPanelOpen(true);
+      // Si el panel izquierdo está abierto, cerrarlo para dar más espacio
+      if (isLeftPanelOpen) {
+        setIsLeftPanelOpen(false);
+      }
     }
 
     // ✅ OPTIMIZACIÓN: Usar contenido original inmediatamente, adaptar en background si es necesario
@@ -1624,16 +1685,36 @@ Antes de cada respuesta, pregúntate:
     }
   }, [liaMessages, isLiaLoading]);
 
+  // 🆕 Función helper para expandir LIA asegurando que el panel izquierdo se cierre
+  const expandLiaSafely = useCallback(() => {
+    setIsLiaExpanded(true);
+    // Si el panel izquierdo está abierto, cerrarlo para dar más espacio al panel central
+    if (isLeftPanelOpen) {
+      console.log('📂 [LIA] Cerrando panel izquierdo al expandir LIA');
+      setIsLeftPanelOpen(false);
+    }
+  }, [isLeftPanelOpen]);
+
   // Función para expandir/colapsar LIA
   const handleToggleLiaExpanded = () => {
     const newExpandedState = !isLiaExpanded;
-    setIsLiaExpanded(newExpandedState);
     
-    // Si se está expandiendo, cerrar el panel izquierdo
-    if (newExpandedState && isLeftPanelOpen) {
-      setIsLeftPanelOpen(false);
+    // Si se está expandiendo, usar la función helper para asegurar que el panel izquierdo se cierre
+    if (newExpandedState) {
+      expandLiaSafely();
+    } else {
+      // Si se está colapsando, solo cambiar el estado
+      setIsLiaExpanded(false);
     }
   };
+
+  // 🆕 Efecto para asegurar que cuando LIA se expande, el panel izquierdo se cierre
+  useEffect(() => {
+    if (isLiaExpanded && isLeftPanelOpen) {
+      console.log('📂 [LIA] Efecto: LIA expandido detectado, cerrando panel izquierdo');
+      setIsLeftPanelOpen(false);
+    }
+  }, [isLiaExpanded, isLeftPanelOpen]);
 
   // Función para abrir modal de confirmación para limpiar historial
   const handleOpenClearHistoryModal = () => {
@@ -2570,6 +2651,10 @@ Antes de cada respuesta, pregúntate:
         
         // Abrir el panel de LIA (panel derecho)
         setIsRightPanelOpen(true);
+        // Si el panel izquierdo está abierto, cerrarlo para dar más espacio
+        if (isLeftPanelOpen) {
+          setIsLeftPanelOpen(false);
+        }
         
         // Generar mensaje personalizado basado en los patrones detectados
         const generatePersonalizedMessage = (patterns: any[]) => {
