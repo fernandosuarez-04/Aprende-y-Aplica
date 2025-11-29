@@ -31,6 +31,7 @@ import { useState } from 'react';
 import { useContextualHelp } from '@/hooks/useContextualHelp';
 import { ContextualHelpDialog } from './ContextualHelpDialog';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
+import type { QuizErrorContext } from '@/lib/ai/contextual-help-ai';
 
 export interface QuizQuestion {
   id: string;
@@ -68,6 +69,9 @@ export interface QuizWithHelpProps {
 
   /** Habilitar ayuda con IA (default: true) */
   enableAIHelp?: boolean;
+
+  /** 🆕 Callback cuando se detectan respuestas incorrectas (para envío automático a LIA) */
+  onIncorrectAnswersDetected?: (incorrectAnswers: QuizErrorContext[]) => void | Promise<void>;
 }
 
 export function QuizWithHelp({
@@ -76,7 +80,8 @@ export function QuizWithHelp({
   workshopId,
   courseContext,
   onComplete,
-  enableAIHelp = true
+  enableAIHelp = true,
+  onIncorrectAnswersDetected
 }: QuizWithHelpProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string | number>>({});
@@ -102,7 +107,9 @@ export function QuizWithHelp({
     },
     onHelpAccepted: (analysis) => {
       console.log('✅ Usuario aceptó ayuda:', analysis);
-    }
+    },
+    // 🆕 Pasar el callback para envío automático a LIA
+    onIncorrectAnswersDetected
   });
 
   const currentQuestion = questions[currentQuestionIndex];

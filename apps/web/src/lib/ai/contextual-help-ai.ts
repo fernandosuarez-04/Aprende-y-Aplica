@@ -390,3 +390,189 @@ export function generateQuickHelpMessage(errorContext: QuizErrorContext): string
 
   return messages[Math.floor(Math.random() * messages.length)];
 }
+
+/**
+ * Genera un mensaje agrupado de retroalimentación para múltiples respuestas incorrectas
+ * Este mensaje se envía automáticamente a LIA para hacer reflexionar al usuario
+ */
+export async function generateGroupedFeedbackMessage(
+  incorrectAnswers: QuizErrorContext[],
+  options: HelpGenerationOptions = {}
+): Promise<string> {
+  if (incorrectAnswers.length === 0) {
+    return '';
+  }
+
+  const {
+    style = 'friendly',
+    language = 'es'
+  } = options;
+
+  try {
+    const openai = getOpenAIClient();
+
+    // Construir descripción de todas las respuestas incorrectas
+    const groupedContext = buildGroupedContextDescription(incorrectAnswers);
+
+    // Construir prompt del sistema
+    const systemPrompt = `Eres LIA, un asistente educativo empático y motivador. Tu objetivo es ayudar a estudiantes a reflexionar sobre sus errores en un cuestionario.
+
+**Estilo de comunicación**: ${style === 'friendly' ? 'amigable, empático y motivador. Usa un tono cálido y cercano' : style === 'formal' ? 'profesional y estructurado' : 'relajado y conversacional'}
+**Idioma**: ${language === 'es' ? 'Español' : language === 'en' ? 'English' : 'Português'}
+
+**Reglas CRÍTICAS**:
+1. NUNCA reveles las respuestas correctas directamente
+2. Haz que el estudiante REFLEXIONE sobre por qué sus respuestas podrían estar incorrectas
+3. Identifica PATRONES COMUNES en los errores (si hay varios)
+4. Sugiere CONCEPTOS CLAVE que debe revisar
+5. Sé EMPÁTICO y MOTIVADOR (el estudiante está aprendiendo)
+6. El mensaje debe ser CONVERSACIONAL, como si estuvieras hablando directamente con el estudiante
+7. Si hay múltiples errores, agrupa la retroalimentación de manera coherente
+8. NO uses formato de lista numerada, escribe como un mensaje natural de chat
+
+**Formato**: Responde SOLO con el mensaje de retroalimentación, sin JSON ni estructura adicional.`;
+
+    // Construir prompt del usuario
+    const userPrompt = `El estudiante ha respondido incorrectamente ${incorrectAnswers.length} pregunta${incorrectAnswers.length > 1 ? 's' : ''} en el cuestionario. 
+
+Aquí están los detalles:
+
+${groupedContext}
+
+Genera un mensaje de retroalimentación que:
+- Haga reflexionar al estudiante sobre sus errores
+- Identifique patrones comunes (si los hay)
+- Sugiera conceptos clave a revisar
+- Sea empático y motivador
+- NO revele las respuestas correctas
+- Sea natural y conversacional, como un mensaje de chat
+
+Si hay múltiples errores, agrupa la retroalimentación de manera coherente en un solo mensaje fluido.`;
+
+    console.log('🤖 [AI HELP] Generando mensaje agrupado de retroalimentación...', {
+      incorrectAnswersCount: incorrectAnswers.length,
+      style,
+      language
+    });
+
+    // Llamar a OpenAI
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 800
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error('No se recibió respuesta de OpenAI');
+    }
+
+    console.log('✅ [AI HELP] Mensaje agrupado generado exitosamente');
+
+    return content.trim();
+
+  } catch (error) {
+    console.error('❌ [AI HELP] Error al generar mensaje agrupado:', error);
+
+    // Fallback: mensaje genérico
+    return generateFallbackGroupedMessage(incorrectAnswers);
+  }
+}
+
+/**
+ * Construye la descripción agrupada de múltiples respuestas incorrectas
+ */
+function buildGroupedContextDescription(incorrectAnswers: QuizErrorContext[]): string {
+  const parts: string[] = [];
+
+  // Agrupar por tema si es posible
+  const byTopic = new Map<string, QuizErrorContext[]>();
+  incorrectAnswers.forEach(error => {
+    const topic = error.topic || 'General';
+    if (!byTopic.has(topic)) {
+      byTopic.set(topic, []);
+    }
+    byTopic.get(topic)!.push(error);
+  });
+
+  // Construir descripción
+  parts.push(`Total de respuestas incorrectas: ${incorrectAnswers.length}\n`);
+
+  if (byTopic.size > 1) {
+    parts.push('Los errores están relacionados con los siguientes temas:\n');
+    byTopic.forEach((errors, topic) => {
+      parts.push(`- ${topic}: ${errors.length} pregunta${errors.length > 1 ? 's' : ''}`);
+    });
+    parts.push('');
+  }
+
+  // Detalles de cada pregunta incorrecta
+  incorrectAnswers.forEach((error, index) => {
+    parts.push(`\nPregunta ${index + 1}:`);
+    parts.push(`"${error.questionText}"`);
+    parts.push(`Respuesta elegida: ${getAnswerText(error.selectedAnswer, error.options)}`);
+    
+    if (error.topic) {
+      parts.push(`Tema: ${error.topic}`);
+    }
+    
+    if (error.attemptNumber > 1) {
+      parts.push(`(Intento ${error.attemptNumber})`);
+    }
+  });
+
+  // Contexto del curso (si está disponible)
+  const firstError = incorrectAnswers[0];
+  if (firstError.courseContext) {
+    parts.push(`\n\nContexto del curso:`);
+    parts.push(`Curso: ${firstError.courseContext.courseName}`);
+    parts.push(`Lección: ${firstError.courseContext.lessonName}`);
+    parts.push(`Actividad: ${firstError.courseContext.activityName}`);
+  }
+
+  return parts.join('\n');
+}
+
+/**
+ * Obtiene el texto de una respuesta basado en su ID y las opciones disponibles
+ */
+function getAnswerText(answer: string | number, options?: Array<{ id: string | number; text: string }>): string {
+  if (options) {
+    const option = options.find(opt => opt.id === answer);
+    if (option) {
+      return option.text;
+    }
+  }
+  return String(answer);
+}
+
+/**
+ * Genera un mensaje de respaldo cuando falla la IA
+ */
+function generateFallbackGroupedMessage(incorrectAnswers: QuizErrorContext[]): string {
+  const count = incorrectAnswers.length;
+  
+  if (count === 1) {
+    const error = incorrectAnswers[0];
+    return `Veo que hay una respuesta que necesita revisión. La pregunta "${error.questionText}" tiene una respuesta que no es correcta. Te sugiero reflexionar sobre el concepto relacionado con "${error.topic || 'esta pregunta'}" y revisar el material del curso. Recuerda que los errores son parte del aprendizaje. 💪`;
+  }
+
+  // Múltiples errores
+  const topics = [...new Set(incorrectAnswers.map(e => e.topic).filter(Boolean))];
+  const topicsText = topics.length > 0 
+    ? `los temas: ${topics.join(', ')}`
+    : 'varios conceptos';
+
+  return `He notado que hay ${count} respuestas que necesitan revisión. Esto sugiere que podría haber algunas áreas donde necesitas reforzar tu comprensión, especialmente relacionadas con ${topicsText}. 
+
+Te recomiendo:
+- Revisar el material del curso sobre estos temas
+- Reflexionar sobre qué podría estar causando la confusión
+- No te desanimes, los errores son oportunidades de aprendizaje
+
+¿Te gustaría que profundicemos en algún concepto específico? 🤔`;
+}

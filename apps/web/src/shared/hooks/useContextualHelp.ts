@@ -37,7 +37,6 @@ import {
 } from '../../lib/rrweb/contextual-difficulty-detector';
 import { useDifficultyDetection } from './useDifficultyDetection';
 import {
-  generatePersonalizedHelp,
   generateQuickHelpMessage,
   type QuizErrorContext,
   type PersonalizedHelpResponse
@@ -80,6 +79,9 @@ export interface UseContextualHelpOptions {
 
   /** 🆕 Habilitar ayuda con IA (default: true) */
   enableAIHelp?: boolean;
+
+  /** 🆕 Callback cuando se detectan respuestas incorrectas (para retroalimentación de LIA) */
+  onIncorrectAnswersDetected?: (incorrectAnswers: QuizErrorContext[]) => void;
 }
 
 export interface HelpData {
@@ -154,6 +156,12 @@ export interface UseContextualHelpReturn {
 
   /** Análisis actual */
   currentAnalysis: ContextualDifficultyAnalysis | null;
+
+  /** 🆕 Actualizar respuesta incorrecta manualmente (cuando cambia) */
+  updateIncorrectAnswer?: (questionId: string, isIncorrect: boolean, errorContext?: QuizErrorContext) => void;
+
+  /** 🆕 Obtener respuestas incorrectas actuales */
+  getIncorrectAnswers?: () => QuizErrorContext[];
 }
 
 export function useContextualHelp(
@@ -170,7 +178,8 @@ export function useContextualHelp(
     onHelpDismissed,
     enableNavigationPatterns = true,
     courseContext,
-    enableAIHelp = true
+    enableAIHelp = true,
+    onIncorrectAnswersDetected
   } = options;
 
   const [shouldShowHelp, setShouldShowHelp] = useState(false);
@@ -182,6 +191,8 @@ export function useContextualHelp(
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastInterventionTimeRef = useRef<number>(0);
   const lastErrorContextRef = useRef<QuizErrorContext | null>(null); // 🆕 Almacenar último error
+  const incorrectAnswersRef = useRef<Map<string, QuizErrorContext>>(new Map()); // 🆕 Acumular respuestas incorrectas por questionId
+  const lastNotificationTimeRef = useRef<number>(0); // 🆕 Controlar frecuencia de notificaciones
 
   // Integrar con detección de patrones de navegación (rrweb)
   const navigationDetection = useDifficultyDetection({
@@ -316,7 +327,7 @@ export function useContextualHelp(
       difficulty: params.difficulty
     });
 
-    // Si es incorrecto, generar ayuda con IA y analizar inmediatamente
+    // 🆕 Actualizar array de respuestas incorrectas
     if (!params.isCorrect) {
       console.log('❌ [CONTEXTUAL] Respuesta incorrecta detectada');
 
@@ -344,35 +355,76 @@ export function useContextualHelp(
 
       lastErrorContextRef.current = errorContext;
 
-      // 🆕 Generar ayuda con IA si está habilitada
-      if (enableAIHelp) {
-        console.log('🤖 [CONTEXTUAL] Generando ayuda personalizada con IA...');
+      // 🆕 Agregar o actualizar en el mapa de respuestas incorrectas
+      incorrectAnswersRef.current.set(params.questionId, errorContext);
+
+      // 🆕 Notificar callback con todas las respuestas incorrectas actuales
+      const allIncorrectAnswers = Array.from(incorrectAnswersRef.current.values());
+      const now = Date.now();
+      const timeSinceLastNotification = now - lastNotificationTimeRef.current;
+      const minTimeBetweenNotifications = 2000; // 2 segundos para evitar spam
+
+      if (onIncorrectAnswersDetected && timeSinceLastNotification > minTimeBetweenNotifications) {
+        lastNotificationTimeRef.current = now;
+        console.log('📢 [CONTEXTUAL] Notificando respuestas incorrectas:', {
+          count: allIncorrectAnswers.length,
+          questionIds: allIncorrectAnswers.map(a => a.questionId),
+          hasCallback: !!onIncorrectAnswersDetected
+        });
         try {
-          const aiHelp = await generatePersonalizedHelp(errorContext, {
-            detailLevel: attemptNumber > 2 ? 'comprehensive' : 'detailed',
-            includeExample: true,
-            includeStepByStep: attemptNumber > 1
-          });
-
-          console.log('✅ [CONTEXTUAL] Ayuda IA generada:', aiHelp);
-
-          // Actualizar helpData con la ayuda de IA
-          setHelpData(prev => ({
-            ...prev!,
-            aiHelp,
-            errorContext,
-            message: generateQuickHelpMessage(errorContext)
-          }));
-
+          await onIncorrectAnswersDetected(allIncorrectAnswers);
+          console.log('✅ [CONTEXTUAL] Callback ejecutado exitosamente');
         } catch (error) {
-          console.error('❌ [CONTEXTUAL] Error al generar ayuda con IA:', error);
+          console.error('❌ [CONTEXTUAL] Error al ejecutar callback:', error);
         }
+      } else if (onIncorrectAnswersDetected) {
+        console.log('⏳ [CONTEXTUAL] Callback disponible pero esperando cooldown', {
+          timeSinceLastNotification: `${Math.floor(timeSinceLastNotification / 1000)}s`,
+          minTime: `${Math.floor(minTimeBetweenNotifications / 1000)}s`
+        });
+      } else {
+        console.warn('⚠️ [CONTEXTUAL] onIncorrectAnswersDetected no está definido');
       }
+
+      // 🆕 NOTA: La generación de ayuda personalizada individual se deshabilitó
+      // porque se ejecuta en el cliente donde OPENAI_API_KEY no está disponible.
+      // En su lugar, usamos el callback onIncorrectAnswersDetected que envía
+      // un mensaje agrupado a LIA a través de la API route /api/lia/grouped-feedback
+      // que sí tiene acceso a la API key en el servidor.
+      
+      // Actualizar helpData con el contexto del error (sin llamar a IA desde el cliente)
+      setHelpData(prev => ({
+        ...prev!,
+        errorContext,
+        message: generateQuickHelpMessage(errorContext)
+      }));
 
       // Analizar inmediatamente
       setTimeout(() => analyzeAndDetect(), 1000);
+    } else {
+      // 🆕 Si la respuesta es correcta, remover del mapa de respuestas incorrectas
+      if (incorrectAnswersRef.current.has(params.questionId)) {
+        incorrectAnswersRef.current.delete(params.questionId);
+        console.log('✅ [CONTEXTUAL] Respuesta corregida, removiendo de incorrectas:', params.questionId);
+        
+        // 🆕 Notificar callback con las respuestas incorrectas actualizadas
+        const allIncorrectAnswers = Array.from(incorrectAnswersRef.current.values());
+        const now = Date.now();
+        const timeSinceLastNotification = now - lastNotificationTimeRef.current;
+        const minTimeBetweenNotifications = 2000; // 2 segundos
+
+        if (onIncorrectAnswersDetected && timeSinceLastNotification > minTimeBetweenNotifications) {
+          lastNotificationTimeRef.current = now;
+          console.log('📢 [CONTEXTUAL] Actualizando respuestas incorrectas:', allIncorrectAnswers.length);
+          try {
+            await onIncorrectAnswersDetected(allIncorrectAnswers);
+          } catch (error) {
+            console.error('❌ [CONTEXTUAL] Error al ejecutar callback:', error);
+          }
+        }
+      }
     }
-  }, [analyzeAndDetect, courseContext, enableAIHelp]);
+  }, [analyzeAndDetect, courseContext, enableAIHelp, onIncorrectAnswersDetected]);
 
   // Función para registrar un skip
   const recordSkip = useCallback((params: {
@@ -420,6 +472,41 @@ export function useContextualHelp(
     }
   }, [currentAnalysis, onHelpDismissed]);
 
+  // 🆕 Función para actualizar respuesta incorrecta manualmente (cuando cambia)
+  const updateIncorrectAnswer = useCallback((
+    questionId: string,
+    isIncorrect: boolean,
+    errorContext?: QuizErrorContext
+  ) => {
+    if (isIncorrect && errorContext) {
+      incorrectAnswersRef.current.set(questionId, errorContext);
+      console.log('🔄 [CONTEXTUAL] Respuesta marcada como incorrecta:', questionId);
+    } else {
+      incorrectAnswersRef.current.delete(questionId);
+      console.log('🔄 [CONTEXTUAL] Respuesta removida de incorrectas:', questionId);
+    }
+
+    // Notificar callback con todas las respuestas incorrectas actuales
+    const allIncorrectAnswers = Array.from(incorrectAnswersRef.current.values());
+    const now = Date.now();
+    const timeSinceLastNotification = now - lastNotificationTimeRef.current;
+    const minTimeBetweenNotifications = 2000; // 2 segundos
+
+    if (onIncorrectAnswersDetected && timeSinceLastNotification > minTimeBetweenNotifications) {
+      lastNotificationTimeRef.current = now;
+      try {
+        onIncorrectAnswersDetected(allIncorrectAnswers);
+      } catch (error) {
+        console.error('❌ [CONTEXTUAL] Error al ejecutar callback:', error);
+      }
+    }
+  }, [onIncorrectAnswersDetected]);
+
+  // 🆕 Función para obtener respuestas incorrectas actuales
+  const getIncorrectAnswers = useCallback(() => {
+    return Array.from(incorrectAnswersRef.current.values());
+  }, []);
+
   // Función para resetear
   const reset = useCallback(() => {
     console.log('🔄 [CONTEXTUAL] Reseteando sistema de ayuda contextual');
@@ -430,6 +517,8 @@ export function useContextualHelp(
     setHelpData(null);
     setCurrentAnalysis(null);
     lastInterventionTimeRef.current = 0;
+    incorrectAnswersRef.current.clear(); // 🆕 Limpiar respuestas incorrectas
+    lastNotificationTimeRef.current = 0; // 🆕 Resetear tiempo de notificación
 
     // También resetear la detección de navegación
     if (navigationDetection.reset) {
@@ -447,7 +536,9 @@ export function useContextualHelp(
     dismissHelp,
     reset,
     isActive,
-    currentAnalysis
+    currentAnalysis,
+    updateIncorrectAnswer, // 🆕
+    getIncorrectAnswers // 🆕
   };
 }
 

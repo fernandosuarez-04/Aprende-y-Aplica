@@ -20,6 +20,7 @@
 
 import { useState, useEffect } from 'react';
 import { QuizWithHelp, type QuizQuestion } from './QuizWithHelp';
+import type { QuizErrorContext } from '@/lib/ai/contextual-help-ai';
 
 interface QuizActivityProps {
   /** Datos de la actividad */
@@ -33,13 +34,17 @@ interface QuizActivityProps {
 
   /** Usuario actual (opcional) */
   user?: any;
+
+  /** 🆕 Callback cuando se detectan respuestas incorrectas (para envío automático a LIA) */
+  onIncorrectAnswersDetected?: (incorrectAnswers: QuizErrorContext[]) => void | Promise<void>;
 }
 
 export function QuizActivity({
   activity,
   lesson,
   slug,
-  user
+  user,
+  onIncorrectAnswersDetected
 }: QuizActivityProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,6 +196,7 @@ export function QuizActivity({
       }}
       enableAIHelp={true}
       onComplete={handleQuizComplete}
+      onIncorrectAnswersDetected={onIncorrectAnswersDetected} // 🆕 Pasar callback a QuizWithHelp
     />
   );
 }

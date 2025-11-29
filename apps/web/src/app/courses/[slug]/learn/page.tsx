@@ -67,6 +67,7 @@ import { ContentTranslationService } from '../../../../core/services/contentTran
 import { useContextualHelp } from '@/hooks/useContextualHelp';
 import { ContextualHelpDialog } from '../../../../features/courses/components/ContextualHelpDialog';
 import { QuizActivity } from '../../../../features/courses/components/QuizActivity';
+import type { QuizErrorContext } from '@/lib/ai/contextual-help-ai';
 // 🎥 Session Recording para análisis de dificultad
 import { useSessionRecorder } from '../../../../lib/rrweb/use-session-recorder';
 
@@ -187,6 +188,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
               lesson={lesson}
               slug={slug}
               user={user}
+              onIncorrectAnswersDetected={handleIncorrectAnswers} // 🆕 Pasar callback para retroalimentación de LIA
             />
           ) : (
             // Otras actividades (placeholder por ahora)
@@ -300,7 +302,8 @@ export default function CourseLearnPage() {
     sendMessage: sendLiaMessage,
     clearHistory: clearLiaHistory,
     loadConversation,
-    currentConversationId
+    currentConversationId,
+    addMessage: addLiaMessage // 🆕 Para agregar mensajes directamente
   } = useLiaChat(null);
 
   // Estado local para el input del mensaje
@@ -318,6 +321,208 @@ export default function CourseLearnPage() {
   const [isContextualHelpEnabled, setIsContextualHelpEnabled] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState('');
 
+  // 🆕 Ref para evitar múltiples envíos simultáneos
+  const isGeneratingFeedbackRef = useRef(false);
+  const lastFeedbackMessageRef = useRef<string>('');
+
+  // 🆕 Callback para manejar respuestas incorrectas y enviar retroalimentación a LIA
+  const handleIncorrectAnswers = useCallback(async (incorrectAnswers: QuizErrorContext[]) => {
+    // Evitar múltiples llamadas simultáneas
+    if (isGeneratingFeedbackRef.current) {
+      console.log('⏳ [LIA AUTO] Ya hay un mensaje en generación, esperando...');
+      return;
+    }
+
+    // Si no hay respuestas incorrectas, limpiar mensaje anterior si existe
+    if (incorrectAnswers.length === 0) {
+      console.log('✅ [LIA AUTO] Todas las respuestas están correctas');
+
+      // Si había un mensaje anterior, enviar un mensaje de confirmación positivo
+      if (lastFeedbackMessageRef.current) {
+        try {
+          const successMessage = '¡Excelente! Veo que has corregido todas las respuestas. Sigue así, estás aprendiendo muy bien. 💪';
+
+          // Solo enviar si LIA está expandido para no molestar al usuario
+          if (isLiaExpanded) {
+            await sendLiaMessage(successMessage, {
+              lessonId: currentLesson?.lesson_id || '',
+              lessonTitle: currentLesson?.lesson_title || '',
+              courseId: course?.course_id || course?.id || '',
+              courseTitle: course?.course_title || course?.title || '',
+              difficulty: 'low'
+            } as CourseLessonContext, true);
+
+            console.log('✅ [LIA AUTO] Mensaje de confirmación enviado');
+          }
+        } catch (error) {
+          console.error('❌ [LIA AUTO] Error al enviar mensaje de confirmación:', error);
+        }
+      }
+
+      lastFeedbackMessageRef.current = '';
+      return;
+    }
+
+    try {
+      isGeneratingFeedbackRef.current = true;
+      console.log('🤖 [LIA AUTO] Generando mensaje de retroalimentación para', incorrectAnswers.length, 'respuesta(s) incorrecta(s)');
+
+      // Generar mensaje agrupado con IA (llamar a API route del servidor)
+      const response = await fetch('/api/lia/grouped-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          incorrectAnswers,
+          style: 'friendly',
+          language: 'es'
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [LIA AUTO] Error en API grouped-feedback:', response.status, errorText);
+        throw new Error(`Error al generar mensaje de retroalimentación: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const feedbackMessage = data.message;
+
+      console.log('📨 [LIA AUTO] Mensaje recibido de API grouped-feedback:', {
+        messageLength: feedbackMessage?.length || 0,
+        messagePreview: feedbackMessage?.substring(0, 150) || 'vacío',
+        incorrectAnswersCount: data.incorrectAnswersCount,
+        hasMessage: !!feedbackMessage && feedbackMessage.trim() !== ''
+      });
+
+      if (!feedbackMessage || feedbackMessage.trim() === '') {
+        console.log('⚠️ [LIA AUTO] Mensaje de retroalimentación vacío, omitiendo envío');
+        return;
+      }
+
+      // Crear una clave única basada en el contenido y las preguntas
+      const messageKey = `${incorrectAnswers.map(a => a.questionId).sort().join(',')}-${feedbackMessage.substring(0, 50)}`;
+      const lastMessageKey = lastFeedbackMessageRef.current;
+
+      if (messageKey === lastMessageKey) {
+        console.log('⏭️ [LIA AUTO] Mensaje similar al anterior, omitiendo envío', {
+          messageKey,
+          lastMessageKey
+        });
+        return;
+      }
+
+      console.log('📤 [LIA AUTO] Preparando envío de mensaje a LIA:', {
+        messageLength: feedbackMessage.length,
+        messagePreview: feedbackMessage.substring(0, 150) + '...',
+        isLiaExpanded,
+        incorrectAnswersCount: incorrectAnswers.length,
+        messageKey
+      });
+
+      // Expandir LIA si no está expandido
+      if (!isLiaExpanded) {
+        console.log('📂 [LIA AUTO] Expandiendo panel de LIA');
+        setIsLiaExpanded(true);
+        // Si el panel izquierdo está abierto, cerrarlo para dar más espacio al panel central
+        if (isLeftPanelOpen) {
+          console.log('📂 [LIA AUTO] Cerrando panel izquierdo para dar más espacio');
+          setIsLeftPanelOpen(false);
+        }
+        // Dar un pequeño delay para que el panel se expanda antes de enviar el mensaje
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // 🆕 Enviar mensaje a LIA con contexto completo para que procese y responda
+      console.log('💬 [LIA AUTO] Enviando mensaje de retroalimentación a LIA con contexto completo...');
+      try {
+        // Construir contexto completo de la lección usando getLessonContext
+        const baseContext = getLessonContext();
+        console.log('📋 [LIA AUTO] Contexto base obtenido de getLessonContext:', {
+          hasContext: !!baseContext,
+          lessonId: baseContext?.lessonId || currentLesson?.lesson_id || 'N/A',
+          lessonTitle: baseContext?.lessonTitle || currentLesson?.lesson_title || 'N/A',
+          courseId: baseContext?.courseId || course?.course_id || course?.id || 'N/A',
+          courseTitle: baseContext?.courseTitle || course?.course_title || course?.title || 'N/A',
+          courseSlug: baseContext?.courseSlug || slug || 'N/A'
+        });
+
+        const lessonContext = baseContext || {
+          courseId: course?.course_id || course?.id || '',
+          courseSlug: slug,
+          courseTitle: course?.course_title || course?.title || '',
+          lessonTitle: currentLesson?.lesson_title || '',
+          lessonId: currentLesson?.lesson_id || ''
+        };
+
+        // Agregar información de dificultad detectada
+        const enrichedContext: CourseLessonContext = {
+          ...lessonContext,
+          difficultyDetected: {
+            patterns: incorrectAnswers.map(answer => ({
+              type: 'incorrect_answer',
+              severity: 'high' as const,
+              description: `Respuesta incorrecta en pregunta: ${answer.questionText.substring(0, 50)}...`
+            })),
+            overallScore: 1 - (incorrectAnswers.length / (incorrectAnswers.length + 5)), // Score aproximado
+            shouldIntervene: true
+          }
+        };
+
+        console.log('📋 [LIA AUTO] Contexto enriquecido que se enviará a LIA:', {
+          lessonId: enrichedContext.lessonId,
+          lessonTitle: enrichedContext.lessonTitle,
+          courseId: enrichedContext.courseId,
+          courseTitle: enrichedContext.courseTitle,
+          courseSlug: enrichedContext.courseSlug,
+          courseDescription: enrichedContext.courseDescription ? 'presente' : 'ausente',
+          moduleTitle: enrichedContext.moduleTitle || 'N/A',
+          lessonDescription: enrichedContext.lessonDescription ? 'presente' : 'ausente',
+          incorrectAnswersCount: incorrectAnswers.length,
+          hasDifficultyDetected: !!enrichedContext.difficultyDetected,
+          difficultyPatternsCount: enrichedContext.difficultyDetected?.patterns.length || 0,
+          difficultyScore: enrichedContext.difficultyDetected?.overallScore,
+          shouldIntervene: enrichedContext.difficultyDetected?.shouldIntervene,
+          contextKeys: Object.keys(enrichedContext)
+        });
+
+        console.log('📤 [LIA AUTO] Llamando a sendLiaMessage con:', {
+          messageLength: feedbackMessage.length,
+          messagePreview: feedbackMessage.substring(0, 200),
+          hasContext: !!enrichedContext,
+          isSystemMessage: false,
+          contextType: enrichedContext ? 'course' : 'general'
+        });
+
+        // Enviar mensaje a LIA para que lo procese y responda con el contexto
+        // El mensaje de retroalimentación se envía como mensaje de usuario
+        // y LIA lo procesará con todo el contexto del curso/lección
+        await sendLiaMessage(feedbackMessage, enrichedContext, false); // false = mensaje visible, LIA responderá
+
+        // Guardar clave del mensaje para comparación futura
+        lastFeedbackMessageRef.current = messageKey;
+        console.log('✅ [LIA AUTO] Mensaje de retroalimentación enviado a LIA exitosamente, esperando respuesta de LIA...');
+        
+        // Hacer scroll al final del chat después de que LIA responda
+        setTimeout(() => {
+          liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 1000);
+      } catch (sendError) {
+        console.error('❌ [LIA AUTO] Error al enviar mensaje a LIA:', sendError);
+        console.error('❌ [LIA AUTO] Detalles del error:', {
+          errorMessage: sendError instanceof Error ? sendError.message : String(sendError),
+          errorStack: sendError instanceof Error ? sendError.stack : undefined
+        });
+        throw sendError;
+      }
+    } catch (error) {
+      console.error('❌ [LIA AUTO] Error al generar/enviar mensaje de retroalimentación:', error);
+    } finally {
+      isGeneratingFeedbackRef.current = false;
+    }
+  }, [isLiaExpanded, isLeftPanelOpen, currentLesson, course, sendLiaMessage, addLiaMessage]);
+
   // ✨ NUEVO: Sistema de ayuda contextual hiperpersonalizada
   const contextualHelp = useContextualHelp({
     activityId: currentActivityId,
@@ -330,6 +535,11 @@ export default function CourseLearnPage() {
       repeatedMistakeThreshold: 2,
       timeThresholdMs: 5000,
     },
+    courseContext: currentLesson ? {
+      courseName: course?.course_title || course?.title || '',
+      lessonName: currentLesson.lesson_title || '',
+      activityName: 'Quiz'
+    } : undefined,
     onHelpNeeded: (analysis) => {
       console.log('🆘 [CONTEXTUAL HELP] Ayuda detectada:', {
         score: analysis.overallScore.toFixed(2),
@@ -348,6 +558,10 @@ export default function CourseLearnPage() {
 
         // Expandir LIA
         setIsLiaExpanded(true);
+        // Si el panel izquierdo está abierto, cerrarlo para dar más espacio al panel central
+        if (isLeftPanelOpen) {
+          setIsLeftPanelOpen(false);
+        }
 
         // Enviar mensaje contextual a LIA
         sendLiaMessage(liaContextMessage, {
@@ -368,7 +582,9 @@ export default function CourseLearnPage() {
     },
     onHelpDismissed: (analysis) => {
       console.log('❌ [CONTEXTUAL HELP] Usuario rechazó ayuda');
-    }
+    },
+    // 🆕 Callback para envío automático a LIA cuando se detectan respuestas incorrectas
+    onIncorrectAnswersDetected: handleIncorrectAnswers
   });
 
   // ✨ NUEVO: Activar/desactivar ayuda contextual según el tab activo
@@ -376,7 +592,7 @@ export default function CourseLearnPage() {
     const shouldEnable = activeTab === 'activities';
     setIsContextualHelpEnabled(shouldEnable);
 
-    if (!shouldEnable && contextualHelp.reset) {
+    if (!shouldEnable && contextualHelp && contextualHelp.reset) {
       // Reset cuando sale del tab de actividades
       contextualHelp.reset();
       console.log('🔄 [CONTEXTUAL HELP] Sistema reseteado (salió del tab de actividades)');
@@ -4384,7 +4600,7 @@ Antes de cada respuesta, pregúntate:
           setPointsEarned(0);
           setSubmitError(null);
           setServerMessage(null);
-          if (contextualHelp) {
+          if (contextualHelp && contextualHelp.reset) {
             contextualHelp.reset();
           }
           setShowHelpDialog(false);
@@ -5018,6 +5234,8 @@ function QuizRenderer({
     startQuestion: (questionId: string) => void;
     recordAnswer: (params: any) => void;
     recordSkip: (params: any) => void;
+    updateIncorrectAnswer?: (questionId: string, isIncorrect: boolean, errorContext?: any) => void;
+    reset?: () => void;
   };
 }) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
@@ -5029,6 +5247,11 @@ function QuizRenderer({
   const [serverMessage, setServerMessage] = useState<string | null>(null);
 
   const handleAnswerSelect = (questionId: string, answer: string | number) => {
+    // 🆕 Obtener respuesta anterior para detectar cambios
+    const previousAnswer = selectedAnswers[questionId];
+    const isChangingAnswer = previousAnswer !== undefined && previousAnswer !== answer;
+
+    // Actualizar estado inmediatamente
     setSelectedAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -5039,6 +5262,7 @@ function QuizRenderer({
       const question = normalizedQuizData.find(q => q.id === questionId);
       if (question) {
         const isCorrect = isAnswerCorrect(question, answer);
+        const wasCorrect = previousAnswer !== undefined ? isAnswerCorrect(question, previousAnswer) : null;
 
         // 🔥 Convertir opciones al formato requerido por la IA
         const formattedOptions = question.options.map((opt, idx) => ({
@@ -5046,6 +5270,48 @@ function QuizRenderer({
           text: opt
         }));
 
+        // 🆕 Si está cambiando de respuesta, actualizar el estado de incorrectas
+        if (isChangingAnswer && contextualHelp.updateIncorrectAnswer) {
+          if (isCorrect && wasCorrect === false) {
+            // Cambió de incorrecta a correcta - remover
+            contextualHelp.updateIncorrectAnswer(questionId, false);
+            console.log('✅ [QUIZ] Respuesta corregida, removiendo de incorrectas:', questionId);
+          } else if (!isCorrect && wasCorrect === true) {
+            // Cambió de correcta a incorrecta - agregar
+            const errorContext = {
+              questionId,
+              questionText: question.question || '',
+              questionType: (question.questionType as any) || 'multiple_choice',
+              selectedAnswer: answer,
+              correctAnswer: question.correctAnswer,
+              options: formattedOptions,
+              topic: 'Quiz',
+              difficulty: 'medium',
+              attemptNumber: 1,
+              courseContext: undefined
+            };
+            contextualHelp.updateIncorrectAnswer(questionId, true, errorContext);
+            console.log('❌ [QUIZ] Respuesta cambió a incorrecta, agregando:', questionId);
+          } else if (!isCorrect) {
+            // Nueva respuesta incorrecta
+            const errorContext = {
+              questionId,
+              questionText: question.question || '',
+              questionType: (question.questionType as any) || 'multiple_choice',
+              selectedAnswer: answer,
+              correctAnswer: question.correctAnswer,
+              options: formattedOptions,
+              topic: 'Quiz',
+              difficulty: 'medium',
+              attemptNumber: 1,
+              courseContext: undefined
+            };
+            contextualHelp.updateIncorrectAnswer(questionId, true, errorContext);
+            console.log('❌ [QUIZ] Nueva respuesta incorrecta detectada:', questionId);
+          }
+        }
+
+        // Registrar respuesta en el sistema (esto también actualiza el array internamente)
         contextualHelp.recordAnswer({
           questionId,
           questionText: question.question || '',
@@ -5061,6 +5327,8 @@ function QuizRenderer({
         console.log('📝 [CONTEXTUAL HELP] Respuesta registrada con opciones:', {
           questionId,
           isCorrect,
+          wasCorrect,
+          isChangingAnswer,
           selectedAnswer: answer,
           correctAnswer: question.correctAnswer,
           optionsCount: formattedOptions.length
@@ -5552,7 +5820,7 @@ function QuizRenderer({
                 setPointsEarned(0);
                 setSubmitError(null);
                 setServerMessage(null);
-                if (contextualHelp) {
+                if (contextualHelp && contextualHelp.reset) {
                   contextualHelp.reset();
                 }
                 console.log('🔄 Quiz reiniciado');
@@ -6509,7 +6777,13 @@ function ActivitiesContent({
                                 lessonId={lesson.lesson_id}
                                 slug={slug}
                                 materialId={material.material_id}
-                                contextualHelp={contextualHelp}
+                                contextualHelp={contextualHelp ? {
+                                  startQuestion: contextualHelp.startQuestion,
+                                  recordAnswer: contextualHelp.recordAnswer,
+                                  recordSkip: contextualHelp.recordSkip,
+                                  updateIncorrectAnswer: contextualHelp.updateIncorrectAnswer,
+                                  reset: contextualHelp.reset
+                                } : undefined}
                               />
                             );
                           }

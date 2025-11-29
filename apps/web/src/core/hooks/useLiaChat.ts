@@ -12,6 +12,7 @@ export interface UseLiaChatReturn {
   clearHistory: () => void;
   loadConversation: (conversationId: string) => Promise<void>;
   currentConversationId: string | null;
+  addMessage: (message: string, role?: 'user' | 'assistant') => void; // 🆕 Agregar mensaje directamente
 }
 
 export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
@@ -57,50 +58,84 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     setError(null);
 
     try {
+      const requestBody = {
+        message: message.trim(),
+        context: courseContext ? 'course' : 'general',
+        conversationHistory: messages.map(m => ({
+          role: m.role,
+          content: m.content
+        })),
+        // ✅ OPTIMIZACIÓN: Enviar información completa del usuario para evitar consulta a BD
+        userInfo: user ? {
+          display_name: user.display_name,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          username: user.username,
+          type_rol: user.type_rol
+        } : undefined,
+        // Mantener userName para compatibilidad con código existente
+        userName: user?.display_name || 
+                  (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+                  user?.first_name || 
+                  user?.username || 
+                  undefined,
+        courseContext: courseContext || undefined,
+        isSystemMessage: isSystemMessage,
+        // ✅ ANALYTICS: Enviar conversationId existente si lo hay
+        conversationId: conversationIdRef.current || undefined
+      };
+
+      console.log('📤 [LIA CHAT] Enviando mensaje a /api/ai-chat:', {
+        messageLength: requestBody.message.length,
+        messagePreview: requestBody.message.substring(0, 150),
+        context: requestBody.context,
+        hasCourseContext: !!requestBody.courseContext,
+        courseContextKeys: requestBody.courseContext ? Object.keys(requestBody.courseContext) : [],
+        courseContextDetails: requestBody.courseContext ? {
+          lessonId: requestBody.courseContext.lessonId,
+          lessonTitle: requestBody.courseContext.lessonTitle,
+          courseId: requestBody.courseContext.courseId,
+          courseTitle: requestBody.courseContext.courseTitle,
+          hasDifficultyDetected: !!requestBody.courseContext.difficultyDetected
+        } : null,
+        isSystemMessage: requestBody.isSystemMessage,
+        conversationHistoryLength: requestBody.conversationHistory.length,
+        hasConversationId: !!requestBody.conversationId
+      });
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: message.trim(),
-          context: courseContext ? 'course' : 'general',
-          conversationHistory: messages.map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          // ✅ OPTIMIZACIÓN: Enviar información completa del usuario para evitar consulta a BD
-          userInfo: user ? {
-            display_name: user.display_name,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            username: user.username,
-            type_rol: user.type_rol
-          } : undefined,
-          // Mantener userName para compatibilidad con código existente
-          userName: user?.display_name || 
-                    (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
-                    user?.first_name || 
-                    user?.username || 
-                    undefined,
-          courseContext: courseContext || undefined,
-          isSystemMessage: isSystemMessage,
-          // ✅ ANALYTICS: Enviar conversationId existente si lo hay
-          conversationId: conversationIdRef.current || undefined
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [LIA CHAT] Error en respuesta de /api/ai-chat:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 500)
+        });
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       
+      console.log('📨 [LIA CHAT] Respuesta recibida de /api/ai-chat:', {
+        hasResponse: !!data.response,
+        responseLength: data.response?.length || 0,
+        responsePreview: data.response?.substring(0, 200) || 'vacío',
+        hasConversationId: !!data.conversationId,
+        conversationId: data.conversationId
+      });
+      
       // ✅ ANALYTICS: Guardar conversationId que viene del backend
       if (data.conversationId && !conversationIdRef.current) {
         conversationIdRef.current = data.conversationId;
-        // console.log('[LIA Analytics] Nueva conversación iniciada:', data.conversationId);
+        console.log('🆔 [LIA CHAT] Nueva conversación iniciada:', data.conversationId);
       }
       
       const assistantMessage: LiaMessage = {
@@ -109,6 +144,12 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         content: data.response || 'Lo siento, no pude procesar tu mensaje en este momento.',
         timestamp: new Date()
       };
+
+      console.log('✅ [LIA CHAT] Mensaje de asistente agregado al chat:', {
+        messageId: assistantMessage.id,
+        messageLength: assistantMessage.content.length,
+        messagePreview: assistantMessage.content.substring(0, 150)
+      });
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (err) {
@@ -160,6 +201,19 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // 🆕 Función para agregar un mensaje directamente al chat (sin llamar a la API)
+  const addMessage = useCallback((message: string, role: 'user' | 'assistant' = 'assistant') => {
+    const newMessage: LiaMessage = {
+      id: Date.now().toString(),
+      role,
+      content: message.trim(),
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    console.log('💬 [LIA] Mensaje agregado directamente:', { role, messageLength: message.length });
   }, []);
 
   const clearHistory = useCallback(async () => {
@@ -225,7 +279,8 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     sendMessage,
     clearHistory,
     loadConversation,
-    currentConversationId: conversationIdRef.current
+    currentConversationId: conversationIdRef.current,
+    addMessage // 🆕
   };
 }
 
