@@ -143,9 +143,14 @@ export function InlineAttachmentButtons({
           return (
             <motion.button
               key={type.id}
+              type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleAttachmentTypeSelect(type)}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleAttachmentTypeSelect(type)
+              }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 group ${
                 type.id === 'image' 
                   ? 'bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 hover:text-pink-300' :
@@ -174,9 +179,14 @@ export function InlineAttachmentButtons({
           return (
             <motion.button
               key={type.id}
+              type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleAttachmentTypeSelect(type)}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleAttachmentTypeSelect(type)
+              }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 group ${
                 type.id === 'youtube'
                   ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300' :

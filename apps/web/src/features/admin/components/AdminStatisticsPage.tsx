@@ -49,6 +49,20 @@ export function AdminStatisticsPage() {
     fetchPreferences()
   }, [])
 
+  const getDefaultLayout = (): DashboardLayout => ({
+    id: null,
+    name: 'Dashboard por Defecto',
+    layout_config: {
+      widgets: [
+        { id: 'stats-cards', type: 'stats', position: { x: 0, y: 0, w: 12, h: 2 } },
+        { id: 'monthly-growth', type: 'monthly-growth', position: { x: 0, y: 2, w: 6, h: 4 } },
+        { id: 'content-distribution', type: 'content-distribution', position: { x: 6, y: 2, w: 6, h: 4 } },
+        { id: 'recent-activity', type: 'recent-activity', position: { x: 0, y: 6, w: 12, h: 3 } }
+      ]
+    },
+    is_default: true
+  })
+
   const fetchLayout = async () => {
     try {
       const response = await fetch('/api/admin/dashboard/layout')
@@ -58,22 +72,12 @@ export function AdminStatisticsPage() {
         setLayout(data.layout)
       } else {
         // Layout por defecto
-        setLayout({
-          id: null,
-          name: 'Dashboard por Defecto',
-          layout_config: {
-            widgets: [
-              { id: 'stats-cards', type: 'stats', position: { x: 0, y: 0, w: 12, h: 2 } },
-              { id: 'monthly-growth', type: 'monthly-growth', position: { x: 0, y: 2, w: 6, h: 4 } },
-              { id: 'content-distribution', type: 'content-distribution', position: { x: 6, y: 2, w: 6, h: 4 } },
-              { id: 'recent-activity', type: 'recent-activity', position: { x: 0, y: 6, w: 12, h: 3 } }
-            ]
-          },
-          is_default: true
-        })
+        setLayout(getDefaultLayout())
       }
     } catch (error) {
       console.error('Error fetching layout:', error)
+      // En caso de error, usar layout por defecto
+      setLayout(getDefaultLayout())
     } finally {
       setIsLoading(false)
     }

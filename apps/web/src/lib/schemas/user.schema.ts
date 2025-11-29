@@ -108,6 +108,13 @@ export const ChangePasswordSchema = z.object({
 }).refine((data) => data.new_password === data.confirm_password, {
   message: 'Las contraseñas no coinciden',
   path: ['confirm_password'],
+}).refine((data) => {
+  // Solo validar si ambos campos tienen valores
+  if (!data.current_password || !data.new_password) return true;
+  return data.new_password !== data.current_password;
+}, {
+  message: 'La nueva contraseña debe ser diferente a la contraseña actual',
+  path: ['new_password'],
 });
 
 /**

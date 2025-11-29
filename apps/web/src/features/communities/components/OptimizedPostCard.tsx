@@ -3,22 +3,27 @@
 import React, { memo } from 'react'
 import Image from 'next/image'
 import { useLazyImage } from '../../../core/hooks/useIntersectionObserver'
-import { User, Heart, MessageSquare, Share2, MoreHorizontal } from 'lucide-react'
+import { User, Heart, MessageSquare, Share2 } from 'lucide-react'
 import { sanitizePost } from '../../../lib/sanitize/html-sanitizer'
+import { PostMenu } from './PostMenu'
 
 interface OptimizedPostCardProps {
   post: any // Tipo flexible para aceptar diferentes estructuras de post
+  communitySlug?: string
   onReact?: () => void
   onComment?: () => void
   onShare?: () => void
+  onPostUpdate?: () => void
 }
 
 // Memoized para evitar re-renders innecesarios
 export const OptimizedPostCard = memo(function OptimizedPostCard({
   post,
+  communitySlug,
   onReact,
   onComment,
-  onShare
+  onShare,
+  onPostUpdate
 }: OptimizedPostCardProps) {
   const [imageRef, imageSrc, imageLoaded] = useLazyImage(post.image_url || '')
 
@@ -67,9 +72,14 @@ export const OptimizedPostCard = memo(function OptimizedPostCard({
             <p className="text-xs text-slate-400">{getTimeAgo(post.created_at)}</p>
           </div>
         </div>
-        <button className="text-slate-400 hover:text-white transition-colors">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+        {communitySlug && (
+          <PostMenu
+            post={post}
+            communitySlug={communitySlug}
+            onShare={onShare}
+            onPostUpdate={onPostUpdate}
+          />
+        )}
       </div>
 
       {/* Content */}

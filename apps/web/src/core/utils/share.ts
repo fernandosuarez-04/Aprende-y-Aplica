@@ -14,7 +14,7 @@ export interface ShareContent {
 /**
  * Genera una URL de compartir basada en el tipo de contenido
  */
-export function generateShareUrl(type: 'reel' | 'post' | 'article' | 'community', id: string, slug?: string): string {
+export function generateShareUrl(type: 'reel' | 'post' | 'article' | 'community' | 'certificate', id: string, slug?: string): string {
   const origin = typeof window !== 'undefined' ? getBaseUrl() : '';
   
   switch (type) {
@@ -26,6 +26,8 @@ export function generateShareUrl(type: 'reel' | 'post' | 'article' | 'community'
       return slug ? `${origin}/news/${slug}` : `${origin}/news/${id}`;
     case 'community':
       return `${origin}/communities/${slug || id}`;
+    case 'certificate':
+      return `${origin}/certificates/verify/${id}`;
     default:
       return `${origin}`;
   }
@@ -35,7 +37,7 @@ export function generateShareUrl(type: 'reel' | 'post' | 'article' | 'community'
  * Prepara datos de compartir para el modal
  */
 export function prepareShareData(
-  type: 'reel' | 'post' | 'article' | 'community',
+  type: 'reel' | 'post' | 'article' | 'community' | 'certificate',
   id: string,
   title: string,
   description?: string,

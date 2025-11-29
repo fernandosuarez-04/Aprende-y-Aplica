@@ -5,14 +5,15 @@ import { Settings, Save, RefreshCw } from 'lucide-react'
 
 // Importación dinámica de react-grid-layout para evitar problemas SSR
 let ResponsiveGridLayout: any = null
-let WidthProvider: any = null
+let ResponsiveLayoutWithWidth: any = null
 
 if (typeof window !== 'undefined') {
   try {
     const ReactGridLayout = require('react-grid-layout')
-    const RGL = ReactGridLayout.default || ReactGridLayout.Responsive
-    ResponsiveGridLayout = RGL
-    WidthProvider = ReactGridLayout.WidthProvider(RGL)
+    ResponsiveGridLayout = ReactGridLayout.Responsive || ReactGridLayout.default
+    if (ResponsiveGridLayout && ReactGridLayout.WidthProvider) {
+      ResponsiveLayoutWithWidth = ReactGridLayout.WidthProvider(ResponsiveGridLayout)
+    }
   } catch (error) {
     console.error('Error loading react-grid-layout:', error)
   }
@@ -198,45 +199,43 @@ export function DashboardLayoutManager({
       </div>
 
       {/* Contenedor con react-grid-layout */}
-      {typeof window !== 'undefined' && ResponsiveGridLayout && WidthProvider && widgets.length > 0 && currentLayout.length > 0 ? (
+      {typeof window !== 'undefined' && ResponsiveLayoutWithWidth && widgets.length > 0 && currentLayout.length > 0 ? (
         <div className="w-full">
-          <WidthProvider className="layout" cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={60}>
-            <ResponsiveGridLayout
-              className="layout"
-              layouts={{ lg: currentLayout }}
-              cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-              rowHeight={60}
-              isDraggable={isEditMode}
-              isResizable={isEditMode}
-              onLayoutChange={handleLayoutChange}
-              draggableHandle=".drag-handle"
-              margin={[24, 24]}
-              compactType={null}
-              preventCollision={false}
-            >
-              {widgets.map((widget) => {
-                // Obtener el child correspondiente del mapa
-                const child = childrenMap.get(widget.id)
-                
-                if (!child) {
-                  console.warn(`Widget ${widget.id} no tiene child correspondiente. Children disponibles:`, Array.from(childrenMap.keys()))
-                  return null
-                }
-                
-                // El key debe coincidir exactamente con el 'i' en el layout para que react-grid-layout funcione
-                return (
-                  <div key={widget.id} className="relative">
-                    {isEditMode && (
-                      <div className="drag-handle absolute top-2 right-2 cursor-move z-10 p-2 bg-blue-600 text-white rounded shadow-lg hover:bg-blue-700 transition-colors">
-                        <Settings className="w-4 h-4" />
-                      </div>
-                    )}
-                    {child}
-                  </div>
-                )
-              })}
-            </ResponsiveGridLayout>
-          </WidthProvider>
+          <ResponsiveLayoutWithWidth
+            className="layout"
+            layouts={{ lg: currentLayout }}
+            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+            rowHeight={60}
+            isDraggable={isEditMode}
+            isResizable={isEditMode}
+            onLayoutChange={handleLayoutChange}
+            draggableHandle=".drag-handle"
+            margin={[24, 24]}
+            compactType={null}
+            preventCollision={false}
+          >
+            {widgets.map((widget) => {
+              // Obtener el child correspondiente del mapa
+              const child = childrenMap.get(widget.id)
+              
+              if (!child) {
+                console.warn(`Widget ${widget.id} no tiene child correspondiente. Children disponibles:`, Array.from(childrenMap.keys()))
+                return null
+              }
+              
+              // El key debe coincidir exactamente con el 'i' en el layout para que react-grid-layout funcione
+              return (
+                <div key={widget.id} className="relative">
+                  {isEditMode && (
+                    <div className="drag-handle absolute top-2 right-2 cursor-move z-10 p-2 bg-blue-600 text-white rounded shadow-lg hover:bg-blue-700 transition-colors">
+                      <Settings className="w-4 h-4" />
+                    </div>
+                  )}
+                  {child}
+                </div>
+              )
+            })}
+          </ResponsiveLayoutWithWidth>
           <style dangerouslySetInnerHTML={{__html: `
             .react-grid-layout {
               position: relative;
@@ -296,23 +295,21 @@ export function DashboardLayoutManager({
       ) : widgets.length > 0 ? (
         // Fallback cuando react-grid-layout no está disponible pero hay widgets
         <div className="grid grid-cols-12 gap-6">
-          {React.Children.map(children, (child, index) => {
-            if (React.isValidElement(child)) {
-              const widget = widgets[index]
-              if (widget) {
-                const colSpan = widget.position.w
-                return (
-                  <div 
-                    key={widget.id} 
-                    className="relative"
-                    style={{ gridColumn: `span ${colSpan}` }}
-                  >
-                    {child}
-                  </div>
-                )
-              }
+          {widgets.map((widget) => {
+            const child = childrenMap.get(widget.id)
+            if (!child) {
+              return null
             }
-            return child
+            const colSpan = widget.position.w
+            return (
+              <div 
+                key={widget.id} 
+                className="relative"
+                style={{ gridColumn: `span ${colSpan}` }}
+              >
+                {child}
+              </div>
+            )
           })}
         </div>
       ) : (

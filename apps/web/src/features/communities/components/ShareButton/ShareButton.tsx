@@ -36,7 +36,8 @@ export function ShareButton({ postId, postContent, communityName, communitySlug 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const postUrl = `${getBaseUrl()}/communities/${communitySlug}#post-${postId}`;
+  // Usar el ID del post para la URL
+  const postUrl = `${getBaseUrl()}/communities/${communitySlug}/posts/${postId}`;
   const shareText = `Mira este post de ${communityName}: "${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}"`;
 
   const shareOptions = [
