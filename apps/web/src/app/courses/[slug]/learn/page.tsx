@@ -6611,10 +6611,6 @@ function ActivitiesContent({
   lesson,
   slug,
   onPromptsChange,
-function ActivitiesContent({
-  lesson,
-  slug,
-  onPromptsChange,
   onStartInteraction,
   userRole,
   generateRoleBasedPrompts,

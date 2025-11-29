@@ -24,7 +24,8 @@
       "Bash(types_new.ts)",
       "Bash(tee:*)",
       "Bash(NODE_OPTIONS='--trace-warnings' npm run build:*)",
-      "Bash(set NODE_OPTIONS=--trace-warnings)"
+      "Bash(set NODE_OPTIONS=--trace-warnings)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

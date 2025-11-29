@@ -177,10 +177,6 @@ export interface Database {
           updated_at?: string
         }
       }
-    }
-    Views: {
-      [_ in never]: never
-      }
       news: {
         Row: {
           id: string
@@ -239,6 +235,9 @@ export interface Database {
           updated_at?: string
         }
       }
+    }
+    Views: {
+      [_ in never]: never
     }
     Functions: {
       [_ in never]: never
