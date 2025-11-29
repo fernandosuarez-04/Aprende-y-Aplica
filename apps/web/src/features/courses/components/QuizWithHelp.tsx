@@ -92,9 +92,9 @@ export function QuizWithHelp({
     enableAIHelp,
     analysisInterval: 15000, // Analizar cada 15 segundos
     detectionConfig: {
-      maxAttemptsBeforeIntervention: 3,
+      maxAttemptsBeforeIntervention: 1, // 🔥 Ayuda inmediata en el primer error
       skipThreshold: 2,
-      repeatedMistakeThreshold: 2,
+      repeatedMistakeThreshold: 1, // Detectar errores repetidos más rápido
       timeThresholdMs: 5000
     },
     onHelpNeeded: (analysis) => {
@@ -195,7 +195,7 @@ export function QuizWithHelp({
   };
 
   /**
-   * Resetea el quiz
+   * Resetea el quiz completo
    */
   const handleRestart = () => {
     setCurrentQuestionIndex(0);
@@ -203,6 +203,28 @@ export function QuizWithHelp({
     setAnsweredQuestions(new Set());
     setShowResults(false);
     contextualHelp.reset();
+  };
+
+  /**
+   * Permite reintentar la pregunta actual después de recibir ayuda
+   */
+  const handleRetryCurrentQuestion = () => {
+    if (!currentQuestion) return;
+
+    // Eliminar la respuesta actual
+    const newAnswers = { ...userAnswers };
+    delete newAnswers[currentQuestion.id];
+    setUserAnswers(newAnswers);
+
+    // Remover de preguntas respondidas
+    const newAnsweredQuestions = new Set(answeredQuestions);
+    newAnsweredQuestions.delete(currentQuestion.id);
+    setAnsweredQuestions(newAnsweredQuestions);
+
+    // Cerrar el dialog de ayuda
+    contextualHelp.dismissHelp();
+
+    console.log('🔄 Reintentando pregunta:', currentQuestion.id);
   };
 
   // Calcular progreso
@@ -394,6 +416,7 @@ export function QuizWithHelp({
         onClose={contextualHelp.dismissHelp}
         onAccept={contextualHelp.acceptHelp}
         helpData={contextualHelp.helpData}
+        onRetry={handleRetryCurrentQuestion} // 🆕 Permite reintentar la pregunta
         onActionClick={(actionType, data) => {
           console.log('Acción clickeada:', actionType, data);
         }}

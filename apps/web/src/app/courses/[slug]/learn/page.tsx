@@ -4390,6 +4390,19 @@ Antes de cada respuesta, pregúntate:
               break;
           }
         }}
+        onRetry={() => {
+          setSelectedAnswers({});
+          setShowResults(false);
+          setScore(0);
+          setPointsEarned(0);
+          setSubmitError(null);
+          setServerMessage(null);
+          if (contextualHelp) {
+            contextualHelp.reset();
+          }
+          setShowHelpDialog(false);
+          console.log('🔄 Quiz reiniciado desde ayuda contextual');
+        }}
       />
     </div>
     </WorkshopLearningProvider>
@@ -5034,11 +5047,17 @@ function QuizRenderer({
       [questionId]: answer
     }));
 
-    // ✨ NUEVO: Registrar intento en sistema de ayuda contextual
+    // ✨ NUEVO: Registrar intento en sistema de ayuda contextual con IA
     if (contextualHelp && !showResults) {
       const question = normalizedQuizData.find(q => q.id === questionId);
       if (question) {
         const isCorrect = isAnswerCorrect(question, answer);
+
+        // 🔥 Convertir opciones al formato requerido por la IA
+        const formattedOptions = question.options.map((opt, idx) => ({
+          id: idx,
+          text: opt
+        }));
 
         contextualHelp.recordAnswer({
           questionId,
@@ -5047,15 +5066,17 @@ function QuizRenderer({
           selectedAnswer: answer,
           correctAnswer: question.correctAnswer,
           isCorrect,
+          options: formattedOptions, // 🆕 Opciones para que la IA genere ayuda específica
           topic: 'Quiz', // Puedes personalizar esto según tu estructura de datos
           difficulty: 'medium' // Puedes personalizar esto según tu estructura de datos
         });
 
-        console.log('📝 [CONTEXTUAL HELP] Respuesta registrada:', {
+        console.log('📝 [CONTEXTUAL HELP] Respuesta registrada con opciones:', {
           questionId,
           isCorrect,
           selectedAnswer: answer,
-          correctAnswer: question.correctAnswer
+          correctAnswer: question.correctAnswer,
+          optionsCount: formattedOptions.length
         });
       }
     }
@@ -5511,6 +5532,29 @@ function QuizRenderer({
             <p className="text-gray-700 dark:text-slate-200 text-sm">
               Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
             </p>
+
+            {/* 🆕 Botón para reiniciar el quiz */}
+            <button
+              onClick={() => {
+                // Resetear todo el estado del quiz
+                setSelectedAnswers({});
+                setShowResults(false);
+                setScore(0);
+                setPointsEarned(0);
+                setSubmitError(null);
+                setServerMessage(null);
+                if (contextualHelp) {
+                  contextualHelp.reset();
+                }
+                console.log('🔄 Quiz reiniciado');
+              }}
+              className="mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-lg flex items-center gap-2 mx-auto"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              🔄 Reiniciar Quiz
+            </button>
           </div>
         </div>
       )}

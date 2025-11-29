@@ -34,6 +34,7 @@ interface ContextualHelpDialogProps {
   onAccept: () => void;
   helpData: HelpData | null;
   onActionClick?: (actionType: string, data?: any) => void;
+  onRetry?: () => void; // 🆕 Callback para reintentar la pregunta
 }
 
 export function ContextualHelpDialog({
@@ -41,7 +42,8 @@ export function ContextualHelpDialog({
   onClose,
   onAccept,
   helpData,
-  onActionClick
+  onActionClick,
+  onRetry
 }: ContextualHelpDialogProps) {
   if (!helpData) return null;
 
@@ -310,23 +312,57 @@ export function ContextualHelpDialog({
                 )}
 
                 {/* Botones de acción */}
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={onClose}
-                    className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
-                  >
-                    Ahora no
-                  </button>
-                  <button
-                    onClick={() => {
-                      onAccept();
-                      onClose();
-                    }}
-                    className={`flex-1 px-4 py-2.5 bg-${priorityColor}-600 hover:bg-${priorityColor}-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-${priorityColor}-500/30`}
-                  >
-                    ✨ Obtener Ayuda
-                  </button>
-                </div>
+                {helpData.aiHelp && onRetry ? (
+                  // 🆕 Botones cuando hay ayuda con IA: Cerrar, Reintentar, Continuar
+                  <div className="space-y-3 mt-6">
+                    <button
+                      onClick={onRetry}
+                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      🔄 Reintentar esta pregunta
+                    </button>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={onClose}
+                        className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
+                      >
+                        Ahora no
+                      </button>
+                      <button
+                        onClick={() => {
+                          onAccept();
+                          onClose();
+                        }}
+                        className={`flex-1 px-4 py-2.5 bg-${priorityColor}-600 hover:bg-${priorityColor}-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-${priorityColor}-500/30`}
+                      >
+                        ➡️ Continuar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Botones originales cuando no hay opción de reintentar
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={onClose}
+                      className="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
+                    >
+                      Ahora no
+                    </button>
+                    <button
+                      onClick={() => {
+                        onAccept();
+                        onClose();
+                      }}
+                      className={`flex-1 px-4 py-2.5 bg-${priorityColor}-600 hover:bg-${priorityColor}-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-${priorityColor}-500/30`}
+                    >
+                      ✨ Obtener Ayuda
+                    </button>
+                  </div>
+                )}
 
                 {/* Nota adicional */}
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
