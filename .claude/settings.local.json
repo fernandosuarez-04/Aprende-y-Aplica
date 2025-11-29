@@ -14,7 +14,8 @@
       "Bash(if exist \".next\" rmdir /s /q \".next\")",
       "Bash(powershell:*)",
       "Bash(npm install:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npm run type-check:*)"
     ],
     "deny": [],
     "ask": []

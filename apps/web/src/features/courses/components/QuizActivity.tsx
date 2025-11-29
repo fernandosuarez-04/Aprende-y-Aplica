@@ -172,10 +172,17 @@ export function QuizActivity({
   }
 
   // Renderizar quiz con sistema de ayuda inteligente
+  // 🔍 Debug: Verificar datos de la actividad
+  console.log('🔍 [DEBUG] QuizActivity - activity:', {
+    activity_id: activity.activity_id,
+    activity_title: activity.activity_title,
+    fullActivity: activity
+  });
+
   return (
     <QuizWithHelp
       questions={questions}
-      activityId={activity.activity_id}
+      activityId={activity.activity_id || 'quiz-unknown'}
       workshopId={slug}
       courseContext={{
         courseName: lesson.course_name || 'Curso',

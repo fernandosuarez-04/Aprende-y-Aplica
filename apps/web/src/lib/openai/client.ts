@@ -22,9 +22,19 @@ export function getOpenAIClient(): OpenAI {
     return openaiClient;
   }
 
+  // 🔍 Debug: Verificar variables de entorno
+  console.log('🔍 [DEBUG] Variables de entorno:', {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'Configurada' : 'No configurada',
+    NEXT_PUBLIC_OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY ? 'Configurada' : 'No configurada',
+    has_OPENAI: !!process.env.OPENAI_API_KEY,
+    has_NEXT_PUBLIC: !!process.env.NEXT_PUBLIC_OPENAI_API_KEY
+  });
+
   const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
   if (!apiKey) {
+    console.error('❌ [ERROR] No se encontró ninguna API key de OpenAI');
+    console.error('process.env:', Object.keys(process.env).filter(k => k.includes('OPENAI')));
     throw new Error(
       'OPENAI_API_KEY no está configurada. ' +
       'Por favor, agrega OPENAI_API_KEY a tu archivo .env.local'

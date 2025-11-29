@@ -264,7 +264,7 @@ export function ContextualHelpDialog({
                 )}
 
                 {/* Acciones Recomendadas */}
-                {helpData.recommendedActions.length > 0 && (
+                {helpData.recommendedActions?.length > 0 && (
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                       🎯 Acciones Recomendadas

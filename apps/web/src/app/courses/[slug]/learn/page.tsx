@@ -64,8 +64,9 @@ import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 // ✨ NUEVO: Sistema de ayuda contextual hiperpersonalizada
-import { useContextualHelp } from '../../../../hooks/useContextualHelp';
+import { useContextualHelp } from '@/hooks/useContextualHelp';
 import { ContextualHelpDialog } from '../../../../features/courses/components/ContextualHelpDialog';
+import { QuizActivity } from '../../../../features/courses/components/QuizActivity';
 // 🎥 Session Recording para análisis de dificultad
 import { useSessionRecorder } from '../../../../lib/rrweb/use-session-recorder';
 
@@ -118,6 +119,7 @@ interface ActivityItemProps {
   slug: string;
   quizStatus: any;
   contextualHelp: any;
+  user: any;
 }
 
 const ActivityItem: React.FC<ActivityItemProps> = ({
@@ -127,7 +129,8 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
   lesson,
   slug,
   quizStatus,
-  contextualHelp
+  contextualHelp,
+  user
 }) => {
   // 🎥 Session Recording TEMPORALMENTE DESHABILITADO - Para evitar errores de hooks
   // TODO: Implementar session recording en el futuro si es necesario
@@ -179,35 +182,18 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
           {/* 🆕 Sistema de Ayuda Inteligente Integrado */}
           {activity.activity_type === 'quiz' ? (
             // Quiz con ayuda hiperpersonalizada con IA
-            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r-lg mb-4">
-              <h5 className="text-blue-900 dark:text-blue-300 font-semibold mb-2 flex items-center gap-2">
-                🤖 Sistema de Ayuda Inteligente Activado
-              </h5>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                Este quiz cuenta con ayuda hiperpersonalizada con IA. Si te equivocas,
-                el sistema detectará automáticamente tu error y te dará pistas específicas
-                para que aprendas sin revelar la respuesta correcta.
+            <QuizActivity
+              activity={activity}
+              lesson={lesson}
+              slug={slug}
+              user={user}
+            />
+          ) : (
+            // Otras actividades (placeholder por ahora)
+            <div>
+              <p className="text-gray-600 dark:text-slate-400">
+                Contenido de la actividad: {activity.activity_type}
               </p>
-            </div>
-          ) : null}
-
-          <p className="text-gray-600 dark:text-slate-400">
-            Contenido de la actividad: {activity.activity_type}
-          </p>
-
-          {/* Mensaje informativo para quiz */}
-          {activity.activity_type === 'quiz' && (
-            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                📝 <strong>Próximamente:</strong> El quiz interactivo se mostrará aquí con:
-              </p>
-              <ul className="mt-2 ml-6 text-sm text-gray-600 dark:text-gray-400 list-disc space-y-1">
-                <li>Detección automática de errores</li>
-                <li>Ayuda hiperpersonalizada con IA</li>
-                <li>Pistas específicas según tu error</li>
-                <li>Explicaciones paso a paso</li>
-                <li>Sistema proactivo de aprendizaje</li>
-              </ul>
             </div>
           )}
         </div>
@@ -3309,6 +3295,7 @@ Antes de cada respuesta, pregúntate:
                         t={t}
                         language={i18n.language}
                         contextualHelp={contextualHelp}
+                        user={user}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -5229,6 +5216,28 @@ function QuizRenderer({
       setPointsEarned(points);
       setShowResults(true);
 
+      // 🆘 Forzar ayuda contextual si el usuario falla el quiz
+      const totalQuestions = normalizedQuizData.length;
+      const percentage = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0;
+      const passingThreshold = 80;
+      const passed = percentage >= passingThreshold;
+      if (contextualHelp && !passed) {
+        // Forzar el análisis contextual y mostrar el modal igual que cuando se detecta dificultad
+        if (typeof contextualHelp.analyzeAndDetect === 'function') {
+          contextualHelp.analyzeAndDetect();
+          setTimeout(() => {
+            if (typeof contextualHelp.setShouldShowHelp === 'function') {
+              contextualHelp.setShouldShowHelp(true);
+            }
+          }, 500);
+        } else {
+          // Si no existe el método, intentar actualizar el estado manualmente
+          try {
+            contextualHelp.shouldShowHelp = true;
+          } catch (e) {}
+        }
+      }
+
       // Si tenemos lessonId y slug, guardar en la base de datos
       if (lessonId && slug) {
         try {
@@ -5989,7 +5998,8 @@ function ActivitiesContent({
   generateRoleBasedPrompts,
   t,
   language,
-  contextualHelp
+  contextualHelp,
+  user
 }: {
   lesson: Lesson;
   slug: string;
@@ -6000,6 +6010,7 @@ function ActivitiesContent({
   t: (key: string) => string;
   language: string;
   contextualHelp: any;
+  user: any;
 }) {
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -6335,6 +6346,7 @@ function ActivitiesContent({
                   slug={slug}
                   quizStatus={quizStatus}
                   contextualHelp={contextualHelp}
+                  user={user}
                 />
               );
             })}
@@ -6491,12 +6503,13 @@ function ActivitiesContent({
 
                           if (hasValidStructure) {
                             return (
-                              <QuizRenderer 
-                                quizData={questionsArray} 
+                              <QuizRenderer
+                                quizData={questionsArray}
                                 totalPoints={totalPoints}
                                 lessonId={lesson.lesson_id}
                                 slug={slug}
                                 materialId={material.material_id}
+                                contextualHelp={contextualHelp}
                               />
                             );
                           }
