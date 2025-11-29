@@ -36,6 +36,22 @@ export async function GET(
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 
+    // Si hay usuario autenticado, verificar si necesita completar el cuestionario
+    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
+    if (user) {
+      const { QuestionnaireValidationService } = await import('../../../../../features/auth/services/questionnaire-validation.service');
+      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+      
+      if (requiresQuestionnaire) {
+        logger.log('🔒 User needs to complete questionnaire before accessing community posts');
+        return NextResponse.json({ 
+          error: 'Debes completar el cuestionario de Mis Estadísticas antes de acceder a comunidades',
+          requiresQuestionnaire: true,
+          redirectUrl: '/statistics'
+        }, { status: 403 });
+      }
+    }
+
     // Verificar acceso según el tipo de comunidad
     if (community.access_type === 'invitation_only') {
       if (!user) {
@@ -191,6 +207,19 @@ export async function POST(
     
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // Verificar si el usuario necesita completar el cuestionario
+    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
+    const { QuestionnaireValidationService } = await import('../../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de Mis Estadísticas antes de crear posts en comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
     }
 
     const { title, content, attachment_url, attachment_type, attachment_data } = await request.json();

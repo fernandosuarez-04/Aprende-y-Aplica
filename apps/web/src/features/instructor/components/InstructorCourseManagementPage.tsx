@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, Trash2, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Award } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, FileText, ClipboardList, Book, Settings, Eye, Edit3, Trash2, BarChart3, TrendingUp, Users, LayoutDashboard, Users2, DollarSign, Star, Sigma, Briefcase, LineChart as LineChartIcon, ListChecks, Award, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { EnrollmentTrendChart, ProgressDistributionChart, EngagementScatterChart, CompletionRateChart, DonutPieChart } from '@/features/admin/components/AdvancedCharts'
 import { useInstructorModules } from '@/features/instructor/hooks/useInstructorModules'
 import { useInstructorLessons } from '@/features/instructor/hooks/useInstructorLessons'
@@ -18,6 +18,7 @@ import { ActivityModal } from '@/features/admin/components/ActivityModal'
 import { ImageUploadCourse } from './ImageUploadCourse'
 import { CertificateTemplatePreview } from '@/features/admin/components/CertificateTemplatePreview'
 import { InstructorSignatureUpload } from './InstructorSignatureUpload'
+import { CourseSkillsSelector, CourseSkill } from '@/features/courses/components/CourseSkillsSelector'
 
 interface InstructorCourseManagementPageProps {
   courseId: string
@@ -42,6 +43,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false)
   const [deletingLesson, setDeletingLesson] = useState<AdminLesson | null>(null)
   const [showDeleteLessonModal, setShowDeleteLessonModal] = useState(false)
+  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useInstructorModules()
   const { lessons, loading: lessonsLoading, fetchLessons, createLesson, updateLesson, deleteLesson } = useInstructorLessons(courseId)
@@ -60,6 +63,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   const [selectedCertificateTemplate, setSelectedCertificateTemplate] = useState<string>('default')
   const [instructorSignatureUrl, setInstructorSignatureUrl] = useState<string | null>(null)
   const [instructorSignatureName, setInstructorSignatureName] = useState<string | null>(null)
+  const [courseSkills, setCourseSkills] = useState<CourseSkill[]>([])
+  const [savingSkills, setSavingSkills] = useState(false)
   const [configData, setConfigData] = useState({
     title: '',
     description: '',
@@ -147,6 +152,22 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
     }
   }, [activeTab, courseId])
 
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current)
+      }
+    }
+  }, [])
+
+  const showFeedbackMessage = (type: 'success' | 'error', message: string) => {
+    setFeedbackMessage({ type, message })
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current)
+    }
+    feedbackTimerRef.current = setTimeout(() => setFeedbackMessage(null), 4000)
+  }
+
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setConfigData(prev => ({ ...prev, [name]: name === 'price' || name === 'duration_total_minutes' ? Number(value) : value }))
@@ -165,14 +186,37 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
         const data = await res.json().catch(() => ({}))
         throw new Error(data?.error || 'Error al guardar la configuración')
       }
+      // Guardar skills
+      await handleSaveSkills()
       // refrescar preview
       const refreshed = await fetch(`/api/instructor/workshops/${courseId}`).then(r => r.json())
       if (refreshed?.workshop) setWorkshopPreview(refreshed.workshop)
-      alert('Configuración guardada')
+      showFeedbackMessage('success', 'Configuración guardada correctamente')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al guardar')
+      showFeedbackMessage('error', err instanceof Error ? err.message : 'Error al guardar la configuración')
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  const handleSaveSkills = async () => {
+    try {
+      setSavingSkills(true)
+      const res = await fetch(`/api/courses/${courseId}/skills`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skills: courseSkills }),
+        credentials: 'include'
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Error al guardar skills')
+      }
+    } catch (err) {
+      console.error('Error saving skills:', err)
+      throw err
+    } finally {
+      setSavingSkills(false)
     }
   }
 
@@ -207,6 +251,29 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/10 to-gray-900">
+      {feedbackMessage && (
+        <div className="fixed top-4 right-4 z-50">
+          <div
+            className={`flex items-start gap-3 rounded-2xl px-4 py-3 shadow-2xl border backdrop-blur-md transition-all duration-300 ${
+              feedbackMessage.type === 'success'
+                ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-100'
+                : 'bg-rose-500/15 border-rose-400/40 text-rose-100'
+            }`}
+          >
+            {feedbackMessage.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-300 flex-shrink-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-rose-300 flex-shrink-0" />
+            )}
+            <div>
+              <p className="font-semibold text-sm">
+                {feedbackMessage.type === 'success' ? '¡Configuración guardada!' : 'No pudimos completar la acción'}
+              </p>
+              <p className="text-sm opacity-90">{feedbackMessage.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <button
@@ -559,6 +626,20 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                 <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                   <label className="block text-sm font-medium text-purple-200 mb-2">Slug (URL)</label>
                   <input name="slug" value={configData.slug} onChange={handleConfigChange} className="w-full rounded-lg bg-gray-900 border border-purple-800/40 text-white px-4 py-2" />
+                </div>
+                <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
+                  <label className="block text-sm font-medium text-purple-200 mb-4">
+                    Skills que se Aprenden en este Curso
+                  </label>
+                  <p className="text-xs text-purple-300/70 mb-4">
+                    Selecciona las skills que los estudiantes obtendrán al completar este curso. Estas aparecerán en su perfil.
+                  </p>
+                  <CourseSkillsSelector
+                    courseId={courseId}
+                    selectedSkills={courseSkills}
+                    onSkillsChange={setCourseSkills}
+                    disabled={savingConfig || savingSkills}
+                  />
                 </div>
               </div>
               <div className="space-y-4">
@@ -1122,8 +1203,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       setShowDeleteModuleModal(false)
                       setDeletingModule(null)
                     } catch (error) {
-                      // console.error('Error deleting module:', error)
-                      alert('Error al eliminar el módulo')
+                      showFeedbackMessage('error', 'No se pudo eliminar el módulo')
                     }
                   }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"
@@ -1164,8 +1244,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       setShowDeleteLessonModal(false)
                       setDeletingLesson(null)
                     } catch (error) {
-                      // console.error('Error deleting lesson:', error)
-                      alert('Error al eliminar la lección')
+                      showFeedbackMessage('error', 'No se pudo eliminar la lección')
                     }
                   }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"

@@ -1,10 +1,12 @@
  'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { dedupedFetch } from '../../../../lib/supabase/request-deduplication';
+import { createClient } from '../../../../lib/supabase/client';
 import {
   Play,
   BookOpen,
@@ -48,8 +50,10 @@ import {
   History,
   Edit2,
   MoreVertical,
+  RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
-import { UserDropdown } from '../../../../core/components/UserDropdown';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
@@ -682,6 +686,20 @@ export default function CourseLearnPage() {
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [showLiaMenu, setShowLiaMenu] = useState(false);
+  const [liaMenuPosition, setLiaMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+  // Calcular posición del menú cuando se abre
+  useEffect(() => {
+    if (showLiaMenu && liaMenuButtonRef.current) {
+      const buttonRect = liaMenuButtonRef.current.getBoundingClientRect();
+      setLiaMenuPosition({
+        top: buttonRect.bottom + 8, // 8px de margen (mt-2)
+        right: window.innerWidth - buttonRect.right
+      });
+    } else {
+      setLiaMenuPosition(null);
+    }
+  }, [showLiaMenu]);
 
   // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
   const [userBehaviorLog, setUserBehaviorLog] = useState<Array<{
@@ -822,31 +840,40 @@ export default function CourseLearnPage() {
       (item) => item.lesson.lesson_id === lesson.lesson_id
     );
 
-    // Si se está avanzando, validar antes de cambiar
+    // 🚀 OPTIMISTIC UPDATE: Cambiar INMEDIATAMENTE (antes de validar)
     if (selectedIndex > currentIndex) {
-      const canComplete = await markLessonAsCompleted(currentLesson.lesson_id);
-      
-      // Solo cambiar de lección si se pudo completar la actual
-      if (canComplete) {
-        setCurrentLesson(lesson);
-        setActiveTab('video');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        trackUserAction('lesson_opened', {
-          lessonId: lesson.lesson_id,
-          lessonTitle: lesson.lesson_title
-        });
-      } else {
-        // Track que se bloqueó el cambio
-        trackUserAction('attempted_locked_lesson', {
-          targetLessonId: lesson.lesson_id,
-          targetLessonTitle: lesson.lesson_title,
-          reason: 'previous_lesson_not_completed'
-        });
-      }
+      // Guardar lección previa para poder revertir si falla
+      const previousLesson = currentLesson;
+
+      // CAMBIO INSTANTÁNEO (UI no se bloquea)
+      setCurrentLesson(lesson);
+      setActiveTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      trackUserAction('lesson_opened', {
+        lessonId: lesson.lesson_id,
+        lessonTitle: lesson.lesson_title
+      });
+
+      // VALIDAR en segundo plano (async, no bloquea UI)
+      markLessonAsCompleted(previousLesson.lesson_id).then(canComplete => {
+        // Si falla la validación, REVERTIR cambio
+        if (!canComplete) {
+          console.warn('❌ Validación falló, revirtiendo a lección anterior');
+          setCurrentLesson(previousLesson);
+          setActiveTab('video');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          trackUserAction('attempted_locked_lesson', {
+            targetLessonId: lesson.lesson_id,
+            targetLessonTitle: lesson.lesson_title,
+            reason: 'previous_lesson_not_completed'
+          });
+        }
+      });
       return;
     }
-    
-    // Si se está retrocediendo o es la misma, cambiar directamente
+
+    // Si se está retrocediendo, cambiar directamente (sin validación)
     setCurrentLesson(lesson);
     setActiveTab('video');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -880,7 +907,10 @@ export default function CourseLearnPage() {
 
   // Callback memoizado para evitar loops infinitos
   const handlePromptsChange = useCallback((prompts: string[]) => {
+    console.log('[handlePromptsChange] Recibiendo prompts:', prompts.length);
+    console.log('[handlePromptsChange] Prompts recibidos:', prompts);
     setCurrentActivityPrompts(prompts);
+    console.log('[handlePromptsChange] Estado actualizado');
   }, []);
 
   // Detectar tamaño de pantalla y ajustar estado inicial de paneles
@@ -1428,7 +1458,14 @@ export default function CourseLearnPage() {
     activityTitle: string,
     userRole?: string
   ): Promise<string[]> => {
+    console.log('[generateRoleBasedPrompts] Iniciando con:', {
+      basePrompts: basePrompts.length,
+      activityTitle,
+      userRole
+    });
+
     if (!userRole || basePrompts.length === 0) {
+      console.log('[generateRoleBasedPrompts] Sin rol o sin prompts base, retornando originales');
       return basePrompts; // Retornar prompts originales si no hay rol
     }
 
@@ -1452,6 +1489,8 @@ INSTRUCCIONES:
 
 PROMPTS ADAPTADOS:`;
 
+      console.log('[generateRoleBasedPrompts] Llamando a /api/ai-chat...');
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -1465,12 +1504,16 @@ PROMPTS ADAPTADOS:`;
         }),
       });
 
+      console.log('[generateRoleBasedPrompts] Respuesta HTTP:', response.status, response.statusText);
+
       if (!response.ok) {
+        console.warn('[generateRoleBasedPrompts] Respuesta no OK, usando fallback');
         return basePrompts; // Fallback a prompts originales
       }
 
       const data = await response.json();
       const generatedText = data.response || '';
+      console.log('[generateRoleBasedPrompts] Texto generado:', generatedText.substring(0, 200) + '...');
 
       // Extraer prompts de la respuesta (cada línea es un prompt)
       const adaptedPrompts = generatedText
@@ -1479,9 +1522,17 @@ PROMPTS ADAPTADOS:`;
         .filter((line: string) => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
         .slice(0, basePrompts.length); // Limitar al número de prompts originales
 
-      return adaptedPrompts.length > 0 ? adaptedPrompts : basePrompts;
+      console.log('[generateRoleBasedPrompts] Prompts adaptados extraídos:', adaptedPrompts.length);
+
+      if (adaptedPrompts.length === 0) {
+        console.warn('[generateRoleBasedPrompts] No se extrajeron prompts, usando originales');
+        return basePrompts;
+      }
+
+      console.log('[generateRoleBasedPrompts] ✓ Personalización exitosa');
+      return adaptedPrompts;
     } catch (error) {
-      console.error('Error generando prompts adaptados:', error);
+      console.error('[generateRoleBasedPrompts] ✗ Error:', error);
       return basePrompts; // Fallback a prompts originales
     }
   }, []); // Sin dependencias ya que no usa variables del scope
@@ -2038,17 +2089,21 @@ Antes de cada respuesta, pregúntate:
 
           // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
           if (learnData.lastWatchedLessonId && allLessons.length > 0) {
+            console.log('🎯 Auto-redirección: lastWatchedLessonId =', learnData.lastWatchedLessonId);
             const lastWatchedLesson = allLessons.find(
               (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
             );
             if (lastWatchedLesson) {
+              console.log('✅ Auto-redirección: Redirigiendo a lección', lastWatchedLesson.lesson_title);
               setCurrentLesson(lastWatchedLesson);
-            } else if (allLessons.length > 0) {
+            } else {
+              console.log('⚠️ Auto-redirección: No se encontró la lección. Usando fallback.');
               // Fallback: primera lección no completada o primera lección
               const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
               setCurrentLesson(nextIncomplete || allLessons[0]);
             }
           } else if (allLessons.length > 0) {
+            console.log('ℹ️ Auto-redirección: No hay lastWatchedLessonId. Cargando primera lección incompleta.');
             // Si no hay último video visto, cargar primera lección no completada o primera lección
             const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
             setCurrentLesson(nextIncomplete || allLessons[0]);
@@ -2085,25 +2140,27 @@ Antes de cada respuesta, pregúntate:
     }
   }, [slug, i18n.language]);
 
-  // Cargar notas cuando cambia la lección actual
-  useEffect(() => {
-    if (currentLesson && slug) {
-      loadLessonNotes(currentLesson.lesson_id, slug);
-    }
-  }, [currentLesson?.lesson_id, slug]);
+  // 🚀 LAZY LOADING: Las notas se cargan SOLO cuando el usuario abre el panel de notas
+  // (Eliminado useEffect que cargaba notas automáticamente al cambiar de lección)
 
-  // ⚡ OPTIMIZACIÓN: Actualizar last_accessed_at cuando se carga una lección
+  // ⚡ FIRE-AND-FORGET: Actualizar last_accessed_at en segundo plano (no bloquea UI)
   useEffect(() => {
     if (currentLesson && slug) {
-      // Actualizar last_accessed_at en segundo plano (no bloquear UI)
+      // Fire-and-forget: No esperar respuesta, no manejar errores
       fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-      }).catch(() => {
-        // Ignorar errores, es solo para tracking
-      });
+      }).catch(() => null); // Ignorar errores silenciosamente
     }
   }, [currentLesson?.lesson_id, slug]);
+
+  // 🚀 LAZY LOADING: Cargar notas SOLO cuando el usuario expande el panel de notas
+  useEffect(() => {
+    if (!isNotesCollapsed && currentLesson && slug && savedNotes.length === 0) {
+      // Solo cargar si el panel está expandido, hay lección actual y no hay notas cargadas
+      loadLessonNotes(currentLesson.lesson_id, slug);
+    }
+  }, [isNotesCollapsed, currentLesson?.lesson_id, slug]);
 
   // ⚡ OPTIMIZACIÓN: Eliminado prefetch waterfall - datos ya vienen del endpoint unificado
   // El endpoint /learn-data ya incluye transcript, summary, activities, materials y questions
@@ -2162,68 +2219,60 @@ Antes de cada respuesta, pregúntate:
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Función para cargar actividades y materiales de una lección
+  // 🚀 FUNCIÓN OPTIMIZADA: Cargar actividades y materiales de una lección
+  // Ahora usa el endpoint unificado /sidebar-data (3 requests → 1 request)
   const loadLessonActivitiesAndMaterials = async (lessonId: string) => {
     if (!slug) return;
-    
+
     // Solo cargar si no están ya cargados
     if (lessonsActivities[lessonId] !== undefined && lessonsMaterials[lessonId] !== undefined) {
       return; // Ya están cargados
     }
 
     try {
-      const [activitiesResponse, materialsResponse, quizStatusResponse] = await Promise.all([
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/activities`),
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/materials`),
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/quiz/status`)
-      ]);
+      // ⚡ OPTIMIZACIÓN: Una sola petición en lugar de 3
+      const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/sidebar-data`);
 
-      if (activitiesResponse.ok) {
-        const activitiesData = await activitiesResponse.json();
+      if (response.ok) {
+        const data = await response.json();
+
+        // Procesar actividades
         setLessonsActivities(prev => ({
           ...prev,
-          [lessonId]: (activitiesData || []).map((a: any) => ({
+          [lessonId]: (data.activities || []).map((a: any) => ({
             activity_id: a.activity_id,
             activity_title: a.activity_title,
             activity_type: a.activity_type,
             is_required: a.is_required
           }))
         }));
-      } else {
-        // Si falla, establecer como array vacío para no intentar cargar de nuevo
-        setLessonsActivities(prev => ({
-          ...prev,
-          [lessonId]: []
-        }));
-      }
 
-      if (materialsResponse.ok) {
-        const materialsData = await materialsResponse.json();
+        // Procesar materiales
         setLessonsMaterials(prev => ({
           ...prev,
-          [lessonId]: (materialsData || []).map((m: any) => ({
+          [lessonId]: (data.materials || []).map((m: any) => ({
             material_id: m.material_id,
             material_title: m.material_title,
             material_type: m.material_type,
             is_required: m.is_required || m.material_type === 'quiz' // Los quizzes son requeridos por defecto
           }))
         }));
+
+        // Procesar estado de quizzes
+        setLessonsQuizStatus(prev => ({
+          ...prev,
+          [lessonId]: data.quizStatus
+        }));
       } else {
-        // Si falla, establecer como array vacío para no intentar cargar de nuevo
+        // Si falla, establecer como arrays vacíos para no intentar cargar de nuevo
+        setLessonsActivities(prev => ({
+          ...prev,
+          [lessonId]: []
+        }));
         setLessonsMaterials(prev => ({
           ...prev,
           [lessonId]: []
         }));
-      }
-
-      // Procesar estado de quizzes
-      if (quizStatusResponse.ok) {
-        const quizStatusData = await quizStatusResponse.json();
-        setLessonsQuizStatus(prev => ({
-          ...prev,
-          [lessonId]: quizStatusData
-        }));
-      } else {
         setLessonsQuizStatus(prev => ({
           ...prev,
           [lessonId]: null
@@ -2295,6 +2344,44 @@ Antes de cada respuesta, pregúntate:
       }
     }
   }, [currentLesson, modules]);
+
+  // 🚀 PRECARGA INTELIGENTE: Precargar actividades/materiales del módulo actual
+  useEffect(() => {
+    if (!currentLesson || !slug || modules.length === 0) return;
+
+    // Encontrar el módulo de la lección actual
+    const currentModule = modules.find(module =>
+      module.lessons.some(lesson => lesson.lesson_id === currentLesson.lesson_id)
+    );
+
+    if (!currentModule) return;
+
+    // Precargar en segundo plano las lecciones del módulo actual (excepto la actual)
+    const prefetchLessons = async () => {
+      const lessonsToPreload = currentModule.lessons
+        .filter(lesson => lesson.lesson_id !== currentLesson.lesson_id)
+        .filter(lesson => {
+          // Solo precargar si no está ya cargado
+          return lessonsActivities[lesson.lesson_id] === undefined ||
+                 lessonsMaterials[lesson.lesson_id] === undefined;
+        });
+
+      // Limitar a máximo 3 lecciones para no sobrecargar
+      const limitedLessons = lessonsToPreload.slice(0, 3);
+
+      // Precargar en paralelo pero sin esperar (fire and forget)
+      limitedLessons.forEach(lesson => {
+        loadLessonActivitiesAndMaterials(lesson.lesson_id).catch(() => {
+          // Ignorar errores en precarga
+        });
+      });
+    };
+
+    // Ejecutar precarga después de un pequeño delay para no interferir con la carga principal
+    const timeoutId = setTimeout(prefetchLessons, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentLesson, modules, slug, lessonsActivities, lessonsMaterials]);
 
   // Función para encontrar todas las lecciones ordenadas en una lista plana
   const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
@@ -2392,32 +2479,13 @@ Antes de cada respuesta, pregúntate:
     }
   };
 
-  // Función para marcar una lección como completada (local y BD)
+  // ⚡ OPTIMIZADO: Marcar lección como completada con validaciones en paralelo
   const markLessonAsCompleted = async (lessonId: string): Promise<boolean> => {
     if (!canCompleteLesson(lessonId)) {
-      // console.log('No se puede completar la lección porque la anterior no está completada');
       return false;
     }
 
-    // Verificar estado de quizzes obligatorios
-    const quizStatus = await checkQuizStatus(lessonId);
-    if (!quizStatus.canComplete) {
-      // Mostrar modal de validación con el ID de la lección que se intentó completar
-      setValidationModal({
-        isOpen: true,
-        title: 'Hace falta realizar actividad',
-        message: quizStatus.details?.message || quizStatus.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
-        details: quizStatus.details 
-          ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
-          : undefined,
-        type: 'activity',
-        lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
-      });
-      return false;
-    }
-
-    // NO hacer optimistic update del progreso - esperar confirmación del servidor
-    // Solo actualizar el estado visual de la lección
+    // ⚡ OPTIMIZACIÓN: Actualizar estado local INMEDIATAMENTE (optimistic update)
     setModules((prevModules) => {
       return prevModules.map((module) => ({
         ...module,
@@ -2429,19 +2497,56 @@ Antes de cada respuesta, pregúntate:
       }));
     });
 
-    // Actualizar currentLesson si es la lección actual
     if (currentLesson?.lesson_id === lessonId) {
       setCurrentLesson((prev) => prev ? { ...prev, is_completed: true } : null);
     }
 
-    // Guardar en la base de datos
+    // 🚀 PARALLELIZAR: Verificar quizzes Y guardar en BD al mismo tiempo
     try {
-      const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const [quizStatus, saveResponse] = await Promise.all([
+        checkQuizStatus(lessonId),
+        fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+      ]);
+
+      // Verificar si falló validación de quizzes
+      if (!quizStatus.canComplete) {
+        // REVERTIR estado local
+        setModules((prevModules) => {
+          return prevModules.map((module) => ({
+            ...module,
+            lessons: module.lessons.map((lesson) =>
+              lesson.lesson_id === lessonId
+                ? { ...lesson, is_completed: false }
+                : lesson
+            ),
+          }));
+        });
+
+        if (currentLesson?.lesson_id === lessonId) {
+          setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+        }
+
+        // Mostrar modal de validación
+        setValidationModal({
+          isOpen: true,
+          title: 'Hace falta realizar actividad',
+          message: quizStatus.details?.message || quizStatus.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
+          details: quizStatus.details
+            ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
+            : undefined,
+          type: 'activity',
+          lessonId: lessonId,
+        });
+        return false;
+      }
+
+      // Verificar si guardado en BD falló
+      const response = saveResponse;
 
       // Intentar parsear la respuesta primero (puede ser éxito o error)
       let responseData: any;
@@ -2812,11 +2917,6 @@ Antes de cada respuesta, pregúntate:
               {courseProgress}%
             </span>
           </div>
-
-          {/* Sección derecha: Usuario - Oculto en móviles */}
-          <div className="hidden md:flex items-center gap-2 shrink-0">
-            <UserDropdown />
-          </div>
         </div>
       </motion.div>
 
@@ -3059,6 +3159,36 @@ Antes de cada respuesta, pregúntate:
 
                             {/* Actividades y Materiales desplegables */}
                             <AnimatePresence>
+                              {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
+                              {isExpanded && !isContentLoaded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-blue-200/50 dark:border-blue-800/30">
+                                    {/* Skeleton items */}
+                                    {[1, 2].map((i) => (
+                                      <div
+                                        key={i}
+                                        className="bg-white/50 dark:bg-slate-800/30 border border-gray-200/50 dark:border-slate-700/50 rounded-lg p-3 animate-pulse"
+                                      >
+                                        <div className="flex items-start gap-3">
+                                          <div className="w-8 h-8 bg-gray-200 dark:bg-slate-700 rounded-lg flex-shrink-0"></div>
+                                          <div className="flex-1 space-y-2">
+                                            <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div>
+                                            <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/4"></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              )}
+
+                              {/* Contenido cargado */}
                               {isExpanded && isContentLoaded && hasContent && (
                                 <motion.div
                                   initial={{ height: 0, opacity: 0 }}
@@ -3684,6 +3814,7 @@ Antes de cada respuesta, pregúntate:
                     {/* Menú de opciones (tres puntos) */}
                     <div className="relative">
                       <button
+                        ref={liaMenuButtonRef}
                         onClick={() => setShowLiaMenu(!showLiaMenu)}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
                         title={t('lia.moreOptions')}
@@ -3691,52 +3822,67 @@ Antes de cada respuesta, pregúntate:
                         <MoreVertical className="w-4 h-4 text-gray-700 dark:text-white/70" />
                       </button>
                       
-                      {/* Menú dropdown */}
-                      {showLiaMenu && (
+                      {/* Menú dropdown - Renderizado con portal fuera del stacking context */}
+                      {showLiaMenu && liaMenuPosition && typeof window !== 'undefined' && createPortal(
                         <>
                           {/* Overlay para cerrar el menú al hacer clic fuera */}
                           <div
-                            className="fixed inset-0 z-40"
+                            className="fixed inset-0 z-[190]"
                             onClick={() => setShowLiaMenu(false)}
                           />
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                            <button
-                              onClick={() => {
-                                clearLiaHistory();
-                                setShowHistory(true);
-                                loadConversations();
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <Plus className="w-4 h-4" />
-                              {t('lia.newConversation')}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowHistory(!showHistory);
-                                if (!showHistory) {
+                          <div 
+                            className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-gray-200 dark:border-slate-700"
+                            style={{ 
+                              top: `${liaMenuPosition.top}px`,
+                              right: `${liaMenuPosition.right}px`,
+                              backgroundColor: 'rgb(255, 255, 255)',
+                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                            }}
+                          >
+                            <div 
+                              className="hidden dark:block absolute inset-0 rounded-lg"
+                              style={{ backgroundColor: 'rgb(30, 41, 59)' }}
+                            />
+                            <div className="relative">
+                              <button
+                                onClick={() => {
+                                  clearLiaHistory();
+                                  setShowHistory(true);
                                   loadConversations();
-                                }
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <History className="w-4 h-4" />
-                              {t('lia.viewHistory')}
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleOpenClearHistoryModal();
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              {t('lia.resetConversation')}
-                            </button>
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Nueva conversación
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowHistory(!showHistory);
+                                  if (!showHistory) {
+                                    loadConversations();
+                                  }
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <History className="w-4 h-4" />
+                                Ver historial
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleOpenClearHistoryModal();
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Reiniciar conversación
+                              </button>
+                            </div>
                           </div>
-                        </>
+                        </>,
+                        document.body
                       )}
                     </div>
 
@@ -4040,7 +4186,16 @@ Antes de cada respuesta, pregúntate:
 
                 {/* Prompts Flotantes tipo NotebookLM */}
                 <AnimatePresence>
-                  {currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen && (
+                  {(() => {
+                    const shouldShow = currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen;
+                    console.log('[PROMPTS UI] Condiciones de visibilidad:', {
+                      prompts: currentActivityPrompts.length,
+                      activeTab,
+                      isRightPanelOpen,
+                      shouldShow
+                    });
+                    return shouldShow;
+                  })() && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -4764,15 +4919,15 @@ function VideoContent({
             />
             
             {/* Botones de navegación - Centrados verticalmente */}
-            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-2 sm:px-4">
               {/* Botón anterior - lado izquierdo */}
               {hasPreviousVideo && (
                 <button
                   onClick={onNavigatePrevious}
-                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
                 >
-                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
                     Anterior
                   </span>
                 </button>
@@ -4798,17 +4953,17 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
                     isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
                   }`}
                 >
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? 'Terminar' : 'Siguiente'}
                   </span>
                   {isLastLesson ? (
-                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   )}
                 </button>
               )}
@@ -4825,15 +4980,15 @@ function VideoContent({
             </div>
             
             {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
-            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-2 sm:px-4">
               {/* Botón anterior - lado izquierdo */}
               {hasPreviousVideo && (
                 <button
                   onClick={onNavigatePrevious}
-                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
                 >
-                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
                     Anterior
                   </span>
                 </button>
@@ -4859,17 +5014,17 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
                     isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
                   }`}
                 >
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? 'Terminar' : 'Siguiente'}
                   </span>
                   {isLastLesson ? (
-                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   )}
                 </button>
               )}
@@ -6124,8 +6279,88 @@ function ReadingContentRenderer({ content }: { content: any }) {
   );
 }
 
-// Componente para renderizar contenido formateado (actividades, materiales de lectura, etc.)
-function FormattedContentRenderer({ content }: { content: any }) {
+// Componente para renderizar items de checklist
+function ChecklistItem({ 
+  content, 
+  checked: initialChecked, 
+  activityId, 
+  lineIndex 
+}: { 
+  content: string; 
+  checked: boolean; 
+  activityId?: string; 
+  lineIndex: number;
+}) {
+  const storageKey = activityId ? `checklist-${activityId}-${lineIndex}` : `checklist-global-${lineIndex}`;
+  const [checked, setChecked] = useState(() => {
+    if (typeof window !== 'undefined' && activityId) {
+      const saved = localStorage.getItem(storageKey);
+      return saved !== null ? saved === 'true' : initialChecked;
+    }
+    return initialChecked;
+  });
+
+  const handleToggle = () => {
+    const newChecked = !checked;
+    setChecked(newChecked);
+    if (typeof window !== 'undefined' && activityId) {
+      localStorage.setItem(storageKey, String(newChecked));
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3 my-3 pl-2">
+      <button
+        onClick={handleToggle}
+        className={`
+          mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
+          ${checked 
+            ? 'bg-blue-500 border-blue-500 dark:bg-blue-600 dark:border-blue-600' 
+            : 'bg-white dark:bg-carbon-800 border-gray-300 dark:border-carbon-600 hover:border-blue-400 dark:hover:border-blue-500'
+          }
+          focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1
+        `}
+        aria-checked={checked}
+        role="checkbox"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+      >
+        {checked && (
+          <svg 
+            className="w-3 h-3 text-white" 
+            fill="none" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth="3" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+      <p 
+        className={`
+          flex-1 text-base leading-relaxed cursor-pointer
+          ${checked 
+            ? 'text-gray-600 dark:text-slate-400 line-through' 
+            : 'text-gray-800 dark:text-slate-200'
+          }
+        `}
+        onClick={handleToggle}
+      >
+        {content}
+      </p>
+    </div>
+  );
+}
+
+function FormattedContentRenderer({ content, activityId }: { content: any; activityId?: string }) {
   let readingContent = content;
   
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
@@ -6159,13 +6394,30 @@ function FormattedContentRenderer({ content }: { content: any }) {
   // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
   const lines = readingContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
   const formattedContent: Array<{ 
-    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
+    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight' | 'checklist';
     content: string;
     level?: number;
+    checked?: boolean;
+    originalLine?: string;
   }> = [];
 
   lines.forEach((line: string, index: number) => {
     const trimmedLine = line.trim();
+    
+    // Detectar checklists: [] o [ ] o [x] o [X] al inicio de línea
+    const checklistPattern = /^\[([\sxX])\]\s*(.+)$/;
+    const checklistMatch = trimmedLine.match(checklistPattern);
+    if (checklistMatch) {
+      const [, checkboxContent, checklistText] = checklistMatch;
+      const isChecked = checkboxContent.toLowerCase() === 'x';
+      formattedContent.push({ 
+        type: 'checklist', 
+        content: checklistText.trim(), 
+        checked: isChecked,
+        originalLine: trimmedLine
+      });
+      return;
+    }
     
     // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
     const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
@@ -6291,6 +6543,19 @@ function FormattedContentRenderer({ content }: { content: any }) {
               );
             }
             
+            // Checklists
+            if (item.type === 'checklist') {
+              return (
+                <ChecklistItem
+                  key={`checklist-${index}`}
+                  content={item.content}
+                  checked={item.checked || false}
+                  activityId={activityId}
+                  lineIndex={index}
+                />
+              );
+            }
+            
             // Listas
             if (item.type === 'list') {
               const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
@@ -6346,6 +6611,10 @@ function ActivitiesContent({
   lesson,
   slug,
   onPromptsChange,
+function ActivitiesContent({
+  lesson,
+  slug,
+  onPromptsChange,
   onStartInteraction,
   userRole,
   generateRoleBasedPrompts,
@@ -6365,6 +6634,9 @@ function ActivitiesContent({
   contextualHelp: any;
   user: any;
 }) {
+  // Hook de traducción
+  const { t } = useTranslation('learn');
+
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
     activity_title: string;
@@ -6430,6 +6702,10 @@ function ActivitiesContent({
       percentage: number;
     }>;
   } | null>(null);
+  
+  // Feedback de la lección completa
+  const [lessonFeedback, setLessonFeedback] = useState<'like' | 'dislike' | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   useEffect(() => {
     async function loadActivitiesAndMaterials() {
@@ -6453,12 +6729,12 @@ function ActivitiesContent({
           let activitiesData = await activitiesResponse.json();
           
           // Aplicar traducciones si no es español
-          if (language !== 'es' && activitiesData && activitiesData.length > 0) {
+          if (selectedLang !== 'es' && activitiesData && activitiesData.length > 0) {
             activitiesData = await ContentTranslationService.translateArray(
               'activity',
               activitiesData.map((a: any) => ({ ...a, id: a.activity_id })),
               ['activity_title', 'activity_description', 'activity_content'],
-              language as any
+              selectedLang as any
             );
           }
           
@@ -6493,7 +6769,63 @@ function ActivitiesContent({
     }
 
     loadActivitiesAndMaterials();
-  }, [lesson?.lesson_id, slug, language]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
+
+  // Cargar feedback de la lección
+  useEffect(() => {
+    async function loadLessonFeedback() {
+      if (!lesson?.lesson_id || !slug) {
+        setLessonFeedback(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setLessonFeedback(data.feedback_type ?? null);
+        } else {
+          setLessonFeedback(null);
+        }
+      } catch (error) {
+        setLessonFeedback(null);
+      }
+    }
+
+    loadLessonFeedback();
+  }, [lesson?.lesson_id, slug]);
+
+  const handleLessonFeedback = async (feedbackType: 'like' | 'dislike') => {
+    if (!lesson?.lesson_id || !slug || feedbackLoading) {
+      return;
+    }
+
+    setFeedbackLoading(true);
+    try {
+      const url = `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback_type: feedbackType }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLessonFeedback(data.feedback_type ?? null);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('Error al guardar feedback:', errorData);
+        // Mostrar error al usuario de forma no intrusiva
+        // Podrías agregar un toast aquí si tienes un sistema de notificaciones
+      }
+    } catch (error) {
+      console.error('Error de red al guardar feedback:', error);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   // Refs para almacenar las funciones y evitar loops infinitos
   const generateRoleBasedPromptsRef = useRef(generateRoleBasedPrompts);
@@ -6515,6 +6847,10 @@ function ActivitiesContent({
     const processPrompts = async () => {
       const allPrompts: string[] = [];
       const activityPromptsMap: Map<string, { prompts: string[], content: string, title: string }> = new Map();
+
+      console.log('[LIA PROMPTS] Iniciando procesamiento de prompts...');
+      console.log('[LIA PROMPTS] Total actividades:', activities.length);
+      console.log('[LIA PROMPTS] Usuario tiene rol:', userRole || 'Sin rol');
 
       // Primero, extraer todos los prompts base de las actividades
       activities.forEach(activity => {
@@ -6556,44 +6892,86 @@ function ActivitiesContent({
                 content: activity.activity_content || '',
                 title: activity.activity_title || ''
               });
+              console.log('[LIA PROMPTS] Actividad:', activity.activity_title, '| Prompts extraídos:', cleanPrompts.length);
             }
           } catch (error) {
-            // console.warn('Error parsing prompts:', error);
+            console.warn('[LIA PROMPTS] Error parsing prompts para actividad:', activity.activity_title, error);
           }
         }
       });
 
+      console.log('[LIA PROMPTS] Total actividades con prompts:', activityPromptsMap.size);
+
       // Si hay rol del usuario y función de generación, adaptar prompts
       if (userRole && generateRoleBasedPromptsRef.current && activityPromptsMap.size > 0) {
+        console.log('[LIA PROMPTS] Iniciando personalización para rol:', userRole);
         try {
-          // Generar prompts adaptados para cada actividad
-          for (const [activityId, activityData] of activityPromptsMap.entries()) {
-            if (!isMounted) break; // Salir si el componente se desmontó
-            const adaptedPrompts = await generateRoleBasedPromptsRef.current(
-              activityData.prompts,
-              activityData.content,
-              activityData.title,
-              userRole
-            );
-            allPrompts.push(...adaptedPrompts);
-          }
+          // Generar prompts adaptados para cada actividad EN PARALELO
+          const adaptationPromises = Array.from(activityPromptsMap.entries()).map(
+            async ([activityId, activityData]) => {
+              if (!isMounted) return []; // Salir si el componente se desmontó
+
+              console.log('[LIA PROMPTS] Personalizando prompts para:', activityData.title);
+              try {
+                const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+                  activityData.prompts,
+                  activityData.content,
+                  activityData.title,
+                  userRole
+                );
+                console.log('[LIA PROMPTS] ✓ Personalización exitosa para:', activityData.title, '| Prompts:', adaptedPrompts.length);
+                return adaptedPrompts;
+              } catch (error) {
+                console.error('[LIA PROMPTS] ✗ Error personalizando:', activityData.title, error);
+                // Fallback: retornar prompts originales
+                return activityData.prompts;
+              }
+            }
+          );
+
+          // Esperar a que todas las personalizaciones terminen (con timeout)
+          const timeoutPromise = new Promise<string[][]>((resolve) => {
+            setTimeout(() => {
+              console.warn('[LIA PROMPTS] Timeout en personalización, usando prompts originales');
+              resolve(Array.from(activityPromptsMap.values()).map(data => data.prompts));
+            }, 10000); // 10 segundos de timeout
+          });
+
+          const results = await Promise.race([
+            Promise.all(adaptationPromises),
+            timeoutPromise
+          ]);
+
+          // Agregar todos los prompts adaptados
+          results.forEach(prompts => {
+            allPrompts.push(...prompts);
+          });
+
+          console.log('[LIA PROMPTS] Personalización completada. Total prompts adaptados:', allPrompts.length);
         } catch (error) {
-          console.error('Error generando prompts adaptados:', error);
+          console.error('[LIA PROMPTS] Error generando prompts adaptados:', error);
           // Fallback: usar prompts originales
           activityPromptsMap.forEach(activityData => {
             allPrompts.push(...activityData.prompts);
           });
+          console.log('[LIA PROMPTS] Usando prompts originales por error. Total:', allPrompts.length);
         }
       } else {
         // Sin rol o sin función de generación, usar prompts originales
+        console.log('[LIA PROMPTS] Usando prompts originales (sin personalización)');
         activityPromptsMap.forEach(activityData => {
           allPrompts.push(...activityData.prompts);
         });
+        console.log('[LIA PROMPTS] Total prompts originales:', allPrompts.length);
       }
 
       // Notificar cambios al componente padre solo si el componente sigue montado
       if (isMounted && onPromptsChangeRef.current) {
+        console.log('[LIA PROMPTS] Notificando cambios al componente padre. Prompts finales:', allPrompts.length);
+        console.log('[LIA PROMPTS] Prompts:', allPrompts);
         onPromptsChangeRef.current(allPrompts);
+      } else {
+        console.warn('[LIA PROMPTS] Componente desmontado o sin callback, no se notifican cambios');
       }
     };
 
@@ -6884,7 +7262,7 @@ function ActivitiesContent({
                       />
                     )}
                     {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
-                      <FormattedContentRenderer content={material.content_data} />
+                      <FormattedContentRenderer content={material.content_data} activityId={material.material_id} />
                     )}
                   </div>
                 )}
@@ -6940,6 +7318,63 @@ function ActivitiesContent({
           </div>
         </div>
       )}
+
+      {/* Feedback de la lección y botón de avanzar */}
+      {lesson && (
+        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <span className="text-sm font-semibold text-gray-800 dark:text-slate-100">
+              ¿Qué te pareció esta lección?
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleLessonFeedback('like')}
+                disabled={feedbackLoading}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
+                  lessonFeedback === 'like'
+                    ? 'bg-green-500/20 text-green-400 border-2 border-green-500/50 shadow-lg shadow-green-500/20'
+                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                title="Me gustó la lección"
+              >
+                {feedbackLoading && lessonFeedback === null ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ThumbsUp className={`w-4 h-4 transition-all ${lessonFeedback === 'like' ? 'fill-current scale-110' : ''}`} />
+                )}
+                <span className="text-sm font-medium">Me gusta</span>
+              </button>
+              <button
+                onClick={() => handleLessonFeedback('dislike')}
+                disabled={feedbackLoading}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
+                  lessonFeedback === 'dislike'
+                    ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/20'
+                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                title="No me gustó la lección"
+              >
+                {feedbackLoading && lessonFeedback === null ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ThumbsDown className={`w-4 h-4 transition-all ${lessonFeedback === 'dislike' ? 'fill-current scale-110' : ''}`} />
+                )}
+                <span className="text-sm font-medium">No me gusta</span>
+              </button>
+            </div>
+          </div>
+
+          {hasNextLesson && onNavigateNext && (
+            <button
+              onClick={onNavigateNext}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+            >
+              <ChevronRight className="w-5 h-5" />
+              Avanzar al Siguiente Video
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -6957,6 +7392,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     is_resolved: boolean;
     created_at: string;
     updated_at: string;
+    course_id?: string;
     user: {
       id: string;
       username: string;
@@ -6976,6 +7412,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   const [hasMore, setHasMore] = useState(true);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({}); // questionId -> reaction_type
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({}); // questionId -> count
+  const [courseId, setCourseId] = useState<string | null>(null);
 
   // Función para ejecutar búsqueda
   const handleSearch = () => {
@@ -7026,6 +7463,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         const data = await response.json();
         setQuestions(data || []);
         
+        // Extraer courseId de la primera pregunta si está disponible
+        if (data && data.length > 0 && data[0].course_id && !courseId) {
+          setCourseId(data[0].course_id);
+        }
+        
         // Verificar si hay más preguntas
         setHasMore(data && data.length === 20);
         
@@ -7039,6 +7481,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
             countsMap[q.id] = q.reaction_count || 0;
             if (q.user_reaction) {
               reactionsMap[q.id] = q.user_reaction;
+            }
+            // También extraer courseId si está disponible
+            if (q.course_id && !courseId) {
+              setCourseId(q.course_id);
             }
           });
           
@@ -7061,6 +7507,183 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   useEffect(() => {
     reloadQuestions();
   }, [reloadQuestions]);
+
+  // ⚡ OPTIMIZACIÓN CRÍTICA: Supabase Realtime subscriptions para actualizaciones en tiempo real
+  useEffect(() => {
+    if (!courseId) return; // Esperar a tener courseId
+
+    const supabase = createClient();
+
+    // Suscripción para nuevas preguntas y actualizaciones
+    const questionsChannel = supabase
+      .channel(`course-questions-${courseId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_questions',
+          filter: `course_id=eq.${courseId}`,
+        },
+        async (payload) => {
+          // Solo agregar si no está en búsqueda activa (para evitar duplicados)
+          if (!activeSearchQuery) {
+            // Obtener datos completos de la nueva pregunta (con usuario)
+            try {
+              const response = await fetch(`/api/courses/${slug}/questions/${payload.new.id}`);
+              if (response.ok) {
+                const newQuestion = await response.json();
+                setQuestions((prev) => {
+                  // Verificar que no exista ya
+                  if (prev.some((q) => q.id === newQuestion.id)) {
+                    return prev;
+                  }
+                  // Agregar al inicio (preguntas más recientes primero)
+                  return [newQuestion, ...prev];
+                });
+              }
+            } catch (error) {
+              // Si falla, recargar todas las preguntas
+              reloadQuestions();
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'course_questions',
+          filter: `course_id=eq.${courseId}`,
+        },
+        async (payload) => {
+          // Actualizar pregunta existente
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === payload.new.id
+                ? { ...q, ...payload.new, updated_at: payload.new.updated_at || q.updated_at }
+                : q
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_questions',
+          filter: `course_id=eq.${courseId}`,
+        },
+        (payload) => {
+          // Eliminar pregunta
+          setQuestions((prev) => prev.filter((q) => q.id !== payload.old.id));
+        }
+      )
+      .subscribe();
+
+    // Suscripción para nuevas respuestas
+    const responsesChannel = supabase
+      .channel(`course-responses-${courseId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_responses',
+        },
+        async (payload) => {
+          // Incrementar contador de respuestas para la pregunta
+          const questionId = payload.new.question_id;
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, response_count: (q.response_count || 0) + 1 }
+                : q
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_responses',
+        },
+        (payload) => {
+          // Decrementar contador de respuestas
+          const questionId = payload.old.question_id;
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, response_count: Math.max(0, (q.response_count || 0) - 1) }
+                : q
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    // Suscripción para reacciones
+    const reactionsChannel = supabase
+      .channel(`course-reactions-${courseId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_reactions',
+        },
+        (payload) => {
+          const questionId = payload.new.question_id;
+          // Incrementar contador de reacciones
+          setReactionCounts((prev) => ({
+            ...prev,
+            [questionId]: (prev[questionId] || 0) + 1,
+          }));
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, reaction_count: (q.reaction_count || 0) + 1 }
+                : q
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_reactions',
+        },
+        (payload) => {
+          const questionId = payload.old.question_id;
+          // Decrementar contador de reacciones
+          setReactionCounts((prev) => ({
+            ...prev,
+            [questionId]: Math.max(0, (prev[questionId] || 0) - 1),
+          }));
+          setQuestions((prev) =>
+            prev.map((q) =>
+              q.id === questionId
+                ? { ...q, reaction_count: Math.max(0, (q.reaction_count || 0) - 1) }
+                : q
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    // Cleanup: Desuscribirse cuando el componente se desmonte o cambie courseId
+    return () => {
+      supabase.removeChannel(questionsChannel);
+      supabase.removeChannel(responsesChannel);
+      supabase.removeChannel(reactionsChannel);
+    };
+  }, [courseId, slug, activeSearchQuery, reloadQuestions]);
 
   // Función para cargar más preguntas
   const loadMoreQuestions = async () => {
@@ -7509,10 +8132,23 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         <CreateQuestionForm
           slug={slug}
           onClose={() => setShowCreateForm(false)}
-          onSuccess={() => {
+          onSuccess={(newQuestion) => {
             setShowCreateForm(false);
-            // Recargar preguntas sin recargar toda la página
-            reloadQuestions();
+            // ⚡ OPTIMIZACIÓN: Agregar pregunta optimistamente al estado
+            // El realtime la actualizará con datos completos cuando llegue
+            if (newQuestion) {
+              setQuestions((prev) => {
+                // Verificar que no exista ya (evitar duplicados)
+                if (prev.some((q) => q.id === newQuestion.id)) {
+                  return prev;
+                }
+                // Agregar al inicio (preguntas más recientes primero)
+                return [newQuestion, ...prev];
+              });
+            } else {
+              // Si no se recibió la pregunta, recargar todas
+              reloadQuestions();
+            }
           }}
         />
       )}
@@ -7624,6 +8260,205 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
     return () => {
       cancelled = true;
+    };
+  }, [questionId, slug]);
+
+  // ⚡ OPTIMIZACIÓN CRÍTICA: Supabase Realtime subscriptions para respuestas y reacciones
+  useEffect(() => {
+    if (!questionId) return;
+
+    const supabase = createClient();
+
+    // Función helper para agregar respuesta al estado (maneja respuestas anidadas)
+    const addResponseToState = (newResponse: any, parentId?: string) => {
+      setResponses((prev) => {
+        // Si tiene parent_id, es una respuesta anidada
+        if (parentId) {
+          return prev.map((r) => {
+            if (r.id === parentId) {
+              return {
+                ...r,
+                replies: [...(r.replies || []), newResponse],
+              };
+            }
+            // Buscar recursivamente en replies
+            if (r.replies && r.replies.length > 0) {
+              return {
+                ...r,
+                replies: r.replies.map((reply: any) => {
+                  if (reply.id === parentId) {
+                    return {
+                      ...reply,
+                      replies: [...(reply.replies || []), newResponse],
+                    };
+                  }
+                  return reply;
+                }),
+              };
+            }
+            return r;
+          });
+        } else {
+          // Es una respuesta de nivel superior
+          // Verificar que no exista ya
+          if (prev.some((r) => r.id === newResponse.id)) {
+            return prev;
+          }
+          return [...prev, newResponse];
+        }
+      });
+    };
+
+    // Suscripción para nuevas respuestas
+    const responsesChannel = supabase
+      .channel(`question-responses-${questionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_responses',
+          filter: `question_id=eq.${questionId}`,
+        },
+        async (payload) => {
+          // Recargar todas las respuestas para obtener la estructura completa con usuario
+          // Esto es más confiable que intentar construir la respuesta manualmente
+          try {
+            const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
+            if (responsesRes.ok) {
+              const responsesData = await responsesRes.json();
+              setResponses(responsesData || []);
+              
+              // Actualizar contadores de reacciones
+              const countsMap: Record<string, number> = {};
+              const reactionsMap: Record<string, string> = {};
+              
+              const initCountsFromResponses = (responses: any[]) => {
+                responses.forEach((r: any) => {
+                  if (r.id) {
+                    countsMap[r.id] = r.reaction_count || 0;
+                    if (r.user_reaction) {
+                      reactionsMap[r.id] = r.user_reaction;
+                    }
+                  }
+                  if (r.replies && r.replies.length > 0) {
+                    initCountsFromResponses(r.replies);
+                  }
+                });
+              };
+              
+              initCountsFromResponses(responsesData);
+              setResponseReactionCounts(countsMap);
+              setResponseReactions(reactionsMap);
+            }
+          } catch (error) {
+            // Silenciar error, la próxima actualización lo corregirá
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'course_question_responses',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Actualizar respuesta existente
+          setResponses((prev) => {
+            const updateResponse = (responses: any[]): any[] => {
+              return responses.map((r) => {
+                if (r.id === payload.new.id) {
+                  return { ...r, ...payload.new };
+                }
+                if (r.replies && r.replies.length > 0) {
+                  return { ...r, replies: updateResponse(r.replies) };
+                }
+                return r;
+              });
+            };
+            return updateResponse(prev);
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_responses',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Eliminar respuesta (maneja respuestas anidadas)
+          setResponses((prev) => {
+            const removeResponse = (responses: any[]): any[] => {
+              return responses
+                .filter((r) => r.id !== payload.old.id)
+                .map((r) => {
+                  if (r.replies && r.replies.length > 0) {
+                    return { ...r, replies: removeResponse(r.replies) };
+                  }
+                  return r;
+                });
+            };
+            return removeResponse(prev);
+          });
+        }
+      )
+      .subscribe();
+
+    // Suscripción para reacciones de respuestas
+    // Nota: Las reacciones de respuestas usan la misma tabla course_question_reactions con response_id
+    const responseReactionsChannel = supabase
+      .channel(`response-reactions-${questionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'course_question_reactions',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Solo procesar si tiene response_id (es reacción a respuesta, no a pregunta)
+          if (payload.new.response_id) {
+            const responseId = payload.new.response_id;
+            // Incrementar contador de reacciones
+            setResponseReactionCounts((prev) => ({
+              ...prev,
+              [responseId]: (prev[responseId] || 0) + 1,
+            }));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'course_question_reactions',
+          filter: `question_id=eq.${questionId}`,
+        },
+        (payload) => {
+          // Solo procesar si tiene response_id (es reacción a respuesta, no a pregunta)
+          if (payload.old.response_id) {
+            const responseId = payload.old.response_id;
+            // Decrementar contador de reacciones
+            setResponseReactionCounts((prev) => ({
+              ...prev,
+              [responseId]: Math.max(0, (prev[responseId] || 0) - 1),
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup: Desuscribirse cuando el componente se desmonte o cambie questionId
+    return () => {
+      supabase.removeChannel(responsesChannel);
+      supabase.removeChannel(responseReactionsChannel);
     };
   }, [questionId, slug]);
 
@@ -8200,7 +9035,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   );
 }
 
-function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClose: () => void; onSuccess: () => void }) {
+function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClose: () => void; onSuccess: (question?: any) => void }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -8221,7 +9056,12 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
       });
 
       if (response.ok) {
-        onSuccess();
+        // ⚡ OPTIMIZACIÓN: Pasar la pregunta creada al callback para actualización optimista
+        const newQuestion = await response.json();
+        onSuccess(newQuestion);
+        // Limpiar formulario
+        setTitle('');
+        setContent('');
       } else {
         const errorData = await response.json();
         alert(`Error: ${errorData.error}`);

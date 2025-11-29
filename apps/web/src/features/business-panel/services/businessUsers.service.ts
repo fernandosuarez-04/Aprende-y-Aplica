@@ -10,6 +10,9 @@ export interface BusinessUser {
   organization_id?: string | null
   email_verified: boolean
   profile_picture_url?: string | null
+  bio?: string | null
+  location?: string | null
+  phone?: string | null
   points: number
   last_login_at?: string | null
   created_at: string
@@ -35,6 +38,7 @@ export interface CreateBusinessUserRequest {
   first_name?: string
   last_name?: string
   display_name?: string
+  type_rol: string
   org_role?: 'owner' | 'admin' | 'member'
 }
 
@@ -42,8 +46,15 @@ export interface UpdateBusinessUserRequest {
   first_name?: string
   last_name?: string
   display_name?: string
+  email?: string
+  cargo_rol?: string
+  type_rol?: string
   org_role?: 'owner' | 'admin' | 'member'
   org_status?: 'active' | 'invited' | 'suspended' | 'removed'
+  profile_picture_url?: string
+  bio?: string
+  location?: string
+  phone?: string
 }
 
 export class BusinessUsersService {

@@ -9,6 +9,7 @@ import { NotificationProvider } from '../features/notifications/context/Notifica
 import { ConditionalAIChatAgent } from '../core/components/ConditionalAIChatAgent/ConditionalAIChatAgent';
 import { GlobalRecorderProvider } from '../core/components/GlobalRecorderProvider';
 import { I18nProvider } from '../core/providers/I18nProvider';
+import { ShareModalProvider } from '../core/providers/ShareModalProvider';
 import { OnboardingAgent } from '../core/components/OnboardingAgent';
 import { DevResetButton } from '../core/components/OnboardingAgent/DevResetButton';
 
@@ -60,6 +61,73 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
       <head>
+        {/* 🔧 Script para manejar errores de chunks (ChunkLoadError) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                // Manejar errores de carga de chunks
+                window.addEventListener('error', function(e) {
+                  if (e.message && (
+                    e.message.includes('Loading chunk') ||
+                    e.message.includes('ChunkLoadError') ||
+                    e.message.includes('Failed to fetch dynamically imported module') ||
+                    e.message.includes('Loading CSS chunk') ||
+                    (e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.includes('_next/static/chunks'))
+                  )) {
+                    console.warn('🔄 ChunkLoadError detectado, recargando página...', e.message);
+                    // Evitar recargas infinitas
+                    var reloadKey = 'chunk-reload-attempt';
+                    var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
+                    if (attempts < 2) {
+                      sessionStorage.setItem(reloadKey, String(attempts + 1));
+                      setTimeout(function() {
+                        window.location.reload();
+                      }, 100);
+                    } else {
+                      sessionStorage.removeItem(reloadKey);
+                      console.error('❌ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
+                    }
+                    e.preventDefault();
+                    return true;
+                  }
+                }, true);
+                
+                // Manejar promesas rechazadas (para dynamic imports)
+                window.addEventListener('unhandledrejection', function(e) {
+                  if (e.reason && (
+                    e.reason.message && (
+                      e.reason.message.includes('Loading chunk') ||
+                      e.reason.message.includes('ChunkLoadError') ||
+                      e.reason.message.includes('Failed to fetch dynamically imported module')
+                    ) ||
+                    e.reason.name === 'ChunkLoadError'
+                  )) {
+                    console.warn('🔄 ChunkLoadError en promesa rechazada, recargando página...', e.reason);
+                    var reloadKey = 'chunk-reload-attempt';
+                    var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
+                    if (attempts < 2) {
+                      sessionStorage.setItem(reloadKey, String(attempts + 1));
+                      setTimeout(function() {
+                        window.location.reload();
+                      }, 100);
+                    } else {
+                      sessionStorage.removeItem(reloadKey);
+                      console.error('❌ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
+                    }
+                    e.preventDefault();
+                  }
+                });
+                
+                // Limpiar contador de intentos después de 5 minutos
+                setTimeout(function() {
+                  sessionStorage.removeItem('chunk-reload-attempt');
+                }, 5 * 60 * 1000);
+              })();
+            `,
+          }}
+        />
+        
         {/* 🎨 Script para aplicar tema antes del render (evita flash) */}
         <script
           dangerouslySetInnerHTML={{

@@ -30,16 +30,16 @@ export async function getOrganizationPlan(organizationId: string): Promise<Subsc
       }
     }
 
-    // Si no está en organizations, buscar en subscriptions
+    // Si no está en organizations, buscar en subscriptions (usar plan_id si está disponible)
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('plan_type')
+      .select('plan_id')
       .eq('organization_id', organizationId)
-      .eq('status', 'active')
+      .eq('subscription_status', 'active')
       .maybeSingle()
 
-    if (!subError && subscription?.plan_type) {
-      const plan = subscription.plan_type.toLowerCase()
+    if (!subError && subscription?.plan_id) {
+      const plan = subscription.plan_id.toLowerCase()
       if (['team', 'business', 'enterprise'].includes(plan)) {
         return plan as SubscriptionPlan
       }

@@ -91,12 +91,14 @@ export class DifficultyPatternDetector {
     // Filtrar eventos dentro de la ventana de análisis
     const recentEvents = this.filterRecentEvents(events, this.thresholds.analysisWindow);
 
+
     console.log('🔍 [DEBUG] Analizando eventos:', {
       totalEvents: events.length,
       recentEvents: recentEvents.length,
       analysisWindow: this.thresholds.analysisWindow,
       sessionDuration: `${Math.floor(sessionDuration / 60000)}m ${Math.floor((sessionDuration % 60000) / 1000)}s`
     });
+
 
     if (recentEvents.length === 0) {
       return this.createAnalysis(0, [], false, '');
@@ -789,6 +791,7 @@ export class DifficultyPatternDetector {
    */
   public reset(): void {
     this.lastActivityTimestamp = Date.now();
+    this.sessionStartTime = Date.now(); // 🆕 Resetear también el contador de sesión
     this.scrollPositions = [];
     this.clickTargets = [];
     this.deleteKeyPresses = 0;

@@ -19,12 +19,19 @@ const loginSchema = z.object({
 
 export async function loginAction(formData: FormData) {
   try {
+    console.log('🔐 [loginAction] Iniciando login');
+
     // 1. Validar datos
     const parsed = loginSchema.parse({
       emailOrUsername: formData.get('emailOrUsername'),
       password: formData.get('password'),
       rememberMe: formData.get('rememberMe') === 'true',
     })
+
+    console.log('✅ [loginAction] Datos validados:', {
+      emailOrUsername: parsed.emailOrUsername,
+      rememberMe: parsed.rememberMe
+    });
 
     // 2. Crear cliente Supabase
     const supabase = await createClient()
@@ -33,17 +40,55 @@ export async function loginAction(formData: FormData) {
     const organizationId = formData.get('organizationId')?.toString()
     const organizationSlug = formData.get('organizationSlug')?.toString()
 
+    console.log('🏢 [loginAction] Contexto de organización:', { organizationId, organizationSlug });
+
     // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
     // Buscar usuario por username o email (case-insensitive match exacto)
-    let { data: user, error } = await supabase
+    console.log('🔍 [loginAction] Buscando usuario con:', parsed.emailOrUsername);
+    
+    // Intentar buscar por username primero
+    let { data: userByUsername, error: usernameError } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
-      .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
-      .single()
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason, organization_id')
+      .ilike('username', parsed.emailOrUsername)
+      .maybeSingle()
+
+    // Si no se encuentra por username, buscar por email
+    let { data: userByEmail, error: emailError } = await supabase
+      .from('users')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason, organization_id')
+      .ilike('email', parsed.emailOrUsername)
+      .maybeSingle()
+
+    // Determinar qué usuario usar (prioridad: username > email)
+    const user = userByUsername || userByEmail
+    const error = userByUsername ? usernameError : emailError
+
+    console.log('🔍 [loginAction] Resultado de búsqueda:', {
+      foundByUsername: !!userByUsername,
+      foundByEmail: !!userByEmail,
+      usernameError: usernameError?.message,
+      emailError: emailError?.message,
+      userFound: !!user
+    });
 
     if (error || !user) {
+      console.log('❌ [loginAction] Usuario no encontrado', {
+        error: error?.message,
+        searchedValue: parsed.emailOrUsername,
+        usernameError: usernameError?.message,
+        emailError: emailError?.message
+      });
       return { error: 'Credenciales inválidas' }
     }
+
+    console.log('👤 [loginAction] Usuario encontrado:', {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      cargo_rol: user.cargo_rol,
+      organization_id: (user as any).organization_id
+    });
 
     // ⭐ MODERACIÓN: Verificar si el usuario está baneado
     if ((user as any).is_banned) {
@@ -55,12 +100,15 @@ export async function loginAction(formData: FormData) {
 
     // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)
     if (!user.password_hash) {
+      console.log('❌ [loginAction] Usuario sin password_hash');
       return { error: 'Error en la configuración de la cuenta. Por favor, contacta al soporte.' }
     }
 
+    console.log('🔐 [loginAction] Verificando contraseña...');
     const passwordValid = await bcrypt.compare(parsed.password, user.password_hash)
 
     if (!passwordValid) {
+      console.log('❌ [loginAction] Contraseña inválida');
       
       // Crear notificación de intento de inicio de sesión fallido
       try {
@@ -82,8 +130,11 @@ export async function loginAction(formData: FormData) {
       return { error: 'Credenciales inválidas' }
     }
 
+    console.log('✅ [loginAction] Contraseña válida - autenticación exitosa');
+
     // 4.5. Validar contexto de organización si viene de login personalizado
     if (organizationId && organizationSlug) {
+      console.log('🏢 [loginAction] Validando contexto de organización personalizada...');
       // Verificar que la organización existe y tiene suscripción válida
       const { data: organization, error: orgError } = await supabase
         .from('organizations')
@@ -179,6 +230,7 @@ export async function loginAction(formData: FormData) {
     // }
 
     // 6. Crear sesión personalizada (sin Supabase Auth)
+    console.log('🍪 [loginAction] Iniciando creación de sesión...');
     try {
       // ✅ Obtener cookieStore DENTRO del try para mantener el contexto AsyncLocalStorage
       const cookieStore = await cookies()
@@ -187,6 +239,12 @@ export async function loginAction(formData: FormData) {
       const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                  headersList.get('x-real-ip') ||
                  'unknown'
+
+      console.log('📋 [loginAction] Contexto obtenido:', {
+        hasHeaders: !!headersList,
+        userAgent: userAgent.substring(0, 50),
+        ip
+      });
 
       // Crear Request mock para RefreshTokenService
       const requestHeaders = new Headers()
@@ -197,33 +255,48 @@ export async function loginAction(formData: FormData) {
       })
 
       // 6.1. Crear sesión con refresh tokens (genera tokens y los guarda en DB)
+      console.log('🔑 [loginAction] Creando refresh tokens...');
       const sessionInfo = await RefreshTokenService.createSession(
         user.id,
         parsed.rememberMe,
         mockRequest
       )
+      console.log('✅ [loginAction] Refresh tokens creados:', {
+        hasAccessToken: !!sessionInfo.accessToken,
+        hasRefreshToken: !!sessionInfo.refreshToken,
+        accessExpiresAt: sessionInfo.accessExpiresAt,
+        refreshExpiresAt: sessionInfo.refreshExpiresAt
+      });
 
       // 6.2. Crear sesión legacy ANTES de establecer cookies
+      console.log('🔑 [loginAction] Creando sesión legacy...');
       const legacySession = await SessionService.createLegacySession(
         user.id,
         parsed.rememberMe
       )
+      console.log('✅ [loginAction] Sesión legacy creada:', {
+        hasSessionToken: !!legacySession.sessionToken,
+        expiresAt: legacySession.expiresAt
+      });
 
       // 6.3. Establecer TODAS las cookies usando la misma instancia de cookieStore
       // IMPORTANTE: Reutilizar cookieStore obtenido anteriormente para mantener el contexto
       // NOTA: cookieStore.set() NO es async en Next.js 15 - no requiere await
 
+      console.log('🍪 [loginAction] Estableciendo cookies...');
       // Establecer cookie access_token
       cookieStore.set('access_token', sessionInfo.accessToken, {
         ...SECURE_COOKIE_OPTIONS,
         expires: sessionInfo.accessExpiresAt,
       });
+      console.log('✅ [loginAction] Cookie access_token establecida');
 
       // Establecer cookie refresh_token
       cookieStore.set('refresh_token', sessionInfo.refreshToken, {
         ...SECURE_COOKIE_OPTIONS,
         expires: sessionInfo.refreshExpiresAt,
       });
+      console.log('✅ [loginAction] Cookie refresh_token establecida');
 
       // Establecer cookie legacy
       const maxAge = parsed.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
@@ -231,6 +304,7 @@ export async function loginAction(formData: FormData) {
         ...getCustomCookieOptions(maxAge),
         expires: legacySession.expiresAt,
       });
+      console.log('✅ [loginAction] Cookie legacy (aprende-y-aplica-session) establecida');
 
       // Crear notificación de login (con timeout para no bloquear demasiado)
       try {
@@ -265,22 +339,31 @@ export async function loginAction(formData: FormData) {
           error: notificationError instanceof Error ? notificationError.message : String(notificationError)
         })
       }
+      console.log('✅ [loginAction] Todas las cookies establecidas correctamente');
     } catch (sessionError) {
       // Log del error para debugging
-      console.error('Error creando sesión:', sessionError)
+      console.error('❌ [loginAction] Error crítico creando sesión:', {
+        error: sessionError,
+        message: (sessionError as any)?.message,
+        stack: (sessionError as any)?.stack
+      })
       return { error: 'Error al crear la sesión. Por favor, intenta nuevamente.' }
     }
 
     // 7. Limpiar sesiones expiradas (mantenimiento)
+    console.log('🧹 [loginAction] Limpiando sesiones expiradas...');
     try {
       await AuthService.clearExpiredSessions()
+      console.log('✅ [loginAction] Sesiones expiradas limpiadas');
     } catch (clearError) {
       // No fallar el login si falla la limpieza
+      console.log('⚠️ [loginAction] Error limpiando sesiones (no crítico):', clearError);
     }
 
     // 7. Si NO es login personalizado (login general), verificar si usuario tiene organización
     // Si tiene organización, redirigir a su login personalizado antes de redirigir según rol
     if (!organizationId && !organizationSlug) {
+      console.log('🔍 [loginAction] Login general - verificando si usuario tiene organización...');
       // OPTIMIZACIÓN: Paralelizar búsqueda de organización en ambas tablas
       let userOrgSlug: string | null = null
 
@@ -321,22 +404,35 @@ export async function loginAction(formData: FormData) {
 
       // Si usuario tiene organización, redirigir a su login personalizado
       if (userOrgSlug) {
+        console.log('🏢 [loginAction] Usuario tiene organización, redirigiendo a login personalizado:', `/auth/${userOrgSlug}`);
         redirect(`/auth/${userOrgSlug}`)
+      } else {
+        console.log('✅ [loginAction] Usuario sin organización, continuando con redirección por rol');
       }
     }
 
     // 8. Redirigir según el rol del usuario
     const normalizedRole = user.cargo_rol?.trim();
+    console.log('🎯 [loginAction] Determinando redirección según rol:', {
+      cargo_rol: user.cargo_rol,
+      normalizedRole,
+      organization_id: (user as any).organization_id
+    });
 
     if (normalizedRole === 'Administrador') {
+      console.log('➡️ [loginAction] Redirigiendo a /admin/dashboard');
       redirect('/admin/dashboard')
     } else if (normalizedRole === 'Instructor') {
+      console.log('➡️ [loginAction] Redirigiendo a /instructor/dashboard');
       redirect('/instructor/dashboard')
     } else if (normalizedRole === 'Business') {
+      console.log('➡️ [loginAction] Redirigiendo a /business-panel/dashboard');
       redirect('/business-panel/dashboard')
     } else if (normalizedRole === 'Business User') {
+      console.log('➡️ [loginAction] Redirigiendo a /business-user/dashboard');
       redirect('/business-user/dashboard')
     } else {
+      console.log('➡️ [loginAction] Redirigiendo a /dashboard (rol por defecto)');
       redirect('/dashboard')
     }
   } catch (error) {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { 
@@ -19,6 +19,8 @@ import {
 import { useNewsDetail } from '../../../features/news/hooks/useNews'
 import { useRouter } from 'next/navigation'
 import { notFound } from 'next/navigation'
+import { useShareModalContext } from '../../../core/providers/ShareModalProvider'
+import { getBaseUrl } from '../../../lib/env'
 
 interface NewsDetailPageProps {
   params: Promise<{
@@ -28,9 +30,15 @@ interface NewsDetailPageProps {
 
 export default function NewsDetailPage({ params }: NewsDetailPageProps) {
   const router = useRouter()
+  const { openShareModal } = useShareModalContext()
   const resolvedParams = React.use(params)
   const { news, loading, error } = useNewsDetail(resolvedParams.slug)
   const [imageError, setImageError] = useState(false)
+
+  // Scroll al top cuando se carga la página o cambia el slug
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [resolvedParams.slug])
 
   if (loading) {
     return (
@@ -59,21 +67,18 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
     router.back()
   }
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: news.title,
-          text: news.intro || '',
-          url: window.location.href
-        })
-      } catch (err) {
-        // console.log('Error sharing:', err)
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href)
-    }
+  const handleShare = () => {
+    if (!news) return
+    
+    const shareUrl = `${getBaseUrl()}/news/${resolvedParams.slug}`
+    
+    // Abrir modal de compartir global
+    openShareModal({
+      url: shareUrl,
+      title: news.title,
+      text: news.intro || news.subtitle || news.title,
+      description: news.intro || news.subtitle,
+    })
   }
 
   const renderTLDR = (tldr: any) => {

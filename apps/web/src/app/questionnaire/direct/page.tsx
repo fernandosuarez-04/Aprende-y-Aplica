@@ -62,6 +62,22 @@ export default function DirectQuestionnairePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Función para mezclar aleatoriamente un array (Fisher-Yates shuffle)
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Función para verificar si una pregunta es de conocimiento
+  const isKnowledgeQuestion = (question: Question): boolean => {
+    if (!question.bloque) return false;
+    return question.bloque.toLowerCase().includes('conocimiento');
+  };
+
   useEffect(() => {
     // Solo cargar preguntas si el usuario está autenticado
     if (!authLoading && isAuthenticated && user) {
@@ -184,93 +200,129 @@ export default function DirectQuestionnairePage() {
         return;
       }
 
-      // Mapear type_rol a exclusivo_rol_id (basado en el sistema anterior)
-      const exclusivoRolId = mapTypeRolToExclusivoRolId(userProfile.type_rol);
-      // Obtener preguntas filtradas por perfil
-      // Primero intentar buscar preguntas específicas para el perfil
-      let questions = [];
-      let questionsError = null;
+      // Obtener perfil completo del usuario desde user_perfil
+      const { data: userProfileComplete, error: profileCompleteError } = await supabase
+        .from('user_perfil')
+        .select('id, area_id, rol_id, dificultad_id')
+        .eq('user_id', user.id)
+        .single();
 
-      // Cargar preguntas según exclusivo_rol_id (basado en genai-form.js)
-      // Para CTO: exclusivo_rol_id = 2
-      // Para CEO: exclusivo_rol_id = 1
-      // Para Marketing: exclusivo_rol_id = 3
-      // Para Ventas: exclusivo_rol_id = 11, 17
-      // Para Educación: exclusivo_rol_id = 9
-      const { data: specificQuestions, error: specificError } = await supabase
+      if (profileCompleteError || !userProfileComplete) {
+        setError('Perfil de usuario no encontrado. Por favor completa tu perfil profesional primero.');
+        return;
+      }
+
+      // Validar que el perfil tenga todos los datos necesarios
+      if (!userProfileComplete.dificultad_id) {
+        setError('Tu perfil no tiene un nivel de dificultad asignado. Por favor completa el cuestionario inicial nuevamente.');
+        setLoading(false);
+        return;
+      }
+
+      if (!userProfileComplete.rol_id) {
+        setError('Tu perfil no tiene un rol asignado. Por favor completa el cuestionario inicial nuevamente.');
+        setLoading(false);
+        return;
+      }
+
+      if (!userProfileComplete.area_id) {
+        setError('Tu perfil no tiene un área asignada. Por favor completa el cuestionario inicial nuevamente.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Perfil del usuario:', {
+        dificultad_id: userProfileComplete.dificultad_id,
+        area_id: userProfileComplete.area_id,
+        rol_id: userProfileComplete.rol_id
+      });
+
+      // Obtener preguntas filtradas por dificultad, área y rol
+      // Necesitamos 6 preguntas de Adopción y 6 de Conocimiento
+      const { data: allQuestionsByDifficulty, error: difficultyError } = await supabase
         .from('preguntas')
         .select('*')
-        .eq('exclusivo_rol_id', exclusivoRolId)
-        .eq('section', 'Cuestionario')
-        .order('bloque', { ascending: true })
-        .order('codigo', { ascending: true });
-      
-      // Debug adicional: verificar qué preguntas se están obteniendo
-      if (specificQuestions && specificQuestions.length > 0) {
-        // console.log('Preguntas específicas encontradas:', specificQuestions.map(q => ({
-        //   id: q.id,
-        //   codigo: q.codigo,
-        //   section: q.section,
-        //   bloque: q.bloque,
-        //   exclusivo_rol_id: q.exclusivo_rol_id,
-        //   texto: q.texto?.substring(0, 100) + '...'
-        // })));
-      } else {
-        // Verificar si hay preguntas en la base de datos
-        const { data: allQuestions, error: allError } = await supabase
-          .from('preguntas')
-          .select('id, codigo, section, bloque, exclusivo_rol_id, texto')
-          .eq('section', 'Cuestionario')
-          .limit(10);
-        
-        }
-      
-      // Debug: Mostrar las primeras 3 preguntas encontradas
-      if (specificQuestions && specificQuestions.length > 0) {
-        // console.log('Primeras preguntas encontradas:', specificQuestions.slice(0, 3).map(q => ({
-        //   id: q.id,
-        //   codigo: q.codigo,
-        //   section: q.section,
-        //   bloque: q.bloque,
-        //   exclusivo_rol_id: q.exclusivo_rol_id,
-        //   texto: q.texto?.substring(0, 50) + '...'
-        // })));
-      }
+        .eq('dificultad', userProfileComplete.dificultad_id);
 
-      if (specificError) {
-        // console.error('Error fetching specific questions:', specificError);
-        questionsError = specificError;
-      } else if (specificQuestions && specificQuestions.length > 0) {
-        questions = specificQuestions;
-        } else {
-        // Si no hay preguntas específicas, buscar todas las preguntas del cuestionario
-        const { data: allQuestions, error: allError } = await supabase
-          .from('preguntas')
-          .select('*')
-          .eq('section', 'Cuestionario')
-          .order('bloque', { ascending: true })
-          .order('codigo', { ascending: true });
-
-        if (allError) {
-          // console.error('Error fetching all questions:', allError);
-          questionsError = allError;
-        } else if (allQuestions && allQuestions.length > 0) {
-          questions = allQuestions;
-          } else {
-          setError('No hay preguntas disponibles en la base de datos. Contacta al administrador.');
-          return;
-        }
-      }
-
-      if (questionsError) {
-        // console.error('Error fetching questions:', questionsError);
-        setError(`Error al obtener las preguntas: ${questionsError.message}`);
+      if (difficultyError) {
+        setError('Error al obtener las preguntas');
         return;
       }
 
-      if (!questions || questions.length === 0) {
-        setError('No se encontraron preguntas disponibles.');
+      // Filtrar preguntas de Adopción que coincidan con área y rol
+      const adopcionFiltered = (allQuestionsByDifficulty || [])
+        .filter(q => {
+          const isAdopcion = q.bloque && (
+            q.bloque.toLowerCase().includes('adopción') || 
+            q.bloque.toLowerCase().includes('adopcion') ||
+            q.bloque === 'Adopción/uso'
+          );
+          if (!isAdopcion) return false;
+          const areaMatch = q.area_id === userProfileComplete.area_id || q.area_id === null;
+          const rolMatch = q.exclusivo_rol_id === userProfileComplete.rol_id || q.exclusivo_rol_id === null;
+          return areaMatch && rolMatch;
+        })
+        .sort((a, b) => {
+          if (a.exclusivo_rol_id === userProfileComplete.rol_id && b.exclusivo_rol_id !== userProfileComplete.rol_id) return -1;
+          if (a.exclusivo_rol_id !== userProfileComplete.rol_id && b.exclusivo_rol_id === userProfileComplete.rol_id) return 1;
+          if (a.area_id === userProfileComplete.area_id && b.area_id !== userProfileComplete.area_id) return -1;
+          if (a.area_id !== userProfileComplete.area_id && b.area_id === userProfileComplete.area_id) return 1;
+          return a.id - b.id;
+        })
+        .slice(0, 6);
+
+      // Filtrar preguntas de Conocimiento que coincidan con área y rol
+      const conocimientoFiltered = (allQuestionsByDifficulty || [])
+        .filter(q => {
+          const isConocimiento = q.bloque && q.bloque.toLowerCase().includes('conocimiento');
+          if (!isConocimiento) return false;
+          const areaMatch = q.area_id === userProfileComplete.area_id || q.area_id === null;
+          const rolMatch = q.exclusivo_rol_id === userProfileComplete.rol_id || q.exclusivo_rol_id === null;
+          return areaMatch && rolMatch;
+        })
+        .sort((a, b) => {
+          if (a.exclusivo_rol_id === userProfileComplete.rol_id && b.exclusivo_rol_id !== userProfileComplete.rol_id) return -1;
+          if (a.exclusivo_rol_id !== userProfileComplete.rol_id && b.exclusivo_rol_id === userProfileComplete.rol_id) return 1;
+          if (a.area_id === userProfileComplete.area_id && b.area_id !== userProfileComplete.area_id) return -1;
+          if (a.area_id !== userProfileComplete.area_id && b.area_id === userProfileComplete.area_id) return 1;
+          return a.id - b.id;
+        })
+        .slice(0, 6);
+
+      // Combinar las preguntas: primero adopción, luego conocimiento
+      const questions = [...adopcionFiltered, ...conocimientoFiltered];
+      
+      console.log('Preguntas encontradas:', {
+        total: questions.length,
+        adopcion: adopcionFiltered.length,
+        conocimiento: conocimientoFiltered.length,
+        dificultad_id: userProfileComplete.dificultad_id,
+        area_id: userProfileComplete.area_id,
+        rol_id: userProfileComplete.rol_id,
+        total_disponibles: allQuestionsByDifficulty?.length || 0
+      });
+
+      if (questions.length === 0) {
+        const errorMsg = `No se encontraron preguntas para tu perfil. Dificultad: ${userProfileComplete.dificultad_id}, Área: ${userProfileComplete.area_id}, Rol: ${userProfileComplete.rol_id}. Por favor verifica que tu perfil esté completo o contacta al administrador.`;
+        console.error(errorMsg, {
+          total_preguntas_disponibles: allQuestionsByDifficulty?.length || 0,
+          adopcion_encontradas: adopcionFiltered.length,
+          conocimiento_encontradas: conocimientoFiltered.length
+        });
+        setError(errorMsg);
+        setLoading(false);
         return;
+      }
+
+      if (questions.length < 12) {
+        console.warn(`Solo se obtuvieron ${questions.length} preguntas de 12 esperadas`, {
+          adopcion: adopcionFiltered.length,
+          conocimiento: conocimientoFiltered.length,
+          dificultad_id: userProfileComplete.dificultad_id,
+          area_id: userProfileComplete.area_id,
+          rol_id: userProfileComplete.rol_id,
+          total_disponibles: allQuestionsByDifficulty?.length || 0
+        });
       }
 
       // console.log('Primera pregunta encontrada:', questions[0]);
@@ -288,37 +340,24 @@ export default function DirectQuestionnairePage() {
         acc[q.tipo] = (acc[q.tipo] || 0) + 1;
         return acc;
       }, {});
-      // Obtener respuestas existentes (con manejo de errores robusto)
+      // Obtener respuestas existentes usando el user_perfil_id que ya tenemos
       let existingAnswers = [];
-      let answersError = null;
       
       try {
-        // Primero obtener el user_perfil_id del usuario
-        const { data: userProfile, error: profileError } = await supabase
-          .from('user_perfil')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
+        const { data, error } = await supabase
+          .from('respuestas')
+          .select('pregunta_id, valor')
+          .eq('user_perfil_id', userProfileComplete.id);
 
-        if (profileError || !userProfile) {
+        if (error) {
+          console.error('Error al obtener respuestas existentes:', error);
           existingAnswers = [];
         } else {
-          const { data, error } = await supabase
-            .from('respuestas')
-            .select('pregunta_id, valor')
-            .eq('user_perfil_id', userProfile.id);
-
-          if (error) {
-            // console.error('Error al obtener respuestas existentes:', error);
-            answersError = error;
-            existingAnswers = []; // Continuar sin respuestas existentes
-          } else {
-            existingAnswers = data || [];
-            }
+          existingAnswers = data || [];
         }
       } catch (err) {
-        answersError = err;
-        existingAnswers = []; // Continuar sin respuestas existentes
+        console.error('Error al obtener respuestas existentes:', err);
+        existingAnswers = [];
       }
 
       // Mapear respuestas existentes
@@ -327,23 +366,56 @@ export default function DirectQuestionnairePage() {
         return acc;
       }, {} as Record<number, any>) || {};
 
-      // Combinar preguntas con respuestas existentes
-      const questionsWithAnswers = questions?.map(question => ({
-        ...question,
-        respuesta_existente: answersMap[question.id] || null
-      })) || [];
+      // Combinar preguntas con respuestas existentes y parsear opciones
+      const questionsWithAnswers = questions?.map(question => {
+        // Parsear opciones si vienen como JSON string
+        let opcionesParsed: string[] = [];
+        if (question.opciones) {
+          if (typeof question.opciones === 'string') {
+            try {
+              opcionesParsed = JSON.parse(question.opciones);
+            } catch (e) {
+              console.warn('Error al parsear opciones como JSON:', e);
+              opcionesParsed = [question.opciones];
+            }
+          } else if (Array.isArray(question.opciones)) {
+            opcionesParsed = question.opciones;
+          } else {
+            console.warn('Formato de opciones desconocido:', typeof question.opciones);
+            opcionesParsed = [];
+          }
+        }
+        
+        // Mezclar aleatoriamente las opciones SOLO para preguntas de conocimiento
+        // Las preguntas de adopción mantienen su orden original
+        if (opcionesParsed.length > 0 && isKnowledgeQuestion(question)) {
+          opcionesParsed = shuffleArray(opcionesParsed);
+        }
+        
+        return {
+          ...question,
+          opciones: opcionesParsed,
+          respuesta_existente: answersMap[question.id] || null
+        };
+      }) || [];
 
       // Organizar preguntas por secciones como en el sistema anterior
       const sections: QuestionnaireSection[] = [];
       
       // Separar por BLOQUE, no por section (basado en genai-form.js)
-      const adoptionQuestions = questionsWithAnswers.filter(q => 
-        q.bloque === 'Adopción'
-      );
+      // Usar comparación flexible para manejar diferentes formatos del bloque
+      const adoptionQuestions = questionsWithAnswers.filter(q => {
+        if (!q.bloque) return false;
+        const bloqueLower = q.bloque.toLowerCase();
+        return bloqueLower.includes('adopción') || 
+               bloqueLower.includes('adopcion') ||
+               q.bloque === 'Adopción/uso';
+      });
       
-      const knowledgeQuestions = questionsWithAnswers.filter(q => 
-        q.bloque === 'Conocimiento'
-      );
+      const knowledgeQuestions = questionsWithAnswers.filter(q => {
+        if (!q.bloque) return false;
+        return q.bloque.toLowerCase().includes('conocimiento');
+      });
       
       // Crear secciones basadas en los bloques encontrados
       if (adoptionQuestions.length > 0) {
@@ -364,32 +436,73 @@ export default function DirectQuestionnairePage() {
 
       // Si no se encontraron secciones por bloque, crear una sección general
       if (sections.length === 0) {
-        sections.push({
-          name: 'Cuestionario',
-          description: 'Preguntas generales',
-          questions: questionsWithAnswers
+        console.warn('No se encontraron secciones por bloque, creando sección general');
+        if (questionsWithAnswers.length > 0) {
+          sections.push({
+            name: 'Cuestionario',
+            description: 'Preguntas generales',
+            questions: questionsWithAnswers
+          });
+        }
+      }
+
+      // Validar que tengamos al menos una sección con preguntas
+      if (sections.length === 0 || questionsWithAnswers.length === 0) {
+        const errorMsg = `No se pudieron organizar las preguntas. Secciones: ${sections.length}, Preguntas: ${questionsWithAnswers.length}`;
+        console.error(errorMsg, {
+          sections,
+          questionsWithAnswers: questionsWithAnswers.length,
+          adopcionQuestions: adoptionQuestions.length,
+          knowledgeQuestions: knowledgeQuestions.length
         });
+        setError(errorMsg);
+        setLoading(false);
+        return;
       }
 
       // Debug: Ver todos los bloques únicos en las preguntas
       const uniqueBlocks = [...new Set(questionsWithAnswers.map(q => q.bloque))];
-      // console.log('Preguntas con respuestas:', questionsWithAnswers.map(q => ({ id: q.id, section: q.section, bloque: q.bloque, tipo: q.tipo })));
+      console.log('Bloques únicos encontrados:', uniqueBlocks);
+      console.log('Preguntas con respuestas:', questionsWithAnswers.map(q => ({ 
+        id: q.id, 
+        section: q.section, 
+        bloque: q.bloque, 
+        tipo: q.tipo,
+        texto: q.texto?.substring(0, 50) + '...'
+      })));
 
-      setData({
-        sections,
-        total: questionsWithAnswers.length,
-        userProfile: {
-          type_rol: userProfile.type_rol,
-          exclusivo_rol_id: exclusivoRolId
-        }
+      // Calcular exclusivo_rol_id desde type_rol si es necesario
+      const exclusivoRolId = mapTypeRolToExclusivoRolId(userProfile.type_rol);
+
+      console.log('Datos a establecer:', {
+        sections_count: sections.length,
+        total_questions: questionsWithAnswers.length,
+        sections: sections.map(s => ({ name: s.name, questions_count: s.questions.length }))
       });
-      
-      // Inicializar respuestas existentes
-      setAnswers(answersMap);
+
+      try {
+        setData({
+          sections,
+          total: questionsWithAnswers.length,
+          userProfile: {
+            type_rol: userProfile.type_rol,
+            exclusivo_rol_id: exclusivoRolId
+          }
+        });
+        
+        // Inicializar respuestas existentes
+        setAnswers(answersMap);
+        
+        console.log('✅ Datos establecidos correctamente');
+      } catch (setDataError) {
+        console.error('Error al establecer datos:', setDataError);
+        throw setDataError;
+      }
 
     } catch (error) {
-      // console.error('Error fetching questions:', error);
-      setError('Error al cargar las preguntas');
+      console.error('Error fetching questions:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setError(`Error al cargar las preguntas: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

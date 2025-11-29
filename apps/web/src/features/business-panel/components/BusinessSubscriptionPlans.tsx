@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useMemo, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check,
   X,
@@ -15,9 +15,13 @@ import {
   Phone,
   ExternalLink,
   CheckCircle2,
-  TrendingUp
+  TrendingUp,
+  Loader2,
+  AlertCircle,
+  Info
 } from 'lucide-react'
 import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
+import { getPlanById, calculatePlanPrice, formatPlanPrice, type BusinessPlanId, type BillingCycle } from '../services/subscription.utils'
 
 interface PlanFeature {
   name: string
@@ -42,9 +46,19 @@ interface Plan {
 }
 
 export function BusinessSubscriptionPlans() {
-  const { plan: currentPlan, loading: planLoading } = useSubscriptionFeatures()
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly')
+  const { plan: currentPlan, billingCycle: currentBillingCycle, subscription, loading: planLoading, changePlan, refetch } = useSubscriptionFeatures()
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(() => currentBillingCycle || 'yearly')
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [isChangingPlan, setIsChangingPlan] = useState(false)
+  const [changeError, setChangeError] = useState<string | null>(null)
+  const [changeSuccess, setChangeSuccess] = useState(false)
+  
+  // Sincronizar billingCycle cuando cambie currentBillingCycle
+  useEffect(() => {
+    if (currentBillingCycle && currentBillingCycle !== billingCycle) {
+      setBillingCycle(currentBillingCycle)
+    }
+  }, [currentBillingCycle, billingCycle])
 
   const plans: Plan[] = [
     {
@@ -341,19 +355,99 @@ export function BusinessSubscriptionPlans() {
   }
 
   const handleSelectPlan = (planId: string) => {
-    setSelectedPlan(planId)
-    // Aquí iría la lógica para procesar el cambio de plan
     if (planId === 'enterprise') {
-      // Para Enterprise, redirigir a contacto de ventas
-      alert('Para el plan Enterprise, por favor contacta con nuestro equipo de ventas.')
-    } else {
-      // Para otros planes, mostrar confirmación
-      if (confirm(`¿Estás seguro de que deseas cambiar al plan ${planId === 'team' ? 'Team' : 'Business'}?`)) {
-        // Aquí iría la lógica para actualizar el plan
-        alert(`Cambio de plan a ${planId === 'team' ? 'Team' : 'Business'} en desarrollo. Próximamente estarás disponible para actualizar tu plan.`)
+      // Para Enterprise, mostrar información de contacto
+      setSelectedPlan('enterprise')
+      return
+    }
+
+    // Verificar si ya tiene el mismo plan y ciclo
+    if (currentPlan === planId && currentBillingCycle === billingCycle) {
+      return
+    }
+
+    setSelectedPlan(planId)
+    setChangeError(null)
+    setChangeSuccess(false)
+  }
+
+  const handleConfirmChange = async () => {
+    if (!selectedPlan || selectedPlan === 'enterprise') return
+
+    setIsChangingPlan(true)
+    setChangeError(null)
+    setChangeSuccess(false)
+
+    try {
+      const result = await changePlan(selectedPlan, billingCycle)
+
+      if (result.success) {
+        // Esperar a que refetch se complete antes de cerrar el modal
+        await refetch()
+        
+        // Pequeño delay para asegurar que todos los componentes se actualicen
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        // Disparar evento personalizado para notificar a otros componentes
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('subscription-plan-changed', {
+            detail: { planId: selectedPlan, billingCycle }
+          }))
+        }
+        
+        setChangeSuccess(true)
+        setSelectedPlan(null)
+
+        // Ocultar mensaje de éxito después de 5 segundos
+        setTimeout(() => {
+          setChangeSuccess(false)
+        }, 5000)
+      } else {
+        setChangeError(result.error || 'Error al cambiar el plan. Por favor, intenta nuevamente.')
+        // Mantener el modal abierto para que el usuario pueda ver el error
       }
+    } catch (error) {
+      console.error('Error changing plan:', error)
+      setChangeError(error instanceof Error ? error.message : 'Error desconocido al cambiar el plan. Por favor, intenta nuevamente.')
+    } finally {
+      setIsChangingPlan(false)
     }
   }
+
+  const handleCancelChange = () => {
+    setSelectedPlan(null)
+    setChangeError(null)
+    setChangeSuccess(false)
+  }
+
+  // Calcular información del cambio de plan
+  const changeInfo = useMemo(() => {
+    if (!selectedPlan || selectedPlan === 'enterprise') return null
+
+    const currentPlanConfig = currentPlan ? getPlanById(currentPlan) : null
+    const newPlanConfig = getPlanById(selectedPlan)
+
+    if (!newPlanConfig) return null
+
+    const currentPrice = currentPlanConfig && currentBillingCycle
+      ? calculatePlanPrice(currentPlanConfig.id as BusinessPlanId, currentBillingCycle)
+      : 0
+    const newPrice = calculatePlanPrice(newPlanConfig.id as BusinessPlanId, billingCycle)
+
+    const currentPlanName = currentPlanConfig?.name || (currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : 'Ninguno')
+    
+    return {
+      currentPlan: currentPlanName,
+      newPlan: newPlanConfig.name,
+      currentPrice,
+      newPrice,
+      priceDifference: newPrice - currentPrice,
+      currentBillingCycle: currentBillingCycle || 'yearly',
+      newBillingCycle: billingCycle,
+      currentPlanId: currentPlan || null,
+      newPlanId: selectedPlan
+    }
+  }, [selectedPlan, currentPlan, currentBillingCycle, billingCycle])
 
   const getPlanIcon = (planId: string) => {
     switch (planId) {
@@ -391,6 +485,60 @@ export function BusinessSubscriptionPlans() {
 
   return (
     <div className="w-full space-y-12">
+      {/* Mensajes de éxito/error */}
+      <AnimatePresence>
+        {changeSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 flex items-center gap-3"
+          >
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
+            <span className="text-green-400 font-medium">
+              Plan actualizado exitosamente
+            </span>
+          </motion.div>
+        )}
+        {changeError && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center gap-3"
+          >
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            <span className="text-red-400 font-medium">
+              {changeError}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Indicador del Plan Actual */}
+      {currentPlan && (
+        <div className="bg-carbon-800/50 border border-carbon-700 rounded-lg p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-carbon-400 mb-1">Plan Actual</p>
+            <p className="text-lg font-semibold text-white capitalize">
+              {currentPlan} {currentBillingCycle === 'yearly' ? '(Anual)' : '(Mensual)'}
+            </p>
+          </div>
+          {subscription?.end_date && (
+            <div className="text-right">
+              <p className="text-sm text-carbon-400 mb-1">Próxima renovación</p>
+              <p className="text-sm font-medium text-white">
+                {new Date(subscription.end_date).toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Toggle de Facturación */}
       <div className="flex items-center justify-center gap-4 mb-8">
         <button
@@ -419,7 +567,7 @@ export function BusinessSubscriptionPlans() {
       </div>
 
       {/* Cards de Planes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         {plans.map((plan, index) => {
           const savings = calculateYearlySavings(plan);
           const monthlyEquivalent = billingCycle === 'yearly' 
@@ -432,7 +580,7 @@ export function BusinessSubscriptionPlans() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`relative rounded-xl border-2 overflow-hidden transition-all ${
+              className={`relative rounded-xl border-2 overflow-hidden transition-all flex flex-col h-full ${
                 plan.isPopular
                   ? 'border-primary shadow-xl scale-105'
                   : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
@@ -454,12 +602,12 @@ export function BusinessSubscriptionPlans() {
               )}
 
               {/* Header con gradiente */}
-              <div className={`bg-gradient-to-br ${getPlanColor(plan.id)} p-6 text-white`}>
+              <div className={`bg-gradient-to-br ${getPlanColor(plan.id)} p-6 text-white flex-shrink-0`}>
                 <div className="flex items-center gap-3 mb-2">
                   {getPlanIcon(plan.id)}
                   <h3 className="text-2xl font-bold">{plan.name}</h3>
                 </div>
-                <p className="text-white/80 text-sm mb-4">{plan.tagline}</p>
+                <p className="text-white/80 text-sm mb-4 min-h-[20px]">{plan.tagline}</p>
                 <div className="flex items-baseline gap-2">
                   {plan.price === 'Personalizado' ? (
                     <span className="text-3xl font-bold">Personalizado</span>
@@ -477,21 +625,23 @@ export function BusinessSubscriptionPlans() {
                     </>
                   )}
                 </div>
-                {plan.price !== 'Personalizado' && billingCycle === 'yearly' && savings > 0 && (
-                  <p className="text-white/80 text-sm mt-2">
-                    Ahorra {savings}% vs plan mensual
-                  </p>
-                )}
-                {plan.price !== 'Personalizado' && billingCycle === 'yearly' && (
-                  <p className="text-white/70 text-sm mt-1">
-                    ${monthlyEquivalent.toLocaleString('es-MX')}/mes facturado anualmente
-                  </p>
-                )}
+                <div className="min-h-[40px] mt-2">
+                  {plan.price !== 'Personalizado' && billingCycle === 'yearly' && savings > 0 && (
+                    <p className="text-white/80 text-sm">
+                      Ahorra {savings}% vs plan mensual
+                    </p>
+                  )}
+                  {plan.price !== 'Personalizado' && billingCycle === 'yearly' && (
+                    <p className="text-white/70 text-sm mt-1">
+                      ${monthlyEquivalent.toLocaleString('es-MX')}/mes facturado anualmente
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Features */}
-              <div className="p-6 bg-white dark:bg-gray-800">
-                <ul className="space-y-3 mb-6">
+              <div className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1">
+                <ul className="space-y-3 mb-6 flex-1">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -501,8 +651,12 @@ export function BusinessSubscriptionPlans() {
                 </ul>
 
                 {(() => {
-                  const isCurrentPlan = currentPlan && plan.id === currentPlan
-                  const isDisabled = isCurrentPlan || planLoading
+                  // Verificar si es el plan actual comparando IDs (case-insensitive)
+                  const currentPlanNormalized = currentPlan?.toLowerCase()
+                  const planIdNormalized = plan.id.toLowerCase()
+                  const isCurrentPlan = currentPlanNormalized === planIdNormalized && 
+                                       (currentBillingCycle === billingCycle || !currentBillingCycle)
+                  const isDisabled = isCurrentPlan || planLoading || isChangingPlan
                   
                   return (
                     <button
@@ -520,7 +674,7 @@ export function BusinessSubscriptionPlans() {
                     >
                       {isCurrentPlan ? (
                         <>
-                          Adquirido
+                          Plan Actual
                           <CheckCircle2 className="w-5 h-5" />
                         </>
                       ) : plan.id === 'enterprise' ? (
@@ -530,7 +684,7 @@ export function BusinessSubscriptionPlans() {
                         </>
                       ) : (
                         <>
-                          Cambiar de plan
+                          {currentPlan && currentPlanNormalized !== planIdNormalized ? 'Cambiar de plan' : 'Seleccionar plan'}
                           <ArrowRight className="w-5 h-5" />
                         </>
                       )}
@@ -627,6 +781,254 @@ export function BusinessSubscriptionPlans() {
           Todas las suscripciones incluyen cancelación en cualquier momento. Sin cargos ocultos.
         </p>
       </div>
+
+      {/* Modal de Confirmación de Cambio de Plan */}
+      <AnimatePresence>
+        {selectedPlan && selectedPlan !== 'enterprise' && changeInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCancelChange}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', duration: 0.3 }}
+              className="relative bg-carbon-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-carbon-700 w-full max-w-lg z-10"
+            >
+              {/* Header */}
+              <div 
+                className="flex items-center justify-between p-6 border-b"
+                style={{
+                  backgroundColor: '#1e293b',
+                  borderColor: '#334155'
+                }}
+              >
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <Info className="w-6 h-6 text-primary" />
+                  Confirmar Cambio de Plan
+                </h2>
+                <button
+                  onClick={handleCancelChange}
+                  disabled={isChangingPlan}
+                  className="p-2 hover:bg-carbon-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'rgba(51, 65, 85, 0.5)' }}
+                >
+                  <X className="w-5 h-5 text-carbon-300 hover:text-white" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6" style={{ backgroundColor: '#0f172a' }}>
+                {/* Resumen del Cambio */}
+                <div className="space-y-4">
+                  <div 
+                    className="flex items-center justify-between p-4 rounded-lg border"
+                    style={{
+                      backgroundColor: '#1e293b',
+                      borderColor: '#334155'
+                    }}
+                  >
+                    <div>
+                      <p className="text-sm text-carbon-400 mb-1">Plan Actual</p>
+                      <p className="text-lg font-semibold text-white">{changeInfo.currentPlan}</p>
+                      <p className="text-sm text-carbon-400 mt-1">
+                        {changeInfo.currentPrice > 0 && changeInfo.currentPlanId
+                          ? formatPlanPrice(changeInfo.currentPlanId.toLowerCase() as BusinessPlanId, changeInfo.currentBillingCycle)
+                          : 'Sin plan activo'
+                        }
+                      </p>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-carbon-500" />
+                    <div>
+                      <p className="text-sm text-carbon-400 mb-1">Plan Nuevo</p>
+                      <p className="text-lg font-semibold text-white">{changeInfo.newPlan}</p>
+                      <p className="text-sm text-carbon-400 mt-1">
+                        {formatPlanPrice(changeInfo.newPlanId.toLowerCase() as BusinessPlanId, changeInfo.newBillingCycle)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Detalles */}
+                  <div 
+                    className="p-4 rounded-lg border space-y-2"
+                    style={{
+                      backgroundColor: '#1e293b',
+                      borderColor: '#334155'
+                    }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-carbon-400">Ciclo de facturación:</span>
+                      <span className="text-sm font-medium text-white capitalize">{changeInfo.newBillingCycle}</span>
+                    </div>
+                    {changeInfo.priceDifference !== 0 && (
+                      <div className="flex justify-between items-center pt-2 border-t border-carbon-700">
+                        <span className="text-sm text-carbon-400">
+                          {changeInfo.priceDifference > 0 ? 'Aumento' : 'Disminución'} de precio:
+                        </span>
+                        <span className={`text-sm font-semibold ${changeInfo.priceDifference > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          {changeInfo.priceDifference > 0 ? '+' : ''}
+                          ${Math.abs(changeInfo.priceDifference).toLocaleString('es-MX')}
+                          /{changeInfo.newBillingCycle === 'yearly' ? 'año' : 'mes'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mensaje informativo */}
+                <div 
+                  className="p-4 rounded-lg border"
+                  style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    borderColor: 'rgba(59, 130, 246, 0.3)'
+                  }}
+                >
+                  <p className="text-sm text-blue-300 flex items-start gap-2">
+                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>El cambio de plan será efectivo inmediatamente. Tu próxima facturación reflejará el nuevo plan seleccionado.</span>
+                  </p>
+                </div>
+
+                {/* Error */}
+                {changeError && (
+                  <div 
+                    className="p-4 rounded-lg border"
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                      borderColor: 'rgba(239, 68, 68, 0.3)'
+                    }}
+                  >
+                    <p className="text-sm text-red-300 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>{changeError}</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div 
+                className="flex items-center justify-end gap-3 p-6 border-t"
+                style={{
+                  backgroundColor: '#1e293b',
+                  borderColor: '#334155'
+                }}
+              >
+                <button
+                  onClick={handleCancelChange}
+                  disabled={isChangingPlan}
+                  className="px-4 py-2 text-sm font-medium text-carbon-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg hover:bg-carbon-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmChange}
+                  disabled={isChangingPlan}
+                  className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {isChangingPlan ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Cambiando...
+                    </>
+                  ) : (
+                    <>
+                      Confirmar Cambio
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Modal de Enterprise - Contacto de Ventas */}
+        {selectedPlan === 'enterprise' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPlan(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', duration: 0.3 }}
+              className="relative bg-carbon-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-carbon-700 w-full max-w-lg z-10"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-carbon-700">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <Crown className="w-6 h-6 text-amber-400" />
+                  Plan Enterprise
+                </h2>
+                <button
+                  onClick={() => setSelectedPlan(null)}
+                  className="p-2 hover:bg-carbon-700 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-carbon-400 hover:text-white" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                <p className="text-carbon-300">
+                  El plan Enterprise es personalizado para grandes organizaciones. Por favor, contacta con nuestro equipo de ventas para conocer más detalles y obtener una cotización personalizada.
+                </p>
+                
+                <div className="space-y-3">
+                  <a
+                    href="mailto:ventas@aprendey aplica.com"
+                    className="flex items-center gap-3 p-4 bg-carbon-800/50 rounded-lg border border-carbon-700 hover:bg-carbon-800 transition-colors"
+                  >
+                    <Mail className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-white">Email</p>
+                      <p className="text-sm text-carbon-400">ventas@aprendeyaplica.com</p>
+                    </div>
+                  </a>
+                  
+                  <a
+                    href="tel:+525555555555"
+                    className="flex items-center gap-3 p-4 bg-carbon-800/50 rounded-lg border border-carbon-700 hover:bg-carbon-800 transition-colors"
+                  >
+                    <Phone className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-white">Teléfono</p>
+                      <p className="text-sm text-carbon-400">+52 55 5555 5555</p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-3 p-6 border-t border-carbon-700">
+                <button
+                  onClick={() => setSelectedPlan(null)}
+                  className="px-4 py-2 text-sm font-medium text-carbon-400 hover:text-white transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

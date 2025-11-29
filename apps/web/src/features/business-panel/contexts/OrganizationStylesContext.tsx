@@ -43,7 +43,15 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   const [error, setError] = useState<string | null>(null);
 
   const fetchStyles = async () => {
+    console.log('🔄 [OrganizationStylesContext] fetchStyles llamado:', {
+      hasUser: !!user,
+      userId: user?.id,
+      organizationId: user?.organization_id,
+      userRole: user?.role
+    });
+
     if (!user?.organization_id) {
+      console.log('⚠️ [OrganizationStylesContext] No hay organization_id, abortando fetch');
       setLoading(false);
       return;
     }
@@ -52,28 +60,71 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
       setLoading(true);
       setError(null);
 
+      console.log('📡 [OrganizationStylesContext] Haciendo fetch a /api/business/settings/styles');
       const response = await fetch('/api/business/settings/styles', {
         credentials: 'include',
       });
 
       const data = await response.json();
+      console.log('📥 [OrganizationStylesContext] Respuesta recibida:', {
+        success: data.success,
+        hasStyles: !!data.styles,
+        error: data.error
+      });
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al obtener estilos');
       }
 
-      // console.log('🎨 Estilos cargados desde API:', data.styles);
+      console.log('🎨 [OrganizationStylesContext] Estilos cargados desde API:', {
+        selectedTheme: data.styles?.selectedTheme,
+        panelPrimaryColor: data.styles?.panel?.primary_button_color,
+        userDashboardPrimaryColor: data.styles?.userDashboard?.primary_button_color,
+        loginPrimaryColor: data.styles?.login?.primary_button_color,
+        fullData: data.styles
+      });
       setStyles(data.styles);
+
+      // Guardar en localStorage como respaldo
+      if (typeof window !== 'undefined' && data.styles) {
+        try {
+          localStorage.setItem(
+            `business-theme-${user.organization_id}`,
+            JSON.stringify(data.styles)
+          );
+        } catch (e) {
+          console.error('Error guardando tema en localStorage:', e);
+        }
+      }
     } catch (err: any) {
       // console.error('Error fetching organization styles:', err);
       setError(err.message || 'Error al obtener estilos');
-      setStyles(null);
+
+      // Intentar cargar desde localStorage como fallback
+      if (typeof window !== 'undefined' && user?.organization_id) {
+        try {
+          const cached = localStorage.getItem(`business-theme-${user.organization_id}`);
+          if (cached) {
+            setStyles(JSON.parse(cached));
+          } else {
+            setStyles(null);
+          }
+        } catch (e) {
+          setStyles(null);
+        }
+      } else {
+        setStyles(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('🔄 [OrganizationStylesContext] useEffect triggered - fetchStyles', {
+      hasUser: !!user,
+      organizationId: user?.organization_id
+    });
     fetchStyles();
   }, [user?.organization_id]);
 
@@ -107,6 +158,19 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
 
       // console.log('✅ Estilos actualizados:', data.styles);
       setStyles(data.styles);
+
+      // Guardar en localStorage
+      if (typeof window !== 'undefined' && user?.organization_id && data.styles) {
+        try {
+          localStorage.setItem(
+            `business-theme-${user.organization_id}`,
+            JSON.stringify(data.styles)
+          );
+        } catch (e) {
+          console.error('Error guardando tema en localStorage:', e);
+        }
+      }
+
       return true;
     } catch (err: any) {
       // console.error('Error updating styles:', err);
@@ -136,6 +200,19 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
 
       // console.log('✅ Tema aplicado:', data.styles);
       setStyles(data.styles);
+
+      // Guardar en localStorage
+      if (typeof window !== 'undefined' && user?.organization_id && data.styles) {
+        try {
+          localStorage.setItem(
+            `business-theme-${user.organization_id}`,
+            JSON.stringify(data.styles)
+          );
+        } catch (e) {
+          console.error('Error guardando tema en localStorage:', e);
+        }
+      }
+
       return true;
     } catch (err: any) {
       // console.error('Error applying theme:', err);

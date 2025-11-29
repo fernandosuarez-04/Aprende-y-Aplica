@@ -36,9 +36,10 @@ export function ReplayTourButton({
   if (requireAuth && !user) return null;
 
   const handleReplayTour = () => {
-    const storageKey = `has-seen-tour-${tourId}`;
-    localStorage.removeItem(storageKey);
-    window.location.reload();
+    // Disparar evento personalizado para abrir el tour manualmente
+    // El componente ContextualVoiceGuide escuchará este evento
+    const eventName = `open-tour-${tourId}`;
+    window.dispatchEvent(new CustomEvent(eventName));
   };
 
   return (

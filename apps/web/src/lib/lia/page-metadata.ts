@@ -22,16 +22,15 @@ export interface PageMetadata {
 
 // Metadatos de todas las páginas principales de la plataforma
 export const PAGE_METADATA: Record<string, PageMetadata> = {
-  '/dashboard': {
-    path: '/dashboard',
-    title: 'Dashboard',
-    description: 'Panel principal del usuario con vista general de talleres, cursos y actividad',
-    category: 'navegacion',
-    keywords: ['dashboard', 'inicio', 'panel', 'resumen', 'talleres', 'cursos'],
-    availableActions: ['Ver talleres', 'Filtrar por categoría', 'Agregar a favoritos', 'Agregar al carrito', 'Ver detalles', 'Acceder a cursos comprados'],
-    relatedPages: ['/my-courses', '/courses', '/statistics', '/news', '/cart'],
-    features: ['Filtros por categorías dinámicas', 'Sistema de favoritos', 'Estadísticas rápidas', 'Actividad reciente'],
-    contentSections: ['Grid de talleres/cursos', 'Sidebar con estadísticas', 'Actividad reciente', 'Filtros de categorías']
+  '/courses/[slug]': {
+    path: '/courses/[slug]',
+    title: 'Detalle de Curso',
+    description: 'Página de detalle de un curso específico donde puedes ver información completa, adquirir el curso o acceder si ya lo tienes',
+    category: 'educacion',
+    keywords: ['curso', 'detalle', 'información', 'adquirir', 'comprar'],
+    availableActions: ['Ver detalles', 'Adquirir curso', 'Agregar al carrito', 'Acceder al curso'],
+    relatedPages: ['/dashboard', '/my-courses', '/courses/[slug]/learn'],
+    features: ['Vista detallada del curso', 'Adquisición de cursos', 'Información del instructor']
   },
   '/communities': {
     path: '/communities',
@@ -44,15 +43,17 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     features: ['Búsqueda de comunidades', 'Filtros por categorías', 'Sistema de unirse/solicitar acceso', 'Estadísticas globales', 'Modal de detalles', 'Modal de normas'],
     contentSections: ['Búsqueda y filtros', 'Cards de comunidades', 'Estadísticas globales', 'Modales de detalles y normas']
   },
-  '/courses': {
-    path: '/courses',
-    title: 'Cursos',
-    description: 'Catálogo de cursos disponibles para aprendizaje',
-    category: 'educacion',
-    keywords: ['cursos', 'aprendizaje', 'educación', 'catálogo', 'inscripción'],
-    availableActions: ['Explorar cursos', 'Inscribirse', 'Ver detalles', 'Agregar al carrito'],
-    relatedPages: ['/courses/[slug]', '/courses/[slug]/learn', '/my-courses', '/dashboard'],
-    features: ['Catálogo de cursos', 'Búsqueda y filtros', 'Sistema de inscripción', 'Carrito de compras']
+  '/dashboard': {
+    path: '/dashboard',
+    title: 'Dashboard',
+    description: 'Panel principal del usuario con catálogo completo de talleres y cursos disponibles. Aquí puedes explorar todos los cursos, filtrar por categoría, agregar a favoritos y al carrito.',
+    category: 'navegacion',
+    keywords: ['dashboard', 'inicio', 'panel', 'resumen', 'talleres', 'cursos', 'catálogo de cursos', 'cursos disponibles', 'todos los cursos'],
+    availableActions: ['Ver talleres', 'Ver todos los cursos', 'Filtrar por categoría', 'Agregar a favoritos', 'Agregar al carrito', 'Ver detalles', 'Acceder a cursos comprados'],
+    relatedPages: ['/my-courses', '/courses/[slug]', '/courses/[slug]/learn', '/statistics', '/news', '/cart'],
+    features: ['Catálogo completo de cursos/talleres', 'Filtros por categorías dinámicas', 'Sistema de favoritos', 'Estadísticas rápidas', 'Actividad reciente'],
+    contentSections: ['Grid de talleres/cursos disponibles', 'Sidebar con estadísticas', 'Actividad reciente', 'Filtros de categorías'],
+    specialNotes: 'IMPORTANTE: El Dashboard (/dashboard) es donde se encuentra el CATÁLOGO COMPLETO de todos los cursos y talleres disponibles. Cuando el usuario pregunte sobre "ver todos los cursos" o "cursos disponibles", debe dirigirse al Dashboard, NO a /courses (que no existe como página de catálogo). La ruta /courses/[slug] es solo para ver el detalle de un curso específico.'
   },
   '/my-courses': {
     path: '/my-courses',
@@ -185,7 +186,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'comercio',
     keywords: ['carrito', 'compras', 'checkout', 'pago', 'items'],
     availableActions: ['Ver items', 'Eliminar items', 'Proceder a compra'],
-    relatedPages: ['/dashboard', '/courses', '/payment-methods'],
+    relatedPages: ['/dashboard', '/my-courses', '/payment-methods'],
     features: ['Gestión de items', 'Eliminación de items', 'Proceso de compra']
   },
   '/purchase-history': {
@@ -299,6 +300,14 @@ export function getAvailableLinksForLIA(userRole: UserRole | null = null): strin
   linksText += `1. [Directorio de Prompts](/prompt-directory) - Para plantillas de prompts\n`;
   linksText += `2. [Directorio de Apps](/apps-directory) - Para herramientas y aplicaciones de IA\n`;
   linksText += `SIEMPRE menciona ambas páginas y proporciona ambos enlaces cuando el usuario pregunte sobre "Directorio IA".\n`;
+  
+  // Agregar nota especial sobre ver todos los cursos
+  linksText += `\n\n⚠️ NOTA IMPORTANTE SOBRE VER CURSOS:\n`;
+  linksText += `Cuando el usuario pregunte sobre "ver todos los cursos", "cursos disponibles", o "catálogo de cursos":\n`;
+  linksText += `- Para ver TODOS los cursos disponibles: Usa [Dashboard](/dashboard) - NO uses /courses (que no existe como página de catálogo)\n`;
+  linksText += `- Para ver los cursos del usuario: Usa [Mis Cursos](/my-courses)\n`;
+  linksText += `- Para ver el detalle de un curso específico: Usa /courses/[slug] donde [slug] es el identificador del curso\n`;
+  linksText += `IMPORTANTE: La ruta /courses NO existe como página de catálogo. El catálogo completo está en el Dashboard.\n`;
   
   return linksText;
 }

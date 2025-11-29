@@ -249,46 +249,79 @@ async function loadModulesWithProgress(
       (progressData || []).map((p: any) => [p.lesson_id, p])
     )
 
-    // ⚡ OPTIMIZACIÓN: Encontrar el último video visto usando last_accessed_at (más preciso que updated_at)
-    if (progressData && progressData.length > 0) {
-      // Filtrar lecciones que han sido accedidas (tienen last_accessed_at)
-      const accessedLessons = progressData.filter((p: any) => 
-        p.last_accessed_at !== null && p.last_accessed_at !== undefined
-      )
-      
-      if (accessedLessons.length > 0) {
-        // Ordenar por last_accessed_at descendente (más reciente primero)
-        accessedLessons.sort((a: any, b: any) => {
-          const dateA = new Date(a.last_accessed_at).getTime()
-          const dateB = new Date(b.last_accessed_at).getTime()
-          return dateB - dateA
-        })
-        
-        // Priorizar lecciones en progreso sobre completadas
-        const inProgress = accessedLessons.find((p: any) => 
-          !p.is_completed && (p.video_progress_percentage > 0 || p.lesson_status === 'in_progress')
-        )
-        
-        if (inProgress) {
-          lastWatchedLessonId = inProgress.lesson_id
-        } else {
-          // Si no hay en progreso, usar la última accedida (puede estar completada)
-          lastWatchedLessonId = accessedLessons[0].lesson_id
+    // 🎯 OPTIMIZACIÓN MEJORADA: Encontrar la última lección VÁLIDA respetando el orden secuencial
+    if (progressData && progressData.length > 0 && allLessonsData && allLessonsData.length > 0) {
+      // Paso 1: Crear un mapa de progreso para búsqueda rápida
+      const progressLookup = new Map(progressData.map((p: any) => [p.lesson_id, p]));
+
+      // Paso 2: Ordenar TODAS las lecciones por módulo y orden dentro del módulo
+      const orderedLessons = [...allLessonsData].sort((a: any, b: any) => {
+        // Primero ordenar por módulo
+        const moduleA = modules.find((m: any) => m.module_id === a.module_id);
+        const moduleB = modules.find((m: any) => m.module_id === b.module_id);
+
+        if (moduleA && moduleB && moduleA.module_order_index !== moduleB.module_order_index) {
+          return moduleA.module_order_index - moduleB.module_order_index;
         }
+
+        // Luego ordenar por orden de lección dentro del módulo
+        return a.lesson_order_index - b.lesson_order_index;
+      });
+
+      // Paso 3: Encontrar la lección correcta siguiendo el orden secuencial
+      let lastValidLessonId: string | null = null;
+      let lastAccessedInProgress: { lesson_id: string; accessed_at: number } | null = null;
+
+      for (let i = 0; i < orderedLessons.length; i++) {
+        const lesson = orderedLessons[i];
+        const progress = progressLookup.get(lesson.lesson_id);
+
+        // Si no hay progreso para esta lección, es donde debe empezar
+        if (!progress) {
+          // Si no hemos encontrado ninguna en progreso, esta es la primera sin iniciar
+          if (!lastValidLessonId) {
+            lastValidLessonId = lesson.lesson_id;
+          }
+          break; // No seguir buscando después de la primera sin progreso
+        }
+
+        // Si la lección está completada, continuar a la siguiente
+        if (progress.is_completed) {
+          lastValidLessonId = lesson.lesson_id; // Guardar como candidata
+          continue;
+        }
+
+        // Si la lección está en progreso (iniciada pero no completada)
+        if (progress.video_progress_percentage > 0 || progress.lesson_status === 'in_progress') {
+          const accessTime = progress.last_accessed_at
+            ? new Date(progress.last_accessed_at).getTime()
+            : (progress.started_at ? new Date(progress.started_at).getTime() : 0);
+
+          // Guardar la más recientemente accedida entre las lecciones en progreso
+          if (!lastAccessedInProgress || accessTime > lastAccessedInProgress.accessed_at) {
+            lastAccessedInProgress = {
+              lesson_id: lesson.lesson_id,
+              accessed_at: accessTime
+            };
+          }
+
+          lastValidLessonId = lesson.lesson_id;
+        }
+
+        // Si encontramos una lección bloqueada o no iniciada, detenerse
+        if (progress.lesson_status === 'locked' || progress.lesson_status === 'not_started') {
+          break;
+        }
+      }
+
+      // Paso 4: Priorizar la lección en progreso más reciente, o la última válida
+      if (lastAccessedInProgress) {
+        lastWatchedLessonId = lastAccessedInProgress.lesson_id;
+      } else if (lastValidLessonId) {
+        lastWatchedLessonId = lastValidLessonId;
       } else {
-        // Si no hay last_accessed_at, usar started_at como fallback
-        const startedLessons = progressData.filter((p: any) => 
-          p.started_at !== null && p.started_at !== undefined
-        )
-        
-        if (startedLessons.length > 0) {
-          startedLessons.sort((a: any, b: any) => {
-            const dateA = new Date(a.started_at).getTime()
-            const dateB = new Date(b.started_at).getTime()
-            return dateB - dateA
-          })
-          lastWatchedLessonId = startedLessons[0].lesson_id
-        }
+        // Fallback: primera lección del curso
+        lastWatchedLessonId = orderedLessons[0]?.lesson_id || null;
       }
     }
   }

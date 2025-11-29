@@ -7,8 +7,8 @@ import { SessionService } from '@/features/auth/services/session.service'
 
 /**
  * POST /api/business/courses/[id]/purchase
- * Adquiere un curso para el usuario business autenticado
- * Requiere membresía activa
+ * Adquiere un curso a nivel de organización
+ * Requiere membresía activa y verifica límite de 10 cursos por período de facturación
  */
 export async function POST(
   request: NextRequest,
@@ -30,12 +30,22 @@ export async function POST(
       }, { status: 401 })
     }
 
-    // Validar que el usuario tenga membresía activa
+    // Obtener organizationId
+    if (!auth.organizationId) {
+      return NextResponse.json({
+        success: false,
+        error: 'No tienes una organización asignada'
+      }, { status: 403 })
+    }
+
+    const organizationId = auth.organizationId
+
+    // Validar que la organización tenga membresía activa
     const hasSubscription = await SubscriptionService.hasActiveSubscription(currentUser.id)
     if (!hasSubscription) {
       return NextResponse.json({
         success: false,
-        error: 'Se requiere una membresía activa para adquirir cursos'
+        error: 'Se requiere una membresía activa (Team/Enterprise) para adquirir cursos'
       }, { status: 403 })
     }
 
@@ -55,173 +65,206 @@ export async function POST(
       }, { status: 404 })
     }
 
-    // Verificar si el usuario ya tiene acceso al curso
-    const { data: existingPurchase } = await supabase
-      .from('course_purchases')
+    // Verificar si la organización ya compró este curso
+    const { data: existingOrgPurchase } = await supabase
+      .from('organization_course_purchases')
       .select('purchase_id, access_status')
-      .eq('user_id', currentUser.id)
+      .eq('organization_id', organizationId)
       .eq('course_id', course.id)
       .eq('access_status', 'active')
-      .single()
+      .maybeSingle()
 
-    if (existingPurchase) {
+    if (existingOrgPurchase) {
       return NextResponse.json({
         success: false,
-        error: 'Ya tienes acceso a este curso'
+        error: 'Tu organización ya tiene acceso a este curso'
       }, { status: 400 })
     }
 
-    // Calcular precio en centavos
-    const price = course.price || 0
-    const priceInCents = Math.round(price * 100)
+    // Obtener información de la organización para calcular período de facturación
+    const { data: organization, error: orgError } = await supabase
+      .from('organizations')
+      .select('subscription_start_date, billing_cycle')
+      .eq('id', organizationId)
+      .single()
 
-    // 0. Crear o obtener método de pago temporal (si no existe ya)
-    let paymentMethodId: string
-    const { data: existingPaymentMethod } = await supabase
-      .from('payment_methods')
-      .select('payment_method_id')
-      .eq('user_id', currentUser.id)
-      .eq('payment_method_type', 'bank_transfer')
-      .like('payment_method_name', '%Temporal%')
-      .maybeSingle()
+    if (orgError || !organization) {
+      logger.error('Error fetching organization:', orgError)
+      return NextResponse.json({
+        success: false,
+        error: 'Error al obtener información de la organización'
+      }, { status: 500 })
+    }
 
-    if (existingPaymentMethod) {
-      paymentMethodId = existingPaymentMethod.payment_method_id
-      logger.info('Usando método de pago existente:', paymentMethodId)
-    } else {
-      const { data: tempPaymentMethod, error: paymentMethodError } = await supabase
+    // Verificar límite de cursos por período de facturación
+    const limitCheck = await SubscriptionService.canOrganizationPurchaseCourse(organizationId, 10)
+    
+    // Determinar precio: gratis si cumple requisitos, precio del curso si no
+    let finalPriceCents = Math.round((course.price || 0) * 100)
+    let isFree = false
+
+    if (limitCheck.canPurchase && limitCheck.billingPeriod) {
+      // Cumple requisitos: precio gratis
+      finalPriceCents = 0
+      isFree = true
+    }
+
+    // Calcular campos de billing para la tabla (usar mes calendario para rastreo)
+    const now = new Date()
+    const billingMonth = new Date(now.getFullYear(), now.getMonth(), 1) // Primer día del mes calendario
+    const billingYear = now.getFullYear()
+    const billingMonthNumber = now.getMonth() + 1
+
+    // Crear transacción solo si el precio no es gratis
+    let transactionId: string | null = null
+    let paymentMethodId: string | null = null
+
+    if (finalPriceCents > 0) {
+      // Crear o obtener método de pago temporal
+      const { data: existingPaymentMethod } = await supabase
         .from('payment_methods')
+        .select('payment_method_id')
+        .eq('user_id', currentUser.id)
+        .eq('payment_method_type', 'bank_transfer')
+        .like('payment_method_name', '%Temporal%')
+        .maybeSingle()
+
+      if (existingPaymentMethod) {
+        paymentMethodId = existingPaymentMethod.payment_method_id
+      } else {
+        const { data: tempPaymentMethod, error: paymentMethodError } = await supabase
+          .from('payment_methods')
+          .insert({
+            user_id: currentUser.id,
+            payment_method_type: 'bank_transfer',
+            payment_method_name: 'Pago Temporal (Business Panel)',
+            encrypted_data: {
+              temporary: true,
+              created_for: 'business_panel_course_purchase',
+              note: 'Método temporal para compras desde Business Panel',
+              created_at: new Date().toISOString()
+            },
+            is_active: true,
+            is_default: false
+          })
+          .select()
+          .single()
+
+        if (paymentMethodError || !tempPaymentMethod) {
+          logger.error('Error creando método de pago temporal:', paymentMethodError)
+          return NextResponse.json({
+            success: false,
+            error: 'Error al crear método de pago'
+          }, { status: 500 })
+        }
+        paymentMethodId = tempPaymentMethod.payment_method_id
+      }
+
+      // Crear transacción
+      const { data: transaction, error: transactionError } = await supabase
+        .from('transactions')
         .insert({
           user_id: currentUser.id,
-          payment_method_type: 'bank_transfer',
-          payment_method_name: 'Pago Temporal (Business Panel)',
-          encrypted_data: {
-            temporary: true,
-            created_for: 'business_panel_course_purchase',
-            note: 'Método temporal para compras desde Business Panel',
-            created_at: new Date().toISOString()
-          },
-          is_active: true,
-          is_default: false
+          course_id: course.id,
+          payment_method_id: paymentMethodId,
+          amount_cents: finalPriceCents,
+          currency: 'USD',
+          transaction_status: 'completed',
+          transaction_type: 'course_purchase',
+          processed_at: new Date().toISOString(),
+          processor_response: {
+            business_panel_purchase: true,
+            organization_purchase: true,
+            is_free: isFree
+          }
         })
         .select()
         .single()
 
-      if (paymentMethodError || !tempPaymentMethod) {
-        logger.error('Error creando método de pago temporal:', paymentMethodError)
+      if (transactionError || !transaction) {
+        logger.error('Error creating transaction:', transactionError)
         return NextResponse.json({
           success: false,
-          error: 'Error al crear método de pago'
+          error: 'Error al crear la transacción'
         }, { status: 500 })
       }
-      paymentMethodId = tempPaymentMethod.payment_method_id
-      logger.info('Método de pago temporal creado:', paymentMethodId)
+
+      transactionId = transaction.transaction_id
     }
 
-    // 1. Crear transacción
-    const { data: transaction, error: transactionError } = await supabase
-      .from('transactions')
+    // Crear registro en organization_course_purchases
+    const { data: orgPurchase, error: purchaseError } = await supabase
+      .from('organization_course_purchases')
       .insert({
-        user_id: currentUser.id,
+        organization_id: organizationId,
         course_id: course.id,
+        purchased_by: currentUser.id,
+        transaction_id: transactionId,
         payment_method_id: paymentMethodId,
-        amount_cents: priceInCents,
-        currency: 'USD',
-        transaction_status: 'completed',
-        transaction_type: 'course_purchase',
-        processed_at: new Date().toISOString(),
-        processor_response: {
-          business_panel_purchase: true,
-          subscription_required: true
-        }
-      })
-      .select()
-      .single()
-
-    if (transactionError || !transaction) {
-      logger.error('Error creating transaction:', transactionError)
-      return NextResponse.json({
-        success: false,
-        error: 'Error al crear la transacción'
-      }, { status: 500 })
-    }
-
-    // 2. Crear registro en course_purchases
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('course_purchases')
-      .insert({
-        user_id: currentUser.id,
-        course_id: course.id,
-        transaction_id: transaction.transaction_id,
-        original_price_cents: priceInCents,
-        discounted_price_cents: priceInCents,
-        final_price_cents: priceInCents,
+        original_price_cents: Math.round((course.price || 0) * 100),
+        discounted_price_cents: finalPriceCents,
+        final_price_cents: finalPriceCents,
         currency: 'USD',
         access_status: 'active',
-        purchase_method: 'direct',
-        purchase_notes: 'Compra desde Business Panel - Membresía activa requerida',
+        purchase_method: isFree ? 'subscription_benefit' : 'direct_purchase',
+        purchase_notes: isFree 
+          ? 'Compra gratuita - Beneficio de suscripción (dentro del límite mensual)'
+          : 'Compra desde Business Panel',
+        billing_month: billingMonth.toISOString().split('T')[0],
+        billing_year: billingYear,
+        billing_month_number: billingMonthNumber,
         metadata: {
           business_panel: true,
           subscription_required: true,
+          is_free: isFree,
+          current_count: limitCheck.currentCount,
+          max_courses: limitCheck.maxCourses,
+          billing_period_start: limitCheck.billingPeriod?.start.toISOString(),
+          billing_period_end: limitCheck.billingPeriod?.end.toISOString(),
           created_at: new Date().toISOString()
         }
       })
       .select()
       .single()
 
-    if (purchaseError || !purchase) {
-      logger.error('Error creating purchase:', purchaseError)
-      // Intentar eliminar la transacción creada
-      await supabase.from('transactions').delete().eq('transaction_id', transaction.transaction_id)
+    if (purchaseError || !orgPurchase) {
+      logger.error('Error creating organization purchase:', purchaseError)
+      // Intentar eliminar la transacción creada si existe
+      if (transactionId) {
+        await supabase.from('transactions').delete().eq('transaction_id', transactionId)
+      }
       
       return NextResponse.json({
         success: false,
-        error: 'Error al crear la compra'
+        error: 'Error al crear la compra organizacional'
       }, { status: 500 })
     }
 
-    // 3. Crear enrollment (inscripción al curso)
-    const { data: enrollment, error: enrollmentError } = await supabase
-      .from('user_course_enrollments')
-      .insert({
-        user_id: currentUser.id,
-        course_id: course.id,
-        enrollment_status: 'active',
-        overall_progress_percentage: 0,
-        enrolled_at: new Date().toISOString(),
-        started_at: new Date().toISOString(),
-        last_accessed_at: new Date().toISOString()
-      })
-      .select()
-      .single()
+    logger.info('✅ Organization course purchase created:', {
+      organizationId,
+      courseId: course.id,
+      purchaseId: orgPurchase.purchase_id,
+      isFree,
+      currentCount: limitCheck.currentCount
+    })
 
-    if (enrollmentError) {
-      logger.error('Error creating enrollment:', enrollmentError)
-      // No revertimos la compra, solo lo registramos
-      logger.warn('Compra creada pero enrollment falló:', enrollmentError)
-    }
-
-    // 4. Actualizar el purchase con el enrollment_id si se creó correctamente
-    if (enrollment) {
-      await supabase
-        .from('course_purchases')
-        .update({ enrollment_id: enrollment.enrollment_id })
-        .eq('purchase_id', purchase.purchase_id)
-    }
-
-    // 5. Retornar respuesta exitosa
+    // Retornar respuesta exitosa
     return NextResponse.json({
       success: true,
-      message: 'Curso adquirido exitosamente',
+      message: isFree 
+        ? 'Curso adquirido exitosamente (gratis - beneficio de suscripción)'
+        : 'Curso adquirido exitosamente',
       data: {
-        purchase_id: purchase.purchase_id,
-        transaction_id: transaction.transaction_id,
-        enrollment_id: enrollment?.enrollment_id,
+        purchase_id: orgPurchase.purchase_id,
+        transaction_id: transactionId,
         course_id: course.id,
         course_title: course.title,
-        price_paid: priceInCents,
+        price_paid: finalPriceCents,
         currency: 'USD',
-        access_status: 'active'
+        access_status: 'active',
+        is_free: isFree,
+        current_monthly_count: limitCheck.currentCount + 1,
+        max_courses_per_period: limitCheck.maxCourses
       }
     })
   } catch (error) {

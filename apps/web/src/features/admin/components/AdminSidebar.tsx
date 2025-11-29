@@ -19,7 +19,8 @@ import {
   ChevronLeftIcon,
   Bars3Icon,
   MapPinIcon,
-  BuildingOffice2Icon
+  BuildingOffice2Icon,
+  AcademicCapIcon
 } from '@heroicons/react/24/outline'
 import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
 
@@ -41,9 +42,9 @@ const navigation = [
   { name: 'Comunidades', href: '/admin/communities', icon: UserGroupIcon, current: false },
   { name: 'Prompts', href: '/admin/prompts', icon: ChatBubbleLeftRightIcon, current: false },
   { name: 'Apps de IA', href: '/admin/apps', icon: CpuChipIcon, current: false },
+  { name: 'Skills', href: '/admin/skills', icon: AcademicCapIcon, current: false },
   { name: 'Noticias', href: '/admin/news', icon: NewspaperIcon, current: false },
   { name: 'Reels', href: '/admin/reels', icon: PlayIcon, current: false },
-  { name: 'Estadísticas', href: '/admin/statistics', icon: ChartBarIcon, current: false },
   { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon, current: false },
   { name: 'Empresas', href: '/admin/companies', icon: BuildingOffice2Icon, current: false },
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon, current: false },

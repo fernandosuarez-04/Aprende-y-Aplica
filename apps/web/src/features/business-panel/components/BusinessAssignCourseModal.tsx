@@ -6,6 +6,7 @@ import { X, Users, Search, Calendar, CheckCircle, XCircle, UserCheck, AlertCircl
 import { Button } from '@aprende-y-aplica/ui'
 import { useBusinessUsers, BusinessUser } from '../hooks/useBusinessUsers'
 import Image from 'next/image'
+import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 
 interface BusinessAssignCourseModalProps {
   isOpen: boolean
@@ -22,6 +23,8 @@ export function BusinessAssignCourseModal({
   courseTitle,
   onAssignComplete 
 }: BusinessAssignCourseModalProps) {
+  const { styles } = useOrganizationStylesContext()
+  const panelStyles = styles?.panel
   const { users, isLoading: loadingUsers, refetch: refetchUsers } = useBusinessUsers()
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [dueDate, setDueDate] = useState<string>('')
@@ -30,6 +33,13 @@ export function BusinessAssignCourseModal({
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [alreadyAssignedIds, setAlreadyAssignedIds] = useState<Set<string>>(new Set())
+
+  // Aplicar colores personalizados
+  const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
+  const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
+  const textColor = panelStyles?.text_color || '#f8fafc'
+  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
+  const sectionBg = `${modalBg}CC`
 
   // Refrescar usuarios cuando se abre el modal
   useEffect(() => {
@@ -176,53 +186,57 @@ export function BusinessAssignCourseModal({
 
         {/* Modal */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.96, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', duration: 0.3 }}
-          className="relative rounded-2xl shadow-2xl border w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col z-10"
+          exit={{ opacity: 0, scale: 0.96, y: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
           style={{
-            backgroundColor: '#1e293b',
-            borderColor: '#334155'
+            backgroundColor: modalBg,
+            borderColor: modalBorder
           }}
         >
           {/* Header */}
-          <div className="relative border-b p-6" style={{
-            backgroundColor: '#0f172a',
-            borderColor: '#334155'
+          <div className="relative border-b p-5 backdrop-blur-sm" style={{
+            backgroundColor: modalBg,
+            borderColor: modalBorder
           }}>
             <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-success flex items-center justify-center shadow-lg">
-                  <UserCheck className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ backgroundColor: primaryColor }}>
+                  <UserCheck className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
+                  <h2 className="font-heading text-xl font-semibold" style={{ color: textColor }}>
                     Asignar Curso
                   </h2>
-                  <p className="text-sm text-gray-300 mt-0.5">
-                    {courseTitle}
+                  <p className="font-body text-xs mt-0.5" style={{ color: textColor, opacity: 0.7 }}>
+                    {courseTitle.length > 40 ? `${courseTitle.substring(0, 40)}...` : courseTitle}
                   </p>
                 </div>
               </div>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={handleClose}
                 disabled={isAssigning}
-                className="p-2 rounded-lg transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: 'transparent'
+                className="p-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'transparent' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${modalBg}80`
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                }}
               >
-                <X className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
-              </button>
+                <X className="w-5 h-5 transition-colors" style={{ color: textColor, opacity: 0.7 }} />
+              </motion.button>
             </div>
           </div>
 
           {/* Form */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {/* Error message */}
               <AnimatePresence>
                 {error && (
@@ -243,17 +257,18 @@ export function BusinessAssignCourseModal({
               </AnimatePresence>
 
               {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-200" style={{ color: textColor, opacity: 0.5 }} />
                 <input
                   type="text"
                   placeholder="Buscar usuarios..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  className="w-full pl-12 pr-4 py-3.5 border rounded-xl font-body placeholder-carbon-500 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
                   style={{
-                    backgroundColor: '#0f172a',
-                    borderColor: '#334155'
+                    backgroundColor: sectionBg,
+                    borderColor: modalBorder,
+                    color: textColor
                   }}
                 />
               </div>
@@ -272,18 +287,18 @@ export function BusinessAssignCourseModal({
                         borderColor: '#475569'
                       }}
                     />
-                    <label className="text-sm font-semibold text-white cursor-pointer">
+                    <label className="font-body text-sm font-heading font-semibold cursor-pointer" style={{ color: textColor }}>
                       Seleccionar todos ({selectedCount}/{availableCount} disponibles)
                     </label>
                   </div>
-                  <span className="text-xs text-gray-400">
+                  <span className="font-body text-xs" style={{ color: textColor, opacity: 0.6 }}>
                     {alreadyAssignedIds.size} usuario(s) ya tienen este curso asignado
                   </span>
                 </div>
               )}
 
               {/* Users List */}
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-64 overflow-y-auto">
                 {loadingUsers ? (
                   <div className="text-center py-12">
                     <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
@@ -307,20 +322,21 @@ export function BusinessAssignCourseModal({
                         key={user.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className={`p-4 rounded-xl border transition-all ${
+                        className={`p-3 rounded-xl border transition-all ${
                           isAlreadyAssigned
                             ? 'opacity-50 cursor-not-allowed'
                             : isSelected
-                            ? 'border-primary bg-primary/10 cursor-pointer'
-                            : 'border-carbon-600 hover:border-carbon-500 cursor-pointer'
+                            ? 'cursor-pointer'
+                            : 'cursor-pointer'
                         }`}
                         style={{
-                          backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : '#0f172a'
+                          backgroundColor: isSelected ? `${primaryColor}20` : sectionBg,
+                          borderColor: isSelected ? primaryColor : modalBorder
                         }}
                         onClick={() => !isAlreadyAssigned && toggleUser(user.id)}
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
+                        <div className="flex items-center gap-3">
+                          <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${
                             isAlreadyAssigned
                               ? 'bg-carbon-600'
                               : isSelected
@@ -328,15 +344,15 @@ export function BusinessAssignCourseModal({
                               : 'border-2 border-carbon-600'
                           }`}>
                             {isSelected && !isAlreadyAssigned && (
-                              <CheckCircle className="w-4 h-4 text-white" />
+                              <CheckCircle className="w-3 h-3 text-white" />
                             )}
                             {isAlreadyAssigned && (
-                              <XCircle className="w-4 h-4 text-carbon-400" />
+                              <XCircle className="w-3 h-3 text-carbon-400" />
                             )}
                           </div>
                           
                           {user.profile_picture_url ? (
-                            <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                            <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                               <Image
                                 src={user.profile_picture_url}
                                 alt={displayName}
@@ -345,27 +361,21 @@ export function BusinessAssignCourseModal({
                               />
                             </div>
                           ) : (
-                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
                               {displayName[0].toUpperCase()}
                             </div>
                           )}
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-white font-semibold">{displayName}</h4>
+                              <h4 className="font-body font-heading font-semibold text-sm" style={{ color: textColor }}>{displayName}</h4>
                               {isAlreadyAssigned && (
-                                <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                                <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs font-body">
                                   Ya asignado
                                 </span>
                               )}
                             </div>
-                            <p className="text-carbon-400 text-sm">{user.email}</p>
-                            {user.org_role && (
-                              <p className="text-carbon-500 text-xs mt-1">
-                                {user.org_role === 'admin' ? 'Administrador' : 
-                                 user.org_role === 'owner' ? 'Propietario' : 'Miembro'}
-                              </p>
-                            )}
+                            <p className="font-body text-xs" style={{ color: textColor, opacity: 0.7 }}>{user.email}</p>
                           </div>
                         </div>
                       </motion.div>
@@ -374,91 +384,96 @@ export function BusinessAssignCourseModal({
                 )}
               </div>
 
-              {/* Custom Message */}
-              <div className="pt-4 border-t" style={{ borderColor: '#334155' }}>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  <MessageSquare className="w-4 h-4 inline mr-2" />
-                  Mensaje personalizado (opcional)
-                </label>
-                <textarea
-                  value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
-                  placeholder="Escribe un mensaje personalizado para los usuarios asignados..."
-                  rows={4}
-                  maxLength={500}
-                  className="w-full px-4 py-3 border rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-primary transition-all resize-none"
-                  style={{
-                    backgroundColor: '#0f172a',
-                    borderColor: '#334155'
-                  }}
-                />
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-gray-400">
-                    Este mensaje se enviará junto con la notificación de asignación
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {customMessage.length}/500
+              {/* Custom Message & Due Date - Compact Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t" style={{ borderColor: modalBorder }}>
+                {/* Due Date */}
+                <div>
+                  <label className="block font-body text-xs font-heading font-semibold mb-2" style={{ color: textColor }}>
+                    <Calendar className="w-3.5 h-3.5 inline mr-1.5" style={{ color: textColor, opacity: 0.7 }} />
+                    Fecha límite
+                  </label>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2.5 border rounded-xl font-body text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
+                    style={{
+                      backgroundColor: sectionBg,
+                      borderColor: modalBorder,
+                      color: textColor
+                    }}
+                  />
+                </div>
+
+                {/* Custom Message */}
+                <div>
+                  <label className="block font-body text-xs font-heading font-semibold mb-2" style={{ color: textColor }}>
+                    <MessageSquare className="w-3.5 h-3.5 inline mr-1.5" style={{ color: textColor, opacity: 0.7 }} />
+                    Mensaje (opcional)
+                  </label>
+                  <textarea
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    placeholder="Mensaje personalizado..."
+                    rows={2}
+                    maxLength={200}
+                    className="w-full px-3 py-2.5 border rounded-xl font-body text-sm placeholder-carbon-500 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
+                    style={{
+                      backgroundColor: sectionBg,
+                      borderColor: modalBorder,
+                      color: textColor
+                    }}
+                  />
+                  <p className="font-body text-xs mt-1 text-right" style={{ color: textColor, opacity: 0.5 }}>
+                    {customMessage.length}/200
                   </p>
                 </div>
-              </div>
-
-              {/* Due Date */}
-              <div className="pt-4 border-t" style={{ borderColor: '#334155' }}>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  <Calendar className="w-4 h-4 inline mr-2" />
-                  Fecha límite (opcional)
-                </label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border rounded-xl text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                  style={{
-                    backgroundColor: '#0f172a',
-                    borderColor: '#334155'
-                  }}
-                />
-                <p className="text-xs text-gray-400 mt-2">
-                  Establece una fecha límite para completar el curso (opcional)
-                </p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="border-t p-6" style={{
-              backgroundColor: '#1e293b',
-              borderColor: '#334155'
+            <div className="border-t p-4 backdrop-blur-sm" style={{
+              backgroundColor: modalBg,
+              borderColor: modalBorder
             }}>
-              <div className="flex items-center justify-end gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={isAssigning}
-                  className="min-w-[120px]"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  variant="gradient"
-                  onClick={handleAssign}
-                  disabled={isAssigning || selectedCount === 0}
-                  className="min-w-[160px]"
-                >
-                  {isAssigning ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Asignando...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4" />
-                      Asignar a {selectedCount} usuario{selectedCount !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </Button>
+              <div className="flex items-center justify-end gap-3">
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleClose}
+                    disabled={isAssigning}
+                    className="min-w-[100px] font-heading text-sm transition-all duration-200"
+                  >
+                    Cancelar
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    type="button"
+                    variant="gradient"
+                    onClick={handleAssign}
+                    disabled={isAssigning || selectedCount === 0}
+                    className="min-w-[140px] font-heading text-sm transition-all duration-200"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}, ${panelStyles?.secondary_button_color || '#2563eb'})`,
+                      boxShadow: `0 10px 25px -5px ${primaryColor}40`
+                    }}
+                  >
+                    {isAssigning ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Asignando...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4" />
+                        Asignar ({selectedCount})
+                      </span>
+                    )}
+                  </Button>
+                </motion.div>
               </div>
             </div>
           </div>

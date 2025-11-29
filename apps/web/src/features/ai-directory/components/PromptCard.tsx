@@ -119,9 +119,9 @@ export function PromptCard({ prompt, viewMode = 'grid' }: PromptCardProps) {
       {/* Featured Badge */}
       {prompt.is_featured && (
         <div className="absolute top-4 right-4 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30">
-            <Sparkles className="w-3 h-3 text-purple-400" />
-            <span className="text-xs font-medium text-purple-300">Destacado</span>
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 dark:from-purple-500/20 dark:to-pink-500/20 border border-purple-500/50 dark:border-purple-500/30">
+            <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+            <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Destacado</span>
           </div>
         </div>
       )}

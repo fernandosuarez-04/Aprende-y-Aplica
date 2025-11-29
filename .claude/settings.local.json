@@ -15,7 +15,16 @@
       "Bash(powershell:*)",
       "Bash(npm install:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(timeout 10 bash:*)",
+      "Bash(taskkill:*)",
+      "Bash(\"c:/Users/fysg5/OneDrive/Escritorio/Ecos de Liderazgo/Aprende y Aplica AI/Aprende-y-Aplica/apps/web/src/lib/supabase/types.ts\")",
+      "Bash(echo:*)",
+      "Bash(npx supabase:*)",
+      "Bash(types_new.ts)",
+      "Bash(tee:*)",
+      "Bash(NODE_OPTIONS='--trace-warnings' npm run build:*)",
+      "Bash(set NODE_OPTIONS=--trace-warnings)"
     ],
     "deny": [],
     "ask": []

@@ -1,3 +1,5 @@
+import 'server-only'
+
 import { createClient } from '../../../lib/supabase/server'
 import { BusinessUsersService, BusinessUser, BusinessUserStats, CreateBusinessUserRequest, UpdateBusinessUserRequest } from './businessUsers.service'
 import bcrypt from 'bcryptjs'
@@ -32,6 +34,9 @@ export class BusinessUsersServerService {
             organization_id,
             email_verified,
             profile_picture_url,
+            bio,
+            location,
+            phone,
             points,
             last_login_at,
             created_at,
@@ -166,7 +171,12 @@ export class BusinessUsersServerService {
       const passwordHash = await bcrypt.hash(userData.password.trim(), 10)
 
 // 
-      // Paso 3: Crear el usuario
+      // Paso 3: Validar que type_rol esté presente
+      if (!userData.type_rol || !userData.type_rol.trim()) {
+        throw new Error('El tipo de rol es obligatorio')
+      }
+
+      // Paso 4: Crear el usuario
       const userInsertData: any = {
         username: userData.username,
         email: userData.email,
@@ -174,7 +184,7 @@ export class BusinessUsersServerService {
         last_name: userData.last_name || null,
         display_name: userData.display_name || null,
         cargo_rol: 'Business User',
-        type_rol: 'Business User',
+        type_rol: userData.type_rol.trim(),
         organization_id: organizationId,
         password_hash: passwordHash
       }
@@ -277,6 +287,13 @@ export class BusinessUsersServerService {
       if (userData.first_name !== undefined) userUpdateData.first_name = userData.first_name
       if (userData.last_name !== undefined) userUpdateData.last_name = userData.last_name
       if (userData.display_name !== undefined) userUpdateData.display_name = userData.display_name
+      if (userData.email !== undefined) userUpdateData.email = userData.email
+      if (userData.cargo_rol !== undefined) userUpdateData.cargo_rol = userData.cargo_rol
+      if (userData.type_rol !== undefined) userUpdateData.type_rol = userData.type_rol
+      if (userData.profile_picture_url !== undefined) userUpdateData.profile_picture_url = userData.profile_picture_url
+      if (userData.bio !== undefined) userUpdateData.bio = userData.bio
+      if (userData.location !== undefined) userUpdateData.location = userData.location
+      if (userData.phone !== undefined) userUpdateData.phone = userData.phone
 
 // 
       if (Object.keys(userUpdateData).length > 0) {
@@ -331,6 +348,9 @@ export class BusinessUsersServerService {
             organization_id,
             email_verified,
             profile_picture_url,
+            bio,
+            location,
+            phone,
             points,
             last_login_at,
             created_at,

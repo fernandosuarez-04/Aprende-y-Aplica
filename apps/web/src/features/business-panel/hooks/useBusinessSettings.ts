@@ -8,11 +8,15 @@ export interface OrganizationData {
   contact_phone?: string | null
   website_url?: string | null
   logo_url?: string | null
+  brand_logo_url?: string | null
+  brand_favicon_url?: string | null
+  favicon_url?: string | null
   slug?: string | null
   subscription_plan?: string
   subscription_status?: string
   subscription_start_date?: string | null
   subscription_end_date?: string | null
+  billing_cycle?: 'monthly' | 'yearly' | null
   max_users?: number
   is_active?: boolean
   created_at?: string

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Bell,
@@ -32,7 +32,7 @@ interface EventType {
 }
 
 export function BusinessNotificationsSettings() {
-  const { canUse, getAllowedChannels, getMessage, loading: subscriptionLoading } = useSubscriptionFeatures()
+  const { plan, canUse, getAllowedChannels, getMessage, loading: subscriptionLoading, refetch } = useSubscriptionFeatures()
   const [settings, setSettings] = useState<NotificationSetting[]>([])
   const [eventTypes, setEventTypes] = useState<EventType[]>([])
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
@@ -41,9 +41,46 @@ export function BusinessNotificationsSettings() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Función para actualizar canales disponibles
+  const updateAvailableChannels = useCallback(() => {
+    const channels = getAllowedChannels()
+    if (channels.length > 0) {
+      setAvailableChannels(channels)
+      // Limpiar canales no permitidos de los settings cuando hay downgrade
+      setSettings(prevSettings => {
+        return prevSettings.map(setting => ({
+          ...setting,
+          channels: setting.channels.filter(channel => channels.includes(channel))
+        }))
+      })
+    }
+  }, [getAllowedChannels])
+
+  // Efecto principal: cargar settings y manejar cambios de plan
   useEffect(() => {
-    fetchSettings()
-  }, [])
+    // Solo cargar settings cuando el plan esté disponible
+    if (!subscriptionLoading && plan) {
+      fetchSettings()
+    }
+  }, [plan, subscriptionLoading])
+
+  // Escuchar eventos de cambio de plan
+  useEffect(() => {
+    const handlePlanChange = () => {
+      // Refrescar datos de suscripción
+      refetch()
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('subscription-plan-changed', handlePlanChange)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('subscription-plan-changed', handlePlanChange)
+      }
+    }
+  }, [refetch])
 
   const fetchSettings = async () => {
     try {
@@ -51,17 +88,26 @@ export function BusinessNotificationsSettings() {
       setError(null)
 
       const response = await fetch('/api/business/notifications/settings', {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store' // Forzar actualización de datos
       })
 
       const data = await response.json()
 
       if (data.success) {
-        setSettings(data.settings || [])
-        setEventTypes(data.event_types || [])
-        // Usar canales del hook si están disponibles, sino los del API
+        // Obtener canales permitidos según el plan actual
         const channelsFromHook = getAllowedChannels()
-        setAvailableChannels(channelsFromHook.length > 0 ? channelsFromHook : (data.available_channels || ['email']))
+        const validChannels = channelsFromHook.length > 0 ? channelsFromHook : ['email']
+        setAvailableChannels(validChannels)
+
+        // Filtrar configuraciones para remover canales no permitidos
+        const filteredSettings = (data.settings || []).map((setting: NotificationSetting) => ({
+          ...setting,
+          channels: setting.channels.filter((channel: string) => validChannels.includes(channel))
+        }))
+
+        setSettings(filteredSettings)
+        setEventTypes(data.event_types || [])
       } else {
         setError(data.error || 'Error al cargar configuración')
       }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users,
   BookOpen,
@@ -12,10 +12,8 @@ import {
   BarChart3,
   Target,
   Search,
-  Filter,
   XCircle,
   Activity,
-  Calendar,
   UserCheck,
   PieChart as PieChartIcon,
   Brain,
@@ -23,152 +21,79 @@ import {
   BookMarked
 } from 'lucide-react'
 import { useBusinessAnalytics } from '../hooks/useBusinessAnalytics'
+import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { PremiumSelect } from './PremiumSelect'
 import Image from 'next/image'
-
-import dynamic from 'next/dynamic'
-
-// Importaciones dinámicas de Nivo para mejor performance
-const ResponsiveLine = dynamic(() => import('@nivo/line').then(mod => mod.ResponsiveLine), { ssr: false })
-const ResponsiveBar = dynamic(() => import('@nivo/bar').then(mod => mod.ResponsiveBar), { ssr: false })
-const ResponsivePie = dynamic(() => import('@nivo/pie').then(mod => mod.ResponsivePie), { ssr: false })
-const ResponsiveHeatMap = dynamic(() => import('@nivo/heatmap').then(mod => mod.ResponsiveHeatMap), { ssr: false })
-const ResponsiveCalendar = dynamic(() => import('@nivo/calendar').then(mod => mod.ResponsiveCalendar), { ssr: false })
-const ResponsiveRadar = dynamic(() => import('@nivo/radar').then(mod => mod.ResponsiveRadar), { ssr: false })
-const ResponsiveTreeMap = dynamic(() => import('@nivo/treemap').then(mod => mod.ResponsiveTreeMap), { ssr: false })
-const ResponsiveSankey = dynamic(() => import('@nivo/sankey').then(mod => mod.ResponsiveSankey), { ssr: false })
-const ResponsiveSunburst = dynamic(() => import('@nivo/sunburst').then(mod => mod.ResponsiveSunburst), { ssr: false })
-const ResponsiveStream = dynamic(() => import('@nivo/stream').then(mod => mod.ResponsiveStream), { ssr: false })
-
-// Colores del tema
-const COLORS = {
-  primary: '#8b5cf6',
-  secondary: '#6366f1',
-  success: '#10b981',
-  warning: '#f59e0b',
-  danger: '#ef4444',
-  info: '#3b82f6',
-  gray: '#6b7280'
-}
-
-// Tema para Nivo (dark mode)
-const nivoTheme = {
-  background: 'transparent',
-  text: {
-    fontSize: 12,
-    fill: '#e5e7eb',
-    outlineWidth: 0,
-    outlineColor: 'transparent'
-  },
-  axis: {
-    domain: {
-      line: {
-        stroke: '#4b5563',
-        strokeWidth: 1
-      }
-    },
-    legend: {
-      text: {
-        fontSize: 12,
-        fill: '#e5e7eb',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    },
-    ticks: {
-      line: {
-        stroke: '#4b5563',
-        strokeWidth: 1
-      },
-      text: {
-        fontSize: 11,
-        fill: '#9ca3af',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    }
-  },
-  grid: {
-    line: {
-      stroke: '#374151',
-      strokeWidth: 1
-    }
-  },
-  legends: {
-    title: {
-      text: {
-        fontSize: 11,
-        fill: '#e5e7eb',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    },
-    text: {
-      fontSize: 11,
-      fill: '#9ca3af',
-      outlineWidth: 0,
-      outlineColor: 'transparent'
-    },
-    ticks: {
-      line: {},
-      text: {
-        fontSize: 10,
-        fill: '#9ca3af',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    }
-  },
-  annotations: {
-    text: {
-      fontSize: 13,
-      fill: '#e5e7eb',
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    },
-    link: {
-      stroke: '#4b5563',
-      strokeWidth: 1,
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    },
-    outline: {
-      stroke: '#4b5563',
-      strokeWidth: 2,
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    },
-    symbol: {
-      fill: '#e5e7eb',
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    }
-  },
-  tooltip: {
-    container: {
-      background: '#1f2937',
-      color: '#e5e7eb',
-      fontSize: 12,
-      borderRadius: '8px',
-      padding: '8px 12px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-    },
-    basic: {},
-    chip: {},
-    table: {},
-    tableCell: {},
-    tableCellValue: {}
-  }
-}
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
+} from 'recharts'
 
 export function BusinessAnalytics() {
   const { data, isLoading, error, refetch } = useBusinessAnalytics()
+  const { styles } = useOrganizationStylesContext()
+  const panelStyles = styles?.panel
+
+  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
+  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
+  const textColor = panelStyles?.text_color || '#f8fafc'
+  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
+  const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
+  const sectionBg = `${cardBg}CC`
+
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'trends' | 'roles' | 'skills'>('overview')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState<'all' | 'owner' | 'admin' | 'member'>('all')
+
+  // Pre-cargar skills data en paralelo para mejorar rendimiento
+  const [skillsData, setSkillsData] = useState<any>(null)
+  const [skillsLoading, setSkillsLoading] = useState(true)
+  const [skillsError, setSkillsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Pre-cargar skills data en paralelo con analytics principal
+    const fetchSkillsData = async () => {
+      try {
+        setSkillsLoading(true)
+        setSkillsError(null)
+
+        const response = await fetch('/api/business/analytics/skills', {
+          credentials: 'include'
+        })
+        const data = await response.json()
+
+        if (data.success) {
+          setSkillsData(data)
+        } else {
+          setSkillsError(data.error || 'Error al obtener datos de skills')
+        }
+      } catch (err) {
+        setSkillsError(err instanceof Error ? err.message : 'Error al cargar skills')
+      } finally {
+        setSkillsLoading(false)
+      }
+    }
+
+    fetchSkillsData()
+  }, [])
 
   const filteredUsers = useMemo(() => {
     if (!data?.user_analytics) return []
@@ -194,7 +119,13 @@ export function BusinessAnalytics() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+        <div 
+          className="w-16 h-16 border-4 rounded-full animate-spin"
+          style={{ 
+            borderColor: `${primaryColor}30`,
+            borderTopColor: primaryColor
+          }}
+        />
       </div>
     )
   }
@@ -202,17 +133,17 @@ export function BusinessAnalytics() {
   if (error) {
     return (
       <div className="text-center py-20">
-        <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-        <p className="text-red-400 text-lg mb-4">{error}</p>
+        <XCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#ef4444' }} />
+        <p className="text-lg mb-4 font-body" style={{ color: '#ef4444' }}>{error}</p>
         <button
           onClick={refetch}
-          className="px-4 py-2 text-white rounded-lg transition-colors"
+          className="px-4 py-2 rounded-xl transition-all font-body"
           style={{
-            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-            opacity: 0.2
+            backgroundColor: `${primaryColor}20`,
+            color: primaryColor
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.3')}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.2')}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${primaryColor}30`)}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = `${primaryColor}20`)}
         >
           Reintentar
         </button>
@@ -223,169 +154,205 @@ export function BusinessAnalytics() {
   if (!data) {
     return (
       <div className="text-center py-20">
-        <p className="text-carbon-400">No hay datos disponibles</p>
+        <p className="font-body opacity-70" style={{ color: textColor }}>No hay datos disponibles</p>
       </div>
     )
   }
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-6">
       {/* Cards de Métricas Generales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           icon={Users}
           label="Total Usuarios"
           value={data.general_metrics.total_users.toString()}
           trend=""
-          color={COLORS.info}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={BookOpen}
           label="Cursos Asignados"
           value={data.general_metrics.total_courses_assigned.toString()}
           trend=""
-          color={COLORS.primary}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={CheckCircle}
           label="Completados"
           value={data.general_metrics.completed_courses.toString()}
           trend=""
-          color={COLORS.success}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={TrendingUp}
           label="Progreso Promedio"
           value={`${data.general_metrics.average_progress}%`}
           trend=""
-          color={COLORS.secondary}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={Clock}
           label="Tiempo Total"
           value={`${data.general_metrics.total_time_hours}h`}
           trend=""
-          color={COLORS.warning}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={Award}
           label="Certificados"
           value={data.general_metrics.total_certificates.toString()}
           trend=""
-          color={COLORS.success}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={UserCheck}
           label="Usuarios Activos"
           value={data.general_metrics.active_users.toString()}
           trend=""
-          color={COLORS.info}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={Target}
           label="Tasa Retención"
           value={`${data.general_metrics.retention_rate}%`}
           trend=""
-          color={COLORS.secondary}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
       </div>
 
       {/* Tabs */}
-      <div className="bg-carbon-800 rounded-xl border border-carbon-700 p-6">
-        <div className="flex border-b border-carbon-700 mb-6 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'overview'
-                ? 'border-b-2'
-                : 'text-carbon-400 hover:text-carbon-300'
-            }`}
-            style={activeTab === 'overview' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <BarChart3 className="w-4 h-4 inline-block mr-2" />
-            Vista General
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'users'
-                ? 'border-b-2'
-                : 'text-carbon-400 hover:text-carbon-300'
-            }`}
-            style={activeTab === 'users' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <Users className="w-4 h-4 inline-block mr-2" />
-            Por Usuario
-          </button>
-          <button
-            onClick={() => setActiveTab('trends')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'trends'
-                ? 'border-b-2'
-                : 'text-carbon-400 hover:text-carbon-300'
-            }`}
-            style={activeTab === 'trends' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <TrendingUp className="w-4 h-4 inline-block mr-2" />
-            Tendencias
-          </button>
-          <button
-            onClick={() => setActiveTab('roles')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'roles'
-                ? 'border-b-2'
-                : 'text-carbon-400 hover:text-carbon-300'
-            }`}
-            style={activeTab === 'roles' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <PieChartIcon className="w-4 h-4 inline-block mr-2" />
-            Por Rol
-          </button>
-          <button
-            onClick={() => setActiveTab('skills')}
-            className={`px-6 py-3 font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'skills'
-                ? 'border-b-2'
-                : 'text-carbon-400 hover:text-carbon-300'
-            }`}
-            style={activeTab === 'skills' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <Brain className="w-4 h-4 inline-block mr-2" />
-            Skills Insights
-          </button>
+      <div 
+        className="rounded-3xl border backdrop-blur-sm p-6"
+        style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+      >
+        <div className="flex border-b mb-6 overflow-x-auto" style={{ borderColor: cardBorder }}>
+          {[
+            { id: 'overview', label: 'Vista General', icon: BarChart3 },
+            { id: 'users', label: 'Por Usuario', icon: Users },
+            { id: 'trends', label: 'Tendencias', icon: TrendingUp },
+            { id: 'roles', label: 'Por Rol', icon: PieChartIcon },
+            { id: 'skills', label: 'Skills Insights', icon: Brain }
+          ].map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-6 py-3 font-body font-medium transition-all whitespace-nowrap relative ${
+                  isActive ? '' : 'opacity-70 hover:opacity-100'
+                }`}
+                style={{
+                  color: isActive ? primaryColor : textColor,
+                  borderBottom: isActive ? `2px solid ${primaryColor}` : '2px solid transparent'
+                }}
+              >
+                <Icon className="w-4 h-4 inline-block mr-2" />
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
 
         {/* Tab Content */}
-        <div>
-          {activeTab === 'overview' && <OverviewTab data={data} />}
-          {activeTab === 'users' && (
-            <UsersTab
-              users={filteredUsers}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              filterRole={filterRole}
-              setFilterRole={setFilterRole}
-            />
-          )}
-          {activeTab === 'trends' && <TrendsTab data={data} />}
-          {activeTab === 'roles' && <RolesTab data={data} />}
-          {activeTab === 'skills' && <SkillsTab />}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'overview' && (
+              <OverviewTab 
+                data={data} 
+                cardBg={cardBg}
+                cardBorder={cardBorder}
+                textColor={textColor}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                sectionBg={sectionBg}
+              />
+            )}
+            {activeTab === 'users' && (
+              <UsersTab
+                users={filteredUsers}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                filterRole={filterRole}
+                setFilterRole={setFilterRole}
+                cardBg={cardBg}
+                cardBorder={cardBorder}
+                textColor={textColor}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                sectionBg={sectionBg}
+                panelStyles={panelStyles}
+              />
+            )}
+            {activeTab === 'trends' && (
+              <TrendsTab 
+                data={data}
+                cardBg={cardBg}
+                cardBorder={cardBorder}
+                textColor={textColor}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                sectionBg={sectionBg}
+              />
+            )}
+            {activeTab === 'roles' && (
+              <RolesTab 
+                data={data}
+                cardBg={cardBg}
+                cardBorder={cardBorder}
+                textColor={textColor}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                sectionBg={sectionBg}
+              />
+            )}
+            {activeTab === 'skills' && (
+              <SkillsTab
+                cardBg={cardBg}
+                cardBorder={cardBorder}
+                textColor={textColor}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                sectionBg={sectionBg}
+                panelStyles={panelStyles}
+                skillsData={skillsData}
+                skillsLoading={skillsLoading}
+                skillsError={skillsError}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   )
@@ -397,43 +364,67 @@ function MetricCard({
   label,
   value,
   trend,
-  color
+  cardBg,
+  cardBorder,
+  textColor,
+  primaryColor
 }: {
   icon: any
   label: string
   value: string
   trend: string
-  color: string
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-carbon-800 rounded-xl p-6 border border-carbon-700"
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+      className="rounded-2xl border backdrop-blur-sm p-5"
+      style={{ backgroundColor: cardBg, borderColor: cardBorder }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <Icon className="w-6 h-6" style={{ color }} />
+      <div className="flex items-center justify-between mb-3">
+        <Icon className="w-5 h-5" style={{ color: primaryColor }} />
       </div>
-      <p className="text-carbon-400 text-sm mb-2">{label}</p>
-      <p className="text-3xl font-bold text-white mb-1">{value}</p>
+      <p className="text-sm font-body opacity-70 mb-2" style={{ color: textColor }}>{label}</p>
+      <p className="text-2xl font-heading font-bold" style={{ color: textColor }}>{value}</p>
       {trend && (
-        <p className="text-sm text-carbon-400">{trend}</p>
+        <p className="text-xs font-body opacity-60 mt-1" style={{ color: textColor }}>{trend}</p>
       )}
     </motion.div>
   )
 }
 
 // Tab: Vista General
-function OverviewTab({ data }: { data: any }) {
+function OverviewTab({ 
+  data, 
+  cardBg, 
+  cardBorder, 
+  textColor, 
+  primaryColor, 
+  secondaryColor, 
+  sectionBg 
+}: {
+  data: any
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
+  secondaryColor: string
+  sectionBg: string
+}) {
   // Preparar datos para gráficas
   const courseDistribution = data.course_metrics.distribution.map((item: any) => ({
-    id: item.status === 'completed' ? 'Completados' : item.status === 'in_progress' ? 'En Progreso' : 'No Iniciados',
-    value: item.count,
-    label: item.status === 'completed' ? 'Completados' : item.status === 'in_progress' ? 'En Progreso' : 'No Iniciados'
+    name: item.status === 'completed' ? 'Completados' : item.status === 'in_progress' ? 'En Progreso' : 'No Iniciados',
+    value: item.count
   }))
 
   const progressByRole = data.by_role.progress_comparison.map((item: any) => ({
-    role: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
+    name: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
     progress: item.average_progress
   }))
 
@@ -453,158 +444,164 @@ function OverviewTab({ data }: { data: any }) {
     }
   })
 
-  const radarKeys = ['progreso', 'completados', 'tiempo', 'usuarios']
-  const radarIndexBy = 'role'
-
-  // Datos para TreeMap (distribución jerárquica)
-  const treeMapData = {
-    name: 'Métricas',
-    children: data.by_role.distribution.map((item: any) => {
-      const role = item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member'
-      const progressItem = data.by_role.progress_comparison.find((p: any) => p.role === item.role)
-      return {
-        name: role,
-        value: (progressItem?.average_progress || 0) * (item.count || 0)
-      }
-    })
-  }
+  const COLORS = [primaryColor, secondaryColor, '#10b981', '#f59e0b']
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Gráfica de Distribución de Cursos */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Distribución de Cursos</h3>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border backdrop-blur-sm p-6"
+        style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+      >
+        <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+          Distribución de Cursos
+        </h3>
         <div className="h-64">
           {courseDistribution.length > 0 ? (
-            <ResponsivePie
-              data={courseDistribution}
-              margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-              innerRadius={0.5}
-              padAngle={0.7}
-              cornerRadius={3}
-              activeOuterRadiusOffset={8}
-              colors={[COLORS.success, COLORS.warning, COLORS.gray]}
-              borderWidth={1}
-              borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-              arcLinkLabelsSkipAngle={10}
-              arcLinkLabelsTextColor="#e5e7eb"
-              arcLinkLabelsThickness={2}
-              arcLinkLabelsColor={{ from: 'color' }}
-              arcLabelsSkipAngle={10}
-              arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
-              theme={nivoTheme}
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={courseDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {courseDistribution.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
+            <div className="flex items-center justify-center h-full font-body opacity-50" style={{ color: textColor }}>
               No hay datos disponibles
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Gráfica de Progreso por Rol */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Progreso Promedio por Rol</h3>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-2xl border backdrop-blur-sm p-6"
+        style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+      >
+        <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+          Progreso Promedio por Rol
+        </h3>
         <div className="h-64">
           {progressByRole.length > 0 ? (
-            <ResponsiveBar
-              data={progressByRole}
-              keys={['progress']}
-              indexBy="role"
-              margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-              padding={0.3}
-              valueScale={{ type: 'linear' }}
-              indexScale={{ type: 'band', round: true }}
-              colors={COLORS.primary}
-              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Rol',
-                legendPosition: 'middle',
-                legendOffset: 32
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Progreso (%)',
-                legendPosition: 'middle',
-                legendOffset: -40
-              }}
-              labelSkipWidth={12}
-              labelSkipHeight={12}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              theme={nivoTheme}
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={progressByRole}>
+                <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <YAxis 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Bar dataKey="progress" fill={primaryColor} radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
+            <div className="flex items-center justify-center h-full font-body opacity-50" style={{ color: textColor }}>
               No hay datos disponibles
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Gráfica Radar (métricas por rol) */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Métricas Comparativas por Rol</h3>
-        <div className="h-96">
-          {radarData.length > 0 ? (
-            <ResponsiveRadar
-              data={radarData}
-              keys={radarKeys}
-              indexBy={radarIndexBy}
-              valueFormat=" >-.0f"
-              margin={{ top: 70, right: 80, bottom: 40, left: 80 }}
-              borderColor={{ from: 'color' }}
-              gridLabelOffset={36}
-              dotSize={10}
-              dotColor={{ theme: 'background' }}
-              dotBorderWidth={2}
-              dotBorderColor={{ from: 'color' }}
-              colors={[COLORS.primary, COLORS.secondary, COLORS.success, COLORS.info]}
-              fillOpacity={0.1}
-              blendMode="multiply"
-              motionConfig="wobbly"
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* TreeMap (distribución jerárquica) */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Distribución Jerárquica por Rol</h3>
-        <div className="h-96">
-          {treeMapData.children && treeMapData.children.length > 0 ? (
-            <ResponsiveTreeMap
-              data={treeMapData}
-              identity="name"
-              value="value"
-              valueFormat=" >-.0f"
-              margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
-              labelSkipSize={12}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1.2]] }}
-              parentLabelPosition="left"
-              parentLabelTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
-              borderColor={{ from: 'color', modifiers: [['darker', 0.1]] }}
-              colors={[COLORS.primary, COLORS.secondary, COLORS.success, COLORS.info]}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+      {radarData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl border backdrop-blur-sm p-6"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+            Métricas Comparativas por Rol
+          </h3>
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={radarData}>
+                <PolarGrid stroke={cardBorder} opacity={0.3} />
+                <PolarAngleAxis 
+                  dataKey="role" 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <PolarRadiusAxis 
+                  angle={90} 
+                  domain={[0, 'auto']}
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Radar
+                  name="Progreso"
+                  dataKey="progreso"
+                  stroke={primaryColor}
+                  fill={primaryColor}
+                  fillOpacity={0.2}
+                />
+                <Radar
+                  name="Completados"
+                  dataKey="completados"
+                  stroke={secondaryColor}
+                  fill={secondaryColor}
+                  fillOpacity={0.2}
+                />
+                <Radar
+                  name="Tiempo"
+                  dataKey="tiempo"
+                  stroke="#10b981"
+                  fill="#10b981"
+                  fillOpacity={0.2}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ color: textColor, fontSize: '12px' }}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }
@@ -615,792 +612,659 @@ function UsersTab({
   searchTerm,
   setSearchTerm,
   filterRole,
-  setFilterRole
+  setFilterRole,
+  cardBg,
+  cardBorder,
+  textColor,
+  primaryColor,
+  secondaryColor,
+  sectionBg,
+  panelStyles
 }: {
   users: any[]
   searchTerm: string
   setSearchTerm: (term: string) => void
   filterRole: 'all' | 'owner' | 'admin' | 'member'
   setFilterRole: (role: 'all' | 'owner' | 'admin' | 'member') => void
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
+  secondaryColor: string
+  sectionBg: string
+  panelStyles: any
 }) {
   const topPerformers = [...users]
     .sort((a, b) => b.courses_completed - a.courses_completed)
     .slice(0, 10)
     .map((user, index) => ({
-      user: user.display_name,
+      name: user.display_name.length > 15 ? user.display_name.substring(0, 15) + '...' : user.display_name,
       completed: user.courses_completed,
       rank: index + 1
     }))
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Filtros */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-carbon-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 opacity-50" style={{ color: textColor }} />
           <input
             type="text"
             placeholder="Buscar usuarios..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-carbon-900 border border-carbon-700 rounded-lg text-white placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border font-body text-sm focus:outline-none focus:ring-1 transition-all"
+            style={{
+              borderColor: cardBorder,
+              backgroundColor: sectionBg,
+              color: textColor
+            }}
           />
         </div>
-        <select
+        <PremiumSelect
           value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value as any)}
-          className="px-4 py-2 bg-carbon-900 border border-carbon-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="all">Todos los roles</option>
-          <option value="owner">Owner</option>
-          <option value="admin">Admin</option>
-          <option value="member">Member</option>
-        </select>
+          onValueChange={(value) => setFilterRole(value as any)}
+          placeholder="Todos los roles"
+          options={[
+            { value: 'all', label: 'Todos los roles' },
+            { value: 'owner', label: 'Owner' },
+            { value: 'admin', label: 'Admin' },
+            { value: 'member', label: 'Member' }
+          ]}
+        />
       </div>
 
       {/* Gráfica de Top Performers */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Top 10 Performers</h3>
-        <div className="h-96">
-          {topPerformers.length > 0 ? (
-            <ResponsiveBar
-              data={topPerformers}
-              keys={['completed']}
-              indexBy="user"
-              margin={{ top: 50, right: 130, bottom: 150, left: 60 }}
-              padding={0.3}
-              layout="horizontal"
-              valueScale={{ type: 'linear' }}
-              indexScale={{ type: 'band', round: true }}
-              colors={COLORS.success}
-              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: -45,
-                legend: 'Cursos Completados',
-                legendPosition: 'middle',
-                legendOffset: 60
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Usuario',
-                legendPosition: 'middle',
-                legendOffset: -50
-              }}
-              labelSkipWidth={12}
-              labelSkipHeight={12}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+      {topPerformers.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border backdrop-blur-sm p-6"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+            Top 10 Performers
+          </h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topPerformers} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                <XAxis type="number" style={{ fill: textColor, fontSize: '12px' }} tick={{ fill: `${textColor}CC` }} />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  width={120}
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Bar dataKey="completed" fill={primaryColor} radius={[0, 8, 8, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
 
       {/* Tabla de Usuarios */}
-      <div className="bg-carbon-900 rounded-lg border border-carbon-700 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-2xl border overflow-hidden backdrop-blur-sm"
+        style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+      >
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-carbon-800 border-b border-carbon-700">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Usuario</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Rol</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Asignados</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Completados</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Progreso</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Tiempo</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Certificados</th>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${cardBorder}` }}>
+                <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                  Usuario
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                  Rol
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                  Asignados
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                  Completados
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                  Progreso
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                  Tiempo
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                  Certificados
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-carbon-700">
-              {users.map((user) => (
-                <tr key={user.user_id} className="hover:bg-carbon-800 transition-colors">
-                  <td className="px-6 py-4">
+            <tbody>
+              {users.map((user, index) => (
+                <motion.tr
+                  key={user.user_id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.02 }}
+                  className="hover:opacity-80 transition-opacity"
+                  style={{ borderBottom: `1px solid ${cardBorder}`, backgroundColor: index % 2 === 0 ? 'transparent' : `${sectionBg}40` }}
+                >
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {user.profile_picture_url ? (
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary/30">
+                        <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                           <Image
                             src={user.profile_picture_url}
                             alt={user.display_name}
                             fill
                             className="object-cover"
-                            sizes="40px"
+                            sizes="32px"
                           />
                         </div>
                       ) : (
                         <div 
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-sm"
                           style={{
-                            backgroundImage: `linear-gradient(to bottom right, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))`
+                            background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`
                           }}
                         >
                           {(user.display_name[0] || user.username[0]).toUpperCase()}
                         </div>
                       )}
                       <div>
-                        <p className="text-white font-medium">{user.display_name}</p>
-                        <p className="text-carbon-400 text-sm">{user.email}</p>
+                        <p className="font-body font-medium text-sm" style={{ color: textColor }}>{user.display_name}</p>
+                        <p className="font-body text-xs opacity-70" style={{ color: textColor }}>{user.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-carbon-300 capitalize">{user.role}</td>
-                  <td className="px-6 py-4 text-white">{user.courses_assigned}</td>
-                  <td className="px-6 py-4 text-white">{user.courses_completed}</td>
-                  <td className="px-6 py-4 text-white">{user.average_progress}%</td>
-                  <td className="px-6 py-4 text-white">{user.total_time_hours}h</td>
-                  <td className="px-6 py-4 text-white">{user.certificates_count}</td>
-                </tr>
+                  <td className="px-4 py-3">
+                    <span 
+                      className="px-2 py-0.5 rounded-md text-xs font-body capitalize"
+                      style={{ 
+                        backgroundColor: `${primaryColor}15`,
+                        color: primaryColor
+                      }}
+                    >
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-body text-sm" style={{ color: textColor }}>{user.courses_assigned}</td>
+                  <td className="px-4 py-3 font-body text-sm" style={{ color: textColor }}>{user.courses_completed}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-body text-sm font-semibold" style={{ color: primaryColor }}>
+                        {user.average_progress}%
+                      </span>
+                      <div 
+                        className="h-1.5 rounded-full flex-1 max-w-[60px]"
+                        style={{ backgroundColor: `${cardBorder}50` }}
+                      >
+                        <div 
+                          className="h-full rounded-full transition-all"
+                          style={{ 
+                            width: `${Math.min(user.average_progress, 100)}%`,
+                            backgroundColor: primaryColor
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-body text-sm" style={{ color: textColor }}>{user.total_time_hours}h</td>
+                  <td className="px-4 py-3 font-body text-sm" style={{ color: textColor }}>{user.certificates_count}</td>
+                </motion.tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
 
 // Tab: Tendencias
-function TrendsTab({ data }: { data: any }) {
+function TrendsTab({ 
+  data, 
+  cardBg, 
+  cardBorder, 
+  textColor, 
+  primaryColor, 
+  secondaryColor, 
+  sectionBg 
+}: {
+  data: any
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
+  secondaryColor: string
+  sectionBg: string
+}) {
   const enrollmentData = data.trends.enrollments_by_month.map((item: any) => ({
-    x: item.label,
-    y: item.count
+    name: item.label,
+    inscripciones: item.count
   }))
 
   const completionData = data.trends.completions_by_month.map((item: any) => ({
-    x: item.label,
-    y: item.count
+    name: item.label,
+    completaciones: item.count
   }))
 
   const timeData = data.trends.time_by_month.map((item: any) => ({
-    x: item.label,
-    y: item.count
+    name: item.label,
+    tiempo: item.count
   }))
 
   const activeUsersData = data.trends.active_users_by_month.map((item: any) => ({
-    x: item.label,
-    y: item.count
+    name: item.label,
+    usuarios: item.count
   }))
 
-  const lineData = [
-    {
-      id: 'Inscripciones',
-      color: COLORS.info,
-      data: enrollmentData
-    },
-    {
-      id: 'Completaciones',
-      color: COLORS.success,
-      data: completionData
-    }
-  ]
-
-  // Datos para Stream Chart (tendencias apiladas)
-  const streamData = [
-    {
-      id: 'Inscripciones',
-      data: enrollmentData.map((item: any) => ({ x: item.x, y: item.y }))
-    },
-    {
-      id: 'Completaciones',
-      data: completionData.map((item: any) => ({ x: item.x, y: item.y }))
-    },
-    {
-      id: 'Tiempo',
-      data: timeData.map((item: any) => ({ x: item.x, y: item.y }))
-    },
-    {
-      id: 'Usuarios Activos',
-      data: activeUsersData.map((item: any) => ({ x: item.x, y: item.y }))
-    }
-  ]
+  // Combinar datos para gráfico de líneas
+  const combinedData = enrollmentData.map((item, index) => ({
+    name: item.name,
+    inscripciones: item.inscripciones,
+    completaciones: completionData[index]?.completaciones || 0
+  }))
 
   return (
-    <div className="space-y-8">
-      {/* Gráfica de Inscripciones y Completaciones (Line) */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Tendencias de Inscripciones y Completaciones</h3>
-        <div className="h-96">
-          {lineData[0].data.length > 0 || lineData[1].data.length > 0 ? (
-            <ResponsiveLine
-              data={lineData}
-              margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-              xScale={{ type: 'point' }}
-              yScale={{
-                type: 'linear',
-                min: 'auto',
-                max: 'auto',
-                stacked: false,
-                reverse: false
-              }}
-              yFormat=" >-.0f"
-              curve="cardinal"
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: -45,
-                legend: 'Mes',
-                legendPosition: 'middle',
-                legendOffset: 60
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Cantidad',
-                legendPosition: 'middle',
-                legendOffset: -50
-              }}
-              pointSize={8}
-              pointColor={{ theme: 'background' }}
-              pointBorderWidth={2}
-              pointBorderColor={{ from: 'serieColor' }}
-              pointLabelYOffset={-12}
-              useMesh={true}
-              legends={[
-                {
-                  anchor: 'bottom-right',
-                  direction: 'column',
-                  justify: false,
-                  translateX: 100,
-                  translateY: 0,
-                  itemsSpacing: 0,
-                  itemDirection: 'left-to-right',
-                  itemWidth: 80,
-                  itemHeight: 20,
-                  itemOpacity: 0.75,
-                  symbolSize: 12,
-                  symbolShape: 'circle',
-                  effects: [
-                    {
-                      on: 'hover',
-                      style: {
-                        itemBackground: 'rgba(0, 0, 0, .03)',
-                        itemOpacity: 1
-                      }
-                    }
-                  ]
-                }
-              ]}
-              theme={nivoTheme}
-            />
+    <div className="space-y-6">
+      {/* Gráfica de Inscripciones y Completaciones */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border backdrop-blur-sm p-6"
+        style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+      >
+        <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+          Tendencias de Inscripciones y Completaciones
+        </h3>
+        <div className="h-80">
+          {combinedData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={combinedData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <YAxis 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ color: textColor, fontSize: '12px' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="inscripciones" 
+                  stroke={primaryColor} 
+                  strokeWidth={2}
+                  dot={{ fill: primaryColor, r: 4 }}
+                  name="Inscripciones"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="completaciones" 
+                  stroke="#10b981" 
+                  strokeWidth={2}
+                  dot={{ fill: '#10b981', r: 4 }}
+                  name="Completaciones"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
+            <div className="flex items-center justify-center h-full font-body opacity-50" style={{ color: textColor }}>
               No hay datos disponibles
             </div>
           )}
         </div>
-      </div>
-
-      {/* Stream Chart (tendencias apiladas) */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Tendencias Apiladas</h3>
-        <div className="h-96">
-          {streamData.length > 0 && streamData[0].data.length > 0 ? (
-            <ResponsiveStream
-              data={streamData}
-              keys={['Inscripciones', 'Completaciones', 'Tiempo', 'Usuarios Activos']}
-              margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: -45,
-                legend: 'Mes',
-                legendPosition: 'middle',
-                legendOffset: 60
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Cantidad',
-                legendPosition: 'middle',
-                legendOffset: -50
-              }}
-              offsetType="none"
-              order="none"
-              curve="cardinal"
-              colors={[COLORS.info, COLORS.success, COLORS.warning, COLORS.secondary]}
-              fillOpacity={0.85}
-              borderColor={{ theme: 'background' }}
-              defs={[
-                {
-                  id: 'dots',
-                  type: 'patternDots',
-                  background: 'inherit',
-                  color: '#cbd5e1',
-                  size: 4,
-                  padding: 2,
-                  stagger: true
-                }
-              ]}
-              fill={[
-                { match: { id: 'Inscripciones' }, id: 'dots' }
-              ]}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+      </motion.div>
 
       {/* Gráfica de Tiempo Dedicado */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Tiempo Dedicado por Mes</h3>
-        <div className="h-96">
-          {timeData.length > 0 ? (
-            <ResponsiveLine
-              data={[
-                {
-                  id: 'Tiempo (horas)',
-                  color: COLORS.warning,
-                  data: timeData
-                }
-              ]}
-              margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-              xScale={{ type: 'point' }}
-              yScale={{
-                type: 'linear',
-                min: 'auto',
-                max: 'auto'
-              }}
-              yFormat=" >-.1f"
-              curve="cardinal"
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: -45,
-                legend: 'Mes',
-                legendPosition: 'middle',
-                legendOffset: 60
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Horas',
-                legendPosition: 'middle',
-                legendOffset: -50
-              }}
-              pointSize={8}
-              pointColor={{ theme: 'background' }}
-              pointBorderWidth={2}
-              pointBorderColor={{ from: 'serieColor' }}
-              pointLabelYOffset={-12}
-              useMesh={true}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+      {timeData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-2xl border backdrop-blur-sm p-6"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+            Tiempo Dedicado por Mes
+          </h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={timeData}>
+                <defs>
+                  <linearGradient id="colorTiempo" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <YAxis 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="tiempo" 
+                  stroke="#f59e0b" 
+                  fillOpacity={1} 
+                  fill="url(#colorTiempo)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
 
       {/* Gráfica de Usuarios Activos */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Usuarios Activos por Mes</h3>
-        <div className="h-96">
-          {activeUsersData.length > 0 ? (
-            <ResponsiveLine
-              data={[
-                {
-                  id: 'Usuarios Activos',
-                  color: COLORS.secondary,
-                  data: activeUsersData
-                }
-              ]}
-              margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-              xScale={{ type: 'point' }}
-              yScale={{
-                type: 'linear',
-                min: 'auto',
-                max: 'auto'
-              }}
-              yFormat=" >-.0f"
-              curve="cardinal"
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: -45,
-                legend: 'Mes',
-                legendPosition: 'middle',
-                legendOffset: 60
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Usuarios',
-                legendPosition: 'middle',
-                legendOffset: -50
-              }}
-              pointSize={8}
-              pointColor={{ theme: 'background' }}
-              pointBorderWidth={2}
-              pointBorderColor={{ from: 'serieColor' }}
-              pointLabelYOffset={-12}
-              useMesh={true}
-              areaBaselineValue={0}
-              enableArea={true}
-              areaOpacity={0.1}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+      {activeUsersData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl border backdrop-blur-sm p-6"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+            Usuarios Activos por Mes
+          </h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={activeUsersData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <YAxis 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="usuarios" 
+                  stroke={secondaryColor} 
+                  strokeWidth={2}
+                  dot={{ fill: secondaryColor, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }
 
 // Tab: Por Rol
-function RolesTab({ data }: { data: any }) {
+function RolesTab({ 
+  data, 
+  cardBg, 
+  cardBorder, 
+  textColor, 
+  primaryColor, 
+  secondaryColor, 
+  sectionBg 
+}: {
+  data: any
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
+  secondaryColor: string
+  sectionBg: string
+}) {
   const roleDistribution = data.by_role.distribution.map((item: any) => ({
-    id: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
-    value: item.count,
-    label: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member'
+    name: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
+    value: item.count
   }))
 
   const roleProgress = data.by_role.progress_comparison.map((item: any) => ({
-    role: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
+    name: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
     progress: item.average_progress
   }))
 
   const roleCompletions = data.by_role.completions.map((item: any) => ({
-    role: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
+    name: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
     completados: item.total_completed
   }))
 
   const roleTime = data.by_role.time_spent.map((item: any) => ({
-    role: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
+    name: item.role === 'owner' ? 'Owner' : item.role === 'admin' ? 'Admin' : 'Member',
     tiempo: item.average_hours
   }))
 
   // Datos combinados para comparativa de roles
   const roleComparison = roleProgress.map((progress: any) => {
-    const completions = roleCompletions.find((c: any) => c.role === progress.role)
-    const time = roleTime.find((t: any) => t.role === progress.role)
+    const completions = roleCompletions.find((c: any) => c.name === progress.name)
+    const time = roleTime.find((t: any) => t.name === progress.name)
     return {
-      role: progress.role,
+      name: progress.name,
       progreso: progress.progress,
       completados: completions?.completados || 0,
       tiempo: time?.tiempo || 0
     }
   })
 
+  const COLORS = [primaryColor, '#10b981', '#f59e0b']
+
   return (
-    <div className="space-y-8">
-      {/* Distribución por Rol (Sunburst) */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Distribución por Rol (Sunburst)</h3>
-        <div className="h-96">
-          {roleDistribution.length > 0 ? (
-            <ResponsiveSunburst
-              data={{
-                name: 'Roles',
-                children: roleDistribution.map((item: any) => ({
-                  name: item.id,
-                  value: item.value,
-                  children: []
-                }))
-              }}
-              margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
-              id="name"
-              value="value"
-              cornerRadius={2}
-              borderColor={{ theme: 'background' }}
-              colors={[COLORS.primary, COLORS.secondary, COLORS.info]}
-              childColor={{ from: 'color', modifiers: [['brighter', 0.1]] }}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Distribución por Rol */}
+      {roleDistribution.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border backdrop-blur-sm p-6"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+            Distribución por Rol
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={roleDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {roleDistribution.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
 
       {/* Comparativa Multi-Métrica por Rol */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Comparativa Multi-Métrica por Rol</h3>
-        <div className="h-96">
-          {roleComparison.length > 0 ? (
-            <ResponsiveBar
-              data={roleComparison}
-              keys={['progreso', 'completados', 'tiempo']}
-              indexBy="role"
-              margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-              padding={0.3}
-              valueScale={{ type: 'linear' }}
-              indexScale={{ type: 'band', round: true }}
-              colors={[COLORS.primary, COLORS.success, COLORS.warning]}
-              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Rol',
-                legendPosition: 'middle',
-                legendOffset: 32
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Valor',
-                legendPosition: 'middle',
-                legendOffset: -40
-              }}
-              labelSkipWidth={12}
-              labelSkipHeight={12}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              legends={[
-                {
-                  dataFrom: 'keys',
-                  anchor: 'bottom-right',
-                  direction: 'column',
-                  justify: false,
-                  translateX: 120,
-                  translateY: 0,
-                  itemsSpacing: 2,
-                  itemWidth: 100,
-                  itemHeight: 20,
-                  itemDirection: 'left-to-right',
-                  itemOpacity: 0.85,
-                  symbolSize: 20,
-                  effects: [
-                    {
-                      on: 'hover',
-                      style: {
-                        itemOpacity: 1
-                      }
-                    }
-                  ]
-                }
-              ]}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Distribución por Rol (Pie Chart) */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Distribución por Rol</h3>
-        <div className="h-64">
-          {roleDistribution.length > 0 ? (
-            <ResponsivePie
-              data={roleDistribution}
-              margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-              innerRadius={0.5}
-              padAngle={0.7}
-              cornerRadius={3}
-              activeOuterRadiusOffset={8}
-              colors={[COLORS.primary, COLORS.secondary, COLORS.info]}
-              borderWidth={1}
-              borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-              arcLinkLabelsSkipAngle={10}
-              arcLinkLabelsTextColor="#e5e7eb"
-              arcLinkLabelsThickness={2}
-              arcLinkLabelsColor={{ from: 'color' }}
-              arcLabelsSkipAngle={10}
-              arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+      {roleComparison.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-2xl border backdrop-blur-sm p-6"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+            Comparativa Multi-Métrica por Rol
+          </h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={roleComparison}>
+                <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <YAxis 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ color: textColor, fontSize: '12px' }}
+                />
+                <Bar dataKey="progreso" fill={primaryColor} radius={[8, 8, 0, 0]} name="Progreso (%)" />
+                <Bar dataKey="completados" fill="#10b981" radius={[8, 8, 0, 0]} name="Completados" />
+                <Bar dataKey="tiempo" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Tiempo (h)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
 
       {/* Progreso Comparativo por Rol */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Progreso Comparativo por Rol</h3>
-        <div className="h-64">
-          {roleProgress.length > 0 ? (
-            <ResponsiveBar
-              data={roleProgress}
-              keys={['progress']}
-              indexBy="role"
-              margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-              padding={0.3}
-              valueScale={{ type: 'linear' }}
-              indexScale={{ type: 'band', round: true }}
-              colors={COLORS.secondary}
-              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Rol',
-                legendPosition: 'middle',
-                legendOffset: 32
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Progreso (%)',
-                legendPosition: 'middle',
-                legendOffset: -40
-              }}
-              labelSkipWidth={12}
-              labelSkipHeight={12}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Cursos Completados por Rol */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Cursos Completados por Rol</h3>
-        <div className="h-64">
-          {roleCompletions.length > 0 ? (
-            <ResponsiveBar
-              data={roleCompletions}
-              keys={['completados']}
-              indexBy="role"
-              margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-              padding={0.3}
-              valueScale={{ type: 'linear' }}
-              indexScale={{ type: 'band', round: true }}
-              colors={COLORS.success}
-              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Rol',
-                legendPosition: 'middle',
-                legendOffset: 32
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Cursos Completados',
-                legendPosition: 'middle',
-                legendOffset: -40
-              }}
-              labelSkipWidth={12}
-              labelSkipHeight={12}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Tiempo Dedicado por Rol */}
-      <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-        <h3 className="text-xl font-bold text-white mb-4">Tiempo Dedicado por Rol</h3>
-        <div className="h-64">
-          {roleTime.length > 0 ? (
-            <ResponsiveBar
-              data={roleTime}
-              keys={['tiempo']}
-              indexBy="role"
-              margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-              padding={0.3}
-              valueScale={{ type: 'linear' }}
-              indexScale={{ type: 'band', round: true }}
-              colors={COLORS.warning}
-              borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Rol',
-                legendPosition: 'middle',
-                legendOffset: 32
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Tiempo (horas)',
-                legendPosition: 'middle',
-                legendOffset: -40
-              }}
-              labelSkipWidth={12}
-              labelSkipHeight={12}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-              theme={nivoTheme}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-carbon-400">
-              No hay datos disponibles
-            </div>
-          )}
-        </div>
-      </div>
+      {roleProgress.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl border backdrop-blur-sm p-6"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <h3 className="text-lg font-heading font-semibold mb-4" style={{ color: textColor }}>
+            Progreso Comparativo por Rol
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={roleProgress}>
+                <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <YAxis 
+                  style={{ fill: textColor, fontSize: '12px' }}
+                  tick={{ fill: `${textColor}CC` }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: '12px',
+                    color: textColor
+                  }}
+                />
+                <Bar dataKey="progress" fill={secondaryColor} radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }
 
-// Tab: Skills Insights
-function SkillsTab() {
-  const [skillsData, setSkillsData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+// Tab: Skills Insights (dividido en dos secciones)
+function SkillsTab({
+  cardBg,
+  cardBorder,
+  textColor,
+  primaryColor,
+  secondaryColor,
+  sectionBg,
+  panelStyles,
+  skillsData: preloadedSkillsData,
+  skillsLoading: preloadedSkillsLoading,
+  skillsError: preloadedSkillsError
+}: {
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
+  secondaryColor: string
+  sectionBg: string
+  panelStyles: any
+  skillsData: any
+  skillsLoading: boolean
+  skillsError: string | null
+}) {
+  // Usar datos pre-cargados del componente padre
+  const [skillsData, setSkillsData] = useState<any>(preloadedSkillsData)
+  const [isLoading, setIsLoading] = useState(preloadedSkillsLoading)
+  const [error, setError] = useState<string | null>(preloadedSkillsError)
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'courses'>('users')
 
+  // Sincronizar con datos pre-cargados cuando cambien
   useEffect(() => {
-    fetchSkillsData()
-  }, [])
+    setSkillsData(preloadedSkillsData)
+    setIsLoading(preloadedSkillsLoading)
+    setError(preloadedSkillsError)
+  }, [preloadedSkillsData, preloadedSkillsLoading, preloadedSkillsError])
 
   const fetchSkillsData = async () => {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const response = await fetch('/api/business/analytics/skills', {
         credentials: 'include'
       })
@@ -1421,7 +1285,13 @@ function SkillsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+        <div 
+          className="w-16 h-16 border-4 rounded-full animate-spin"
+          style={{ 
+            borderColor: `${primaryColor}30`,
+            borderTopColor: primaryColor
+          }}
+        />
       </div>
     )
   }
@@ -1429,17 +1299,17 @@ function SkillsTab() {
   if (error) {
     return (
       <div className="text-center py-20">
-        <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-        <p className="text-red-400 text-lg mb-4">{error}</p>
+        <AlertTriangle className="w-16 h-16 mx-auto mb-4" style={{ color: '#ef4444' }} />
+        <p className="text-lg mb-4 font-body" style={{ color: '#ef4444' }}>{error}</p>
         <button
           onClick={fetchSkillsData}
-          className="px-4 py-2 text-white rounded-lg transition-colors"
+          className="px-4 py-2 rounded-xl transition-all font-body"
           style={{
-            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-            opacity: 0.2
+            backgroundColor: `${primaryColor}20`,
+            color: primaryColor
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.3')}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.2')}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${primaryColor}30`)}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = `${primaryColor}20`)}
         >
           Reintentar
         </button>
@@ -1450,176 +1320,278 @@ function SkillsTab() {
   if (!skillsData) {
     return (
       <div className="text-center py-20">
-        <p className="text-carbon-400">No hay datos disponibles</p>
+        <p className="font-body opacity-70" style={{ color: textColor }}>No hay datos disponibles</p>
       </div>
     )
   }
 
   const { stats, gaps, recommendations } = skillsData
 
+  return (
+    <div className="space-y-6">
+      {/* Sub-tabs para Skills por Usuario y Skills por Curso */}
+      <div className="flex gap-2 border-b" style={{ borderColor: cardBorder }}>
+        <button
+          onClick={() => setActiveSubTab('users')}
+          className={`px-4 py-2 font-body font-medium transition-all relative ${
+            activeSubTab === 'users' ? '' : 'opacity-70 hover:opacity-100'
+          }`}
+          style={{
+            color: activeSubTab === 'users' ? primaryColor : textColor,
+            borderBottom: activeSubTab === 'users' ? `2px solid ${primaryColor}` : '2px solid transparent'
+          }}
+        >
+          Skills por Usuario
+        </button>
+        <button
+          onClick={() => setActiveSubTab('courses')}
+          className={`px-4 py-2 font-body font-medium transition-all relative ${
+            activeSubTab === 'courses' ? '' : 'opacity-70 hover:opacity-100'
+          }`}
+          style={{
+            color: activeSubTab === 'courses' ? primaryColor : textColor,
+            borderBottom: activeSubTab === 'courses' ? `2px solid ${primaryColor}` : '2px solid transparent'
+          }}
+        >
+          Skills por Curso
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {activeSubTab === 'users' ? (
+          <SkillsByUserTab
+            stats={stats}
+            gaps={gaps}
+            recommendations={recommendations}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            textColor={textColor}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            sectionBg={sectionBg}
+          />
+        ) : (
+          <SkillsByCourseTab
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            textColor={textColor}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            sectionBg={sectionBg}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// Sub-tab: Skills por Usuario
+function SkillsByUserTab({
+  stats,
+  gaps,
+  recommendations,
+  cardBg,
+  cardBorder,
+  textColor,
+  primaryColor,
+  secondaryColor,
+  sectionBg
+}: {
+  stats: any
+  gaps: any[]
+  recommendations: any[]
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
+  secondaryColor: string
+  sectionBg: string
+}) {
   const gapsChartData = stats?.top_gaps?.map((item: any) => ({
-    skill: item.skill,
+    name: item.skill.length > 15 ? item.skill.substring(0, 15) + '...' : item.skill,
     count: item.count
   })) || []
 
   const learnedChartData = stats?.top_learned?.map((item: any) => ({
-    skill: item.skill,
+    name: item.skill.length > 15 ? item.skill.substring(0, 15) + '...' : item.skill,
     count: item.count
   })) || []
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
       {/* Cards de Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard
           icon={Users}
           label="Usuarios Analizados"
           value={stats?.total_users?.toString() || '0'}
           trend=""
-          color={COLORS.info}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={AlertTriangle}
           label="Usuarios con Gaps"
           value={stats?.users_with_gaps?.toString() || '0'}
           trend=""
-          color={COLORS.warning}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={Target}
           label="Cobertura de Skills"
           value={`${stats?.skills_coverage || 0}%`}
           trend=""
-          color={COLORS.success}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
         <MetricCard
           icon={Brain}
           label="Total Skills"
           value={stats?.total_skills?.toString() || '0'}
           trend=""
-          color={COLORS.primary}
+          cardBg={cardBg}
+          cardBorder={cardBorder}
+          textColor={textColor}
+          primaryColor={primaryColor}
         />
       </div>
 
       {/* Gráficas de Top Skills */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Skills Faltantes */}
-        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-warning" />
-            Top Skills Faltantes
-          </h3>
-          <div className="h-80">
-            {gapsChartData.length > 0 ? (
-              <ResponsiveBar
-                data={gapsChartData}
-                keys={['count']}
-                indexBy="skill"
-                margin={{ top: 50, right: 50, bottom: 100, left: 60 }}
-                padding={0.3}
-                valueScale={{ type: 'linear' }}
-                indexScale={{ type: 'band', round: true }}
-                colors={COLORS.warning}
-                borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: -45,
-                  legend: 'Skill',
-                  legendPosition: 'middle',
-                  legendOffset: 80
-                }}
-                axisLeft={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: 0,
-                  legend: 'Cantidad de Usuarios',
-                  legendPosition: 'middle',
-                  legendOffset: -40
-                }}
-                labelSkipWidth={12}
-                labelSkipHeight={12}
-                labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-                theme={nivoTheme}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-carbon-400">
-                No hay gaps identificados
-              </div>
-            )}
-          </div>
-        </div>
+        {gapsChartData.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border backdrop-blur-sm p-6"
+            style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+          >
+            <h3 className="text-lg font-heading font-semibold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+              <AlertTriangle className="w-5 h-5" style={{ color: '#f59e0b' }} />
+              Top Skills Faltantes
+            </h3>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={gapsChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    style={{ fill: textColor, fontSize: '11px' }}
+                    tick={{ fill: `${textColor}CC` }}
+                  />
+                  <YAxis 
+                    style={{ fill: textColor, fontSize: '12px' }}
+                    tick={{ fill: `${textColor}CC` }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: cardBg,
+                      border: `1px solid ${cardBorder}`,
+                      borderRadius: '12px',
+                      color: textColor
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
 
         {/* Top Skills Aprendidas */}
-        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-success" />
-            Top Skills Aprendidas
-          </h3>
-          <div className="h-80">
-            {learnedChartData.length > 0 ? (
-              <ResponsiveBar
-                data={learnedChartData}
-                keys={['count']}
-                indexBy="skill"
-                margin={{ top: 50, right: 50, bottom: 100, left: 60 }}
-                padding={0.3}
-                valueScale={{ type: 'linear' }}
-                indexScale={{ type: 'band', round: true }}
-                colors={COLORS.success}
-                borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: -45,
-                  legend: 'Skill',
-                  legendPosition: 'middle',
-                  legendOffset: 80
-                }}
-                axisLeft={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: 0,
-                  legend: 'Cantidad de Usuarios',
-                  legendPosition: 'middle',
-                  legendOffset: -40
-                }}
-                labelSkipWidth={12}
-                labelSkipHeight={12}
-                labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-                theme={nivoTheme}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-carbon-400">
-                No hay skills aprendidas registradas
-              </div>
-            )}
-          </div>
-        </div>
+        {learnedChartData.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="rounded-2xl border backdrop-blur-sm p-6"
+            style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+          >
+            <h3 className="text-lg font-heading font-semibold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+              <CheckCircle className="w-5 h-5" style={{ color: '#10b981' }} />
+              Top Skills Aprendidas
+            </h3>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={learnedChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    style={{ fill: textColor, fontSize: '11px' }}
+                    tick={{ fill: `${textColor}CC` }}
+                  />
+                  <YAxis 
+                    style={{ fill: textColor, fontSize: '12px' }}
+                    tick={{ fill: `${textColor}CC` }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: cardBg,
+                      border: `1px solid ${cardBorder}`,
+                      borderRadius: '12px',
+                      color: textColor
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#10b981" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Tabla de Gaps por Usuario */}
       {gaps && gaps.length > 0 && (
-        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-warning" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl border overflow-hidden backdrop-blur-sm"
+          style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+        >
+          <div className="p-6 border-b" style={{ borderColor: cardBorder }}>
+            <h3 className="text-lg font-heading font-semibold flex items-center gap-2" style={{ color: textColor }}>
+              <AlertTriangle className="w-5 h-5" style={{ color: '#f59e0b' }} />
               Gaps de Conocimiento por Usuario
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-carbon-700">
-                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Usuario</th>
-                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Rol</th>
-                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Skills Aprendidas</th>
-                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Skills Faltantes</th>
-                  <th className="text-left py-3 px-4 text-carbon-300 font-semibold">Cobertura</th>
+                <tr style={{ borderBottom: `1px solid ${cardBorder}` }}>
+                  <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                    Usuario
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                    Rol
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                    Skills Aprendidas
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                    Skills Faltantes
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider" style={{ color: `${textColor}CC` }}>
+                    Cobertura
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1634,61 +1606,104 @@ function SkillsTab() {
                       key={gap.user_id || idx}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="border-b border-carbon-700 hover:bg-carbon-800/50 transition-colors"
+                      transition={{ delay: idx * 0.03 }}
+                      className="hover:opacity-80 transition-opacity"
+                      style={{ 
+                        borderBottom: `1px solid ${cardBorder}`, 
+                        backgroundColor: idx % 2 === 0 ? 'transparent' : `${sectionBg}40`
+                      }}
                     >
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold">
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                            style={{
+                              background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`
+                            }}
+                          >
                             {gap.user_name?.[0]?.toUpperCase() || 'U'}
                           </div>
-                          <span className="text-white font-medium">{gap.user_name || 'Usuario'}</span>
+                          <span className="font-body font-medium text-sm" style={{ color: textColor }}>
+                            {gap.user_name || 'Usuario'}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-carbon-300">{gap.user_role || 'N/A'}</td>
-                      <td className="py-4 px-4">
-                        <div className="flex flex-wrap gap-2">
+                      <td className="px-4 py-3">
+                        <span 
+                          className="px-2 py-0.5 rounded-md text-xs font-body"
+                          style={{ 
+                            backgroundColor: `${primaryColor}15`,
+                            color: primaryColor
+                          }}
+                        >
+                          {gap.user_role || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
                           {(gap.learned_skills || []).slice(0, 3).map((skill: string, i: number) => (
                             <span
                               key={i}
-                              className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs"
+                              className="px-2 py-0.5 rounded text-xs font-body"
+                              style={{ 
+                                backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                                color: '#22c55e'
+                              }}
                             >
                               {skill}
                             </span>
                           ))}
                           {(gap.learned_skills?.length || 0) > 3 && (
-                            <span className="px-2 py-1 bg-carbon-700 text-carbon-400 rounded text-xs">
+                            <span 
+                              className="px-2 py-0.5 rounded text-xs font-body opacity-70"
+                              style={{ color: textColor }}
+                            >
                               +{(gap.learned_skills?.length || 0) - 3}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex flex-wrap gap-2">
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
                           {(gap.missing_skills || []).slice(0, 3).map((skill: string, i: number) => (
                             <span
                               key={i}
-                              className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs"
+                              className="px-2 py-0.5 rounded text-xs font-body"
+                              style={{ 
+                                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                color: '#ef4444'
+                              }}
                             >
                               {skill}
                             </span>
                           ))}
                           {(gap.missing_skills?.length || 0) > 3 && (
-                            <span className="px-2 py-1 bg-carbon-700 text-carbon-400 rounded text-xs">
+                            <span 
+                              className="px-2 py-0.5 rounded text-xs font-body opacity-70"
+                              style={{ color: textColor }}
+                            >
                               +{(gap.missing_skills?.length || 0) - 3}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-carbon-700 rounded-full overflow-hidden">
+                          <div 
+                            className="flex-1 h-1.5 rounded-full"
+                            style={{ backgroundColor: `${cardBorder}50` }}
+                          >
                             <div
-                              className="h-full bg-gradient-to-r from-primary to-success transition-all"
-                              style={{ width: `${coverage}%` }}
+                              className="h-full rounded-full transition-all"
+                              style={{ 
+                                width: `${coverage}%`,
+                                background: `linear-gradient(90deg, ${primaryColor} 0%, ${secondaryColor} 100%)`
+                              }}
                             />
                           </div>
-                          <span className="text-carbon-300 text-sm min-w-[45px]">{coverage}%</span>
+                          <span className="font-body text-xs min-w-[45px]" style={{ color: textColor }}>
+                            {coverage}%
+                          </span>
                         </div>
                       </td>
                     </motion.tr>
@@ -1697,56 +1712,48 @@ function SkillsTab() {
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       )}
-
-      {/* Recomendaciones de Cursos */}
-      {recommendations && recommendations.length > 0 && (
-        <div className="bg-carbon-900 rounded-lg p-6 border border-carbon-700">
-          <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <BookMarked className="w-5 h-5" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
-            Recomendaciones de Cursos para Cerrar Gaps
-          </h3>
-          <div className="space-y-4">
-            {recommendations.slice(0, 10).map((rec: any, idx: number) => (
-              <motion.div
-                key={`${rec.user_id}-${rec.gap_skill}-${idx}`}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-carbon-800 rounded-lg p-4 border border-carbon-700"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-sm font-medium">
-                        {rec.gap_skill}
-                      </span>
-                      <span className="text-carbon-400 text-sm">→</span>
-                      <span className="text-carbon-300 text-sm">Recomendado para usuario</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {(rec.recommended_courses || []).map((course: any, i: number) => (
-                        <span
-                          key={course.id || i}
-                          className="px-3 py-1 rounded text-sm"
-                          style={{
-                            backgroundColor: 'var(--org-primary-button-color, #3b82f6)33',
-                            color: 'var(--org-primary-button-color, #3b82f6)'
-                          }}
-                        >
-                          {course.title}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    </motion.div>
   )
 }
 
+// Sub-tab: Skills por Curso
+function SkillsByCourseTab({
+  cardBg,
+  cardBorder,
+  textColor,
+  primaryColor,
+  secondaryColor,
+  sectionBg
+}: {
+  cardBg: string
+  cardBorder: string
+  textColor: string
+  primaryColor: string
+  secondaryColor: string
+  sectionBg: string
+}) {
+  // Por ahora, mostrar un mensaje indicando que esta funcionalidad está en desarrollo
+  // En el futuro, aquí se mostrarían los skills que enseñan los cursos
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="rounded-2xl border backdrop-blur-sm p-12 text-center"
+      style={{ backgroundColor: sectionBg, borderColor: cardBorder }}
+    >
+      <Brain className="w-16 h-16 mx-auto mb-4 opacity-30" style={{ color: primaryColor }} />
+      <h3 className="text-lg font-heading font-semibold mb-2" style={{ color: textColor }}>
+        Skills por Curso
+      </h3>
+      <p className="font-body opacity-70" style={{ color: textColor }}>
+        Esta funcionalidad mostrará las skills que enseñan los cursos y los gaps de conocimiento identificados.
+      </p>
+      <p className="font-body text-sm opacity-50 mt-2" style={{ color: textColor }}>
+        Próximamente disponible
+      </p>
+    </motion.div>
+  )
+}

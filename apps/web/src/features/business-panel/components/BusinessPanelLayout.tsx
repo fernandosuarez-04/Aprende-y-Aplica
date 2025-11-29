@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { BusinessPanelSidebar } from './BusinessPanelSidebar'
 import { BusinessPanelHeader } from './BusinessPanelHeader'
+import { PremiumLoadingScreen } from './PremiumLoadingScreen'
 import { OrganizationStylesProvider, useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { generateCSSVariables, getBackgroundStyle } from '../utils/styles'
 
@@ -15,7 +16,7 @@ interface BusinessPanelLayoutProps {
 function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { styles } = useOrganizationStylesContext()
+  const { styles, loading: stylesLoading } = useOrganizationStylesContext()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -35,20 +36,64 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   // Asegurar que isLoading sea siempre un booleano
   const isLoading = typeof authLoading === 'boolean' ? authLoading : true;
 
+  // Memorizar estilos personalizados ANTES de cualquier return (Regla de Hooks)
+  const panelStyles = useMemo(() => styles?.panel, [styles])
+  const backgroundStyle = useMemo(() => getBackgroundStyle(panelStyles), [panelStyles])
+  const cssVariables = useMemo(() => generateCSSVariables(panelStyles), [panelStyles])
+
+  // Debug: Log cuando los estilos se aplican
   useEffect(() => {
-    // Solo ejecutar lógica de redirección cuando loading sea explícitamente false
-    if (isLoading === false) {
-      if (!user) {
-        router.push('/auth')
-        return
+    console.log('🖼️ [BusinessPanelLayout] Estilos recibidos del contexto:', {
+      hasStyles: !!styles,
+      selectedTheme: styles?.selectedTheme,
+      panel: {
+        hasBackground: !!styles?.panel?.background_value,
+        backgroundType: styles?.panel?.background_type,
+        primaryColor: styles?.panel?.primary_button_color,
+        secondaryColor: styles?.panel?.secondary_button_color
       }
-      
-      // Normalizar rol para comparación
-      const normalizedRole = user.cargo_rol?.toLowerCase().trim()
-      
+    });
+
+    if (styles?.panel) {
+      console.log('✅ [BusinessPanelLayout] Estilos aplicados correctamente al layout:', {
+        theme: styles.selectedTheme,
+        backgroundValue: styles.panel.background_value?.substring(0, 50),
+        primaryColor: styles.panel.primary_button_color
+      });
+    }
+  }, [styles])
+
+  // Efecto para redireccionar usuarios no autenticados o con rol incorrecto
+  // SOLO después de que la carga inicial haya terminado completamente
+  useEffect(() => {
+    // Esperar a que termine de cargar Y a que se haya intentado obtener el usuario
+    if (isLoading === false && user === null) {
+      // Usuario no autenticado - obtener organization_slug de localStorage si existe
+      let redirectPath = '/auth';
+
+      if (typeof window !== 'undefined') {
+        try {
+          // Intentar obtener el slug de la organización del usuario desde localStorage
+          const lastOrgSlug = localStorage.getItem('last_organization_slug');
+          if (lastOrgSlug) {
+            redirectPath = `/auth/${lastOrgSlug}`;
+          }
+        } catch (error) {
+          // console.error('Error reading localStorage:', error);
+        }
+      }
+
+      router.push(redirectPath);
+      return;
+    }
+
+    // Usuario autenticado pero con rol incorrecto
+    if (isLoading === false && user) {
+      const normalizedRole = user.cargo_rol?.toLowerCase().trim();
+
       if (normalizedRole !== 'business') {
-        router.push('/dashboard')
-        return
+        router.push('/dashboard');
+        return;
       }
     }
   }, [user, isLoading, router])
@@ -69,19 +114,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
 
   // Mostrar loading spinner si isLoading es true
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-carbon via-carbon to-carbon-dark">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-primary to-success rounded-full animate-pulse"></div>
-            </div>
-          </div>
-          <p className="text-white/70 text-sm font-medium">Cargando panel de gestión...</p>
-        </div>
-      </div>
-    )
+    return <PremiumLoadingScreen />
   }
 
   // Verificar rol
@@ -90,13 +123,14 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     return null
   }
 
-  // Aplicar estilos personalizados
-  const panelStyles = styles?.panel
-  const backgroundStyle = getBackgroundStyle(panelStyles)
-  const cssVariables = generateCSSVariables(panelStyles)
+  // Mostrar loading mientras se cargan los estilos
+  if (stylesLoading) {
+    return <PremiumLoadingScreen />
+  }
 
   return (
-    <div 
+    <div
+      key={styles?.selectedTheme || 'default-theme'}
       className="h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
       style={{
         ...backgroundStyle,
@@ -126,8 +160,10 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 business-panel-content">
-          {children}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content">
+          <div className="w-full max-w-[1920px] mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

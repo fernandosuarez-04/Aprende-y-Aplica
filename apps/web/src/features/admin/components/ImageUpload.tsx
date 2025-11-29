@@ -117,21 +117,30 @@ export function ImageUpload({
         onClick={handleClick}
         className={`
             relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-          ${disabled || isUploading 
-              ? 'border-carbon-600 bg-carbon-800 cursor-not-allowed' 
-              : 'border-carbon-500 bg-carbon-800 hover:border-primary hover:bg-carbon-750'
+          ${disabled || isUploading
+              ? 'border-carbon-600 bg-carbon-800 cursor-not-allowed'
+              : 'border-carbon-500 bg-carbon-800 hover:bg-carbon-750'
             }
           `}
+        style={!(disabled || isUploading) ? {
+          borderColor: 'var(--org-primary-button-color, #3b82f6)'
+        } : {}}
         >
           {isUploading ? (
             <div className="space-y-3">
-              <CloudArrowUpIcon className="mx-auto h-12 w-12 text-primary animate-pulse" />
+              <CloudArrowUpIcon
+                className="mx-auto h-12 w-12 animate-pulse"
+                style={{ color: 'var(--org-primary-button-color, #3b82f6)' }}
+              />
               <div className="text-sm text-carbon-300">
                 <div className="mb-2">Subiendo imagen...</div>
                 <div className="w-full bg-carbon-700 rounded-full h-2">
-                  <div 
-                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
+                  <div
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${uploadProgress}%`,
+                      backgroundColor: 'var(--org-primary-button-color, #3b82f6)'
+                    }}
                   />
                 </div>
                 <div className="text-xs text-carbon-400 mt-1">{uploadProgress}%</div>
@@ -171,7 +180,20 @@ export function ImageUpload({
             type="button"
             onClick={handleClick}
             disabled={disabled || isUploading}
-            className="absolute bottom-2 right-2 px-3 py-1 bg-primary hover:bg-primary/90 disabled:bg-carbon-600 text-white text-sm rounded transition-colors"
+            className="absolute bottom-2 right-2 px-3 py-1 disabled:bg-carbon-600 text-white text-sm rounded transition-colors"
+            style={!(disabled || isUploading) ? {
+              backgroundColor: 'var(--org-primary-button-color, #3b82f6)'
+            } : {}}
+            onMouseEnter={(e) => {
+              if (!(disabled || isUploading)) {
+                e.currentTarget.style.backgroundColor = 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.9)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!(disabled || isUploading)) {
+                e.currentTarget.style.backgroundColor = 'var(--org-primary-button-color, #3b82f6)'
+              }
+            }}
           >
             Cambiar
           </button>

@@ -17,7 +17,9 @@ import {
   Eye,
   ShoppingCart,
   CheckCircle,
-  Play
+  Play,
+  Search,
+  X
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useAuth } from '../../features/auth/hooks/useAuth';
@@ -31,6 +33,8 @@ import { formatRelativeTime } from '../../core/utils/date-utils';
 import { StarRating } from '../../features/courses/components/StarRating';
 import { useTranslation } from 'react-i18next';
 import { useTranslatedContent } from '../../core/hoc/withContentTranslation';
+import { CourseHoverPopover } from '../../core/components/CourseHoverPopover/CourseHoverPopover';
+import { CourseWithInstructor } from '../../features/courses/services/course.service';
 
 // Los talleres ahora se obtienen únicamente de la API
 
@@ -39,6 +43,7 @@ import { useTranslatedContent } from '../../core/hoc/withContentTranslation';
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('workshops');
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, loading } = useAuth();
   const router = useRouter();
   const { t } = useTranslation('dashboard');
@@ -69,6 +74,21 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [togglingFavorite, setTogglingFavorite] = useState<string | null>(null);
+  const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
+  const cardRefs = React.useRef<Record<string, React.RefObject<HTMLDivElement>>>({});
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si es móvil
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Ref para almacenar el valor anterior de favorites y evitar bucles infinitos
   const prevFavoritesRef = React.useRef<string[]>([]);
@@ -184,6 +204,19 @@ export default function DashboardPage() {
 
   // ⚡ Memoizar transformación de workshops para evitar re-cálculos
   const workshops = React.useMemo(() => {
+    let filtered = filteredCourses || [];
+    
+    // Filtrar por búsqueda
+    const currentSearchQuery = searchQuery || '';
+    if (currentSearchQuery.trim()) {
+      const query = currentSearchQuery.toLowerCase();
+      filtered = filtered.filter(course => 
+        course.title?.toLowerCase().includes(query) ||
+        course.instructor_name?.toLowerCase().includes(query) ||
+        course.description?.toLowerCase().includes(query)
+      );
+    }
+    
     return translatedCourses.map(course => ({
       id: course.id,
       title: course.title, // Ya está traducido por useTranslatedContent
@@ -195,7 +228,7 @@ export default function DashboardPage() {
       category: course.category || 'General',
       isFavorite: isFavorite(course.id),
     }));
-  }, [translatedCourses, isFavorite, favorites]);
+  }, [translatedCourses, isFavorite, favorites, searchQuery]);
 
   // Mostrar loading mientras se obtienen los datos del usuario
   if (loading || !mounted) {
@@ -213,8 +246,30 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Category Filters */}
-        <div className="mb-8">
+        {/* Barra de Búsqueda - Primero */}
+        <div className="mb-6 flex justify-center">
+          <div className="relative w-full max-w-2xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar cursos, instructores..."
+              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-sm font-normal text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Category Filters - Segundo */}
+        <div className="mb-6">
           {/* Loading state for categories */}
           {categoriesLoading && (
             <div className="flex flex-wrap gap-2">
@@ -244,124 +299,186 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Categories */}
+          {/* Categories - Rediseñados con Animaciones */}
           {!categoriesLoading && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {categories.map((category) => (
-                <button
+                <motion.button
                   key={category.id}
                   onClick={() => setFilter(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
                     activeFilter === category.id
-                      ? 'bg-primary text-white'
-                      : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-200 dark:border-slate-600'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                      : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 shadow-sm hover:shadow-md'
                   }`}
                 >
                   {getCategoryLabel(category.id, category.name)}
-                </button>
+                </motion.button>
               ))}
             </div>
           )}
         </div>
 
+        {/* Títulos de Sección - Tercero */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1.5 tracking-tight">
+            Qué aprender ahora
+          </h1>
+          <p className="text-sm font-normal text-gray-600 dark:text-slate-400">
+            Recomendaciones para ti
+          </p>
+        </div>
+
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="w-full max-w-7xl mx-auto">
           {/* Workshops Grid */}
-          <div className="lg:col-span-2">
-            {/* Loading State */}
+          <div className="w-full">
+            {/* Loading State - Mejorado */}
             {coursesLoading && (
-              <div className="flex items-center justify-center py-12">
+              <motion.div 
+                className="flex items-center justify-center py-16"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-text-secondary">{t('courses.loading')}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400 tracking-tight">{t('courses.loading')}</p>
                 </div>
-              </div>
+              </motion.div>
             )}
 
-            {/* Error State */}
+            {/* Error State - Mejorado */}
             {coursesError && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 mb-6">
+              <motion.div 
+                className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl p-6 mb-6"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
-                    <span className="text-red-400 text-sm">!</span>
+                  <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-red-600 dark:text-red-400 text-sm font-semibold">!</span>
                   </div>
                   <div>
-                    <h3 className="text-red-600 dark:text-red-400 font-medium">{t('courses.errorTitle')}</h3>
-                    <p className="text-red-700 dark:text-red-300/70 text-sm">{coursesError}</p>
+                    <h3 className="text-red-700 dark:text-red-400 font-semibold text-sm mb-1 tracking-tight">{t('courses.errorTitle')}</h3>
+                    <p className="text-red-600 dark:text-red-300/70 text-sm font-normal leading-relaxed">{coursesError}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
 
-            {/* Courses Grid */}
+            {/* Courses Grid - Tamaño Considerable */}
             {!coursesLoading && !coursesError && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {workshops.map((workshop) => (
-                <motion.div
-                  key={workshop.id}
-                  className="flex flex-col bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 transition-colors shadow-lg dark:shadow-none h-full"
-                  whileHover={{ y: -2 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* Workshop Image */}
-                  <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {workshops.map((workshop) => {
+                  // Obtener el curso completo para el popover
+                  const fullCourse = courses.find(c => c.id === workshop.id);
+                  
+                  // Crear ref si no existe
+                  if (!cardRefs.current[workshop.id]) {
+                    cardRefs.current[workshop.id] = React.createRef<HTMLDivElement>();
+                  }
+                  
+                  const cardRef = cardRefs.current[workshop.id];
+                  
+                  return (
+                  <React.Fragment key={workshop.id}>
+                    <motion.div
+                      ref={cardRef}
+                      className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700 transition-all duration-300 shadow-sm hover:shadow-2xl h-full w-full"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      whileHover={{ y: -6 }}
+                      onMouseEnter={() => {
+                        if (fullCourse && !isMobile) {
+                          setHoveredCourseId(workshop.id);
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (!isMobile) {
+                          // Delay para permitir mover el cursor al popover
+                          setTimeout(() => {
+                            // Solo cerrar si el cursor no está sobre el popover
+                            const popover = document.querySelector('[data-popover-id]');
+                            if (!popover || !popover.matches(':hover')) {
+                              setHoveredCourseId(null);
+                            }
+                          }, 100);
+                        }
+                      }}
+                    >
+                  {/* Workshop Image - Menos Compacta */}
+                  <div className="relative h-52 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-900 overflow-hidden">
                     {workshop.image ? (
-                      <img
-                        src={workshop.image}
-                        alt={workshop.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Si la imagen falla al cargar, mostrar el placeholder
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const placeholder = target.nextElementSibling as HTMLElement;
-                          if (placeholder) placeholder.style.display = 'flex';
-                        }}
-                      />
+                      <>
+                        <img
+                          src={workshop.image}
+                          alt={workshop.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const placeholder = target.nextElementSibling as HTMLElement;
+                            if (placeholder) placeholder.style.display = 'flex';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </>
                     ) : null}
                     
-                    {/* Placeholder cuando no hay imagen o falla al cargar */}
+                    {/* Placeholder mejorado */}
                     <div 
                       className={`absolute inset-0 flex items-center justify-center ${
                         workshop.image ? 'hidden' : 'flex'
                       }`}
                     >
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <Brain className="w-8 h-8 text-primary" />
+                        <div className="w-14 h-14 bg-primary/5 dark:bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                          <Brain className="w-7 h-7 text-primary/40 dark:text-primary/50" />
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-text-secondary">APRENDE Y APLICA IA®</p>
+                        <p className="text-[10px] font-medium text-gray-400 dark:text-slate-600 tracking-wider uppercase">APRENDE Y APLICA</p>
                       </div>
                     </div>
                     
-                    <button
+                    {/* Botón de favoritos - Minimalista */}
+                    <motion.button
                       onClick={() => handleToggleFavorite(workshop.id)}
                       disabled={togglingFavorite === workshop.id}
-                      className={`absolute top-3 right-3 p-2 bg-white/80 dark:bg-carbon-800/80 rounded-full hover:bg-gray-100 dark:hover:bg-carbon-700 transition-colors z-10 ${
+                      className={`absolute top-2.5 right-2.5 p-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-full hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 z-10 shadow-lg ${
                         togglingFavorite === workshop.id ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
+                      whileHover={{ scale: 1.15, rotate: 5 }}
+                      whileTap={{ scale: 0.9 }}
                     >
                       <Heart 
-                        className={`w-4 h-4 ${
-                          workshop.isFavorite ? 'text-red-500 fill-current' : 'text-gray-600 dark:text-text-secondary'
+                        className={`w-3.5 h-3.5 transition-all duration-300 ${
+                          workshop.isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-400 dark:text-slate-500'
                         }`} 
                       />
-                    </button>
+                    </motion.button>
                   </div>
 
-                  {/* Workshop Info */}
-                  <div className="flex flex-col flex-1 p-6 bg-white dark:bg-slate-800">
-                    <div className="flex-1 flex flex-col">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 min-h-[3.5rem] line-clamp-2">
-                        {workshop.title}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 min-h-[1.5rem]">
-                        {workshop.instructor}
-                      </p>
-                      
-                      <div className="flex items-center justify-between mb-4 h-6">
+                  {/* Workshop Info - Texto Completo Visible */}
+                  <div className="flex flex-col flex-1 p-5 bg-white dark:bg-slate-900">
+                    {/* Título - Tamaño Reducido, Texto Completo Visible */}
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2.5 leading-snug tracking-tight line-clamp-2 min-h-[2.5rem]">
+                      {workshop.title}
+                    </h3>
+                    
+                    {/* Instructor - Línea Separada */}
+                    <p className="text-xs font-normal text-gray-600 dark:text-slate-400 mb-3 leading-relaxed min-h-[1rem]">
+                      {workshop.instructor}
+                    </p>
+                    
+                    {/* Rating y Precio - Misma Línea, Perfectamente Alineados */}
+                    <div className="flex items-baseline justify-between mb-4">
+                      <div className="flex items-baseline flex-shrink-0">
                         {workshop.rating > 0 ? (
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-baseline">
                             <StarRating
                               rating={workshop.rating}
                               size="sm"
@@ -369,93 +486,134 @@ export default function DashboardPage() {
                             />
                           </div>
                         ) : (
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                          <div className="text-xs font-normal text-gray-400 dark:text-slate-500 leading-none">
                             {t('courses.noRatings')}
                           </div>
                         )}
-                        <span className="text-lg font-bold text-primary">{workshop.price}</span>
+                      </div>
+                      <div className="flex items-baseline ml-auto">
+                        <span className="text-base font-bold text-gray-900 dark:text-white tracking-tight leading-none">{workshop.price}</span>
                       </div>
                     </div>
 
-                    {/* Botones de acción */}
-                    <div className="mt-auto">
+                    {/* Botones - Tamaños Reducidos */}
+                    <div className="mt-auto pt-3 border-t border-gray-100 dark:border-slate-800">
                       {workshop.status === 'Adquirido' ? (
-                        // Si el curso está comprado: solo mostrar botón "Ir al curso"
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          className="w-full"
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => {
                             const course = courses.find(c => c.id === workshop.id);
                             if (course?.slug) {
                               router.push(`/courses/${course.slug}/learn`);
                             }
                           }}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
                         >
-                          <BookOpen className="w-4 h-4 mr-2" />
+                          <BookOpen className="w-3.5 h-3.5" />
                           {t('courses.goToCourse')}
-                        </Button>
+                        </motion.button>
                       ) : (
-                        // Si el curso NO está comprado: mostrar "Ver detalles" y "Agregar al carrito"
-                        <div className="flex gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="flex-1"
+                        <div className="flex items-center gap-2">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => {
                               const course = courses.find(c => c.id === workshop.id);
                               if (course?.slug) {
                                 router.push(`/courses/${course.slug}`);
                               }
                             }}
+                            className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-gray-700 dark:text-slate-300 font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            {t('courses.viewDetails')}
-                          </Button>
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => {
-                              const course = courses.find(c => c.id === workshop.id);
-                              if (course) {
-                                // Extraer precio numérico del string (ej: "MX$1500" -> 1500)
-                                const priceString = workshop.price?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
-                                const price = parseFloat(priceString);
-                                
-                                addItem({
-                                  id: `course-${course.id}`,
-                                  itemType: 'course',
-                                  itemId: course.id,
-                                  title: workshop.title,
-                                  price: price || 0,
-                                  thumbnail: workshop.image || course.thumbnail || undefined,
-                                });
-                              }
-                            }}
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{t('courses.viewDetails')}</span>
+                          </motion.button>
+                          <motion.div
+                            className="relative group/cart"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
                           >
-                            <ShoppingCart className="w-4 h-4 mr-2" />
-                            {t('courses.addToCart')}
-                          </Button>
+                            <motion.button
+                              onClick={() => {
+                                const course = courses.find(c => c.id === workshop.id);
+                                if (course) {
+                                  const priceString = workshop.price?.replace(/[^\d.,]/g, '').replace(',', '.') || '0';
+                                  const price = parseFloat(priceString);
+                                  
+                                  addItem({
+                                    id: `course-${course.id}`,
+                                    itemType: 'course',
+                                    itemId: course.id,
+                                    title: workshop.title,
+                                    price: price || 0,
+                                    thumbnail: workshop.image || course.thumbnail || undefined,
+                                  });
+                                }
+                              }}
+                              className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center"
+                              title="Agregar al carrito"
+                            >
+                              <ShoppingCart className="w-4 h-4" />
+                            </motion.button>
+                            {/* Tooltip - Texto Completo, Mejorado */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2 bg-gray-900 dark:bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover/cart:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-xl z-[60] min-w-max">
+                              <span className="block">Agregar al carrito</span>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 dark:bg-slate-800 rotate-45" />
+                            </div>
+                          </motion.div>
                         </div>
                       )}
                     </div>
                   </div>
                 </motion.div>
-                ))}
+                
+                {/* Popover tipo Udemy - Solo en desktop */}
+                {fullCourse && !isMobile && (
+                  <CourseHoverPopover
+                    course={fullCourse}
+                    isVisible={hoveredCourseId === workshop.id}
+                    cardRef={cardRef}
+                    onMouseEnter={() => {
+                      if (fullCourse) {
+                        setHoveredCourseId(workshop.id);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      // Delay para permitir mover el cursor de vuelta a la tarjeta
+                      setTimeout(() => {
+                        const cardElement = cardRef.current;
+                        if (!cardElement || !cardElement.matches(':hover')) {
+                          setHoveredCourseId(null);
+                        }
+                      }, 150);
+                    }}
+                    onClose={() => {
+                      setHoveredCourseId(null);
+                    }}
+                  />
+                )}
+                </React.Fragment>
+                );
+                })}
               </div>
             )}
 
-            {/* Empty State */}
+            {/* Empty State - Mejorado */}
             {!coursesLoading && !coursesError && workshops.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="w-8 h-8 text-gray-600 dark:text-text-secondary" />
+              <motion.div 
+                className="text-center py-16"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8 text-gray-400 dark:text-slate-500" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-text-primary mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
                   {t('courses.empty.title')}
                 </h3>
-                <p className="text-gray-600 dark:text-text-secondary">
+                <p className="text-sm font-normal text-gray-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
                   {activeFilter === 'favorites' 
                     ? t('courses.empty.favorites')
                     : activeFilter === 'all'
@@ -463,122 +621,8 @@ export default function DashboardPage() {
                     : t('courses.empty.category', { category: selectedCategoryName || activeFilter })
                   }
                 </p>
-              </div>
+              </motion.div>
             )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {t('stats.title')}
-              </h3>
-              {loadingStats ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">{t('stats.completed')}</span>
-                    <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">{t('stats.inProgress')}</span>
-                    <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">{t('stats.favorites')}</span>
-                    <div className="w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">{t('stats.completed')}</span>
-                    <span className="text-primary font-semibold">
-                      {stats.completed}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">{t('stats.inProgress')}</span>
-                    <span className="text-primary font-semibold">
-                      {stats.inProgress}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">{t('stats.favorites')}</span>
-                    <span className="text-primary font-semibold">
-                      {stats.favorites}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700 shadow-lg dark:shadow-none">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {t('activity.title')}
-              </h3>
-              {loadingStats ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-                    </div>
-                  ))}
-                </div>
-              ) : recentActivity.length > 0 ? (
-                <div className="space-y-3">
-                  {recentActivity.map((activity) => {
-                    const activityDate = activity.last_accessed_at || activity.purchased_at;
-                    const date = activityDate ? new Date(activityDate) : new Date();
-                    const timeAgo = formatRelativeTime(activityDate || new Date().toISOString());
-                    
-                    return (
-                      <div 
-                        key={activity.purchase_id || activity.course_id} 
-                        className="flex items-start gap-3 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-lg transition-colors"
-                        onClick={() => {
-                          if (activity.course_slug) {
-                            router.push(`/courses/${activity.course_slug}`);
-                          }
-                        }}
-                      >
-                        <div className="flex-shrink-0 mt-0.5">
-                          {activity.progress_percentage >= 100 ? (
-                            <CheckCircle className="w-5 h-5 text-green-500" />
-                          ) : activity.progress_percentage > 0 ? (
-                            <Play className="w-5 h-5 text-blue-500" />
-                          ) : (
-                            <BookOpen className="w-5 h-5 text-purple-500" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-gray-900 dark:text-white font-medium line-clamp-1">
-                            {activity.progress_percentage >= 100 
-                              ? t('activity.completed', { course: activity.course_title })
-                              : activity.progress_percentage > 0
-                              ? t('activity.inProgress', { course: activity.course_title })
-                              : t('activity.purchased', { course: activity.course_title })
-                            }
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {timeAgo}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-600 dark:text-gray-300">
-                  <p>{t('activity.emptyTitle')}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t('activity.emptySubtitle')}
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </main>
