@@ -8,8 +8,10 @@ import {
   ArrowRightOnRectangleIcon,
   ChevronDownIcon,
   HomeIcon,
+  ShieldCheckIcon,
   AcademicCapIcon
 } from '@heroicons/react/24/outline'
+import { Sun, Moon, Monitor, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -39,8 +41,17 @@ export function InstructorUserDropdown({ user }: InstructorUserDropdownProps) {
     }
   }
 
+
   const handleDashboard = () => {
     router.push('/dashboard')
+    setIsOpen(false)
+  }
+  const handleAdminPanel = () => {
+    router.push('/admin/dashboard')
+    setIsOpen(false)
+  }
+  const handleInstructorPanel = () => {
+    router.push('/instructor/dashboard')
     setIsOpen(false)
   }
 
@@ -146,55 +157,127 @@ export function InstructorUserDropdown({ user }: InstructorUserDropdownProps) {
               {({ active }) => (
                 <button
                   onClick={handleDashboard}
-                  className={`${
-                    active ? 'bg-purple-700/50' : ''
-                  } flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
+                  className={`${active ? 'bg-purple-700/50' : ''} flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
                 >
                   <HomeIcon className="w-4 h-4 mr-3" />
                   Ir al Home
                 </button>
               )}
             </Menu.Item>
-
-            {/* Botón de acceso de panel de instructor */}
-            {user.cargo_rol?.toLowerCase() === 'instructor' && (
-              <Menu.Item>
-                {({ active }) => (
-                  <Link href="/instructor/dashboard" onClick={() => setIsOpen(false)}>
-                    <div className={`${
-                      active ? 'bg-purple-700/50' : ''
-                    } flex items-center w-full px-4 py-2 text-sm text-yellow-400 hover:text-yellow-300 hover:bg-yellow-600/10 transition-all duration-200 hover:scale-105`}>
-                      <AcademicCapIcon className="w-4 h-4 mr-3" />
-                      Panel de Instructor
-                    </div>
-                  </Link>
-                )}
-              </Menu.Item>
-            )}
-
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={handleAdminPanel}
+                  className={`${active ? 'bg-red-600/20' : ''} flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 hover:scale-105`}
+                >
+                  <ShieldCheckIcon className="w-4 h-4 mr-3" />
+                  Panel de Administración
+                </button>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={handleInstructorPanel}
+                  className={`${active ? 'bg-yellow-600/20' : ''} flex items-center w-full px-4 py-2 text-sm text-yellow-400 hover:text-yellow-300 transition-all duration-200 hover:scale-105`}
+                >
+                  <AcademicCapIcon className="w-4 h-4 mr-3" />
+                  Panel de Instructor
+                </button>
+              )}
+            </Menu.Item>
             <Menu.Item>
               {({ active }) => (
                 <button
                   onClick={handleSettings}
-                  className={`${
-                    active ? 'bg-purple-700/50' : ''
-                  } flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
+                  className={`${active ? 'bg-purple-700/50' : ''} flex items-center w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 hover:scale-105`}
                 >
                   <Cog6ToothIcon className="w-4 h-4 mr-3" />
                   Configuración
                 </button>
               )}
             </Menu.Item>
-
             <div className="border-t border-purple-700/50 my-2"></div>
-
+            {/* Opciones de Tema */}
+            <div className="px-2 py-1">
+              <div className="px-2 py-1.5 text-xs font-semibold text-purple-300 uppercase tracking-wider">
+                Tema
+              </div>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('theme', 'light')
+                        document.documentElement.classList.remove('dark')
+                        document.documentElement.classList.add('light')
+                      }
+                      setIsOpen(false)
+                    }}
+                    className={`${active ? 'bg-purple-700/50' : ''} flex items-center justify-between w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 rounded-lg`}
+                  >
+                    <div className="flex items-center">
+                      <Sun className="w-4 h-4 mr-3 text-yellow-400" />
+                      Modo Claro
+                    </div>
+                    {typeof window !== 'undefined' && localStorage.getItem('theme') === 'light' && (
+                      <Check className="w-4 h-4 text-blue-400" />
+                    )}
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('theme', 'dark')
+                        document.documentElement.classList.remove('light')
+                        document.documentElement.classList.add('dark')
+                      }
+                      setIsOpen(false)
+                    }}
+                    className={`${active ? 'bg-purple-700/50' : ''} flex items-center justify-between w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 rounded-lg`}
+                  >
+                    <div className="flex items-center">
+                      <Moon className="w-4 h-4 mr-3 text-purple-400" />
+                      Modo Oscuro
+                    </div>
+                    {typeof window !== 'undefined' && localStorage.getItem('theme') === 'dark' && (
+                      <Check className="w-4 h-4 text-blue-400" />
+                    )}
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('theme', 'system')
+                        document.documentElement.classList.remove('light', 'dark')
+                      }
+                      setIsOpen(false)
+                    }}
+                    className={`${active ? 'bg-purple-700/50' : ''} flex items-center justify-between w-full px-4 py-2 text-sm text-purple-200 hover:text-white transition-all duration-200 rounded-lg`}
+                  >
+                    <div className="flex items-center">
+                      <Monitor className="w-4 h-4 mr-3 text-blue-400" />
+                      Seguir Sistema
+                    </div>
+                    {typeof window !== 'undefined' && localStorage.getItem('theme') === 'system' && (
+                      <Check className="w-4 h-4 text-blue-400" />
+                    )}
+                  </button>
+                )}
+              </Menu.Item>
+            </div>
+            <div className="border-t border-purple-700/50 my-2"></div>
             <Menu.Item>
               {({ active }) => (
                 <button
                   onClick={handleLogout}
-                  className={`${
-                    active ? 'bg-red-600/20' : ''
-                  } flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 hover:scale-105`}
+                  className={`${active ? 'bg-red-600/20' : ''} flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 transition-all duration-200 hover:scale-105`}
                 >
                   <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3" />
                   Cerrar Sesión
