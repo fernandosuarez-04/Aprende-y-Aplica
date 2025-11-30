@@ -1,10 +1,6 @@
-import { Metadata } from 'next'
-import { BusinessPanelLayout } from '@/features/business-panel/components/BusinessPanelLayout'
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Panel de Gestión Business | Aprende y Aplica',
-  description: 'Panel de gestión empresarial para administrar tu organización.',
-}
+import { BusinessPanelLayout } from '@/features/business-panel/components/BusinessPanelLayout'
 
 export default function BusinessPanelLayoutPage({
   children,

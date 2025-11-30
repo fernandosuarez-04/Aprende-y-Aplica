@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { Home, Search } from 'lucide-react';
