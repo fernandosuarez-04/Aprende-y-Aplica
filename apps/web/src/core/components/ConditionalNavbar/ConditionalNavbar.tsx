@@ -13,7 +13,12 @@ interface ConditionalNavbarProps {
 export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
-  
+
+  // Verificación de pathname (puede ser null durante SSG/prerendering)
+  if (!pathname) {
+    return <main>{children}</main>;
+  }
+
   const isAuthPage = pathname.startsWith('/auth');
   const isAdminPage = pathname.startsWith('/admin');
   const isInstructorPage = pathname.startsWith('/instructor');

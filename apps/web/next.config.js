@@ -1,17 +1,13 @@
-import type { NextConfig } from "next";
-import path from "path";
-import i18nConfig from "./next-i18next.config";
+const path = require("path");
 
 // Bundle Analyzer (opcional - deshabilitado)
-let withBundleAnalyzer: (config: NextConfig) => NextConfig = (config) => config;
+let withBundleAnalyzer = (config) => config;
 
-// 🚀 PWA Configuration - DESHABILITADO (problema con generate())
-// TODO: Investigar error "generate is not a function" con @ducanh2912/next-pwa
-// import withPWAInit from '@ducanh2912/next-pwa';
-// const withPWA = withPWAInit({ ... });
-let withPWA: (config: NextConfig) => NextConfig = (config) => config;
+// PWA Configuration - DESHABILITADO
+let withPWA = (config) => config;
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Deshabilitar checks durante builds de producción
   eslint: {
     ignoreDuringBuilds: true,
@@ -19,18 +15,18 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  
+
   // Configuración para el monorepo
   transpilePackages: ['@aprende-y-aplica/shared', '@aprende-y-aplica/ui'],
-  
+
   // Configuración experimental para permitir directorios externos
   experimental: {
     externalDir: true,
   },
-  
+
   // Configuración para resolver advertencia de múltiples lockfiles
   outputFileTracingRoot: path.resolve(__dirname, '../../'),
-  
+
   // Optimización de imágenes
   images: {
     remotePatterns: [
@@ -65,15 +61,14 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60,
     unoptimized: false,
   },
-  
+
   // Variables de entorno públicas
   env: {
     NEXT_PUBLIC_APP_NAME: 'Aprende y Aplica',
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
   },
-  // i18n: i18nConfig.i18n, // Comentado: Next.js 15 con App Router no soporta esta configuración
 
-  // 🔒 Headers de Seguridad HTTP
+  // Headers de Seguridad HTTP
   async headers() {
     return [
       {
@@ -135,7 +130,6 @@ const nextConfig: NextConfig = {
             value: 'strict-origin-when-cross-origin'
           },
           // Control de permisos del navegador
-          // Permitir el uso de cámara/micrófono desde el mismo origen (self) en desarrollo
           {
             key: 'Permissions-Policy',
             value: 'camera=(self), microphone=(self), geolocation=(self), interest-cohort=()'
@@ -154,7 +148,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  
+
   // Configuración de Webpack para resolver alias en el monorepo
   webpack: (config, { isServer, dev }) => {
     config.resolve.alias = {
@@ -176,9 +170,8 @@ const nextConfig: NextConfig = {
         path: false,
         os: false,
       };
-      
+
       // Optimización para Nivo: dividir chunks grandes
-      // Mejorar estabilidad de chunks para evitar ChunkLoadError
       config.optimization = {
         ...config.optimization,
         splitChunks: {
@@ -228,5 +221,4 @@ const nextConfig: NextConfig = {
 };
 
 // Aplicar PWA wrapper primero, luego Bundle Analyzer
-export default withBundleAnalyzer(withPWA(nextConfig));
-
+module.exports = withBundleAnalyzer(withPWA(nextConfig));
