@@ -20,7 +20,6 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isDashboardPage = pathname.startsWith('/dashboard');
   const isProfilePage = pathname.startsWith('/profile');
   const isNewsPage = pathname.startsWith('/news');
-  const isAIDirectoryPage = pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory');
   const isCommunitiesPage = pathname.startsWith('/communities');
   const isStatisticsPage = pathname.startsWith('/statistics');
   const isQuestionnairePage = pathname.startsWith('/questionnaire');
@@ -52,7 +51,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   // NO mostrar navbar regular (Aprende y Aplica) si el usuario es Business o Business User
   // NO mostrar navbar regular en páginas de cart, subscriptions, payment-methods, purchase-history, account-settings
   const shouldShowBusinessNavbar = isBusinessPage;
-  const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && !isBusinessPage && !isBusinessPanelPage && !isBusinessUserPage && !shouldHideNavbarForBusiness && (isDashboardPage || isNewsPage || isAIDirectoryPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage);
+  const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && !isBusinessPage && !isBusinessPanelPage && !isBusinessUserPage && !shouldHideNavbarForBusiness && (isDashboardPage || isNewsPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage);
   const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !shouldShowBusinessNavbar && !isProfilePage && !isAdminPage && !isInstructorPage && !isCreditsPage && !isReelsPage && !isLearnPage && !isAuthPage && !isBusinessPanelPage && !isBusinessUserPage && !isBusinessRole && !isCartPage && !isSubscriptionsPage && !isPaymentMethodsPage && !isPurchaseHistoryPage && !isAccountSettingsPage && !isCertificatesPage;
   
   return (
@@ -78,7 +77,6 @@ function getActiveItem(pathname: string): string {
   if (pathname.startsWith('/dashboard')) return 'workshops';
   if (pathname.startsWith('/my-courses')) return 'workshops'; // Mis cursos se considera parte de workshops
   if (pathname.startsWith('/news')) return 'news';
-  if (pathname.startsWith('/prompt-directory') || pathname.startsWith('/apps-directory')) return 'directory';
   if (pathname.startsWith('/communities')) return 'community';
   if (pathname.startsWith('/statistics')) return 'statistics';
   if (pathname.startsWith('/questionnaire')) return 'workshops'; // El cuestionario se considera parte de workshops
