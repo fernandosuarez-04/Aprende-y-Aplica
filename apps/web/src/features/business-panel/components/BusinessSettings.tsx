@@ -23,7 +23,6 @@ import {
   X,
   Palette,
   Type,
-  Bell,
   Link as LinkIcon,
   Copy,
   Check,
@@ -33,7 +32,6 @@ import {
   Sparkles
 } from 'lucide-react'
 import { useBusinessSettings, OrganizationData } from '../hooks/useBusinessSettings'
-import { BusinessNotificationsSettings } from './BusinessNotificationsSettings'
 import { BusinessThemeCustomizer } from './BusinessThemeCustomizer'
 import { Button } from '@aprende-y-aplica/ui'
 import Image from 'next/image'
@@ -48,7 +46,7 @@ export function BusinessSettings() {
   const { data, isLoading, error, refetch, updateOrganization } = useBusinessSettings()
   const { plan, canUse, refetch: refetchSubscription } = useSubscriptionFeatures()
   const { refetch: refetchStyles } = useOrganizationStylesContext()
-  const [activeTab, setActiveTab] = useState<'organization' | 'subscription' | 'branding' | 'personalization' | 'notifications'>('organization')
+  const [activeTab, setActiveTab] = useState<'organization' | 'subscription' | 'branding' | 'personalization'>('organization')
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -175,21 +173,6 @@ export function BusinessSettings() {
             <Palette className="w-5 h-5" />
             Personalización
           </button>
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'notifications'
-                ? 'border-b-2 bg-carbon-900'
-                : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
-            }`}
-            style={activeTab === 'notifications' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <Bell className="w-5 h-5" />
-            Notificaciones
-          </button>
         </div>
 
         {/* Tab Content */}
@@ -219,9 +202,6 @@ export function BusinessSettings() {
           )}
           {activeTab === 'personalization' && (
             <BusinessThemeCustomizer />
-          )}
-          {activeTab === 'notifications' && (
-            <BusinessNotificationsSettings />
           )}
         </div>
       </div>
