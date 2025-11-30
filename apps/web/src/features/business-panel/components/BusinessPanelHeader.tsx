@@ -19,6 +19,12 @@ interface BusinessPanelHeaderProps {
 }
 
 export function BusinessPanelHeader({ onMenuClick, title, isCollapsed, onToggleCollapse }: BusinessPanelHeaderProps) {
+  // Validar que las funciones requeridas estén presentes
+  if (!onMenuClick || typeof onMenuClick !== 'function') {
+    console.error('BusinessPanelHeader: onMenuClick debe ser una función')
+    return null
+  }
+
   const { styles } = useOrganizationStylesContext()
   const { data: businessData } = useBusinessSettings()
   const { user, logout } = useAuth()
@@ -43,17 +49,17 @@ export function BusinessPanelHeader({ onMenuClick, title, isCollapsed, onToggleC
     }
 
     const panelStyles = styles.panel
-    const sidebarBg = panelStyles.sidebar_background || '#0f172a'
-    const sidebarOpacity = panelStyles.sidebar_opacity !== undefined ? panelStyles.sidebar_opacity : 0.85
-    const borderColor = panelStyles.border_color || 'rgba(71, 85, 105, 0.3)'
-    const textColor = panelStyles.text_color
+    const sidebarBg = panelStyles?.sidebar_background || '#0f172a'
+    const sidebarOpacity = panelStyles?.sidebar_opacity !== undefined ? panelStyles.sidebar_opacity : 0.85
+    const borderColor = panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)'
+    const textColor = panelStyles?.text_color
 
     // Convertir hex a rgba si es necesario
     let backgroundColor: string
-    if (sidebarBg.startsWith('#')) {
+    if (sidebarBg && typeof sidebarBg === 'string' && sidebarBg.startsWith('#')) {
       const rgb = hexToRgb(sidebarBg)
       backgroundColor = `rgba(${rgb}, ${sidebarOpacity})`
-    } else if (sidebarBg.startsWith('rgba')) {
+    } else if (sidebarBg && typeof sidebarBg === 'string' && sidebarBg.startsWith('rgba')) {
       const rgbaMatch = sidebarBg.match(/rgba?\(([^)]+)\)/)
       if (rgbaMatch) {
         const parts = rgbaMatch[1].split(',')
@@ -66,7 +72,7 @@ export function BusinessPanelHeader({ onMenuClick, title, isCollapsed, onToggleC
         backgroundColor = sidebarBg
       }
     } else {
-      backgroundColor = sidebarBg
+      backgroundColor = sidebarBg || 'rgba(15, 23, 42, 0.85)'
     }
 
     return {
@@ -101,7 +107,9 @@ export function BusinessPanelHeader({ onMenuClick, title, isCollapsed, onToggleC
   }
 
   const handleLogout = async () => {
-    await logout()
+    if (logout && typeof logout === 'function') {
+      await logout()
+    }
     setUserDropdownOpen(false)
     setMobileMenuOpen(false)
   }

@@ -17,6 +17,51 @@ import { Button } from '@aprende-y-aplica/ui'
 import { useRouter } from 'next/navigation'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { BusinessTeamModal } from '@/features/business-panel/components/BusinessTeamModal'
+import { WorkTeam } from '@/features/business-panel/services/teams.service'
+
+// Componente para el icono del equipo con manejo de errores
+function TeamIcon({ 
+  imageUrl, 
+  teamName, 
+  primaryColor, 
+  cardBorder 
+}: { 
+  imageUrl?: string | null
+  teamName: string
+  primaryColor: string
+  cardBorder: string
+}) {
+  const [imageError, setImageError] = useState(false)
+  
+  // Si hay una URL válida y no hay error, mostrar la imagen
+  if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '' && !imageError) {
+    return (
+      <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border" style={{ borderColor: cardBorder }}>
+        <img
+          src={imageUrl}
+          alt={teamName}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            console.error('Error cargando imagen del equipo:', teamName, imageUrl, e)
+            setImageError(true)
+          }}
+          onLoad={() => {
+            console.log('Imagen cargada exitosamente para:', teamName)
+          }}
+        />
+      </div>
+    )
+  }
+  
+  return (
+    <div 
+      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+      style={{ backgroundColor: `${primaryColor}20` }}
+    >
+      <UsersRound className="w-6 h-6" style={{ color: primaryColor }} />
+    </div>
+  )
+}
 
 export default function BusinessPanelTeamsPage() {
   const { styles } = useOrganizationStylesContext()
@@ -255,7 +300,15 @@ export default function BusinessPanelTeamsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTeams.map((team, index) => (
+          {filteredTeams.map((team, index) => {
+            // Debug temporal - verificar datos del equipo
+            if (index === 0) {
+              console.log('Primer equipo - Datos completos:', team)
+              console.log('image_url:', team.image_url)
+              console.log('metadata:', team.metadata)
+            }
+            
+            return (
             <motion.div
               key={team.team_id}
               initial={{ opacity: 0, y: 20 }}
@@ -270,12 +323,12 @@ export default function BusinessPanelTeamsPage() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${primaryColor}20` }}
-                  >
-                    <UsersRound className="w-6 h-6" style={{ color: primaryColor }} />
-                  </div>
+                  <TeamIcon 
+                    imageUrl={(team as any).image_url || (team.metadata as any)?.image_url || null} 
+                    teamName={team.name}
+                    primaryColor={primaryColor}
+                    cardBorder={cardBorder}
+                  />
                   <div>
                     <h3 className="font-heading font-semibold text-lg mb-1">{team.name}</h3>
                     {team.team_leader && (
@@ -317,7 +370,8 @@ export default function BusinessPanelTeamsPage() {
                 )}
               </div>
             </motion.div>
-          ))}
+            )
+          })}
         </div>
       )}
 

@@ -12,6 +12,7 @@ export interface WorkTeam {
   course_id: string | null
   status: 'active' | 'inactive' | 'archived'
   metadata: Record<string, any>
+  image_url?: string | null
   created_at: string
   updated_at: string
   // Relaciones opcionales
@@ -271,6 +272,7 @@ export interface CreateWorkTeamRequest {
   course_id?: string
   member_ids?: string[]
   metadata?: Record<string, any>
+  image_url?: string
 }
 
 export interface UpdateWorkTeamRequest {
@@ -280,6 +282,7 @@ export interface UpdateWorkTeamRequest {
   course_id?: string
   status?: 'active' | 'inactive' | 'archived'
   metadata?: Record<string, any>
+  image_url?: string
 }
 
 export interface AddTeamMembersRequest {

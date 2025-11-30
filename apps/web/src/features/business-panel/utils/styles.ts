@@ -37,6 +37,27 @@ export function generateInlineStyles(style: StyleConfig | null): React.CSSProper
 }
 
 /**
+ * Convierte color hex a RGB
+ */
+export function hexToRgb(hex: string): string {
+  // Si no es un color hex válido, retornar valores por defecto
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) {
+    return '15, 23, 42'; // Valores por defecto
+  }
+
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) {
+    return '15, 23, 42'; // Valores por defecto
+  }
+
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+  
+  return `${r}, ${g}, ${b}`;
+}
+
+/**
  * Genera CSS variables dinámicas desde un objeto StyleConfig
  */
 export function generateCSSVariables(style: StyleConfig | null): Record<string, string> {
@@ -46,12 +67,22 @@ export function generateCSSVariables(style: StyleConfig | null): Record<string, 
 
   const variables: Record<string, string> = {};
 
-  variables['--org-primary-button-color'] = style.primary_button_color;
-  variables['--org-secondary-button-color'] = style.secondary_button_color;
-  variables['--org-accent-color'] = style.accent_color;
-  variables['--org-sidebar-background'] = style.sidebar_background;
-  variables['--org-card-background'] = style.card_background;
-  variables['--org-card-background-rgb'] = hexToRgb(style.card_background);
+  if (style.primary_button_color) {
+    variables['--org-primary-button-color'] = style.primary_button_color;
+  }
+  if (style.secondary_button_color) {
+    variables['--org-secondary-button-color'] = style.secondary_button_color;
+  }
+  if (style.accent_color) {
+    variables['--org-accent-color'] = style.accent_color;
+  }
+  if (style.sidebar_background) {
+    variables['--org-sidebar-background'] = style.sidebar_background;
+  }
+  if (style.card_background) {
+    variables['--org-card-background'] = style.card_background;
+    variables['--org-card-background-rgb'] = hexToRgb(style.card_background);
+  }
   
   if (style.text_color) {
     variables['--org-text-color'] = style.text_color;
@@ -71,11 +102,6 @@ export function generateCSSVariables(style: StyleConfig | null): Record<string, 
 
   if (style.sidebar_opacity !== undefined) {
     variables['--org-sidebar-opacity'] = style.sidebar_opacity.toString();
-  }
-
-  // Color de texto principal para sidebar y headers
-  if (style.text_color) {
-    variables['--org-text-color'] = style.text_color;
   }
 
   return variables;
@@ -109,27 +135,6 @@ export function applyBackgroundStyles(
   } else if (style.background_type === 'color' && style.background_value) {
     element.style.backgroundColor = style.background_value;
   }
-}
-
-/**
- * Convierte color hex a RGB
- */
-export function hexToRgb(hex: string): string {
-  // Si no es un color hex válido, retornar valores por defecto
-  if (!hex || !hex.startsWith('#')) {
-    return '15, 23, 42'; // Valores por defecto
-  }
-
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) {
-    return '15, 23, 42'; // Valores por defecto
-  }
-
-  const r = parseInt(result[1], 16);
-  const g = parseInt(result[2], 16);
-  const b = parseInt(result[3], 16);
-  
-  return `${r}, ${g}, ${b}`;
 }
 
 /**

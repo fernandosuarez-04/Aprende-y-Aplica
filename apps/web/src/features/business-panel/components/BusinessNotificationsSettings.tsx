@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   Bell,
@@ -32,7 +32,15 @@ interface EventType {
 }
 
 export function BusinessNotificationsSettings() {
-  const { plan, canUse, getAllowedChannels, getMessage, loading: subscriptionLoading, refetch } = useSubscriptionFeatures()
+  const { 
+    plan, 
+    canUse, 
+    getAllowedChannels, 
+    getMessage, 
+    loading: subscriptionLoading, 
+    refetch 
+  } = useSubscriptionFeatures()
+  
   const [settings, setSettings] = useState<NotificationSetting[]>([])
   const [eventTypes, setEventTypes] = useState<EventType[]>([])
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
@@ -40,11 +48,17 @@ export function BusinessNotificationsSettings() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasLoadedOnceRef = useRef(false)
+  const previousPlanRef = useRef<string | null>(null)
 
   // Función para actualizar canales disponibles
   const updateAvailableChannels = useCallback(() => {
+    // getAllowedChannels siempre está definido gracias al hook, pero validamos por seguridad
+    if (typeof getAllowedChannels !== 'function') {
+      return
+    }
     const channels = getAllowedChannels()
-    if (channels.length > 0) {
+    if (channels && channels.length > 0) {
       setAvailableChannels(channels)
       // Limpiar canales no permitidos de los settings cuando hay downgrade
       setSettings(prevSettings => {
@@ -56,33 +70,8 @@ export function BusinessNotificationsSettings() {
     }
   }, [getAllowedChannels])
 
-  // Efecto principal: cargar settings y manejar cambios de plan
-  useEffect(() => {
-    // Solo cargar settings cuando el plan esté disponible
-    if (!subscriptionLoading && plan) {
-      fetchSettings()
-    }
-  }, [plan, subscriptionLoading])
-
-  // Escuchar eventos de cambio de plan
-  useEffect(() => {
-    const handlePlanChange = () => {
-      // Refrescar datos de suscripción
-      refetch()
-    }
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('subscription-plan-changed', handlePlanChange)
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('subscription-plan-changed', handlePlanChange)
-      }
-    }
-  }, [refetch])
-
-  const fetchSettings = async () => {
+  // fetchSettings estabilizado con useCallback
+  const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -96,8 +85,11 @@ export function BusinessNotificationsSettings() {
 
       if (data.success) {
         // Obtener canales permitidos según el plan actual
-        const channelsFromHook = getAllowedChannels()
-        const validChannels = channelsFromHook.length > 0 ? channelsFromHook : ['email']
+        // getAllowedChannels siempre está definido, pero validamos por seguridad
+        const channelsFromHook = typeof getAllowedChannels === 'function' 
+          ? getAllowedChannels() 
+          : ['email']
+        const validChannels = channelsFromHook && channelsFromHook.length > 0 ? channelsFromHook : ['email']
         setAvailableChannels(validChannels)
 
         // Filtrar configuraciones para remover canales no permitidos
@@ -108,6 +100,8 @@ export function BusinessNotificationsSettings() {
 
         setSettings(filteredSettings)
         setEventTypes(data.event_types || [])
+        hasLoadedOnceRef.current = true
+        previousPlanRef.current = plan || null
       } else {
         setError(data.error || 'Error al cargar configuración')
       }
@@ -116,7 +110,45 @@ export function BusinessNotificationsSettings() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [getAllowedChannels, plan])
+
+  // Efecto principal: cargar settings solo una vez cuando el plan esté disponible
+  useEffect(() => {
+    // Solo cargar settings cuando el plan esté disponible y no se haya cargado antes
+    // Evitar reiniciar si subscriptionLoading cambia pero ya tenemos datos
+    // getAllowedChannels siempre está definido, pero validamos por seguridad
+    if (!subscriptionLoading && plan && !hasLoadedOnceRef.current && typeof getAllowedChannels === 'function') {
+      fetchSettings()
+    }
+  }, [plan, subscriptionLoading, fetchSettings, getAllowedChannels])
+
+  // Efecto para actualizar canales cuando el plan cambia realmente (después de la carga inicial)
+  useEffect(() => {
+    // Solo actualizar canales si ya se cargó una vez y el plan cambió
+    if (hasLoadedOnceRef.current && plan && previousPlanRef.current !== plan) {
+      previousPlanRef.current = plan
+      updateAvailableChannels()
+    }
+  }, [plan, updateAvailableChannels])
+
+  // Escuchar eventos de cambio de plan - solo actualizar canales, no recargar todo
+  useEffect(() => {
+    const handlePlanChange = () => {
+      // Solo actualizar canales disponibles sin recargar todo el componente
+      // No llamar refetch() aquí para evitar reinicios
+      updateAvailableChannels()
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('subscription-plan-changed', handlePlanChange)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('subscription-plan-changed', handlePlanChange)
+      }
+    }
+  }, [updateAvailableChannels])
 
   const handleSave = async () => {
     try {
@@ -214,7 +246,9 @@ export function BusinessNotificationsSettings() {
     }
   }
 
-  if (isLoading) {
+  // Mostrar loading si el hook aún no está listo o si estamos cargando datos
+  // getAllowedChannels siempre está definido, pero validamos por seguridad durante la carga inicial
+  if (subscriptionLoading || isLoading || typeof getAllowedChannels !== 'function') {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
@@ -302,7 +336,7 @@ export function BusinessNotificationsSettings() {
               </span>
             )}
           </div>
-          {!canUse('notification_sms') && (
+          {typeof canUse === 'function' && typeof getMessage === 'function' && !canUse('notification_sms') && (
             <div className="mt-2 pt-2 border-t border-primary/20">
               <p className="text-yellow-400 text-xs">
                 {getMessage('notification_sms')}
@@ -357,7 +391,7 @@ export function BusinessNotificationsSettings() {
                       const Icon = getChannelIcon(channel)
                       const isSelected = channels.includes(channel)
                       const isSMS = channel === 'sms'
-                      const canUseSMS = canUse('notification_sms')
+                      const canUseSMS = typeof canUse === 'function' ? canUse('notification_sms') : false
                       const isDisabled = (channel === 'email' && channels.length === 1) || (isSMS && !canUseSMS)
 
                       return (
@@ -369,7 +403,7 @@ export function BusinessNotificationsSettings() {
                             }
                           }}
                           disabled={isDisabled}
-                          title={isSMS && !canUseSMS ? getMessage('notification_sms') : undefined}
+                          title={isSMS && !canUseSMS && typeof getMessage === 'function' ? getMessage('notification_sms') : undefined}
                           className={`px-4 py-2 rounded-lg border transition-colors flex items-center gap-2 relative ${
                             isSelected
                               ? 'bg-primary/20 border-primary text-primary'

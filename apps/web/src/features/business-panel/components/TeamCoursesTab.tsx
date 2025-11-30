@@ -151,9 +151,13 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                 <span 
                   className={`px-2 py-1 rounded-lg text-xs font-body ${
                     assignment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                    assignment.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+                    assignment.status === 'in_progress' ? '' :
                     'bg-yellow-500/20 text-yellow-400'
                   }`}
+                  style={assignment.status === 'in_progress' ? {
+                    backgroundColor: `${primaryColor}20`,
+                    color: primaryColor
+                  } : undefined}
                 >
                   {assignment.status === 'completed' ? 'Completado' :
                    assignment.status === 'in_progress' ? 'En Progreso' : 'Asignado'}

@@ -39,6 +39,7 @@ export async function GET(
         course_id,
         status,
         metadata,
+        image_url,
         created_at,
         updated_at
       `)
@@ -161,7 +162,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, description, team_leader_id, course_id, status, metadata } = body
+    const { name, description, team_leader_id, course_id, status, metadata, image_url } = body
 
     // Construir objeto de actualización
     const updateData: Record<string, any> = {
@@ -202,6 +203,10 @@ export async function PUT(
 
     if (metadata !== undefined) {
       updateData.metadata = metadata || {}
+    }
+
+    if (image_url !== undefined) {
+      updateData.image_url = image_url || null
     }
 
     // Actualizar el equipo

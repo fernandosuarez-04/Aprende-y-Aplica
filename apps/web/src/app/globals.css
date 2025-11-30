@@ -415,6 +415,15 @@ a {
   animation: glow 2s ease-in-out infinite;
 }
 
+@keyframes rainbow-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 /* Gradient text */
 .gradient-text {
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);

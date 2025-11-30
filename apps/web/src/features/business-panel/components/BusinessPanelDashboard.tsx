@@ -70,6 +70,7 @@ export function BusinessPanelDashboard() {
 
   // Aplicar estilos personalizados
   const panelStyles = styles?.panel
+  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const cardStyle = useMemo(() => {
     if (!panelStyles) {
       return {
@@ -209,7 +210,7 @@ export function BusinessPanelDashboard() {
             borderColor: cardStyle.borderColor,
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-cyan-500/5" />
+          {/* Background gradient removed - using organization colors instead */}
           <div className="relative z-10">
             <h1 
               className="text-2xl sm:text-3xl font-bold mb-2"
@@ -283,7 +284,7 @@ export function BusinessPanelDashboard() {
                   borderColor: cardStyle.borderColor,
                 }}
               >
-                <div className="inline-block w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                <div className="inline-block w-8 h-8 border-4 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: primaryColor }} />
                 <p 
                   className="mt-4 text-sm opacity-70"
                   style={{ color: cardStyle.color || undefined }}
@@ -307,8 +308,14 @@ export function BusinessPanelDashboard() {
                       borderColor: cardStyle.borderColor,
                     }}
                   >
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
-                      <Icon className="w-5 h-5 text-blue-500" />
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
+                      style={{ 
+                        backgroundColor: `${primaryColor}20`,
+                        borderColor: `${primaryColor}30`
+                      }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: primaryColor }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p 
@@ -380,7 +387,7 @@ export function BusinessPanelDashboard() {
           >
             {loading ? (
               <div className="text-center py-8">
-                <div className="inline-block w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                <div className="inline-block w-8 h-8 border-4 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: primaryColor }} />
                 <p 
                   className="mt-4 text-sm opacity-70"
                   style={{ color: cardStyle.color || undefined }}
@@ -428,7 +435,10 @@ export function BusinessPanelDashboard() {
                     <Suspense fallback={
                       <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
+                          className="h-full rounded-full"
+                          style={{ 
+                            background: `linear-gradient(90deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || primaryColor} 100%)`
+                          }}
                           style={{ width: `${course.progress}%` }}
                         />
                       </div>

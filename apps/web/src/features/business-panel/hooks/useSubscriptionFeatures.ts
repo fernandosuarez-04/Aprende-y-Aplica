@@ -178,20 +178,22 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
     return hasFeature(plan, feature)
   }, [plan])
 
-  const getRequiredPlanForFeature = (feature: FeatureKey): SubscriptionPlan | null => {
+  const getRequiredPlanForFeature = useCallback((feature: FeatureKey): SubscriptionPlan | null => {
     return getRequiredPlan(feature)
-  }
+  }, [])
 
-  const getMessage = (feature: FeatureKey): string => {
+  const getMessage = useCallback((feature: FeatureKey): string => {
     return getFeatureMessage(feature, plan)
-  }
+  }, [plan])
 
-  const getFeatureNameForFeature = (feature: FeatureKey): string => {
+  const getFeatureNameForFeature = useCallback((feature: FeatureKey): string => {
     return getFeatureName(feature)
-  }
+  }, [])
 
   const getAllowedChannels = useCallback((): string[] => {
-    return getAllowedNotificationChannels(plan)
+    // Siempre retornar al menos email como canal por defecto
+    const channels = getAllowedNotificationChannels(plan)
+    return channels.length > 0 ? channels : ['email']
   }, [plan])
 
   return {

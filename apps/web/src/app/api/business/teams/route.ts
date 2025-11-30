@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         course_id,
         status,
         metadata,
+        image_url,
         created_at,
         updated_at
       `)
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, team_leader_id, course_id, member_ids, metadata } = body
+    const { name, description, team_leader_id, course_id, member_ids, metadata, image_url } = body
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({
@@ -192,7 +193,8 @@ export async function POST(request: NextRequest) {
         created_by: currentUser.id,
         course_id: course_id || null,
         status: 'active',
-        metadata: metadata || {}
+        metadata: metadata || {},
+        image_url: image_url || null
       })
       .select()
       .single()
@@ -271,6 +273,7 @@ export async function POST(request: NextRequest) {
         course_id,
         status,
         metadata,
+        image_url,
         created_at,
         updated_at
       `)

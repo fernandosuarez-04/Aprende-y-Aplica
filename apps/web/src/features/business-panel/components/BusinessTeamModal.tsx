@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, UsersRound, User, BookOpen, FileText } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
-import { TeamsService, CreateWorkTeamRequest } from '../services/teams.service'
+import { TeamsService, CreateWorkTeamRequest, UpdateWorkTeamRequest } from '../services/teams.service'
 import { useBusinessUsers } from '../hooks/useBusinessUsers'
 import { PremiumSelect } from './PremiumSelect'
+import { TeamImageUpload } from './TeamImageUpload'
 
 interface BusinessTeamModalProps {
   isOpen: boolean
@@ -33,7 +34,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
     description: '',
     team_leader_id: '',
     course_id: '',
-    member_ids: [] as string[]
+    member_ids: [] as string[],
+    image_url: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
@@ -55,7 +57,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
           description: teamData.description || '',
           team_leader_id: teamData.team_leader_id || '',
           course_id: teamData.course_id || '',
-          member_ids: members.map(m => m.user_id)
+          member_ids: members.map(m => m.user_id),
+          image_url: teamData.image_url || ''
         })
       } catch (err) {
         console.error('Error loading team data:', err)
@@ -76,7 +79,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
         description: '',
         team_leader_id: '',
         course_id: '',
-        member_ids: []
+        member_ids: [],
+        image_url: ''
       })
       setSearchTerm('')
       setError(null)
@@ -128,18 +132,25 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
     setError(null)
 
     try {
-      const request: CreateWorkTeamRequest = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
-        team_leader_id: formData.team_leader_id || undefined,
-        course_id: formData.course_id || undefined,
-        member_ids: formData.member_ids.length > 0 ? formData.member_ids : undefined
-      }
-
       if (teamId) {
-        await TeamsService.updateTeam(teamId, request)
+        const updateRequest: UpdateWorkTeamRequest = {
+          name: formData.name.trim(),
+          description: formData.description.trim() || undefined,
+          team_leader_id: formData.team_leader_id || undefined,
+          course_id: formData.course_id || undefined,
+          image_url: formData.image_url || undefined
+        }
+        await TeamsService.updateTeam(teamId, updateRequest)
       } else {
-        await TeamsService.createTeam(request)
+        const createRequest: CreateWorkTeamRequest = {
+          name: formData.name.trim(),
+          description: formData.description.trim() || undefined,
+          team_leader_id: formData.team_leader_id || undefined,
+          course_id: formData.course_id || undefined,
+          member_ids: formData.member_ids.length > 0 ? formData.member_ids : undefined,
+          image_url: formData.image_url || undefined
+        }
+        await TeamsService.createTeam(createRequest)
       }
 
       // Reset form
@@ -148,7 +159,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
         description: '',
         team_leader_id: '',
         course_id: '',
-        member_ids: []
+        member_ids: [],
+        image_url: ''
       })
       setSearchTerm('')
       onSuccess()
@@ -266,6 +278,18 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                   placeholder="Equipo de Desarrollo"
                 />
               </div>
+
+              {/* Imagen o Icono */}
+              <TeamImageUpload
+                value={formData.image_url}
+                onChange={(url) => handleChange('image_url', url)}
+                disabled={isLoading || isLoadingTeam}
+                primaryColor={primaryColor}
+                modalBg={modalBg}
+                modalBorder={modalBorder}
+                textColor={textColor}
+                sectionBg={sectionBg}
+              />
 
               {/* Descripción */}
               <div>

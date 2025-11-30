@@ -840,11 +840,19 @@ function ActivityReportPreview({ data }: { data: any }) {
         const status = info.getValue() as string
         const statusColors: Record<string, string> = {
           active: 'bg-green-500/20 text-green-400',
-          completed: 'bg-blue-500/20 text-blue-400',
           inactive: 'bg-gray-500/20 text-gray-400'
         }
+        const statusStyles: Record<string, React.CSSProperties> = {
+          completed: {
+            backgroundColor: `${primaryColor}20`,
+            color: primaryColor
+          }
+        }
         return (
-          <span className={`px-2 py-1 rounded-lg text-xs font-body ${statusColors[status] || 'bg-gray-500/20 text-gray-400'}`}>
+          <span 
+            className={`px-2 py-1 rounded-lg text-xs font-body ${status === 'completed' ? '' : (statusColors[status] || 'bg-gray-500/20 text-gray-400')}`}
+            style={statusStyles[status]}
+          >
             {status === 'active' ? 'Activo' : status === 'completed' ? 'Completado' : 'Inactivo'}
           </span>
         )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { BusinessPanelSidebar } from './BusinessPanelSidebar'
@@ -112,6 +112,27 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     }
   }, [sidebarPinned])
 
+  // Estabilizar funciones de callbacks
+  const handleMenuClick = useCallback(() => {
+    setSidebarOpen(true)
+  }, [])
+
+  const handleSidebarClose = useCallback(() => {
+    setSidebarOpen(false)
+  }, [])
+
+  const handleToggleCollapse = useCallback(() => {
+    setSidebarCollapsed(prev => !prev)
+  }, [])
+
+  const handleTogglePin = useCallback(() => {
+    setSidebarPinned(prev => !prev)
+  }, [])
+
+  const handleSectionChange = useCallback((section: string) => {
+    setActiveSection(section)
+  }, [])
+
   // Mostrar loading spinner si isLoading es true
   if (isLoading) {
     return <PremiumLoadingScreen />
@@ -139,10 +160,10 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     >
       {/* Header Global - Full Width */}
       <BusinessPanelHeader 
-        onMenuClick={() => setSidebarOpen(true)}
+        onMenuClick={handleMenuClick}
         title="Panel de Gestión Business"
         isCollapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggleCollapse={handleToggleCollapse}
       />
 
       {/* Content Area with Sidebar + Main */}
@@ -150,13 +171,13 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         {/* Sidebar Global */}
         <BusinessPanelSidebar 
           isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)}
+          onClose={handleSidebarClose}
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
           isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onToggleCollapse={handleToggleCollapse}
           isPinned={sidebarPinned}
-          onTogglePin={() => setSidebarPinned(!sidebarPinned)}
+          onTogglePin={handleTogglePin}
         />
 
         {/* Main Content Area */}

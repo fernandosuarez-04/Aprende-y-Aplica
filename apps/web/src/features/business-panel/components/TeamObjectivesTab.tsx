@@ -52,10 +52,21 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
       case 'failed':
         return 'bg-red-500/20 text-red-400'
       case 'in_progress':
-        return 'bg-blue-500/20 text-blue-400'
+        // Usar el color primario personalizado de la organización
+        return ''
       default:
         return 'bg-yellow-500/20 text-yellow-400'
     }
+  }
+  
+  const getStatusStyle = (status: string): React.CSSProperties => {
+    if (status === 'in_progress') {
+      return {
+        backgroundColor: `${primaryColor}20`,
+        color: primaryColor
+      }
+    }
+    return {}
   }
 
   const getStatusLabel = (status: string) => {
@@ -223,7 +234,10 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
                   <div className="flex items-center gap-3 mb-2">
                     <Target className="w-5 h-5" style={{ color: primaryColor }} />
                     <h3 className="font-heading font-semibold text-lg">{objective.title}</h3>
-                    <span className={`px-2 py-1 rounded-lg text-xs font-body ${getStatusColor(objective.status)}`}>
+                    <span 
+                      className={`px-2 py-1 rounded-lg text-xs font-body ${objective.status === 'in_progress' ? '' : getStatusColor(objective.status)}`}
+                      style={getStatusStyle(objective.status)}
+                    >
                       {getStatusLabel(objective.status)}
                     </span>
                   </div>

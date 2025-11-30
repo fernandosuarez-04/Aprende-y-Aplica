@@ -703,21 +703,37 @@ GET    /api/communities/:slug/leagues   # Listar ligas
 
 ### Asistente Virtual LIA
 ```
-POST   /api/ai-chat                     # Chat con LIA (contextual)
-POST   /api/lia/onboarding-chat         # Chat de onboarding
-GET    /api/lia/available-links         # Enlaces disponibles según rol
-POST   /api/lia/context-help            # Ayuda contextual
-POST   /api/lia/proactive-help          # Ayuda proactiva
-GET    /api/lia/conversations           # Listar conversaciones
-POST   /api/lia/conversations           # Crear conversación
-GET    /api/lia/conversations/:id       # Detalle de conversación
-GET    /api/lia/conversations/:id/messages  # Mensajes de conversación
-POST   /api/lia/conversations/:id/messages  # Enviar mensaje
-POST   /api/lia/start-activity          # Iniciar actividad
-POST   /api/lia/update-activity         # Actualizar actividad
-POST   /api/lia/complete-activity       # Completar actividad
-POST   /api/lia/end-conversation        # Finalizar conversación
-POST   /api/lia/feedback                # Enviar feedback sobre LIA
+# Chat General Contextual
+POST   /api/ai-chat                     # Chat con LIA (contextual, adaptativo por sección)
+
+# Generador de Prompts Especializado
+POST   /api/ai-directory/generate-prompt # Generar prompt con IA (Lia especializado)
+
+# Onboarding y Presentación
+POST   /api/lia/onboarding-chat         # Chat de onboarding para nuevos usuarios
+
+# Ayuda Contextual y Proactiva
+GET    /api/lia/available-links         # Enlaces disponibles según rol del usuario
+POST   /api/lia/context-help            # Ayuda contextual basada en análisis de sesión
+POST   /api/lia/proactive-help          # Ayuda proactiva (antes de que el usuario pregunte)
+
+# Gestión de Conversaciones
+GET    /api/lia/conversations           # Listar todas las conversaciones del usuario
+POST   /api/lia/conversations           # Crear nueva conversación
+GET    /api/lia/conversations/:id       # Detalle de conversación específica
+PATCH  /api/lia/conversations/:id       # Actualizar título de conversación
+DELETE /api/lia/conversations/:id       # Eliminar conversación
+GET    /api/lia/conversations/:id/messages  # Obtener mensajes de una conversación
+POST   /api/lia/conversations/:id/messages  # Enviar mensaje en una conversación
+
+# Gestión de Actividades Interactivas
+POST   /api/lia/start-activity          # Iniciar interacción con actividad guiada
+POST   /api/lia/update-activity         # Actualizar progreso de actividad
+POST   /api/lia/complete-activity       # Completar actividad y generar resultados
+
+# Utilidades
+POST   /api/lia/end-conversation        # Finalizar conversación y guardar estado
+POST   /api/lia/feedback                # Enviar feedback sobre LIA (satisfacción, mejoras)
 ```
 
 ### Directorio de IA
@@ -1322,88 +1338,244 @@ app.use(compression())
 
 ### 3. Asistente Virtual LIA (Learning Intelligence Assistant)
 
-**LIA** es el asistente de inteligencia artificial integrado en toda la plataforma, diseñado para proporcionar ayuda contextual y personalizada.
+**LIA** es el asistente de inteligencia artificial integrado en toda la plataforma, diseñado para proporcionar ayuda contextual y personalizada en múltiples modalidades especializadas.
 
-#### Arquitectura y Funcionamiento
+#### 🎯 Múltiples Modos de Operación
 
-**Múltiples Modos de Operación:**
+**1. LIA General (Chat Contextual)**
+- **Endpoint**: `POST /api/ai-chat`
+- **Modelo**: GPT-4 Turbo (gpt-4o)
+- **Contexto Dinámico**: Se adapta automáticamente a la sección actual de la plataforma
+- **Capacidades Principales**:
+  - Responde preguntas sobre contenido educativo y funcionalidades de la plataforma
+  - Proporciona navegación contextual con enlaces funcionales `[texto](url)`
+  - Identifica el rol del usuario (Administrador, Instructor, Estudiante, Business) y personaliza respuestas
+  - Detecta la página actual y extrae contexto del DOM (títulos, headings, texto principal)
+  - Soporte multiidioma: Español (ES), Inglés (EN), Portugués (PT)
+  - Mantiene historial de conversación para contexto continuo
+  - Personalización por nombre de usuario para conexión más cercana
+- **Restricciones de Formato**:
+  - **NO usa Markdown** (excepto enlaces funcionales)
+  - Texto plano con emojis estratégicos
+  - Estructura con viñetas simples (-) o números
+  - Enlaces en formato `[texto](url)` para navegación
+- **Contexto de Cursos**:
+  - Prioriza transcripción del video actual
+  - Responde basándose en contenido de la lección
+  - Soporta prompts de actividades interactivas
+  - Redirige preguntas fuera del alcance del curso
+- **Componente**: `AIChatAgent` disponible en toda la plataforma
 
-1. **LIA General (Chat Contextual)**
-   - **Endpoint**: `/api/ai-chat`
-   - **Modelo**: GPT-4 Turbo
-   - **Contexto**: Se adapta a la sección actual de la plataforma
-   - **Capacidades**:
-     - Responde preguntas sobre el contenido educativo
-     - Proporciona navegación contextual con enlaces
-     - Identifica el rol del usuario y personaliza respuestas
-     - Detecta la página actual y ajusta su conocimiento
+**2. LIA Generador de Prompts (Lia Especializado)**
+- **Endpoint**: `POST /api/ai-directory/generate-prompt`
+- **Modelo**: GPT-4o
+- **Especialidad Exclusiva**: Creación de prompts profesionales de IA
+- **Configuración Especializada**:
+  - **Identidad**: Lia, especialista en creación de prompts
+  - **Tono**: Profesional, directo y eficiente
+  - **Enfoque**: EXCLUSIVAMENTE creación de prompts, NO consultoría general
+- **Características Técnicas**:
+  - **Detección de Prompt Injection**: Bloquea automáticamente intentos de manipulación
+    - Patrones detectados: "ignore previous instructions", "jailbreak", "act as a", "forget everything", "new instructions", "override", "system prompt", "you are now", "pretend to be", "roleplay as", "dan mode", "developer mode"
+  - **Control de Tema Estricto**: Rechaza automáticamente preguntas fuera de tema
+    - Temas permitidos: creación de prompts, estructura de prompts, optimización, categorías, mejores prácticas
+    - Temas prohibidos: consultoría general de IA, chistes, conversación casual, preguntas personales, explicaciones generales
+  - **Respuesta Estructurada**: Genera prompts en formato JSON con:
+    - `title`: Título claro y descriptivo
+    - `description`: Descripción breve del propósito
+    - `content`: Contenido completo del prompt (mínimo 200 palabras, formato Markdown estructurado)
+    - `tags`: Array de 3-5 tags relevantes
+    - `difficulty_level`: beginner | intermediate | advanced
+    - `use_cases`: Array de casos de uso específicos
+    - `tips`: Array de consejos técnicos para optimización
+- **Categorías Soportadas**:
+  - Marketing y Ventas
+  - Contenido Creativo
+  - Programación y Desarrollo
+  - Análisis de Datos
+  - Educación y Capacitación
+  - Redacción y Comunicación
+  - Investigación y Análisis
+  - Automatización de Procesos
+  - Arte y Diseño
+  - Negocios y Estrategia
+- **Formato de Salida**: JSON estricto con estructura validada
+- **Configuración OpenAI**:
+  - Temperature: 0.7
+  - Max Tokens: 1000
+  - Response Format: `json_object`
 
-2. **LIA Generador de Prompts (Lia Especializado)**
-   - **Endpoint**: `/api/ai-directory/generate-prompt`
-   - **Especialidad**: Creación exclusiva de prompts profesionales
-   - **Configuración**: Sistema de personalidad especializado
-   - **Características**:
-     - Solo se enfoca en generación de prompts
-     - Rechaza preguntas fuera de tema automáticamente
-     - Genera prompts estructurados con formato Markdown
-     - Incluye: título, descripción, contenido, tags, nivel de dificultad, casos de uso, tips
+**3. LIA Onboarding (Asistente de Presentación)**
+- **Endpoint**: `POST /api/lia/onboarding-chat`
+- **Propósito**: Guiar nuevos usuarios en su primera experiencia con la plataforma
+- **Componente**: `OnboardingAgent` con integración de voz
+- **Características**:
+  - **Respuestas Contextuales**: Adaptadas al paso actual del onboarding
+  - **Integración de Voz**: 
+    - Reconocimiento de voz (Web Speech API)
+    - Síntesis de voz con ElevenLabs para respuestas habladas
+    - Interacción conversacional por voz
+  - **Pasos del Onboarding**:
+    1. Bienvenida a la plataforma
+    2. Presentación de LIA y sus capacidades
+    3. Exploración del contenido (cursos, talleres, comunidades)
+    4. Directorio de Prompts
+    5. Conversación interactiva con el usuario
+  - **Tono**: Breve, conversacional, amigable y entusiasta
+  - **Formato**: Máximo 3-4 oraciones (optimizado para lectura en voz alta)
+  - **Contexto**: Mantiene historial de conversación durante el onboarding
+  - **Delegación**: Utiliza el endpoint central `/api/ai-chat` para respuestas consistentes
 
-3. **LIA Onboarding**
-   - **Endpoint**: `/api/lia/onboarding-chat`
-   - **Propósito**: Guiar nuevos usuarios en su primera experiencia
-   - **Características**: Respuestas contextuales sobre el proceso de onboarding
+**4. LIA Contextual (Ayuda en Actividades de Cursos)**
+- **Endpoint**: `POST /api/lia/context-help`
+- **Funcionalidad**: Analiza la sesión del usuario y proporciona ayuda específica basada en comportamiento
+- **Análisis de Sesión**:
+  - **Eventos Analizados**: Clicks, scrolls, inputs, tiempo en página, recursos consultados
+  - **Métricas Detectadas**:
+    - Tiempo total en la página
+    - Número de intentos realizados
+    - Dificultad percibida (difficulty score)
+    - Recursos adicionales consultados
+    - Valores ingresados en formularios
+  - **Ventana de Análisis**: Configurable (default: 2 minutos)
+- **Capacidades**:
+  - Detecta cuando el usuario está teniendo dificultades significativas (score > 0.7)
+  - Identifica frustración por tiempo excesivo en página (> 3 minutos)
+  - Sugiere recursos cuando no se han consultado materiales adicionales
+  - Analiza inputs del usuario y proporciona feedback específico
+  - Ofrece pasos claros y accionables basados en el contexto
+- **Respuesta Contextual**:
+  - Referencia específica a lo observado en la sesión
+  - Feedback concreto sobre inputs del usuario
+  - Sugerencias de recursos específicos
+  - Tono empático si detecta frustración
+  - Emojis para hacer la respuesta más amigable
+- **Integración**: Se activa desde actividades interactivas en cursos
 
-4. **LIA Contextual (Ayuda en Actividades)**
-   - **Endpoint**: `/api/lia/context-help`
-   - **Funcionalidad**: Analiza la sesión del usuario y proporciona ayuda específica
-   - **Análisis**: Detecta dificultades, tiempo en página, intentos de actividades
-   - **Ayuda Proactiva**: Interviene cuando detecta que el usuario está teniendo problemas
+**5. LIA Proactivo (Ayuda Preventiva)**
+- **Endpoint**: `POST /api/lia/proactive-help`
+- **Funcionalidad**: Ofrece ayuda automáticamente antes de que el usuario la solicite
+- **Detección de Patrones**:
+  - **Inactividad**: Usuario sin actividad por tiempo prolongado
+  - **Intentos Fallidos**: Múltiples intentos sin éxito (failed_attempts)
+  - **Scroll Excesivo**: Búsqueda intensa de información (excessive_scroll)
+  - **Eliminaciones Frecuentes**: Borrado y reescritura constante (frequent_deletion)
+  - **Ciclos Repetitivos**: Navegación hacia atrás repetidamente (repetitive_cycles)
+  - **Clicks Erróneos**: Clicks en elementos que no responden (erroneous_clicks)
+- **Análisis de Dificultad**:
+  - **Overall Score**: Puntuación general de dificultad (0-1)
+  - **Patrones Detectados**: Lista de patrones con descripción y severidad
+  - **Contexto de Sesión**: Tiempo total, clicks, scrolls, inputs, intentos
+- **Respuesta Proactiva**:
+  - Saludo breve y empático
+  - Observación de lo detectado (sin ser muy técnico)
+  - 2-3 sugerencias concretas y accionables
+  - Pregunta abierta para continuar la conversación
+  - Recursos relevantes según los patrones detectados
+  - Próximos pasos sugeridos
+- **Tono**: Empático, específico, accionable y motivador
 
-5. **LIA Proactivo**
-   - **Endpoint**: `/api/lia/proactive-help`
-   - **Funcionalidad**: Ofrece ayuda antes de que el usuario la solicite
-   - **Detección**: Analiza patrones de comportamiento para identificar dificultades
+**6. LIA en Cursos (Tutor Personalizado)**
+- **Integración**: Directamente en `/courses/[slug]/learn`
+- **Contexto Especializado**:
+  - **Prioridad #1**: Responde ÚNICAMENTE basándose en la TRANSCRIPCIÓN del video actual
+  - **Excepción**: Prompts de actividades interactivas (permite conocimiento general relacionado)
+  - **Restricciones Estrictas**:
+    - ✅ Permitido: Contenido del curso actual, conceptos educativos relacionados, explicaciones del material, prompts de actividades interactivas
+    - ❌ Prohibido: Personajes de ficción, temas de cultura general no relacionados, entretenimiento, deportes, celebridades
+  - **Manejo de Preguntas Cortas**: Responde directamente con contenido de la lección actual
+- **Características**:
+  - Acceso a transcripción completa del video
+  - Resumen de la lección como referencia adicional
+  - Información del módulo y curso
+  - Personalización por nombre del usuario
+  - Adaptación al rol profesional del usuario
+  - Tono cálido y acogedor como tutor personal
+- **Interacción con Actividades**:
+  - Soporte para actividades guiadas paso a paso
+  - Generación de CSV con datos recopilados
+  - Seguimiento estricto del progreso en actividades
+  - Redirección cuando el usuario se desvía del objetivo
+- **Formato de Respuestas**:
+  - Texto plano sin Markdown (excepto enlaces)
+  - Citas específicas del contenido de la transcripción
+  - Ejemplos concretos del material educativo
 
-#### Características Técnicas de LIA
+**7. Sistema de Conversaciones de LIA**
+- **Endpoints**:
+  - `GET /api/lia/conversations` - Listar todas las conversaciones del usuario
+  - `POST /api/lia/conversations` - Crear nueva conversación
+  - `GET /api/lia/conversations/:id` - Obtener detalles de una conversación
+  - `GET /api/lia/conversations/:id/messages` - Obtener mensajes de una conversación
+  - `POST /api/lia/conversations/:id/messages` - Enviar mensaje en una conversación
+  - `PATCH /api/lia/conversations/:id` - Actualizar título de conversación
+  - `DELETE /api/lia/conversations/:id` - Eliminar conversación
+- **Gestión de Actividades**:
+  - `POST /api/lia/start-activity` - Iniciar interacción con actividad
+  - `POST /api/lia/update-activity` - Actualizar progreso de actividad
+  - `POST /api/lia/complete-activity` - Completar actividad
+  - `POST /api/lia/end-conversation` - Finalizar conversación
+- **Feedback**:
+  - `POST /api/lia/feedback` - Enviar feedback sobre LIA
+- **Enlaces Disponibles**:
+  - `GET /api/lia/available-links` - Obtener enlaces disponibles según rol del usuario
+
+#### 🔒 Características Técnicas de Seguridad
+
+**Protección contra Prompt Injection:**
+- Detección automática de patrones maliciosos
+- Bloqueo de intentos de manipulación
+- Validación de contenido antes de procesar
+- Respuestas de seguridad cuando se detecta manipulación
+
+**Control de Tema y Contenido:**
+- Redirección automática de preguntas fuera de tema
+- Validación de contexto según sección actual
+- Restricciones específicas para cursos
+- Sanitización de respuestas (eliminación de Markdown excepto enlaces)
 
 **Sistema de Contexto Dinámico:**
 ```typescript
 // El contexto se construye según:
 - Página actual (pathname)
-- Contenido de la página (headings, texto principal)
-- Rol del usuario (Administrador, Instructor, Estudiante, etc.)
+- Contenido extraído del DOM (headings, texto principal, meta description)
+- Rol del usuario (Administrador, Instructor, Estudiante, Business, Business User)
 - Links disponibles según rol
 - Contexto de curso/lección si está en un curso
-- Historial de conversación
+- Transcripción del video actual (en cursos)
+- Historial de conversación (últimas interacciones)
+- Idioma del usuario (ES, EN, PT)
+- Nombre del usuario para personalización
 ```
 
-**Protección de Seguridad:**
-- **Detección de Prompt Injection**: Bloquea automáticamente intentos de manipulación
-- **Patrones Detectados**: "ignore previous instructions", "jailbreak", "act as a", etc.
-- **Control de Tema**: Redirige preguntas fuera del ámbito educativo
-- **Sanitización**: Limpia Markdown de las respuestas (excepto enlaces funcionales)
-
-**Restricciones de Contenido:**
-- ✅ **Permitido**: Contenido del curso actual, explicaciones educativas, prompts de actividades
-- ❌ **Prohibido**: Personajes de ficción, temas no relacionados, conversación casual
-
 **Personalización por Rol:**
-- **Estudiante**: Enfoque en aprendizaje y comprensión
-- **Instructor**: Herramientas de enseñanza y creación de contenido
-- **Administrador**: Gestión de plataforma y configuración
-- **Business**: Gestión de equipos y organizaciones
+- **Estudiante**: Enfoque en aprendizaje, comprensión y progreso
+- **Instructor**: Herramientas de enseñanza, creación de contenido, estadísticas
+- **Administrador**: Gestión de plataforma, configuración, analytics
+- **Business**: Gestión de equipos, organizaciones, reportes corporativos
+- **Business User**: Acceso a contenido empresarial asignado
 
 **Integración con OpenAI:**
-- **Modelo Principal**: GPT-4 Turbo
+- **Modelo Principal**: GPT-4 Turbo (gpt-4o)
 - **Temperature**: 0.7 (equilibrio entre creatividad y precisión)
-- **Max Tokens**: Configurable según el contexto
-- **System Prompts**: Construidos dinámicamente según contexto
-- **Conversation History**: Mantiene contexto de conversaciones previas
+- **Max Tokens**: Configurable según el contexto (800-2000)
+- **System Prompts**: Construidos dinámicamente según contexto y sección
+- **Conversation History**: Mantiene últimas 6-10 interacciones para contexto
+- **Rate Limiting**: Protección contra abuso con límites configurables
+- **Cost Monitoring**: Tracking de uso y costos de OpenAI
 
 **Sistema de Logging y Analytics:**
-- **LiaLogger**: Registra todas las interacciones
-- **Métricas**: Tiempo de respuesta, uso por sección, satisfacción
+- **LiaLogger**: Registra todas las interacciones con contexto completo
+- **Métricas Tracked**:
+  - Tiempo de respuesta de OpenAI
+  - Uso por sección de la plataforma
+  - Satisfacción del usuario (feedback)
+  - Patrones de uso por rol
+  - Contextos más utilizados
+  - Costos por conversación
 - **Context Tracking**: Analiza qué secciones usan más LIA
+- **Error Logging**: Registro estructurado de errores para debugging
+- **Performance Monitoring**: Métricas de latencia y throughput
 
 ### 4. Comunidades
 
