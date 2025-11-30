@@ -39,7 +39,8 @@ import {
   X,
   Image as ImageIcon,
   Link2,
-  Globe
+  Globe,
+  Shield
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
@@ -1300,6 +1301,7 @@ interface Community {
   has_pending_request?: boolean;
   user_role?: string;
   can_join?: boolean;
+  creator_id?: string;
 }
 
 interface Post {
@@ -2168,8 +2170,18 @@ export default function CommunityDetailPage() {
           </motion.div>
 
           <motion.div className="space-y-4" variants={itemVariants}>
-            <div className="hidden md:block">
+            <div className="hidden md:block space-y-3">
               {getAccessButton()}
+              {/* Botón de moderación - Solo visible para owners y moderadores */}
+              {user && community && (community.user_role === 'admin' || community.user_role === 'moderator' || user.id === community.creator_id) && (
+                <Button
+                  onClick={() => router.push(`/communities/${slug}/moderation/reports`)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  Panel de Moderación
+                </Button>
+              )}
             </div>
             <div className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-5">
               <div className="flex items-center justify-between">

@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useUserRole } from '@/core/hooks/useUserRole'
 import { ConfirmDeleteModal } from '../ConfirmDeleteModal'
+import { ReportPostModal } from '../ReportPostModal'
 
 interface PostMenuProps {
   post: {
@@ -48,6 +49,7 @@ export function PostMenu({
   const [isProcessing, setIsProcessing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { user } = useAuth()
@@ -88,12 +90,9 @@ export function PostMenu({
     }
   }
 
-  const handleReport = async () => {
+  const handleReport = () => {
     setIsOpen(false)
-    // TODO: Implementar modal de reporte o redirigir a página de reportes
-    // Por ahora, usar el sistema de reportes existente
-    const reportUrl = `/reportes?type=post&id=${post.id}&community=${communitySlug}`
-    window.open(reportUrl, '_blank')
+    setShowReportModal(true)
   }
 
   const handleDeleteClick = () => {
@@ -267,6 +266,17 @@ export function PostMenu({
         confirmText="Eliminar"
         cancelText="Cancelar"
         isLoading={isProcessing}
+      />
+
+      {/* Modal de reporte */}
+      <ReportPostModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        postId={post.id}
+        communitySlug={communitySlug}
+        onSuccess={() => {
+          // Opcional: mostrar notificación o actualizar UI
+        }}
       />
     </div>
   )

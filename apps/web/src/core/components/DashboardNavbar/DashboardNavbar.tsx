@@ -14,7 +14,6 @@ import {
 import { useTranslation } from 'react-i18next'
 import { UserDropdown } from '../UserDropdown'
 import { ShoppingCart } from '../ShoppingCart'
-import { HiddenAdminButton } from '../HiddenAdminButton'
 import { NotificationBell } from '../NotificationBell'
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg'
 import { useRouter, usePathname } from 'next/navigation'
@@ -481,8 +480,6 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
         </div>
       </div>
       
-      {/* Botón oculto de administración */}
-      <HiddenAdminButton />
     </motion.header>
   )
 }

@@ -21,9 +21,11 @@ import {
   MapPinIcon,
   ShieldCheckIcon,
   GlobeAltIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  FlagIcon
 } from '@heroicons/react/24/outline'
 import { useCommunityDetail } from '../hooks/useCommunityDetail'
+import { CommunityReportsSection } from './CommunityReportsSection'
 
 const ConfirmationModal = dynamic(() => import('./ConfirmationModal').then(mod => ({ default: mod.ConfirmationModal })), {
   ssr: false
@@ -42,7 +44,7 @@ interface AdminCommunityDetailPageProps {
 export function AdminCommunityDetailPage({ slug }: AdminCommunityDetailPageProps) {
   const router = useRouter()
   const { community, posts, members, accessRequests, videos, isLoading, error, refetch, updateMembers, updateAccessRequests, updatePosts } = useCommunityDetail(slug)
-  const [activeTab, setActiveTab] = useState<'posts' | 'members' | 'requests' | 'videos'>('posts')
+  const [activeTab, setActiveTab] = useState<'posts' | 'members' | 'requests' | 'videos' | 'reports'>('posts')
   const [isProcessing, setIsProcessing] = useState<string | null>(null)
   
   // Estados para el modal de confirmación
@@ -550,7 +552,8 @@ export function AdminCommunityDetailPage({ slug }: AdminCommunityDetailPageProps
                 { id: 'posts', label: 'Posts', icon: DocumentTextIcon, count: posts.length },
                 { id: 'members', label: 'Miembros', icon: UserGroupIcon, count: members.length },
                 { id: 'requests', label: 'Solicitudes', icon: UserPlusIcon, count: accessRequests.length },
-                { id: 'videos', label: 'Videos', icon: VideoCameraIcon, count: videos.length }
+                { id: 'videos', label: 'Videos', icon: VideoCameraIcon, count: videos.length },
+                { id: 'reports', label: 'Reportes', icon: FlagIcon, count: 0 }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -902,6 +905,10 @@ export function AdminCommunityDetailPage({ slug }: AdminCommunityDetailPageProps
                   </div>
                 )}
               </div>
+            )}
+
+            {activeTab === 'reports' && (
+              <CommunityReportsSection communitySlug={slug} />
             )}
           </div>
         </div>
