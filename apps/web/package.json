@@ -51,7 +51,7 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.0",
     "@tanstack/react-table": "^8.21.3",
-    "@tremor/react": "^3.18.7",
+    "@tremor/react": "3.18.7",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.9.1",
     "@types/nodemailer": "^7.0.3",
