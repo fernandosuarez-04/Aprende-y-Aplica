@@ -22,7 +22,97 @@ export interface ThemeConfig {
   login: ThemeStyle;
 }
 
+export interface BrandingColors {
+  color_primary: string;
+  color_secondary: string;
+  color_accent: string;
+}
+
+/**
+ * Función auxiliar para oscurecer un color hexadecimal
+ */
+function darkenColor(hex: string, percent: number): string {
+  // Remover el # si existe
+  hex = hex.replace('#', '');
+
+  // Convertir a RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Oscurecer
+  const newR = Math.floor(r * (1 - percent));
+  const newG = Math.floor(g * (1 - percent));
+  const newB = Math.floor(b * (1 - percent));
+
+  // Convertir de vuelta a hex
+  const toHex = (n: number) => {
+    const hex = n.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+
+  return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
+}
+
+/**
+ * Genera un tema automáticamente desde los colores de Branding
+ */
+export function generateBrandingTheme(branding: BrandingColors): ThemeConfig {
+  const darkPrimary = darkenColor(branding.color_primary, 0.7);
+  const mediumPrimary = darkenColor(branding.color_primary, 0.5);
+  const lightPrimary = darkenColor(branding.color_primary, 0.3);
+
+  return {
+    id: 'branding-personalizado',
+    name: 'Branding Personalizado',
+    description: 'Tema generado automáticamente con los colores de tu marca',
+    panel: {
+      background_type: 'gradient',
+      background_value: `linear-gradient(135deg, ${darkPrimary} 0%, ${mediumPrimary} 50%, ${lightPrimary} 100%)`,
+      primary_button_color: branding.color_primary,
+      secondary_button_color: branding.color_secondary,
+      accent_color: branding.color_accent,
+      sidebar_background: darkPrimary,
+      card_background: darkPrimary,
+      text_color: '#ffffff',
+      border_color: '#334155',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 0.98
+    },
+    userDashboard: {
+      background_type: 'gradient',
+      background_value: `linear-gradient(135deg, ${darkPrimary} 0%, ${mediumPrimary} 50%, ${lightPrimary} 100%)`,
+      primary_button_color: branding.color_primary,
+      secondary_button_color: branding.color_secondary,
+      accent_color: branding.color_accent,
+      sidebar_background: darkPrimary,
+      card_background: darkPrimary,
+      text_color: '#ffffff',
+      border_color: '#334155',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 0.98
+    },
+    login: {
+      background_type: 'gradient',
+      background_value: `linear-gradient(135deg, ${darkPrimary} 0%, ${lightPrimary} 100%)`,
+      primary_button_color: branding.color_primary,
+      secondary_button_color: branding.color_secondary,
+      accent_color: branding.color_accent,
+      sidebar_background: 'transparent',
+      card_background: `rgba(30, 41, 59, 0.95)`,
+      text_color: '#ffffff',
+      border_color: '#334155',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 1
+    }
+  };
+}
+
 export const PRESET_THEMES: Record<string, ThemeConfig> = {
+  // 1. Corporativo Azul (Mantener sin cambios)
   'corporativo-azul': {
     id: 'corporativo-azul',
     name: 'Corporativo Azul',
@@ -70,53 +160,8 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
       sidebar_opacity: 1
     }
   },
-  'profesional-verde': {
-    id: 'profesional-verde',
-    name: 'Profesional Verde',
-    description: 'Tema empresarial con tonos verde esmeralda',
-    panel: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #0a4d3c 0%, #0d5943 50%, #0f6b4a 100%)',
-      primary_button_color: '#10b981',
-      secondary_button_color: '#059669',
-      accent_color: '#34d399',
-      sidebar_background: '#064e3b',
-      card_background: '#064e3b',
-      text_color: '#dcfce7',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 0.98
-    },
-    userDashboard: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #0a4d3c 0%, #0d5943 50%, #0f6b4a 100%)',
-      primary_button_color: '#10b981',
-      secondary_button_color: '#059669',
-      accent_color: '#34d399',
-      sidebar_background: '#064e3b',
-      card_background: '#064e3b',
-      text_color: '#dcfce7',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 0.98
-    },
-    login: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #064e3b 0%, #0f6b4a 100%)',
-      primary_button_color: '#10b981',
-      secondary_button_color: '#059669',
-      accent_color: '#34d399',
-      sidebar_background: 'transparent',
-      card_background: 'rgba(30, 41, 59, 0.95)',
-      text_color: '#dcfce7',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 1
-    }
-  },
+
+  // 2. Ejecutivo Oscuro (Mantener sin cambios)
   'ejecutivo-oscuro': {
     id: 'ejecutivo-oscuro',
     name: 'Ejecutivo Oscuro',
@@ -164,113 +209,21 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
       sidebar_opacity: 1
     }
   },
-  'tecnologico': {
-    id: 'tecnologico',
-    name: 'Tecnológico',
-    description: 'Tema moderno con tonos tecnológicos cian y azul',
-    panel: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #134e4a 0%, #155e75 50%, #0c4a6e 100%)',
-      primary_button_color: '#06b6d4',
-      secondary_button_color: '#0891b2',
-      accent_color: '#22d3ee',
-      sidebar_background: '#0a3a40',
-      card_background: '#0a3a40',
-      text_color: '#cffafe',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 0.98
-    },
-    userDashboard: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #134e4a 0%, #155e75 50%, #0c4a6e 100%)',
-      primary_button_color: '#06b6d4',
-      secondary_button_color: '#0891b2',
-      accent_color: '#22d3ee',
-      sidebar_background: '#0a3a40',
-      card_background: '#0a3a40',
-      text_color: '#cffafe',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 0.98
-    },
-    login: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #0a3a40 0%, #0c4a6e 100%)',
-      primary_button_color: '#06b6d4',
-      secondary_button_color: '#0891b2',
-      accent_color: '#22d3ee',
-      sidebar_background: 'transparent',
-      card_background: 'rgba(30, 41, 59, 0.95)',
-      text_color: '#cffafe',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 1
-    }
-  },
-  'financiero': {
-    id: 'financiero',
-    name: 'Financiero',
-    description: 'Tema profesional para sector financiero',
-    panel: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3730a3 100%)',
-      primary_button_color: '#3b82f6',
-      secondary_button_color: '#2563eb',
-      accent_color: '#60a5fa',
-      sidebar_background: '#1e1b4b',
-      card_background: '#1e1b4b',
-      text_color: '#dbeafe',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 0.98
-    },
-    userDashboard: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3730a3 100%)',
-      primary_button_color: '#3b82f6',
-      secondary_button_color: '#2563eb',
-      accent_color: '#60a5fa',
-      sidebar_background: '#1e1b4b',
-      card_background: '#1e1b4b',
-      text_color: '#dbeafe',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 0.98
-    },
-    login: {
-      background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #1e1b4b 0%, #3730a3 100%)',
-      primary_button_color: '#3b82f6',
-      secondary_button_color: '#2563eb',
-      accent_color: '#60a5fa',
-      sidebar_background: 'transparent',
-      card_background: 'rgba(30, 41, 59, 0.95)',
-      text_color: '#dbeafe',
-      border_color: '#334155',
-      modal_opacity: 0.95,
-      card_opacity: 0.95,
-      sidebar_opacity: 1
-    }
-  },
+
+  // 3. Premium Dorado (MEJORADO - sin café)
   'premium-dorado': {
     id: 'premium-dorado',
     name: 'Premium Dorado',
-    description: 'Tema de lujo con detalles dorados',
+    description: 'Tema de lujo con detalles dorados sobre fondo oscuro elegante',
     panel: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #1c1917 0%, #292524 50%, #44403c 100%)',
-      primary_button_color: '#f59e0b',
-      secondary_button_color: '#d97706',
-      accent_color: '#fbbf24',
-      sidebar_background: '#0c0a09',
-      card_background: '#0c0a09',
-      text_color: '#fef9c3',
+      background_value: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2d2d2d 100%)',
+      primary_button_color: '#fbbf24',
+      secondary_button_color: '#f59e0b',
+      accent_color: '#fb923c',
+      sidebar_background: '#0f0f0f',
+      card_background: '#0f0f0f',
+      text_color: '#fef3c7',
       border_color: '#78716c',
       modal_opacity: 0.95,
       card_opacity: 0.95,
@@ -278,13 +231,13 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
     },
     userDashboard: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #1c1917 0%, #292524 50%, #44403c 100%)',
-      primary_button_color: '#f59e0b',
-      secondary_button_color: '#d97706',
-      accent_color: '#fbbf24',
-      sidebar_background: '#0c0a09',
-      card_background: '#0c0a09',
-      text_color: '#fef9c3',
+      background_value: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2d2d2d 100%)',
+      primary_button_color: '#fbbf24',
+      secondary_button_color: '#f59e0b',
+      accent_color: '#fb923c',
+      sidebar_background: '#0f0f0f',
+      card_background: '#0f0f0f',
+      text_color: '#fef3c7',
       border_color: '#78716c',
       modal_opacity: 0.95,
       card_opacity: 0.95,
@@ -292,32 +245,83 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
     },
     login: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #0c0a09 0%, #44403c 100%)',
-      primary_button_color: '#f59e0b',
-      secondary_button_color: '#d97706',
-      accent_color: '#fbbf24',
+      background_value: 'linear-gradient(135deg, #0a0a0a 0%, #2d2d2d 100%)',
+      primary_button_color: '#fbbf24',
+      secondary_button_color: '#f59e0b',
+      accent_color: '#fb923c',
       sidebar_background: 'transparent',
-      card_background: 'rgba(28, 25, 23, 0.95)',
-      text_color: '#fef9c3',
+      card_background: 'rgba(26, 26, 26, 0.95)',
+      text_color: '#fef3c7',
       border_color: '#78716c',
       modal_opacity: 0.95,
       card_opacity: 0.95,
       sidebar_opacity: 1
     }
   },
-  'salud-wellness': {
-    id: 'salud-wellness',
-    name: 'Salud & Wellness',
-    description: 'Tema suave y relajante para sector salud y bienestar',
+
+  // 4. Élite Plateado (NUEVO)
+  'elite-plateado': {
+    id: 'elite-plateado',
+    name: 'Élite Plateado',
+    description: 'Tema elegante con tonos plateados y grises profesionales',
     panel: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #14532d 0%, #15803d 50%, #16a34a 100%)',
-      primary_button_color: '#22c55e',
-      secondary_button_color: '#16a34a',
-      accent_color: '#4ade80',
-      sidebar_background: '#14532d',
-      card_background: '#14532d',
-      text_color: '#dcfce7',
+      background_value: 'linear-gradient(135deg, #1a1a1a 0%, #2d3748 50%, #374151 100%)',
+      primary_button_color: '#9ca3af',
+      secondary_button_color: '#d1d5db',
+      accent_color: '#6b7280',
+      sidebar_background: '#1f2937',
+      card_background: '#1f2937',
+      text_color: '#f9fafb',
+      border_color: '#4b5563',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 0.98
+    },
+    userDashboard: {
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #1a1a1a 0%, #2d3748 50%, #374151 100%)',
+      primary_button_color: '#9ca3af',
+      secondary_button_color: '#d1d5db',
+      accent_color: '#6b7280',
+      sidebar_background: '#1f2937',
+      card_background: '#1f2937',
+      text_color: '#f9fafb',
+      border_color: '#4b5563',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 0.98
+    },
+    login: {
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
+      primary_button_color: '#9ca3af',
+      secondary_button_color: '#d1d5db',
+      accent_color: '#6b7280',
+      sidebar_background: 'transparent',
+      card_background: 'rgba(31, 41, 55, 0.95)',
+      text_color: '#f9fafb',
+      border_color: '#4b5563',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 1
+    }
+  },
+
+  // 5. Empresarial Verde (NUEVO)
+  'empresarial-verde': {
+    id: 'empresarial-verde',
+    name: 'Empresarial Verde',
+    description: 'Tema profesional con tonos verdes corporativos',
+    panel: {
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%)',
+      primary_button_color: '#10b981',
+      secondary_button_color: '#34d399',
+      accent_color: '#6ee7b7',
+      sidebar_background: '#064e3b',
+      card_background: '#064e3b',
+      text_color: '#d1fae5',
       border_color: '#334155',
       modal_opacity: 0.95,
       card_opacity: 0.95,
@@ -325,13 +329,13 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
     },
     userDashboard: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #14532d 0%, #15803d 50%, #16a34a 100%)',
-      primary_button_color: '#22c55e',
-      secondary_button_color: '#16a34a',
-      accent_color: '#4ade80',
-      sidebar_background: '#14532d',
-      card_background: '#14532d',
-      text_color: '#dcfce7',
+      background_value: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%)',
+      primary_button_color: '#10b981',
+      secondary_button_color: '#34d399',
+      accent_color: '#6ee7b7',
+      sidebar_background: '#064e3b',
+      card_background: '#064e3b',
+      text_color: '#d1fae5',
       border_color: '#334155',
       modal_opacity: 0.95,
       card_opacity: 0.95,
@@ -339,32 +343,34 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
     },
     login: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)',
-      primary_button_color: '#22c55e',
-      secondary_button_color: '#16a34a',
-      accent_color: '#4ade80',
+      background_value: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)',
+      primary_button_color: '#10b981',
+      secondary_button_color: '#34d399',
+      accent_color: '#6ee7b7',
       sidebar_background: 'transparent',
       card_background: 'rgba(30, 41, 59, 0.95)',
-      text_color: '#dcfce7',
+      text_color: '#d1fae5',
       border_color: '#334155',
       modal_opacity: 0.95,
       card_opacity: 0.95,
       sidebar_opacity: 1
     }
   },
-  'creativo-magenta': {
-    id: 'creativo-magenta',
-    name: 'Creativo Magenta',
-    description: 'Tema vibrante y creativo con tonos magenta y rosa',
+
+  // 6. Financiero Premium (NUEVO)
+  'financiero-premium': {
+    id: 'financiero-premium',
+    name: 'Financiero Premium',
+    description: 'Tema profesional para sector financiero con azules elegantes',
     panel: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #701a75 0%, #86198f 50%, #a21caf 100%)',
-      primary_button_color: '#d946ef',
-      secondary_button_color: '#c026d3',
-      accent_color: '#e879f9',
-      sidebar_background: '#581c87',
-      card_background: '#581c87',
-      text_color: '#fae8ff',
+      background_value: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%)',
+      primary_button_color: '#0ea5e9',
+      secondary_button_color: '#06b6d4',
+      accent_color: '#38bdf8',
+      sidebar_background: '#0c4a6e',
+      card_background: '#0c4a6e',
+      text_color: '#e0f2fe',
       border_color: '#334155',
       modal_opacity: 0.95,
       card_opacity: 0.95,
@@ -372,13 +378,13 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
     },
     userDashboard: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #701a75 0%, #86198f 50%, #a21caf 100%)',
-      primary_button_color: '#d946ef',
-      secondary_button_color: '#c026d3',
-      accent_color: '#e879f9',
-      sidebar_background: '#581c87',
-      card_background: '#581c87',
-      text_color: '#fae8ff',
+      background_value: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%)',
+      primary_button_color: '#0ea5e9',
+      secondary_button_color: '#06b6d4',
+      accent_color: '#38bdf8',
+      sidebar_background: '#0c4a6e',
+      card_background: '#0c4a6e',
+      text_color: '#e0f2fe',
       border_color: '#334155',
       modal_opacity: 0.95,
       card_opacity: 0.95,
@@ -386,62 +392,113 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
     },
     login: {
       background_type: 'gradient',
-      background_value: 'linear-gradient(135deg, #581c87 0%, #a21caf 100%)',
-      primary_button_color: '#d946ef',
-      secondary_button_color: '#c026d3',
-      accent_color: '#e879f9',
+      background_value: 'linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%)',
+      primary_button_color: '#0ea5e9',
+      secondary_button_color: '#06b6d4',
+      accent_color: '#38bdf8',
       sidebar_background: 'transparent',
       card_background: 'rgba(30, 41, 59, 0.95)',
-      text_color: '#fae8ff',
+      text_color: '#e0f2fe',
       border_color: '#334155',
       modal_opacity: 0.95,
       card_opacity: 0.95,
       sidebar_opacity: 1
     }
   },
-  'minimalista-claro': {
-    id: 'minimalista-claro',
-    name: 'Minimalista Claro',
-    description: 'Tema limpio y minimalista con tonos claros',
+
+  // 7. Industrial Gris (NUEVO)
+  'industrial-gris': {
+    id: 'industrial-gris',
+    name: 'Industrial Gris',
+    description: 'Tema neutro y profesional con tonos grises industriales',
     panel: {
-      background_type: 'color',
-      background_value: '#f8fafc',
-      primary_button_color: '#0f172a',
-      secondary_button_color: '#475569',
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #18181b 0%, #27272a 50%, #3f3f46 100%)',
+      primary_button_color: '#71717a',
+      secondary_button_color: '#a1a1aa',
       accent_color: '#64748b',
-      sidebar_background: '#e2e8f0',
-      card_background: '#ffffff',
-      text_color: '#0f172a',
-      border_color: '#cbd5e1',
-      modal_opacity: 0.98,
+      sidebar_background: '#18181b',
+      card_background: '#18181b',
+      text_color: '#fafafa',
+      border_color: '#52525b',
+      modal_opacity: 0.95,
       card_opacity: 0.95,
       sidebar_opacity: 0.98
     },
     userDashboard: {
-      background_type: 'color',
-      background_value: '#f8fafc',
-      primary_button_color: '#0f172a',
-      secondary_button_color: '#475569',
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #18181b 0%, #27272a 50%, #3f3f46 100%)',
+      primary_button_color: '#71717a',
+      secondary_button_color: '#a1a1aa',
       accent_color: '#64748b',
-      sidebar_background: '#e2e8f0',
-      card_background: '#ffffff',
-      text_color: '#0f172a',
-      border_color: '#cbd5e1',
-      modal_opacity: 0.98,
+      sidebar_background: '#18181b',
+      card_background: '#18181b',
+      text_color: '#fafafa',
+      border_color: '#52525b',
+      modal_opacity: 0.95,
       card_opacity: 0.95,
       sidebar_opacity: 0.98
     },
     login: {
-      background_type: 'color',
-      background_value: '#f8fafc',
-      primary_button_color: '#0f172a',
-      secondary_button_color: '#475569',
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #18181b 0%, #3f3f46 100%)',
+      primary_button_color: '#71717a',
+      secondary_button_color: '#a1a1aa',
       accent_color: '#64748b',
       sidebar_background: 'transparent',
-      card_background: '#ffffff',
-      text_color: '#0f172a',
-      border_color: '#cbd5e1',
-      modal_opacity: 0.98,
+      card_background: 'rgba(39, 39, 42, 0.95)',
+      text_color: '#fafafa',
+      border_color: '#52525b',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 1
+    }
+  },
+
+  // 8. Tecnológico Cyan (NUEVO)
+  'tecnologico-cyan': {
+    id: 'tecnologico-cyan',
+    name: 'Tecnológico Cyan',
+    description: 'Tema moderno con tonos cyan y teal tecnológicos',
+    panel: {
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #134e4a 0%, #155e75 50%, #0891b2 100%)',
+      primary_button_color: '#06b6d4',
+      secondary_button_color: '#14b8a6',
+      accent_color: '#22d3ee',
+      sidebar_background: '#134e4a',
+      card_background: '#134e4a',
+      text_color: '#ccfbf1',
+      border_color: '#334155',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 0.98
+    },
+    userDashboard: {
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #134e4a 0%, #155e75 50%, #0891b2 100%)',
+      primary_button_color: '#06b6d4',
+      secondary_button_color: '#14b8a6',
+      accent_color: '#22d3ee',
+      sidebar_background: '#134e4a',
+      card_background: '#134e4a',
+      text_color: '#ccfbf1',
+      border_color: '#334155',
+      modal_opacity: 0.95,
+      card_opacity: 0.95,
+      sidebar_opacity: 0.98
+    },
+    login: {
+      background_type: 'gradient',
+      background_value: 'linear-gradient(135deg, #134e4a 0%, #0891b2 100%)',
+      primary_button_color: '#06b6d4',
+      secondary_button_color: '#14b8a6',
+      accent_color: '#22d3ee',
+      sidebar_background: 'transparent',
+      card_background: 'rgba(30, 41, 59, 0.95)',
+      text_color: '#ccfbf1',
+      border_color: '#334155',
+      modal_opacity: 0.95,
       card_opacity: 0.95,
       sidebar_opacity: 1
     }

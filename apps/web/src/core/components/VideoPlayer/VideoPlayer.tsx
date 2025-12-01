@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Settings, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { CustomVideoPlayer } from '../CustomVideoPlayer/CustomVideoPlayer';
 
 interface VideoPlayerProps {
   videoProvider: 'youtube' | 'vimeo' | 'direct' | 'custom';
@@ -200,70 +201,16 @@ export function VideoPlayer({
       );
     }
 
-    // Para videos directos o custom, usar tag <video> en lugar de iframe
-    // Esto evita problemas de CSP y es más eficiente para videos de Supabase
+    // Para videos directos o custom, usar CustomVideoPlayer con controles personalizados
     if (videoProvider === 'direct' || videoProvider === 'custom') {
       return (
-        <div className="relative w-full h-full min-h-[200px]">
-          {/* Overlay de carga - se muestra sobre el video mientras carga */}
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 dark:bg-gray-800/90 rounded-lg z-10 backdrop-blur-sm">
-              <div className="text-center">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-2" />
-                <p className="text-white text-sm">Cargando video...</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Video - siempre visible pero con opacidad reducida mientras carga */}
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            controls
-            className={`w-full h-full rounded-lg transition-opacity duration-300 ${
-              isLoading ? 'opacity-30' : 'opacity-100'
-            }`}
-            preload={preloadStrategy}
-            playsInline
-            onLoadedMetadata={() => {
-              // El video ha cargado los metadatos (duración, dimensiones, etc.)
-              setIsLoading(false);
-              setError(null);
-            }}
-            onLoadedData={() => {
-              // El video ha cargado suficientes datos para empezar a reproducir
-              setIsLoading(false);
-              setError(null);
-            }}
-            onCanPlay={() => {
-              // El video puede empezar a reproducirse
-              setIsLoading(false);
-              setError(null);
-            }}
-            onCanPlayThrough={() => {
-              // El video puede reproducirse hasta el final sin interrupciones
-              setIsLoading(false);
-              setError(null);
-            }}
-            onPlay={handleUserInteraction}
-            onClick={handleUserInteraction}
-            onError={(e) => {
-              // console.error('VideoPlayer video error:', e);
-              setIsLoading(false);
-              setError('Error al cargar el video');
-            }}
-            onWaiting={() => {
-              // El video está esperando más datos (buffering)
-              setIsLoading(true);
-            }}
-            onPlaying={() => {
-              // El video está reproduciéndose
-              setIsLoading(false);
-            }}
-          >
-            Tu navegador no soporta la reproducción de video.
-          </video>
-        </div>
+        <CustomVideoPlayer
+          src={videoUrl}
+          title={title}
+          className="w-full h-full"
+          onProgress={onProgress}
+          onComplete={onComplete}
+        />
       );
     }
 

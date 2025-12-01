@@ -1,6 +1,7 @@
  'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -49,8 +50,10 @@ import {
   History,
   Edit2,
   MoreVertical,
+  RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
-import { UserDropdown } from '../../../../core/components/UserDropdown';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
@@ -63,13 +66,11 @@ import { COURSE_LEARN_TOUR_STEPS } from '../../../../features/courses/config/cou
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useSwipe } from '../../../../hooks/useSwipe';
+import { useTranslation } from 'react-i18next';
+import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
-const NotesModal = dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
-  loading: () => <div className="flex items-center justify-center p-8">Cargando notas...</div>,
-  ssr: false // Modal no necesita SSR
-});
-
+// VideoPlayer se define fuera para que pueda ser usado en componentes hijos
 const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlayer').then(mod => ({ default: mod.VideoPlayer })), {
   loading: () => <div className="flex items-center justify-center aspect-video bg-gray-900 rounded-lg">Cargando video...</div>,
   ssr: false
@@ -115,6 +116,24 @@ export default function CourseLearnPage() {
 
   // Obtener usuario y su rol
   const { user } = useAuth();
+  
+  // Hook de traducción con verificación de inicialización
+  const { t, i18n, ready } = useTranslation('learn');
+  // Detectar idioma seleccionado
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  
+  // Estado para evitar errores de hidratación
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Crear componentes dinámicos con loaders traducidos
+  const NotesModal = useMemo(() => dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
+    loading: () => <div className="flex items-center justify-center p-8">{mounted && ready ? t('loading.notes') : 'Cargando notas...'}</div>,
+    ssr: false
+  }), [t, mounted, ready]);
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -201,6 +220,8 @@ export default function CourseLearnPage() {
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
+  // Ref para el botón del menú de Lia
+  const liaMenuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Estados para historial de conversaciones
   const [showHistory, setShowHistory] = useState(false);
@@ -222,6 +243,20 @@ export default function CourseLearnPage() {
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [showLiaMenu, setShowLiaMenu] = useState(false);
+  const [liaMenuPosition, setLiaMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+  // Calcular posición del menú cuando se abre
+  useEffect(() => {
+    if (showLiaMenu && liaMenuButtonRef.current) {
+      const buttonRect = liaMenuButtonRef.current.getBoundingClientRect();
+      setLiaMenuPosition({
+        top: buttonRect.bottom + 8, // 8px de margen (mt-2)
+        right: window.innerWidth - buttonRect.right
+      });
+    } else {
+      setLiaMenuPosition(null);
+    }
+  }, [showLiaMenu]);
 
   // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
   const [userBehaviorLog, setUserBehaviorLog] = useState<Array<{
@@ -429,7 +464,10 @@ export default function CourseLearnPage() {
 
   // Callback memoizado para evitar loops infinitos
   const handlePromptsChange = useCallback((prompts: string[]) => {
+    console.log('[handlePromptsChange] Recibiendo prompts:', prompts.length);
+    console.log('[handlePromptsChange] Prompts recibidos:', prompts);
     setCurrentActivityPrompts(prompts);
+    console.log('[handlePromptsChange] Estado actualizado');
   }, []);
 
   // Detectar tamaño de pantalla y ajustar estado inicial de paneles
@@ -997,7 +1035,14 @@ export default function CourseLearnPage() {
     activityTitle: string,
     userRole?: string
   ): Promise<string[]> => {
+    console.log('[generateRoleBasedPrompts] Iniciando con:', {
+      basePrompts: basePrompts.length,
+      activityTitle,
+      userRole
+    });
+
     if (!userRole || basePrompts.length === 0) {
+      console.log('[generateRoleBasedPrompts] Sin rol o sin prompts base, retornando originales');
       return basePrompts; // Retornar prompts originales si no hay rol
     }
 
@@ -1021,6 +1066,8 @@ INSTRUCCIONES:
 
 PROMPTS ADAPTADOS:`;
 
+      console.log('[generateRoleBasedPrompts] Llamando a /api/ai-chat...');
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -1034,12 +1081,16 @@ PROMPTS ADAPTADOS:`;
         }),
       });
 
+      console.log('[generateRoleBasedPrompts] Respuesta HTTP:', response.status, response.statusText);
+
       if (!response.ok) {
+        console.warn('[generateRoleBasedPrompts] Respuesta no OK, usando fallback');
         return basePrompts; // Fallback a prompts originales
       }
 
       const data = await response.json();
       const generatedText = data.response || '';
+      console.log('[generateRoleBasedPrompts] Texto generado:', generatedText.substring(0, 200) + '...');
 
       // Extraer prompts de la respuesta (cada línea es un prompt)
       const adaptedPrompts = generatedText
@@ -1048,9 +1099,17 @@ PROMPTS ADAPTADOS:`;
         .filter((line: string) => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
         .slice(0, basePrompts.length); // Limitar al número de prompts originales
 
-      return adaptedPrompts.length > 0 ? adaptedPrompts : basePrompts;
+      console.log('[generateRoleBasedPrompts] Prompts adaptados extraídos:', adaptedPrompts.length);
+
+      if (adaptedPrompts.length === 0) {
+        console.warn('[generateRoleBasedPrompts] No se extrajeron prompts, usando originales');
+        return basePrompts;
+      }
+
+      console.log('[generateRoleBasedPrompts] ✓ Personalización exitosa');
+      return adaptedPrompts;
     } catch (error) {
-      console.error('Error generando prompts adaptados:', error);
+      console.error('[generateRoleBasedPrompts] ✗ Error:', error);
       return basePrompts; // Fallback a prompts originales
     }
   }, []); // Sin dependencias ya que no usa variables del scope
@@ -1520,9 +1579,16 @@ Antes de cada respuesta, pregúntate:
         // ⚡ OPTIMIZACIÓN CRÍTICA: Usar endpoint unificado para reducir de 7 requests a 1
         // Determinar lessonId para incluir datos de lección actual (opcional)
         const lessonId = currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
-        const queryParams = lessonId ? `?lessonId=${lessonId}` : '';
+        // Pasar el idioma para obtener transcript y summary desde la tabla correcta
+        const queryParams = new URLSearchParams();
+        if (lessonId) {
+          queryParams.append('lessonId', lessonId);
+        }
+        queryParams.append('language', selectedLang);
+        const queryString = queryParams.toString();
+        const fullQuery = queryString ? `?${queryString}` : '';
 
-        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${queryParams}`);
+        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${fullQuery}`);
 
         // Extraer datos del response unificado
         if (learnData.course) {
@@ -1530,10 +1596,44 @@ Antes de cada respuesta, pregúntate:
         }
 
         if (learnData.modules) {
-          setModules(learnData.modules);
+          // Traducir títulos de módulos y títulos/descripciones de lecciones según idioma
+          const translatedModules = await Promise.all(
+            learnData.modules.map(async (m: Module) => {
+              // Traducir el título del módulo
+              const moduleWithId = { ...m, id: m.module_id };
+              const translatedModule = await ContentTranslationService.translateObject(
+                'module',
+                moduleWithId,
+                ['module_title'],
+                i18n.language
+              );
+
+              // Traducir las lecciones del módulo
+              const translatedLessons = await Promise.all(
+                m.lessons.map(async (l: Lesson) => {
+                  const lessonWithId = { ...l, id: l.lesson_id };
+                  // Solo traducir lesson_title desde content_translations
+                  // lesson_description, summary_content y transcript_content vienen desde la tabla correcta según idioma
+                  const translated = await ContentTranslationService.translateObject(
+                    'lesson',
+                    lessonWithId,
+                    ['lesson_title'],
+                    i18n.language
+                  );
+                  // Mantener lesson_description, summary_content y transcript_content desde la tabla por idioma
+                  translated.lesson_description = l.lesson_description;
+                  translated.summary_content = l.summary_content;
+                  translated.transcript_content = l.transcript_content;
+                  return translated;
+                })
+              );
+              return { ...translatedModule, lessons: translatedLessons };
+            })
+          );
+          setModules(translatedModules);
 
           // Calcular progreso
-          const allLessons = learnData.modules.flatMap((m: Module) => m.lessons);
+          const allLessons = translatedModules.flatMap((m: Module) => m.lessons);
           const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
           const totalProgress = allLessons.length > 0
             ? Math.round((completedLessons.length / allLessons.length) * 100)
@@ -1591,7 +1691,7 @@ Antes de cada respuesta, pregúntate:
     if (slug) {
       loadCourse();
     }
-  }, [slug]);
+  }, [slug, i18n.language]);
 
   // 🚀 LAZY LOADING: Las notas se cargan SOLO cuando el usuario abre el panel de notas
   // (Eliminado useEffect que cargaba notas automáticamente al cambiar de lección)
@@ -2147,19 +2247,22 @@ Antes de cada respuesta, pregúntate:
 
 
   const tabs = [
-    { id: 'video' as const, label: 'Video', icon: Play },
-    { id: 'transcript' as const, label: 'Transcripción', icon: ScrollText },
-    { id: 'summary' as const, label: 'Resumen', icon: FileText },
-    { id: 'activities' as const, label: 'Actividades', icon: Activity },
-    { id: 'questions' as const, label: 'Preguntas', icon: MessageCircle },
+    { id: 'video' as const, label: t('tabs.video'), icon: Play },
+    { id: 'transcript' as const, label: t('tabs.transcript'), icon: ScrollText },
+    { id: 'summary' as const, label: t('tabs.summary'), icon: FileText },
+    { id: 'activities' as const, label: t('tabs.activities'), icon: Activity },
+    { id: 'questions' as const, label: t('tabs.questions'), icon: MessageCircle },
   ];
 
-  if (loading) {
+  // Mostrar loading mientras i18n no esté listo o mientras se cargan los datos
+  if (!ready || loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-lg">Cargando curso...</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">
+            {mounted && ready ? t('loading.general') : 'Cargando...'}
+          </p>
         </div>
       </div>
     );
@@ -2169,13 +2272,13 @@ Antes de cada respuesta, pregúntate:
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Curso no encontrado</h1>
-          <p className="text-gray-700 dark:text-gray-300 mb-8">El curso que buscas no existe</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{t('errors.courseNotFound')}</h1>
+          <p className="text-gray-700 dark:text-gray-300 mb-8">{t('errors.courseNotFoundMessage')}</p>
           <button 
             onClick={() => router.push('/my-courses')} 
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
-            Volver a Mis Cursos
+            {t('navigation.backToCourses')}
           </button>
         </div>
       </div>
@@ -2330,8 +2433,8 @@ Antes de cada respuesta, pregúntate:
             <button
               onClick={() => router.back()}
               className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-              aria-label="Volver atrás"
-              title="Volver atrás"
+              aria-label={t('header.backButton')}
+              title={t('header.backButton')}
             >
               <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
             </button>
@@ -2341,7 +2444,7 @@ Antes de cada respuesta, pregúntate:
               <h1 className="text-sm md:text-base font-bold text-gray-900 dark:text-white truncate">
                 {course.title || course.course_title}
               </h1>
-              <p className="hidden md:block text-xs text-gray-600 dark:text-slate-400">Taller de Aprende y Aplica</p>
+              <p className="hidden md:block text-xs text-gray-600 dark:text-slate-400">{t('header.workshop')}</p>
             </div>
           </div>
 
@@ -2362,11 +2465,6 @@ Antes de cada respuesta, pregúntate:
             <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0">
               {courseProgress}%
             </span>
-          </div>
-
-          {/* Sección derecha: Usuario - Oculto en móviles */}
-          <div className="hidden md:flex items-center gap-2 shrink-0">
-            <UserDropdown />
           </div>
         </div>
       </motion.div>
@@ -2410,7 +2508,7 @@ Antes de cada respuesta, pregúntate:
                 <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
                   <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-blue-400" />
-                    Material del Curso
+                    {t('leftPanel.title')}
                   </h2>
                   <button
                     onClick={() => setIsLeftPanelOpen(false)}
@@ -2432,12 +2530,12 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       <Layers className="w-5 h-5 text-blue-400" />
-                      Contenido
+                      {t('leftPanel.content')}
                     </h3>
                     <button
                       onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
                       className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                      title={isMaterialCollapsed ? "Expandir Contenido" : "Colapsar Contenido"}
+                      title={isMaterialCollapsed ? t('leftPanel.expandContent') : t('leftPanel.collapseContent')}
                     >
                       {isMaterialCollapsed ? (
                         <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -2511,7 +2609,7 @@ Antes de cada respuesta, pregúntate:
                         <button
                           onClick={() => toggleModuleExpand(module.module_id)}
                           className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
-                          title={isModuleExpanded ? "Colapsar módulo" : "Expandir módulo"}
+                          title={isModuleExpanded ? t('leftPanel.collapseModule') : t('leftPanel.expandModule')}
                         >
                           {isModuleExpanded ? (
                             <ChevronUp className="w-4 h-4 text-gray-600 dark:text-slate-400" />
@@ -2534,10 +2632,10 @@ Antes de cada respuesta, pregúntate:
                             {/* Estadísticas del módulo mejoradas */}
                             <div className="flex gap-3 mb-4">
                               <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
-                                {completedLessons}/{totalLessons} completados
+                                {completedLessons}/{totalLessons} {t('leftPanel.completed')}
                               </span>
                               <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
-                                {completionPercentage}% completado
+                                {completionPercentage}% {t('leftPanel.completedPercentage')}
                               </span>
                             </div>
 
@@ -2601,7 +2699,7 @@ Antes de cada respuesta, pregúntate:
                                   toggleLessonExpand(lesson.lesson_id);
                                 }}
                                 className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
-                                title={isExpanded ? "Colapsar" : "Expandir actividades y materiales"}
+                                title={isExpanded ? t('activities.collapse') : t('activities.expandCollapse')}
                               >
                                 {isExpanded ? (
                                   <ChevronUp className="w-4 h-4 text-gray-500 dark:text-slate-400" />
@@ -2698,7 +2796,7 @@ Antes de cada respuesta, pregúntate:
                                                     {/* Badge Requerida */}
                                                     {isRequired && (
                                                       <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
-                                                        Requerida
+                                                        {t('activities.required')}
                                                       </span>
                                                     )}
                                                   </div>
@@ -2862,14 +2960,14 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
                       <FileText className="w-5 h-5 text-blue-400" />
-                      Mis Notas
+                      {t('leftPanel.notesSection.myNotes')}
                     </h3>
                     <div className="flex items-center gap-2">
                       {!isNotesCollapsed && (
                         <button
                           onClick={openNewNoteModal}
                           className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                          title="Nueva Nota"
+                          title={t('leftPanel.notesSection.newNote')}
                         >
                           <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
                         </button>
@@ -2877,7 +2975,7 @@ Antes de cada respuesta, pregúntate:
                       <button
                         onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
                         className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                        title={isNotesCollapsed ? "Expandir Notas" : "Colapsar Notas"}
+                        title={isNotesCollapsed ? t('leftPanel.notesSection.expandNotes') : t('leftPanel.notesSection.collapseNotes')}
                       >
                         {isNotesCollapsed ? (
                           <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -2901,12 +2999,12 @@ Antes de cada respuesta, pregúntate:
 
             {/* Notas guardadas */}
             <div className="space-y-3 mb-6">
-              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">Notas guardadas</h3>
+              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">{t('leftPanel.notesSection.savedNotes')}</h3>
               <div className="space-y-2">
                 {savedNotes.length === 0 ? (
                   <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 border border-gray-200 dark:border-slate-600/30 text-center">
-                    <p className="text-sm text-gray-600 dark:text-slate-400">No hay notas guardadas aún</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">Guarda tu primera nota para comenzar</p>
+                    <p className="text-sm text-gray-600 dark:text-slate-400">{t('leftPanel.notesSection.noSavedNotes')}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">{t('leftPanel.notesSection.saveFirstNote')}</p>
                   </div>
                 ) : (
                   savedNotes.map((note) => (
@@ -2925,7 +3023,7 @@ Antes de cada respuesta, pregúntate:
                                       openEditNoteModal(note);
                                     }}
                                     className="p-1 hover:bg-blue-500/20 rounded text-blue-400 hover:text-blue-300 transition-colors"
-                                    title="Editar nota"
+                                    title={t('leftPanel.notesSection.editNote')}
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -2937,7 +3035,7 @@ Antes de cada respuesta, pregúntate:
                                       handleDeleteNote(note.id);
                                     }}
                                     className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
-                                    title="Eliminar nota"
+                                    title={t('leftPanel.notesSection.deleteNote')}
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2971,19 +3069,19 @@ Antes de cada respuesta, pregúntate:
                   <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
               <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
                       <TrendingUp className="w-4 h-4 text-green-400" />
-                      Progreso de Notas
+                      {t('leftPanel.notesSection.notesProgress')}
                     </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Notas creadas</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.notesCreated')}</span>
                   <span className="text-green-600 dark:text-green-400 font-medium">{notesStats.totalNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Lecciones con notas</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lessonsWithNotes')}</span>
                   <span className="text-blue-600 dark:text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">Última actualización</span>
+                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lastUpdate')}</span>
                   <span className="text-gray-600 dark:text-slate-400">{notesStats.lastUpdate}</span>
                     </div>
                     </div>
@@ -3050,7 +3148,7 @@ Antes de cada respuesta, pregúntate:
                   }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
-                title="Ver notas"
+                title={t('leftPanel.notesSection.viewNotes')}
               >
                 <FileText className="w-4 h-4 text-gray-700 dark:text-white/80" />
               </button>
@@ -3068,7 +3166,7 @@ Antes de cada respuesta, pregúntate:
                   }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg shadow-blue-500/25"
-                title="Nueva nota"
+                title={t('leftPanel.notesSection.newNote')}
               >
                 <Plus className="w-4 h-4 text-white" />
               </button>
@@ -3177,6 +3275,9 @@ Antes de cada respuesta, pregúntate:
                         onStartInteraction={handleStartActivityInteraction}
                         userRole={user?.type_rol}
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
+                        onNavigateNext={navigateToNextLesson}
+                        hasNextLesson={!!getNextLesson()}
+                        selectedLang={selectedLang}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -3188,7 +3289,7 @@ Antes de cada respuesta, pregúntate:
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-slate-400">Cargando lección...</p>
+                <p className="text-gray-600 dark:text-slate-400">{t('loading.lesson')}</p>
               </div>
             </div>
           )}
@@ -3230,14 +3331,6 @@ Antes de cada respuesta, pregúntate:
                 style={
                   isMobile
                     ? {
-                        // En móvil, ajustar el bottom para respetar la navegación inferior
-                        // El contenedor tiene bottom-0 en la clase, pero necesitamos sobrescribirlo
-                        // cuando hay navegación inferior visible para evitar que se corte el textarea
-                        bottom: isMobileBottomNavVisible
-                          ? `${MOBILE_BOTTOM_NAV_HEIGHT_PX}px`
-                          : 0,
-                        // Usar height cuando visualViewport está disponible (teclado abierto)
-                        // para asegurar que el textbox siempre esté visible
                         ...(calculateLiaMaxHeight && {
                           height: calculateLiaMaxHeight,
                           maxHeight: calculateLiaMaxHeight,
@@ -3262,67 +3355,83 @@ Antes de cada respuesta, pregúntate:
                       />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Lia</h3>
-                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">Tu tutora personalizada</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{t('lia.title')}</h3>
+                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">{t('lia.subtitle')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 relative">
                     {/* Menú de opciones (tres puntos) */}
                     <div className="relative">
                       <button
+                        ref={liaMenuButtonRef}
                         onClick={() => setShowLiaMenu(!showLiaMenu)}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                        title="Más opciones"
+                        title={t('lia.moreOptions')}
                       >
                         <MoreVertical className="w-4 h-4 text-gray-700 dark:text-white/70" />
                       </button>
                       
-                      {/* Menú dropdown */}
-                      {showLiaMenu && (
+                      {/* Menú dropdown - Renderizado con portal fuera del stacking context */}
+                      {showLiaMenu && liaMenuPosition && typeof window !== 'undefined' && createPortal(
                         <>
                           {/* Overlay para cerrar el menú al hacer clic fuera */}
                           <div
-                            className="fixed inset-0 z-40"
+                            className="fixed inset-0 z-[190]"
                             onClick={() => setShowLiaMenu(false)}
                           />
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                            <button
-                              onClick={() => {
-                                clearLiaHistory();
-                                setShowHistory(true);
-                                loadConversations();
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Nueva conversación
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowHistory(!showHistory);
-                                if (!showHistory) {
+                          <div 
+                            className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-gray-200 dark:border-slate-700"
+                            style={{ 
+                              top: `${liaMenuPosition.top}px`,
+                              right: `${liaMenuPosition.right}px`,
+                              backgroundColor: 'rgb(255, 255, 255)',
+                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                            }}
+                          >
+                            <div 
+                              className="hidden dark:block absolute inset-0 rounded-lg"
+                              style={{ backgroundColor: 'rgb(30, 41, 59)' }}
+                            />
+                            <div className="relative">
+                              <button
+                                onClick={() => {
+                                  clearLiaHistory();
+                                  setShowHistory(true);
                                   loadConversations();
-                                }
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <History className="w-4 h-4" />
-                              Ver historial
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleOpenClearHistoryModal();
-                                setShowLiaMenu(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Reiniciar conversación
-                            </button>
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Nueva conversación
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowHistory(!showHistory);
+                                  if (!showHistory) {
+                                    loadConversations();
+                                  }
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <History className="w-4 h-4" />
+                                Ver historial
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleOpenClearHistoryModal();
+                                  setShowLiaMenu(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Reiniciar conversación
+                              </button>
+                            </div>
                           </div>
-                        </>
+                        </>,
+                        document.body
                       )}
                     </div>
 
@@ -3331,7 +3440,7 @@ Antes de cada respuesta, pregúntate:
                       <button
                         onClick={handleToggleLiaExpanded}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
-                        title={isLiaExpanded ? "Reducir tamaño de Lia" : "Expandir Lia"}
+                        title={isLiaExpanded ? t('lia.minimize') : t('lia.expand')}
                       >
                         {isLiaExpanded ? (
                           <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -3359,11 +3468,11 @@ Antes de cada respuesta, pregúntate:
                 {showHistory && (
                   <div className="absolute top-14 right-0 w-80 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
                     <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Historial de Conversaciones</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{t('lia.conversationHistory')}</h3>
                       <button
                         onClick={() => setShowHistory(false)}
                         className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
-                        title="Cerrar historial"
+                        title={t('lia.closeHistory')}
                       >
                         <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
                       </button>
@@ -3372,11 +3481,11 @@ Antes de cada respuesta, pregúntate:
                       {loadingConversations ? (
                         <div className="p-4 text-center text-gray-500 dark:text-slate-400">
                           <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                          <p className="text-sm">Cargando conversaciones...</p>
+                          <p className="text-sm">{t('loading.conversations')}</p>
                         </div>
                       ) : conversations.length === 0 ? (
                         <div className="p-4 text-center text-gray-500 dark:text-slate-400">
-                          <p className="text-sm">No hay conversaciones anteriores</p>
+                          <p className="text-sm">{t('lia.noConversations')}</p>
                         </div>
                       ) : (
                         conversations.map((conv) => (
@@ -3433,7 +3542,7 @@ Antes de cada respuesta, pregúntate:
                                   ) : (
                                     <>
                                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
-                                        {conv.conversation_title || conv.course?.title || 'Conversación general'}
+                                        {conv.conversation_title || conv.course?.title || t('lia.generalConversation')}
                                       </p>
                                       <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">
                                         {new Date(conv.started_at).toLocaleDateString('es-ES', {
@@ -3444,7 +3553,7 @@ Antes de cada respuesta, pregúntate:
                                         })}
                                       </p>
                                       <p className="text-xs text-gray-400 dark:text-slate-500">
-                                        {conv.total_messages} mensaje{conv.total_messages !== 1 ? 's' : ''}
+                                        {conv.total_messages} {conv.total_messages !== 1 ? t('lia.messagesPlural') : t('lia.messages')}
                                       </p>
                                     </>
                                   )}
@@ -3459,7 +3568,7 @@ Antes de cada respuesta, pregúntate:
                                       setEditingTitle(conv.conversation_title || '');
                                     }}
                                     className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                    title="Editar nombre"
+                                    title={t('lia.editName')}
                                   >
                                     <Edit2 className="w-3.5 h-3.5 text-gray-600 dark:text-slate-400" />
                                   </button>
@@ -3469,7 +3578,7 @@ Antes de cada respuesta, pregúntate:
                                       setDeletingConversationId(conv.conversation_id);
                                     }}
                                     className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                    title="Eliminar conversación"
+                                    title={t('lia.deleteConversation')}
                                   >
                                     <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                                   </button>
@@ -3492,19 +3601,19 @@ Antes de cada respuesta, pregúntate:
                           <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">Eliminar conversación</h3>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">Esta acción no se puede deshacer</p>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">{t('lia.deleteConfirmTitle')}</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-400">{t('lia.deleteConfirmSubtitle')}</p>
                         </div>
                       </div>
                       <p className="text-sm text-gray-700 dark:text-slate-300 mb-6">
-                        ¿Estás seguro de que quieres eliminar esta conversación? Todos los mensajes se perderán permanentemente.
+                        {t('lia.deleteConfirmMessage')}
                       </p>
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setDeletingConversationId(null)}
                           className="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium"
                         >
-                          Cancelar
+                          {t('lia.cancel')}
                         </button>
                         <button
                           onClick={() => {
@@ -3514,7 +3623,7 @@ Antes de cada respuesta, pregúntate:
                           }}
                           className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
                         >
-                          Eliminar
+                          {t('lia.delete')}
                         </button>
                       </div>
                     </div>
@@ -3575,7 +3684,7 @@ Antes de cada respuesta, pregúntate:
                                   }
                                 }}
                                 className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                title="Copiar mensaje"
+                                title={t('lia.copyMessage')}
                               >
                                 {copiedMessageId === message.id ? (
                                   <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -3596,7 +3705,7 @@ Antes de cada respuesta, pregúntate:
                                   setIsNotesModalOpen(true);
                                 }}
                                 className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                title="Crear nota"
+                                title={t('lia.createNote')}
                               >
                                 <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                               </button>
@@ -3626,7 +3735,16 @@ Antes de cada respuesta, pregúntate:
 
                 {/* Prompts Flotantes tipo NotebookLM */}
                 <AnimatePresence>
-                  {currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen && (
+                  {(() => {
+                    const shouldShow = currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen;
+                    console.log('[PROMPTS UI] Condiciones de visibilidad:', {
+                      prompts: currentActivityPrompts.length,
+                      activeTab,
+                      isRightPanelOpen,
+                      shouldShow
+                    });
+                    return shouldShow;
+                  })() && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -3732,7 +3850,7 @@ Antes de cada respuesta, pregúntate:
                   <div className="flex gap-2 items-end min-w-0">
                     <textarea
                       ref={liaTextareaRef}
-                      placeholder="Escribe tu pregunta a Lia..."
+                      placeholder={t('lia.placeholder')}
                       value={liaMessage}
                       onChange={(e) => {
                         setLiaMessage(e.target.value);
@@ -4171,12 +4289,12 @@ Antes de cada respuesta, pregúntate:
 
               {/* Título */}
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                ¿Reiniciar conversación con Lia?
+                {t('modals.resetConversation.title')}
               </h3>
 
               {/* Mensaje */}
               <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
-                ¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con Lia.
+                {t('modals.resetConversation.message')}
               </p>
 
               {/* Botones */}
@@ -4185,13 +4303,13 @@ Antes de cada respuesta, pregúntate:
                   onClick={() => setIsClearHistoryModalOpen(false)}
                   className="flex-1 px-6 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white font-medium rounded-xl transition-all duration-200"
                 >
-                  Cancelar
+                  {t('modals.resetConversation.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmClearHistory}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
                 >
-                  Reiniciar conversación
+                  {t('modals.resetConversation.confirm')}
                 </button>
               </div>
             </motion.div>
@@ -4220,14 +4338,14 @@ Antes de cada respuesta, pregúntate:
         triggerPaths={['/courses']}
         isReplayable={true}
         showDelay={2000}
-        replayButtonLabel="Ver tour del curso"
+        replayButtonLabel={t('tour.courseLearnLabel')}
         requireAuth={true}
       />
 
       {/* Botón para volver a ver el tour */}
       <ReplayTourButton
         tourId="course-learn"
-        label="Ver Tour del Curso"
+        label={t('tour.replayLabel')}
         allowedPaths={['/courses']}
         requireAuth={true}
       />
@@ -4303,15 +4421,15 @@ function VideoContent({
             />
             
             {/* Botones de navegación - Centrados verticalmente */}
-            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-2 sm:px-4">
               {/* Botón anterior - lado izquierdo */}
               {hasPreviousVideo && (
                 <button
                   onClick={onNavigatePrevious}
-                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
                 >
-                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
                     Anterior
                   </span>
                 </button>
@@ -4337,17 +4455,17 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
                     isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
                   }`}
                 >
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? 'Terminar' : 'Siguiente'}
                   </span>
                   {isLastLesson ? (
-                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   )}
                 </button>
               )}
@@ -4364,15 +4482,15 @@ function VideoContent({
             </div>
             
             {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
-            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4">
+            <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-2 sm:px-4">
               {/* Botón anterior - lado izquierdo */}
               {hasPreviousVideo && (
                 <button
                   onClick={onNavigatePrevious}
-                  className="pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3"
+                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
                 >
-                  <ChevronLeft className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
                     Anterior
                   </span>
                 </button>
@@ -4398,17 +4516,17 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 hover:w-32 hover:pl-3 hover:pr-3 ${
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
                     isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
                   }`}
                 >
-                  <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
+                  <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? 'Terminar' : 'Siguiente'}
                   </span>
                   {isLastLesson ? (
-                    <CheckCircle2 className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
                   )}
                 </button>
               )}
@@ -4442,6 +4560,8 @@ function TranscriptContent({
   onNoteCreated: (noteData: any, lessonId: string) => void;
   onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation('learn');
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [transcriptContent, setTranscriptContent] = useState<string | null>(null);
@@ -4457,7 +4577,7 @@ function TranscriptContent({
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript`);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript?language=${selectedLang}`);
         if (response.ok) {
           const data = await response.json();
           setTranscriptContent(data.transcript_content || null);
@@ -4473,7 +4593,7 @@ function TranscriptContent({
     }
 
     loadTranscript();
-  }, [lesson?.lesson_id, slug]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Verificar si existe contenido de transcripción
   const hasTranscript = transcriptContent && transcriptContent.trim().length > 0;
@@ -4616,7 +4736,7 @@ function TranscriptContent({
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <ScrollText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando transcripción...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.transcript')}</p>
         </div>
       </div>
     );
@@ -4709,6 +4829,8 @@ function TranscriptContent({
 }
 
 function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
+  const { t, i18n } = useTranslation('learn');
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
   const [summaryContent, setSummaryContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -4722,7 +4844,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary`);
+        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary?language=${selectedLang}`);
         if (response.ok) {
           const data = await response.json();
           setSummaryContent(data.summary_content || null);
@@ -4738,7 +4860,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     }
 
     loadSummary();
-  }, [lesson?.lesson_id, slug]);
+  }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Verificar si existe contenido de resumen
   const hasSummary = summaryContent && summaryContent.trim().length > 0;
@@ -4759,7 +4881,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando resumen...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.summary')}</p>
         </div>
       </div>
     );
@@ -5247,48 +5369,68 @@ function QuizRenderer({
 
       {/* Resultados */}
       {showResults && (
-        <div className={`mt-6 p-6 rounded-lg border-2 ${
-          passed
-            ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
-            : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
-        }`}>
-          <div className="text-center">
-            {/* Mensaje informativo del servidor */}
-            {serverMessage && (
-              <div className={`mb-4 p-3 rounded-lg border ${
-                serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                  ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
-                  : passed
-                  ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
-                  : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
-              }`}>
-                <p className={`text-sm ${
+        <>
+          <div className={`mt-6 p-6 rounded-lg border-2 ${
+            passed
+              ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
+              : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
+          }`}>
+            <div className="text-center">
+              {/* Mensaje informativo del servidor */}
+              {serverMessage && (
+                <div className={`mb-4 p-3 rounded-lg border ${
                   serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                    ? 'text-yellow-800 dark:text-yellow-200'
+                    ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
                     : passed
-                    ? 'text-green-800 dark:text-green-200'
-                    : 'text-blue-800 dark:text-blue-200'
+                    ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
+                    : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
                 }`}>
-                  {serverMessage}
-                </p>
-              </div>
-            )}
-            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
-            </h3>
-            <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-              Obtuviste {score} de {totalQuestions} correctas
-            </p>
-            {totalPoints !== undefined && (
+                  <p className={`text-sm ${
+                    serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
+                      ? 'text-yellow-800 dark:text-yellow-200'
+                      : passed
+                      ? 'text-green-800 dark:text-green-200'
+                      : 'text-blue-800 dark:text-blue-200'
+                  }`}>
+                    {serverMessage}
+                  </p>
+                </div>
+              )}
+              <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
+              </h3>
               <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-                Puntos: {pointsEarned} de {totalPoints}
+                Obtuviste {score} de {totalQuestions} correctas
               </p>
-            )}
-            <p className="text-gray-700 dark:text-slate-200 text-sm">
-              Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
-            </p>
+              {totalPoints !== undefined && (
+                <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
+                  Puntos: {pointsEarned} de {totalPoints}
+                </p>
+              )}
+              <p className="text-gray-700 dark:text-slate-200 text-sm">
+                Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
+              </p>
+            </div>
           </div>
-        </div>
+          
+          {/* Botón de reiniciar cuestionario */}
+          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
+            <button
+              onClick={() => {
+                setSelectedAnswers({});
+                setShowResults(false);
+                setScore(0);
+                setPointsEarned(0);
+                setSubmitError(null);
+                setServerMessage(null);
+              }}
+              className="px-6 py-3 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reiniciar Cuestionario
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -5494,8 +5636,88 @@ function ReadingContentRenderer({ content }: { content: any }) {
   );
 }
 
-// Componente para renderizar contenido formateado (actividades, materiales de lectura, etc.)
-function FormattedContentRenderer({ content }: { content: any }) {
+// Componente para renderizar items de checklist
+function ChecklistItem({ 
+  content, 
+  checked: initialChecked, 
+  activityId, 
+  lineIndex 
+}: { 
+  content: string; 
+  checked: boolean; 
+  activityId?: string; 
+  lineIndex: number;
+}) {
+  const storageKey = activityId ? `checklist-${activityId}-${lineIndex}` : `checklist-global-${lineIndex}`;
+  const [checked, setChecked] = useState(() => {
+    if (typeof window !== 'undefined' && activityId) {
+      const saved = localStorage.getItem(storageKey);
+      return saved !== null ? saved === 'true' : initialChecked;
+    }
+    return initialChecked;
+  });
+
+  const handleToggle = () => {
+    const newChecked = !checked;
+    setChecked(newChecked);
+    if (typeof window !== 'undefined' && activityId) {
+      localStorage.setItem(storageKey, String(newChecked));
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3 my-3 pl-2">
+      <button
+        onClick={handleToggle}
+        className={`
+          mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
+          ${checked 
+            ? 'bg-blue-500 border-blue-500 dark:bg-blue-600 dark:border-blue-600' 
+            : 'bg-white dark:bg-carbon-800 border-gray-300 dark:border-carbon-600 hover:border-blue-400 dark:hover:border-blue-500'
+          }
+          focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1
+        `}
+        aria-checked={checked}
+        role="checkbox"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+      >
+        {checked && (
+          <svg 
+            className="w-3 h-3 text-white" 
+            fill="none" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth="3" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+      <p 
+        className={`
+          flex-1 text-base leading-relaxed cursor-pointer
+          ${checked 
+            ? 'text-gray-600 dark:text-slate-400 line-through' 
+            : 'text-gray-800 dark:text-slate-200'
+          }
+        `}
+        onClick={handleToggle}
+      >
+        {content}
+      </p>
+    </div>
+  );
+}
+
+function FormattedContentRenderer({ content, activityId }: { content: any; activityId?: string }) {
   let readingContent = content;
   
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
@@ -5529,13 +5751,30 @@ function FormattedContentRenderer({ content }: { content: any }) {
   // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
   const lines = readingContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
   const formattedContent: Array<{ 
-    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight';
+    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight' | 'checklist';
     content: string;
     level?: number;
+    checked?: boolean;
+    originalLine?: string;
   }> = [];
 
   lines.forEach((line: string, index: number) => {
     const trimmedLine = line.trim();
+    
+    // Detectar checklists: [] o [ ] o [x] o [X] al inicio de línea
+    const checklistPattern = /^\[([\sxX])\]\s*(.+)$/;
+    const checklistMatch = trimmedLine.match(checklistPattern);
+    if (checklistMatch) {
+      const [, checkboxContent, checklistText] = checklistMatch;
+      const isChecked = checkboxContent.toLowerCase() === 'x';
+      formattedContent.push({ 
+        type: 'checklist', 
+        content: checklistText.trim(), 
+        checked: isChecked,
+        originalLine: trimmedLine
+      });
+      return;
+    }
     
     // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
     const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
@@ -5661,6 +5900,19 @@ function FormattedContentRenderer({ content }: { content: any }) {
               );
             }
             
+            // Checklists
+            if (item.type === 'checklist') {
+              return (
+                <ChecklistItem
+                  key={`checklist-${index}`}
+                  content={item.content}
+                  checked={item.checked || false}
+                  activityId={activityId}
+                  lineIndex={index}
+                />
+              );
+            }
+            
             // Listas
             if (item.type === 'list') {
               const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
@@ -5712,13 +5964,16 @@ function FormattedContentRenderer({ content }: { content: any }) {
   );
 }
 
-function ActivitiesContent({ 
-  lesson, 
-  slug, 
-  onPromptsChange, 
+function ActivitiesContent({
+  lesson,
+  slug,
+  onPromptsChange,
   onStartInteraction,
   userRole,
-  generateRoleBasedPrompts
+  generateRoleBasedPrompts,
+  onNavigateNext,
+  hasNextLesson,
+  selectedLang
 }: {
   lesson: Lesson;
   slug: string;
@@ -5726,7 +5981,13 @@ function ActivitiesContent({
   onStartInteraction?: (content: string, title: string) => void;
   userRole?: string;
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
+  onNavigateNext?: () => void | Promise<void>;
+  hasNextLesson?: boolean;
+  selectedLang: string;
 }) {
+  // Hook de traducción
+  const { t } = useTranslation('learn');
+
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
     activity_title: string;
@@ -5792,6 +6053,10 @@ function ActivitiesContent({
       percentage: number;
     }>;
   } | null>(null);
+  
+  // Feedback de la lección completa
+  const [lessonFeedback, setLessonFeedback] = useState<'like' | 'dislike' | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   useEffect(() => {
     async function loadActivitiesAndMaterials() {
@@ -5810,9 +6075,20 @@ function ActivitiesContent({
           fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/quiz/status`)
         ]);
 
-        // Procesar actividades
+        // Procesar actividades con traducción
         if (activitiesResponse.ok) {
-          const activitiesData = await activitiesResponse.json();
+          let activitiesData = await activitiesResponse.json();
+          
+          // Aplicar traducciones si no es español
+          if (selectedLang !== 'es' && activitiesData && activitiesData.length > 0) {
+            activitiesData = await ContentTranslationService.translateArray(
+              'activity',
+              activitiesData.map((a: any) => ({ ...a, id: a.activity_id })),
+              ['activity_title', 'activity_description', 'activity_content'],
+              selectedLang as any
+            );
+          }
+          
           setActivities(activitiesData || []);
         } else {
           setActivities([]);
@@ -5844,7 +6120,63 @@ function ActivitiesContent({
     }
 
     loadActivitiesAndMaterials();
+  }, [lesson?.lesson_id, slug, selectedLang]);
+
+  // Cargar feedback de la lección
+  useEffect(() => {
+    async function loadLessonFeedback() {
+      if (!lesson?.lesson_id || !slug) {
+        setLessonFeedback(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setLessonFeedback(data.feedback_type ?? null);
+        } else {
+          setLessonFeedback(null);
+        }
+      } catch (error) {
+        setLessonFeedback(null);
+      }
+    }
+
+    loadLessonFeedback();
   }, [lesson?.lesson_id, slug]);
+
+  const handleLessonFeedback = async (feedbackType: 'like' | 'dislike') => {
+    if (!lesson?.lesson_id || !slug || feedbackLoading) {
+      return;
+    }
+
+    setFeedbackLoading(true);
+    try {
+      const url = `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback_type: feedbackType }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLessonFeedback(data.feedback_type ?? null);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('Error al guardar feedback:', errorData);
+        // Mostrar error al usuario de forma no intrusiva
+        // Podrías agregar un toast aquí si tienes un sistema de notificaciones
+      }
+    } catch (error) {
+      console.error('Error de red al guardar feedback:', error);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   // Refs para almacenar las funciones y evitar loops infinitos
   const generateRoleBasedPromptsRef = useRef(generateRoleBasedPrompts);
@@ -5866,6 +6198,10 @@ function ActivitiesContent({
     const processPrompts = async () => {
       const allPrompts: string[] = [];
       const activityPromptsMap: Map<string, { prompts: string[], content: string, title: string }> = new Map();
+
+      console.log('[LIA PROMPTS] Iniciando procesamiento de prompts...');
+      console.log('[LIA PROMPTS] Total actividades:', activities.length);
+      console.log('[LIA PROMPTS] Usuario tiene rol:', userRole || 'Sin rol');
 
       // Primero, extraer todos los prompts base de las actividades
       activities.forEach(activity => {
@@ -5907,44 +6243,86 @@ function ActivitiesContent({
                 content: activity.activity_content || '',
                 title: activity.activity_title || ''
               });
+              console.log('[LIA PROMPTS] Actividad:', activity.activity_title, '| Prompts extraídos:', cleanPrompts.length);
             }
           } catch (error) {
-            // console.warn('Error parsing prompts:', error);
+            console.warn('[LIA PROMPTS] Error parsing prompts para actividad:', activity.activity_title, error);
           }
         }
       });
 
+      console.log('[LIA PROMPTS] Total actividades con prompts:', activityPromptsMap.size);
+
       // Si hay rol del usuario y función de generación, adaptar prompts
       if (userRole && generateRoleBasedPromptsRef.current && activityPromptsMap.size > 0) {
+        console.log('[LIA PROMPTS] Iniciando personalización para rol:', userRole);
         try {
-          // Generar prompts adaptados para cada actividad
-          for (const [activityId, activityData] of activityPromptsMap.entries()) {
-            if (!isMounted) break; // Salir si el componente se desmontó
-            const adaptedPrompts = await generateRoleBasedPromptsRef.current(
-              activityData.prompts,
-              activityData.content,
-              activityData.title,
-              userRole
-            );
-            allPrompts.push(...adaptedPrompts);
-          }
+          // Generar prompts adaptados para cada actividad EN PARALELO
+          const adaptationPromises = Array.from(activityPromptsMap.entries()).map(
+            async ([activityId, activityData]) => {
+              if (!isMounted) return []; // Salir si el componente se desmontó
+
+              console.log('[LIA PROMPTS] Personalizando prompts para:', activityData.title);
+              try {
+                const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+                  activityData.prompts,
+                  activityData.content,
+                  activityData.title,
+                  userRole
+                );
+                console.log('[LIA PROMPTS] ✓ Personalización exitosa para:', activityData.title, '| Prompts:', adaptedPrompts.length);
+                return adaptedPrompts;
+              } catch (error) {
+                console.error('[LIA PROMPTS] ✗ Error personalizando:', activityData.title, error);
+                // Fallback: retornar prompts originales
+                return activityData.prompts;
+              }
+            }
+          );
+
+          // Esperar a que todas las personalizaciones terminen (con timeout)
+          const timeoutPromise = new Promise<string[][]>((resolve) => {
+            setTimeout(() => {
+              console.warn('[LIA PROMPTS] Timeout en personalización, usando prompts originales');
+              resolve(Array.from(activityPromptsMap.values()).map(data => data.prompts));
+            }, 10000); // 10 segundos de timeout
+          });
+
+          const results = await Promise.race([
+            Promise.all(adaptationPromises),
+            timeoutPromise
+          ]);
+
+          // Agregar todos los prompts adaptados
+          results.forEach(prompts => {
+            allPrompts.push(...prompts);
+          });
+
+          console.log('[LIA PROMPTS] Personalización completada. Total prompts adaptados:', allPrompts.length);
         } catch (error) {
-          console.error('Error generando prompts adaptados:', error);
+          console.error('[LIA PROMPTS] Error generando prompts adaptados:', error);
           // Fallback: usar prompts originales
           activityPromptsMap.forEach(activityData => {
             allPrompts.push(...activityData.prompts);
           });
+          console.log('[LIA PROMPTS] Usando prompts originales por error. Total:', allPrompts.length);
         }
       } else {
         // Sin rol o sin función de generación, usar prompts originales
+        console.log('[LIA PROMPTS] Usando prompts originales (sin personalización)');
         activityPromptsMap.forEach(activityData => {
           allPrompts.push(...activityData.prompts);
         });
+        console.log('[LIA PROMPTS] Total prompts originales:', allPrompts.length);
       }
 
       // Notificar cambios al componente padre solo si el componente sigue montado
       if (isMounted && onPromptsChangeRef.current) {
+        console.log('[LIA PROMPTS] Notificando cambios al componente padre. Prompts finales:', allPrompts.length);
+        console.log('[LIA PROMPTS] Prompts:', allPrompts);
         onPromptsChangeRef.current(allPrompts);
+      } else {
+        console.warn('[LIA PROMPTS] Componente desmontado o sin callback, no se notifican cambios');
       }
     };
 
@@ -5971,7 +6349,7 @@ function ActivitiesContent({
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando actividades...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.activities')}</p>
         </div>
       </div>
     );
@@ -6256,7 +6634,7 @@ function ActivitiesContent({
                     }
                   })()}
                   {activity.activity_type !== 'quiz' && (
-                    <FormattedContentRenderer content={activity.activity_content} />
+                    <FormattedContentRenderer content={activity.activity_content} activityId={activity.activity_id} />
                   )}
                   </div>
                 )}
@@ -6451,7 +6829,7 @@ function ActivitiesContent({
                       />
                     )}
                     {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
-                      <FormattedContentRenderer content={material.content_data} />
+                      <FormattedContentRenderer content={material.content_data} activityId={material.material_id} />
                     )}
                   </div>
                 )}
@@ -6501,11 +6879,67 @@ function ActivitiesContent({
             <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">
-                Para avanzar a la siguiente lección, es necesario completar todas las actividades requeridas y aprobar los quizzes correspondientes. 
-                Te recomendamos revisar cada actividad y material con atención para asegurar una comprensión completa del contenido.
+                {t('activities.completionRequirement')}
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Feedback de la lección y botón de avanzar */}
+      {lesson && (
+        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <span className="text-sm font-semibold text-gray-800 dark:text-slate-100">
+              ¿Qué te pareció esta lección?
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleLessonFeedback('like')}
+                disabled={feedbackLoading}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
+                  lessonFeedback === 'like'
+                    ? 'bg-green-500/20 text-green-400 border-2 border-green-500/50 shadow-lg shadow-green-500/20'
+                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                title="Me gustó la lección"
+              >
+                {feedbackLoading && lessonFeedback === null ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ThumbsUp className={`w-4 h-4 transition-all ${lessonFeedback === 'like' ? 'fill-current scale-110' : ''}`} />
+                )}
+                <span className="text-sm font-medium">Me gusta</span>
+              </button>
+              <button
+                onClick={() => handleLessonFeedback('dislike')}
+                disabled={feedbackLoading}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
+                  lessonFeedback === 'dislike'
+                    ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/20'
+                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                title="No me gustó la lección"
+              >
+                {feedbackLoading && lessonFeedback === null ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ThumbsDown className={`w-4 h-4 transition-all ${lessonFeedback === 'dislike' ? 'fill-current scale-110' : ''}`} />
+                )}
+                <span className="text-sm font-medium">No me gusta</span>
+              </button>
+            </div>
+          </div>
+
+          {hasNextLesson && onNavigateNext && (
+            <button
+              onClick={onNavigateNext}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+            >
+              <ChevronRight className="w-5 h-5" />
+              Avanzar al Siguiente Video
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -6513,6 +6947,7 @@ function ActivitiesContent({
 }
 
 function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: string }) {
+  const { t } = useTranslation('learn');
   const [questions, setQuestions] = useState<Array<{
     id: string;
     title?: string;
@@ -7030,7 +7465,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">Cargando preguntas...</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('loading.questions')}</p>
         </div>
       </div>
     );
@@ -7246,7 +7681,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 {loadingMore ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Cargando...</span>
+                    <span>{t('loading.general')}</span>
                   </>
                 ) : (
                   <>

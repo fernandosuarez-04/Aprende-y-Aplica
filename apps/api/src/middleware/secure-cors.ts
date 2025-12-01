@@ -83,7 +83,7 @@ function getAllowedOrigins(): string[] {
  */
 export const secureCorsMiddleware = cors({
   // Origin dinámico con validación
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     const allowedOrigins = getAllowedOrigins();
 
     // Permitir requests sin origin (ej: Postman, curl en desarrollo)

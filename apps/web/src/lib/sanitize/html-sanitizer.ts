@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * 🔒 HTML Sanitization Library
  * 
@@ -8,7 +10,23 @@
  * @see https://github.com/cure53/DOMPurify
  */
 
-import DOMPurify from 'dompurify';
+// Importación estándar de DOMPurify
+// Con 'use client', Next.js solo incluirá esto en el bundle del cliente
+import DOMPurifyLib from 'dompurify';
+
+// Variable para almacenar la instancia
+// Inicializamos como null y lo asignamos solo en el cliente
+let DOMPurify: typeof DOMPurifyLib | null = null;
+
+// Inicializar DOMPurify solo en el cliente (después de que el módulo se haya cargado)
+if (typeof window !== 'undefined') {
+  DOMPurify = DOMPurifyLib;
+}
+
+// Función para obtener DOMPurify (solo disponible en cliente)
+function getDOMPurify(): typeof DOMPurifyLib | null {
+  return DOMPurify;
+}
 
 /**
  * Configuraciones de sanitización por contexto
@@ -97,6 +115,39 @@ export interface SanitizeOptions {
 }
 
 /**
+ * Sanitización básica para servidor (sin DOMPurify)
+ * Remueve tags peligrosos y mantiene solo texto plano o tags básicos seguros
+ */
+function basicServerSanitize(html: string, allowedTags: string[]): string {
+  // Remover scripts y eventos peligrosos
+  let sanitized = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '')
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '');
+
+  // Si no hay tags permitidos, remover todo HTML
+  if (allowedTags.length === 0) {
+    return sanitized.replace(/<[^>]*>/g, '');
+  }
+
+  // Remover todos los tags excepto los permitidos
+  const allowedTagsSet = new Set(allowedTags.map(tag => tag.toLowerCase()));
+  sanitized = sanitized.replace(/<(\/?)([a-z][a-z0-9]*)\b[^>]*>/gi, (match, closing, tagName) => {
+    const lowerTag = tagName.toLowerCase();
+    if (allowedTagsSet.has(lowerTag)) {
+      // Mantener el tag pero remover atributos peligrosos
+      return `<${closing}${lowerTag}>`;
+    }
+    return '';
+  });
+
+  return sanitized;
+}
+
+/**
  * 🛡️ Sanitiza contenido HTML según el nivel de permisividad
  * 
  * @param dirtyHtml - Contenido HTML potencialmente peligroso
@@ -156,8 +207,15 @@ export function sanitizeHtml(
 
   // Sanitizar contenido
   try {
-    const clean = DOMPurify.sanitize(content, config);
-    return typeof clean === 'string' ? clean : String(clean);
+    // Si DOMPurify está disponible (cliente), usarlo
+    if (DOMPurify) {
+      const clean = DOMPurify.sanitize(content, config);
+      return typeof clean === 'string' ? clean : String(clean);
+    } else {
+      // En el servidor o si DOMPurify no está disponible, usar sanitización básica
+      const allowedTags = config.ALLOWED_TAGS || [];
+      return basicServerSanitize(content, allowedTags);
+    }
   } catch (error) {
     // console.error('❌ Error sanitizando HTML:', error);
     // En caso de error, retornar texto plano sin HTML
@@ -235,5 +293,5 @@ export function getSanitizationStats(original: string, sanitized: string) {
   };
 }
 
-// Re-exportar DOMPurify para casos avanzados
-export { DOMPurify };
+// Re-exportar función para obtener DOMPurify para casos avanzados (solo disponible en cliente)
+export { getDOMPurify };

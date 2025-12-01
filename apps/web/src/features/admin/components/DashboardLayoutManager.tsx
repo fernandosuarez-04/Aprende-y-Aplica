@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Settings, Save, RefreshCw } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
 // Importación dinámica de react-grid-layout para evitar problemas SSR
 let ResponsiveGridLayout: any = null

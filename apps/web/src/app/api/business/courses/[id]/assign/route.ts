@@ -30,28 +30,38 @@ export async function POST(
       }, { status: 401 })
     }
 
-    // Validar que el usuario tenga membresía activa
+    // Obtener organizationId
+    if (!auth.organizationId) {
+      return NextResponse.json({
+        success: false,
+        error: 'No tienes una organización asignada'
+      }, { status: 403 })
+    }
+
+    const organizationId = auth.organizationId
+
+    // Validar que la organización tenga membresía activa
     const hasSubscription = await SubscriptionService.hasActiveSubscription(currentUser.id)
     if (!hasSubscription) {
       return NextResponse.json({
         success: false,
-        error: 'Se requiere una membresía activa para asignar cursos'
+        error: 'Se requiere una membresía activa (Team/Enterprise) para asignar cursos'
       }, { status: 403 })
     }
 
-    // Verificar que el usuario haya adquirido el curso primero
-    const { data: purchase } = await supabase
-      .from('course_purchases')
+    // Verificar que la organización haya adquirido el curso primero
+    const { data: orgPurchase } = await supabase
+      .from('organization_course_purchases')
       .select('purchase_id')
-      .eq('user_id', currentUser.id)
+      .eq('organization_id', organizationId)
       .eq('course_id', courseId)
       .eq('access_status', 'active')
-      .single()
+      .maybeSingle()
 
-    if (!purchase) {
+    if (!orgPurchase) {
       return NextResponse.json({
         success: false,
-        error: 'Debes adquirir el curso primero antes de asignarlo'
+        error: 'Tu organización debe adquirir el curso primero antes de poder asignarlo a usuarios'
       }, { status: 403 })
     }
 
@@ -71,14 +81,6 @@ export async function POST(
       }, { status: 404 })
     }
 
-    // Obtener organización del usuario
-    if (!currentUser.organization_id) {
-      return NextResponse.json({
-        success: false,
-        error: 'Usuario no pertenece a ninguna organización'
-      }, { status: 400 })
-    }
-
     // Parsear body de la request
     const body = await request.json()
     const { user_ids, due_date, message } = body
@@ -95,7 +97,7 @@ export async function POST(
       .from('organization_users')
       .select('user_id, organization_id, status')
       .in('user_id', user_ids)
-      .eq('organization_id', currentUser.organization_id)
+      .eq('organization_id', organizationId)
       .eq('status', 'active')
 
     if (orgUsersError) {
@@ -133,7 +135,7 @@ export async function POST(
 
     // Crear asignaciones para los usuarios que no tienen el curso
     const assignments = newUserIds.map(userId => ({
-      organization_id: currentUser.organization_id,
+      organization_id: organizationId,
       user_id: userId,
       course_id: courseId,
       assigned_by: currentUser.id,

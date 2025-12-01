@@ -145,35 +145,39 @@ export async function GET(
       });
     }
 
-    // Lógica especial para "Profesionales": filtrar miembros que tienen otras comunidades
+    // 🚀 OPTIMIZACIÓN: Lógica especial para "Profesionales" con una sola query
     if (community.slug === 'profesionales') {
-      const validMembers = [];
+      // Obtener todos los user_ids de los miembros actuales
+      const memberUserIds = members.map(m => m.user_id || m.users.id);
 
-      for (const member of members) {
-        const userId = member.user_id || member.users.id;
+      // Una sola query para obtener TODOS los usuarios que tienen otras comunidades
+      const { data: usersWithOtherCommunities, error: membershipError } = await supabase
+        .from('community_members')
+        .select('user_id')
+        .in('user_id', memberUserIds)
+        .eq('is_active', true)
+        .neq('community_id', community.id);
 
-        // Verificar si el usuario tiene otras comunidades activas (excluyendo Profesionales)
-        // Contar membresías activas del usuario
-        const { data: userMemberships, error: membershipError } = await supabase
-          .from('community_members')
-          .select('community_id')
-          .eq('user_id', userId)
-          .eq('is_active', true)
-          .neq('community_id', community.id);
-
-        if (membershipError) {
-          // Si hay error, por seguridad no incluir este miembro
-          console.error('Error checking user memberships:', membershipError);
-          continue;
-        }
-
-        // Solo incluir si NO tiene otras comunidades activas
-        if (!userMemberships || userMemberships.length === 0) {
-          validMembers.push(member);
-        } else {
-          console.log(`Usuario ${userId} tiene ${userMemberships.length} otras comunidades, excluido de Profesionales`);
-        }
+      if (membershipError) {
+        console.error('Error checking user memberships:', membershipError);
       }
+
+      // Crear un Set de user_ids que tienen otras comunidades (búsqueda O(1))
+      const usersWithOtherCommunitiesSet = new Set(
+        usersWithOtherCommunities?.map(m => m.user_id) || []
+      );
+
+      // Filtrar miembros: solo incluir los que NO están en el Set
+      const validMembers = members.filter(member => {
+        const userId = member.user_id || member.users.id;
+        const hasOtherCommunities = usersWithOtherCommunitiesSet.has(userId);
+
+        if (hasOtherCommunities) {
+          console.log(`Usuario ${userId} excluido de Profesionales - tiene otras comunidades`);
+        }
+
+        return !hasOtherCommunities;
+      });
 
       // Reemplazar con solo los miembros válidos
       members = validMembers;
@@ -193,88 +197,106 @@ export async function GET(
       }
     }
 
-    // Obtener estadísticas de cada miembro (si es posible)
-    const membersWithStats = await Promise.all(
-      members.map(async (member) => {
-        const userId = member.user_id || member.users.id;
-        let stats = {
-          posts_count: 0,
-          comments_count: 0,
-          reactions_given: 0,
-          reactions_received: 0,
-          points: 0
-        };
+    // 🚀 OPTIMIZACIÓN: Obtener todas las estadísticas con queries agregadas en paralelo
+    const memberUserIds = members.map(m => m.user_id || m.users.id);
 
-        try {
-          // Obtener puntos reales del usuario desde la tabla users
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('points')
-            .eq('id', userId)
-            .single();
+    // Ejecutar TODAS las queries de estadísticas en paralelo (1 query por tipo de stat)
+    const [postsData, commentsData, reactionsGivenData, reactionsReceivedData] = await Promise.all([
+      // Posts por usuario en esta comunidad
+      supabase
+        .from('community_posts')
+        .select('user_id')
+        .eq('community_id', community.id)
+        .in('user_id', memberUserIds),
 
-          if (userError) {
-            // Si no se pueden obtener puntos de la base de datos, usar los puntos del objeto member.users si están disponibles
-            stats.points = member.users?.points || 0;
-          } else {
-            stats.points = userData?.points || 0; // Usar puntos reales de la base de datos
-          }
+      // Comentarios por usuario en esta comunidad
+      supabase
+        .from('community_comments')
+        .select('user_id')
+        .eq('community_id', community.id)
+        .in('user_id', memberUserIds),
 
-          // Intentar obtener estadísticas reales de actividad
-          const [postsResult, commentsResult, reactionsGivenResult, reactionsReceivedResult] = await Promise.allSettled([
-            supabase.from('community_posts').select('id').eq('community_id', community.id).eq('user_id', userId),
-            supabase.from('community_comments').select('id').eq('community_id', community.id).eq('user_id', userId),
-            supabase.from('community_reactions').select('id').eq('user_id', userId),
-            supabase.from('community_reactions').select('id, community_posts!inner(user_id)').eq('community_posts.user_id', userId)
-          ]);
+      // Reacciones dadas por usuario
+      supabase
+        .from('community_reactions')
+        .select('user_id')
+        .in('user_id', memberUserIds),
 
-          if (postsResult.status === 'fulfilled' && postsResult.value.data) {
-            stats.posts_count = postsResult.value.data.length;
-          }
-          if (commentsResult.status === 'fulfilled' && commentsResult.value.data) {
-            stats.comments_count = commentsResult.value.data.length;
-          }
-          if (reactionsGivenResult.status === 'fulfilled' && reactionsGivenResult.value.data) {
-            stats.reactions_given = reactionsGivenResult.value.data.length;
-          }
-          if (reactionsReceivedResult.status === 'fulfilled' && reactionsReceivedResult.value.data) {
-            stats.reactions_received = reactionsReceivedResult.value.data.length;
-          }
+      // Reacciones recibidas: posts del usuario que tienen reacciones
+      supabase
+        .from('community_posts')
+        .select('user_id, community_reactions(id)')
+        .eq('community_id', community.id)
+        .in('user_id', memberUserIds)
+    ]);
 
-        } catch (error) {
-          // Mantener estadísticas en 0 si hay error
-          stats = {
-            posts_count: 0,
-            comments_count: 0,
-            reactions_given: 0,
-            reactions_received: 0,
-            points: 0
-          };
-        }
+    // Crear Maps para contar estadísticas por usuario (búsqueda O(1))
+    const postsCountMap = new Map<string, number>();
+    const commentsCountMap = new Map<string, number>();
+    const reactionsGivenMap = new Map<string, number>();
+    const reactionsReceivedMap = new Map<string, number>();
 
-        return {
-          id: member.id,
-          role: member.role,
-          joined_at: member.joined_at,
-          user: {
-            id: member.users.id,
-            email: member.users.email,
-            first_name: member.users.first_name,
-            last_name: member.users.last_name,
-            username: member.users.username,
-            profile_picture_url: member.users.profile_picture_url,
-            linkedin_url: member.users.linkedin_url,
-            github_url: member.users.github_url,
-            portfolio_url: member.users.website_url, // Usar website_url como portafolio
-            bio: member.users.bio,
-            location: member.users.location,
-            created_at: member.users.created_at,
-            profile_visibility: member.users.profile_visibility || 'public'
-          },
-          stats
-        };
-      })
-    );
+    // Contar posts por usuario
+    postsData.data?.forEach(post => {
+      postsCountMap.set(post.user_id, (postsCountMap.get(post.user_id) || 0) + 1);
+    });
+
+    // Contar comentarios por usuario
+    commentsData.data?.forEach(comment => {
+      commentsCountMap.set(comment.user_id, (commentsCountMap.get(comment.user_id) || 0) + 1);
+    });
+
+    // Contar reacciones dadas por usuario
+    reactionsGivenData.data?.forEach(reaction => {
+      reactionsGivenMap.set(reaction.user_id, (reactionsGivenMap.get(reaction.user_id) || 0) + 1);
+    });
+
+    // Contar reacciones recibidas por usuario
+    reactionsReceivedData.data?.forEach((post: any) => {
+      if (post.community_reactions && Array.isArray(post.community_reactions)) {
+        const count = post.community_reactions.length;
+        reactionsReceivedMap.set(
+          post.user_id,
+          (reactionsReceivedMap.get(post.user_id) || 0) + count
+        );
+      }
+    });
+
+    // Construir array de miembros con sus estadísticas (sin queries adicionales)
+    const membersWithStats = members.map(member => {
+      const userId = member.user_id || member.users.id;
+
+      // Obtener estadísticas de los Maps (O(1) lookup)
+      const stats = {
+        posts_count: postsCountMap.get(userId) || 0,
+        comments_count: commentsCountMap.get(userId) || 0,
+        reactions_given: reactionsGivenMap.get(userId) || 0,
+        reactions_received: reactionsReceivedMap.get(userId) || 0,
+        points: member.users?.points || 0 // Ya tenemos los puntos del JOIN inicial
+      };
+
+      return {
+        id: member.id,
+        role: member.role,
+        joined_at: member.joined_at,
+        user: {
+          id: member.users.id,
+          email: member.users.email,
+          first_name: member.users.first_name,
+          last_name: member.users.last_name,
+          username: member.users.username,
+          profile_picture_url: member.users.profile_picture_url,
+          linkedin_url: member.users.linkedin_url,
+          github_url: member.users.github_url,
+          portfolio_url: member.users.website_url, // Usar website_url como portafolio
+          bio: member.users.bio,
+          location: member.users.location,
+          created_at: member.users.created_at,
+          profile_visibility: member.users.profile_visibility || 'public'
+        },
+        stats
+      };
+    });
 
     // Ordenar por puntos (descendente) y luego por fecha de unión
     membersWithStats.sort((a, b) => {

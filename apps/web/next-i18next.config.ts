@@ -5,7 +5,7 @@ const i18nConfig: UserConfig = {
   i18n: {
     defaultLocale: 'es',
     locales: ['es', 'en', 'pt'],
-    localeDetection: true,
+    localeDetection: false, // Deshabilitado para App Router de Next.js 15
   },
   defaultNS: 'common',
   fallbackLng: 'es',

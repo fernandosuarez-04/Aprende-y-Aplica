@@ -13,6 +13,8 @@ interface User {
   cargo_rol?: string
   type_rol?: string
   profile_picture_url?: string
+  organization_id?: string // ✅ AGREGADO: Para business panel
+  role?: string // Rol del usuario (admin, instructor, student, business, etc.)
 }
 
 // Fetcher optimizado para autenticación

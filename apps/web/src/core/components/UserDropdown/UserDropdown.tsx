@@ -120,6 +120,26 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     return email.substring(0, maxLength) + '...'
   }, [])
 
+  // Función para obtener animaciones específicas por icono
+  const getIconAnimation = (itemId: string) => {
+    const animations: Record<string, { rotate?: number; scale?: number; y?: number }> = {
+      'stats': { rotate: -5, scale: 1.15, y: -2 },
+      'learning': { rotate: 5, scale: 1.15, y: -2 },
+      'certificates': { rotate: 0, scale: 1.2, y: -2 },
+      'profile': { rotate: 10, scale: 1.15, y: -2 },
+      'account-settings': { rotate: -10, scale: 1.15, y: -2 },
+      'subscriptions': { rotate: 5, scale: 1.15, y: -2 },
+      'payment-methods': { rotate: -5, scale: 1.15, y: -2 },
+      'purchase-history': { rotate: 0, scale: 1.15, y: -2 },
+      'theme': { rotate: 15, scale: 1.15, y: -2 },
+      'language': { rotate: -15, scale: 1.15, y: -2 },
+      'admin': { rotate: 0, scale: 1.2, y: -2 },
+      'instructor': { rotate: 0, scale: 1.2, y: -2 },
+      'logout': { rotate: -10, scale: 1.15, y: -2 }
+    }
+    return animations[itemId] || { scale: 1.15, y: -2 }
+  }
+
   const menuItems = [
     // Accesos rápidos
     {
@@ -400,39 +420,85 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                   <React.Fragment key={item.id}>
                     <motion.button
                       onClick={item.onClick}
-                    className={`w-full flex items-center space-x-3 px-4 py-2.5 text-left transition-colors ${
-                      item.isDestructive 
-                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300' 
-                        : item.isAdmin
-                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300'
-                        : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ 
-                      duration: 0.2,
-                      delay: index * 0.05
-                    }}
-                    whileHover={{ 
-                      x: 4,
-                      transition: { duration: 0.2 }
-                    }}
-                    whileTap={{ 
-                      scale: 0.98,
-                      transition: { duration: 0.1 }
-                    }}
-                  >
-                    <motion.div
-                      whileHover={{ 
-                        scale: 1.1,
-                        rotate: item.id === 'theme' ? 15 : 0
+                      className={`group w-full flex items-center space-x-3 px-4 py-2.5 text-left transition-all duration-200 ${
+                        item.isDestructive 
+                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300' 
+                          : item.isAdmin
+                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 hover:text-red-700 dark:hover:text-red-300'
+                          : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ 
+                        duration: 0.3,
+                        delay: index * 0.03,
+                        ease: "easeOut"
                       }}
-                      transition={{ duration: 0.2 }}
+                      whileHover={{ 
+                        x: 6,
+                        transition: { 
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20
+                        }
+                      }}
+                      whileTap={{ 
+                        scale: 0.96,
+                        transition: { duration: 0.1 }
+                      }}
                     >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${
-                        item.isDestructive || item.isAdmin ? 'text-red-400' : 'text-primary'
+                    <motion.div
+                      className="relative"
+                      whileHover={getIconAnimation(item.id)}
+                      whileTap={{ scale: 0.9 }}
+                      transition={{ 
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 17
+                      }}
+                    >
+                      {/* Efecto de pulso/glow animado */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full -z-0"
+                        animate={{
+                          scale: [1, 1.4, 1],
+                          opacity: [0, 0.4, 0]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                        style={{
+                          background: item.isDestructive || item.isAdmin 
+                            ? 'radial-gradient(circle, rgba(239, 68, 68, 0.4) 0%, transparent 70%)'
+                            : 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)'
+                        }}
+                      />
+                      {/* Efecto de brillo en hover */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        whileHover={{
+                          scale: 1.2,
+                          opacity: [0, 0.5, 0]
+                        }}
+                        transition={{
+                          duration: 0.6,
+                          ease: "easeOut"
+                        }}
+                        style={{
+                          background: item.isDestructive || item.isAdmin 
+                            ? 'radial-gradient(circle, rgba(239, 68, 68, 0.5) 0%, transparent 70%)'
+                            : 'radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, transparent 70%)'
+                        }}
+                      />
+                      <Icon className={`w-5 h-5 flex-shrink-0 relative z-10 transition-all duration-300 ${
+                        item.isDestructive || item.isAdmin 
+                          ? 'text-red-400 group-hover:text-red-300 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]' 
+                          : 'text-primary group-hover:text-primary/90 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]'
                       }`} />
-                      </motion.div>
+                    </motion.div>
                       <span className="font-medium text-sm flex-1">{item.label}</span>
                       {(item.id === 'theme' || item.id === 'language') && (
                         <ChevronDown className={`w-4 h-4 text-text-secondary dark:text-text-secondary transition-transform flex-shrink-0 ${
@@ -472,9 +538,17 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                               whileHover={{ x: 4 }}
                               whileTap={{ scale: 0.98 }}
                             >
-                              <ThemeIcon className={`w-4 h-4 flex-shrink-0 ${
-                                isActive ? 'text-primary dark:text-primary' : 'text-text-tertiary dark:text-text-tertiary'
-                              }`} />
+                              <motion.div
+                                whileHover={{ 
+                                  scale: 1.2,
+                                  rotate: themeOption.value === 'light' ? 15 : themeOption.value === 'dark' ? -15 : 0
+                                }}
+                                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                              >
+                                <ThemeIcon className={`w-4 h-4 flex-shrink-0 ${
+                                  isActive ? 'text-primary dark:text-primary' : 'text-text-tertiary dark:text-text-tertiary'
+                                }`} />
+                              </motion.div>
                               <span className={`text-xs font-medium ${
                                 isActive ? 'text-primary dark:text-primary' : 'text-text-secondary dark:text-text-secondary'
                               }`}>

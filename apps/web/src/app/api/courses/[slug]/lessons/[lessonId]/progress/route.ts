@@ -470,6 +470,142 @@ export async function POST(
           logger.warn('⚠️ No se pudo generar el certificado automáticamente')
         }
 
+        // Asignar skills del curso al usuario (en background)
+        // Solo si el curso no había sido completado antes (primera vez)
+        if (!wasCompleted) {
+          (async () => {
+            try {
+              // 1. Obtener skills del curso
+              const { data: courseSkills } = await supabase
+                .from('course_skills')
+                .select('skill_id, proficiency_level, display_order, is_primary')
+                .eq('course_id', courseId)
+
+              if (courseSkills && courseSkills.length > 0) {
+                const skillIds = courseSkills.map(cs => cs.skill_id)
+                
+                // 2. Obtener skills existentes del usuario (de todos los cursos)
+                const { data: existingUserSkills } = await supabase
+                  .from('user_skills')
+                  .select('skill_id, id, course_id')
+                  .eq('user_id', currentUser.id)
+                  .in('skill_id', skillIds)
+
+                // 3. Separar skills por tipo:
+                // - Skills que el usuario NO tiene de ningún curso (nuevas)
+                // - Skills que el usuario YA tiene de OTRO curso (actualizar nivel)
+                // - Skills que el usuario YA tiene de ESTE curso (no hacer nada, evitar duplicados)
+                
+                const existingSkillIds = new Set(
+                  (existingUserSkills || []).map(us => us.skill_id)
+                )
+                
+                const existingFromThisCourse = new Set(
+                  (existingUserSkills || [])
+                    .filter(us => us.course_id === courseId)
+                    .map(us => us.skill_id)
+                )
+
+                // 4. Filtrar skills nuevas (que el usuario no tiene de ningún curso)
+                const newSkills = courseSkills.filter(
+                  cs => !existingSkillIds.has(cs.skill_id)
+                )
+
+                // 5. Insertar nuevas skills
+                if (newSkills.length > 0) {
+                  const skillsToInsert = newSkills.map(cs => ({
+                    user_id: currentUser.id,
+                    skill_id: cs.skill_id,
+                    course_id: courseId,
+                    enrollment_id: enrollmentId,
+                    proficiency_level: cs.proficiency_level || 'beginner',
+                    obtained_at: now,
+                    is_displayed: true,
+                    display_order: cs.display_order || null
+                  }))
+
+                  const { error: insertError } = await supabase
+                    .from('user_skills')
+                    .insert(skillsToInsert)
+
+                  if (insertError) {
+                    logger.error('Error asignando skills al usuario:', insertError)
+                  } else {
+                    logger.log(`✅ ${newSkills.length} skill(s) nueva(s) asignada(s) al usuario`)
+                  }
+                }
+
+                // 6. Para skills existentes de OTROS cursos, recalcular nivel y actualizar badge
+                const existingSkillsFromOtherCourses = courseSkills.filter(
+                  cs => existingSkillIds.has(cs.skill_id) && !existingFromThisCourse.has(cs.skill_id)
+                )
+
+                if (existingSkillsFromOtherCourses.length > 0) {
+                  for (const cs of existingSkillsFromOtherCourses) {
+                    // Recalcular nivel usando la función SQL
+                    const { data: levelData, error: levelError } = await supabase
+                      .rpc('get_user_skill_level', {
+                        p_user_id: currentUser.id,
+                        p_skill_id: cs.skill_id
+                      })
+
+                    if (levelError) {
+                      logger.warn(`Error calculando nivel para skill ${cs.skill_id}:`, levelError)
+                      continue
+                    }
+
+                    const levelInfo = levelData && levelData.length > 0 ? levelData[0] : null
+                    const newLevel = levelInfo?.level || null
+
+                    if (newLevel) {
+                      // Obtener badge URL del nuevo nivel
+                      const { data: badgeData } = await supabase
+                        .from('skill_badges')
+                        .select('badge_url')
+                        .eq('skill_id', cs.skill_id)
+                        .eq('level', newLevel)
+                        .single()
+
+                      const newBadgeUrl = badgeData?.badge_url || null
+
+                      // Actualizar el registro de user_skills para reflejar nuevo nivel
+                      // Actualizamos obtained_at para indicar que obtuvo un nuevo nivel
+                      const { error: updateError } = await supabase
+                        .from('user_skills')
+                        .update({
+                          obtained_at: now, // Actualizar fecha para reflejar nuevo nivel
+                          updated_at: now
+                        })
+                        .eq('user_id', currentUser.id)
+                        .eq('skill_id', cs.skill_id)
+
+                      if (updateError) {
+                        logger.warn(`Error actualizando skill ${cs.skill_id}:`, updateError)
+                      } else {
+                        logger.log(`✅ Skill ${cs.skill_id} actualizada - Nuevo nivel: ${newLevel} (badge: ${newBadgeUrl ? 'obtenido' : 'no disponible'})`)
+                      }
+                    }
+                  }
+                }
+
+                // 7. Skills del mismo curso: No hacer nada (ya fueron asignadas anteriormente)
+                const skillsFromThisCourse = courseSkills.filter(
+                  cs => existingFromThisCourse.has(cs.skill_id)
+                )
+                
+                if (skillsFromThisCourse.length > 0) {
+                  logger.log(`ℹ️ ${skillsFromThisCourse.length} skill(s) ya asignada(s) de este curso, omitiendo duplicados`)
+                }
+              }
+            } catch (skillError) {
+              logger.error('Error en asignación automática de skills:', skillError)
+              // No lanzar error para no afectar el flujo principal
+            }
+          })().catch(() => {}) // Fire and forget
+        } else {
+          logger.log('ℹ️ Curso ya estaba completado, no se asignan skills nuevamente (previene repetición para mejorar badges)')
+        }
+
         // Crear notificación de curso completado (en background)
         (async () => {
           try {

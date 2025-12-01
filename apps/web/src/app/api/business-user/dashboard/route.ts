@@ -91,6 +91,31 @@ export async function GET() {
 
     logger.log('✅ Assignments fetched:', assignments?.length || 0)
 
+    // Obtener los course_ids de las asignaciones
+    const courseIds = (assignments || [])
+      .map((a: any) => a.course_id)
+      .filter(Boolean)
+
+    // Obtener los enrollments del usuario para estos cursos
+    // Esto nos dará el progreso real actualizado
+    let enrollmentsMap = new Map<string, any>()
+    if (courseIds.length > 0) {
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from('user_course_enrollments')
+        .select('enrollment_id, course_id, overall_progress_percentage, enrollment_status, completed_at')
+        .eq('user_id', userId)
+        .in('course_id', courseIds)
+
+      if (!enrollmentsError && enrollments) {
+        enrollments.forEach((enrollment: any) => {
+          enrollmentsMap.set(enrollment.course_id, enrollment)
+        })
+        logger.log('✅ Enrollments fetched:', enrollments.length)
+      } else if (enrollmentsError) {
+        logger.error('❌ Error fetching enrollments:', enrollmentsError)
+      }
+    }
+
     // Obtener IDs de instructores únicos
     const instructorIds = [...new Set((assignments || [])
       .map((a: any) => a.courses?.instructor_id)
@@ -130,12 +155,22 @@ export async function GET() {
       certificatesMap.set(cert.course_id, true)
     })
 
-    // Calcular estadísticas
+    // Calcular estadísticas usando el progreso real de enrollments
     const totalAssigned = assignments?.length || 0
-    const inProgress = assignments?.filter(a => 
-      a.status === 'in_progress' && (a.completion_percentage || 0) > 0 && (a.completion_percentage || 0) < 100
-    ).length || 0
-    const completed = assignments?.filter(a => a.status === 'completed').length || 0
+    
+    // Para calcular en_progress y completed, usar el progreso del enrollment si existe
+    const inProgress = assignments?.filter(a => {
+      const enrollment = enrollmentsMap.get(a.course_id)
+      const progress = enrollment?.overall_progress_percentage || a.completion_percentage || 0
+      return progress > 0 && progress < 100
+    }).length || 0
+    
+    const completed = assignments?.filter(a => {
+      const enrollment = enrollmentsMap.get(a.course_id)
+      const progress = enrollment?.overall_progress_percentage || a.completion_percentage || 0
+      return progress >= 100 || a.status === 'completed' || enrollment?.enrollment_status === 'completed'
+    }).length || 0
+    
     const certificatesCount = certificates?.length || 0
 
     const stats: DashboardStats = {
@@ -153,14 +188,25 @@ export async function GET() {
         const course = assignment.courses
         const instructor = course?.instructor_id ? instructorMap.get(course.instructor_id) : null
         
+        // Obtener el enrollment correspondiente para obtener el progreso real
+        const enrollment = enrollmentsMap.get(assignment.course_id)
+        
+        // Usar el progreso del enrollment si existe, sino usar el del assignment
+        const actualProgress = enrollment?.overall_progress_percentage !== null && enrollment?.overall_progress_percentage !== undefined
+          ? Number(enrollment.overall_progress_percentage)
+          : (assignment.completion_percentage ? Number(assignment.completion_percentage) : 0)
+        
+        // Usar el completed_at del enrollment si existe
+        const actualCompletedAt = enrollment?.completed_at || assignment.completed_at
+        
         // Formatear nombre del instructor
         const instructorName = instructor?.name || 'Instructor'
 
-        // Determinar estado en español
+        // Determinar estado en español basado en el progreso real
         let status: 'Asignado' | 'En progreso' | 'Completado' = 'Asignado'
-        if (assignment.status === 'completed' || (assignment.completion_percentage || 0) >= 100) {
+        if (actualProgress >= 100 || assignment.status === 'completed' || enrollment?.enrollment_status === 'completed') {
           status = 'Completado'
-        } else if (assignment.status === 'in_progress' || (assignment.completion_percentage || 0) > 0) {
+        } else if (actualProgress > 0 || assignment.status === 'in_progress' || enrollment?.enrollment_status === 'active') {
           status = 'En progreso'
         }
 
@@ -182,13 +228,13 @@ export async function GET() {
           course_id: assignment.course_id,
           title: course?.title || 'Curso sin título',
           instructor: instructorName,
-          progress: assignment.completion_percentage || 0,
+          progress: Math.round(actualProgress * 100) / 100, // Redondear a 2 decimales
           status: status,
           thumbnail: thumbnail,
           slug: course?.slug || '',
           assigned_at: assignment.assigned_at,
           due_date: assignment.due_date || undefined,
-          completed_at: assignment.completed_at || undefined,
+          completed_at: actualCompletedAt || undefined,
           has_certificate: certificatesMap.has(assignment.course_id) || false
         }
       })

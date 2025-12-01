@@ -7,6 +7,7 @@ import { Sparkles } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useQuestionnaireValidation } from '../../features/auth/hooks/useQuestionnaireValidation';
+import { PAISES_WITH_FLAGS } from '../../core/components/SelectField/country-flags';
 
 interface ProfileData {
   cargo_titulo: string;
@@ -29,33 +30,7 @@ interface ReferenceData {
   sectores: Array<{ id: number; nombre: string; slug: string }>;
 }
 
-// Lista de países americanos, latinoamericanos y España
-const PAISES = [
-  'Argentina',
-  'Belice',
-  'Bolivia',
-  'Brasil',
-  'Canadá',
-  'Chile',
-  'Colombia',
-  'Costa Rica',
-  'Cuba',
-  'Ecuador',
-  'El Salvador',
-  'España',
-  'Estados Unidos',
-  'Guatemala',
-  'Honduras',
-  'México',
-  'Nicaragua',
-  'Panamá',
-  'Paraguay',
-  'Perú',
-  'Puerto Rico',
-  'República Dominicana',
-  'Uruguay',
-  'Venezuela'
-].sort();
+// Lista de países ya está en PAISES_WITH_FLAGS
 
 export default function StatisticsPage() {
   const router = useRouter();
@@ -113,11 +88,18 @@ export default function StatisticsPage() {
         return;
       }
 
+      const userProfileId = (userProfile as { id: string }).id;
+      
+      if (!userProfileId) {
+        loadData();
+        return;
+      }
+
       // Verificar si el usuario tiene respuestas
       const { data: responses, error: responsesError } = await supabase
         .from('respuestas')
         .select('id')
-        .eq('user_perfil_id', userProfile.id)
+        .eq('user_perfil_id', userProfileId)
         .limit(1);
 
       if (responsesError || !responses || responses.length === 0) {
@@ -284,7 +266,7 @@ export default function StatisticsPage() {
       sector: sector?.nombre || '', // Usar sector_id, no pais
       tamano: tamano?.nombre || '',
       pais: data.pais || '', // País por separado
-      description: generateProfileDescription(cargo_titulo, area?.nombre)
+      description: generateProfileDescription(cargo_titulo || '', area?.nombre || '')
     };
   };
 
@@ -355,8 +337,8 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
-      <div className="px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50/50 via-blue-50/30 to-purple-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="px-4 sm:px-6 py-6 sm:py-8">
         <div className="max-w-7xl mx-auto">
           {!showProfileConfirmation ? (
             <>
@@ -365,12 +347,12 @@ export default function StatisticsPage() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-center mb-12"
+                className="text-center mb-10 sm:mb-12"
               >
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-color-contrast mb-3 sm:mb-4 tracking-tight">
                   Personaliza tu experiencia de aprendizaje
                 </h1>
-                <p className="text-lg text-gray-700 dark:text-white/70 max-w-2xl mx-auto">
+                <p className="text-xs sm:text-sm text-text-secondary opacity-70 font-normal max-w-2xl mx-auto">
                   Compártenos algunos datos sobre tu perfil profesional para personalizar tu experiencia de aprendizaje.
                 </p>
                 {isOAuthUser && (
@@ -387,9 +369,9 @@ export default function StatisticsPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white dark:bg-slate-800 rounded-2xl p-8 md:p-12 border border-gray-200 dark:border-slate-700 shadow-2xl max-w-4xl mx-auto"
+            className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl p-6 md:p-10 border border-gray-100 dark:border-slate-700/50 shadow-xl max-w-5xl mx-auto"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
               {/* Left Column */}
               <div className="space-y-6">
                 {/* Cargo / Título - Cambiado a combobox */}
@@ -399,13 +381,15 @@ export default function StatisticsPage() {
                   transition={{ duration: 0.5, delay: 0.6 }}
                   className="flex flex-col"
                 >
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1.5 text-text-secondary transition-all duration-200">
                     Cargo / Título <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <select
                     value={formData.rol_id}
                     onChange={(e) => handleInputChange('rol_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona tu cargo o título"
+                    aria-label="Cargo o título"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo</option>
                     {referenceData?.roles.map(rol => (
@@ -430,6 +414,8 @@ export default function StatisticsPage() {
                     value={formData.uso_ia}
                     onChange={(e) => handleInputChange('uso_ia', e.target.value)}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona qué tanto utilizas la IA en tu ámbito laboral"
+                    aria-label="Uso de IA en el ámbito laboral"
                   >
                     <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona una opción</option>
                     <option value="Nunca" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Nunca</option>
@@ -455,6 +441,8 @@ export default function StatisticsPage() {
                     disabled
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white opacity-60 cursor-not-allowed min-h-[48px] [&::-ms-expand]:hidden [&::-webkit-appearance]:none appearance-none"
                     style={{ backgroundImage: 'none' }}
+                    title="Nivel organizacional (selecciona tu cargo primero)"
+                    aria-label="Nivel organizacional"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo primero</option>
                     {referenceData?.niveles.map(nivel => (
@@ -472,13 +460,15 @@ export default function StatisticsPage() {
                   transition={{ duration: 0.5, delay: 0.8 }}
                   className="flex flex-col"
                 >
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
-                    Sector (Opcional)
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1.5 text-text-secondary transition-all duration-200">
+                    Sector
                   </label>
                   <select
                     value={formData.sector_id}
                     onChange={(e) => handleInputChange('sector_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona tu sector"
+                    aria-label="Sector"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu sector</option>
                     {referenceData?.sectores.map(sector => (
@@ -507,6 +497,8 @@ export default function StatisticsPage() {
                     disabled
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white opacity-60 cursor-not-allowed min-h-[48px] [&::-ms-expand]:hidden [&::-webkit-appearance]:none appearance-none"
                     style={{ backgroundImage: 'none' }}
+                    title="Área funcional (selecciona tu cargo primero)"
+                    aria-label="Área funcional"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo primero</option>
                     {referenceData?.areas.map(area => (
@@ -531,6 +523,8 @@ export default function StatisticsPage() {
                     value={formData.relacion_id}
                     onChange={(e) => handleInputChange('relacion_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona el tipo de relación"
+                    aria-label="Tipo de relación"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu relación</option>
                     {referenceData?.relaciones.map(relacion => (
@@ -549,12 +543,14 @@ export default function StatisticsPage() {
                   className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
-                    Tamaño de Empresa (Opcional)
+                    Tamaño de Empresa
                   </label>
                   <select
                     value={formData.tamano_id}
                     onChange={(e) => handleInputChange('tamano_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona el tamaño de empresa"
+                    aria-label="Tamaño de empresa"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona el tamaño</option>
                     {referenceData?.tamanos_empresa.map(tamano => (
@@ -573,17 +569,19 @@ export default function StatisticsPage() {
                   className="flex flex-col"
                 >
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-2">
-                    País (Opcional)
+                    País
                   </label>
                   <select
                     value={formData.pais}
                     onChange={(e) => handleInputChange('pais', e.target.value)}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona tu país"
+                    aria-label="País"
                   >
                     <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu país</option>
-                    {PAISES.map(pais => (
-                      <option key={pais} value={pais} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                        {pais}
+                    {PAISES_WITH_FLAGS.map((pais: { value: string; label: string; flag: string }) => (
+                      <option key={pais.value} value={pais.value} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                        {pais.label}
                       </option>
                     ))}
                   </select>
@@ -599,23 +597,69 @@ export default function StatisticsPage() {
               className="flex justify-center mt-8"
             >
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleSaveProfile}
                 disabled={saving}
-                className="bg-gradient-to-r from-primary to-secondary text-white font-semibold py-4 px-8 rounded-lg hover:from-primary/90 hover:to-secondary/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg"
+                className="relative overflow-hidden group rounded-xl py-3.5 px-8 font-semibold text-sm text-white transition-all duration-300 border-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2.5 shadow-lg"
+                style={{
+                  backgroundImage: saving
+                    ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(139, 92, 246, 0.6))'
+                    : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  backgroundSize: '200% 200%',
+                  backgroundPosition: saving ? 'center' : '0% 50%',
+                  borderColor: saving ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+                  boxShadow: saving 
+                    ? '0 4px 14px 0 rgba(59, 130, 246, 0.3)' 
+                    : '0 4px 14px 0 rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.1)',
+                }}
+                animate={!saving ? {
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                } : {}}
+                transition={!saving ? {
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'linear'
+                } : {}}
               >
-                {saving ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Analizando Perfil...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    <span>Analizar Perfil</span>
-                  </>
+                {/* Shimmer effect */}
+                {!saving && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    animate={{
+                      x: ['-100%', '100%'],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'linear',
+                    }}
+                  />
                 )}
+                
+                {/* Content */}
+                <span className="relative z-10 flex items-center space-x-2.5">
+                  {saving ? (
+                    <>
+                      <motion.div
+                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
+                      <span>Analizando Perfil...</span>
+                    </>
+                  ) : (
+                    <>
+                      <motion.div
+                        whileHover={{ rotate: 180, scale: 1.1 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <Sparkles className="w-5 h-5" />
+                      </motion.div>
+                      <span>Analizar Perfil</span>
+                    </>
+                  )}
+                </span>
               </motion.button>
             </motion.div>
           </motion.div>
@@ -728,14 +772,14 @@ function ProfileConfirmationSection({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="text-center mb-12"
+        className="text-center mb-10 sm:mb-12"
       >
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-          Perfil Recomendado
-        </h1>
-        <p className="text-lg text-gray-700 dark:text-white/70 max-w-2xl mx-auto">
-          Basado en la información proporcionada, este es el cuestionario que mejor se adapta a tu perfil:
-        </p>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-color-contrast mb-3 sm:mb-4 tracking-tight">
+                  Perfil Recomendado
+                </h1>
+                <p className="text-xs sm:text-sm text-text-secondary opacity-70 font-normal max-w-2xl mx-auto">
+                  Basado en la información proporcionada, este es el cuestionario que mejor se adapta a tu perfil:
+                </p>
       </motion.div>
 
       {/* Recommended Profile Card */}
@@ -743,7 +787,7 @@ function ProfileConfirmationSection({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.4 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-primary/30 dark:border-slate-700 shadow-2xl mb-8"
+        className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-gray-100 dark:border-slate-700/50 shadow-xl mb-8"
       >
         <div className="flex items-start space-x-4">
           <motion.div
@@ -760,7 +804,7 @@ function ProfileConfirmationSection({
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.7 }}
-              className="text-2xl font-bold text-gray-900 dark:text-white mb-2"
+              className="text-lg sm:text-xl lg:text-2xl font-semibold text-color-contrast mb-2 tracking-tight"
             >
               {selectedProfile?.cargo}
             </motion.h2>
@@ -769,7 +813,7 @@ function ProfileConfirmationSection({
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.8 }}
-              className="text-gray-700 dark:text-white/70 mb-6"
+              className="text-xs text-text-secondary opacity-70 font-normal mb-6"
             >
               {selectedProfile?.description}
             </motion.p>
@@ -780,35 +824,35 @@ function ProfileConfirmationSection({
               transition={{ duration: 0.5, delay: 0.9 }}
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-white/60 font-medium">Cargo:</span>
-                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.cargo}</span>
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-slate-700/50">
+                  <span className="text-xs text-text-secondary opacity-70 font-medium uppercase tracking-wider">Cargo:</span>
+                  <span className="text-sm text-color-contrast font-normal">{selectedProfile?.cargo}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-white/60 font-medium">Área:</span>
-                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.area}</span>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-slate-700/50">
+                  <span className="text-xs text-text-secondary opacity-70 font-medium uppercase tracking-wider">Área:</span>
+                  <span className="text-sm text-color-contrast font-normal">{selectedProfile?.area}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-white/60 font-medium">Nivel:</span>
-                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.nivel}</span>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-slate-700/50">
+                  <span className="text-xs text-text-secondary opacity-70 font-medium uppercase tracking-wider">Nivel:</span>
+                  <span className="text-sm text-color-contrast font-normal">{selectedProfile?.nivel}</span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-white/60 font-medium">Relación:</span>
-                  <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile?.relacion}</span>
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-slate-700/50">
+                  <span className="text-xs text-text-secondary opacity-70 font-medium uppercase tracking-wider">Relación:</span>
+                  <span className="text-sm text-color-contrast font-normal">{selectedProfile?.relacion}</span>
                 </div>
                 {selectedProfile?.sector && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-white/60 font-medium">Sector:</span>
-                    <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile.sector}</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-slate-700/50">
+                    <span className="text-xs text-text-secondary opacity-70 font-medium uppercase tracking-wider">Sector:</span>
+                    <span className="text-sm text-color-contrast font-normal">{selectedProfile.sector}</span>
                   </div>
                 )}
                 {selectedProfile?.tamano && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-white/60 font-medium">Empresa:</span>
-                    <span className="text-gray-900 dark:text-white font-semibold">{selectedProfile.tamano}</span>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-slate-700/50">
+                    <span className="text-xs text-text-secondary opacity-70 font-medium uppercase tracking-wider">Empresa:</span>
+                    <span className="text-sm text-color-contrast font-normal">{selectedProfile.tamano}</span>
                   </div>
                 )}
               </div>
@@ -828,7 +872,7 @@ function ProfileConfirmationSection({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowManualOptions(!showManualOptions)}
-          className="text-primary hover:text-primary/80 transition-colors duration-200"
+          className="text-primary hover:text-primary/80 transition-colors duration-200 font-medium text-sm sm:text-base"
         >
           {showManualOptions ? 'Ocultar opciones manuales' : '¿No es tu perfil? Selecciona manualmente'}
         </motion.button>
@@ -891,17 +935,52 @@ function ProfileConfirmationSection({
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={onStartQuestionnaire}
-          className="bg-gradient-to-r from-primary to-secondary text-white font-semibold py-4 px-8 rounded-lg hover:from-primary/90 hover:to-secondary/90 transition-all duration-200 flex items-center space-x-2 shadow-lg"
+          className="relative overflow-hidden group rounded-xl py-3.5 px-8 font-semibold text-sm text-white transition-all duration-300 border-2 flex items-center justify-center space-x-2.5 shadow-lg"
+          style={{
+            backgroundImage: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+            backgroundSize: '200% 200%',
+            backgroundPosition: '0% 50%',
+            borderColor: 'transparent',
+            boxShadow: '0 4px 14px 0 rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.1)',
+          }}
+          animate={{
+            backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: 'linear'
+          }}
         >
-          <Sparkles className="w-5 h-5" />
-          <span>Comenzar Cuestionario</span>
+          {/* Shimmer effect */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            animate={{
+              x: ['-100%', '100%'],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          />
+          
+          <span className="relative z-10 flex items-center space-x-2.5">
+            <motion.div
+              whileHover={{ rotate: 180, scale: 1.1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Sparkles className="w-5 h-5" />
+            </motion.div>
+            <span>Comenzar Cuestionario</span>
+          </span>
         </motion.button>
         
         <motion.button
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={onModifyInformation}
-          className="bg-gray-200 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white font-semibold py-4 px-8 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 hover:border-gray-400 dark:hover:border-slate-500 transition-all duration-200"
+          className="rounded-xl py-3.5 px-8 font-medium text-sm text-text-secondary border border-gray-200/50 dark:border-slate-600/50 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-all duration-300 shadow-sm hover:shadow-md"
         >
           Modificar Información
         </motion.button>

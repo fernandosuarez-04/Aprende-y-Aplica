@@ -21,11 +21,35 @@ export async function GET() {
 
     const supabase = await createClient()
 
-    const { data: organization, error: orgError } = await supabase
+    // Intentar obtener brand_banner_url si existe, si no, usar null
+    let organization: any
+    let orgError: any
+
+    // Primero intentar con brand_banner_url
+    const { data: orgWithBanner, error: errorWithBanner } = await supabase
       .from('organizations')
-      .select('id, name, logo_url, brand_color_primary, brand_color_secondary, brand_color_accent, brand_font_family, brand_logo_url, brand_favicon_url')
+      .select('id, name, logo_url, brand_color_primary, brand_color_secondary, brand_color_accent, brand_font_family, brand_logo_url, brand_favicon_url, brand_banner_url')
       .eq('id', auth.organizationId)
       .single()
+
+    if (errorWithBanner && errorWithBanner.message?.includes('brand_banner_url')) {
+      // Si el campo no existe, intentar sin él
+      const { data: orgWithoutBanner, error: errorWithoutBanner } = await supabase
+        .from('organizations')
+        .select('id, name, logo_url, brand_color_primary, brand_color_secondary, brand_color_accent, brand_font_family, brand_logo_url, brand_favicon_url')
+        .eq('id', auth.organizationId)
+        .single()
+      
+      organization = orgWithoutBanner
+      orgError = errorWithoutBanner
+      // Agregar brand_banner_url como null si no existe
+      if (organization) {
+        organization.brand_banner_url = null
+      }
+    } else {
+      organization = orgWithBanner
+      orgError = errorWithBanner
+    }
 
     if (orgError || !organization) {
       logger.error('Error fetching organization branding:', orgError)
@@ -40,6 +64,7 @@ export async function GET() {
       branding: {
         logo_url: organization.brand_logo_url || organization.logo_url || null,
         favicon_url: organization.brand_favicon_url || null,
+        banner_url: organization.brand_banner_url || null,
         color_primary: organization.brand_color_primary || '#3b82f6',
         color_secondary: organization.brand_color_secondary || '#10b981',
         color_accent: organization.brand_color_accent || '#8b5cf6',
@@ -73,7 +98,7 @@ export async function PUT(request: NextRequest) {
 
     const supabase = await createClient()
     const body = await request.json()
-    const { logo_url, favicon_url, color_primary, color_secondary, color_accent, font_family } = body
+    const { logo_url, favicon_url, banner_url, color_primary, color_secondary, color_accent, font_family } = body
 
     // Validar colores hexadecimales si se proporcionan
     const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
@@ -115,18 +140,46 @@ export async function PUT(request: NextRequest) {
 
     if (logo_url !== undefined) updateData.brand_logo_url = logo_url || null
     if (favicon_url !== undefined) updateData.brand_favicon_url = favicon_url || null
+    if (banner_url !== undefined) updateData.brand_banner_url = banner_url || null
     if (color_primary !== undefined) updateData.brand_color_primary = color_primary || '#3b82f6'
     if (color_secondary !== undefined) updateData.brand_color_secondary = color_secondary || '#10b981'
     if (color_accent !== undefined) updateData.brand_color_accent = color_accent || '#8b5cf6'
     if (font_family !== undefined) updateData.brand_font_family = font_family || 'Inter'
 
     // Actualizar organización
-    const { data: updatedOrg, error: updateError } = await supabase
+    let updatedOrg: any
+    let updateError: any
+
+    // Intentar actualizar con brand_banner_url primero
+    const { data: updatedWithBanner, error: errorWithBanner } = await supabase
       .from('organizations')
       .update(updateData)
       .eq('id', auth.organizationId)
-      .select('brand_logo_url, brand_favicon_url, brand_color_primary, brand_color_secondary, brand_color_accent, brand_font_family, logo_url')
+      .select('brand_logo_url, brand_favicon_url, brand_banner_url, brand_color_primary, brand_color_secondary, brand_color_accent, brand_font_family, logo_url')
       .single()
+
+    if (errorWithBanner && errorWithBanner.message?.includes('brand_banner_url')) {
+      // Si el campo no existe, actualizar sin él
+      const updateDataWithoutBanner = { ...updateData }
+      delete updateDataWithoutBanner.brand_banner_url
+      
+      const { data: updatedWithoutBanner, error: errorWithoutBanner } = await supabase
+        .from('organizations')
+        .update(updateDataWithoutBanner)
+        .eq('id', auth.organizationId)
+        .select('brand_logo_url, brand_favicon_url, brand_color_primary, brand_color_secondary, brand_color_accent, brand_font_family, logo_url')
+        .single()
+      
+      updatedOrg = updatedWithoutBanner
+      updateError = errorWithoutBanner
+      // Agregar brand_banner_url como null si no existe en la BD
+      if (updatedOrg) {
+        updatedOrg.brand_banner_url = null
+      }
+    } else {
+      updatedOrg = updatedWithBanner
+      updateError = errorWithBanner
+    }
 
     if (updateError || !updatedOrg) {
       logger.error('Error updating branding:', updateError)
@@ -141,6 +194,7 @@ export async function PUT(request: NextRequest) {
       branding: {
         logo_url: updatedOrg.brand_logo_url || updatedOrg.logo_url || null,
         favicon_url: updatedOrg.brand_favicon_url || null,
+        banner_url: updatedOrg.brand_banner_url || null,
         color_primary: updatedOrg.brand_color_primary || '#3b82f6',
         color_secondary: updatedOrg.brand_color_secondary || '#10b981',
         color_accent: updatedOrg.brand_color_accent || '#8b5cf6',

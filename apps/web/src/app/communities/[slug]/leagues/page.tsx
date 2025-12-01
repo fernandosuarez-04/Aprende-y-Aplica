@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft,
@@ -179,15 +179,70 @@ export default function LeaguesPage() {
   const headerSectionRef = useRef<HTMLElement | null>(null);
   const standingsSectionRef = useRef<HTMLElement | null>(null);
 
+  // 🚀 OPTIMIZACIÓN: Cargar datos de ligas cuando cambie el slug
   useEffect(() => {
-    if (slug) {
-      fetchLeaguesData();
-    }
-  }, [slug]);
+    if (!slug) return;
 
-  useEffect(() => {
-    filterMembers();
+    let isMounted = true;
+
+    async function loadLeaguesData() {
+      try {
+        setIsLoading(true);
+
+        const response = await fetch(`/api/communities/${slug}/leagues`, {
+          // Agregar caché para mejorar performance en navegaciones repetidas
+          next: { revalidate: 60 } // Revalidar cada 60 segundos
+        });
+
+        if (!isMounted) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          setCommunity(data.community);
+          setCurrentUser(data.currentUser);
+          setMembers(data.members || []);
+          setLeagueSystem(data.leagueSystem);
+          setPointsSystem(data.pointsSystem);
+          setLeagueStats(data.leagueStats);
+        } else {
+          const errorData = await response.json();
+          if (response.status === 401) {
+            router.push('/auth');
+          } else if (response.status === 403) {
+            router.push(`/communities/${slug}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching leagues:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadLeaguesData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug, router]);
+
+  // 🚀 OPTIMIZACIÓN: Memoizar el filtrado para evitar cálculos innecesarios
+  const filteredAndSortedMembers = useMemo(() => {
+    let filtered = members;
+
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter(member => member.league === activeFilter);
+    }
+
+    return filtered;
   }, [members, activeFilter]);
+
+  // Sincronizar con el estado filteredMembers solo cuando cambie el resultado memoizado
+  useEffect(() => {
+    setFilteredMembers(filteredAndSortedMembers);
+  }, [filteredAndSortedMembers]);
 
   useEffect(() => {
     const checkViewport = () => {
@@ -230,48 +285,6 @@ export default function LeaguesPage() {
           standingsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
-  };
-
-  const fetchLeaguesData = async () => {
-    try {
-      setIsLoading(true);
-      // console.log('🔍 Fetching leagues data for community:', slug);
-      
-      const response = await fetch(`/api/communities/${slug}/leagues`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        // console.log('✅ Leagues data received:', data);
-        setCommunity(data.community);
-        setCurrentUser(data.currentUser);
-        setMembers(data.members || []);
-        setLeagueSystem(data.leagueSystem);
-        setPointsSystem(data.pointsSystem);
-        setLeagueStats(data.leagueStats);
-      } else {
-        const errorData = await response.json();
-        // console.error('❌ API Error:', errorData);
-        if (response.status === 401) {
-          router.push('/auth');
-        } else if (response.status === 403) {
-          router.push(`/communities/${slug}`);
-        }
-      }
-    } catch (error) {
-      // console.error('❌ Network error fetching leagues:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filterMembers = () => {
-    let filtered = members;
-    
-    if (activeFilter !== 'all') {
-      filtered = filtered.filter(member => member.league === activeFilter);
-    }
-    
-    setFilteredMembers(filtered);
   };
 
   const getProgressPercentage = (points: number, league: string) => {

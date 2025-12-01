@@ -20,6 +20,7 @@ import {
   Download,
   BarChart3
 } from 'lucide-react'
+import { PremiumSelect } from '@/features/business-panel/components/PremiumSelect'
 import { useBusinessUsers } from '@/features/business-panel/hooks/useBusinessUsers'
 import { BusinessUser } from '@/features/business-panel/services/businessUsers.service'
 import { Button } from '@aprende-y-aplica/ui'
@@ -132,6 +133,7 @@ export default function BusinessPanelUsersPage() {
     first_name?: string
     last_name?: string
     display_name?: string
+    type_rol: string
     org_role?: 'owner' | 'admin' | 'member'
   }) => {
     await createUser(userData)
@@ -142,8 +144,15 @@ export default function BusinessPanelUsersPage() {
     first_name?: string
     last_name?: string
     display_name?: string
+    email?: string
+    cargo_rol?: string
+    type_rol?: string
     org_role?: 'owner' | 'admin' | 'member'
     org_status?: 'active' | 'invited' | 'suspended' | 'removed'
+    profile_picture_url?: string
+    bio?: string
+    location?: string
+    phone?: string
   }) => {
     await updateUser(userId, userData)
   }
@@ -206,55 +215,61 @@ export default function BusinessPanelUsersPage() {
       className="w-full"
     >
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
+      <div className="mb-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-3">Gestión de Usuarios</h1>
-            <p className="text-carbon-300">Administra y gestiona los miembros de tu organización</p>
+            <h1 className="text-2xl sm:text-3xl font-heading font-semibold text-white mb-2 tracking-tight">Gestión de Usuarios</h1>
+            <p className="font-body text-carbon-400 text-sm leading-relaxed">Administra y gestiona los miembros de tu organización</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button 
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/business/users/template', {
-                    credentials: 'include'
-                  })
-                  if (!response.ok) throw new Error('Error al descargar')
-                  const blob = await response.blob()
-                  const url = window.URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url
-                  a.download = 'plantilla-importacion-usuarios.csv'
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
-                  window.URL.revokeObjectURL(url)
-                } catch (err) {
-                  // console.error('Error descargando plantilla:', err)
-                }
-              }}
-              variant="outline" 
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Plantilla
-            </Button>
-            <Button 
-              onClick={() => setIsImportModalOpen(true)} 
-              variant="outline" 
-              className="flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Importar
-            </Button>
-            <Button 
-              onClick={() => setIsAddModalOpen(true)} 
-              variant="gradient" 
-              className="flex items-center gap-2"
-            >
-            <Plus className="w-5 h-5" />
-            Agregar Usuario
-          </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }}>
+              <Button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/business/users/template', {
+                      credentials: 'include'
+                    })
+                    if (!response.ok) throw new Error('Error al descargar')
+                    const blob = await response.blob()
+                    const url = window.URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = 'plantilla-importacion-usuarios.csv'
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    window.URL.revokeObjectURL(url)
+                  } catch (err) {
+                    // console.error('Error descargando plantilla:', err)
+                  }
+                }}
+                variant="outline" 
+                className="flex items-center gap-2 font-heading text-sm transition-all duration-200"
+              >
+                <Download className="w-4 h-4" />
+                Plantilla
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }}>
+              <Button 
+                onClick={() => setIsImportModalOpen(true)} 
+                variant="outline" 
+                className="flex items-center gap-2 font-heading text-sm transition-all duration-200"
+              >
+                <Upload className="w-4 h-4" />
+                Importar
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }}>
+              <Button 
+                onClick={() => setIsAddModalOpen(true)} 
+                variant="gradient" 
+                className="flex items-center gap-2 font-heading text-sm transition-all duration-200"
+              >
+                <Plus className="w-5 h-5" />
+                Agregar Usuario
+              </Button>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -264,14 +279,15 @@ export default function BusinessPanelUsersPage() {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          transition={{ duration: 0.3 }}
+          className="mb-8"
         >
-          <div className="p-4 bg-yellow-900/20 border border-yellow-500/50 rounded-xl">
+          <div className="p-4 bg-yellow-900/10 border border-yellow-500/30 rounded-xl backdrop-blur-sm">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-400" />
+              <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
               <div>
-                <h4 className="text-sm font-semibold text-yellow-400">Información</h4>
-                <p className="text-xs text-carbon-300 mt-1">
+                <h4                 className="font-heading text-sm font-semibold text-yellow-400">Información</h4>
+                <p className="font-body text-xs text-carbon-300 mt-1">
                   No se pudieron cargar los usuarios. Puedes comenzar agregando el primer usuario.
                 </p>
               </div>
@@ -281,158 +297,182 @@ export default function BusinessPanelUsersPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, type: 'spring', stiffness: 100 }}
+          whileHover={{ y: -1, transition: { duration: 0.2 } }}
+          className="relative bg-carbon-900/20 rounded-xl p-5 border border-carbon-700/10 hover:border-carbon-600/20 transition-all duration-300"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="font-body text-xs text-carbon-500 mb-2 uppercase tracking-wider">Total Usuarios</p>
+              <p className="font-heading text-2xl font-bold text-white leading-none">{stats.total}</p>
             </div>
-            <div>
-              <p className="text-sm text-carbon-400">Total Usuarios</p>
-              <p className="text-2xl font-bold text-white">{stats.total}</p>
+            <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-400" />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, type: 'spring', stiffness: 100 }}
+          whileHover={{ y: -1, transition: { duration: 0.2 } }}
+          className="relative bg-carbon-900/20 rounded-xl p-5 border border-carbon-700/10 hover:border-carbon-600/20 transition-all duration-300"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="font-body text-xs text-carbon-500 mb-2 uppercase tracking-wider">Activos</p>
+              <p className="font-heading text-2xl font-bold text-white leading-none">{stats.active}</p>
             </div>
-            <div>
-              <p className="text-sm text-carbon-400">Activos</p>
-              <p className="text-2xl font-bold text-white">{stats.active}</p>
+            <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-green-400" />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, type: 'spring', stiffness: 100 }}
+          whileHover={{ y: -1, transition: { duration: 0.2 } }}
+          className="relative bg-carbon-900/20 rounded-xl p-5 border border-carbon-700/10 hover:border-carbon-600/20 transition-all duration-300"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-              <Mail className="w-6 h-6 text-yellow-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="font-body text-xs text-carbon-500 mb-2 uppercase tracking-wider">Invitados</p>
+              <p className="font-heading text-2xl font-bold text-white leading-none">{stats.invited}</p>
             </div>
-            <div>
-              <p className="text-sm text-carbon-400">Invitados</p>
-              <p className="text-2xl font-bold text-white">{stats.invited}</p>
+            <div className="w-10 h-10 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+              <Mail className="w-5 h-5 text-yellow-400" />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, type: 'spring', stiffness: 100 }}
+          whileHover={{ y: -1, transition: { duration: 0.2 } }}
+          className="relative bg-carbon-900/20 rounded-xl p-5 border border-carbon-700/10 hover:border-carbon-600/20 transition-all duration-300"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-              <Shield className="w-6 h-6 text-purple-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="font-body text-xs text-carbon-500 mb-2 uppercase tracking-wider">Administradores</p>
+              <p className="font-heading text-2xl font-bold text-white leading-none">{stats.admins}</p>
             </div>
-            <div>
-              <p className="text-sm text-carbon-400">Administradores</p>
-              <p className="text-2xl font-bold text-white">{stats.admins}</p>
+            <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+              <Shield className="w-5 h-5 text-purple-400" />
             </div>
           </div>
         </motion.div>
       </div>
 
       {/* Filters */}
-      <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-carbon-400" />
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.3 }}
+        className="bg-carbon-900/10 rounded-lg p-4 border border-carbon-700/5 mb-8"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <motion.div 
+            className="relative"
+            whileFocus={{ scale: 1.005 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-carbon-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar usuarios..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-carbon-600/50 border border-carbon-500 rounded-xl text-white placeholder-carbon-400 focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-carbon-900/30 border border-carbon-700/10 rounded-lg font-body text-white text-sm placeholder-carbon-500 focus:outline-none focus:border-primary/40 focus:bg-carbon-900/40 transition-all duration-200"
             />
-          </div>
+          </motion.div>
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-carbon-400" />
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-carbon-600/50 border border-carbon-500 rounded-xl text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none"
-            >
-              <option value="all">Todos los roles</option>
-              <option value="owner">Propietario</option>
-              <option value="admin">Administrador</option>
-              <option value="member">Miembro</option>
-            </select>
-          </div>
+          <PremiumSelect
+            value={filterRole}
+            onChange={setFilterRole}
+            options={[
+              { value: 'all', label: 'Todos los roles' },
+              { value: 'owner', label: 'Propietario' },
+              { value: 'admin', label: 'Administrador' },
+              { value: 'member', label: 'Miembro' }
+            ]}
+            placeholder="Todos los roles"
+            icon={<Filter className="w-4 h-4" />}
+          />
 
-          <div className="relative">
-            <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-carbon-400" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-carbon-600/50 border border-carbon-500 rounded-xl text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="active">Activo</option>
-              <option value="invited">Invitado</option>
-              <option value="suspended">Suspendido</option>
-              <option value="removed">Removido</option>
-            </select>
-          </div>
+          <PremiumSelect
+            value={filterStatus}
+            onChange={setFilterStatus}
+            options={[
+              { value: 'all', label: 'Todos los estados' },
+              { value: 'active', label: 'Activo' },
+              { value: 'invited', label: 'Invitado' },
+              { value: 'suspended', label: 'Suspendido' },
+              { value: 'removed', label: 'Removido' }
+            ]}
+            placeholder="Todos los estados"
+            icon={<ShieldCheck className="w-4 h-4" />}
+          />
         </div>
-      </div>
+      </motion.div>
 
       {/* Users Table */}
-      <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl border border-carbon-600 overflow-hidden">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.3 }}
+        className="bg-carbon-900/20 rounded-xl border border-carbon-700/10 overflow-hidden"
+      >
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-carbon-900/50 border-b border-carbon-600">
+            <thead className="border-b border-carbon-700/10">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Usuario</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Email</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Rol</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Estado</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Último Login</th>
-                <th className="px-6 py-4 text-right text-sm font-semibold text-carbon-300">Acciones</th>
+                <th className="px-6 py-4 text-left text-xs font-heading font-semibold text-carbon-400 uppercase tracking-wider">Usuario</th>
+                <th className="px-6 py-4 text-left text-xs font-heading font-semibold text-carbon-400 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-4 text-left text-xs font-heading font-semibold text-carbon-400 uppercase tracking-wider">Rol</th>
+                <th className="px-6 py-4 text-left text-xs font-heading font-semibold text-carbon-400 uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-4 text-left text-xs font-heading font-semibold text-carbon-400 uppercase tracking-wider">Último Login</th>
+                <th className="px-6 py-4 text-right text-xs font-heading font-semibold text-carbon-400 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-carbon-600">
+            <tbody className="divide-y divide-carbon-700/5">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <Users className="w-12 h-12 text-carbon-500 mx-auto mb-3" />
-                    <p className="text-carbon-400 text-lg mb-2">
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Users className="w-14 h-14 text-carbon-500 mx-auto mb-4" />
+                    <p className="font-body text-carbon-300 text-lg mb-2 font-medium">
                       {users.length === 0 ? 'Aún no hay usuarios en tu organización' : 'No se encontraron usuarios'}
                     </p>
-                    <p className="text-carbon-500 text-sm mb-4">
-                      {users.length === 0 
-                        ? 'Comienza agregando tu primer usuario para gestionar tu equipo'
-                        : 'Intenta con otros filtros de búsqueda'}
-                    </p>
-                    {users.length === 0 && (
-                      <Button 
-                        onClick={() => setIsAddModalOpen(true)} 
-                        variant="gradient"
-                        className="mt-2"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Agregar Primer Usuario
-                      </Button>
-                    )}
+                    <p className="font-body text-carbon-500 text-sm mb-6">
+                        {users.length === 0 
+                          ? 'Comienza agregando tu primer usuario para gestionar tu equipo'
+                          : 'Intenta con otros filtros de búsqueda'}
+                      </p>
+                      {users.length === 0 && (
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button 
+                            onClick={() => setIsAddModalOpen(true)} 
+                            variant="gradient"
+                            className="font-heading text-sm"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Agregar Primer Usuario
+                          </Button>
+                        </motion.div>
+                      )}
+                    </motion.div>
                   </td>
                 </tr>
               ) : (
@@ -443,15 +483,16 @@ export default function BusinessPanelUsersPage() {
                   return (
                     <motion.tr
                       key={user.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="hover:bg-carbon-700/50 transition-colors"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03, duration: 0.3 }}
+                      whileHover={{ backgroundColor: 'rgba(51, 65, 85, 0.2)' }}
+                      className="transition-all duration-200"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           {user.profile_picture_url ? (
-                            <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary/30">
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                               <Image
                                 src={user.profile_picture_url}
                                 alt={displayName}
@@ -461,34 +502,34 @@ export default function BusinessPanelUsersPage() {
                               />
                             </div>
                           ) : (
-                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                            {(user.first_name?.[0] || user.username[0]).toUpperCase()}
-                          </div>
+                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-heading font-bold text-sm flex-shrink-0">
+                              {(user.first_name?.[0] || user.username[0]).toUpperCase()}
+                            </div>
                           )}
                           <div>
-                            <p className="text-white font-medium">{displayName}</p>
-                            <p className="text-carbon-400 text-sm">{user.username}</p>
+                            <p className="font-body text-white font-medium text-sm">{displayName}</p>
+                            <p className="font-body text-carbon-500 text-xs mt-0.5">{user.username}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-carbon-300">{user.email}</p>
+                      <td className="px-6 py-5">
+                        <p className="font-body text-carbon-300 text-sm">{user.email}</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleColor(user.org_role || 'member')}`}>
+                      <td className="px-6 py-5">
+                        <span className={`px-3 py-1 rounded-full text-xs font-heading font-semibold ${getRoleColor(user.org_role || 'member')}`}>
                           {user.org_role === 'owner' ? 'Propietario' : user.org_role === 'admin' ? 'Administrador' : 'Miembro'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 w-fit ${getStatusColor(user.org_status || 'active')}`}>
-                          <StatusIcon className="w-4 h-4" />
+                      <td className="px-6 py-5">
+                        <span className={`px-3 py-1 rounded-full text-xs font-heading font-semibold flex items-center gap-1.5 w-fit ${getStatusColor(user.org_status || 'active')}`}>
+                          <StatusIcon className="w-3.5 h-3.5" />
                           {user.org_status === 'active' ? 'Activo' : 
                            user.org_status === 'invited' ? 'Invitado' : 
                            user.org_status === 'suspended' ? 'Suspendido' : 'Removido'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-carbon-400 text-sm">
+                      <td className="px-6 py-5">
+                        <p className="font-body text-carbon-400 text-sm">
                           {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString('es-ES', {
                             day: '2-digit',
                             month: 'short',
@@ -496,59 +537,71 @@ export default function BusinessPanelUsersPage() {
                           }) : 'Nunca'}
                         </p>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-8 py-6">
+                        <div className="flex items-center justify-end gap-1.5">
                           {user.org_status === 'invited' && (
-                            <button
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleResendInvitation(user.id)}
-                              className="p-2 hover:bg-primary/20 rounded-lg transition-colors"
+                              className="p-2 hover:bg-primary/10 rounded-lg transition-all duration-200"
                               title="Reenviar invitación"
                             >
                               <Mail className="w-4 h-4 text-primary" />
-                            </button>
+                            </motion.button>
                           )}
                           {user.org_status === 'active' && (
-                            <button
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleSuspendUser(user.id)}
-                              className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                              className="p-2 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                               title="Suspender usuario"
                             >
                               <XCircle className="w-4 h-4 text-red-400" />
-                            </button>
+                            </motion.button>
                           )}
                           {user.org_status === 'suspended' && (
-                            <button
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleActivateUser(user.id)}
-                              className="p-2 hover:bg-green-500/20 rounded-lg transition-colors"
+                              className="p-2 hover:bg-green-500/10 rounded-lg transition-all duration-200"
                               title="Activar usuario"
                             >
                               <CheckCircle className="w-4 h-4 text-green-400" />
-                            </button>
+                            </motion.button>
                           )}
-                          <button
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => {
                               setStatsUser(user)
                               setIsStatsModalOpen(true)
                             }}
-                            className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
+                            className="p-2 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
                             title="Ver estadísticas"
                           >
                             <BarChart3 className="w-4 h-4 text-blue-400" />
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => handleEditUser(user)}
-                            className="p-2 hover:bg-primary/20 rounded-lg transition-colors"
+                            className="p-2 hover:bg-primary/10 rounded-lg transition-all duration-200"
                             title="Editar usuario"
                           >
                             <Edit className="w-4 h-4 text-primary" />
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => handleDeleteUser(user)}
-                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                            className="p-2 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                             title="Eliminar usuario"
                           >
                             <Trash className="w-4 h-4 text-red-400" />
-                          </button>
+                          </motion.button>
                         </div>
                       </td>
                     </motion.tr>
@@ -558,7 +611,7 @@ export default function BusinessPanelUsersPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Modals */}
       <AddUserModal

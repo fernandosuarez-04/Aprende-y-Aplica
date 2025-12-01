@@ -10,9 +10,14 @@ import { AIChatAgent } from '../AIChatAgent/AIChatAgent';
 export function ConditionalAIChatAgent() {
   const pathname = usePathname();
 
+  // Verificación de pathname (puede ser null durante SSG/prerendering)
+  if (!pathname) {
+    return null;
+  }
+
   // No mostrar en páginas de lecciones (learn) donde ya existe Lia propia
   // Tampoco mostrar en la página principal (/) ni en auth
-  const shouldHideAgent = pathname?.includes('/learn') || pathname === '/' || pathname?.startsWith('/auth');
+  const shouldHideAgent = pathname.includes('/learn') || pathname === '/' || pathname.startsWith('/auth');
 
   // Si debe ocultarse, no renderizar nada
   if (shouldHideAgent) {

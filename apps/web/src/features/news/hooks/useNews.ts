@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import useSWR from 'swr'
 import { NewsService, NewsWithMetrics, NewsFilters } from '../services/news.service'
 
 interface UseNewsReturn {
@@ -83,47 +84,39 @@ interface UseNewsDetailReturn {
   refetch: () => Promise<void>
 }
 
+// 🚀 OPTIMIZACIÓN: Migrado a SWR para caching automático
+const newsDetailFetcher = async (url: string) => {
+  const slug = url.split('/').pop()!
+  const newsData = await NewsService.getNewsBySlug(slug)
+
+  // Incrementar contador de vistas (solo en el fetcher inicial)
+  if (newsData) {
+    NewsService.incrementViewCount(slug).catch(() => {}) // Fire and forget
+  }
+
+  return newsData
+}
+
 export function useNewsDetail(slug: string): UseNewsDetailReturn {
-  const [news, setNews] = useState<NewsWithMetrics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchNewsDetail = useCallback(async () => {
-    if (!slug) return
-
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const newsData = await NewsService.getNewsBySlug(slug)
-      setNews(newsData)
-
-      // Incrementar contador de vistas
-      if (newsData) {
-        await NewsService.incrementViewCount(slug)
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      // console.error('Error fetching news detail:', err)
-    } finally {
-      setLoading(false)
+  const { data: news, error, isLoading, mutate } = useSWR<NewsWithMetrics>(
+    slug ? `/news/detail/${slug}` : null,
+    newsDetailFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 30000,
+      refreshInterval: 0, // No auto-refresh for detail view
+      errorRetryCount: 3,
+      errorRetryInterval: 5000,
+      keepPreviousData: false,
     }
-  }, [slug])
-
-  const refetch = useCallback(async () => {
-    await fetchNewsDetail()
-  }, [fetchNewsDetail])
-
-  useEffect(() => {
-    fetchNewsDetail()
-  }, [fetchNewsDetail])
+  )
 
   return {
-    news,
-    loading,
-    error,
-    refetch
+    news: news ?? null,
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Error desconocido') : null,
+    refetch: async () => { await mutate() }
   }
 }
 
@@ -138,44 +131,31 @@ interface UseNewsStatsReturn {
   refetch: () => Promise<void>
 }
 
+// 🚀 OPTIMIZACIÓN: Migrado a SWR para caching automático
+const newsStatsFetcher = async () => {
+  return await NewsService.getNewsStats()
+}
+
 export function useNewsStats(): UseNewsStatsReturn {
-  const [stats, setStats] = useState<{
-    totalNews: number
-    totalCategories: number
-    totalViews: number
-  } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchStats = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const statsData = await NewsService.getNewsStats()
-      setStats(statsData)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      // console.error('Error fetching news stats:', err)
-    } finally {
-      setLoading(false)
+  const { data: stats, error, isLoading, mutate } = useSWR(
+    '/news/stats',
+    newsStatsFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,     // 1 minuto
+      refreshInterval: 300000,     // Auto-refresh cada 5 minutos
+      errorRetryCount: 3,
+      errorRetryInterval: 5000,
+      keepPreviousData: true,
     }
-  }, [])
-
-  const refetch = useCallback(async () => {
-    await fetchStats()
-  }, [fetchStats])
-
-  useEffect(() => {
-    fetchStats()
-  }, [fetchStats])
+  )
 
   return {
-    stats,
-    loading,
-    error,
-    refetch
+    stats: stats ?? null,
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Error desconocido') : null,
+    refetch: async () => { await mutate() }
   }
 }
 
@@ -186,39 +166,31 @@ interface UseFeaturedNewsReturn {
   refetch: () => Promise<void>
 }
 
+// 🚀 OPTIMIZACIÓN: Migrado a SWR para caching automático
+const featuredNewsFetcher = async (url: string) => {
+  const limit = parseInt(url.split('=')[1] || '3')
+  return await NewsService.getFeaturedNews(limit)
+}
+
 export function useFeaturedNews(limit: number = 3): UseFeaturedNewsReturn {
-  const [featuredNews, setFeaturedNews] = useState<NewsWithMetrics[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchFeaturedNews = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const newsData = await NewsService.getFeaturedNews(limit)
-      setFeaturedNews(newsData)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      // console.error('Error fetching featured news:', err)
-    } finally {
-      setLoading(false)
+  const { data: featuredNews, error, isLoading, mutate } = useSWR<NewsWithMetrics[]>(
+    `/news/featured?limit=${limit}`,
+    featuredNewsFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,      // 1 minuto
+      refreshInterval: 300000,      // Auto-refresh cada 5 minutos
+      errorRetryCount: 3,
+      errorRetryInterval: 5000,
+      keepPreviousData: true,
     }
-  }, [limit])
-
-  const refetch = useCallback(async () => {
-    await fetchFeaturedNews()
-  }, [fetchFeaturedNews])
-
-  useEffect(() => {
-    fetchFeaturedNews()
-  }, [fetchFeaturedNews])
+  )
 
   return {
-    featuredNews,
-    loading,
-    error,
-    refetch
+    featuredNews: featuredNews ?? [],
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Error desconocido') : null,
+    refetch: async () => { await mutate() }
   }
 }

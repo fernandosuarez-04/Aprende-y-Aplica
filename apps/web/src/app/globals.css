@@ -415,6 +415,15 @@ a {
   animation: glow 2s ease-in-out infinite;
 }
 
+@keyframes rainbow-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 /* Gradient text */
 .gradient-text {
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
@@ -1450,6 +1459,44 @@ input[type="range"]::-moz-range-thumb {
 .dark .notes-select option:hover {
   background-color: rgb(51, 65, 85) !important;
   color: rgb(255, 255, 255) !important;
+}
+
+/* Estilos premium para combobox del panel de usuarios */
+select {
+  background-image: none !important;
+}
+
+select option {
+  background-color: rgb(15, 23, 42) !important;
+  color: rgb(255, 255, 255) !important;
+  padding: 0.75rem 1rem !important;
+  font-family: var(--font-inter), sans-serif !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: rgb(255, 255, 255) !important;
+}
+
+/* Mejorar el scrollbar del select en navegadores que lo soporten */
+select::-webkit-scrollbar {
+  width: 6px;
+}
+
+select::-webkit-scrollbar-track {
+  background: rgb(15, 23, 42);
+  border-radius: 3px;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: rgb(51, 65, 85);
+  border-radius: 3px;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: rgb(71, 85, 105);
 }
 
 /* Estilos para el editor de notas - Listas */

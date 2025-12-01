@@ -73,10 +73,10 @@ export async function GET(
         .order('joined_at', { ascending: true });
 
       if (membersError) {
-        // Si falla el join, obtener datos por separado
+        // 🚀 OPTIMIZACIÓN: Si falla el join, obtener datos por separado con Map para O(1) lookup
         const { data: membersData2, error: membersError2 } = await supabase
           .from('community_members')
-          .select('*')
+          .select('id, role, joined_at, user_id') // Solo campos necesarios
           .eq('community_id', community.id)
           .eq('is_active', true);
 
@@ -95,8 +95,11 @@ export async function GET(
             throw new Error('No se pudo obtener información de usuarios');
           }
 
+          // Crear Map de usuarios para búsqueda O(1) en lugar de O(n)
+          const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
+
           members = membersData2.map(member => {
-            const user = usersData?.find(u => u.id === member.user_id);
+            const user = usersMap.get(member.user_id);
             return {
               ...member,
               users: user || {

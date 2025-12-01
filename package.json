@@ -26,9 +26,15 @@
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
   },
+  "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5"
+  },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=22.0.0",
+    "npm": ">=10.5.1"
   },
   "repository": {
     "type": "git",
@@ -50,8 +56,9 @@
     "next-pwa": "^5.6.0",
     "openai": "^6.8.0",
     "react-qr-code": "^2.0.18",
+    "recharts": "^3.5.0",
     "rrweb": "^2.0.0-alpha.4",
     "rrweb-player": "^1.0.0-alpha.4",
-    "zod": "^4.1.12"
+    "zod": "^3.25.76"
   }
 }

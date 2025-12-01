@@ -121,6 +121,7 @@ export async function PUT(
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación
     if (error instanceof z.ZodError) {
+      console.error('Validation error:', error.errors)
       return NextResponse.json({
         success: false,
         message: 'Datos inválidos',
@@ -131,9 +132,13 @@ export async function PUT(
       }, { status: 400 })
     }
     
-    // console.error('Error in PUT /api/admin/workshops/[id]:', error)
+    console.error('Error in PUT /api/admin/workshops/[id]:', error)
     return NextResponse.json(
-      { error: 'Error al actualizar taller' },
+      { 
+        success: false,
+        error: 'Error al actualizar taller',
+        message: error instanceof Error ? error.message : 'Error desconocido'
+      },
       { status: 500 }
     )
   }

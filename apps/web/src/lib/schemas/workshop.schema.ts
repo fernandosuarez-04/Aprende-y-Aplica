@@ -75,12 +75,14 @@ export const UpdateWorkshopSchema = z.object({
     .trim()
     .optional(),
   
-  description: z.string()
-    .min(20, 'La descripción debe tener al menos 20 caracteres')
-    .max(2000, 'La descripción no puede exceder 2000 caracteres')
-    .trim()
-    .optional()
-    .nullable(),
+  description: z.union([
+    z.string()
+      .min(20, 'La descripción debe tener al menos 20 caracteres')
+      .max(2000, 'La descripción no puede exceder 2000 caracteres')
+      .trim(),
+    z.literal(''),
+    z.null()
+  ]).optional(),
   
   category: z.string()
     .optional(),
@@ -101,17 +103,19 @@ export const UpdateWorkshopSchema = z.object({
   is_active: z.boolean()
     .optional(),
   
-  thumbnail_url: z.string()
-    .url('URL de imagen inválida')
-    .max(500, 'La URL no puede exceder 500 caracteres')
-    .optional()
-    .nullable(),
+  thumbnail_url: z.union([
+    z.string().url('URL de imagen inválida').max(500, 'La URL no puede exceder 500 caracteres'),
+    z.literal(''),
+    z.null()
+  ]).optional(),
   
-  slug: z.string()
-    .min(3, 'El slug debe tener al menos 3 caracteres')
-    .max(100, 'El slug no puede exceder 100 caracteres')
-    .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones')
-    .optional(),
+  slug: z.union([
+    z.string()
+      .min(3, 'El slug debe tener al menos 3 caracteres')
+      .max(100, 'El slug no puede exceder 100 caracteres')
+      .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones'),
+    z.literal('')
+  ]).optional(),
   
   price: z.number()
     .min(0, 'El precio no puede ser negativo')

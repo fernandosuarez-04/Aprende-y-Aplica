@@ -11,8 +11,8 @@
 
 [build.environment]
   # Versión de Node.js (lee automáticamente desde .nvmrc)
-  # Actualizado a Node.js 20 para compatibilidad con Supabase (Node.js 18 está deprecado)
-  NODE_VERSION = "20"
+  # Actualizado a Node.js 22 para compatibilidad con camera-controls@3.1.2 que requiere Node >= 22.0.0
+  NODE_VERSION = "22"
   
   # Habilitar plugin de Next.js
   NETLIFY_NEXT_PLUGIN_SKIP = "false"
