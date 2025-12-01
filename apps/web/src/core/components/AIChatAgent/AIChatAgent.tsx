@@ -25,7 +25,6 @@ import { usePathname } from 'next/navigation';
 import { ReporteProblema } from '../ReporteProblema/ReporteProblema';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../providers/I18nProvider';
-import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
 import { useRouter } from 'next/navigation';
 import { getPlatformContext } from '../../../lib/lia/page-metadata';
 

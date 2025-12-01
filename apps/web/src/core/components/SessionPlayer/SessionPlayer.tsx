@@ -4,8 +4,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import rrwebPlayer from 'rrweb-player';
-import type { RecordingSession } from '../../../lib/rrweb/session-recorder';
+import type { RecordingSession } from '../../../lib/rrweb/session-recorder-client';
 // Nota: Los estilos de rrweb-player están incluidos en el paquete JavaScript
 // No es necesario importar CSS adicional para la versión alpha
 
@@ -35,7 +34,13 @@ export function SessionPlayer({
 
   useEffect(() => {
     console.log('🎬 useEffect ejecutado');
-    
+
+    // Solo en el cliente
+    if (typeof window === 'undefined') {
+      console.warn('⚠️ SessionPlayer solo funciona en el navegador');
+      return;
+    }
+
     if (!session.events.length) {
       console.warn('⚠️ SessionPlayer: No hay eventos para reproducir')
       setError('No hay eventos para reproducir');
@@ -47,9 +52,9 @@ export function SessionPlayer({
     const maxAttempts = 50; // Máximo 50 intentos (unos 3 segundos)
 
     // Esperar a que el ref esté disponible con requestAnimationFrame
-    const initializePlayer = () => {
+    const initializePlayer = async () => {
       attemptCount++;
-      
+
       if (!containerRef.current) {
         if (attemptCount >= maxAttempts) {
           console.error('❌ Timeout: Contenedor no disponible después de', maxAttempts, 'intentos');
@@ -67,7 +72,7 @@ export function SessionPlayer({
 
       try {
         console.log('🎬 PASO 1: Iniciando proceso de player...');
-        
+
         // Limpiar player anterior si existe
         if (playerRef.current) {
           console.log('🧹 Limpiando player anterior...');
@@ -82,8 +87,13 @@ export function SessionPlayer({
           timestamp: e.timestamp
         })));
 
-        console.log('🎬 PASO 3: Creando instancia de rrwebPlayer...');
-        
+        console.log('🎬 PASO 3: Importando rrweb-player dinámicamente...');
+        // Importación dinámica de rrweb-player (solo en el cliente)
+        const rrwebPlayerModule = await import('rrweb-player');
+        const rrwebPlayer = rrwebPlayerModule.default;
+
+        console.log('🎬 PASO 4: Creando instancia de rrwebPlayer...');
+
         // Crear nuevo player
         playerRef.current = new rrwebPlayer({
           target: container,
@@ -99,7 +109,7 @@ export function SessionPlayer({
           },
         });
 
-        console.log('🎬 PASO 4: Player creado, verificando...');
+        console.log('🎬 PASO 5: Player creado, verificando...');
         console.log('   - Player ref:', !!playerRef.current);
         console.log('   - Container children:', container.children.length);
         

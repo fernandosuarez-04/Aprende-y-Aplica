@@ -8,6 +8,7 @@ import { AppCard } from '../../features/ai-directory/components/AppCard';
 import { SearchBar } from '../../features/ai-directory/components/SearchBar';
 import { LoadingSpinner } from '../../features/ai-directory/components/LoadingSpinner';
 import { useApps } from '../../features/ai-directory/hooks/useApps';
+import { useTranslation } from 'react-i18next';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -33,50 +34,71 @@ const itemVariants = {
 };
 
 export default function AppsDirectoryPage() {
+  const { t, i18n } = useTranslation();
+
+  // Detectar idioma seleccionado desde el contexto global (igual que en /learn)
+  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showFeatured, setShowFeatured] = useState(false);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mounted, setMounted] = useState(false);
-  
-  // Cargar el modo de vista guardado después del montaje
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem('apps-view-mode')
-    if (saved === 'grid' || saved === 'list') {
-      setViewMode(saved)
-    }
-  }, []);
-  
-  // Guardar el modo de vista en localStorage cuando cambie
-  useEffect(() => {
-    if (mounted && typeof window !== 'undefined') {
-      localStorage.setItem('apps-view-mode', viewMode)
-    }
-  }, [viewMode, mounted])
 
-  const { apps, loading, error, pagination, refetch } = useApps({
-    search: searchQuery,
-    featured: showFeatured,
-    sortBy,
-    sortOrder
-  });
+  // Variable para saber si hay filtros activos
+  const hasActiveFilters = !!searchQuery || !!showFeatured;
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleFeaturedToggle = () => {
-    setShowFeatured(!showFeatured);
-  };
-
+  // Función para limpiar filtros
   const clearFilters = () => {
     setSearchQuery('');
     setShowFeatured(false);
   };
 
-  const hasActiveFilters = searchQuery || showFeatured;
+  // Definir handleSearch para el SearchBar
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  // Definir handleFeaturedToggle para el botón destacado
+  const handleFeaturedToggle = () => {
+    setShowFeatured((prev) => !prev);
+  };
+
+  // Hook de apps con valores por defecto para evitar errores de referencia
+  const {
+    apps = [],
+    loading = false,
+    error = null,
+    pagination = { page: 1, limit: 12, total: 0, totalPages: 1 },
+    refetch = () => {}
+  } = useApps({
+    search: searchQuery,
+    featured: showFeatured,
+    sortBy,
+    sortOrder,
+    lang: selectedLang // Usar selectedLang del contexto global
+  });
+  
+  // Cargar el modo de vista guardado después del montaje
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('apps-view-mode');
+    if (saved === 'grid' || saved === 'list') {
+      setViewMode(saved);
+    }
+  }, []);
+
+  // Guardar el modo de vista en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      localStorage.setItem('apps-view-mode', viewMode);
+    }
+  }, [viewMode, mounted]);
+  if (!mounted) {
+    // Evita hydration error mostrando un placeholder hasta que el idioma esté listo
+    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900"><LoadingSpinner /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative pb-12">
@@ -105,35 +127,35 @@ export default function AppsDirectoryPage() {
               variants={itemVariants}
             >
               <Grid3X3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Apps Directory</span>
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('appsDirectory.badge')}</span>
             </motion.div>
 
             <motion.h1
               className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-blue-700 to-cyan-700 dark:from-white dark:via-blue-200 dark:to-cyan-200 bg-clip-text text-transparent"
               variants={itemVariants}
             >
-              Herramientas de IA
+              {t('appsDirectory.title')}
             </motion.h1>
 
             <motion.p
               className="text-xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto"
               variants={itemVariants}
             >
-              Descubre las mejores herramientas de inteligencia artificial para potenciar tu productividad y creatividad
+              {t('appsDirectory.description')}
             </motion.p>
 
-            <motion.div 
+            <motion.div
               variants={itemVariants}
               className="flex flex-col sm:flex-row gap-4 items-center justify-center max-w-3xl mx-auto"
             >
               <div className="flex-1 w-full">
                 <SearchBar
                   onSearch={handleSearch}
-                  placeholder="Buscar herramientas de IA por nombre, categoría o descripción..."
+                  placeholder={t('appsDirectory.searchPlaceholder')}
                   className="w-full"
                 />
               </div>
-              
+
               <div className="flex gap-3">
                 {/* Featured Toggle */}
                 <button
@@ -145,7 +167,7 @@ export default function AppsDirectoryPage() {
                   }`}
                 >
                   <Star className="w-4 h-4" />
-                  <span className="text-sm">Destacados</span>
+                  <span className="text-sm">{t('appsDirectory.filters.featured')}</span>
                 </button>
               </div>
             </motion.div>
@@ -165,12 +187,12 @@ export default function AppsDirectoryPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              {loading ? 'Cargando...' : `${pagination?.total || 0} Herramientas Encontradas`}
+              {loading ? t('appsDirectory.results.loading') : t('appsDirectory.results.found', { count: pagination?.total || 0 })}
             </h2>
             {hasActiveFilters && (
               <p className="text-gray-600 dark:text-gray-400">
-                Filtros aplicados: {searchQuery && `"${searchQuery}"`} 
-                {showFeatured && ' • Destacados'}
+                {t('appsDirectory.results.filtersApplied')} {searchQuery && `"${searchQuery}"`}
+                {showFeatured && ` • ${t('appsDirectory.results.featured')}`}
               </p>
             )}
           </div>
@@ -210,9 +232,9 @@ export default function AppsDirectoryPage() {
         {/* Error State */}
         {error && (
           <div className="text-center py-12">
-            <div className="text-red-400 mb-4">Error al cargar las herramientas</div>
+            <div className="text-red-400 mb-4">{t('appsDirectory.error.loadingApps')}</div>
             <Button onClick={() => refetch()} variant="primary">
-              Reintentar
+              {t('appsDirectory.error.retry')}
             </Button>
           </div>
         )}
@@ -254,12 +276,12 @@ export default function AppsDirectoryPage() {
             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
               <Search className="w-12 h-12 text-gray-600 dark:text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No se encontraron herramientas</h3>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('appsDirectory.empty.title')}</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Intenta ajustar tus filtros de búsqueda o explorar diferentes herramientas
+              {t('appsDirectory.empty.description')}
             </p>
             <Button onClick={clearFilters} variant="primary">
-              Limpiar Filtros
+              {t('appsDirectory.empty.clearFilters')}
             </Button>
           </div>
         )}
@@ -275,9 +297,9 @@ export default function AppsDirectoryPage() {
                   // Handle previous page
                 }}
               >
-                Anterior
+                {t('appsDirectory.pagination.previous')}
               </Button>
-              
+
               <div className="flex items-center gap-1">
                 {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                   const page = i + 1;
@@ -295,7 +317,7 @@ export default function AppsDirectoryPage() {
                   );
                 })}
               </div>
-              
+
               <Button
                 variant="ghost"
                 disabled={pagination.page === pagination.totalPages}
@@ -303,7 +325,7 @@ export default function AppsDirectoryPage() {
                   // Handle next page
                 }}
               >
-                Siguiente
+                {t('appsDirectory.pagination.next')}
               </Button>
             </div>
           </div>

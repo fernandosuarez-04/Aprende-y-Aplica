@@ -2,6 +2,7 @@
 
 import { ReactNode, useCallback, useEffect, useMemo, useState, createContext, useContext } from 'react';
 import { I18nextProvider } from 'react-i18next';
+import type { i18n as I18nType } from 'i18next';
 
 import { initI18n, SupportedLanguage } from '../i18n/i18n';
 
@@ -15,25 +16,26 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(undefine
 const STORAGE_KEY = 'app-language';
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const i18nInstance = useMemo(() => {
-    const instance = initI18n();
-    // Asegurar que la primera renderización (SSR/CSR) siempre sea en español
-    instance.changeLanguage('es').catch(() => {});
-    return instance;
-  }, []);
+  const [i18nInstance, setI18nInstance] = useState<I18nType | null>(null);
   const [language, setLanguageState] = useState<SupportedLanguage>('es');
 
+  // Inicializar i18n solo en el cliente
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const instance = initI18n();
+    setI18nInstance(instance);
+
+    // Cargar idioma guardado
     const savedLanguage = localStorage.getItem(STORAGE_KEY) as SupportedLanguage | null;
     const initialLang = savedLanguage || 'es';
     setLanguageState(initialLang);
     document.documentElement.lang = initialLang;
-    i18nInstance.changeLanguage(initialLang).catch(() => {});
-  }, [i18nInstance]);
+    instance.changeLanguage(initialLang).catch(() => {});
+  }, []);
 
   const changeLanguage = useCallback(
     (lang: SupportedLanguage) => {
+      if (!i18nInstance) return;
+
       setLanguageState(lang);
       if (typeof window !== 'undefined') {
         localStorage.setItem(STORAGE_KEY, lang);
@@ -51,6 +53,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }),
     [language, changeLanguage]
   );
+
+  // Siempre proporcionar el LanguageContext, pero solo I18nextProvider cuando i18n esté listo
+  if (!i18nInstance) {
+    return (
+      <LanguageContext.Provider value={contextValue}>
+        {children}
+      </LanguageContext.Provider>
+    );
+  }
 
   return (
     <LanguageContext.Provider value={contextValue}>

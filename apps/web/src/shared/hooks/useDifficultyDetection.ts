@@ -1,9 +1,9 @@
 /**
  * 🔍 useDifficultyDetection Hook
- * 
+ *
  * Hook de React que monitorea continuamente la sesión rrweb del usuario
  * para detectar patrones de dificultad y disparar intervenciones proactivas de LIA.
- * 
+ *
  * Uso:
  * ```tsx
  * const { analysis, shouldShowHelp, dismissHelp } = useDifficultyDetection({
@@ -18,35 +18,35 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { sessionRecorderClient } from '../lib/rrweb/session-recorder-client';
+import { sessionRecorderClient } from '../../lib/rrweb/session-recorder-client';
 import {
   DifficultyPatternDetector,
   type DifficultyAnalysis,
   type DetectionThresholds
-} from '../lib/rrweb/difficulty-pattern-detector';
+} from '../../lib/rrweb/difficulty-pattern-detector';
 
 export interface UseDifficultyDetectionOptions {
   /** ID del taller actual (opcional, para contexto) */
   workshopId?: string;
-  
+
   /** ID de la actividad actual (opcional, para contexto) */
   activityId?: string;
-  
+
   /** Si está habilitada la detección (default: true) */
   enabled?: boolean;
-  
+
   /** Intervalo de chequeo en ms (default: 30000 = 30s) */
   checkInterval?: number;
-  
+
   /** Umbrales personalizados de detección */
   thresholds?: Partial<DetectionThresholds>;
-  
+
   /** Callback cuando se detecta dificultad */
   onDifficultyDetected?: (analysis: DifficultyAnalysis) => void;
-  
+
   /** Callback cuando usuario acepta ayuda */
   onHelpAccepted?: (analysis: DifficultyAnalysis) => void;
-  
+
   /** Callback cuando usuario rechaza ayuda */
   onHelpDismissed?: (analysis: DifficultyAnalysis) => void;
 }
@@ -54,19 +54,19 @@ export interface UseDifficultyDetectionOptions {
 export interface UseDifficultyDetectionReturn {
   /** Análisis actual de dificultad (null si no hay problemas) */
   analysis: DifficultyAnalysis | null;
-  
+
   /** Si se debe mostrar el diálogo de ayuda proactiva */
   shouldShowHelp: boolean;
-  
+
   /** Función para aceptar la ayuda ofrecida */
   acceptHelp: () => void;
-  
+
   /** Función para rechazar/dismissar la ayuda */
   dismissHelp: () => void;
-  
+
   /** Función para resetear el detector */
   reset: () => void;
-  
+
   /** Si el detector está activo */
   isActive: boolean;
 }
@@ -88,7 +88,7 @@ export function useDifficultyDetection(
   const [analysis, setAnalysis] = useState<DifficultyAnalysis | null>(null);
   const [shouldShowHelp, setShouldShowHelp] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  
+
   const detectorRef = useRef<DifficultyPatternDetector | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastInterventionTimeRef = useRef<number>(0);
@@ -122,7 +122,7 @@ export function useDifficultyDetection(
     try {
       // Capturar snapshot de la sesión actual
       const snapshot = await sessionRecorderClient.captureSnapshot();
-      
+
       if (!snapshot || snapshot.events.length === 0) {
         console.log('⚠️ No hay eventos para analizar');
         return;
@@ -130,7 +130,7 @@ export function useDifficultyDetection(
 
       // Analizar patrones de dificultad
       const currentAnalysis = detectorRef.current.detect(snapshot.events);
-      
+
       console.log('📊 Análisis de dificultad:', {
         score: currentAnalysis.overallScore.toFixed(2),
         patterns: currentAnalysis.patterns.length,
@@ -157,7 +157,7 @@ export function useDifficultyDetection(
         setAnalysis(currentAnalysis);
         setShouldShowHelp(true);
         lastInterventionTimeRef.current = Date.now();
-        
+
         // Llamar callback si existe
         if (onDifficultyDetected) {
           onDifficultyDetected(currentAnalysis);
@@ -207,7 +207,7 @@ export function useDifficultyDetection(
   const acceptHelp = useCallback(() => {
     console.log('✅ Usuario aceptó ayuda proactiva');
     setShouldShowHelp(false);
-    
+
     if (analysis && onHelpAccepted) {
       onHelpAccepted(analysis);
     }
@@ -218,7 +218,7 @@ export function useDifficultyDetection(
     console.log('❌ Usuario rechazó ayuda proactiva');
     setShouldShowHelp(false);
     setAnalysis(null);
-    
+
     if (analysis && onHelpDismissed) {
       onHelpDismissed(analysis);
     }

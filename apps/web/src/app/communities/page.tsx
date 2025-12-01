@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  Users, 
-  FileText, 
+import {
+  Search,
+  Users,
+  FileText,
   Filter,
   Plus,
   Lock,
@@ -37,6 +37,7 @@ import { useRouter } from 'next/navigation';
 import { usePrefetchOnHover } from '../../core/hooks/usePrefetch';
 import { useCommunities } from '../../core/hooks/useCommunities';
 import useSWR from 'swr';
+import { useTranslation } from 'react-i18next';
 
 interface Community {
   id: string;
@@ -65,16 +66,16 @@ interface CommunityAccessRequest {
   reviewed_at?: string;
 }
 
-const categories = [
-  { id: 'all', name: 'Todos', icon: Globe },
-  { id: 'general', name: 'General', icon: Users },
-  { id: 'ai', name: 'IA', icon: TrendingUp },
-  { id: 'data', name: 'Datos', icon: FileText },
-  { id: 'development', name: 'Desarrollo', icon: Code },
-  { id: 'design', name: 'Diseño', icon: Palette },
-  { id: 'it', name: 'IT & Software', icon: Monitor },
-  { id: 'marketing', name: 'Marketing', icon: Megaphone },
-  { id: 'business', name: 'Negocios', icon: Briefcase }
+const getCategoriesWithTranslation = (t: any) => [
+  { id: 'all', name: t('communities.categories.all'), icon: Globe },
+  { id: 'general', name: t('communities.categories.general'), icon: Users },
+  { id: 'ai', name: t('communities.categories.ai'), icon: TrendingUp },
+  { id: 'data', name: t('communities.categories.data'), icon: FileText },
+  { id: 'development', name: t('communities.categories.development'), icon: Code },
+  { id: 'design', name: t('communities.categories.design'), icon: Palette },
+  { id: 'it', name: t('communities.categories.it'), icon: Monitor },
+  { id: 'marketing', name: t('communities.categories.marketing'), icon: Megaphone },
+  { id: 'business', name: t('communities.categories.business'), icon: Briefcase }
 ];
 
 const containerVariants = {
@@ -123,11 +124,12 @@ const cardVariants = {
 export default function CommunitiesPage() {
   const router = useRouter();
   const prefetchOnHover = usePrefetchOnHover();
-  
+  const { t } = useTranslation();
+
   // 🚀 SWR Hook - Cache inteligente con revalidación automática
   const { communities: communitiesData, isLoading, isError, mutate } = useCommunities();
   const communities = communitiesData?.communities || [];
-  
+
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -135,6 +137,9 @@ export default function CommunitiesPage() {
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+
+  // Get translated categories
+  const categories = getCategoriesWithTranslation(t);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -275,15 +280,15 @@ export default function CommunitiesPage() {
   const getAccessTypeInfo = React.useCallback((accessType: string) => {
     switch (accessType) {
       case 'free':
-        return { label: 'Miembro', color: 'text-green-400', icon: CheckCircle };
+        return { label: t('communities.accessTypes.free'), color: 'text-green-400', icon: CheckCircle };
       case 'invitation_only':
-        return { label: 'Invitación', color: 'text-purple-400', icon: Lock };
+        return { label: t('communities.accessTypes.invitation_only'), color: 'text-purple-400', icon: Lock };
       case 'paid':
-        return { label: 'Pago', color: 'text-yellow-400', icon: Crown };
+        return { label: t('communities.accessTypes.paid'), color: 'text-yellow-400', icon: Crown };
       default:
-        return { label: 'Miembro', color: 'text-green-400', icon: CheckCircle };
+        return { label: t('communities.accessTypes.free'), color: 'text-green-400', icon: CheckCircle };
     }
-  }, []); // Función pura sin dependencias
+  }, [t]);
 
   const getCommunityCardStyle = React.useCallback((community: Community) => {
     // Estilos específicos para comunidades conocidas con mejor diseño
@@ -410,14 +415,13 @@ export default function CommunitiesPage() {
             variants={itemVariants}
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-6">
-              Comunidad de{' '}
+              {t('communities.title')}{' '}
               <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent dark:from-blue-200 dark:to-purple-200">
-                Aprende y Aplica
+                {t('communities.brandName')}
               </span>
             </h1>
             <p className="text-xl text-slate-600 dark:text-white/80 max-w-3xl mx-auto leading-relaxed">
-              Conecta con otros estudiantes, comparte conocimientos y participa en discusiones 
-              sobre inteligencia artificial y tecnología educativa
+              {t('communities.description')}
             </p>
           </motion.div>
 
@@ -428,11 +432,11 @@ export default function CommunitiesPage() {
           >
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-200">{totalMembers}</div>
-              <div className="text-slate-500 dark:text-white/60">MIEMBROS</div>
+              <div className="text-slate-500 dark:text-white/60">{t('communities.stats.members')}</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-purple-600 dark:text-purple-200">{totalCommunities}</div>
-              <div className="text-slate-500 dark:text-white/60">COMUNIDADES</div>
+              <div className="text-slate-500 dark:text-white/60">{t('communities.stats.communities')}</div>
             </div>
           </motion.div>
 
@@ -447,7 +451,7 @@ export default function CommunitiesPage() {
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-white/60 w-5 h-5" />
                   <input
                     type="text"
-                    placeholder="Buscar comunidades o contenido..."
+                    placeholder={t('communities.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-12 pr-4 py-4 bg-white/80 border border-white/60 rounded-2xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-transparent transition-all backdrop-blur-md shadow-lg shadow-purple-200/40 dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60 dark:focus:ring-blue-400/50"
@@ -461,7 +465,7 @@ export default function CommunitiesPage() {
                 >
                   <span className="flex items-center gap-2">
                     <Filter className="w-4 h-4" />
-                    {categories.find((c) => c.id === selectedCategory)?.name || 'Categorías'}
+                    {categories.find((c) => c.id === selectedCategory)?.name || t('communities.filterButton')}
                   </span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -587,7 +591,7 @@ export default function CommunitiesPage() {
                             {community.name}
                           </h3>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Actualizado {updatedDateFormatter.format(new Date(community.updated_at))}
+                            {t('communities.labels.updated')} {updatedDateFormatter.format(new Date(community.updated_at))}
                           </p>
                         </div>
                         <div className="text-right">
@@ -595,7 +599,7 @@ export default function CommunitiesPage() {
                             {new Intl.NumberFormat('es-ES').format(community.member_count)}
                           </p>
                           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            Miembros
+                            {t('communities.labels.members')}
                           </span>
                         </div>
                       </div>
@@ -607,7 +611,7 @@ export default function CommunitiesPage() {
                       <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100/70 dark:border-white/5 bg-slate-50/70 dark:bg-white/5 px-4 py-3 text-sm text-slate-600 dark:text-slate-200">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-blue-500" />
-                          {community.visibility === 'public' ? 'Comunidad abierta' : 'Acceso moderado'}
+                          {community.visibility === 'public' ? t('communities.labels.publicCommunity') : t('communities.labels.moderatedAccess')}
                         </div>
                         <div className="h-6 w-px bg-slate-200/70 dark:bg-white/10" />
                         <div className="flex items-center gap-2">
@@ -619,18 +623,18 @@ export default function CommunitiesPage() {
                       <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500 dark:text-slate-300">
                         <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-white/10 px-3 py-1">
                           <Shield className="w-3.5 h-3.5 text-emerald-500" />
-                          {community.is_active ? 'Activa' : 'En pausa'}
+                          {community.is_active ? t('communities.labels.active') : t('communities.labels.paused')}
                         </span>
                         {community.is_member && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-emerald-500">
                             <CheckCircle className="w-3.5 h-3.5" />
-                            Ya eres miembro
+                            {t('communities.labels.alreadyMember')}
                           </span>
                         )}
                         {community.has_pending_request && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 text-amber-500">
                             <Clock className="w-3.5 h-3.5" />
-                            Solicitud enviada
+                            {t('communities.labels.requestSent')}
                           </span>
                         )}
                       </div>
@@ -644,14 +648,14 @@ export default function CommunitiesPage() {
                               onClick={() => handleOpenDetails(community)}
                               className="flex-1 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/60 py-3 text-sm font-semibold text-slate-900 dark:text-white transition hover:border-blue-400/60"
                             >
-                              Ver detalles
+                              {t('communities.buttons.viewDetails')}
                             </button>
                             <button
                               type="button"
                               onClick={() => router.push(`/communities/${community.slug}`)}
                               className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:brightness-110"
                             >
-                              Entrar
+                              {t('communities.buttons.enter')}
                             </button>
                           </div>
                         ) : community.has_pending_request ? (
@@ -661,14 +665,14 @@ export default function CommunitiesPage() {
                               onClick={() => handleOpenDetails(community)}
                               className="flex-1 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/60 py-3 text-sm font-semibold text-slate-900 dark:text-white transition hover:border-blue-400/60"
                             >
-                              Ver detalles
+                              {t('communities.buttons.viewDetails')}
                             </button>
                             <button
                               type="button"
                               disabled
                               className="flex-1 rounded-2xl border border-amber-400/40 bg-amber-500/20 py-3 text-sm font-semibold text-amber-700 dark:text-amber-200"
                             >
-                              Solicitud pendiente
+                              {t('communities.buttons.pendingRequest')}
                             </button>
                           </div>
                         ) : (
@@ -678,7 +682,7 @@ export default function CommunitiesPage() {
                               onClick={() => handleOpenDetails(community)}
                               className="flex-1 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/60 py-3 text-sm font-semibold text-slate-900 dark:text-white transition hover:border-blue-400/60"
                             >
-                              Ver detalles
+                              {t('communities.buttons.viewDetails')}
                             </button>
                             <button
                               type="button"
@@ -693,7 +697,7 @@ export default function CommunitiesPage() {
                               {joiningCommunity === community.id ? (
                                 <div className="mx-auto h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                               ) : (
-                                'Unirme'
+                                t('communities.buttons.join')
                               )}
                             </button>
                           </div>
@@ -715,16 +719,16 @@ export default function CommunitiesPage() {
                 <X className="w-12 h-12 text-red-600 dark:text-red-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Error al cargar comunidades
+                {t('communities.errors.loadingError')}
               </h3>
               <p className="text-gray-600 dark:text-slate-400 mb-4">
-                {isError?.message || 'Ocurrió un error al intentar cargar las comunidades'}
+                {isError?.message || t('communities.errors.errorMessage')}
               </p>
               <Button
                 onClick={() => mutate()}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl"
               >
-                Reintentar
+                {t('communities.errors.retry')}
               </Button>
             </motion.div>
           )}
@@ -738,10 +742,10 @@ export default function CommunitiesPage() {
                 <Users className="w-12 h-12 text-gray-600 dark:text-slate-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                No hay comunidades disponibles
+                {t('communities.empty.noCommunities')}
               </h3>
               <p className="text-gray-600 dark:text-slate-400">
-                Aún no se han creado comunidades en la plataforma
+                {t('communities.empty.noCommunitiesDesc')}
               </p>
             </motion.div>
           )}
@@ -755,10 +759,10 @@ export default function CommunitiesPage() {
                 <Search className="w-12 h-12 text-gray-600 dark:text-slate-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                No se encontraron comunidades
+                {t('communities.empty.noResults')}
               </h3>
               <p className="text-gray-600 dark:text-slate-400">
-                Intenta ajustar tus filtros de búsqueda
+                {t('communities.empty.noResultsDesc')}
               </p>
             </motion.div>
           )}
@@ -777,7 +781,7 @@ export default function CommunitiesPage() {
           className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <Info className="w-5 h-5 mr-2" />
-          Ver Normas de la Comunidad
+          {t('communities.buttons.viewRules')}
         </Button>
       </motion.div>
 
@@ -799,7 +803,7 @@ export default function CommunitiesPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Normas de la Comunidad</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('communities.rulesModal.title')}</h2>
                 <button
                   onClick={() => setShowRulesModal(false)}
                   className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white transition-colors"
@@ -809,7 +813,7 @@ export default function CommunitiesPage() {
               </div>
 
               <p className="text-gray-700 dark:text-slate-300 mb-8">
-                Ayúdanos a mantener un ambiente respetuoso y constructivo
+                {t('communities.rulesModal.description')}
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -818,10 +822,10 @@ export default function CommunitiesPage() {
                     <div className="w-10 h-10 rounded-lg bg-red-500/20 dark:bg-red-500/20 flex items-center justify-center">
                       <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sé Respetuoso</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('communities.rulesModal.respectful.title')}</h3>
                   </div>
                   <p className="text-gray-700 dark:text-slate-300 text-sm">
-                    Trata a todos los miembros con respeto y cortesía. No toleramos el acoso o la discriminación.
+                    {t('communities.rulesModal.respectful.description')}
                   </p>
                 </div>
 
@@ -830,10 +834,10 @@ export default function CommunitiesPage() {
                     <div className="w-10 h-10 rounded-lg bg-blue-500/20 dark:bg-blue-500/20 flex items-center justify-center">
                       <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Comparte Conocimiento</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('communities.rulesModal.shareKnowledge.title')}</h3>
                   </div>
                   <p className="text-gray-700 dark:text-slate-300 text-sm">
-                    Contribuye con información útil y constructiva. Ayuda a otros a aprender y crecer.
+                    {t('communities.rulesModal.shareKnowledge.description')}
                   </p>
                 </div>
 
@@ -842,10 +846,10 @@ export default function CommunitiesPage() {
                     <div className="w-10 h-10 rounded-lg bg-green-500/20 dark:bg-green-500/20 flex items-center justify-center">
                       <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Mantén la Privacidad</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('communities.rulesModal.privacy.title')}</h3>
                   </div>
                   <p className="text-gray-700 dark:text-slate-300 text-sm">
-                    No compartas información personal de otros miembros sin su consentimiento.
+                    {t('communities.rulesModal.privacy.description')}
                   </p>
                 </div>
 
@@ -854,10 +858,10 @@ export default function CommunitiesPage() {
                     <div className="w-10 h-10 rounded-lg bg-yellow-500/20 dark:bg-yellow-500/20 flex items-center justify-center">
                       <Flag className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reporta Problemas</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('communities.rulesModal.reportProblems.title')}</h3>
                   </div>
                   <p className="text-gray-700 dark:text-slate-300 text-sm">
-                    Si ves contenido inapropiado, repórtalo inmediatamente a los moderadores.
+                    {t('communities.rulesModal.reportProblems.description')}
                   </p>
                 </div>
               </div>
@@ -867,7 +871,7 @@ export default function CommunitiesPage() {
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
-                Entendido
+                {t('communities.buttons.understood')}
               </Button>
             </motion.div>
           </motion.div>
@@ -972,6 +976,7 @@ function CommunityDetailsModal({
   onClose,
   onEnter,
 }: CommunityDetailsModalProps) {
+  const { t } = useTranslation();
   const fallbackStats = {
     members: community.member_count || 0,
     posts: 0,
@@ -1002,7 +1007,7 @@ function CommunityDetailsModal({
       >
         <button
           onClick={onClose}
-          aria-label="Cerrar detalles de comunidad"
+          aria-label={t('communities.buttons.close')}
           className="absolute top-4 right-4 w-11 h-11 rounded-full bg-black/5 text-slate-600 hover:bg-black/10 flex items-center justify-center transition dark:bg-white/10 dark:hover:bg-white/20 dark:text-white"
         >
           <X className="w-5 h-5" />
@@ -1020,13 +1025,13 @@ function CommunityDetailsModal({
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.35),_transparent_55%)] mix-blend-soft-light pointer-events-none" />
               <div className="absolute bottom-6 left-6 right-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.4em] text-slate-600 dark:text-white/70">Comunidad</p>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-600 dark:text-white/70">{t('communities.detailsModal.communityLabel')}</p>
                   <h2 className="text-3xl font-bold text-slate-900 dark:text-white">{community.name}</h2>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <InfoBadge icon={community.visibility === 'public' ? Globe : Shield} value={community.visibility === 'public' ? 'Pública' : 'Privada'} />
+                  <InfoBadge icon={community.visibility === 'public' ? Globe : Shield} value={community.visibility === 'public' ? t('communities.detailsModal.visibility.public') : t('communities.detailsModal.visibility.private')} />
                   <InfoBadge icon={community.access_type === 'free' ? CheckCircle : community.access_type === 'invitation_only' ? Lock : Crown} value={
-                    community.access_type === 'free' ? 'Acceso libre' : community.access_type === 'invitation_only' ? 'Solo invitación' : 'Acceso premium'
+                    community.access_type === 'free' ? t('communities.detailsModal.accessType.free') : community.access_type === 'invitation_only' ? t('communities.detailsModal.accessType.invitationOnly') : t('communities.detailsModal.accessType.premium')
                   } />
                   {community.category && (
                     <InfoBadge icon={Megaphone} value={categories.find((c) => c.id === community.category)?.name || community.category} />
@@ -1043,10 +1048,10 @@ function CommunityDetailsModal({
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DetailStat label="Miembros" value={stats.members.toString()} icon={Users} />
-                <DetailStat label="Posts publicados" value={stats.posts.toString()} icon={MessageSquareIcon} />
+                <DetailStat label={t('communities.detailsModal.stats.members')} value={stats.members.toString()} icon={Users} />
+                <DetailStat label={t('communities.detailsModal.stats.posts')} value={stats.posts.toString()} icon={MessageSquareIcon} />
                 <DetailStat
-                  label="Creada"
+                  label={t('communities.detailsModal.stats.created')}
                   value={
                     stats.createdAt
                       ? new Date(stats.createdAt).toLocaleDateString('es-MX', {
@@ -1061,58 +1066,58 @@ function CommunityDetailsModal({
               </div>
 
               <div className="bg-white/80 border border-slate-200/80 rounded-[26px] p-6 space-y-4 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
-                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">Información clave</p>
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">{t('communities.detailsModal.keyInfo')}</p>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <HighlightItem icon={Shield} title="Moderación activa" description="Un equipo dedicado mantiene conversaciones sanas y enfocadas." />
-                  <HighlightItem icon={MessageSquareIcon} title="Colaboración constante" description="Comparte ideas, dudas y recursos con profesionales afines." />
+                  <HighlightItem icon={Shield} title={t('communities.detailsModal.moderation.title')} description={t('communities.detailsModal.moderation.description')} />
+                  <HighlightItem icon={MessageSquareIcon} title={t('communities.detailsModal.collaboration.title')} description={t('communities.detailsModal.collaboration.description')} />
                 </div>
               </div>
             </section>
 
             <aside className="space-y-6">
               <section className="bg-white/80 border border-slate-200/80 rounded-[26px] p-6 space-y-4 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
-                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">Administradores</p>
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">{t('communities.detailsModal.admins')}</p>
                 {isLoading ? (
                   <SkeletonList items={2} height="h-14" />
                 ) : (
                   <div className="space-y-3">
                     {creator ? (
                       <AdminCard
-                        name={creator.display_name || `${creator.first_name || ''} ${creator.last_name || ''}`.trim() || 'Administrador'}
-                        role="Creador"
+                        name={creator.display_name || `${creator.first_name || ''} ${creator.last_name || ''}`.trim() || t('communities.detailsModal.roles.admin')}
+                        role={t('communities.detailsModal.roles.creator')}
                         avatar={creator.profile_picture_url}
                       />
                     ) : (
-                      <AdminCard name="Equipo Aprende y Aplica" role="Creador" avatar={null} />
+                      <AdminCard name={t('communities.detailsModal.defaultTeam')} role={t('communities.detailsModal.roles.creator')} avatar={null} />
                     )}
                     {admins.map((admin) => (
                       <AdminCard
                         key={admin.id}
-                        name={admin.display_name || 'Administrador'}
-                        role={admin.role === 'moderator' ? 'Moderador' : 'Administrador'}
+                        name={admin.display_name || t('communities.detailsModal.roles.admin')}
+                        role={admin.role === 'moderator' ? t('communities.detailsModal.roles.moderator') : t('communities.detailsModal.roles.admin')}
                         avatar={admin.profile_picture_url}
                       />
                     ))}
                     {!admins.length && (
-                      <p className="text-xs text-slate-500 dark:text-white/60">Aún no se asignan administradores adicionales.</p>
+                      <p className="text-xs text-slate-500 dark:text-white/60">{t('communities.detailsModal.noAdmins')}</p>
                     )}
                   </div>
                 )}
               </section>
 
               <section className="bg-white/80 border border-slate-200/80 rounded-[26px] p-6 space-y-4 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
-                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">Miembros recientes</p>
+                <p className="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-white/60">{t('communities.detailsModal.recentMembers')}</p>
                 {isLoading ? (
                   <SkeletonList items={3} height="h-12" />
                 ) : recentMembers.length ? (
                   <div className="space-y-3 max-h-48 overflow-y-auto custom-scroll pr-1">
                     {recentMembers.map((member) => (
                       <div key={member.id} className="flex items-center gap-3 bg-white rounded-2xl px-3 py-2 border border-slate-200/80 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-white">
-                        <AvatarCircle name={member.display_name || 'Miembro'} src={member.profile_picture_url} />
+                        <AvatarCircle name={member.display_name || t('communities.detailsModal.roles.member')} src={member.profile_picture_url} />
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{member.display_name || 'Miembro'}</p>
+                          <p className="text-sm font-medium">{member.display_name || t('communities.detailsModal.roles.member')}</p>
                           <p className="text-xs text-slate-500 dark:text-white/60">
-                            {member.role === 'admin' ? 'Administrador' : member.role === 'moderator' ? 'Moderador' : 'Miembro'} ·{' '}
+                            {member.role === 'admin' ? t('communities.detailsModal.roles.admin') : member.role === 'moderator' ? t('communities.detailsModal.roles.moderator') : t('communities.detailsModal.roles.member')} ·{' '}
                             {member.joined_at ? new Date(member.joined_at).toLocaleDateString('es-MX') : ''}
                           </p>
                         </div>
@@ -1120,7 +1125,7 @@ function CommunityDetailsModal({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 dark:text-white/60">Sé el primero en unirte a esta comunidad.</p>
+                  <p className="text-xs text-slate-500 dark:text-white/60">{t('communities.detailsModal.firstToJoin')}</p>
                 )}
               </section>
 
@@ -1129,20 +1134,20 @@ function CommunityDetailsModal({
                   onClick={onEnter}
                 className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-500/90 hover:to-blue-500/90 text-white rounded-2xl py-4 shadow-lg shadow-green-500/20 text-base"
                 >
-                  Entrar a la Comunidad
+                  {t('communities.buttons.enterCommunity')}
                 </Button>
                 <Button
                   onClick={onClose}
                   variant="ghost"
                   className="w-full border border-slate-200 text-slate-700 rounded-2xl py-4 hover:bg-slate-50 text-base dark:border-white/20 dark:text-white dark:hover:bg-white/10"
                 >
-                  Cerrar
+                  {t('communities.buttons.close')}
                 </Button>
               </div>
 
               {isError && (
                 <p className="text-xs text-red-500 dark:text-red-300">
-                  No se pudieron cargar todos los detalles. Intenta nuevamente más tarde.
+                  {t('communities.detailsModal.loadError')}
                 </p>
               )}
             </aside>

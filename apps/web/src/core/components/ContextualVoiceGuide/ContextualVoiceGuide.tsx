@@ -132,7 +132,7 @@ export function ContextualVoiceGuide({
         isOpeningRef.current = false;
       }, showDelay);
     }
-  }, [pathname, storageKey, triggerPaths, isReplayable, showDelay, requireAuth, user, isVisible]);
+  }, [pathname, storageKey, triggerPaths, showDelay, requireAuth, user, isVisible]);
 
   // ✅ Listener para abrir el tour manualmente (desde "Ver Tour del Curso" u otros botones)
   useEffect(() => {

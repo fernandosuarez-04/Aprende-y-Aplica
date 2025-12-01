@@ -3,7 +3,6 @@
  * Graba sesiones del usuario para debugging y reportes de problemas
  */
 
-import { record, EventType } from 'rrweb';
 import type { eventWithTime } from '@rrweb/types';
 
 export interface RecordingSession {
@@ -34,7 +33,13 @@ export class SessionRecorder {
    * Inicia la grabación de la sesión
    * @param maxDuration Duración máxima en ms (por defecto 60 segundos)
    */
-  startRecording(maxDuration?: number): void {
+  async startRecording(maxDuration?: number): Promise<void> {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      console.warn('⚠️ session-recorder solo funciona en el navegador');
+      return;
+    }
+
     if (this.isRecording) {
       console.warn('⚠️ Ya hay una grabación en curso');
       return;
@@ -50,6 +55,9 @@ export class SessionRecorder {
     this.isRecording = true;
 
     try {
+      // Importación dinámica de rrweb (solo en el cliente)
+      const { record } = await import('rrweb');
+
       this.stopRecording = record({
         emit: (event) => {
           // Guardar el snapshot inicial (tipo 2) por separado
@@ -83,24 +91,24 @@ export class SessionRecorder {
         recordCrossOriginIframes: false, // No grabar iframes externos
         collectFonts: false, // No recolectar fuentes (reduce tamaño)
         inlineStylesheet: false, // No inline CSS (reduce eventos)
-        // Sampling agresivo para reducir ruido
+        // ⚡ SAMPLING BALANCEADO para detectar dificultad sin sobrecargar
         sampling: {
           mousemove: true,
-          mousemoveCallback: 500, // Sample mousemove cada 500ms (más espaciado)
+          mousemoveCallback: 375, // 375ms - punto medio entre 250ms y 500ms
           mouseInteraction: {
-            MouseUp: false, // No capturar mouse up
-            MouseDown: false, // No capturar mouse down
-            Click: true, // Solo clicks (importante para reproducir acciones)
+            MouseUp: true, // ✅ ACTIVADO - detectar intentos de interacción
+            MouseDown: true, // ✅ ACTIVADO - detectar intentos de interacción
+            Click: true, // ✅ Clicks (crítico)
             ContextMenu: false, // No menu contextual
-            DblClick: true, // Double clicks (importante)
-            Focus: false, // No focus events
-            Blur: false, // No blur events
-            TouchStart: false, // No touch start
-            TouchEnd: false, // No touch end
+            DblClick: true, // ✅ Double clicks (importante)
+            Focus: false, // ❌ Desactivado - genera ruido
+            Blur: false, // ❌ Desactivado - genera ruido
+            TouchStart: true, // ✅ ACTIVADO - soporte móvil
+            TouchEnd: true, // ✅ ACTIVADO - soporte móvil
           },
-          scroll: 300, // Sample scroll cada 300ms (más espaciado)
-          media: 800, // Sample media cada 800ms
-          input: 'last', // Solo el último valor de inputs (no cada keystroke)
+          scroll: 225, // 225ms - punto medio entre 150ms y 300ms
+          media: 800, // Sample media cada 800ms (mantener)
+          input: 'all', // ✅ TODOS los inputs para detectar backspace y delete
         },
         // Ignorar ciertos elementos que generan mucho ruido
         ignoreClass: 'rr-ignore',

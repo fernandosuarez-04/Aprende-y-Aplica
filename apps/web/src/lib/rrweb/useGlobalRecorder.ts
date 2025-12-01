@@ -4,7 +4,7 @@
  */
 
 import { useEffect } from 'react';
-import { sessionRecorder } from './session-recorder';
+import { sessionRecorderClient } from './session-recorder-client';
 
 export function useGlobalRecorder() {
   useEffect(() => {
@@ -12,18 +12,22 @@ export function useGlobalRecorder() {
     if (typeof window === 'undefined') return;
 
     console.log('🎬 [Global] Iniciando grabación automática en background...');
-    
+
     // Iniciar grabación automática con 3 MINUTOS de buffer
     // Se reiniciará automáticamente cada 3 minutos
-    sessionRecorder.startRecording(180000); // 3 minutos = 180000ms
+    sessionRecorderClient.startRecording(180000).catch((error) => {
+      console.error('❌ Error iniciando grabación global:', error);
+    }); // 3 minutos = 180000ms
 
     // Reiniciar grabación cada 3 minutos para mantener el sistema activo
     const restartInterval = setInterval(() => {
       console.log('🔄 [Global] Reiniciando grabación automáticamente (ciclo de 3 min)...');
-      sessionRecorder.stop();
+      sessionRecorderClient.stop();
       // Esperar un tick para limpiar antes de reiniciar
       setTimeout(() => {
-        sessionRecorder.startRecording(180000);
+        sessionRecorderClient.startRecording(180000).catch((error) => {
+          console.error('❌ Error reiniciando grabación:', error);
+        });
       }, 100);
     }, 180000); // 3 minutos
 
@@ -31,7 +35,7 @@ export function useGlobalRecorder() {
     return () => {
       console.log('🛑 [Global] Deteniendo grabación global');
       clearInterval(restartInterval);
-      sessionRecorder.stop();
+      sessionRecorderClient.stop();
     };
   }, []);
 }

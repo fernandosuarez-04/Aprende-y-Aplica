@@ -17,7 +17,7 @@ import {
   Video
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
-import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
+import { sessionRecorderClient } from '../../../lib/rrweb/session-recorder-client';
 
 interface ReporteProblemProps {
   isOpen: boolean;
@@ -55,7 +55,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // 🎬 Ya no necesitamos el hook porque la grabación corre en background desde el layout
-  // Usamos el singleton sessionRecorder directamente al enviar el reporte
+  // Usamos el cliente sessionRecorderClient directamente al enviar el reporte
 
   // Datos del formulario
   const [categoria, setCategoria] = useState<Categoria>(preselectedCategory as Categoria || 'bug');
@@ -165,14 +165,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       let sessionRecording = null;
       let recordingDuration = 0;
       let recordingSizeStr = 'N/A';
-      
+
       // La grabación está corriendo en background, capturamos un snapshot sin detenerla
       console.log('📸 Capturando snapshot de la sesión en background...');
-      const session = sessionRecorder.captureSnapshot();
-      
+      const session = await sessionRecorderClient.captureSnapshot();
+
       if (session && session.endTime) {
         // Exportar el snapshot capturado
-        sessionRecording = sessionRecorder.exportSessionBase64(session);
+        sessionRecording = sessionRecorderClient.exportSessionBase64(session);
         recordingDuration = session.endTime - session.startTime;
         recordingSizeStr = `${Math.round(sessionRecording.length / 1024)} KB`;
         console.log(`✅ Snapshot capturado: ${session.events.length} eventos, ${recordingSizeStr}, ${recordingDuration}ms`);

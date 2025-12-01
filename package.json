@@ -50,6 +50,9 @@
   ],
   "author": "Equipo Aprende y Aplica",
   "license": "MIT",
+  "overrides": {
+    "zustand": "4.5.7"
+  },
   "dependencies": {
     "@rrweb/types": "^2.0.0-alpha.18",
     "html2canvas": "^1.4.1",

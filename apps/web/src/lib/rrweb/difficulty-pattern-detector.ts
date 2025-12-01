@@ -42,15 +42,14 @@ export interface DifficultyAnalysis {
 }
 
 const DEFAULT_THRESHOLDS: DetectionThresholds = {
-  inactivityThreshold: 120000, // 2 minutos
-  // Aumentado para evitar que la ayuda se dispare demasiado rápido al hacer scroll
-  scrollRepeatThreshold: 8,
-  // Umbral para detectar ciclos repetitivos (navegación entre secciones/backs)
-  repetitiveCyclesThreshold: 8,
-  failedAttemptsThreshold: 3,
-  deleteKeysThreshold: 10,
-  erroneousClicksThreshold: 5,
-  analysisWindow: 180000 // 3 minutos
+  // ⚡ SISTEMA MÁGICO: Umbrales optimizados para detección temprana
+  inactivityThreshold: 90000, // 1.5 minutos (reducido de 3 para detección más rápida)
+  scrollRepeatThreshold: 6, // Reducido de 12 a 6 (más sensible)
+  repetitiveCyclesThreshold: 5, // Reducido de 10 a 5 (detecta confusión más rápido)
+  failedAttemptsThreshold: 2, // Reducido de 4 a 2 (detecta problemas al segundo intento)
+  deleteKeysThreshold: 8, // Reducido de 15 a 8 (detecta correcciones frecuentes)
+  erroneousClicksThreshold: 4, // Reducido de 7 a 4 (detecta clicks sin respuesta)
+  analysisWindow: 120000 // 2 minutos (reducido de 3 para análisis más frecuente)
 };
 
 export class DifficultyPatternDetector {
@@ -61,8 +60,11 @@ export class DifficultyPatternDetector {
   private deleteKeyPresses: number = 0;
   private submitAttempts: number = 0;
 
-  // 🆕 Timestamp de inicio de sesión para período de warm-up
+  // 🆕 Nuevas propiedades para detección avanzada
   private sessionStartTime: number = Date.now();
+  private lastInterventionTime: number = 0;
+  private progressEvents: number = 0; // Cuenta eventos que indican progreso
+  private falsePositiveCount: number = 0; // Cuenta falsos positivos para ajuste dinámico
 
   constructor(thresholds: Partial<DetectionThresholds> = {}) {
     this.thresholds = { ...DEFAULT_THRESHOLDS, ...thresholds };
@@ -75,30 +77,42 @@ export class DifficultyPatternDetector {
     const now = Date.now();
     const patterns: DifficultyPattern[] = [];
 
-    // 🆕 FASE 1: Validación de Warm-Up (no intervenir en los primeros 45 segundos)
-    // Esto evita falsos positivos cuando el usuario apenas está familiarizándose con la interfaz
+    // 🆕 FASE 1: Validación de Warm-Up (no intervenir en el primer minuto)
+    // ⚡ REDUCIDO: 1 minuto para detección más rápida y "mágica"
     const sessionDuration = now - this.sessionStartTime;
-    const warmUpPeriod = 45 * 1000; // 45 segundos
+    const warmUpPeriod = 1 * 60 * 1000; // 1 minuto (reducido de 3)
 
     if (sessionDuration < warmUpPeriod) {
-      const remainingSeconds = Math.ceil((warmUpPeriod - sessionDuration) / 1000);
-      console.log(`⏳ [WARM-UP] Esperando ${remainingSeconds}s antes de iniciar detección de dificultad`);
+      const remainingWarmUp = Math.ceil((warmUpPeriod - sessionDuration) / 1000);
+      console.log(`🔥 [WARM-UP] Fase de calibración inicial. ${remainingWarmUp}s restantes para activar sistema de detección inteligente.`);
       return this.createAnalysis(0, [], false, '');
     }
 
     // Filtrar eventos dentro de la ventana de análisis
     const recentEvents = this.filterRecentEvents(events, this.thresholds.analysisWindow);
 
+
     console.log('🔍 [DEBUG] Analizando eventos:', {
       totalEvents: events.length,
       recentEvents: recentEvents.length,
       analysisWindow: this.thresholds.analysisWindow,
-      sessionDuration: `${Math.floor(sessionDuration / 1000)}s`
+      sessionDuration: `${Math.floor(sessionDuration / 60000)}m ${Math.floor((sessionDuration % 60000) / 1000)}s`
     });
+
 
     if (recentEvents.length === 0) {
       return this.createAnalysis(0, [], false, '');
     }
+
+    // 🆕 FASE 2: Detectar señales de progreso (usuario avanzando)
+    const progressSignals = this.detectProgressSignals(recentEvents);
+    this.progressEvents += progressSignals;
+
+    console.log('📈 [PROGRESO] Señales de progreso:', {
+      progressSignals,
+      totalProgressEvents: this.progressEvents,
+      progressRatio: (progressSignals / recentEvents.length).toFixed(3)
+    });
 
     // Detectar diferentes patrones
     const inactivityPattern = this.detectInactivity(recentEvents);
@@ -119,14 +133,14 @@ export class DifficultyPatternDetector {
     const erroneousClicksPattern = this.detectErroneousClicks(recentEvents);
     if (erroneousClicksPattern) patterns.push(erroneousClicksPattern);
 
-    // Calcular score general de dificultad
-    const overallScore = this.calculateOverallScore(patterns);
-    
-    // Determinar si se debe intervenir
-    const shouldIntervene = overallScore >= 0.6;
-    
+    // 🆕 FASE 3: Calcular score con lógica multi-patrón mejorada
+    const overallScore = this.calculateAdvancedScore(patterns, progressSignals, recentEvents.length);
+
+    // 🆕 FASE 4: Validación inteligente de intervención
+    const shouldIntervene = this.shouldInterveneSmart(overallScore, patterns, progressSignals, recentEvents.length);
+
     // Generar mensaje de intervención
-    const interventionMessage = shouldIntervene 
+    const interventionMessage = shouldIntervene
       ? this.generateInterventionMessage(patterns)
       : '';
 
@@ -372,9 +386,10 @@ export class DifficultyPatternDetector {
       return data.source === 1 || data.source === 2 || data.source === 5;
     });
     
-    // Requerir al menos 10 interacciones reales para considerar que hay actividad real del usuario
-    if (interactionEvents.length < 10) {
-      console.log('⚠️ [DEBUG] Muy pocas interacciones reales:', interactionEvents.length, '< 10. Usuario probablemente AFK.');
+    // ⚡ BALANCEADO: 5 interacciones necesarias (punto medio entre 2 y 10)
+    // Detecta búsqueda activa con balance entre sensibilidad y precisión
+    if (interactionEvents.length < 5) {
+      console.log('⚠️ [DEBUG] Pocas interacciones:', interactionEvents.length, '< 5. Usuario leyendo o explorando.');
       return null;
     }
     
@@ -391,10 +406,10 @@ export class DifficultyPatternDetector {
       }))
     });
     
-    // Si hay muchos eventos incrementales en poco tiempo, probablemente hay scroll activo
-    // Contar "ráfagas" de eventos (grupos de eventos muy juntos en tiempo)
+    // ⚡ BALANCEADO: 100 snapshots necesarios (punto medio entre 50 y 150)
+    // Detecta búsqueda activa con balance entre sensibilidad y precisión
     if (incrementalSnapshots.length < 100) {
-      console.log('⚠️ [DEBUG] Pocos snapshots incrementales:', incrementalSnapshots.length);
+      console.log('⚠️ [DEBUG] Analizando actividad de scroll:', incrementalSnapshots.length, '< 100 eventos');
       return null;
     }
     
@@ -429,23 +444,23 @@ export class DifficultyPatternDetector {
       interaccionesReales: interactionEvents.length,
       threshold: this.thresholds.scrollRepeatThreshold,
       detectadoPorCambios: directionChanges >= this.thresholds.scrollRepeatThreshold,
-      detectadoPorVolumen: activeWindows.length >= 15, // AUMENTADO de 8 a 15
+      detectadoPorVolumen: activeWindows.length >= 25, // 🆕 AUMENTADO de 15 a 25
       primeras5Ventanas: activeWindows.slice(0, 5)
     });
 
-    // 🛑 VALIDACIÓN CRÍTICA: Solo detectar si hay interacciones reales del usuario
-    // Si no hay clicks, inputs, o teclas presionadas, no hay scroll intencional
+    // ⚡ BALANCEADO: 5 interacciones necesarias (punto medio entre 3 y 8)
+    // Detecta búsqueda intencional con balance entre sensibilidad y precisión
     if (interactionEvents.length < 5) {
-      console.log('⚠️ [DEBUG] Ignorando scroll - sin interacciones reales suficientes');
+      console.log('⚠️ [DEBUG] Scroll sin suficiente intención:', interactionEvents.length, '< 5 interacciones');
       return null;
     }
 
-    // Detectar de dos formas:
+    // ⚡ BALANCEADO: Detectar de dos formas (UMBRALES EQUILIBRADOS)
     // 1. Cambios de dirección (scroll arriba-abajo-arriba)
-    // 2. Volumen alto (15+ segundos de scroll continuo = usuario buscando algo)
-    //    AUMENTADO de 8 a 15 para evitar falsos positivos
+    // 2. Volumen (8+ segundos de scroll continuo = usuario buscando)
+    //    ⚖️ PUNTO MEDIO: 8 ventanas (entre 4 y 12) para balance sensibilidad/precisión
     const detectedByChanges = directionChanges >= this.thresholds.scrollRepeatThreshold;
-    const detectedByVolume = activeWindows.length >= 15;
+    const detectedByVolume = activeWindows.length >= 8;
 
     if (detectedByChanges || detectedByVolume) {
       return {
@@ -555,6 +570,179 @@ export class DifficultyPatternDetector {
   }
 
   /**
+   * 🆕 Detecta señales de progreso (indica que el usuario está avanzando)
+   */
+  private detectProgressSignals(events: eventWithTime[]): number {
+    let progressCount = 0;
+
+    // Buscar patrones que indican progreso:
+    // 1. Clicks en botones de "siguiente", "continuar", "enviar respuesta"
+    // 2. Cambios de página/sección hacia adelante
+    // 3. Completar inputs/formularios
+    // 4. Navegación secuencial (no aleatoria)
+
+    const clickEvents = events.filter(event => {
+      if (event.type === 3 && (event.data as any).source === 2) {
+        return true;
+      }
+      return false;
+    });
+
+    // Detectar clicks de progreso
+    clickEvents.forEach(event => {
+      const data = event.data as any;
+      const targetId = data.id?.toString() || '';
+
+      // Indicadores de progreso positivo
+      if (
+        targetId.includes('next') ||
+        targetId.includes('siguiente') ||
+        targetId.includes('continue') ||
+        targetId.includes('continuar') ||
+        targetId.includes('submit') ||
+        targetId.includes('enviar') ||
+        targetId.includes('completar') ||
+        targetId.includes('finish') ||
+        targetId.includes('check') ||
+        targetId.includes('verificar')
+      ) {
+        progressCount++;
+      }
+    });
+
+    // Detectar inputs completados (señal de engagement productivo)
+    const inputEvents = events.filter(event =>
+      event.type === 3 && (event.data as any).source === 5
+    );
+
+    // Si hay muchos eventos de input, es señal de engagement activo
+    if (inputEvents.length >= 20) {
+      progressCount += Math.floor(inputEvents.length / 20);
+    }
+
+    console.log('📈 [PROGRESO] Análisis:', {
+      clicksDeProgreso: progressCount,
+      eventosDeInput: inputEvents.length,
+      clicksTotales: clickEvents.length
+    });
+
+    return progressCount;
+  }
+
+  /**
+   * 🆕 Calcula score avanzado con consideración de progreso y contexto
+   */
+  private calculateAdvancedScore(
+    patterns: DifficultyPattern[],
+    progressSignals: number,
+    totalEvents: number
+  ): number {
+    if (patterns.length === 0) return 0;
+
+    // Calcular score base
+    const baseScore = this.calculateOverallScore(patterns);
+
+    // 🎯 AJUSTE 1: Penalizar score si hay señales de progreso
+    // Si el usuario está progresando, reducir el score de dificultad
+    const progressRatio = totalEvents > 0 ? progressSignals / totalEvents : 0;
+    const progressPenalty = progressRatio * 0.4; // Hasta 40% de reducción
+
+    // 🎯 AJUSTE 2: Requiere múltiples patrones para scores altos
+    // Un solo patrón = score máximo 0.7
+    // Dos patrones = score máximo 0.85
+    // Tres+ patrones = sin límite
+    let patternMultiplier = 1.0;
+    if (patterns.length === 1) {
+      patternMultiplier = 0.7; // Limitar a 70%
+    } else if (patterns.length === 2) {
+      patternMultiplier = 0.85; // Limitar a 85%
+    }
+
+    // 🎯 AJUSTE 3: Ponderar según severidad de patrones
+    const hasHighSeverity = patterns.some(p => p.severity === 'high');
+    const severityBoost = hasHighSeverity ? 1.1 : 1.0;
+
+    // Calcular score final
+    const adjustedScore = Math.max(0, Math.min(1,
+      (baseScore * patternMultiplier * severityBoost) - progressPenalty
+    ));
+
+    console.log('🧮 [SCORING AVANZADO]:', {
+      baseScore: baseScore.toFixed(3),
+      progressPenalty: progressPenalty.toFixed(3),
+      patternMultiplier: patternMultiplier.toFixed(3),
+      severityBoost: severityBoost.toFixed(3),
+      finalScore: adjustedScore.toFixed(3),
+      patterns: patterns.length,
+      progressSignals
+    });
+
+    return adjustedScore;
+  }
+
+  /**
+   * 🆕 Validación inteligente para decidir si se debe intervenir
+   * ⚡ SISTEMA MÁGICO: Más permisivo pero con inteligencia contextual
+   */
+  private shouldInterveneSmart(
+    score: number,
+    patterns: DifficultyPattern[],
+    progressSignals: number,
+    totalEvents: number
+  ): boolean {
+    // ⚡ REGLA 1: Score mínimo REDUCIDO (0.5 en lugar de 0.75)
+    // Más sensible para detectar dificultades tempranas
+    if (score < 0.5) {
+      console.log('❌ [DETECCIÓN] Score bajo:', score.toFixed(3), '< 0.5 - Usuario navegando normalmente');
+      return false;
+    }
+
+    // ⚡ REGLA 2: MÁS PERMISIVO - Solo requiere 1 patrón si tiene severidad medium o high
+    const hasHighSeverity = patterns.some(p => p.severity === 'high');
+    const hasMediumSeverity = patterns.some(p => p.severity === 'medium');
+
+    if (patterns.length === 0) {
+      console.log('❌ [DETECCIÓN] Sin patrones detectados');
+      return false;
+    }
+
+    // Permitir 1 patrón si es medium o high
+    if (patterns.length === 1 && !hasMediumSeverity && !hasHighSeverity) {
+      console.log('❌ [DETECCIÓN] Solo 1 patrón low severity:', patterns[0].type);
+      return false;
+    }
+
+    // ⚡ REGLA 3: Más permisivo con progreso (25% en lugar de 15%)
+    const progressRatio = totalEvents > 0 ? progressSignals / totalEvents : 0;
+    if (progressRatio > 0.25) {
+      console.log('❌ [DETECCIÓN] Usuario avanzando activamente:', (progressRatio * 100).toFixed(1), '%');
+      return false;
+    }
+
+    // ⚡ REGLA 4: Menos eventos requeridos (15 en lugar de 30)
+    if (totalEvents < 15) {
+      console.log('❌ [DETECCIÓN] Analizando comportamiento inicial:', totalEvents, '< 15 eventos');
+      return false;
+    }
+
+    // ⚡ REGLA 5: ELIMINADA - Permitir patrones de bajo impacto si tienen score suficiente
+    // El sistema es más inteligente y confía en el score combinado
+
+    // ✅ SISTEMA INTELIGENTE ACTIVADO
+    console.log('✅ 🎯 [INTERVENCIÓN INTELIGENTE ACTIVADA]:', {
+      score: score.toFixed(3),
+      confidence: score >= 0.7 ? '🔥 ALTA' : score >= 0.6 ? '⚡ MEDIA' : '💡 BAJA',
+      patterns: patterns.length,
+      progressRatio: (progressRatio * 100).toFixed(1) + '%',
+      totalEvents,
+      patternTypes: patterns.map(p => `${p.type}:${p.severity}`).join(', '),
+      recommendation: score >= 0.7 ? 'Ayuda inmediata' : 'Sugerencia suave'
+    });
+
+    return true;
+  }
+
+  /**
    * Genera mensaje de intervención contextual
    */
   private generateInterventionMessage(patterns: DifficultyPattern[]): string {
@@ -608,6 +796,11 @@ export class DifficultyPatternDetector {
     this.clickTargets = [];
     this.deleteKeyPresses = 0;
     this.submitAttempts = 0;
+    // 🆕 Reset nuevas propiedades
+    this.sessionStartTime = Date.now();
+    this.lastInterventionTime = 0;
+    this.progressEvents = 0;
+    this.falsePositiveCount = 0;
   }
 }
 

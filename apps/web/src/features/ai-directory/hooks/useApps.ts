@@ -56,6 +56,7 @@ interface UseAppsOptions {
   sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
+  lang?: 'es' | 'pt';
 }
 
 interface UseAppsReturn {
@@ -78,7 +79,6 @@ export function useApps(options: UseAppsOptions = {}): UseAppsReturn {
       setError(null);
 
       const params = new URLSearchParams();
-      
       if (options.search) params.append('search', options.search);
       if (options.category) params.append('category', options.category);
       if (options.pricing) params.append('pricing', options.pricing);
@@ -87,14 +87,23 @@ export function useApps(options: UseAppsOptions = {}): UseAppsReturn {
       if (options.sortOrder) params.append('sortOrder', options.sortOrder);
       if (options.page) params.append('page', options.page.toString());
       if (options.limit) params.append('limit', options.limit.toString());
+      if (options.lang) params.append('lang', options.lang);
 
-      const response = await fetch(`/api/ai-directory/apps?${params.toString()}`);
-      
+      const url = `/api/ai-directory/apps?${params.toString()}`;
+      console.log('🚀 [useApps] Fetching apps con idioma:', options.lang, '| URL:', url);
+
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch apps');
       }
-
       const data = await response.json();
+      console.log('📦 [useApps] Apps recibidas:', data.apps?.length || 0);
+      if (data.apps && data.apps.length > 0) {
+        console.log('📝 [useApps] Primera app:', {
+          name: data.apps[0].name,
+          description: data.apps[0].description?.substring(0, 50) + '...'
+        });
+      }
       setApps(data.apps || []);
       setPagination(data.pagination || null);
     } catch (err) {
@@ -116,7 +125,8 @@ export function useApps(options: UseAppsOptions = {}): UseAppsReturn {
     options.sortBy,
     options.sortOrder,
     options.page,
-    options.limit
+    options.limit,
+    options.lang
   ]);
 
   return {

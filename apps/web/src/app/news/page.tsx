@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Newspaper, 
-  Eye, 
+import {
+  Newspaper,
+  Eye,
   Calendar,
   Grid3X3,
   List,
@@ -24,8 +24,10 @@ import { NewsWithMetrics } from '../../features/news/services/news.service'
 import { useFeaturedReels } from '../../features/reels/hooks/useFeaturedReels'
 import { FeaturedReelsSection } from '../../features/reels/components/FeaturedReelsSection'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 
 export default function NewsPage() {
+  const { t } = useTranslation()
   const router = useRouter()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [mounted, setMounted] = useState(false)
@@ -57,12 +59,12 @@ export default function NewsPage() {
   const { featuredNews, loading: featuredLoading } = useFeaturedNews(3)
   const { reels: featuredReels, loading: reelsLoading, error: reelsError } = useFeaturedReels(6)
   const navigationTabs = [
-    { key: 'news', label: 'Noticias', icon: Newspaper, caption: 'Artículos curados' },
-    { key: 'reels', label: 'Reels', icon: Video, caption: 'Clips en tendencia' }
+    { key: 'news', label: t('news.tabs.news'), icon: Newspaper, caption: t('news.tabs.newsCaption') },
+    { key: 'reels', label: t('news.tabs.reels'), icon: Video, caption: t('news.tabs.reelsCaption') }
   ] as const
   const viewOptions = [
-    { key: 'grid', label: 'Tarjetas', icon: Grid3X3 },
-    { key: 'list', label: 'Lista', icon: List }
+    { key: 'grid', label: t('news.viewOptions.grid'), icon: Grid3X3 },
+    { key: 'list', label: t('news.viewOptions.list'), icon: List }
   ] as const
 
   const filteredNews = news.filter(item =>
@@ -159,9 +161,9 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                   transition={{ delay: 0.45 }}
                 >
                   {[
-                    { label: 'Noticias', value: stats.totalNews },
-                    { label: 'Categorías', value: stats.totalCategories },
-                    { label: 'Visualizaciones', value: stats.totalViews }
+                    { label: t('news.stats.news'), value: stats.totalNews },
+                    { label: t('news.stats.categories'), value: stats.totalCategories },
+                    { label: t('news.stats.views'), value: stats.totalViews }
                   ].map((stat) => (
                     <div
                       key={stat.label}
@@ -398,7 +400,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Buscar noticias..."
+                  placeholder={t('news.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent border-none pl-12 pr-4 py-4 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-base font-medium"

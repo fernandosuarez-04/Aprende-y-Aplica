@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
-import { ThemeProvider } from '../core/components/ThemeProvider';
+import { ClientThemeProvider } from '../core/components/ThemeProvider';
 import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
@@ -201,30 +201,27 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
       <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`}>
-        <GlobalRecorderProvider>
-          <SWRProvider>
-            <I18nProvider>
-              <ThemeProvider>
-                <ShareModalProvider>
-                  <NotificationProvider pollingInterval={60000}>
-                    <PrefetchManager />
-                    <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
-                      <ConditionalNavbar>
-                        {children}
-                      </ConditionalNavbar>
-                    </div>
-                    {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
-                    <ConditionalAIChatAgent />
-                    {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
-                    <OnboardingAgent />
-                    {/* Botón de desarrollo para resetear onboarding */}
-                    <DevResetButton />
-                  </NotificationProvider>
-                </ShareModalProvider>
-              </ThemeProvider>
-            </I18nProvider>
-          </SWRProvider>
-        </GlobalRecorderProvider>
+        {/* TEMPORALMENTE DESHABILITADO PARA DEBUG - GlobalRecorderProvider */}
+        <SWRProvider>
+          <I18nProvider>
+            <ClientThemeProvider>
+              <NotificationProvider pollingInterval={60000}>
+                <PrefetchManager />
+                <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
+                  <ConditionalNavbar>
+                    {children}
+                  </ConditionalNavbar>
+                </div>
+                {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+                <ConditionalAIChatAgent />
+                {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
+                <OnboardingAgent />
+                {/* Botón de desarrollo para resetear onboarding */}
+                <DevResetButton />
+              </NotificationProvider>
+            </ClientThemeProvider>
+          </I18nProvider>
+        </SWRProvider>
       </body>
     </html>
   );

@@ -67,6 +67,13 @@ import { CourseRatingService } from '../../../../features/courses/services/cours
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
+// ✨ NUEVO: Sistema de ayuda contextual hiperpersonalizada
+import { useContextualHelp } from '@/hooks/useContextualHelp';
+import { ContextualHelpDialog } from '../../../../features/courses/components/ContextualHelpDialog';
+import { QuizActivity } from '../../../../features/courses/components/QuizActivity';
+import type { QuizErrorContext } from '@/lib/ai/contextual-help-ai';
+// 🎥 Session Recording para análisis de dificultad
+import { useSessionRecorder } from '../../../../lib/rrweb/use-session-recorder';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -107,6 +114,99 @@ interface CourseData {
   thumbnail?: string;
   course_thumbnail?: string; // Para compatibilidad
 }
+
+// 🔧 Componente separado para cada actividad (evita violación de Rules of Hooks)
+interface ActivityItemProps {
+  activity: any;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  lesson: any;
+  slug: string;
+  quizStatus: any;
+  contextualHelp: any;
+  user: any;
+}
+
+const ActivityItem: React.FC<ActivityItemProps> = ({
+  activity,
+  isCollapsed,
+  onToggleCollapse,
+  lesson,
+  slug,
+  quizStatus,
+  contextualHelp,
+  user
+}) => {
+  // 🎥 Session Recording TEMPORALMENTE DESHABILITADO - Para evitar errores de hooks
+  // TODO: Implementar session recording en el futuro si es necesario
+  // const { startRecording, stopRecording, isRecording, getSession } = useSessionRecorder({ autoStart: false, maxDuration: 60000 });
+
+  // Estado para mostrar ayuda proactiva (simplificado sin session recording)
+  const [showHelp] = useState(false);
+  const [helpMessage] = useState('');
+
+  // Renderizar actividad simple por ahora
+  return (
+    <div className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden">
+      <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
+            {activity.is_required && (
+              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
+                Requerida
+              </span>
+            )}
+            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
+              {activity.activity_type}
+            </span>
+          </div>
+          {activity.activity_description && !isCollapsed && (
+            <p className="text-gray-700 dark:text-slate-300 text-sm">{activity.activity_description}</p>
+          )}
+        </div>
+
+        <button
+          onClick={onToggleCollapse}
+          className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-carbon-600 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+          title={isCollapsed ? "Expandir actividad" : "Colapsar actividad"}
+        >
+          <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+            {isCollapsed ? 'Expandir' : 'Colapsar'}
+          </span>
+          {isCollapsed ? (
+            <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+          ) : (
+            <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+          )}
+        </button>
+      </div>
+
+      {!isCollapsed && (
+        <div className="p-6">
+          {/* 🆕 Sistema de Ayuda Inteligente Integrado */}
+          {activity.activity_type === 'quiz' ? (
+            // Quiz con ayuda hiperpersonalizada con IA
+            <QuizActivity
+              activity={activity}
+              lesson={lesson}
+              slug={slug}
+              user={user}
+              onIncorrectAnswersDetected={handleIncorrectAnswers} // 🆕 Pasar callback para retroalimentación de LIA
+            />
+          ) : (
+            // Otras actividades (placeholder por ahora)
+            <div>
+              <p className="text-gray-600 dark:text-slate-400">
+                Contenido de la actividad: {activity.activity_type}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function CourseLearnPage() {
   const params = useParams();
@@ -206,9 +306,10 @@ export default function CourseLearnPage() {
     sendMessage: sendLiaMessage,
     clearHistory: clearLiaHistory,
     loadConversation,
-    currentConversationId
+    currentConversationId,
+    addMessage: addLiaMessage // 🆕 Para agregar mensajes directamente
   } = useLiaChat(null);
-  
+
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
   const [isLiaRecording, setIsLiaRecording] = useState(false);
@@ -219,8 +320,351 @@ export default function CourseLearnPage() {
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
-  // Ref para el botón del menú de Lia
-  const liaMenuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // ✨ NUEVO: Estado para controlar si el sistema de ayuda está habilitado
+  const [isContextualHelpEnabled, setIsContextualHelpEnabled] = useState(false);
+  const [currentActivityId, setCurrentActivityId] = useState('');
+
+  // 🆕 Ref para evitar múltiples envíos simultáneos
+  const isGeneratingFeedbackRef = useRef(false);
+  const lastFeedbackMessageRef = useRef<string>('');
+  const lastAddedMessageIdRef = useRef<string | null>(null); // 🆕 Para evitar duplicados
+
+  // 🆕 Callback para manejar respuestas incorrectas y enviar retroalimentación a LIA
+  const handleIncorrectAnswers = useCallback(async (incorrectAnswers: QuizErrorContext[]) => {
+    console.log('🔔 [LIA AUTO] handleIncorrectAnswers LLAMADO con:', {
+      incorrectAnswersCount: incorrectAnswers.length,
+      questionIds: incorrectAnswers.map(a => a.questionId),
+      timestamp: new Date().toISOString(),
+      isGenerating: isGeneratingFeedbackRef.current
+    });
+
+    // Evitar múltiples llamadas simultáneas
+    if (isGeneratingFeedbackRef.current) {
+      console.log('⏳ [LIA AUTO] Ya hay un mensaje en generación, esperando...');
+      return;
+    }
+
+    // Si no hay respuestas incorrectas, limpiar mensaje anterior si existe
+    if (incorrectAnswers.length === 0) {
+      console.log('✅ [LIA AUTO] Todas las respuestas están correctas');
+
+      // Si había un mensaje anterior, enviar un mensaje de confirmación positivo
+      if (lastFeedbackMessageRef.current) {
+        try {
+          const successMessage = '¡Excelente! Veo que has corregido todas las respuestas. Sigue así, estás aprendiendo muy bien. 💪';
+
+          // Solo enviar si LIA está expandido para no molestar al usuario
+          if (isLiaExpanded) {
+            await sendLiaMessage(successMessage, {
+              lessonId: currentLesson?.lesson_id || '',
+              lessonTitle: currentLesson?.lesson_title || '',
+              courseId: course?.course_id || course?.id || '',
+              courseTitle: course?.course_title || course?.title || '',
+              difficulty: 'low'
+            } as CourseLessonContext, true);
+
+            console.log('✅ [LIA AUTO] Mensaje de confirmación enviado');
+          }
+        } catch (error) {
+          console.error('❌ [LIA AUTO] Error al enviar mensaje de confirmación:', error);
+        }
+      }
+
+      lastFeedbackMessageRef.current = '';
+      lastAddedMessageIdRef.current = null; // 🆕 Limpiar también el ID del último mensaje
+      return;
+    }
+
+    try {
+      isGeneratingFeedbackRef.current = true;
+      console.log('🤖 [LIA AUTO] Generando mensaje de retroalimentación para', incorrectAnswers.length, 'respuesta(s) incorrecta(s)');
+
+      // 🆕 Log detallado del array que se envía a LIA
+      console.log('📤 [LIA AUTO] Array de respuestas incorrectas que se envía a LIA:', {
+        totalIncorrectAnswers: incorrectAnswers.length,
+        incorrectAnswers: incorrectAnswers.map(answer => ({
+          questionId: answer.questionId,
+          questionText: answer.questionText?.substring(0, 100) || 'N/A',
+          selectedAnswer: answer.selectedAnswer,
+          correctAnswer: answer.correctAnswer,
+          questionType: answer.questionType,
+          topic: answer.topic,
+          difficulty: answer.difficulty,
+          attemptNumber: answer.attemptNumber,
+          hasOptions: !!answer.options && answer.options.length > 0,
+          optionsCount: answer.options?.length || 0
+        })),
+        fullArray: incorrectAnswers
+      });
+
+      // Generar mensaje agrupado con IA (llamar a API route del servidor)
+      const response = await fetch('/api/lia/grouped-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          incorrectAnswers,
+          style: 'friendly',
+          language: 'es'
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [LIA AUTO] Error en API grouped-feedback:', response.status, errorText);
+        throw new Error(`Error al generar mensaje de retroalimentación: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const feedbackMessage = data.message;
+
+      console.log('📨 [LIA AUTO] Mensaje recibido de API grouped-feedback:', {
+        messageLength: feedbackMessage?.length || 0,
+        messagePreview: feedbackMessage?.substring(0, 150) || 'vacío',
+        incorrectAnswersCount: data.incorrectAnswersCount,
+        hasMessage: !!feedbackMessage && feedbackMessage.trim() !== ''
+      });
+
+      if (!feedbackMessage || feedbackMessage.trim() === '') {
+        console.log('⚠️ [LIA AUTO] Mensaje de retroalimentación vacío, omitiendo envío');
+        return;
+      }
+
+      // Crear una clave única basada en el contenido y las preguntas
+      const messageKey = `${incorrectAnswers.map(a => a.questionId).sort().join(',')}-${feedbackMessage.substring(0, 50)}`;
+      const lastMessageKey = lastFeedbackMessageRef.current;
+
+      if (messageKey === lastMessageKey) {
+        console.log('⏭️ [LIA AUTO] Mensaje similar al anterior, omitiendo envío', {
+          messageKey,
+          lastMessageKey
+        });
+        return;
+      }
+
+      // 🆕 Guardar la clave ANTES de agregar el mensaje para evitar duplicados si se ejecuta dos veces
+      lastFeedbackMessageRef.current = messageKey;
+
+      console.log('📤 [LIA AUTO] Preparando envío de mensaje a LIA:', {
+        messageLength: feedbackMessage.length,
+        messagePreview: feedbackMessage.substring(0, 150) + '...',
+        isLiaExpanded,
+        incorrectAnswersCount: incorrectAnswers.length,
+        messageKey
+      });
+
+      // Expandir LIA si no está expandido
+      if (!isLiaExpanded) {
+        console.log('📂 [LIA AUTO] Expandiendo panel de LIA');
+        expandLiaSafely();
+        // Dar un pequeño delay para que el panel se expanda antes de enviar el mensaje
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // 🆕 Enviar mensaje a LIA con contexto completo para que procese y responda
+      console.log('💬 [LIA AUTO] Enviando mensaje de retroalimentación a LIA con contexto completo...');
+      try {
+        // Construir contexto completo de la lección usando getLessonContext
+        const baseContext = getLessonContext();
+        console.log('📋 [LIA AUTO] Contexto base obtenido de getLessonContext:', {
+          hasContext: !!baseContext,
+          lessonId: baseContext?.lessonId || currentLesson?.lesson_id || 'N/A',
+          lessonTitle: baseContext?.lessonTitle || currentLesson?.lesson_title || 'N/A',
+          courseId: baseContext?.courseId || course?.course_id || course?.id || 'N/A',
+          courseTitle: baseContext?.courseTitle || course?.course_title || course?.title || 'N/A',
+          courseSlug: baseContext?.courseSlug || slug || 'N/A'
+        });
+
+        const lessonContext = baseContext || {
+          courseId: course?.course_id || course?.id || '',
+          courseSlug: slug,
+          courseTitle: course?.course_title || course?.title || '',
+          lessonTitle: currentLesson?.lesson_title || '',
+          lessonId: currentLesson?.lesson_id || ''
+        };
+
+        // Agregar información de dificultad detectada
+        const enrichedContext: CourseLessonContext = {
+          ...lessonContext,
+          difficultyDetected: {
+            patterns: incorrectAnswers.map(answer => ({
+              type: 'incorrect_answer',
+              severity: 'high' as const,
+              description: `Respuesta incorrecta en pregunta: ${answer.questionText.substring(0, 50)}...`
+            })),
+            overallScore: 1 - (incorrectAnswers.length / (incorrectAnswers.length + 5)), // Score aproximado
+            shouldIntervene: true
+          }
+        };
+
+        console.log('📋 [LIA AUTO] Contexto enriquecido que se enviará a LIA:', {
+          lessonId: enrichedContext.lessonId,
+          lessonTitle: enrichedContext.lessonTitle,
+          courseId: enrichedContext.courseId,
+          courseTitle: enrichedContext.courseTitle,
+          courseSlug: enrichedContext.courseSlug,
+          courseDescription: enrichedContext.courseDescription ? 'presente' : 'ausente',
+          moduleTitle: enrichedContext.moduleTitle || 'N/A',
+          lessonDescription: enrichedContext.lessonDescription ? 'presente' : 'ausente',
+          incorrectAnswersCount: incorrectAnswers.length,
+          hasDifficultyDetected: !!enrichedContext.difficultyDetected,
+          difficultyPatternsCount: enrichedContext.difficultyDetected?.patterns.length || 0,
+          difficultyScore: enrichedContext.difficultyDetected?.overallScore,
+          shouldIntervene: enrichedContext.difficultyDetected?.shouldIntervene,
+          contextKeys: Object.keys(enrichedContext)
+        });
+
+        // 🆕 Agregar mensaje directamente como respuesta de LIA (assistant)
+        // El mensaje ya fue generado por IA en /api/lia/grouped-feedback, así que
+        // lo mostramos directamente como respuesta de LIA, no como mensaje de usuario
+        // Agregamos un prefijo para indicar que es una retroalimentación automática de LIA
+        const autoFeedbackLabel = '💡 Retroalimentación automática de LIA:\n\n';
+        const feedbackWithLabel = autoFeedbackLabel + feedbackMessage;
+        
+        // 🆕 Log detallado antes de agregar el mensaje
+        console.log('🤖 [LIA AUTO] Agregando mensaje de retroalimentación auto-generado:', {
+          messageId: `auto-${Date.now()}`,
+          source: 'auto-feedback',
+          generatedBy: 'lia-grouped-feedback',
+          incorrectAnswersCount: incorrectAnswers.length,
+          messageLength: feedbackMessage.length,
+          messagePreview: feedbackMessage.substring(0, 150),
+          fullMessage: feedbackWithLabel,
+          timestamp: new Date().toISOString()
+        });
+        
+        // 🆕 Verificar una vez más que no se haya agregado ya (protección contra duplicados)
+        const messageId = `auto-${Date.now()}-${messageKey}`;
+        if (lastAddedMessageIdRef.current === messageId) {
+          console.log('⏭️ [LIA AUTO] Mensaje ya fue agregado previamente, evitando duplicado', {
+            messageId,
+            lastMessageId: lastAddedMessageIdRef.current
+          });
+          return;
+        }
+
+        // Verificar también en los mensajes existentes
+        const alreadyExists = liaMessages.some(msg => 
+          msg.metadata?.isAutoGenerated && 
+          msg.metadata?.generatedBy === 'lia-grouped-feedback' &&
+          msg.content.includes(feedbackMessage.substring(0, 100))
+        );
+        
+        if (alreadyExists) {
+          console.log('⏭️ [LIA AUTO] Mensaje similar ya existe en el chat, evitando duplicado');
+          return;
+        }
+
+        // Agregar mensaje con metadata para identificar que es auto-generado
+        addLiaMessage(feedbackWithLabel, 'assistant', {
+          isAutoGenerated: true,
+          source: 'auto-feedback',
+          generatedBy: 'lia-grouped-feedback'
+        });
+
+        // Guardar el ID del mensaje agregado
+        lastAddedMessageIdRef.current = messageId;
+
+        console.log('✅ [LIA AUTO] Mensaje de retroalimentación agregado como respuesta de LIA (generado automáticamente por LIA basado en respuestas incorrectas)');
+        
+        // Hacer scroll al final del chat después de que LIA responda
+        setTimeout(() => {
+          liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 1000);
+      } catch (sendError) {
+        console.error('❌ [LIA AUTO] Error al enviar mensaje a LIA:', sendError);
+        console.error('❌ [LIA AUTO] Detalles del error:', {
+          errorMessage: sendError instanceof Error ? sendError.message : String(sendError),
+          errorStack: sendError instanceof Error ? sendError.stack : undefined
+        });
+        throw sendError;
+      }
+    } catch (error) {
+      console.error('❌ [LIA AUTO] Error al generar/enviar mensaje de retroalimentación:', error);
+    } finally {
+      isGeneratingFeedbackRef.current = false;
+    }
+  }, [isLiaExpanded, isLeftPanelOpen, currentLesson, course, sendLiaMessage, addLiaMessage]);
+
+  // ✨ NUEVO: Sistema de ayuda contextual hiperpersonalizada
+  const contextualHelp = useContextualHelp({
+    activityId: currentActivityId,
+    workshopId: slug,
+    enabled: isContextualHelpEnabled,
+    analysisInterval: 15000, // Analizar cada 15 segundos
+    detectionConfig: {
+      maxAttemptsBeforeIntervention: 3,
+      skipThreshold: 2,
+      repeatedMistakeThreshold: 2,
+      timeThresholdMs: 5000,
+    },
+    courseContext: currentLesson ? {
+      courseName: course?.course_title || course?.title || '',
+      lessonName: currentLesson.lesson_title || '',
+      activityName: 'Quiz'
+    } : undefined,
+    onHelpNeeded: (analysis) => {
+      console.log('🆘 [CONTEXTUAL HELP] Ayuda detectada:', {
+        score: analysis.overallScore.toFixed(2),
+        priority: analysis.interventionPriority,
+        patterns: analysis.errorPatterns.length,
+        stats: analysis.stats
+      });
+    },
+    onHelpAccepted: (analysis) => {
+      console.log('✅ [CONTEXTUAL HELP] Usuario aceptó ayuda');
+
+      // Abrir LIA con contexto específico
+      if (analysis.errorPatterns.length > 0) {
+        const pattern = analysis.errorPatterns[0];
+        const liaContextMessage = `Hola, necesito ayuda con esta pregunta:\n\n"${pattern.questionText}"\n\nHe intentado ${pattern.context.totalAttempts} veces y no logro entenderla.\n\n${pattern.context.suggestedHelp}\n\n¿Puedes explicármelo de manera más clara?`;
+
+        // Expandir LIA
+        expandLiaSafely();
+
+        // Enviar mensaje contextual a LIA
+        sendLiaMessage(liaContextMessage, {
+          lessonId: currentLesson?.lesson_id || '',
+          lessonTitle: currentLesson?.lesson_title || '',
+          courseId: course?.course_id || course?.id || '',
+          courseTitle: course?.course_title || course?.title || '',
+          difficulty: 'high',
+          errorContext: {
+            questionId: pattern.questionId,
+            attempts: pattern.context.totalAttempts,
+            errorType: pattern.errorType
+          }
+        } as CourseLessonContext);
+
+        console.log('💬 [CONTEXTUAL HELP] Mensaje enviado a LIA:', liaContextMessage);
+      }
+    },
+    onHelpDismissed: (analysis) => {
+      console.log('❌ [CONTEXTUAL HELP] Usuario rechazó ayuda');
+    },
+    // 🆕 Callback para envío automático a LIA cuando se detectan respuestas incorrectas
+    onIncorrectAnswersDetected: handleIncorrectAnswers
+  });
+
+  // ✨ NUEVO: Activar/desactivar ayuda contextual según el tab activo
+  useEffect(() => {
+    const shouldEnable = activeTab === 'activities';
+    setIsContextualHelpEnabled(shouldEnable);
+
+    if (!shouldEnable && contextualHelp && contextualHelp.reset) {
+      // Reset cuando sale del tab de actividades
+      contextualHelp.reset();
+      console.log('🔄 [CONTEXTUAL HELP] Sistema reseteado (salió del tab de actividades)');
+    }
+
+    console.log('🎯 [CONTEXTUAL HELP] Estado actualizado:', {
+      tab: activeTab,
+      enabled: shouldEnable,
+      isActive: contextualHelp.isActive
+    });
+  }, [activeTab, contextualHelp.reset, contextualHelp.isActive]);
 
   // Estados para historial de conversaciones
   const [showHistory, setShowHistory] = useState(false);
@@ -1156,6 +1600,10 @@ CONTENIDO ADAPTADO:`;
     // Abrir el panel de LIA si está cerrado
     if (!isRightPanelOpen) {
       setIsRightPanelOpen(true);
+      // Si el panel izquierdo está abierto, cerrarlo para dar más espacio
+      if (isLeftPanelOpen) {
+        setIsLeftPanelOpen(false);
+      }
     }
 
     // ✅ OPTIMIZACIÓN: Usar contenido original inmediatamente, adaptar en background si es necesario
@@ -1288,16 +1736,36 @@ Antes de cada respuesta, pregúntate:
     }
   }, [liaMessages, isLiaLoading]);
 
+  // 🆕 Función helper para expandir LIA asegurando que el panel izquierdo se cierre
+  const expandLiaSafely = useCallback(() => {
+    setIsLiaExpanded(true);
+    // Si el panel izquierdo está abierto, cerrarlo para dar más espacio al panel central
+    if (isLeftPanelOpen) {
+      console.log('📂 [LIA] Cerrando panel izquierdo al expandir LIA');
+      setIsLeftPanelOpen(false);
+    }
+  }, [isLeftPanelOpen]);
+
   // Función para expandir/colapsar LIA
   const handleToggleLiaExpanded = () => {
     const newExpandedState = !isLiaExpanded;
-    setIsLiaExpanded(newExpandedState);
     
-    // Si se está expandiendo, cerrar el panel izquierdo
-    if (newExpandedState && isLeftPanelOpen) {
-      setIsLeftPanelOpen(false);
+    // Si se está expandiendo, usar la función helper para asegurar que el panel izquierdo se cierre
+    if (newExpandedState) {
+      expandLiaSafely();
+    } else {
+      // Si se está colapsando, solo cambiar el estado
+      setIsLiaExpanded(false);
     }
   };
+
+  // 🆕 Efecto para asegurar que cuando LIA se expande, el panel izquierdo se cierre
+  useEffect(() => {
+    if (isLiaExpanded && isLeftPanelOpen) {
+      console.log('📂 [LIA] Efecto: LIA expandido detectado, cerrando panel izquierdo');
+      setIsLeftPanelOpen(false);
+    }
+  }, [isLiaExpanded, isLeftPanelOpen]);
 
   // Función para abrir modal de confirmación para limpiar historial
   const handleOpenClearHistoryModal = () => {
@@ -2288,6 +2756,10 @@ Antes de cada respuesta, pregúntate:
         
         // Abrir el panel de LIA (panel derecho)
         setIsRightPanelOpen(true);
+        // Si el panel izquierdo está abierto, cerrarlo para dar más espacio
+        if (isLeftPanelOpen) {
+          setIsLeftPanelOpen(false);
+        }
         
         // Generar mensaje personalizado basado en los patrones detectados
         const generatePersonalizedMessage = (patterns: any[]) => {
@@ -3251,9 +3723,10 @@ Antes de cada respuesta, pregúntate:
                         onStartInteraction={handleStartActivityInteraction}
                         userRole={user?.type_rol}
                         generateRoleBasedPrompts={generateRoleBasedPrompts}
-                        onNavigateNext={navigateToNextLesson}
-                        hasNextLesson={!!getNextLesson()}
-                        selectedLang={selectedLang}
+                        t={t}
+                        language={i18n.language}
+                        contextualHelp={contextualHelp}
+                        user={user}
                       />
                     )}
                     {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -4327,6 +4800,53 @@ Antes de cada respuesta, pregúntate:
         allowedPaths={['/courses']}
         requireAuth={true}
       />
+
+      {/* ✨ NUEVO: Diálogo de ayuda contextual hiperpersonalizada */}
+      <ContextualHelpDialog
+        isOpen={contextualHelp.shouldShowHelp}
+        onClose={contextualHelp.dismissHelp}
+        onAccept={contextualHelp.acceptHelp}
+        helpData={contextualHelp.helpData}
+        onActionClick={(actionType) => {
+          console.log('🎯 [CONTEXTUAL HELP] Acción ejecutada:', actionType);
+          // Aquí puedes implementar acciones específicas según el tipo
+          switch (actionType) {
+            case 'show_hint':
+              // TODO: Mostrar pista de la pregunta
+              console.log('💡 Mostrar pista');
+              break;
+            case 'review_concept':
+              // TODO: Abrir material relacionado
+              console.log('📚 Revisar concepto');
+              break;
+            case 'show_example':
+              // TODO: Mostrar ejemplo similar
+              console.log('📝 Mostrar ejemplo');
+              break;
+            case 'simplify_question':
+              // TODO: Mostrar versión simplificada
+              console.log('🔍 Simplificar pregunta');
+              break;
+            case 'contact_instructor':
+              // TODO: Abrir chat con instructor
+              console.log('👨‍🏫 Contactar instructor');
+              break;
+          }
+        }}
+        onRetry={() => {
+          setSelectedAnswers({});
+          setShowResults(false);
+          setScore(0);
+          setPointsEarned(0);
+          setSubmitError(null);
+          setServerMessage(null);
+          if (contextualHelp && contextualHelp.reset) {
+            contextualHelp.reset();
+          }
+          setShowHelpDialog(false);
+          console.log('🔄 Quiz reiniciado desde ayuda contextual');
+        }}
+      />
     </div>
     </WorkshopLearningProvider>
   );
@@ -4927,13 +5447,14 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 }
 
 // Componente para renderizar quizzes
-function QuizRenderer({ 
-  quizData, 
+function QuizRenderer({
+  quizData,
   totalPoints,
   lessonId,
   slug,
   materialId,
-  activityId
+  activityId,
+  contextualHelp // ✨ NUEVO: Funciones de ayuda contextual
 }: {
   quizData: Array<{
     id: string;
@@ -4949,6 +5470,13 @@ function QuizRenderer({
   slug?: string;
   materialId?: string;
   activityId?: string;
+  contextualHelp?: { // ✨ NUEVO
+    startQuestion: (questionId: string) => void;
+    recordAnswer: (params: any) => void;
+    recordSkip: (params: any) => void;
+    updateIncorrectAnswer?: (questionId: string, isIncorrect: boolean, errorContext?: any) => void;
+    reset?: () => void;
+  };
 }) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
   const [showResults, setShowResults] = useState(false);
@@ -4959,10 +5487,94 @@ function QuizRenderer({
   const [serverMessage, setServerMessage] = useState<string | null>(null);
 
   const handleAnswerSelect = (questionId: string, answer: string | number) => {
+    // 🆕 Obtener respuesta anterior para detectar cambios
+    const previousAnswer = selectedAnswers[questionId];
+    const isChangingAnswer = previousAnswer !== undefined && previousAnswer !== answer;
+
+    // Actualizar estado inmediatamente
     setSelectedAnswers(prev => ({
       ...prev,
       [questionId]: answer
     }));
+
+    // ✨ NUEVO: Registrar intento en sistema de ayuda contextual con IA
+    if (contextualHelp && !showResults) {
+      const question = normalizedQuizData.find(q => q.id === questionId);
+      if (question) {
+        const isCorrect = isAnswerCorrect(question, answer);
+        const wasCorrect = previousAnswer !== undefined ? isAnswerCorrect(question, previousAnswer) : null;
+
+        // 🔥 Convertir opciones al formato requerido por la IA
+        const formattedOptions = question.options.map((opt, idx) => ({
+          id: idx,
+          text: opt
+        }));
+
+        // 🆕 Si está cambiando de respuesta, actualizar el estado de incorrectas
+        if (isChangingAnswer && contextualHelp.updateIncorrectAnswer) {
+          if (isCorrect && wasCorrect === false) {
+            // Cambió de incorrecta a correcta - remover
+            contextualHelp.updateIncorrectAnswer(questionId, false);
+            console.log('✅ [QUIZ] Respuesta corregida, removiendo de incorrectas:', questionId);
+          } else if (!isCorrect && wasCorrect === true) {
+            // Cambió de correcta a incorrecta - agregar
+            const errorContext = {
+              questionId,
+              questionText: question.question || '',
+              questionType: (question.questionType as any) || 'multiple_choice',
+              selectedAnswer: answer,
+              correctAnswer: question.correctAnswer,
+              options: formattedOptions,
+              topic: 'Quiz',
+              difficulty: 'medium',
+              attemptNumber: 1,
+              courseContext: undefined
+            };
+            contextualHelp.updateIncorrectAnswer(questionId, true, errorContext);
+            console.log('❌ [QUIZ] Respuesta cambió a incorrecta, agregando:', questionId);
+          } else if (!isCorrect) {
+            // Nueva respuesta incorrecta
+            const errorContext = {
+              questionId,
+              questionText: question.question || '',
+              questionType: (question.questionType as any) || 'multiple_choice',
+              selectedAnswer: answer,
+              correctAnswer: question.correctAnswer,
+              options: formattedOptions,
+              topic: 'Quiz',
+              difficulty: 'medium',
+              attemptNumber: 1,
+              courseContext: undefined
+            };
+            contextualHelp.updateIncorrectAnswer(questionId, true, errorContext);
+            console.log('❌ [QUIZ] Nueva respuesta incorrecta detectada:', questionId);
+          }
+        }
+
+        // Registrar respuesta en el sistema (esto también actualiza el array internamente)
+        contextualHelp.recordAnswer({
+          questionId,
+          questionText: question.question || '',
+          questionType: (question.questionType as any) || 'multiple_choice',
+          selectedAnswer: answer,
+          correctAnswer: question.correctAnswer,
+          isCorrect,
+          options: formattedOptions, // 🆕 Opciones para que la IA genere ayuda específica
+          topic: 'Quiz', // Puedes personalizar esto según tu estructura de datos
+          difficulty: 'medium' // Puedes personalizar esto según tu estructura de datos
+        });
+
+        console.log('📝 [CONTEXTUAL HELP] Respuesta registrada con opciones:', {
+          questionId,
+          isCorrect,
+          wasCorrect,
+          isChangingAnswer,
+          selectedAnswer: answer,
+          correctAnswer: question.correctAnswer,
+          optionsCount: formattedOptions.length
+        });
+      }
+    }
   };
 
   // Función para normalizar strings y comparar opciones
@@ -5043,7 +5655,7 @@ function QuizRenderer({
   const normalizedQuizData = quizData.map((question) => {
     if (question.questionType === 'true_false') {
       // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
-      if (!question.options || question.options.length !== 2 || 
+      if (!question.options || question.options.length !== 2 ||
           (question.options[0] !== 'Verdadero' && question.options[0] !== 'Falso') ||
           (question.options[1] !== 'Verdadero' && question.options[1] !== 'Falso')) {
         return {
@@ -5054,6 +5666,34 @@ function QuizRenderer({
     }
     return question;
   });
+
+  // ✨ NUEVO: Iniciar tracking de todas las preguntas al montar el componente
+  useEffect(() => {
+    if (contextualHelp && normalizedQuizData.length > 0) {
+      // Iniciar tracking de la primera pregunta visible
+      normalizedQuizData.forEach((question, index) => {
+        if (index === 0) {
+          // Solo iniciar la primera pregunta
+          contextualHelp.startQuestion(question.id);
+          console.log('🏁 [CONTEXTUAL HELP] Pregunta iniciada:', question.id);
+        }
+      });
+    }
+  }, [contextualHelp]);
+
+  // ✨ NUEVO: Tracking cuando el usuario cambia a otra pregunta (detectar scroll o interacción)
+  useEffect(() => {
+    // Detectar cuando responde una pregunta para iniciar tracking de la siguiente
+    if (contextualHelp && !showResults) {
+      const answeredCount = Object.keys(selectedAnswers).length;
+      const nextUnanswered = normalizedQuizData.find(q => !selectedAnswers[q.id]);
+
+      if (nextUnanswered && answeredCount > 0) {
+        contextualHelp.startQuestion(nextUnanswered.id);
+        console.log('🏁 [CONTEXTUAL HELP] Nueva pregunta activa:', nextUnanswered.id);
+      }
+    }
+  }, [selectedAnswers, contextualHelp, showResults]);
 
   const handleSubmit = async () => {
     // Validar que todas las preguntas tengan respuesta
@@ -5083,6 +5723,28 @@ function QuizRenderer({
       setScore(correct);
       setPointsEarned(points);
       setShowResults(true);
+
+      // 🆘 Forzar ayuda contextual si el usuario falla el quiz
+      const totalQuestions = normalizedQuizData.length;
+      const percentage = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0;
+      const passingThreshold = 80;
+      const passed = percentage >= passingThreshold;
+      if (contextualHelp && !passed) {
+        // Forzar el análisis contextual y mostrar el modal igual que cuando se detecta dificultad
+        if (typeof contextualHelp.analyzeAndDetect === 'function') {
+          contextualHelp.analyzeAndDetect();
+          setTimeout(() => {
+            if (typeof contextualHelp.setShouldShowHelp === 'function') {
+              contextualHelp.setShouldShowHelp(true);
+            }
+          }, 500);
+        } else {
+          // Si no existe el método, intentar actualizar el estado manualmente
+          try {
+            contextualHelp.shouldShowHelp = true;
+          } catch (e) {}
+        }
+      }
 
       // Si tenemos lessonId y slug, guardar en la base de datos
       if (lessonId && slug) {
@@ -5347,68 +6009,71 @@ function QuizRenderer({
 
       {/* Resultados */}
       {showResults && (
-        <>
-          <div className={`mt-6 p-6 rounded-lg border-2 ${
-            passed
-              ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
-              : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
-          }`}>
-            <div className="text-center">
-              {/* Mensaje informativo del servidor */}
-              {serverMessage && (
-                <div className={`mb-4 p-3 rounded-lg border ${
+        <div className={`mt-6 p-6 rounded-lg border-2 ${
+          passed
+            ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
+            : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
+        }`}>
+          <div className="text-center">
+            {/* Mensaje informativo del servidor */}
+            {serverMessage && (
+              <div className={`mb-4 p-3 rounded-lg border ${
+                serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
+                  ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
+                  : passed
+                  ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
+                  : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
+              }`}>
+                <p className={`text-sm ${
                   serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                    ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
+                    ? 'text-yellow-800 dark:text-yellow-200'
                     : passed
-                    ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
-                    : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
+                    ? 'text-green-800 dark:text-green-200'
+                    : 'text-blue-800 dark:text-blue-200'
                 }`}>
-                  <p className={`text-sm ${
-                    serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                      ? 'text-yellow-800 dark:text-yellow-200'
-                      : passed
-                      ? 'text-green-800 dark:text-green-200'
-                      : 'text-blue-800 dark:text-blue-200'
-                  }`}>
-                    {serverMessage}
-                  </p>
-                </div>
-              )}
-              <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
-              </h3>
-              <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-                Obtuviste {score} de {totalQuestions} correctas
-              </p>
-              {totalPoints !== undefined && (
-                <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-                  Puntos: {pointsEarned} de {totalPoints}
+                  {serverMessage}
                 </p>
-              )}
-              <p className="text-gray-700 dark:text-slate-200 text-sm">
-                Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
+              </div>
+            )}
+            <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
+            </h3>
+            <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
+              Obtuviste {score} de {totalQuestions} correctas
+            </p>
+            {totalPoints !== undefined && (
+              <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
+                Puntos: {pointsEarned} de {totalPoints}
               </p>
-            </div>
-          </div>
-          
-          {/* Botón de reiniciar cuestionario */}
-          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
+            )}
+            <p className="text-gray-700 dark:text-slate-200 text-sm">
+              Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
+            </p>
+
+            {/* 🆕 Botón para reiniciar el quiz */}
             <button
               onClick={() => {
+                // Resetear todo el estado del quiz
                 setSelectedAnswers({});
                 setShowResults(false);
                 setScore(0);
                 setPointsEarned(0);
                 setSubmitError(null);
                 setServerMessage(null);
+                if (contextualHelp && contextualHelp.reset) {
+                  contextualHelp.reset();
+                }
+                console.log('🔄 Quiz reiniciado');
               }}
-              className="px-6 py-3 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+              className="mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-lg flex items-center gap-2 mx-auto"
             >
-              <RefreshCw className="w-4 h-4" />
-              Reiniciar Cuestionario
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              🔄 Reiniciar Quiz
             </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -5949,9 +6614,10 @@ function ActivitiesContent({
   onStartInteraction,
   userRole,
   generateRoleBasedPrompts,
-  onNavigateNext,
-  hasNextLesson,
-  selectedLang
+  t,
+  language,
+  contextualHelp,
+  user
 }: {
   lesson: Lesson;
   slug: string;
@@ -5959,9 +6625,10 @@ function ActivitiesContent({
   onStartInteraction?: (content: string, title: string) => void;
   userRole?: string;
   generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
-  onNavigateNext?: () => void | Promise<void>;
-  hasNextLesson?: boolean;
-  selectedLang: string;
+  t: (key: string) => string;
+  language: string;
+  contextualHelp: any;
+  user: any;
 }) {
   // Hook de traducción
   const { t } = useTranslation('learn');
@@ -6385,253 +7052,30 @@ function ActivitiesContent({
           <div className="p-6 space-y-4">
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
-              
+
               return (
-              <div
-                key={activity.activity_id}
-                className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden"
-              >
-                {/* Header de la actividad con botón de colapsar/expandir */}
-                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
-                      {activity.is_required && (
-                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
-                          Requerida
-                        </span>
-                      )}
-                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
-                        {activity.activity_type}
-                      </span>
-                      {/* Indicador de quiz obligatorio */}
-                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && quizStatus.quizzes && (() => {
-                        const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
-                        if (quizInfo) {
-                          if (quizInfo.isPassed) {
-                            return (
-                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                Aprobado
-                              </span>
-                            );
-                          } else if (quizInfo.isCompleted) {
-                            return (
-                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 flex items-center gap-1">
-                                <X className="w-3 h-3" />
-                                Reprobado ({quizInfo.percentage}%)
-                              </span>
-                            );
-                          } else {
-                            return (
-                              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30 flex items-center gap-1">
-                                <Activity className="w-3 h-3" />
-                                Pendiente
-                              </span>
-                            );
-                          }
-                        }
-                        return null;
-                      })()}
-                    </div>
-                    {activity.activity_description && !isCollapsed && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm">{activity.activity_description}</p>
-                    )}
-                  </div>
-                  
-                  {/* Botón de colapsar/expandir */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCollapsedActivities(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(activity.activity_id)) {
-                          newSet.delete(activity.activity_id);
-                        } else {
-                          newSet.add(activity.activity_id);
-                        }
-                        return newSet;
-                      });
-                    }}
-                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-carbon-600 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
-                    title={isCollapsed ? "Expandir actividad" : "Colapsar actividad"}
-                  >
-                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
-                      {isCollapsed ? 'Expandir' : 'Colapsar'}
-                    </span>
-                    {isCollapsed ? (
-                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    ) : (
-                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Contenido de la actividad (colapsable) */}
-                <AnimatePresence initial={false}>
-                  {!isCollapsed && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-5 pb-5">
-                {/* Botón especial para actividades ai_chat */}
-                {activity.activity_type === 'ai_chat' ? (
-                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/10 dark:to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 dark:border-purple-500/30 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/50 dark:shadow-purple-500/50">
-                        <Image
-                          src="/lia-avatar.png"
-                          alt="Lia"
-                          fill
-                          className="object-cover"
-                          sizes="64px"
-                        />
-                      </div>
-
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                          Actividad Interactiva con Lia
-                        </h3>
-                        <p className="text-gray-700 dark:text-slate-300 text-sm mb-6 max-w-md mx-auto">
-                          Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          if (onStartInteraction) {
-                            onStartInteraction(activity.activity_content, activity.activity_title);
-                          }
-                        }}
-                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 dark:from-purple-500 dark:to-blue-500 dark:hover:from-purple-600 dark:hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 dark:hover:shadow-purple-500/50 hover:scale-105"
-                      >
-                        <span className="flex items-center gap-3">
-                          <div className="relative w-5 h-5">
-                            <Image
-                              src="/lia-avatar.png"
-                              alt="Lia"
-                              fill
-                              className="object-cover rounded-full group-hover:animate-pulse"
-                              sizes="20px"
-                            />
-                          </div>
-                          <span>Interactuar con Lia</span>
-                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </span>
-                      </button>
-
-                      <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
-                        Lia te guiará a través de {activity.activity_title.toLowerCase()}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-carbon-800/50 dark:bg-carbon-800 rounded-lg p-4 mb-3">
-                  {activity.activity_type === 'quiz' && (() => {
-                    try {
-                      // Intentar parsear el contenido como JSON si es un quiz
-                      let quizData = activity.activity_content;
-
-                      // Si es string, intentar parsearlo
-                      if (typeof quizData === 'string') {
-                        try {
-                          quizData = JSON.parse(quizData);
-                        } catch (e) {
-                          // console.warn('⚠️ Quiz content is not valid JSON:', e);
-                          return (
-                            <div className="prose dark:prose-invert max-w-none">
-                              <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
-                              <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
-                                {activity.activity_content}
-                              </div>
-                            </div>
-                          );
-                        }
+                <ActivityItem
+                  key={activity.activity_id}
+                  activity={activity}
+                  isCollapsed={isCollapsed}
+                  onToggleCollapse={() => {
+                    setCollapsedActivities(prev => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(activity.activity_id)) {
+                        newSet.delete(activity.activity_id);
+                      } else {
+                        newSet.add(activity.activity_id);
                       }
-
-                      // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                      let questionsArray: any = quizData;
-                      let totalPoints: number | undefined = undefined;
-
-                      if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                        const quizObj = quizData as { questions?: any[]; totalPoints?: number };
-                        if (quizObj.questions && Array.isArray(quizObj.questions)) {
-                          questionsArray = quizObj.questions;
-                          totalPoints = quizObj.totalPoints;
-                        }
-                      }
-
-                      // Verificar que es un array con preguntas
-                      if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                        // Verificar que cada elemento tiene la estructura de pregunta
-                        const hasValidStructure = questionsArray.every((q: any) =>
-                          q && typeof q === 'object' && (q.question || q.id)
-                        );
-
-                        if (hasValidStructure) {
-                          return (
-                            <QuizRenderer 
-                              quizData={questionsArray} 
-                              totalPoints={totalPoints}
-                              lessonId={lesson.lesson_id}
-                              slug={slug}
-                              activityId={activity.activity_id}
-                            />
-                          );
-                        }
-                      }
-
-                      // Si llegamos aquí, mostrar como texto normal con mensaje de debug
-                      return (
-                        <div className="prose prose-invert dark:prose-invert max-w-none">
-                          <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
-                          <details className="mb-4">
-                            <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-800 rounded overflow-auto">
-                              {typeof activity.activity_content === 'string'
-                                ? activity.activity_content
-                                : JSON.stringify(activity.activity_content, null, 2)}
-                            </pre>
-                          </details>
-                        </div>
-                      );
-                    } catch (e) {
-                      // console.error('❌ Error processing quiz:', e);
-                      return (
-                        <div className="prose prose-invert dark:prose-invert max-w-none">
-                          <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
-                          <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
-                            {activity.activity_content}
-                          </div>
-                        </div>
-                      );
-                    }
-                  })()}
-                  {activity.activity_type !== 'quiz' && (
-                    <FormattedContentRenderer content={activity.activity_content} activityId={activity.activity_id} />
-                  )}
-                  </div>
-                )}
-
-                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <HelpCircle className="w-4 h-4 text-purple-400" />
-                      <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
-                    </div>
-                    <PromptsRenderer prompts={activity.ai_prompts} />
-                  </div>
-                )}
-              </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
+                      return newSet;
+                    });
+                  }}
+                  lesson={lesson}
+                  slug={slug}
+                  quizStatus={quizStatus}
+                  contextualHelp={contextualHelp}
+                  user={user}
+                />
+              );
             })}
           </div>
         </div>
@@ -6786,12 +7230,19 @@ function ActivitiesContent({
 
                           if (hasValidStructure) {
                             return (
-                              <QuizRenderer 
-                                quizData={questionsArray} 
+                              <QuizRenderer
+                                quizData={questionsArray}
                                 totalPoints={totalPoints}
                                 lessonId={lesson.lesson_id}
                                 slug={slug}
                                 materialId={material.material_id}
+                                contextualHelp={contextualHelp ? {
+                                  startQuestion: contextualHelp.startQuestion,
+                                  recordAnswer: contextualHelp.recordAnswer,
+                                  recordSkip: contextualHelp.recordSkip,
+                                  updateIncorrectAnswer: contextualHelp.updateIncorrectAnswer,
+                                  reset: contextualHelp.reset
+                                } : undefined}
                               />
                             );
                           }
