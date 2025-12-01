@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
-import { ThemeProvider } from '../core/components/ThemeProvider';
+import { ClientThemeProvider } from '../core/components/ThemeProvider';
 import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
@@ -204,7 +204,7 @@ export default function RootLayout({
         {/* TEMPORALMENTE DESHABILITADO PARA DEBUG - GlobalRecorderProvider */}
         <SWRProvider>
           <I18nProvider>
-            <ThemeProvider>
+            <ClientThemeProvider>
               <NotificationProvider pollingInterval={60000}>
                 <PrefetchManager />
                 <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
@@ -219,7 +219,7 @@ export default function RootLayout({
                 {/* Botón de desarrollo para resetear onboarding */}
                 <DevResetButton />
               </NotificationProvider>
-            </ThemeProvider>
+            </ClientThemeProvider>
           </I18nProvider>
         </SWRProvider>
       </body>
