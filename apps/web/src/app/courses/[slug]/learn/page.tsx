@@ -6630,8 +6630,7 @@ function ActivitiesContent({
   contextualHelp: any;
   user: any;
 }) {
-  // Hook de traducción
-  const { t } = useTranslation('learn');
+  // t ya viene como parámetro, no necesitamos redeclararlo
 
   const [activities, setActivities] = useState<Array<{
     activity_id: string;

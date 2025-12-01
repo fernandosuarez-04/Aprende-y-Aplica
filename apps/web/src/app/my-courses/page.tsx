@@ -62,7 +62,6 @@ export default function MyCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const router = useRouter();
 
   useEffect(() => {
     fetchCourses();
