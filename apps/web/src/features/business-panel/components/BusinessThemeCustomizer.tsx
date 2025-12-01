@@ -463,6 +463,8 @@ export function BusinessThemeCustomizer() {
                       style={{
                         accentColor: 'var(--org-primary-button-color, #3b82f6)'
                       }}
+                      title={`Ángulo del gradiente: ${gradientAngle}°`}
+                      aria-label={`Ángulo del gradiente: ${gradientAngle}°`}
                     />
                   </div>
 
@@ -483,6 +485,8 @@ export function BusinessThemeCustomizer() {
                               style={{ 
                                 borderColor: 'var(--org-border-color, #334155)'
                               }}
+                              title={`Color ${index + 1} del gradiente: ${color}`}
+                              aria-label={`Color ${index + 1} del gradiente: ${color}`}
                             />
                             {gradientColors.length > 2 && (
                               <button
@@ -644,6 +648,8 @@ export function BusinessThemeCustomizer() {
                     onChange={(e) => updateStyle(activePanel, 'primary_button_color', e.target.value)}
                     className="w-12 h-12 rounded cursor-pointer border"
                     style={{ borderColor: 'var(--org-border-color, #334155)' }}
+                    title="Color del botón principal"
+                    aria-label="Color del botón principal"
             />
             <input
               type="text"
@@ -688,6 +694,8 @@ export function BusinessThemeCustomizer() {
                     onChange={(e) => updateStyle(activePanel, 'text_color', e.target.value)}
                     className="w-12 h-12 rounded cursor-pointer border"
                     style={{ borderColor: 'var(--org-border-color, #334155)' }}
+                    title="Color del texto"
+                    aria-label="Color del texto"
             />
             <input
               type="text"
@@ -732,6 +740,8 @@ export function BusinessThemeCustomizer() {
                     onChange={(e) => updateStyle(activePanel, 'secondary_button_color', e.target.value)}
                     className="w-12 h-12 rounded cursor-pointer border"
                     style={{ borderColor: 'var(--org-border-color, #334155)' }}
+                    title="Color del botón secundario"
+                    aria-label="Color del botón secundario"
             />
             <input
               type="text"
@@ -780,7 +790,9 @@ export function BusinessThemeCustomizer() {
                   style={{
                     accentColor: 'var(--org-primary-button-color, #3b82f6)'
                   }}
-                />
+                  title={`Opacidad del modal: ${((currentStyles.modal_opacity || 0.95) * 100).toFixed(0)}%`}
+                  aria-label={`Opacidad del modal: ${((currentStyles.modal_opacity || 0.95) * 100).toFixed(0)}%`}
+          />
         </div>
 
               {/* Opacidad Subtítulos */}
@@ -810,7 +822,9 @@ export function BusinessThemeCustomizer() {
                   style={{
                     accentColor: 'var(--org-primary-button-color, #3b82f6)'
                   }}
-                />
+                  title={`Opacidad de las tarjetas: ${((currentStyles.card_opacity || 1) * 100).toFixed(0)}%`}
+                  aria-label={`Opacidad de las tarjetas: ${((currentStyles.card_opacity || 1) * 100).toFixed(0)}%`}
+          />
           </div>
         </div>
           </div>

@@ -1,13 +1,13 @@
-const path = require("path");
+import type { NextConfig } from 'next';
+import path from 'path';
 
 // Bundle Analyzer (opcional - deshabilitado)
-let withBundleAnalyzer = (config) => config;
+let withBundleAnalyzer = (config: NextConfig) => config;
 
 // PWA Configuration - DESHABILITADO
-let withPWA = (config) => config;
+let withPWA = (config: NextConfig) => config;
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   // Deshabilitar checks durante builds de producción
   eslint: {
     ignoreDuringBuilds: true,
@@ -150,7 +150,7 @@ const nextConfig = {
   },
 
   // Configuración de Webpack para resolver alias en el monorepo
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@/features': path.resolve(__dirname, 'src/features'),
@@ -170,50 +170,6 @@ const nextConfig = {
         path: false,
         os: false,
       };
-
-      // Optimización para Nivo: dividir chunks grandes
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          maxInitialRequests: 25,
-          minSize: 20000,
-          cacheGroups: {
-            default: {
-              minChunks: 2,
-              priority: -20,
-              reuseExistingChunk: true,
-            },
-            // Chunk separado para Nivo (biblioteca grande)
-            nivo: {
-              name: 'nivo',
-              test: /[\\/]node_modules[\\/]@nivo[\\/]/,
-              priority: 20,
-              reuseExistingChunk: true,
-              enforce: true,
-            },
-            // Chunk para otras librerías grandes
-            vendor: {
-              name: 'vendor',
-              test: /[\\/]node_modules[\\/]/,
-              priority: 10,
-              reuseExistingChunk: true,
-              minChunks: 1,
-            },
-            // Chunk para React y React DOM (muy estables)
-            react: {
-              name: 'react',
-              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
-              priority: 30,
-              reuseExistingChunk: true,
-              enforce: true,
-            },
-          },
-        },
-        // Mejorar nombres de chunks para mejor caché
-        moduleIds: dev ? 'named' : 'deterministic',
-        chunkIds: dev ? 'named' : 'deterministic',
-      };
     }
 
     return config;
@@ -221,4 +177,4 @@ const nextConfig = {
 };
 
 // Aplicar PWA wrapper primero, luego Bundle Analyzer
-module.exports = withBundleAnalyzer(withPWA(nextConfig));
+export default withBundleAnalyzer(withPWA(nextConfig));

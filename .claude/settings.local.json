@@ -36,7 +36,17 @@
       "Bash(types_new.ts)",
       "Bash(tee:*)",
       "Bash(NODE_OPTIONS='--trace-warnings' npm run build:*)",
-      "Bash(set NODE_OPTIONS=--trace-warnings)"
+      "Bash(set NODE_OPTIONS=--trace-warnings)",
+      "Bash(npx react:*)",
+      "Bash(timeout:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(npx next dev -p 3000)",
+      "Bash(powershell -Command \"Stop-Process -Id 25588 -Force\")",
+      "Bash(dir:*)",
+      "Bash(powershell -Command \"if (Test-Path ''apps\\api\\node_modules'') { Remove-Item -Recurse -Force ''apps\\api\\node_modules'' }\")",
+      "Bash(del package-lock.json)",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []

@@ -7,7 +7,7 @@ import { Sparkles } from 'lucide-react';
 import { createClient } from '../../lib/supabase/client';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useQuestionnaireValidation } from '../../features/auth/hooks/useQuestionnaireValidation';
-import { PAISES_WITH_FLAGS } from '@/core/components/SelectField/country-flags';
+import { PAISES_WITH_FLAGS } from '../../core/components/SelectField/country-flags';
 
 interface ProfileData {
   cargo_titulo: string;
@@ -88,11 +88,18 @@ export default function StatisticsPage() {
         return;
       }
 
+      const userProfileId = (userProfile as { id: string }).id;
+      
+      if (!userProfileId) {
+        loadData();
+        return;
+      }
+
       // Verificar si el usuario tiene respuestas
       const { data: responses, error: responsesError } = await supabase
         .from('respuestas')
         .select('id')
-        .eq('user_perfil_id', userProfile.id)
+        .eq('user_perfil_id', userProfileId)
         .limit(1);
 
       if (responsesError || !responses || responses.length === 0) {
@@ -259,7 +266,7 @@ export default function StatisticsPage() {
       sector: sector?.nombre || '', // Usar sector_id, no pais
       tamano: tamano?.nombre || '',
       pais: data.pais || '', // País por separado
-      description: generateProfileDescription(cargo_titulo, area?.nombre)
+      description: generateProfileDescription(cargo_titulo || '', area?.nombre || '')
     };
   };
 
@@ -381,6 +388,8 @@ export default function StatisticsPage() {
                     value={formData.rol_id}
                     onChange={(e) => handleInputChange('rol_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona tu cargo o título"
+                    aria-label="Cargo o título"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo</option>
                     {referenceData?.roles.map(rol => (
@@ -405,6 +414,8 @@ export default function StatisticsPage() {
                     value={formData.uso_ia}
                     onChange={(e) => handleInputChange('uso_ia', e.target.value)}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona qué tanto utilizas la IA en tu ámbito laboral"
+                    aria-label="Uso de IA en el ámbito laboral"
                   >
                     <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona una opción</option>
                     <option value="Nunca" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Nunca</option>
@@ -430,6 +441,8 @@ export default function StatisticsPage() {
                     disabled
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white opacity-60 cursor-not-allowed min-h-[48px] [&::-ms-expand]:hidden [&::-webkit-appearance]:none appearance-none"
                     style={{ backgroundImage: 'none' }}
+                    title="Nivel organizacional (selecciona tu cargo primero)"
+                    aria-label="Nivel organizacional"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo primero</option>
                     {referenceData?.niveles.map(nivel => (
@@ -454,6 +467,8 @@ export default function StatisticsPage() {
                     value={formData.sector_id}
                     onChange={(e) => handleInputChange('sector_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona tu sector"
+                    aria-label="Sector"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu sector</option>
                     {referenceData?.sectores.map(sector => (
@@ -482,6 +497,8 @@ export default function StatisticsPage() {
                     disabled
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white opacity-60 cursor-not-allowed min-h-[48px] [&::-ms-expand]:hidden [&::-webkit-appearance]:none appearance-none"
                     style={{ backgroundImage: 'none' }}
+                    title="Área funcional (selecciona tu cargo primero)"
+                    aria-label="Área funcional"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu cargo primero</option>
                     {referenceData?.areas.map(area => (
@@ -506,6 +523,8 @@ export default function StatisticsPage() {
                     value={formData.relacion_id}
                     onChange={(e) => handleInputChange('relacion_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona el tipo de relación"
+                    aria-label="Tipo de relación"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu relación</option>
                     {referenceData?.relaciones.map(relacion => (
@@ -530,6 +549,8 @@ export default function StatisticsPage() {
                     value={formData.tamano_id}
                     onChange={(e) => handleInputChange('tamano_id', parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona el tamaño de empresa"
+                    aria-label="Tamaño de empresa"
                   >
                     <option value={0} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona el tamaño</option>
                     {referenceData?.tamanos_empresa.map(tamano => (
@@ -554,9 +575,11 @@ export default function StatisticsPage() {
                     value={formData.pais}
                     onChange={(e) => handleInputChange('pais', e.target.value)}
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer min-h-[48px]"
+                    title="Selecciona tu país"
+                    aria-label="País"
                   >
                     <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">Selecciona tu país</option>
-                    {PAISES_WITH_FLAGS.map(pais => (
+                    {PAISES_WITH_FLAGS.map((pais: { value: string; label: string; flag: string }) => (
                       <option key={pais.value} value={pais.value} className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
                         {pais.label}
                       </option>
