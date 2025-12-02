@@ -36,20 +36,33 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
     // Evitar redirecciones múltiples o durante desmontaje
     if (isRedirecting) return
+    
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') return
 
     // Solo ejecutar lógica de redirección cuando loading sea explícitamente false
     if (isLoading === false) {
       if (!user) {
         setIsRedirecting(true)
-        // Usar replace en lugar de push para evitar problemas de navegación
-        router.replace('/auth')
+        // Usar window.location como fallback si router falla
+        try {
+          router.replace('/auth')
+        } catch (error) {
+          // Fallback a window.location si router.replace falla
+          window.location.href = '/auth'
+        }
         return
       }
       
       if (user.cargo_rol !== 'Administrador') {
         setIsRedirecting(true)
-        // Usar replace en lugar de push para evitar problemas de navegación
-        router.replace('/dashboard')
+        // Usar window.location como fallback si router falla
+        try {
+          router.replace('/dashboard')
+        } catch (error) {
+          // Fallback a window.location si router.replace falla
+          window.location.href = '/dashboard'
+        }
         return
       }
     }
