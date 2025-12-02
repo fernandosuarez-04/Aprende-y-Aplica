@@ -68,25 +68,35 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     // Variable para determinar el modo a usar en esta llamada
     let modeForThisMessage = currentMode;
     let shouldNotifyModeChange = false;
+    let modeChangeMessage = '';
 
-    // ✨ DETECCIÓN DE INTENCIONES (solo si no es mensaje del sistema y no estamos en modo prompts ya)
-    if (!isSystemMessage && currentMode !== 'prompts') {
+    // ✨ DETECCIÓN BIDIRECCIONAL DE INTENCIONES (solo si no es mensaje del sistema)
+    if (!isSystemMessage) {
       try {
         console.log('[LIA] 🔍 Detectando intención para:', message.trim());
+        console.log('[LIA] 📍 Modo actual:', currentMode);
         const intentResult = await IntentDetectionService.detectIntent(message.trim());
         console.log('[LIA] 📊 Resultado de detección:', {
           intent: intentResult.intent,
           confidence: `${(intentResult.confidence * 100).toFixed(1)}%`,
-          threshold: '70%',
-          willActivate: intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7
+          threshold: '70%'
         });
         
-        // Si detectamos intención de crear prompts con alta confianza, cambiar modo
-        if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
+        // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
+        if (currentMode !== 'prompts' && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
           console.log('[LIA] ✅ Activando Modo Prompts automáticamente');
           modeForThisMessage = 'prompts';
           shouldNotifyModeChange = true;
+          modeChangeMessage = "✨ He detectado que quieres crear un prompt. He activado el **Modo Prompts** 🎯\n\n¿Qué tipo de prompt necesitas crear?";
           setCurrentMode('prompts');
+        }
+        // CASO 2: Si ESTAMOS en modo prompts pero la pregunta NO es sobre crear prompts
+        else if (currentMode === 'prompts' && intentResult.intent !== 'create_prompt') {
+          console.log('[LIA] 🔄 Pregunta general detectada. Cambiando a Modo Contexto');
+          modeForThisMessage = 'context';
+          shouldNotifyModeChange = true;
+          modeChangeMessage = "🧠 He cambiado al **Modo Contexto** para responder tu pregunta general.";
+          setCurrentMode('context');
         }
       } catch (intentError) {
         console.error('[LIA] ❌ Error detectando intención:', intentError);
@@ -106,12 +116,12 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
       setMessages(prev => [...prev, userMessage]);
 
       // Si debemos notificar cambio de modo, agregar mensaje del sistema DESPUÉS del mensaje de usuario
-      if (shouldNotifyModeChange) {
+      if (shouldNotifyModeChange && modeChangeMessage) {
         setTimeout(() => {
           const systemMessage: LiaMessage = {
             id: `system-${Date.now()}`,
             role: 'assistant',
-            content: "✨ He detectado que quieres crear un prompt. He activado el **Modo Prompts** 🎯\n\n¿Qué tipo de prompt necesitas crear?",
+            content: modeChangeMessage,
             timestamp: new Date()
           };
           
@@ -126,13 +136,25 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     try {
       // ✨ Determinar el contexto según el modo (usar el modo detectado en esta llamada)
       let effectiveContext = 'general';
+      let shouldSendCourseContext = false;
+      
       if (modeForThisMessage === 'course' && courseContext) {
         effectiveContext = 'course';
+        shouldSendCourseContext = true;
       } else if (modeForThisMessage === 'prompts') {
         effectiveContext = 'prompts';
+        shouldSendCourseContext = false; // NO enviar contexto del curso en modo prompts
       } else if (modeForThisMessage === 'context') {
-        effectiveContext = 'general'; // Contexto persistente
+        effectiveContext = 'general'; // Contexto persistente general de la plataforma
+        shouldSendCourseContext = false; // NO enviar contexto del curso en modo contexto
       }
+
+      console.log('[LIA] 📤 Enviando al API:', {
+        mode: modeForThisMessage,
+        context: effectiveContext,
+        isPromptMode: modeForThisMessage === 'prompts',
+        sendingCourseContext: shouldSendCourseContext
+      });
 
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
@@ -161,7 +183,8 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
                     user?.first_name || 
                     user?.username || 
                     undefined,
-          courseContext: courseContext || undefined,
+          // ✨ IMPORTANTE: Solo enviar courseContext si estamos en modo course
+          courseContext: shouldSendCourseContext ? courseContext : undefined,
           isSystemMessage: isSystemMessage,
           // ✅ ANALYTICS: Enviar conversationId existente si lo hay
           conversationId: conversationIdRef.current || undefined
