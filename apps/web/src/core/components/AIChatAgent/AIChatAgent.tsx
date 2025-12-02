@@ -28,6 +28,8 @@ import { useLanguage } from '../../providers/I18nProvider';
 import { sessionRecorder } from '../../../lib/rrweb/session-recorder';
 import { useRouter } from 'next/navigation';
 import { getPlatformContext } from '../../../lib/lia/page-metadata';
+import { IntentDetectionService } from '../../services/intent-detection.service';
+import { PromptPreviewPanel, type PromptDraft } from './PromptPreviewPanel';
 
 interface Message {
   id: string;
@@ -227,14 +229,12 @@ function renderTextWithLinks(text: string): React.ReactNode {
         onClick={(e) => {
           if (isRelative) {
             e.preventDefault();
-            // Usar Next.js router para navegación interna
-            const { useRouter } = require('next/navigation');
-            const router = useRouter();
-            router.push(linkUrl);
+            // Usar el router del componente para navegación interna
+            window.dispatchEvent(new CustomEvent('lia-navigate', { detail: { url: linkUrl } }));
           }
           // Si es URL absoluta, dejar que el navegador maneje el enlace
         }}
-        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium transition-colors"
         {...(!isRelative && { target: '_blank', rel: 'noopener noreferrer' })}
       >
         {linkText}
@@ -269,6 +269,8 @@ export function AIChatAgent({
   const [generatedPrompt, setGeneratedPrompt] = useState<GeneratedPrompt | null>(null);
   const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
   const [selectedPromptMessageId, setSelectedPromptMessageId] = useState<string | null>(null);
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   
   // Estados del chat (declarados temprano para poder usarlos en useMemo)
   const [isOpen, setIsOpen] = useState(false);
@@ -574,6 +576,73 @@ export function AIChatAgent({
   const prevPathnameRef = useRef<string>('');
   const hasOpenedRef = useRef<boolean>(false);
   const router = useRouter();
+
+  // 💾 FUNCIÓN DE GUARDADO DE PROMPTS
+  const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
+    if (!user) {
+      alert('Debes iniciar sesión para guardar prompts');
+      return;
+    }
+
+    setIsSavingPrompt(true);
+    
+    try {
+      const response = await fetch('/api/ai-directory/prompts/save-from-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...draft,
+          conversation_id: conversationId, // Vincular con la conversación
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(errorData.error || 'Error al guardar el prompt');
+      }
+
+      const data = await response.json();
+      
+      // Notificar éxito
+      alert(`✅ Prompt guardado exitosamente: "${draft.title}"`);
+      
+      // Cerrar el panel de preview
+      setIsPromptPanelOpen(false);
+      
+      // Opcional: Navegar al prompt guardado
+      if (data.redirectUrl) {
+        const shouldNavigate = confirm('¿Quieres ver el prompt en el directorio?');
+        if (shouldNavigate) {
+          router.push(data.redirectUrl);
+        }
+      }
+    } catch (error) {
+      console.error('Error guardando prompt:', error);
+      alert(`❌ Error al guardar el prompt: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  }, [user, conversationId, router]);
+
+  // 🔗 NAVEGACIÓN GUIADA: Event listener para navegación desde links en mensajes
+  useEffect(() => {
+    const handleLiaNavigate = (event: CustomEvent) => {
+      const { url } = event.detail;
+      if (url) {
+        // Actualizar contexto antes de navegar
+        console.log('🔗 Navegando desde LIA a:', url);
+        router.push(url);
+      }
+    };
+
+    window.addEventListener('lia-navigate', handleLiaNavigate as EventListener);
+    
+    return () => {
+      window.removeEventListener('lia-navigate', handleLiaNavigate as EventListener);
+    };
+  }, [router]);
 
   // ✅ PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
   useEffect(() => {
@@ -959,6 +1028,33 @@ export function AIChatAgent({
   const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
 
+    // 🔍 DETECCIÓN DE INTENCIONES (solo en modo normal)
+    let shouldActivatePromptMode = false;
+    if (!isPromptMode) {
+      try {
+        const intentResult = await IntentDetectionService.detectIntent(inputMessage);
+        
+        // Si detectamos intención de crear prompts con alta confianza, activar modo prompt
+        if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
+          shouldActivatePromptMode = true;
+          
+          // Agregar mensaje del sistema notificando el cambio
+          const systemMessage: Message = {
+            id: `system-${Date.now()}`,
+            role: 'assistant',
+            content: "He detectado que quieres crear un prompt. Voy a activar el modo de creación de prompts para ayudarte mejor. 🎯\n\n¿Qué tipo de prompt quieres crear?",
+            timestamp: new Date()
+          };
+          
+          setPromptMessages(prev => [...prev, systemMessage]);
+          setIsPromptMode(true);
+        }
+      } catch (error) {
+        console.error('Error detectando intención:', error);
+        // Continuar normalmente si falla la detección
+      }
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -966,8 +1062,8 @@ export function AIChatAgent({
       timestamp: new Date()
     };
 
-    // Usar el setter correcto según el modo
-    if (isPromptMode) {
+    // Usar el setter correcto según el modo (considerando activación automática)
+    if (isPromptMode || shouldActivatePromptMode) {
       setPromptMessages(prev => [...prev, userMessage]);
     } else {
       setNormalMessages(prev => [...prev, userMessage]);
@@ -985,8 +1081,8 @@ export function AIChatAgent({
     // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
 
     try {
-      // Si está en modo prompt, usar el endpoint de generación de prompts
-      if (isPromptMode) {
+      // Si está en modo prompt (o se acaba de activar), usar endpoint con modo prompt
+      if (isPromptMode || shouldActivatePromptMode) {
         const response = await fetch('/api/ai-directory/generate-prompt', {
           method: 'POST',
           headers: {
@@ -1036,6 +1132,8 @@ export function AIChatAgent({
             message: userMessage.content,
             context: activeContext,
             language,
+            isPromptMode: false, // ✅ Agregar parámetro isPromptMode
+            conversationId: conversationId, // ✅ Pasar conversationId para continuidad
             pageContext: {
               pathname: pathname,
               description: pageContextInfo,
@@ -1054,7 +1152,14 @@ export function AIChatAgent({
               role: m.role,
               content: m.content
             })),
-            userName: user?.display_name || user?.username || user?.first_name
+            userName: user?.display_name || user?.username || user?.first_name,
+            userInfo: user ? {
+              display_name: user.display_name,
+              first_name: user.first_name,
+              last_name: user.last_name,
+              username: user.username,
+              type_rol: user.type_rol
+            } : undefined
           }),
         });
 
@@ -2179,6 +2284,21 @@ Fecha: ${new Date().toLocaleString()}
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 🎨 Prompt Preview Panel */}
+      <AnimatePresence>
+        {isPromptMode && generatedPrompt && isPromptPanelOpen && (
+          <PromptPreviewPanel
+            draft={generatedPrompt as PromptDraft}
+            onSave={handleSavePrompt}
+            onClose={() => setIsPromptPanelOpen(false)}
+            onEdit={(editedDraft) => {
+              setGeneratedPrompt(editedDraft as GeneratedPrompt);
+            }}
+            isSaving={isSavingPrompt}
+          />
         )}
       </AnimatePresence>
     </>

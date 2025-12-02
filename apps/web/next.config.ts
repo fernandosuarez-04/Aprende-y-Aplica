@@ -111,7 +111,8 @@ const nextConfig: NextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
               "frame-ancestors 'none'",
-              "upgrade-insecure-requests"
+              // Solo forzar HTTPS en producción
+              ...(process.env.NODE_ENV === 'production' ? ["upgrade-insecure-requests"] : [])
             ].join('; ')
           },
           // Previene clickjacking - no permite que el sitio se cargue en iframes
