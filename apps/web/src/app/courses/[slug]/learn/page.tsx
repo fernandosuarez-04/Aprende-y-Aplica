@@ -999,6 +999,48 @@ export default function CourseLearnPage() {
     }
   }, []);
 
+  // ✨ Función para convertir enlaces Markdown [texto](url) en hipervínculos HTML
+  const parseMarkdownLinks = useCallback((text: string) => {
+    if (!text) return text;
+    
+    // Expresión regular para detectar enlaces Markdown: [texto](url)
+    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    
+    // Dividir el texto en partes: enlaces y texto normal
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = markdownLinkRegex.exec(text)) !== null) {
+      // Agregar texto antes del enlace
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: text.substring(lastIndex, match.index)
+        });
+      }
+      
+      // Agregar el enlace
+      parts.push({
+        type: 'link',
+        text: match[1], // El texto del enlace
+        url: match[2]   // La URL
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Agregar el texto restante después del último enlace
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex)
+      });
+    }
+    
+    return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+  }, []);
+
   // Función para enviar mensaje a LIA con contexto de la lección
   const handleSendLiaMessage = async () => {
     if (!liaMessage.trim() || isLiaLoading) return;
@@ -3776,7 +3818,35 @@ Antes de cada respuesta, pregúntate:
                             : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">{message.content}</p>
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">
+                          {parseMarkdownLinks(message.content).map((part, index) => {
+                            if (part.type === 'link') {
+                              return (
+                                <a
+                                  key={index}
+                                  href={part.url}
+                                  target={part.url.startsWith('http') ? '_blank' : '_self'}
+                                  rel={part.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                                  className={`${
+                                    message.role === 'user'
+                                      ? 'text-white underline hover:text-white/80 font-semibold'
+                                      : 'text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300 font-semibold'
+                                  } transition-colors`}
+                                  onClick={(e) => {
+                                    // Si es una ruta interna, usar router de Next.js
+                                    if (!part.url.startsWith('http')) {
+                                      e.preventDefault();
+                                      router.push(part.url);
+                                    }
+                                  }}
+                                >
+                                  {part.text}
+                                </a>
+                              );
+                            }
+                            return <span key={index}>{part.content}</span>;
+                          })}
+                        </div>
                         <div className="flex items-center justify-between mt-2">
                           <p className="text-xs opacity-70">
                             {message.timestamp.toLocaleTimeString('es-ES', { 
