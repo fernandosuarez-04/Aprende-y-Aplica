@@ -1056,21 +1056,47 @@ export function AIChatAgent({
         setPromptMessages(prev => [...prev, systemMessage]);
         setIsPromptMode(true);
       }
-      // CASO 2: Si ESTAMOS en modo prompts pero la pregunta NO es sobre crear prompts
+      // CASO 2: Si ESTAMOS en modo prompts, MANTENER el modo a menos que sea EXPLÍCITAMENTE una petición de navegación
       else if (isPromptMode && intentResult.intent !== 'create_prompt') {
-        console.log('[LIA Agent] 🔄 Desactivando Modo Prompts, volviendo a modo normal');
-        shouldDeactivatePromptMode = true;
+        const messageLower = inputMessage.toLowerCase().trim();
         
-        // Agregar mensaje del sistema notificando el cambio
-        const systemMessage: Message = {
-          id: `system-${Date.now()}`,
-          role: 'assistant',
-          content: "🧠 He cambiado al modo normal para responder tu pregunta general.",
-          timestamp: new Date()
-        };
+        // Solo salir del modo prompts si es una petición EXPLÍCITA de navegación
+        const explicitExitPatterns = [
+          /\b(ll[eé]vame|llevame|llévame)\b/i,
+          /\b(ir\s+a|navegar\s+a|abrir)\b/i,
+          /\b(mu[eé]strame|muestrame|muéstrame)\b.*\b(página|pagina|sección|seccion)\b/i,
+          /\bdame\s+(el\s+)?(link|enlace)\b/i,
+          /\bquiero\s+(ir|ver|acceder)\s+a\b/i,
+          /\b(salir|salte|terminar|cancelar)\b.*\b(prompt|modo)\b/i,
+          /\b(no\s+quiero|ya\s+no)\b.*\bprompt\b/i
+        ];
         
-        setNormalMessages(prev => [...prev, systemMessage]);
-        setIsPromptMode(false);
+        const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
+        
+        console.log('[LIA Agent] 📊 Análisis en Modo Prompts:', {
+          message: messageLower,
+          detectedIntent: intentResult.intent,
+          isExplicitExit,
+          action: isExplicitExit ? 'SALIR del modo prompts' : 'MANTENER modo prompts'
+        });
+        
+        if (isExplicitExit) {
+          console.log('[LIA Agent] 🔄 Petición explícita de salir. Desactivando Modo Prompts');
+          shouldDeactivatePromptMode = true;
+          
+          const systemMessage: Message = {
+            id: `system-${Date.now()}`,
+            role: 'assistant',
+            content: "🧠 He cambiado al modo normal para ayudarte.",
+            timestamp: new Date()
+          };
+          
+          setNormalMessages(prev => [...prev, systemMessage]);
+          setIsPromptMode(false);
+        } else {
+          // MANTENER el modo prompts - cualquier otra cosa se considera parte de la conversación de prompts
+          console.log('[LIA Agent] ✅ Manteniendo Modo Prompts (continuando conversación de creación de prompts)');
+        }
       }
     } catch (error) {
       console.error('[LIA Agent] ❌ Error detectando intención:', error);
@@ -1130,10 +1156,19 @@ export function AIChatAgent({
 
         const data = await response.json();
         
+        // Determinar el contenido del mensaje
+        let messageContent = data.response || responseFallback;
+        
+        // Si hay un prompt generado, mostrar un mensaje amigable en lugar del JSON
+        if (data.generatedPrompt) {
+          const promptTitle = data.generatedPrompt.title || 'Tu prompt';
+          messageContent = `¡Listo! He generado el prompt "${promptTitle}". Puedes verlo, copiarlo o guardarlo en tu biblioteca usando el panel que aparece arriba. ¿Necesitas algún ajuste o tienes otra idea de prompt?`;
+        }
+        
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: data.response || responseFallback,
+          content: messageContent,
           timestamp: new Date()
         };
 

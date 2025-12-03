@@ -90,13 +90,40 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           modeChangeMessage = "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?";
           setCurrentMode('prompts');
         }
-        // CASO 2: Si ESTAMOS en modo prompts pero la pregunta NO es sobre crear prompts
+        // CASO 2: Si ESTAMOS en modo prompts, MANTENER el modo a menos que sea EXPLÍCITAMENTE una petición de salir
         else if (currentMode === 'prompts' && intentResult.intent !== 'create_prompt') {
-          console.log('[LIA] 🔄 Pregunta general detectada desde Prompts. Cambiando a Modo Contexto');
-          modeForThisMessage = 'context';
-          shouldNotifyModeChange = true;
-          modeChangeMessage = "🧠 He cambiado al Modo Contexto para responder tu pregunta general.";
-          setCurrentMode('context');
+          const messageLower = message.toLowerCase().trim();
+          
+          // Solo salir del modo prompts si es una petición EXPLÍCITA de navegación o salida
+          const explicitExitPatterns = [
+            /\b(ll[eé]vame|llevame|llévame)\b/i,
+            /\b(ir\s+a|navegar\s+a|abrir)\b/i,
+            /\b(mu[eé]strame|muestrame|muéstrame)\b.*\b(página|pagina|sección|seccion)\b/i,
+            /\bdame\s+(el\s+)?(link|enlace)\b/i,
+            /\bquiero\s+(ir|ver|acceder)\s+a\b/i,
+            /\b(salir|salte|terminar|cancelar)\b.*\b(prompt|modo)\b/i,
+            /\b(no\s+quiero|ya\s+no)\b.*\bprompt\b/i
+          ];
+          
+          const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
+          
+          console.log('[LIA] 📊 Análisis en Modo Prompts:', {
+            message: messageLower,
+            detectedIntent: intentResult.intent,
+            isExplicitExit,
+            action: isExplicitExit ? 'SALIR del modo prompts' : 'MANTENER modo prompts'
+          });
+          
+          if (isExplicitExit) {
+            console.log('[LIA] 🔄 Petición explícita de salir. Cambiando a Modo Contexto');
+            modeForThisMessage = 'context';
+            shouldNotifyModeChange = true;
+            modeChangeMessage = "🧠 He cambiado al Modo Contexto para ayudarte.";
+            setCurrentMode('context');
+          } else {
+            // MANTENER el modo prompts - cualquier otra cosa se considera parte de la conversación
+            console.log('[LIA] ✅ Manteniendo Modo Prompts (continuando conversación de creación de prompts)');
+          }
         }
         // CASO 3: Si ESTAMOS en modo curso y detectamos intención de navegar o pregunta sobre la plataforma
         else if (currentMode === 'course' && intentResult.intent === 'navigate') {
