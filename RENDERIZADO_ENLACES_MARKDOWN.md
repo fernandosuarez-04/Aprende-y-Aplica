@@ -10,7 +10,7 @@
 Los enlaces en las respuestas de LIA se mostraban en formato Markdown literal:
 
 ```
-[Comunidades](https://www.ecosdeliderazgo.com/communities)
+[Comunidades](https://aprendeyaplica.ai/communities)
 ```
 
 En lugar de renderizarse como hipervínculos clickeables:
@@ -158,7 +158,7 @@ font-semibold
 
 **Texto mostrado:**
 ```
-Puedes acceder a [Comunidades](https://www.ecosdeliderazgo.com/communities)
+Puedes acceder a [Comunidades](https://aprendeyaplica.ai/communities)
 ```
 
 **Problemas:**
@@ -210,7 +210,7 @@ Sí, la plataforma cuenta con Comunidades.
 
 **Texto de LIA:**
 ```
-Puedes ver más en [nuestra web](https://www.ecosdeliderazgo.com).
+Puedes ver más en [nuestra web](https://aprendeyaplica.ai).
 ```
 
 **Renderizado:**
