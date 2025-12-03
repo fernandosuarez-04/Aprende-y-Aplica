@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { SessionService } from '@/features/auth/services/session.service';
+import type { Database } from '@/lib/supabase/types';
 
 /**
  * POST /api/study-planner/manual/create
@@ -58,26 +60,63 @@ export async function POST(request: NextRequest) {
 
     // Asegurar que preferred_days sea un array de números válidos (0-6, formato JavaScript Date)
     // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    // PostgreSQL espera smallint[], así que convertimos explícitamente
     const validDays = preferred_days
-      .map((day: any) => parseInt(day, 10))
-      .filter((day: number) => !isNaN(day) && day >= 0 && day <= 6);
+      .map((day: any) => {
+        const parsed = parseInt(day, 10);
+        return isNaN(parsed) ? null : parsed;
+      })
+      .filter((day: number | null): day is number => day !== null && day >= 0 && day <= 6);
     
     if (validDays.length === 0) {
+      console.error('❌ Validación de días falló:', {
+        original: preferred_days,
+        validDays,
+      });
       return NextResponse.json(
-        { error: 'Los días seleccionados no son válidos' },
+        { error: 'Los días seleccionados no son válidos. Deben ser números entre 0 (Domingo) y 6 (Sábado)' },
         { status: 400 }
       );
     }
 
+    // Crear cliente con Service Role Key para bypass RLS
+    // Esto es necesario porque el proyecto usa autenticación personalizada, no Supabase Auth
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Variables de entorno faltantes:', {
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey,
+      });
+      return NextResponse.json(
+        { 
+          error: 'Configuración del servidor incompleta',
+          details: 'Faltan variables de entorno de Supabase',
+        },
+        { status: 500 }
+      );
+    }
+
+    // Cliente con Service Role Key para insertar (bypass RLS)
+    const supabaseAdmin = createSupabaseClient<Database>(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Cliente normal para verificaciones (con RLS)
     const supabase = await createClient();
 
     // Preparar datos del plan
+    // Convertir preferred_days a formato PostgreSQL smallint[] explícitamente
     const planData: any = {
       user_id: currentUser.id,
       name: name.trim(),
       description: description?.trim() || null,
       goal_hours_per_week: goal_hours_per_week ? parseFloat(String(goal_hours_per_week)) : 5,
-      preferred_days: validDays, // Usar los días validados (formato 0-6, JavaScript Date)
+      preferred_days: validDays, // Array de números (0-6), Supabase lo convierte a smallint[]
       preferred_time_blocks: Array.isArray(preferred_time_blocks) ? preferred_time_blocks : [],
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       generation_mode: 'manual',
@@ -95,12 +134,17 @@ export async function POST(request: NextRequest) {
       preferred_days: planData.preferred_days,
       preferred_days_type: typeof planData.preferred_days,
       preferred_days_isArray: Array.isArray(planData.preferred_days),
+      preferred_days_length: Array.isArray(planData.preferred_days) ? planData.preferred_days.length : 0,
       preferred_time_blocks: planData.preferred_time_blocks,
+      preferred_time_blocks_length: Array.isArray(planData.preferred_time_blocks) ? planData.preferred_time_blocks.length : 0,
       timezone: planData.timezone,
+      generation_mode: planData.generation_mode,
+      learning_route_id: planData.learning_route_id || null,
     });
 
-    // Crear el plan
-    const { data: plan, error: planError } = await supabase
+    // Crear el plan usando Service Role Key para bypass RLS
+    // Ya validamos que el usuario está autenticado arriba
+    const { data: plan, error: planError } = await supabaseAdmin
       .from('study_plans')
       .insert(planData)
       .select()
@@ -123,10 +167,29 @@ export async function POST(request: NextRequest) {
         hint: planError.hint,
         code: planError.code,
         fullError: planError,
+        planData: {
+          user_id: planData.user_id,
+          name: planData.name,
+          preferred_days: planData.preferred_days,
+          preferred_days_type: typeof planData.preferred_days,
+        },
       });
+      
+      // Mensaje de error más descriptivo según el código de error
+      let errorMessage = 'Error al crear el plan';
+      if (planError.code === '23505') {
+        errorMessage = 'Ya existe un plan con estos datos';
+      } else if (planError.code === '23503') {
+        errorMessage = 'Error de referencia: Verifica que la ruta de aprendizaje existe';
+      } else if (planError.code === '23502') {
+        errorMessage = 'Faltan campos requeridos en el plan';
+      } else if (planError.message?.includes('array')) {
+        errorMessage = 'Error en el formato de los días seleccionados';
+      }
+      
       return NextResponse.json(
         { 
-          error: 'Error al crear el plan', 
+          error: errorMessage, 
           details: planError.message,
           hint: planError.hint,
           code: planError.code,
@@ -145,53 +208,193 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Plan creado:', plan.id);
 
+    // Verificación post-inserción: confirmar que el plan realmente existe en la BD
+    // Usar cliente admin para la verificación también
+    const { data: verifyPlan, error: verifyError } = await supabaseAdmin
+      .from('study_plans')
+      .select('id, name, user_id, created_at')
+      .eq('id', plan.id)
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (verifyError || !verifyPlan) {
+      console.error('❌ Error verificando plan después de creación:', {
+        verifyError,
+        planId: plan.id,
+      });
+      return NextResponse.json(
+        { 
+          error: 'El plan se creó pero no se pudo verificar en la base de datos',
+          details: verifyError?.message || 'Error de verificación',
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Plan verificado en BD:', verifyPlan.id);
+
     // Crear sesiones de estudio basadas en los cursos y horarios
     let sessionsCreated = 0;
+    
+    console.log('🔍 Verificando condiciones para crear sesiones:', {
+      hasCourseIds: !!(course_ids && course_ids.length > 0),
+      courseIdsCount: course_ids?.length || 0,
+      courseIds: course_ids,
+      hasTimeBlocks: !!(preferred_time_blocks && preferred_time_blocks.length > 0),
+      timeBlocksCount: preferred_time_blocks?.length || 0,
+      timeBlocks: preferred_time_blocks,
+    });
     
     if (course_ids && course_ids.length > 0 && preferred_time_blocks && preferred_time_blocks.length > 0) {
       console.log('📚 Creando sesiones para cursos:', course_ids.length);
       
-      // Obtener todas las lecciones de los cursos seleccionados
-      const allLessons: any[] = [];
+      // Obtener enrollments del usuario para cada curso (necesario para consultar progreso)
+      const enrollmentsMap = new Map<string, string>(); // courseId -> enrollment_id
+      for (const courseId of course_ids) {
+        const { data: enrollment } = await supabaseAdmin
+          .from('user_course_enrollments')
+          .select('enrollment_id')
+          .eq('user_id', currentUser.id)
+          .eq('course_id', courseId)
+          .single();
+
+        if (enrollment) {
+          enrollmentsMap.set(courseId, enrollment.enrollment_id);
+        }
+      }
+
+      console.log('📚 Enrollments encontrados:', {
+        totalCourses: course_ids.length,
+        enrollmentsFound: enrollmentsMap.size,
+      });
+
+      // Obtener progreso del usuario para todas las lecciones de los cursos
+      const enrollmentIds = Array.from(enrollmentsMap.values());
+      let completedLessonIds = new Set<string>();
+      
+      if (enrollmentIds.length > 0) {
+        const { data: progressData } = await supabaseAdmin
+          .from('user_lesson_progress')
+          .select('lesson_id, is_completed, lesson_status')
+          .in('enrollment_id', enrollmentIds)
+          .or('is_completed.eq.true,lesson_status.eq.completed');
+
+        if (progressData && progressData.length > 0) {
+          completedLessonIds = new Set(progressData.map((p: any) => p.lesson_id));
+          console.log(`✅ Lecciones completadas encontradas: ${completedLessonIds.size}`);
+        }
+      }
+
+      // Obtener todas las lecciones de los cursos seleccionados ORGANIZADAS POR CURSO Y MÓDULO
+      // Estructura: [{ courseId, modules: [{ moduleId, lessons: [...] }] }]
+      const coursesWithLessons: Array<{
+        courseId: string;
+        modules: Array<{
+          moduleId: string;
+          moduleOrder: number;
+          lessons: Array<{
+            lesson_id: string;
+            lesson_title: string;
+            duration_seconds: number;
+            lesson_order_index: number;
+            module_id: string;
+            course_id: string;
+          }>;
+        }>;
+      }> = [];
       
       for (const courseId of course_ids) {
-        // Obtener módulos del curso
-        const { data: modules } = await supabase
+        // Obtener módulos del curso (usar cliente admin para bypass RLS)
+        const { data: modules } = await supabaseAdmin
           .from('course_modules')
-          .select('module_id')
+          .select('module_id, module_order_index')
           .eq('course_id', courseId)
           .eq('is_published', true)
           .order('module_order_index', { ascending: true });
 
         if (modules && modules.length > 0) {
-          // Obtener lecciones de los módulos
-          const { data: lessons } = await supabase
-            .from('course_lessons')
-            .select('lesson_id, lesson_title, duration_seconds, lesson_order_index, module_id')
-            .in('module_id', modules.map(m => m.module_id))
-            .eq('is_published', true)
-            .order('lesson_order_index', { ascending: true });
+          const courseModules: Array<{
+            moduleId: string;
+            moduleOrder: number;
+            lessons: any[];
+          }> = [];
 
-          if (lessons && lessons.length > 0) {
-            allLessons.push(...lessons.map(lesson => ({
-              ...lesson,
-              course_id: courseId,
-            })));
+          for (const module of modules) {
+            // Obtener lecciones de cada módulo (usar cliente admin para bypass RLS)
+            const { data: lessons } = await supabaseAdmin
+              .from('course_lessons')
+              .select('lesson_id, lesson_title, duration_seconds, lesson_order_index, module_id')
+              .eq('module_id', module.module_id)
+              .eq('is_published', true)
+              .order('lesson_order_index', { ascending: true });
+
+            if (lessons && lessons.length > 0) {
+              // Filtrar lecciones completadas
+              const incompleteLessons = lessons.filter(lesson => !completedLessonIds.has(lesson.lesson_id));
+              
+              if (incompleteLessons.length > 0) {
+                courseModules.push({
+                  moduleId: module.module_id,
+                  moduleOrder: module.module_order_index || 0,
+                  lessons: incompleteLessons.map(lesson => ({
+                    ...lesson,
+                    course_id: courseId,
+                  })),
+                });
+              }
+            }
+          }
+
+          if (courseModules.length > 0) {
+            coursesWithLessons.push({
+              courseId,
+              modules: courseModules,
+            });
           }
         }
       }
 
-      console.log(`📖 Lecciones encontradas: ${allLessons.length}`);
+      // Crear array plano de lecciones en orden secuencial: curso 1 completo, luego curso 2 completo, etc.
+      const allLessons: any[] = [];
+      for (const course of coursesWithLessons) {
+        for (const module of course.modules) {
+          for (const lesson of module.lessons) {
+            allLessons.push(lesson);
+          }
+        }
+      }
+
+      console.log(`📖 Lecciones encontradas: ${allLessons.length} (después de filtrar ${completedLessonIds.size} completadas)`);
+      console.log(`📚 Cursos procesados: ${coursesWithLessons.length}`);
+      coursesWithLessons.forEach((course, idx) => {
+        const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);
+        console.log(`  Curso ${idx + 1} (${course.courseId}): ${course.modules.length} módulos, ${totalLessons} lecciones pendientes`);
+      });
 
       if (allLessons.length > 0) {
         // Generar sesiones basadas en los horarios configurados
         const sessions: any[] = [];
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
         
-        // Calcular cuántas semanas generar (por defecto 4 semanas)
-        const weeksToGenerate = 4;
-        const startDate = new Date();
-        startDate.setHours(0, 0, 0, 0);
+        // NO limitar por semanas, generar hasta completar TODAS las lecciones
+        
+        // Usar start_date del plan si está disponible, sino usar la fecha actual
+        let startDate: Date;
+        if (start_date) {
+          startDate = new Date(start_date);
+          startDate.setHours(0, 0, 0, 0);
+        } else {
+          startDate = new Date();
+          startDate.setHours(0, 0, 0, 0);
+          // Si no hay start_date, comenzar desde hoy o el próximo día válido
+          // Asegurar que empezamos desde un día válido si es necesario
+        }
+        
+        console.log('📅 Fecha de inicio para sesiones:', {
+          start_date_from_plan: start_date,
+          startDate_used: startDate.toISOString(),
+          weeksToGenerate,
+        });
         
         // Los días ya vienen en formato JavaScript Date (0-6)
         // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
@@ -201,6 +404,7 @@ export async function POST(request: NextRequest) {
         
         // Mapear los bloques de tiempo por día
         // preferred_time_blocks viene como: [{ start: "09:00", end: "10:00", label: "Lunes" }, ...]
+        // O también puede venir con un campo 'day' numérico (0-6)
         const timeBlocksByDay = new Map<number, any[]>();
         
         // Mapear días de la semana: "Lunes" = 1, "Martes" = 2, etc. (formato frontend)
@@ -211,38 +415,62 @@ export async function POST(request: NextRequest) {
         };
 
         for (const timeBlock of preferred_time_blocks) {
-          const dayName = timeBlock.label || '';
-          const dayNumber = dayNameToNumber[dayName];
+          let dayNumber: number | undefined;
           
-          if (dayNumber !== undefined) {
+          // Intentar obtener el día de diferentes formas
+          if (typeof timeBlock.day === 'number') {
+            // Si viene como número directo (0-6)
+            dayNumber = timeBlock.day;
+          } else if (timeBlock.label) {
+            // Si viene como nombre de día
+            dayNumber = dayNameToNumber[timeBlock.label];
+          }
+          
+          console.log('🔍 Procesando bloque de tiempo:', {
+            timeBlock,
+            dayFromBlock: timeBlock.day,
+            labelFromBlock: timeBlock.label,
+            dayNumber,
+            dayNumberDefined: dayNumber !== undefined,
+          });
+          
+          if (dayNumber !== undefined && dayNumber >= 0 && dayNumber <= 6) {
             if (!timeBlocksByDay.has(dayNumber)) {
               timeBlocksByDay.set(dayNumber, []);
             }
-            timeBlocksByDay.get(dayNumber)!.push(timeBlock);
+            timeBlocksByDay.get(dayNumber)!.push({
+              start: timeBlock.start,
+              end: timeBlock.end,
+            });
+          } else {
+            console.warn('⚠️ No se pudo mapear el día del bloque:', {
+              timeBlock,
+              dayNumber,
+            });
           }
         }
 
         console.log('📅 Bloques de tiempo por día:', Array.from(timeBlocksByDay.entries()));
+        console.log('📅 Días válidos seleccionados:', validDays);
+        console.log('📅 Generando sesiones para TODAS las lecciones:', {
+          totalLessons: allLessons.length,
+          startDate: startDate.toISOString(),
+        });
 
-        // Generar sesiones para las próximas semanas
-        for (let week = 0; week < weeksToGenerate && lessonIndex < allLessons.length; week++) {
-          for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-            const currentDate = new Date(startDate);
-            currentDate.setDate(startDate.getDate() + (week * 7) + dayOffset);
-            const dayOfWeek = currentDate.getDay(); // 0 = domingo, 6 = sábado
-            
-            // Verificar si este día está en los días preferidos
-            if (!dayNumbers.includes(dayOfWeek)) {
-              continue;
-            }
+        // Generar sesiones hasta completar TODAS las lecciones
+        // Iterar día por día hasta que se asignen todas las lecciones
+        let currentDate = new Date(startDate);
+        const maxDays = 365 * 2; // Límite de seguridad: máximo 2 años
+        let daysProcessed = 0;
 
+        while (lessonIndex < allLessons.length && daysProcessed < maxDays) {
+          const dayOfWeek = currentDate.getDay(); // 0 = domingo, 6 = sábado
+          
+          // Solo procesar días válidos
+          if (dayNumbers.includes(dayOfWeek)) {
             // Obtener bloques de tiempo para este día
             const dayTimeBlocks = timeBlocksByDay.get(dayOfWeek) || [];
             
-            if (dayTimeBlocks.length === 0) {
-              continue;
-            }
-
             // Para cada bloque de tiempo de este día
             for (const timeBlock of dayTimeBlocks) {
               if (lessonIndex >= allLessons.length) break;
@@ -291,7 +519,7 @@ export async function POST(request: NextRequest) {
                 lesson_id: lesson.lesson_id,
                 start_time: startTime.toISOString(),
                 end_time: endTime.toISOString(),
-                duration_minutes: finalDuration,
+                // duration_minutes es una columna generada, no se debe insertar manualmente
                 status: 'planned',
                 session_type: finalDuration <= 30 ? 'short' : finalDuration <= 60 ? 'medium' : 'long',
                 lesson_min_time_minutes: lessonDurationMinutes,
@@ -300,29 +528,97 @@ export async function POST(request: NextRequest) {
               lessonIndex++;
             }
           }
+          
+          // Avanzar al siguiente día
+          currentDate.setDate(currentDate.getDate() + 1);
+          daysProcessed++;
+        }
+
+        if (lessonIndex < allLessons.length) {
+          console.warn(`⚠️ No se pudieron asignar todas las lecciones. Asignadas: ${lessonIndex} de ${allLessons.length}`);
+        } else {
+          console.log(`✅ Todas las lecciones fueron asignadas correctamente`);
         }
 
         console.log(`📅 Sesiones a crear: ${sessions.length}`);
+        
+        if (sessions.length > 0) {
+          // Mostrar ejemplo de sesión para debugging
+          console.log('📝 Ejemplo de sesión:', {
+            plan_id: sessions[0].plan_id,
+            user_id: sessions[0].user_id,
+            title: sessions[0].title,
+            start_time: sessions[0].start_time,
+            end_time: sessions[0].end_time,
+            status: sessions[0].status,
+          });
+        }
 
         // Insertar sesiones en lotes de 50 para evitar problemas de tamaño
+        // Usar cliente admin para bypass RLS
         const batchSize = 50;
         for (let i = 0; i < sessions.length; i += batchSize) {
           const batch = sessions.slice(i, i + batchSize);
-          const { error: sessionsError } = await supabase
+          const { data: insertedSessions, error: sessionsError } = await supabaseAdmin
             .from('study_sessions')
-            .insert(batch);
+            .insert(batch)
+            .select('id, title, start_time, end_time');
 
           if (sessionsError) {
-            console.error('❌ Error creando sesiones:', sessionsError);
+            console.error('❌ Error creando sesiones:', {
+              batchIndex: i,
+              batchSize: batch.length,
+              error: sessionsError.message,
+              errorCode: sessionsError.code,
+              errorDetails: sessionsError.details,
+              errorHint: sessionsError.hint,
+              firstSession: batch[0] ? {
+                plan_id: batch[0].plan_id,
+                user_id: batch[0].user_id,
+                title: batch[0].title,
+                start_time: batch[0].start_time,
+                end_time: batch[0].end_time,
+              } : null,
+            });
             // Continuar aunque haya errores en algunos lotes
           } else {
             sessionsCreated += batch.length;
-            console.log(`✅ Lote de sesiones creado: ${batch.length} sesiones`);
+            console.log(`✅ Lote de sesiones creado: ${batch.length} sesiones`, {
+              insertedIds: insertedSessions?.slice(0, 3).map((s: any) => s.id),
+              firstSessionTime: insertedSessions?.[0]?.start_time,
+            });
           }
         }
 
-        console.log(`✅ Total de sesiones creadas: ${sessionsCreated}`);
+        console.log(`✅ Total de sesiones creadas: ${sessionsCreated} de ${sessions.length}`);
+      } else {
+        console.log('⚠️ No se crearon sesiones porque:', {
+          hasCourseIds: !!(course_ids && course_ids.length > 0),
+          courseIdsCount: course_ids?.length || 0,
+          hasTimeBlocks: !!(preferred_time_blocks && preferred_time_blocks.length > 0),
+          timeBlocksCount: preferred_time_blocks?.length || 0,
+        });
       }
+    } else {
+      console.log('⚠️ No se crearon sesiones: no hay cursos o bloques de tiempo configurados');
+    }
+
+    // Verificación final: asegurar que el plan existe antes de retornar éxito
+    // Usar cliente admin para la verificación
+    const { data: finalVerify } = await supabaseAdmin
+      .from('study_plans')
+      .select('id')
+      .eq('id', plan.id)
+      .single();
+
+    if (!finalVerify) {
+      console.error('❌ Plan no encontrado en verificación final');
+      return NextResponse.json(
+        { 
+          error: 'Error crítico: El plan no se pudo encontrar después de la creación',
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -333,6 +629,7 @@ export async function POST(request: NextRequest) {
         created_at: plan.created_at,
       },
       sessions_created: sessionsCreated,
+      verified: true,
     });
   } catch (error: any) {
     console.error('💥 Error in manual create API:', {

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { SessionService } from '@/features/auth/services/session.service';
 import { StudyPlan } from '@aprende-y-aplica/shared';
+import type { Database } from '@/lib/supabase/types';
 
 /**
  * GET /api/study-planner/plans
@@ -18,7 +20,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    // Crear cliente con Service Role Key para bypass RLS
+    // Esto es necesario porque el proyecto usa autenticación personalizada
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Variables de entorno faltantes para leer planes');
+      return NextResponse.json(
+        { error: 'Configuración del servidor incompleta' },
+        { status: 500 }
+      );
+    }
+
+    // Cliente con Service Role Key para leer (bypass RLS)
+    const supabaseAdmin = createSupabaseClient<Database>(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     console.log('🔍 Buscando planes para usuario:', {
       userId: currentUser.id,
@@ -31,22 +52,8 @@ export async function GET(request: NextRequest) {
     const userIdToSearch = String(currentUser.id).trim();
     console.log('🔍 User ID a buscar (trimmed):', userIdToSearch);
 
-    // Primero, verificar si hay planes sin filtrar para debug
-    const { data: allPlans, error: allPlansError } = await supabase
-      .from('study_plans')
-      .select('id, user_id, name')
-      .limit(10);
-
-    console.log('📊 Todos los planes (primeras 10):', allPlans?.map((p: any) => ({
-      id: p.id,
-      user_id: p.user_id,
-      user_id_type: typeof p.user_id,
-      user_id_length: p.user_id?.length,
-      name: p.name,
-    })));
-
-    // Obtener planes del usuario - usar ID con trim para asegurar coincidencia
-    const { data: plans, error: plansError } = await supabase
+    // Obtener planes del usuario usando cliente admin (bypass RLS)
+    const { data: plans, error: plansError } = await supabaseAdmin
       .from('study_plans')
       .select('*')
       .eq('user_id', userIdToSearch)
@@ -73,10 +80,23 @@ export async function GET(request: NextRequest) {
         name: p.name,
         user_id: p.user_id,
         created_at: p.created_at,
+        preferred_days: p.preferred_days,
+        preferred_days_type: typeof p.preferred_days,
       })));
     }
 
-    return NextResponse.json({ plans: plans || [] });
+    // Parsear preferred_days si vienen como strings desde la BD
+    const parsedPlans = (plans || []).map((plan: any) => {
+      if (plan.preferred_days && Array.isArray(plan.preferred_days)) {
+        plan.preferred_days = plan.preferred_days.map((day: any) => {
+          const parsed = parseInt(String(day), 10);
+          return isNaN(parsed) ? day : parsed;
+        });
+      }
+      return plan;
+    });
+
+    return NextResponse.json({ plans: parsedPlans });
   } catch (error) {
     console.error('Error in plans API:', error);
     return NextResponse.json(

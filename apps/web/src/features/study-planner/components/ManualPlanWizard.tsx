@@ -85,6 +85,22 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
     try {
       console.log('🚀 Creando plan manual...', config);
       
+      // Validaciones previas antes de enviar
+      if (config.selectedCourses.length === 0) {
+        alert('Error: Debes seleccionar al menos un curso');
+        return;
+      }
+
+      if (config.selectedDays.length === 0) {
+        alert('Error: Debes seleccionar al menos un día de la semana');
+        return;
+      }
+
+      if (config.timeSlots.length === 0) {
+        alert('Error: Debes configurar al menos un horario de estudio');
+        return;
+      }
+      
       // Preparar datos para el backend
       const planData = {
         name: config.learningRouteName || `Plan de Estudio - ${new Date().toLocaleDateString('es-ES')}`,
@@ -96,6 +112,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
           start: slot.startTime,
           end: slot.endTime,
           label: getDayLabel(slot.day),
+          day: slot.day, // Incluir también el número del día para mayor compatibilidad
         })),
         min_study_minutes: config.minStudyMinutes,
         min_rest_minutes: config.minRestMinutes,
@@ -103,9 +120,17 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
         goal_hours_per_week: parseFloat(calculateTotalHours()),
       };
 
-      console.log('📤 Enviando datos del plan:', planData);
+      console.log('📤 Enviando datos del plan:', {
+        ...planData,
+        preferred_days_count: planData.preferred_days.length,
+        preferred_time_blocks_count: planData.preferred_time_blocks.length,
+        course_ids_count: planData.course_ids.length,
+      });
 
       // Crear el plan llamando al endpoint
+      console.log('📡 Iniciando petición al servidor...');
+      const startTime = Date.now();
+      
       const response = await fetch('/api/study-planner/manual/create', {
         method: 'POST',
         headers: {
@@ -114,21 +139,82 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
         body: JSON.stringify(planData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Error creando plan:', errorData);
-        alert(`Error al crear el plan: ${errorData.error || 'Error desconocido'}`);
+      const requestDuration = Date.now() - startTime;
+      console.log(`⏱️ Petición completada en ${requestDuration}ms`, {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      });
+
+      // Leer la respuesta antes de verificar el estado
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.error('❌ Error parseando respuesta:', parseError);
+        alert('Error: No se pudo procesar la respuesta del servidor. Por favor, intenta de nuevo.');
         return;
       }
 
-      const result = await response.json();
-      console.log('✅ Plan creado exitosamente:', result);
+      if (!response.ok) {
+        console.error('❌ Error creando plan:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: result,
+        });
+        
+        const errorMessage = result?.error || 'Error desconocido';
+        const errorDetails = result?.details ? `\n\nDetalles: ${result.details}` : '';
+        const errorHint = result?.hint ? `\n\nSugerencia: ${result.hint}` : '';
+        
+        alert(`Error al crear el plan: ${errorMessage}${errorDetails}${errorHint}`);
+        return;
+      }
+
+      // Validar que la respuesta contiene los datos esperados
+      if (!result || !result.success) {
+        console.error('❌ Respuesta inválida del servidor:', result);
+        alert('Error: La respuesta del servidor no es válida. Por favor, intenta de nuevo.');
+        return;
+      }
+
+      // Validar que el plan se creó correctamente
+      if (!result.plan || !result.plan.id) {
+        console.error('❌ Plan no incluido en la respuesta:', result);
+        alert('Error: El plan no se creó correctamente. Por favor, intenta de nuevo.');
+        return;
+      }
+
+      // Verificar que el plan fue verificado en el servidor
+      if (result.verified !== true) {
+        console.warn('⚠️ Plan creado pero no verificado:', result);
+        // Continuar de todas formas, pero registrar la advertencia
+      }
+
+      console.log('✅ Plan creado exitosamente:', {
+        planId: result.plan.id,
+        planName: result.plan.name,
+        sessionsCreated: result.sessions_created || 0,
+        verified: result.verified,
+      });
+      
+      // Esperar un momento para asegurar que todo se guardó correctamente
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Redirigir al dashboard después de crear el plan
       onComplete();
     } catch (error) {
-      console.error('💥 Error en handleComplete:', error);
-      alert('Error al crear el plan. Por favor, intenta de nuevo.');
+      console.error('💥 Error en handleComplete:', {
+        error,
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Error desconocido al crear el plan';
+      
+      alert(`Error al crear el plan: ${errorMessage}\n\nPor favor, verifica tu conexión e intenta de nuevo.`);
     }
   };
 
