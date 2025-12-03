@@ -30,6 +30,8 @@ import { useRouter } from 'next/navigation';
 import { getPlatformContext } from '../../../lib/lia/page-metadata';
 import { IntentDetectionService } from '../../services/intent-detection.service';
 import { PromptPreviewPanel, type PromptDraft } from './PromptPreviewPanel';
+import { NanoBananaPreviewPanel } from './NanoBananaPreviewPanel';
+import type { NanoBananaSchema, NanoBananaDomain, OutputFormat } from '../../../lib/nanobana/templates';
 
 interface Message {
   id: string;
@@ -270,6 +272,15 @@ export function AIChatAgent({
   const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
   const [selectedPromptMessageId, setSelectedPromptMessageId] = useState<string | null>(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  
+  // Estados para el modo NanoBanana
+  const [isNanoBananaMode, setIsNanoBananaMode] = useState(false);
+  const [nanoBananaSchema, setNanoBananaSchema] = useState<NanoBananaSchema | null>(null);
+  const [nanoBananaJsonString, setNanoBananaJsonString] = useState<string>('');
+  const [nanoBananaDomain, setNanoBananaDomain] = useState<NanoBananaDomain>('ui');
+  const [nanoBananaFormat, setNanoBananaFormat] = useState<OutputFormat>('wireframe');
+  const [isNanoBananaPanelOpen, setIsNanoBananaPanelOpen] = useState(false);
+  const [nanoBananaMessages, setNanoBananaMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   
   // Estados del chat (declarados temprano para poder usarlos en useMemo)
@@ -454,7 +465,7 @@ export function AIChatAgent({
   const [promptMessages, setPromptMessages] = useState<Message[]>([]);
   
   // Obtener los mensajes según el modo actual
-  const messages = isPromptMode ? promptMessages : normalMessages;
+  const messages = isNanoBananaMode ? nanoBananaMessages : isPromptMode ? promptMessages : normalMessages;
 
   // ✅ PERSISTENCIA: Claves para localStorage
   const STORAGE_KEY_CONTEXT_MODE = 'lia-context-mode-enabled';
@@ -1031,17 +1042,98 @@ export function AIChatAgent({
     // 🔍 DETECCIÓN BIDIRECCIONAL DE INTENCIONES
     let shouldActivatePromptMode = false;
     let shouldDeactivatePromptMode = false;
+    let shouldActivateNanoBananaMode = false;
+    let shouldDeactivateNanoBananaMode = false;
+    let detectedNanoBananaDomain: NanoBananaDomain = 'ui';
+    let detectedNanoBananaFormat: OutputFormat = 'wireframe';
     
     try {
       const intentResult = await IntentDetectionService.detectIntent(inputMessage);
       console.log('[LIA Agent] 🔍 Detección de intención:', {
         intent: intentResult.intent,
         confidence: `${(intentResult.confidence * 100).toFixed(1)}%`,
-        currentMode: isPromptMode ? 'prompts' : 'normal'
+        currentMode: isNanoBananaMode ? 'nanobana' : isPromptMode ? 'prompts' : 'normal',
+        entities: intentResult.entities
       });
       
+      // CASO 0: Detectar intención de NanoBanana (prioridad alta)
+      if (!isNanoBananaMode && !isPromptMode && intentResult.intent === 'nanobana' && intentResult.confidence >= 0.65) {
+        console.log('[LIA Agent] 🎨 Activando Modo NanoBanana');
+        shouldActivateNanoBananaMode = true;
+        
+        // Usar dominio y formato detectados si están disponibles
+        if (intentResult.entities?.nanobananaDomain) {
+          detectedNanoBananaDomain = intentResult.entities.nanobananaDomain;
+        }
+        if (intentResult.entities?.outputFormat) {
+          detectedNanoBananaFormat = intentResult.entities.outputFormat;
+        }
+        
+        const domainNames: Record<NanoBananaDomain, string> = {
+          ui: 'UI/Interfaz',
+          photo: 'Fotografía',
+          diagram: 'Diagrama'
+        };
+        
+        const systemMessage: Message = {
+          id: `system-${Date.now()}`,
+          role: 'assistant',
+          content: `🎨 He activado el Modo NanoBanana para generación visual con JSON.\n\nDominio detectado: ${domainNames[detectedNanoBananaDomain]}\n\nDescríbeme en detalle lo que necesitas crear y generaré un JSON estructurado optimizado para NanoBanana Pro.`,
+          timestamp: new Date()
+        };
+        
+        setNanoBananaMessages(prev => [...prev, systemMessage]);
+        setIsNanoBananaMode(true);
+        setNanoBananaDomain(detectedNanoBananaDomain);
+        setNanoBananaFormat(detectedNanoBananaFormat);
+      }
+      // CASO 0.5: Si estamos en modo NanoBanana, verificar si quiere salir
+      else if (isNanoBananaMode) {
+        const messageLower = inputMessage.toLowerCase().trim();
+        
+        const explicitExitPatterns = [
+          /\b(ll[eé]vame|llevame|llévame)\b/i,
+          /\b(ir\s+a|navegar\s+a|abrir)\b/i,
+          /\b(salir|salte|terminar|cancelar)\b.*\b(nanobana|modo)\b/i,
+          /\b(no\s+quiero|ya\s+no)\b.*\b(nanobana|json|imagen)\b/i,
+          /\bcrear\s+prompt\b/i // Cambiar a modo prompts
+        ];
+        
+        const wantsPromptMode = /\bcrear\s+prompt\b/i.test(messageLower);
+        const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
+        
+        if (wantsPromptMode) {
+          console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a Modo Prompts');
+          shouldDeactivateNanoBananaMode = true;
+          shouldActivatePromptMode = true;
+          setIsNanoBananaMode(false);
+          setIsPromptMode(true);
+          
+          const systemMessage: Message = {
+            id: `system-${Date.now()}`,
+            role: 'assistant',
+            content: "✨ He cambiado al Modo Prompts para ayudarte a crear prompts de texto.",
+            timestamp: new Date()
+          };
+          setPromptMessages(prev => [...prev, systemMessage]);
+        } else if (isExplicitExit) {
+          console.log('[LIA Agent] 🔄 Saliendo del Modo NanoBanana');
+          shouldDeactivateNanoBananaMode = true;
+          setIsNanoBananaMode(false);
+          
+          const systemMessage: Message = {
+            id: `system-${Date.now()}`,
+            role: 'assistant',
+            content: "🧠 He cambiado al modo normal para ayudarte.",
+            timestamp: new Date()
+          };
+          setNormalMessages(prev => [...prev, systemMessage]);
+        } else {
+          console.log('[LIA Agent] ✅ Manteniendo Modo NanoBanana');
+        }
+      }
       // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
-      if (!isPromptMode && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
+      else if (!isPromptMode && !isNanoBananaMode && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
         console.log('[LIA Agent] ✅ Activando Modo Prompts');
         shouldActivatePromptMode = true;
         
@@ -1060,7 +1152,7 @@ export function AIChatAgent({
       else if (isPromptMode && intentResult.intent !== 'create_prompt') {
         const messageLower = inputMessage.toLowerCase().trim();
         
-        // Solo salir del modo prompts si es una petición EXPLÍCITA de navegación
+        // Solo salir del modo prompts si es una petición EXPLÍCITA de navegación o quiere NanoBanana
         const explicitExitPatterns = [
           /\b(ll[eé]vame|llevame|llévame)\b/i,
           /\b(ir\s+a|navegar\s+a|abrir)\b/i,
@@ -1071,16 +1163,34 @@ export function AIChatAgent({
           /\b(no\s+quiero|ya\s+no)\b.*\bprompt\b/i
         ];
         
+        const wantsNanoBanana = /\bnanobana(na)?\b/i.test(messageLower) || 
+                               (/\b(wireframe|mockup|ui|interfaz|diagrama)\b/i.test(messageLower) && 
+                                /\b(json|generar|crear|diseñar)\b/i.test(messageLower));
         const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
         
         console.log('[LIA Agent] 📊 Análisis en Modo Prompts:', {
           message: messageLower,
           detectedIntent: intentResult.intent,
           isExplicitExit,
-          action: isExplicitExit ? 'SALIR del modo prompts' : 'MANTENER modo prompts'
+          wantsNanoBanana,
+          action: wantsNanoBanana ? 'CAMBIAR a NanoBanana' : isExplicitExit ? 'SALIR del modo prompts' : 'MANTENER modo prompts'
         });
         
-        if (isExplicitExit) {
+        if (wantsNanoBanana) {
+          console.log('[LIA Agent] 🔄 Cambiando de Prompts a Modo NanoBanana');
+          shouldDeactivatePromptMode = true;
+          shouldActivateNanoBananaMode = true;
+          setIsPromptMode(false);
+          setIsNanoBananaMode(true);
+          
+          const systemMessage: Message = {
+            id: `system-${Date.now()}`,
+            role: 'assistant',
+            content: "🎨 He cambiado al Modo NanoBanana para generación visual con JSON.\n\nDescríbeme lo que necesitas crear.",
+            timestamp: new Date()
+          };
+          setNanoBananaMessages(prev => [...prev, systemMessage]);
+        } else if (isExplicitExit) {
           console.log('[LIA Agent] 🔄 Petición explícita de salir. Desactivando Modo Prompts');
           shouldDeactivatePromptMode = true;
           
@@ -1111,10 +1221,13 @@ export function AIChatAgent({
     };
 
     // Determinar el modo efectivo para esta llamada
-    const effectivePromptMode = (isPromptMode || shouldActivatePromptMode) && !shouldDeactivatePromptMode;
+    const effectivePromptMode = (isPromptMode || shouldActivatePromptMode) && !shouldDeactivatePromptMode && !shouldActivateNanoBananaMode;
+    const effectiveNanoBananaMode = (isNanoBananaMode || shouldActivateNanoBananaMode) && !shouldDeactivateNanoBananaMode;
 
     // Usar el setter correcto según el modo efectivo
-    if (effectivePromptMode) {
+    if (effectiveNanoBananaMode) {
+      setNanoBananaMessages(prev => [...prev, userMessage]);
+    } else if (effectivePromptMode) {
       setPromptMessages(prev => [...prev, userMessage]);
     } else {
       setNormalMessages(prev => [...prev, userMessage]);
@@ -1132,8 +1245,52 @@ export function AIChatAgent({
     // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
 
     try {
+      // Si está en modo NanoBanana efectivo
+      if (effectiveNanoBananaMode) {
+        const response = await fetch('/api/ai-directory/generate-nanobana', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: userMessage.content,
+            preferredDomain: nanoBananaDomain,
+            preferredFormat: nanoBananaFormat,
+            conversationHistory: nanoBananaMessages.map(m => ({
+              sender: m.role === 'user' ? 'user' : 'ai',
+              text: m.content,
+              timestamp: m.timestamp.toLocaleTimeString()
+            }))
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response || responseFallback,
+          timestamp: new Date()
+        };
+
+        // Si hay un esquema generado, guardarlo
+        if (data.generatedSchema) {
+          setNanoBananaSchema(data.generatedSchema);
+          setNanoBananaJsonString(data.jsonString || JSON.stringify(data.generatedSchema, null, 2));
+          setNanoBananaDomain(data.domain || 'ui');
+          setNanoBananaFormat(data.outputFormat || 'wireframe');
+          setIsNanoBananaPanelOpen(true);
+        }
+        
+        setNanoBananaMessages(prev => [...prev, assistantMessage]);
+      }
       // Si está en modo prompt efectivo (activado o recién activado, y no desactivándose)
-      if (effectivePromptMode) {
+      else if (effectivePromptMode) {
         const response = await fetch('/api/ai-directory/generate-prompt', {
           method: 'POST',
           headers: {
@@ -1564,12 +1721,22 @@ Fecha: ${new Date().toLocaleString()}
     URL.revokeObjectURL(url);
   };
 
-  // ======== THEME by MODE (Normal / Prompt / Analysis) ========
-  type LiaMode = 'normal' | 'prompt' | 'analysis';
-  const currentMode: LiaMode = useContextMode ? 'analysis' : (isPromptMode ? 'prompt' : 'normal');
+  // ======== THEME by MODE (Normal / Prompt / Analysis / NanoBanana) ========
+  type LiaMode = 'normal' | 'prompt' | 'analysis' | 'nanobana';
+  const currentMode: LiaMode = isNanoBananaMode ? 'nanobana' : useContextMode ? 'analysis' : (isPromptMode ? 'prompt' : 'normal');
 
   const theme = useMemo(() => {
     switch (currentMode) {
+      case 'nanobana':
+        return {
+          header: 'from-amber-500 via-orange-500 to-amber-500',
+          accent: 'amber',
+          bubbleUser: 'from-amber-500 to-orange-500',
+          ring: 'focus:ring-amber-500',
+          borderUser: 'border-amber-500',
+          chipBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+          chipActive: 'bg-amber-500 text-white border-transparent'
+        };
       case 'prompt':
         return {
           header: 'from-purple-600 via-pink-600 to-purple-600',
@@ -1925,8 +2092,16 @@ Fecha: ${new Date().toLocaleString()}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 leading-none min-w-0">
                     <h3 className="text-white font-semibold text-sm">{assistantName}</h3>
-                    <span className="text-[11px] text-white/80 px-1.5 py-[2px] rounded-full bg-white/15 border border-white/25 truncate max-w-[120px]">
-                      {currentMode === 'normal' ? 'Asistente' : currentMode === 'prompt' ? 'Prompt' : 'Contexto'}
+                    <span className={`text-[11px] px-1.5 py-[2px] rounded-full border truncate max-w-[120px] ${
+                      currentMode === 'nanobana' 
+                        ? 'text-amber-200 bg-amber-500/30 border-amber-400/50' 
+                        : currentMode === 'prompt'
+                        ? 'text-purple-200 bg-purple-500/30 border-purple-400/50'
+                        : currentMode === 'analysis'
+                        ? 'text-teal-200 bg-teal-500/30 border-teal-400/50'
+                        : 'text-white/80 bg-white/15 border-white/25'
+                    }`}>
+                      {currentMode === 'nanobana' ? '🎨 NanoBanana' : currentMode === 'prompt' ? 'Prompt' : currentMode === 'analysis' ? 'Contexto' : 'Asistente'}
                     </span>
                     <motion.div
                       className="flex items-center gap-1 text-white/90"
@@ -1976,10 +2151,44 @@ Fecha: ${new Date().toLocaleString()}
                       className="absolute right-9 top-8 bg-white/95 dark:bg-[#0d0d0d] backdrop-blur-md border border-white/30 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
                     >
                       <div className="min-w-[260px] py-2">
+                        {/* NANOBANA */}
+                        <button
+                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
+                          onClick={() => { 
+                            setIsNanoBananaMode(true); 
+                            setIsPromptMode(false); 
+                            setUseContextMode(false); 
+                            setModeMenuOpen(false);
+                            if (nanoBananaMessages.length === 0) {
+                              const welcomeMessage: Message = {
+                                id: `welcome-nanobana-${Date.now()}`,
+                                role: 'assistant',
+                                content: "🎨 ¡Bienvenido al Modo NanoBanana!\n\nSoy tu asistente para crear JSON estructurado optimizado para NanoBanana Pro.\n\n**¿Qué puedo crear?**\n• 📱 UI/Wireframes (apps, dashboards, landing pages)\n• 📸 Fotografías (productos, marketing, lifestyle)\n• 📊 Diagramas (flujos, arquitecturas, procesos)\n\nDescríbeme lo que necesitas y generaré un JSON preciso y reproducible.",
+                                timestamp: new Date()
+                              };
+                              setNanoBananaMessages([welcomeMessage]);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className={`text-sm font-semibold ${currentMode==='nanobana' ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                                  🎨 NanoBanana Pro
+                                </div>
+                                <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-full font-medium">
+                                  NEW
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">Genera JSON estructurado para renderizado visual preciso.</div>
+                            </div>
+                          </div>
+                        </button>
                         {/* PROMPT */}
                         <button
                           className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
-                          onClick={() => { setIsPromptMode(true); setUseContextMode(false); setModeMenuOpen(false); if (promptMessages.length===0) handleOpenPromptMode(); }}
+                          onClick={() => { setIsPromptMode(true); setIsNanoBananaMode(false); setUseContextMode(false); setModeMenuOpen(false); if (promptMessages.length===0) handleOpenPromptMode(); }}
                         >
                           <div className="flex items-start gap-3">
                             <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-purple-500"></div>
@@ -1992,7 +2201,7 @@ Fecha: ${new Date().toLocaleString()}
                         {/* CONTEXTO PERSISTENTE */}
                         <button
                           className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
-                          onClick={() => { setUseContextMode(true); setIsPromptMode(false); setModeMenuOpen(false); }}
+                          onClick={() => { setUseContextMode(true); setIsPromptMode(false); setIsNanoBananaMode(false); setModeMenuOpen(false); }}
                         >
                           <div className="flex items-start gap-3">
                             <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-teal-500"></div>
@@ -2080,10 +2289,12 @@ Fecha: ${new Date().toLocaleString()}
                       <img src="/icono.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
                     </div>
                     <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
-                      {currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Contexto Persistente' : 'Asistente'}
+                      {currentMode === 'nanobana' ? '🎨 NanoBanana Pro' : currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Contexto Persistente' : 'Asistente'}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {currentMode === 'prompt'
+                      {currentMode === 'nanobana'
+                        ? 'Genera JSON estructurado para NanoBanana Pro. Describe UI, fotografías o diagramas y obtén esquemas precisos y reproducibles.'
+                        : currentMode === 'prompt'
                         ? 'Genera y refina prompts profesionales. Indica el objetivo, el tono y los requisitos; LIA te entrega un prompt listo para usar con buenas prácticas.'
                         : currentMode === 'analysis'
                         ? `Mantiene la conversación activa entre páginas. Guarda automáticamente los últimos ${MAX_CONTEXT_MESSAGES} mensajes para continuar donde lo dejaste.`
@@ -2359,6 +2570,43 @@ Fecha: ${new Date().toLocaleString()}
             }}
             isSaving={isSavingPrompt}
           />
+        )}
+      </AnimatePresence>
+
+      {/* 🎨 NanoBanana Preview Panel */}
+      <AnimatePresence>
+        {isNanoBananaMode && nanoBananaSchema && isNanoBananaPanelOpen && (
+          <div
+            className="fixed z-[10001]"
+            style={{
+              bottom: bottomPosition,
+              right: 'calc(1.5rem + env(safe-area-inset-right, 0px))',
+              width: 'min(400px, calc(100vw - 3rem))',
+              maxHeight: '500px'
+            }}
+          >
+            <NanoBananaPreviewPanel
+              schema={nanoBananaSchema}
+              jsonString={nanoBananaJsonString}
+              domain={nanoBananaDomain}
+              outputFormat={nanoBananaFormat}
+              isOpen={isNanoBananaPanelOpen}
+              onClose={() => setIsNanoBananaPanelOpen(false)}
+              onCopy={() => {
+                console.log('[LIA Agent] 📋 JSON NanoBanana copiado');
+              }}
+              onDownload={() => {
+                console.log('[LIA Agent] 📥 JSON NanoBanana descargado');
+              }}
+              onRegenerate={() => {
+                // Regenerar con el último mensaje
+                const lastUserMessage = nanoBananaMessages.filter(m => m.role === 'user').pop();
+                if (lastUserMessage) {
+                  setInputMessage(lastUserMessage.content);
+                }
+              }}
+            />
+          </div>
         )}
       </AnimatePresence>
     </>
