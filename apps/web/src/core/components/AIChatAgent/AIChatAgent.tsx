@@ -39,6 +39,12 @@ interface Message {
   content: string;
   timestamp: Date;
   generatedPrompt?: GeneratedPrompt | null;
+  generatedNanoBanana?: {
+    schema: NanoBananaSchema;
+    jsonString: string;
+    domain: NanoBananaDomain;
+    outputFormat: OutputFormat;
+  } | null;
 }
 
 interface GeneratedPrompt {
@@ -1278,12 +1284,25 @@ export function AIChatAgent({
           timestamp: new Date()
         };
 
-        // Si hay un esquema generado, guardarlo
+        // Si hay un esquema generado, guardarlo en el mensaje y en el estado
         if (data.generatedSchema) {
+          const jsonStr = data.jsonString || JSON.stringify(data.generatedSchema, null, 2);
+          const domainValue = data.domain || 'ui';
+          const formatValue = data.outputFormat || 'wireframe';
+          
+          // Guardar en el mensaje para poder reabrirlo
+          assistantMessage.generatedNanoBanana = {
+            schema: data.generatedSchema,
+            jsonString: jsonStr,
+            domain: domainValue,
+            outputFormat: formatValue
+          };
+          
+          // Guardar en el estado global
           setNanoBananaSchema(data.generatedSchema);
-          setNanoBananaJsonString(data.jsonString || JSON.stringify(data.generatedSchema, null, 2));
-          setNanoBananaDomain(data.domain || 'ui');
-          setNanoBananaFormat(data.outputFormat || 'wireframe');
+          setNanoBananaJsonString(jsonStr);
+          setNanoBananaDomain(domainValue);
+          setNanoBananaFormat(formatValue);
           setIsNanoBananaPanelOpen(true);
         }
         
@@ -2366,6 +2385,31 @@ Fecha: ${new Date().toLocaleString()}
                         Ver Prompt Generado
                       </motion.button>
                     )}
+                    
+                    {/* Botón para reabrir NanoBanana JSON si el mensaje tiene uno generado */}
+                    {message.role === 'assistant' && message.generatedNanoBanana && (
+                      <motion.button
+                        onClick={() => {
+                          console.log('[NanoBanana] 🎨 Reabriendo panel con datos:', {
+                            schema: message.generatedNanoBanana!.schema,
+                            domain: message.generatedNanoBanana!.domain,
+                            format: message.generatedNanoBanana!.outputFormat
+                          });
+                          setNanoBananaSchema(message.generatedNanoBanana!.schema);
+                          setNanoBananaJsonString(message.generatedNanoBanana!.jsonString);
+                          setNanoBananaDomain(message.generatedNanoBanana!.domain);
+                          setNanoBananaFormat(message.generatedNanoBanana!.outputFormat);
+                          setIsNanoBananaPanelOpen(true);
+                          console.log('[NanoBanana] ✅ Estados actualizados, isNanoBananaPanelOpen = true');
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                      >
+                        <Download className="w-3 h-3" />
+                        Ver JSON NanoBanana
+                      </motion.button>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -2573,42 +2617,41 @@ Fecha: ${new Date().toLocaleString()}
         )}
       </AnimatePresence>
 
-      {/* 🎨 NanoBanana Preview Panel */}
-      <AnimatePresence>
-        {isNanoBananaMode && nanoBananaSchema && isNanoBananaPanelOpen && (
-          <div
-            className="fixed z-[10001]"
-            style={{
-              bottom: bottomPosition,
-              right: 'calc(1.5rem + env(safe-area-inset-right, 0px))',
-              width: 'min(400px, calc(100vw - 3rem))',
-              maxHeight: '500px'
+      {/* 🎨 NanoBanana Preview Panel - Posicionado a la derecha, ENCIMA del chat */}
+      {nanoBananaSchema && isNanoBananaPanelOpen && (
+        <div 
+          className="fixed right-4 top-20 z-[100001]"
+          style={{
+            width: 'min(400px, calc(100vw - 2rem))',
+            maxHeight: 'calc(100vh - 6rem)'
+          }}
+        >
+          <NanoBananaPreviewPanel
+            schema={nanoBananaSchema}
+            jsonString={nanoBananaJsonString}
+            domain={nanoBananaDomain}
+            outputFormat={nanoBananaFormat}
+            isOpen={isNanoBananaPanelOpen}
+            onClose={() => {
+              console.log('[LIA Agent] ❌ Cerrando panel NanoBanana');
+              setIsNanoBananaPanelOpen(false);
             }}
-          >
-            <NanoBananaPreviewPanel
-              schema={nanoBananaSchema}
-              jsonString={nanoBananaJsonString}
-              domain={nanoBananaDomain}
-              outputFormat={nanoBananaFormat}
-              isOpen={isNanoBananaPanelOpen}
-              onClose={() => setIsNanoBananaPanelOpen(false)}
-              onCopy={() => {
-                console.log('[LIA Agent] 📋 JSON NanoBanana copiado');
-              }}
-              onDownload={() => {
-                console.log('[LIA Agent] 📥 JSON NanoBanana descargado');
-              }}
-              onRegenerate={() => {
-                // Regenerar con el último mensaje
-                const lastUserMessage = nanoBananaMessages.filter(m => m.role === 'user').pop();
-                if (lastUserMessage) {
-                  setInputMessage(lastUserMessage.content);
-                }
-              }}
-            />
-          </div>
-        )}
-      </AnimatePresence>
+            onCopy={() => {
+              console.log('[LIA Agent] 📋 JSON NanoBanana copiado');
+            }}
+            onDownload={() => {
+              console.log('[LIA Agent] 📥 JSON NanoBanana descargado');
+            }}
+            onRegenerate={() => {
+              // Regenerar con el último mensaje
+              const lastUserMessage = nanoBananaMessages.filter(m => m.role === 'user').pop();
+              if (lastUserMessage) {
+                setInputMessage(lastUserMessage.content);
+              }
+            }}
+          />
+        </div>
+      )}
     </>
   );
 }
