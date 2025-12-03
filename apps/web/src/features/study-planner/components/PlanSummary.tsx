@@ -1,0 +1,212 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { Calendar, Clock, BookOpen, Coffee, CheckCircle2 } from 'lucide-react';
+
+interface PlanConfig {
+  learningRouteId: string | null;
+  learningRouteName: string;
+  selectedCourses: Array<{
+    id: string;
+    title: string;
+    description: string;
+    thumbnail_url: string;
+    slug: string;
+    category: string;
+    duration_total_minutes: number;
+    level: string;
+  }>;
+  selectedDays: number[];
+  timeSlots: Array<{
+    day: number;
+    startTime: string;
+    endTime: string;
+  }>;
+  minStudyMinutes: number;
+  minRestMinutes: number;
+  maxStudySessionMinutes: number;
+  minLessonTimeMinutes: number;
+}
+
+interface PlanSummaryProps {
+  config: PlanConfig;
+}
+
+const DAYS = [
+  { id: 1, label: 'Lunes' },
+  { id: 2, label: 'Martes' },
+  { id: 3, label: 'Miércoles' },
+  { id: 4, label: 'Jueves' },
+  { id: 5, label: 'Viernes' },
+  { id: 6, label: 'Sábado' },
+  { id: 0, label: 'Domingo' },
+];
+
+export function PlanSummary({ config }: PlanSummaryProps) {
+  const getDaySlots = (day: number) => {
+    return config.timeSlots.filter(slot => slot.day === day);
+  };
+
+  const calculateTotalHours = () => {
+    let totalMinutes = 0;
+    config.timeSlots.forEach(slot => {
+      const [startHour, startMin] = slot.startTime.split(':').map(Number);
+      const [endHour, endMin] = slot.endTime.split(':').map(Number);
+      const start = startHour * 60 + startMin;
+      const end = endHour * 60 + endMin;
+      totalMinutes += end - start;
+    });
+    return (totalMinutes / 60).toFixed(1);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-lg bg-green-500/20">
+          <CheckCircle2 className="w-6 h-6 text-green-400" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-white">Resumen del plan</h2>
+          <p className="text-gray-400 text-sm mt-1">
+            Revisa tu configuración antes de crear el plan
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Ruta de aprendizaje */}
+        {config.learningRouteName && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-slate-700/30 rounded-2xl p-6 border border-slate-600/50"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <BookOpen className="w-5 h-5 text-purple-400" />
+              <h3 className="text-lg font-semibold text-white">Ruta de Aprendizaje</h3>
+            </div>
+            <div className="mb-4">
+              <h4 className="text-white font-semibold mb-2">{config.learningRouteName}</h4>
+              <p className="text-gray-400 text-sm">{config.selectedCourses.length} curso{config.selectedCourses.length !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {config.selectedCourses.map((course) => (
+                <div key={course.id} className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
+                  {course.thumbnail_url ? (
+                    <img
+                      src={course.thumbnail_url}
+                      alt={course.title}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                      <BookOpen className="w-6 h-6 text-white" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{course.title}</p>
+                    <p className="text-gray-400 text-xs">{course.duration_total_minutes} min • {course.category}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Días seleccionados */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-slate-700/30 rounded-2xl p-6 border border-slate-600/50"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <Calendar className="w-5 h-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">Días seleccionados</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {config.selectedDays.map((dayId) => {
+              const day = DAYS.find(d => d.id === dayId);
+              return (
+                <span
+                  key={dayId}
+                  className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg font-medium"
+                >
+                  {day?.label}
+                </span>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* Horarios */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-slate-700/30 rounded-2xl p-6 border border-slate-600/50"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <Clock className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-lg font-semibold text-white">Horarios configurados</h3>
+          </div>
+          <div className="space-y-3">
+            {config.selectedDays.map((dayId) => {
+              const day = DAYS.find(d => d.id === dayId);
+              const daySlots = getDaySlots(dayId);
+              
+              if (daySlots.length === 0) return null;
+
+              return (
+                <div key={dayId} className="bg-slate-800/50 rounded-xl p-4">
+                  <div className="font-semibold text-white mb-2">{day?.label}</div>
+                  <div className="space-y-2">
+                    {daySlots.map((slot, index) => (
+                      <div key={index} className="flex items-center gap-2 text-gray-300">
+                        <span className="text-cyan-400">•</span>
+                        <span>{slot.startTime} - {slot.endTime}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-600/50">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Total semanal:</span>
+              <span className="text-xl font-bold text-white">{calculateTotalHours()} horas</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Configuración de tiempos */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-slate-700/30 rounded-2xl p-6 border border-slate-600/50"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <BookOpen className="w-5 h-5 text-purple-400" />
+            <h3 className="text-lg font-semibold text-white">Configuración de tiempos</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-slate-800/50 rounded-xl p-4">
+              <div className="text-gray-400 text-sm mb-1">Mínimo de estudio</div>
+              <div className="text-2xl font-bold text-white">{config.minStudyMinutes} min</div>
+            </div>
+            <div className="bg-slate-800/50 rounded-xl p-4">
+              <div className="text-gray-400 text-sm mb-1">Mínimo de descanso</div>
+              <div className="text-2xl font-bold text-white">{config.minRestMinutes} min</div>
+            </div>
+            <div className="bg-slate-800/50 rounded-xl p-4">
+              <div className="text-gray-400 text-sm mb-1">Máximo de sesión</div>
+              <div className="text-2xl font-bold text-white">{config.maxStudySessionMinutes} min</div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
