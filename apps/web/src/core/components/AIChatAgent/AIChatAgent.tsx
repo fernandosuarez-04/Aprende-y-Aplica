@@ -1028,31 +1028,53 @@ export function AIChatAgent({
   const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
 
-    // 🔍 DETECCIÓN DE INTENCIONES (solo en modo normal)
+    // 🔍 DETECCIÓN BIDIRECCIONAL DE INTENCIONES
     let shouldActivatePromptMode = false;
-    if (!isPromptMode) {
-      try {
-        const intentResult = await IntentDetectionService.detectIntent(inputMessage);
+    let shouldDeactivatePromptMode = false;
+    
+    try {
+      const intentResult = await IntentDetectionService.detectIntent(inputMessage);
+      console.log('[LIA Agent] 🔍 Detección de intención:', {
+        intent: intentResult.intent,
+        confidence: `${(intentResult.confidence * 100).toFixed(1)}%`,
+        currentMode: isPromptMode ? 'prompts' : 'normal'
+      });
+      
+      // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
+      if (!isPromptMode && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
+        console.log('[LIA Agent] ✅ Activando Modo Prompts');
+        shouldActivatePromptMode = true;
         
-        // Si detectamos intención de crear prompts con alta confianza, activar modo prompt
-        if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
-          shouldActivatePromptMode = true;
-          
-          // Agregar mensaje del sistema notificando el cambio
-          const systemMessage: Message = {
-            id: `system-${Date.now()}`,
-            role: 'assistant',
-            content: "He detectado que quieres crear un prompt. Voy a activar el modo de creación de prompts para ayudarte mejor. 🎯\n\n¿Qué tipo de prompt quieres crear?",
-            timestamp: new Date()
-          };
-          
-          setPromptMessages(prev => [...prev, systemMessage]);
-          setIsPromptMode(true);
-        }
-      } catch (error) {
-        console.error('Error detectando intención:', error);
-        // Continuar normalmente si falla la detección
+        // Agregar mensaje del sistema notificando el cambio
+        const systemMessage: Message = {
+          id: `system-${Date.now()}`,
+          role: 'assistant',
+          content: "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?",
+          timestamp: new Date()
+        };
+        
+        setPromptMessages(prev => [...prev, systemMessage]);
+        setIsPromptMode(true);
       }
+      // CASO 2: Si ESTAMOS en modo prompts pero la pregunta NO es sobre crear prompts
+      else if (isPromptMode && intentResult.intent !== 'create_prompt') {
+        console.log('[LIA Agent] 🔄 Desactivando Modo Prompts, volviendo a modo normal');
+        shouldDeactivatePromptMode = true;
+        
+        // Agregar mensaje del sistema notificando el cambio
+        const systemMessage: Message = {
+          id: `system-${Date.now()}`,
+          role: 'assistant',
+          content: "🧠 He cambiado al modo normal para responder tu pregunta general.",
+          timestamp: new Date()
+        };
+        
+        setNormalMessages(prev => [...prev, systemMessage]);
+        setIsPromptMode(false);
+      }
+    } catch (error) {
+      console.error('[LIA Agent] ❌ Error detectando intención:', error);
+      // Continuar normalmente si falla la detección
     }
 
     const userMessage: Message = {
@@ -1062,8 +1084,11 @@ export function AIChatAgent({
       timestamp: new Date()
     };
 
-    // Usar el setter correcto según el modo (considerando activación automática)
-    if (isPromptMode || shouldActivatePromptMode) {
+    // Determinar el modo efectivo para esta llamada
+    const effectivePromptMode = (isPromptMode || shouldActivatePromptMode) && !shouldDeactivatePromptMode;
+
+    // Usar el setter correcto según el modo efectivo
+    if (effectivePromptMode) {
       setPromptMessages(prev => [...prev, userMessage]);
     } else {
       setNormalMessages(prev => [...prev, userMessage]);
@@ -1081,8 +1106,8 @@ export function AIChatAgent({
     // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
 
     try {
-      // Si está en modo prompt (o se acaba de activar), usar endpoint con modo prompt
-      if (isPromptMode || shouldActivatePromptMode) {
+      // Si está en modo prompt efectivo (activado o recién activado, y no desactivándose)
+      if (effectivePromptMode) {
         const response = await fetch('/api/ai-directory/generate-prompt', {
           method: 'POST',
           headers: {
