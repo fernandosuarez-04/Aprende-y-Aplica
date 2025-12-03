@@ -83,7 +83,8 @@ const PROMPT_KEYWORDS = [
 
 // Páginas conocidas del sitio
 const SITE_PAGES: Record<string, string[]> = {
-  'prompt-directory': ['prompts', 'plantillas', 'directorio', 'biblioteca'],
+  // 'prompt-directory': ['prompts', 'plantillas', 'directorio', 'biblioteca'], // TEMPORALMENTE OCULTO
+  // 'apps-directory': ['apps', 'aplicaciones', 'herramientas'], // TEMPORALMENTE OCULTO
   'courses': ['cursos', 'curso', 'formación', 'aprendizaje'],
   'workshops': ['talleres', 'taller', 'workshop', 'eventos'],
   'communities': ['comunidades', 'comunidad', 'grupos', 'networking'],

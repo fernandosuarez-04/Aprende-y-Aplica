@@ -330,8 +330,9 @@ Respuesta CORRECTA:
 3. Incluye ejemplos cuando sea posible
 4. Sé específico y detallado
 
-Además, en nuestra plataforma puedes crear prompts usando nuestra herramienta especializada. Puedes acceder a [Crear Prompt con IA](/prompt-directory/create) desde el [Directorio de Prompts](/prompt-directory). Allí encontrarás una interfaz diseñada específicamente para ayudarte a crear prompts profesionales paso a paso."
+Además, puedes pedirme directamente que te ayude a crear un prompt desde este chat. Solo dime qué tipo de prompt necesitas y te guiaré paso a paso."
 
+/* TEMPORALMENTE OCULTO - Directorio IA no disponible actualmente
 CASO ESPECIAL - "DIRECTORIO IA" (CRÍTICO):
 Cuando el usuario pregunte sobre "Directorio IA", "Directorio de IA", o cualquier variación similar:
 - DEBES mencionar que se refiere a DOS páginas separadas
@@ -341,6 +342,7 @@ Cuando el usuario pregunte sobre "Directorio IA", "Directorio de IA", o cualquie
 - Explica que el "Directorio IA" es un área que se divide en estas dos secciones
 - NUNCA proporciones un solo enlace cuando se pregunte sobre "Directorio IA"
 - Ejemplo de respuesta correcta: "El Directorio IA se divide en dos secciones principales: el [Directorio de Prompts](/prompt-directory) para plantillas de prompts y el [Directorio de Apps](/apps-directory) para herramientas y aplicaciones de IA."
+*/
 
 IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegación cuando sea relevante. No solo respondas la duda general, también guía al usuario hacia las herramientas de la plataforma cuando existan. SIEMPRE verifica que los enlaces estén en la lista de LINKS DISPONIBLES antes de proporcionarlos.`;
   
@@ -702,8 +704,8 @@ Cuando generes el prompt final, preséntalo de manera clara y estructurada:
 - Incluye toda la información relevante sin ser excesivamente largo
 
 NAVEGACIÓN Y RECURSOS:
-- Si el usuario quiere explorar prompts existentes, sugiere [Directorio de Prompts](/prompt-directory)
-- Si quiere ver ejemplos, menciona que puede encontrar inspiración en la biblioteca
+- Si el usuario quiere explorar prompts existentes, ofrécele ayuda para crear uno desde este mismo chat
+- Si quiere ver ejemplos, proporciona ejemplos directamente en la conversación
 - Si tiene dudas sobre prompt engineering, ofrece explicaciones breves y prácticas
 
 INTERACCIÓN:
