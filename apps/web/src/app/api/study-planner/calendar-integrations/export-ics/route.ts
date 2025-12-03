@@ -88,3 +88,4 @@ function escapeICS(text: string): string {
     .replace(/\r/g, '');
 }
 
+
