@@ -173,6 +173,34 @@ const nextConfig: NextConfig = {
       };
     }
 
+    // Excluir rrweb y rrweb-player del bundle del servidor
+    // Estas librerías solo funcionan en el navegador y causan errores en el servidor
+    if (isServer) {
+      // Mantener los alias existentes y agregar exclusiones para rrweb
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'rrweb': false,
+        'rrweb-player': false,
+        '@rrweb/types': false,
+      };
+      
+      // También excluir en externals para evitar que se incluya en el bundle
+      config.externals = config.externals || [];
+      if (typeof config.externals === 'function') {
+        const originalExternals = config.externals;
+        config.externals = [
+          (context: string, request: string, callback: Function) => {
+            if (request === 'rrweb' || request === 'rrweb-player' || request === '@rrweb/types') {
+              return callback(null, 'commonjs ' + request);
+            }
+            return originalExternals(context, request, callback);
+          },
+        ];
+      } else if (Array.isArray(config.externals)) {
+        config.externals.push('rrweb', 'rrweb-player', '@rrweb/types');
+      }
+    }
+
     return config;
   },
 };

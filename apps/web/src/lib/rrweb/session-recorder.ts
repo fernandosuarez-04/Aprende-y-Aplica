@@ -3,13 +3,128 @@
  * Graba sesiones del usuario para debugging y reportes de problemas
  */
 
-import { record, EventType } from 'rrweb';
 import type { eventWithTime } from '@rrweb/types';
+
+// Tipos personalizados para rrweb sin usar typeof import (evita análisis estático de webpack)
+interface RrwebRecordOptions {
+  emit: (event: eventWithTime) => void;
+  checkoutEveryNms?: number;
+  checkoutEveryNth?: number;
+  recordCanvas?: boolean;
+  recordCrossOriginIframes?: boolean;
+  collectFonts?: boolean;
+  inlineStylesheet?: boolean;
+  sampling?: {
+    mousemove?: boolean;
+    mousemoveCallback?: number;
+    mouseInteraction?: {
+      MouseUp?: boolean;
+      MouseDown?: boolean;
+      Click?: boolean;
+      ContextMenu?: boolean;
+      DblClick?: boolean;
+      Focus?: boolean;
+      Blur?: boolean;
+      TouchStart?: boolean;
+      TouchEnd?: boolean;
+    };
+    scroll?: number;
+    media?: number;
+    input?: 'last' | boolean;
+  };
+  ignoreClass?: string;
+  maskTextClass?: string;
+  maskAllInputs?: boolean;
+  slimDOMOptions?: Record<string, boolean>;
+}
+
+interface RrwebModule {
+  record: (options: RrwebRecordOptions) => () => void;
+  EventType?: Record<string, number>;
+  [key: string]: any;
+}
+
+// Importación dinámica de rrweb - solo se carga en el cliente
+// Usar tipo genérico en lugar de typeof import para evitar análisis estático
+let rrwebModule: RrwebModule | null = null;
+let isRrwebLoading = false;
+let rrwebLoadPromise: Promise<RrwebModule | null> | null = null;
+
+/**
+ * Carga dinámicamente el módulo rrweb solo en el cliente
+ */
+async function loadRrweb(): Promise<RrwebModule | null> {
+  // Solo cargar en el cliente - verificación estricta
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return null;
+  }
+
+  // Verificar que estamos en un entorno de navegador válido
+  try {
+    if (!window || !document) {
+      return null;
+    }
+  } catch {
+    // Si window o document no están disponibles, estamos en el servidor
+    return null;
+  }
+
+  // Si ya está cargado, retornarlo
+  if (rrwebModule) {
+    return rrwebModule;
+  }
+
+  // Si ya está en proceso de carga, esperar a que termine
+  if (isRrwebLoading && rrwebLoadPromise) {
+    return rrwebLoadPromise;
+  }
+
+  // Iniciar carga con manejo robusto de errores
+  isRrwebLoading = true;
+  rrwebLoadPromise = (async () => {
+    try {
+      // Usar import dinámico con verificación adicional
+      // Usar 'any' para evitar que TypeScript intente analizar el módulo
+      const module = await import('rrweb') as any as RrwebModule;
+      
+      // Verificar que el módulo tiene la función record
+      if (!module || typeof module.record !== 'function') {
+        throw new Error('rrweb.record no está disponible');
+      }
+      
+      rrwebModule = module;
+      isRrwebLoading = false;
+      return module;
+    } catch (error) {
+      console.error('❌ Error cargando rrweb:', error);
+      isRrwebLoading = false;
+      rrwebLoadPromise = null;
+      rrwebModule = null;
+      return null;
+    }
+  })();
+
+  return rrwebLoadPromise;
+}
 
 export interface RecordingSession {
   events: eventWithTime[];
   startTime: number;
   endTime?: number;
+}
+
+// Tipo para el objeto sessionRecorder exportado (para usar en hooks sin typeof import)
+export interface SessionRecorderInstance {
+  startRecording(maxDuration?: number): Promise<void>;
+  stop(): RecordingSession | null;
+  captureSnapshot(): RecordingSession | null;
+  getCurrentSession(): RecordingSession | null;
+  isActive(): boolean;
+  isRrwebAvailable(): boolean;
+  exportSession(session: RecordingSession): string;
+  exportSessionBase64(session: RecordingSession): string;
+  getSessionSize(session: RecordingSession): number;
+  getSessionSizeFormatted(session: RecordingSession): string;
 }
 
 export class SessionRecorder {
@@ -20,8 +135,12 @@ export class SessionRecorder {
   private maxEvents = 20000; // Aumentado a 20000 para capturar ~3 minutos de contexto
   private maxDuration = 60000; // 60 segundos máximo
   private initialSnapshot: eventWithTime | null = null; // Guardar snapshot inicial
+  private rrwebAvailable = false; // Flag para verificar si rrweb está disponible
 
-  private constructor() {}
+  private constructor() {
+    // No hacer nada en el constructor para evitar ejecución en el servidor
+    // La verificación de rrweb se hará cuando se necesite (en startRecording)
+  }
 
   static getInstance(): SessionRecorder {
     if (!SessionRecorder.instance) {
@@ -31,12 +150,46 @@ export class SessionRecorder {
   }
 
   /**
+   * Verifica si rrweb está disponible en el entorno actual
+   */
+  private async checkRrwebAvailability(): Promise<boolean> {
+    // Solo verificar en el cliente
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    try {
+      const rrweb = await loadRrweb();
+      const isAvailable = rrweb !== null && typeof rrweb?.record === 'function';
+      this.rrwebAvailable = isAvailable;
+      return isAvailable;
+    } catch (error) {
+      console.error('❌ Error verificando disponibilidad de rrweb:', error);
+      this.rrwebAvailable = false;
+      return false;
+    }
+  }
+
+  /**
    * Inicia la grabación de la sesión
    * @param maxDuration Duración máxima en ms (por defecto 60 segundos)
    */
-  startRecording(maxDuration?: number): void {
+  async startRecording(maxDuration?: number): Promise<void> {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      console.warn('⚠️ SessionRecorder solo funciona en el cliente');
+      return;
+    }
+
     if (this.isRecording) {
       console.warn('⚠️ Ya hay una grabación en curso');
+      return;
+    }
+
+    // Verificar disponibilidad de rrweb
+    const isAvailable = await this.checkRrwebAvailability();
+    if (!isAvailable) {
+      console.error('❌ rrweb no está disponible. La grabación no puede iniciarse.');
       return;
     }
 
@@ -50,7 +203,13 @@ export class SessionRecorder {
     this.isRecording = true;
 
     try {
-      this.stopRecording = record({
+      // Cargar rrweb dinámicamente (ya verificado arriba, pero lo cargamos de nuevo para asegurar)
+      const rrweb = await loadRrweb();
+      if (!rrweb || !rrweb.record) {
+        throw new Error('rrweb.record no está disponible');
+      }
+
+      this.stopRecording = rrweb.record({
         emit: (event) => {
           // Guardar el snapshot inicial (tipo 2) por separado
           if (event.type === 2 && !this.initialSnapshot) {
@@ -133,6 +292,14 @@ export class SessionRecorder {
     } catch (error) {
       console.error('❌ Error iniciando grabación:', error);
       this.isRecording = false;
+      this.stopRecording = null;
+      this.rrwebAvailable = false;
+      // Reintentar verificar disponibilidad después de un error
+      setTimeout(() => {
+        this.checkRrwebAvailability().catch(() => {
+          // Ignorar errores en la verificación
+        });
+      }, 5000);
     }
   }
 
@@ -250,6 +417,13 @@ export class SessionRecorder {
   }
 
   /**
+   * Verifica si rrweb está disponible
+   */
+  isRrwebAvailable(): boolean {
+    return this.rrwebAvailable;
+  }
+
+  /**
    * Exporta la sesión a JSON
    */
   exportSession(session: RecordingSession): string {
@@ -295,5 +469,67 @@ export class SessionRecorder {
   }
 }
 
-// Export singleton
-export const sessionRecorder = SessionRecorder.getInstance();
+// Función helper para obtener el singleton de forma segura
+function getSessionRecorderInstance(): SessionRecorder {
+  // Solo inicializar en el cliente
+  if (typeof window === 'undefined') {
+    // Retornar un objeto mock en el servidor que no hace nada
+    return {
+      startRecording: async () => {},
+      stop: () => null,
+      captureSnapshot: () => null,
+      getCurrentSession: () => null,
+      isActive: () => false,
+      isRrwebAvailable: () => false,
+      exportSession: () => '',
+      exportSessionBase64: () => '',
+      getSessionSize: () => 0,
+      getSessionSizeFormatted: () => '0 B',
+    } as unknown as SessionRecorder;
+  }
+  
+  return SessionRecorder.getInstance();
+}
+
+// Export singleton con métodos proxy para mantener compatibilidad
+export const sessionRecorder = {
+  async startRecording(maxDuration?: number): Promise<void> {
+    return getSessionRecorderInstance().startRecording(maxDuration);
+  },
+  
+  stop(): RecordingSession | null {
+    return getSessionRecorderInstance().stop();
+  },
+  
+  captureSnapshot(): RecordingSession | null {
+    return getSessionRecorderInstance().captureSnapshot();
+  },
+  
+  getCurrentSession(): RecordingSession | null {
+    return getSessionRecorderInstance().getCurrentSession();
+  },
+  
+  isActive(): boolean {
+    return getSessionRecorderInstance().isActive();
+  },
+  
+  isRrwebAvailable(): boolean {
+    return getSessionRecorderInstance().isRrwebAvailable();
+  },
+  
+  exportSession(session: RecordingSession): string {
+    return getSessionRecorderInstance().exportSession(session);
+  },
+  
+  exportSessionBase64(session: RecordingSession): string {
+    return getSessionRecorderInstance().exportSessionBase64(session);
+  },
+  
+  getSessionSize(session: RecordingSession): number {
+    return getSessionRecorderInstance().getSessionSize(session);
+  },
+  
+  getSessionSizeFormatted(session: RecordingSession): string {
+    return getSessionRecorderInstance().getSessionSizeFormatted(session);
+  },
+};
