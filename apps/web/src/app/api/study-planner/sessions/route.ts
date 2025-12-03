@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { SessionService } from '@/features/auth/services/session.service';
 import { StudySession } from '@aprende-y-aplica/shared';
+import type { Database } from '@/lib/supabase/types';
 
 /**
  * GET /api/study-planner/sessions
@@ -25,17 +27,40 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const planId = searchParams.get('plan_id');
+    const sessionId = searchParams.get('session_id');
     const status = searchParams.get('status');
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
 
-    const supabase = await createClient();
+    // Crear cliente con Service Role Key para bypass RLS
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Variables de entorno faltantes para leer sesiones');
+      return NextResponse.json(
+        { error: 'Configuración del servidor incompleta' },
+        { status: 500 }
+      );
+    }
 
-    let query = supabase
+    // Cliente con Service Role Key para leer (bypass RLS)
+    const supabaseAdmin = createSupabaseClient<Database>(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    let query = supabaseAdmin
       .from('study_sessions')
       .select('*')
       .eq('user_id', currentUser.id)
       .order('start_time', { ascending: true });
+
+    if (sessionId) {
+      query = query.eq('id', sessionId);
+    }
 
     if (planId) {
       query = query.eq('plan_id', planId);
@@ -53,7 +78,13 @@ export async function GET(request: NextRequest) {
       query = query.lte('start_time', endDate);
     }
 
-    console.log('🔍 Buscando sesiones para usuario:', currentUser.id);
+    console.log('🔍 Buscando sesiones para usuario:', {
+      userId: currentUser.id,
+      planId: planId || 'todos',
+      status: status || 'todos',
+      startDate: startDate || 'sin límite',
+      endDate: endDate || 'sin límite',
+    });
 
     const { data: sessions, error: sessionsError } = await query;
 
@@ -65,7 +96,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('✅ Sesiones encontradas:', sessions?.length || 0);
+    console.log('✅ Sesiones encontradas:', {
+      count: sessions?.length || 0,
+      sample: sessions && sessions.length > 0 ? {
+        id: sessions[0].id,
+        title: sessions[0].title,
+        start_time: sessions[0].start_time,
+        plan_id: sessions[0].plan_id,
+        status: sessions[0].status,
+      } : null,
+    });
 
     return NextResponse.json({ sessions: sessions || [] });
   } catch (error) {

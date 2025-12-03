@@ -14,6 +14,8 @@ import {
   AlertCircle,
   Loader2,
   X,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudyPlan, StudySession } from '@aprende-y-aplica/shared';
@@ -99,6 +101,19 @@ export default function StudyPlannerDashboardPage() {
           user_id: p.user_id,
           created_at: p.created_at,
         })));
+      }
+
+      if (sessionsData.sessions && sessionsData.sessions.length > 0) {
+        console.log('📅 Sesiones encontradas:', sessionsData.sessions.slice(0, 5).map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          status: s.status,
+          plan_id: s.plan_id,
+        })));
+      } else {
+        console.warn('⚠️ No se encontraron sesiones para mostrar en el calendario');
       }
 
       if (routesData.routes && routesData.routes.length > 0) {
@@ -251,20 +266,146 @@ export default function StudyPlannerDashboardPage() {
       )[0]
     : null;
 
+  // Handlers para editar y eliminar
+  const handleEditPlan = useCallback((plan: StudyPlan) => {
+    // Por ahora, redirigir a la página de detalles donde se puede editar
+    router.push(`/study-planner/plans/${plan.id}?edit=true`);
+  }, [router]);
+
+  const handleDeletePlan = useCallback(async (planId: string, planName: string) => {
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas eliminar el plan "${planName}"?\n\nEsta acción eliminará el plan y todas sus sesiones. Esta acción no se puede deshacer.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/study-planner/plans/${planId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar el plan');
+      }
+
+      const result = await response.json();
+      setNotification({
+        type: 'success',
+        message: result.message || 'Plan eliminado correctamente',
+      });
+
+      // Recargar datos
+      await loadDashboardData();
+    } catch (err) {
+      console.error('Error deleting plan:', err);
+      setNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Error al eliminar el plan',
+      });
+    }
+  }, [loadDashboardData, setNotification]);
+
+  const handleEditRoute = useCallback((route: any) => {
+    // Por ahora, redirigir a la página de detalles de la ruta
+    router.push(`/study-planner/routes/${route.id}?edit=true`);
+  }, [router]);
+
+  const handleDeleteRoute = useCallback(async (routeId: string, routeName: string) => {
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas eliminar la ruta "${routeName}"?\n\nEsta acción no se puede deshacer.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      console.log('🗑️ Intentando eliminar ruta:', { routeId, routeName });
+      
+      const response = await fetch(`/api/study-planner/routes/${routeId}`, {
+        method: 'DELETE',
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Error en respuesta:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData,
+        });
+        
+        // Mostrar mensaje más descriptivo según el tipo de error
+        let errorMessage = responseData.error || 'Error al eliminar la ruta';
+        if (responseData.details) {
+          errorMessage += `: ${responseData.details}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      console.log('✅ Ruta eliminada exitosamente:', responseData);
+      
+      setNotification({
+        type: 'success',
+        message: responseData.message || 'Ruta eliminada correctamente',
+      });
+
+      // Recargar datos
+      await loadDashboardData();
+    } catch (err) {
+      console.error('💥 Error eliminando ruta:', err);
+      setNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Error al eliminar la ruta',
+      });
+    }
+  }, [loadDashboardData, setNotification]);
+
   // Formatear sesiones para FullCalendar
-  const calendarEvents = sessions.map((session) => ({
-    id: session.id,
-    title: session.title,
-    start: session.start_time,
-    end: session.end_time,
-    backgroundColor: getStatusColor(session.status),
-    borderColor: getStatusColor(session.status),
-    extendedProps: {
-      status: session.status,
-      description: session.description,
-      courseId: session.course_id,
-    },
-  }));
+  const calendarEvents = sessions
+    .filter((session) => {
+      // Filtrar sesiones con fechas válidas
+      if (!session.start_time || !session.end_time) {
+        console.warn('⚠️ Sesión sin fechas válidas:', session.id);
+        return false;
+      }
+      return true;
+    })
+    .map((session) => {
+      // Asegurar que las fechas estén en formato ISO válido para FullCalendar
+      const startDate = new Date(session.start_time);
+      const endDate = new Date(session.end_time);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.warn('⚠️ Sesión con fechas inválidas:', {
+          id: session.id,
+          start_time: session.start_time,
+          end_time: session.end_time,
+        });
+        return null;
+      }
+
+      return {
+        id: session.id,
+        title: session.title || 'Sesión de estudio',
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        backgroundColor: getStatusColor(session.status),
+        borderColor: getStatusColor(session.status),
+        extendedProps: {
+          status: session.status,
+          description: session.description,
+          courseId: session.course_id,
+        },
+      };
+    })
+    .filter((event) => event !== null); // Filtrar eventos nulos
+
+  console.log('📅 Eventos del calendario formateados:', {
+    totalSessions: sessions.length,
+    validEvents: calendarEvents.length,
+    sampleEvent: calendarEvents[0] || null,
+  });
 
   function getStatusColor(status: string): string {
     switch (status) {
@@ -438,13 +579,31 @@ export default function StudyPlannerDashboardPage() {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => router.push(`/study-planner/plans/${activePlan.id}`)}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors shadow-lg"
-              >
-                Ver detalles
-                <ExternalLink className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.push(`/study-planner/plans/${activePlan.id}`)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors shadow-lg"
+                >
+                  Ver detalles
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => activePlan && handleEditPlan(activePlan)}
+                  className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  title="Editar plan"
+                  disabled={!activePlan}
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => activePlan && handleDeletePlan(activePlan.id, activePlan.name)}
+                  className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  title="Eliminar plan"
+                  disabled={!activePlan}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </motion.div>
         ) : plans.length === 0 ? null : (
@@ -493,12 +652,28 @@ export default function StudyPlannerDashboardPage() {
                     <span className="text-slate-400 text-sm">
                       {route.course_count || 0} curso(s)
                     </span>
-                    <button
-                      onClick={() => router.push(`/study-planner/routes/${route.id}`)}
-                      className="text-purple-400 hover:text-purple-300 text-sm font-medium"
-                    >
-                      Ver →
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => router.push(`/study-planner/routes/${route.id}`)}
+                        className="text-purple-400 hover:text-purple-300 text-sm font-medium"
+                      >
+                        Ver →
+                      </button>
+                      <button
+                        onClick={() => handleEditRoute(route)}
+                        className="p-1.5 text-blue-400 hover:text-blue-300 rounded transition-colors"
+                        title="Editar ruta"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRoute(route.id, route.name)}
+                        className="p-1.5 text-red-400 hover:text-red-300 rounded transition-colors"
+                        title="Eliminar ruta"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -542,29 +717,41 @@ export default function StudyPlannerDashboardPage() {
             Calendario de Sesiones
           </h2>
           <div className="calendar-container">
-            <FullCalendar
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="dayGridMonth"
-              headerToolbar={{
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay',
-              }}
-              events={calendarEvents}
-              locale="es"
-              height="auto"
-              eventClick={(info) => {
-                router.push(`/study-planner/session/${info.event.id}`);
-              }}
-              dayMaxEvents={3}
-              moreLinkClick="popover"
-              eventDisplay="block"
-              eventTextColor="#ffffff"
-              dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
-              slotMinTime="00:00:00"
-              slotMaxTime="24:00:00"
-              allDaySlot={false}
-            />
+            {calendarEvents.length > 0 ? (
+              <FullCalendar
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                headerToolbar={{
+                  left: 'prev,next today',
+                  center: 'title',
+                  right: 'dayGridMonth,timeGridWeek,timeGridDay',
+                }}
+                events={calendarEvents}
+                locale="es"
+                height="auto"
+                eventClick={(info) => {
+                  router.push(`/study-planner/session/${info.event.id}`);
+                }}
+                dayMaxEvents={3}
+                moreLinkClick="popover"
+                eventDisplay="block"
+                eventTextColor="#ffffff"
+                dayHeaderFormat={{ weekday: 'short' }}
+                slotMinTime="00:00:00"
+                slotMaxTime="24:00:00"
+                allDaySlot={false}
+              />
+            ) : (
+              <div className="text-center py-12 text-slate-400">
+                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium mb-2">No hay sesiones programadas</p>
+                <p className="text-sm">
+                  {sessions.length === 0 
+                    ? 'Las sesiones se crearán automáticamente cuando crees un plan con cursos y horarios configurados.'
+                    : `Se encontraron ${sessions.length} sesión(es) pero no se pudieron mostrar en el calendario.`}
+                </p>
+              </div>
+            )}
           </div>
           <style jsx global>{`
             .calendar-container {
@@ -658,9 +845,29 @@ export default function StudyPlannerDashboardPage() {
             }
             
             .calendar-container :global(.fc-col-header-cell-cushion) {
-              color: #cbd5e1 !important;
+              color: #ffffff !important;
               font-weight: 600 !important;
               text-transform: capitalize !important;
+              font-size: 0.875rem !important;
+            }
+            
+            .calendar-container :global(.fc-col-header-cell a) {
+              color: #ffffff !important;
+            }
+            
+            .calendar-container :global(.fc-col-header-cell th) {
+              color: #ffffff !important;
+            }
+            
+            .calendar-container :global(.fc-daygrid-day-top) {
+              flex-direction: row !important;
+              justify-content: flex-start !important;
+            }
+            
+            .calendar-container :global(.fc-daygrid-day-number) {
+              color: #e2e8f0 !important;
+              padding: 0.5rem !important;
+              font-weight: 500 !important;
               font-size: 0.875rem !important;
             }
             

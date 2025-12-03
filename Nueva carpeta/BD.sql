@@ -134,6 +134,22 @@ CREATE TABLE public.ai_prompts (
   CONSTRAINT ai_prompts_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.ai_categories(category_id),
   CONSTRAINT ai_prompts_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.app_directory_translations (
+  id integer NOT NULL DEFAULT nextval('app_directory_translations_id_seq'::regclass),
+  app_id uuid NOT NULL,
+  language character varying NOT NULL,
+  name character varying NOT NULL,
+  description text NOT NULL,
+  long_description text,
+  features ARRAY,
+  use_cases ARRAY,
+  advantages ARRAY,
+  disadvantages ARRAY,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT app_directory_translations_pkey PRIMARY KEY (id),
+  CONSTRAINT app_directory_translations_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.ai_apps(app_id)
+);
 CREATE TABLE public.app_favorites (
   favorite_id uuid NOT NULL DEFAULT uuid_generate_v4(),
   app_id uuid,
@@ -306,6 +322,26 @@ CREATE TABLE public.community_members (
   CONSTRAINT community_members_community_id_fkey FOREIGN KEY (community_id) REFERENCES public.communities(id),
   CONSTRAINT community_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT fk_community_members_community_id FOREIGN KEY (community_id) REFERENCES public.communities(id)
+);
+CREATE TABLE public.community_post_reports (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  post_id uuid NOT NULL,
+  community_id uuid NOT NULL,
+  reported_by_user_id uuid NOT NULL,
+  reason_category text NOT NULL CHECK (reason_category = ANY (ARRAY['spam'::text, 'inappropriate'::text, 'harassment'::text, 'misinformation'::text, 'violence'::text, 'other'::text])),
+  reason_details text,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'reviewed'::text, 'resolved'::text, 'ignored'::text])),
+  reviewed_by_user_id uuid,
+  reviewed_at timestamp with time zone,
+  resolution_action text CHECK (resolution_action = ANY (ARRAY['delete_post'::text, 'hide_post'::text, 'ignore_report'::text, 'warn_user'::text])),
+  resolution_notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT community_post_reports_pkey PRIMARY KEY (id),
+  CONSTRAINT community_post_reports_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.community_posts(id),
+  CONSTRAINT community_post_reports_community_id_fkey FOREIGN KEY (community_id) REFERENCES public.communities(id),
+  CONSTRAINT community_post_reports_reported_by_user_id_fkey FOREIGN KEY (reported_by_user_id) REFERENCES public.users(id),
+  CONSTRAINT community_post_reports_reviewed_by_user_id_fkey FOREIGN KEY (reviewed_by_user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.community_posts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -650,6 +686,28 @@ CREATE TABLE public.forbidden_words (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT forbidden_words_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.learning_route_courses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  route_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  course_order integer NOT NULL DEFAULT 0,
+  is_required boolean DEFAULT true,
+  added_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT learning_route_courses_pkey PRIMARY KEY (id),
+  CONSTRAINT learning_route_courses_route_id_fkey FOREIGN KEY (route_id) REFERENCES public.learning_routes(id),
+  CONSTRAINT learning_route_courses_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.learning_routes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT learning_routes_pkey PRIMARY KEY (id),
+  CONSTRAINT learning_routes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.lesson_activities (
   activity_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -1056,6 +1114,7 @@ CREATE TABLE public.organizations (
   login_styles jsonb,
   selected_theme character varying DEFAULT NULL::character varying,
   billing_cycle character varying CHECK (billing_cycle IS NULL OR (billing_cycle::text = ANY (ARRAY['monthly'::character varying::text, 'yearly'::character varying::text]))),
+  brand_banner_url text,
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.password_reset_tokens (
@@ -1362,8 +1421,10 @@ CREATE TABLE public.study_plans (
   generation_mode text DEFAULT 'manual'::text CHECK (generation_mode = ANY (ARRAY['manual'::text, 'ai_generated'::text])),
   ai_generation_metadata jsonb DEFAULT '{}'::jsonb,
   preferred_session_type text DEFAULT 'medium'::text CHECK (preferred_session_type = ANY (ARRAY['short'::text, 'medium'::text, 'long'::text])),
+  learning_route_id uuid,
   CONSTRAINT study_plans_pkey PRIMARY KEY (id),
-  CONSTRAINT study_plans_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT study_plans_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT study_plans_learning_route_id_fkey FOREIGN KEY (learning_route_id) REFERENCES public.learning_routes(id)
 );
 CREATE TABLE public.study_preferences (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -1879,6 +1940,7 @@ CREATE TABLE public.work_teams (
   metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  image_url text,
   CONSTRAINT work_teams_pkey PRIMARY KEY (team_id),
   CONSTRAINT work_teams_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
   CONSTRAINT work_teams_team_leader_id_fkey FOREIGN KEY (team_leader_id) REFERENCES public.users(id),
