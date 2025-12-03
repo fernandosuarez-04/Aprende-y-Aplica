@@ -127,15 +127,45 @@ export function LearningRouteSelector({ onRouteSelect, onNewRoute }: LearningRou
 
   const handleRouteSelect = async (routeId: string) => {
     try {
+      console.log('🔄 Seleccionando ruta:', routeId);
       const res = await fetch(`/api/study-planner/routes/${routeId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedRoute(routeId);
-        setSelectedCourses(data.courses || []);
-        onRouteSelect(routeId, data.courses || []);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('❌ Error al obtener la ruta:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+        });
+        alert(`Error al cargar la ruta: ${errorData.error || 'Error desconocido'}`);
+        return;
       }
+
+      const data = await res.json();
+      console.log('✅ Ruta obtenida:', {
+        routeId: data.route?.id,
+        routeName: data.route?.name,
+        coursesCount: data.courses?.length || 0,
+        courses: data.courses,
+      });
+
+      if (!data.courses || data.courses.length === 0) {
+        console.warn('⚠️ La ruta no tiene cursos asociados');
+        alert('Esta ruta no tiene cursos asociados. Por favor, selecciona otra ruta o crea una nueva.');
+        return;
+      }
+
+      setSelectedRoute(routeId);
+      setSelectedCourses(data.courses || []);
+      onRouteSelect(routeId, data.courses || []);
+      
+      console.log('✅ Ruta seleccionada correctamente:', {
+        routeId,
+        coursesCount: data.courses.length,
+      });
     } catch (error) {
-      console.error('Error fetching route courses:', error);
+      console.error('❌ Error fetching route courses:', error);
+      alert(`Error al cargar la ruta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
