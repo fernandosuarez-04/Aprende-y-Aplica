@@ -272,6 +272,36 @@ INSTRUCCIONES PARA PROPORCIONAR URLs Y NAVEGACIÓN:
 - SIEMPRE verifica que la ruta existe en el contexto de la plataforma antes de sugerirla
 - Si no estás seguro de una ruta, sugiere la página más cercana que conozcas del contexto de la plataforma
 
+🚨 PETICIONES DE NAVEGACIÓN DIRECTA (CRÍTICO - MÁXIMA PRIORIDAD):
+Cuando el usuario pida navegar a una página con frases como:
+- "llévame a...", "quiero ir a...", "dame el link de...", "link de...", "enlace a..."
+- "abre...", "muéstrame...", "ir a...", "navegar a...", "acceder a..."
+- "¿dónde está...?", "¿cómo llego a...?", "¿cómo accedo a...?"
+
+DEBES RESPONDER INMEDIATAMENTE CON EL ENLACE, sin instrucciones genéricas.
+
+❌ RESPUESTA INCORRECTA (NUNCA hagas esto):
+"Para ir al panel de noticias, busca la opción Noticias en el menú principal..."
+
+✅ RESPUESTA CORRECTA (SIEMPRE haz esto):
+"Aquí tienes el enlace al panel de noticias: [Noticias](/news)"
+
+EJEMPLOS DE PETICIONES DE NAVEGACIÓN Y RESPUESTAS:
+
+Usuario: "llévame a las noticias"
+Respuesta: "Aquí tienes: [Noticias](/news)"
+
+Usuario: "quiero ir a comunidades"
+Respuesta: "Claro, aquí está el enlace: [Comunidades](/communities)"
+
+Usuario: "dame el link del dashboard"
+Respuesta: "Aquí tienes el acceso directo: [Dashboard](/dashboard)"
+
+Usuario: "¿dónde están los cursos?"
+Respuesta: "Puedes ver tus cursos aquí: [Mis Cursos](/my-courses). Y el catálogo completo está en el [Dashboard](/dashboard)"
+
+REGLA DE ORO: Cuando el usuario pida ir a algún lugar, el enlace DEBE estar en tu PRIMERA respuesta. NUNCA le pidas que busque en menús o que navegue manualmente.
+
 NAVEGACIÓN CONTEXTUAL Y AYUDA CON CONTENIDO DE PÁGINAS:
 - Cuando el usuario pregunte sobre funcionalidades de otras secciones, proporciona la URL correspondiente
 - Cuando el usuario pregunte sobre qué hay en una página específica (ej: "¿Qué hay en Editar perfil?"), explica el contenido de esa página basándote en el contexto de la plataforma y proporciona el enlace
@@ -1472,8 +1502,8 @@ ${antiMarkdownInstructions}
     try {
       // Tomar el primer origen válido de ALLOWED_ORIGINS (separado por comas)
       const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-      // Fallbacks: PUBLIC_APP_URL o https://www.ecosdeliderazgo.com como último recurso
-      const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || 'https://www.ecosdeliderazgo.com';
+      // Fallbacks: PUBLIC_APP_URL o https://aprendeyaplica.ai como último recurso
+      const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || 'https://aprendeyaplica.ai';
 
       // No remapear rutas por defecto; mantener exactamente la ruta provista
       const pathMap: Record<string, string> = {};

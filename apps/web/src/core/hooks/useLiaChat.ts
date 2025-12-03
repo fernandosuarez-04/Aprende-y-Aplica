@@ -87,16 +87,45 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           console.log('[LIA] ✅ Activando Modo Prompts automáticamente');
           modeForThisMessage = 'prompts';
           shouldNotifyModeChange = true;
-          modeChangeMessage = "✨ He detectado que quieres crear un prompt. He activado el **Modo Prompts** 🎯\n\n¿Qué tipo de prompt necesitas crear?";
+          modeChangeMessage = "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?";
           setCurrentMode('prompts');
         }
         // CASO 2: Si ESTAMOS en modo prompts pero la pregunta NO es sobre crear prompts
         else if (currentMode === 'prompts' && intentResult.intent !== 'create_prompt') {
-          console.log('[LIA] 🔄 Pregunta general detectada. Cambiando a Modo Contexto');
+          console.log('[LIA] 🔄 Pregunta general detectada desde Prompts. Cambiando a Modo Contexto');
           modeForThisMessage = 'context';
           shouldNotifyModeChange = true;
-          modeChangeMessage = "🧠 He cambiado al **Modo Contexto** para responder tu pregunta general.";
+          modeChangeMessage = "🧠 He cambiado al Modo Contexto para responder tu pregunta general.";
           setCurrentMode('context');
+        }
+        // CASO 3: Si ESTAMOS en modo curso y detectamos intención de navegar o pregunta sobre la plataforma
+        else if (currentMode === 'course' && intentResult.intent === 'navigate') {
+          console.log('[LIA] 🔄 Pregunta de navegación detectada desde Curso. Cambiando a Modo Contexto');
+          modeForThisMessage = 'context';
+          shouldNotifyModeChange = true;
+          modeChangeMessage = "🧠 He cambiado al Modo Contexto para ayudarte con la navegación.";
+          setCurrentMode('context');
+        }
+        // CASO 4: Si ESTAMOS en modo curso y detectamos pregunta general sobre la plataforma (no del curso)
+        else if (currentMode === 'course' && intentResult.intent === 'general') {
+          // Verificar si la pregunta parece ser sobre la plataforma y no sobre el contenido del curso
+          const platformKeywords = [
+            'comunidad', 'comunidades', 'noticias', 'noticia', 'dashboard', 'perfil',
+            'configuración', 'ajustes', 'cuenta', 'talleres', 'taller', 'workshops',
+            'directorio', 'prompts', 'apps', 'aplicaciones', 'plataforma', 'sitio',
+            'web', 'página', 'sección', 'menú', 'navegación', 'link', 'enlace',
+            'acceder', 'ir a', 'llévame', 'muéstrame', 'dónde está', 'cómo llego'
+          ];
+          const messageLower = message.toLowerCase();
+          const isPlatformQuestion = platformKeywords.some(keyword => messageLower.includes(keyword));
+          
+          if (isPlatformQuestion) {
+            console.log('[LIA] 🔄 Pregunta sobre la plataforma detectada desde Curso. Cambiando a Modo Contexto');
+            modeForThisMessage = 'context';
+            shouldNotifyModeChange = true;
+            modeChangeMessage = "🧠 He cambiado al Modo Contexto para responder tu pregunta sobre la plataforma.";
+            setCurrentMode('context');
+          }
         }
       } catch (intentError) {
         console.error('[LIA] ❌ Error detectando intención:', intentError);

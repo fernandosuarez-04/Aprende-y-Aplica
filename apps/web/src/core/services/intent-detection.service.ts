@@ -45,6 +45,25 @@ const NAVIGATE_PATTERNS = [
   /\bcómo\b.*(accedo|llego)\b/i,
   /\b(página|sección)\b.*(de|para)\b/i,
   /\b(quiero|necesito)\b.*(ir|ver|acceder)\b/i,
+  // Peticiones directas de navegación (con y sin tildes)
+  /\b(ll[eé]vame|llevame|llévame)\b/i,
+  /\b(mu[eé]strame|muestrame|muéstrame)\b/i,
+  /\b(dame|dime).*(link|enlace|url)\b/i,
+  /\b(abre|abrir)\b/i,
+  /\b(acceder|acceso)\b.*\b(a|al)\b/i,
+  /\b(link|enlace)\b.*\b(de|del|a|al|para)\b/i,
+];
+
+// Palabras clave de navegación (secciones del sitio)
+const NAVIGATION_KEYWORDS = [
+  'noticias', 'noticia', 'news',
+  'comunidades', 'comunidad', 'communities',
+  'dashboard', 'panel', 'inicio',
+  'perfil', 'profile', 'cuenta',
+  'cursos', 'curso', 'courses',
+  'talleres', 'taller', 'workshops',
+  'directorio', 'prompts', 'apps',
+  'configuración', 'ajustes', 'settings',
 ];
 
 // Palabras clave relacionadas con prompts
@@ -198,7 +217,24 @@ export class IntentDetectionService {
     }
     
     if (matchedPatterns > 0) {
-      confidence = Math.min(0.6 + (matchedPatterns * 0.1), 0.85);
+      confidence = Math.min(0.6 + (matchedPatterns * 0.15), 0.85);
+    }
+    
+    // Verificar palabras clave de navegación (secciones del sitio)
+    let navigationKeywordMatches = 0;
+    for (const keyword of NAVIGATION_KEYWORDS) {
+      if (messageLower.includes(keyword.toLowerCase())) {
+        navigationKeywordMatches++;
+      }
+    }
+    
+    // Si hay palabras clave de navegación, aumentar confianza
+    if (navigationKeywordMatches > 0) {
+      confidence += navigationKeywordMatches * 0.1;
+      // Si hay patrón de navegación + keyword, es muy probable que sea navegación
+      if (matchedPatterns > 0) {
+        confidence = Math.max(confidence, 0.8);
+      }
     }
     
     // Detectar página destino
@@ -206,7 +242,7 @@ export class IntentDetectionService {
       for (const keyword of keywords) {
         if (messageLower.includes(keyword)) {
           entities.targetPage = page;
-          confidence += 0.15;
+          confidence += 0.1;
           break;
         }
       }
