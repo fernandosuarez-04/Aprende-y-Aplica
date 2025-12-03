@@ -56,10 +56,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Asegurar que preferred_days sea un array de números
+    // Asegurar que preferred_days sea un array de números válidos (0-6, formato JavaScript Date)
+    // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
     const validDays = preferred_days
       .map((day: any) => parseInt(day, 10))
-      .filter((day: number) => !isNaN(day) && day >= 1 && day <= 7);
+      .filter((day: number) => !isNaN(day) && day >= 0 && day <= 6);
     
     if (validDays.length === 0) {
       return NextResponse.json(
@@ -71,16 +72,21 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Preparar datos del plan
-    const planData = {
+    const planData: any = {
       user_id: currentUser.id,
       name: name.trim(),
       description: description?.trim() || null,
       goal_hours_per_week: goal_hours_per_week ? parseFloat(String(goal_hours_per_week)) : 5,
-      preferred_days: validDays, // Usar los días validados
+      preferred_days: validDays, // Usar los días validados (formato 0-6, JavaScript Date)
       preferred_time_blocks: Array.isArray(preferred_time_blocks) ? preferred_time_blocks : [],
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       generation_mode: 'manual',
     };
+
+    // Incluir learning_route_id solo si está presente
+    if (learning_route_id) {
+      planData.learning_route_id = learning_route_id;
+    }
 
     console.log('📋 Datos del plan a insertar:', {
       user_id: planData.user_id,
@@ -187,12 +193,9 @@ export async function POST(request: NextRequest) {
         const startDate = new Date();
         startDate.setHours(0, 0, 0, 0);
         
-        // Convertir preferred_days de formato 1-7 (Lunes-Domingo) a formato 0-6 (Domingo-Sábado)
-        // Frontend usa: 1=Lunes, 2=Martes, ..., 6=Sábado, 7=Domingo
-        // JavaScript Date usa: 0=Domingo, 1=Lunes, ..., 6=Sábado
-        const dayNumbers = validDays.map((day: number) => {
-          return day === 7 ? 0 : day; // 7 (Domingo) -> 0, resto igual
-        });
+        // Los días ya vienen en formato JavaScript Date (0-6)
+        // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+        const dayNumbers = validDays;
 
         let lessonIndex = 0;
         

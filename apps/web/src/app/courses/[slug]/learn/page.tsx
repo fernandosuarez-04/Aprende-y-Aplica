@@ -53,6 +53,8 @@ import {
   RefreshCw,
   ThumbsUp,
   ThumbsDown,
+  Sparkles,
+  Brain,
 } from 'lucide-react';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
@@ -67,6 +69,8 @@ import { CourseRatingService } from '../../../../features/courses/services/cours
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
+// ✨ Nuevos imports para integración de modos
+import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -206,7 +210,12 @@ export default function CourseLearnPage() {
     sendMessage: sendLiaMessage,
     clearHistory: clearLiaHistory,
     loadConversation,
-    currentConversationId
+    currentConversationId,
+    // ✨ Nuevas propiedades para modos
+    currentMode,
+    setMode,
+    generatedPrompt,
+    clearPrompt
   } = useLiaChat(null);
   
   // Estado local para el input del mensaje
@@ -217,6 +226,9 @@ export default function CourseLearnPage() {
   const liaPanelRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // ✨ Estados para guardado de prompts
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [showPromptPreview, setShowPromptPreview] = useState(false);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
   // Ref para el botón del menú de Lia
@@ -987,6 +999,48 @@ export default function CourseLearnPage() {
     }
   }, []);
 
+  // ✨ Función para convertir enlaces Markdown [texto](url) en hipervínculos HTML
+  const parseMarkdownLinks = useCallback((text: string) => {
+    if (!text) return text;
+    
+    // Expresión regular para detectar enlaces Markdown: [texto](url)
+    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    
+    // Dividir el texto en partes: enlaces y texto normal
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = markdownLinkRegex.exec(text)) !== null) {
+      // Agregar texto antes del enlace
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: text.substring(lastIndex, match.index)
+        });
+      }
+      
+      // Agregar el enlace
+      parts.push({
+        type: 'link',
+        text: match[1], // El texto del enlace
+        url: match[2]   // La URL
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Agregar el texto restante después del último enlace
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex)
+      });
+    }
+    
+    return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+  }, []);
+
   // Función para enviar mensaje a LIA con contexto de la lección
   const handleSendLiaMessage = async () => {
     if (!liaMessage.trim() || isLiaLoading) return;
@@ -1006,6 +1060,63 @@ export default function CourseLearnPage() {
     // Enviar mensaje con contexto
     await sendLiaMessage(message, lessonContext);
   };
+
+  // ✨ Función para guardar prompts generados en la biblioteca
+  const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
+    if (!user) {
+      alert('Debes iniciar sesión para guardar prompts');
+      return;
+    }
+
+    setIsSavingPrompt(true);
+    
+    try {
+      const response = await fetch('/api/ai-directory/prompts/save-from-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...draft,
+          conversation_id: currentConversationId, // Vincular con la conversación del curso
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(errorData.error || 'Error al guardar el prompt');
+      }
+
+      const data = await response.json();
+      
+      // Notificar éxito
+      alert(`✅ Prompt guardado exitosamente: "${draft.title}"\n\nEste prompt está vinculado al curso "${course?.title || course?.course_title}"`);
+      
+      // Cerrar el panel de preview
+      setShowPromptPreview(false);
+      clearPrompt();
+      
+      // Opcional: Navegar al prompt guardado
+      if (data.redirectUrl) {
+        const shouldNavigate = confirm('¿Quieres ver el prompt en el directorio?\n\n(Se abrirá en una nueva pestaña para no perder tu progreso)');
+        if (shouldNavigate) {
+          window.open(data.redirectUrl, '_blank');
+        }
+      }
+    } catch (error) {
+      console.error('Error guardando prompt:', error);
+      alert(`❌ Error al guardar el prompt: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  }, [user, currentConversationId, course, clearPrompt]);
+
+  // ✨ Efecto: Mostrar panel de preview automáticamente cuando se genera un prompt
+  useEffect(() => {
+    if (generatedPrompt && currentMode === 'prompts') {
+      setShowPromptPreview(true);
+    }
+  }, [generatedPrompt, currentMode]);
 
   // Función para generar prompts sugeridos adaptados por rol (memoizada para evitar loops)
   const generateRoleBasedPrompts = useCallback(async (
@@ -3332,9 +3443,23 @@ Antes de cada respuesta, pregúntate:
                         sizes="32px"
                       />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{t('lia.title')}</h3>
-                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">{t('lia.subtitle')}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">{t('lia.subtitle')}</p>
+                        {/* ✨ Badge de Modo Actual - MÁS VISIBLE */}
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-sm transition-all ${
+                          currentMode === 'course' 
+                            ? 'bg-blue-500/90 text-white' 
+                            : currentMode === 'prompts'
+                            ? 'bg-purple-500/90 text-white animate-pulse'
+                            : 'bg-teal-500/90 text-white'
+                        }`}>
+                          {currentMode === 'course' ? '📚 Curso' 
+                            : currentMode === 'prompts' ? '🎯 Prompts' 
+                            : '🧠 Contexto'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 relative">
@@ -3371,6 +3496,68 @@ Antes de cada respuesta, pregúntate:
                               style={{ backgroundColor: 'rgb(30, 41, 59)' }}
                             />
                             <div className="relative">
+                              {/* ✨ Sección: Modos de LIA */}
+                              <div className="px-3 py-2 border-b border-gray-200 dark:border-slate-700">
+                                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
+                                  Modo de Chat
+                                </p>
+                              </div>
+                              
+                              {/* ✨ Modo Curso */}
+                              <button
+                                onClick={() => {
+                                  setMode('course');
+                                  setShowLiaMenu(false);
+                                }}
+                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
+                                  currentMode === 'course'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
+                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                }`}
+                              >
+                                <BookOpen className="w-4 h-4" />
+                                📚 Modo Curso
+                                {currentMode === 'course' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                              </button>
+
+                              {/* ✨ Modo Prompts */}
+                              <button
+                                onClick={() => {
+                                  setMode('prompts');
+                                  setShowLiaMenu(false);
+                                }}
+                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
+                                  currentMode === 'prompts'
+                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium'
+                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                }`}
+                              >
+                                <Sparkles className="w-4 h-4" />
+                                🎯 Crear Prompts
+                                {currentMode === 'prompts' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                              </button>
+
+                              {/* ✨ Modo Contexto */}
+                              <button
+                                onClick={() => {
+                                  setMode('context');
+                                  setShowLiaMenu(false);
+                                }}
+                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
+                                  currentMode === 'context'
+                                    ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-medium'
+                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                }`}
+                              >
+                                <Brain className="w-4 h-4" />
+                                🧠 Contexto Persistente
+                                {currentMode === 'context' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                              </button>
+
+                              {/* Separador */}
+                              <div className="border-t border-gray-200 dark:border-slate-700 my-1"></div>
+
+                              {/* Opciones Originales */}
                               <button
                                 onClick={() => {
                                   clearLiaHistory();
@@ -3631,7 +3818,35 @@ Antes de cada respuesta, pregúntate:
                             : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">{message.content}</p>
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">
+                          {parseMarkdownLinks(message.content).map((part, index) => {
+                            if (part.type === 'link') {
+                              return (
+                                <a
+                                  key={index}
+                                  href={part.url}
+                                  target={part.url.startsWith('http') ? '_blank' : '_self'}
+                                  rel={part.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                                  className={`${
+                                    message.role === 'user'
+                                      ? 'text-white underline hover:text-white/80 font-semibold'
+                                      : 'text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300 font-semibold'
+                                  } transition-colors`}
+                                  onClick={(e) => {
+                                    // Si es una ruta interna, usar router de Next.js
+                                    if (!part.url.startsWith('http')) {
+                                      e.preventDefault();
+                                      router.push(part.url);
+                                    }
+                                  }}
+                                >
+                                  {part.text}
+                                </a>
+                              );
+                            }
+                            return <span key={index}>{part.content}</span>;
+                          })}
+                        </div>
                         <div className="flex items-center justify-between mt-2">
                           <p className="text-xs opacity-70">
                             {message.timestamp.toLocaleTimeString('es-ES', { 
@@ -3890,6 +4105,39 @@ Antes de cada respuesta, pregúntate:
                 </div>
               </div>
             </motion.div>
+
+            {/* ✨ Panel de Vista Previa de Prompts Generados */}
+            <AnimatePresence>
+              {showPromptPreview && generatedPrompt && currentMode === 'prompts' && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                  onClick={() => {
+                    setShowPromptPreview(false);
+                  }}
+                >
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <PromptPreviewPanel
+                      draft={generatedPrompt as PromptDraft}
+                      onSave={handleSavePrompt}
+                      onClose={() => {
+                        setShowPromptPreview(false);
+                        clearPrompt();
+                      }}
+                      onEdit={(edited) => {
+                        // Nota: Para editar, el usuario tendría que modificar el prompt generado
+                        // Esto podría implementarse con un modal de edición más adelante
+                        console.log('Prompt editado:', edited);
+                      }}
+                      isSaving={isSavingPrompt}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             </>
           )}
         </AnimatePresence>
