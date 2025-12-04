@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
     if (userIds.length > 0) {
       const { data: users } = await supabase
         .from('users')
-        .select('id, nombre, apellido, email, avatar_url, cargo_rol')
+        .select('id, username, first_name, last_name, display_name, email, profile_picture_url, cargo_rol')
         .in('id', userIds);
       
       usersMap = new Map(users?.map(u => [u.id, u]) || []);
@@ -150,13 +150,21 @@ export async function GET(request: NextRequest) {
     const enrichedUsers = sortedUsers.map((stats, index) => {
       const userInfo = usersMap.get(stats.userId);
       
+      // Construir nombre: priorizar display_name, luego first_name + last_name, luego username
+      const getUserName = (u: any) => {
+        if (u.display_name) return u.display_name;
+        const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        if (fullName) return fullName;
+        return u.username || 'Usuario';
+      };
+      
       return {
         rank: index + 1,
         user: userInfo ? {
           id: userInfo.id,
-          name: `${userInfo.nombre || ''} ${userInfo.apellido || ''}`.trim() || 'Usuario',
+          name: getUserName(userInfo),
           email: userInfo.email,
-          avatar: userInfo.avatar_url,
+          avatar: userInfo.profile_picture_url,
           role: userInfo.cargo_rol
         } : null,
         stats: {

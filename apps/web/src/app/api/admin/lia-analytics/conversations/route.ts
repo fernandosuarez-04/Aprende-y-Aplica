@@ -86,11 +86,19 @@ export async function GET(request: NextRequest) {
     if (userIds.length > 0) {
       const { data: users } = await supabase
         .from('users')
-        .select('id, nombre, apellido, email, avatar_url')
+        .select('id, username, first_name, last_name, display_name, email, profile_picture_url')
         .in('id', userIds);
       
       usersMap = new Map(users?.map(u => [u.id, u]) || []);
     }
+    
+    // Helper para obtener nombre de usuario
+    const getUserName = (u: any) => {
+      if (u.display_name) return u.display_name;
+      const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+      if (fullName) return fullName;
+      return u.username || 'Usuario';
+    };
     
     // Obtener métricas de cada conversación
     const conversationIds = conversations?.map(c => c.conversation_id) || [];
@@ -150,9 +158,9 @@ export async function GET(request: NextRequest) {
         id: conv.conversation_id,
         user: user ? {
           id: user.id,
-          name: `${user.nombre || ''} ${user.apellido || ''}`.trim() || 'Usuario',
+          name: getUserName(user),
           email: user.email,
-          avatar: user.avatar_url
+          avatar: user.profile_picture_url
         } : null,
         contextType: conv.context_type || 'general',
         startedAt: conv.started_at,
