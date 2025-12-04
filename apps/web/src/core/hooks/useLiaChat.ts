@@ -80,6 +80,9 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     let modeForThisMessage = currentMode;
     let shouldNotifyModeChange = false;
     let modeChangeMessage = '';
+    // 🎯 Solo esperar sin responder cuando se ACTIVA un modo especial (NanoBanana/Prompts)
+    // Si se cambia A curso/contexto CON una pregunta, debe responder
+    let shouldWaitForNextMessage = false;
 
     // ✨ DETECCIÓN BIDIRECCIONAL DE INTENCIONES (solo si no es mensaje del sistema)
     if (!isSystemMessage) {
@@ -126,6 +129,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           console.log('[LIA] 🎨 Activando Modo NanoBanana automáticamente');
           modeForThisMessage = 'nanobana';
           shouldNotifyModeChange = true;
+          shouldWaitForNextMessage = true; // Esperar descripción de lo que quiere crear
           modeChangeMessage = "🎨 He detectado que quieres generar un JSON para NanoBanana Pro. ¡Activo el modo de generación visual!\n\n¿Qué tipo de imagen o diseño quieres crear?";
           setCurrentMode('nanobana');
         }
@@ -134,6 +138,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           console.log('[LIA] ✅ Activando Modo Prompts automáticamente');
           modeForThisMessage = 'prompts';
           shouldNotifyModeChange = true;
+          shouldWaitForNextMessage = true; // Esperar descripción de qué prompt quiere
           modeChangeMessage = "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?";
           setCurrentMode('prompts');
         }
@@ -149,47 +154,76 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
             modeChangeMessage = "✨ He cambiado al Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?";
             setCurrentMode('prompts');
           }
-          // 🎯 Detectar si quiere cambiar a MODO CURSO (preguntas sobre el contenido del curso)
-          else if (intentResult.intent === 'course_question' && intentResult.confidence >= 0.6) {
-            console.log('[LIA] 🔄 Cambiando de NanoBanana a Modo Curso');
-            modeForThisMessage = 'course';
-            shouldNotifyModeChange = true;
-            modeChangeMessage = "📚 He cambiado al Modo Curso para ayudarte con el contenido de esta lección.";
-            setCurrentMode('course');
-          }
-          // 🎯 Detectar navegación o preguntas sobre la plataforma → MODO CONTEXTO
-          else if (intentResult.intent === 'navigate' || intentResult.intent === 'general') {
-            const platformKeywords = [
-              'comunidad', 'comunidades', 'noticias', 'noticia', 'dashboard', 'perfil',
-              'configuración', 'ajustes', 'cuenta', 'talleres', 'taller', 'workshops',
-              'directorio', 'prompts', 'apps', 'aplicaciones', 'plataforma', 'sitio',
-              'web', 'página', 'sección', 'menú', 'navegación', 'link', 'enlace'
-            ];
-            const explicitExitPatterns = [
-              /\b(salir|salte|terminar|cancelar)\b.*\b(nanobana|json|modo)\b/i,
-              /\b(no\s+quiero|ya\s+no)\b.*\b(json|nanobana)\b/i,
-              /\b(ll[eé]vame|llevame|llévame)\b/i,
-              /\b(ir\s+a|navegar\s+a|abrir)\b/i,
-              /\bdame\s+(el\s+)?(link|enlace)\b/i,
-              /\bquiero\s+(ir|ver|acceder)\s+a\b/i
+          // 🎯 Detectar si quiere cambiar a MODO CURSO (preguntas sobre el contenido del curso/lección)
+          else {
+            // Palabras clave que indican pregunta sobre el curso
+            const courseKeywords = [
+              'curso', 'lección', 'leccion', 'módulo', 'modulo', 'módulos', 'modulos',
+              'tema', 'contenido', 'video', 'transcripción', 'transcripcion', 'resumen',
+              'actividad', 'actividades', 'ejercicio', 'ejercicios', 'tarea', 'tareas',
+              'cuántos', 'cuantos', 'cuántas', 'cuantas', 'qué tiene', 'que tiene',
+              'de qué trata', 'de que trata', 'explícame', 'explicame', 'explica',
+              'aprendo', 'aprender', 'enseña', 'enseñar', 'material', 'materiales',
+              'duración', 'duracion', 'tiempo', 'largo', 'corto',
+              'siguiente', 'anterior', 'próxima', 'proxima', 'próximo', 'proximo'
             ];
             
-            const isPlatformQuestion = platformKeywords.some(keyword => messageLower.includes(keyword));
-            const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
+            // Patrones de preguntas sobre el curso
+            const courseQuestionPatterns = [
+              /\bcuántos?\s+(módulos?|lecciones?|temas?|videos?|actividades?)\b/i,
+              /\bcuantos?\s+(modulos?|lecciones?|temas?|videos?|actividades?)\b/i,
+              /\bde\s+qué\s+(trata|va|habla)\b/i,
+              /\bde\s+que\s+(trata|va|habla)\b/i,
+              /\bqué\s+(es|son|significa|aprendo|enseña)\b/i,
+              /\bque\s+(es|son|significa|aprendo|ensena)\b/i,
+              /\b(este|esta|el|la)\s+(curso|lección|módulo|tema|video)\b/i,
+              /\b(explicame|explícame|resume|resumen)\b/i
+            ];
             
-            if (isExplicitExit || isPlatformQuestion || intentResult.intent === 'navigate') {
-              console.log('[LIA] 🔄 Cambiando de NanoBanana a Modo Contexto');
-              modeForThisMessage = 'context';
+            const isCourseQuestion = courseKeywords.some(keyword => messageLower.includes(keyword)) ||
+                                     courseQuestionPatterns.some(p => p.test(messageLower));
+            
+            if (isCourseQuestion && intentResult.intent !== 'nanobana') {
+              console.log('[LIA] 🔄 Cambiando de NanoBanana a Modo Curso (pregunta sobre el curso detectada)');
+              modeForThisMessage = 'course';
               shouldNotifyModeChange = true;
-              modeChangeMessage = intentResult.intent === 'navigate' 
-                ? "🧠 He cambiado al Modo Contexto para ayudarte con la navegación."
-                : "🧠 He cambiado al Modo Contexto para responder tu pregunta.";
-              setCurrentMode('context');
+              modeChangeMessage = "📚 He cambiado al Modo Curso para ayudarte con el contenido.";
+              setCurrentMode('course');
+            }
+            // 🎯 Detectar navegación o preguntas sobre la plataforma → MODO CONTEXTO
+            else if (intentResult.intent === 'navigate' || intentResult.intent === 'general') {
+              const platformKeywords = [
+                'comunidad', 'comunidades', 'noticias', 'noticia', 'dashboard', 'perfil',
+                'configuración', 'ajustes', 'cuenta', 'talleres', 'taller', 'workshops',
+                'directorio', 'prompts', 'apps', 'aplicaciones', 'plataforma', 'sitio',
+                'web', 'página', 'sección', 'menú', 'navegación', 'link', 'enlace'
+              ];
+              const explicitExitPatterns = [
+                /\b(salir|salte|terminar|cancelar)\b.*\b(nanobana|json|modo)\b/i,
+                /\b(no\s+quiero|ya\s+no)\b.*\b(json|nanobana)\b/i,
+                /\b(ll[eé]vame|llevame|llévame)\b/i,
+                /\b(ir\s+a|navegar\s+a|abrir)\b/i,
+                /\bdame\s+(el\s+)?(link|enlace)\b/i,
+                /\bquiero\s+(ir|ver|acceder)\s+a\b/i
+              ];
+              
+              const isPlatformQuestion = platformKeywords.some(keyword => messageLower.includes(keyword));
+              const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
+              
+              if (isExplicitExit || isPlatformQuestion || intentResult.intent === 'navigate') {
+                console.log('[LIA] 🔄 Cambiando de NanoBanana a Modo Contexto');
+                modeForThisMessage = 'context';
+                shouldNotifyModeChange = true;
+                modeChangeMessage = intentResult.intent === 'navigate' 
+                  ? "🧠 He cambiado al Modo Contexto para ayudarte con la navegación."
+                  : "🧠 He cambiado al Modo Contexto para responder tu pregunta.";
+                setCurrentMode('context');
+              } else {
+                console.log('[LIA] 🎨 Manteniendo Modo NanoBanana');
+              }
             } else {
               console.log('[LIA] 🎨 Manteniendo Modo NanoBanana');
             }
-          } else {
-            console.log('[LIA] 🎨 Manteniendo Modo NanoBanana');
           }
         }
         // CASO 2: Si ESTAMOS en modo prompts, detectar intenciones para cambiar a otros modos
@@ -329,11 +363,15 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         
         setMessages(prev => [...prev, systemMessage]);
         
-        // 🎯 IMPORTANTE: Si acabamos de cambiar de modo, NO llamar al API
-        // Solo mostrar el mensaje de bienvenida y esperar el siguiente mensaje del usuario
-        console.log('[LIA] ⏸️ Modo cambiado. Esperando siguiente mensaje del usuario...');
-        setIsLoading(false);
-        return;
+        // 🎯 IMPORTANTE: Solo esperar sin responder si se ACTIVÓ un modo especial (NanoBanana/Prompts)
+        // Si se cambió a curso/contexto CON una pregunta, debe continuar y responder
+        if (shouldWaitForNextMessage) {
+          console.log('[LIA] ⏸️ Modo especial activado. Esperando descripción del usuario...');
+          setIsLoading(false);
+          return;
+        } else {
+          console.log('[LIA] 🔄 Modo cambiado. Continuando para responder la pregunta...');
+        }
       }
     }
 

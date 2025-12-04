@@ -1127,19 +1127,37 @@ export function AIChatAgent({
           };
           setNormalMessages(prev => [...prev, systemMessage]);
         }
-        // 🎯 Detectar preguntas generales sobre la plataforma → Modo normal
-        else if (intentResult.intent === 'general') {
-          const platformKeywords = [
+        // 🎯 Detectar preguntas generales o sobre cursos/plataforma → Modo normal
+        else if (intentResult.intent === 'general' || intentResult.intent === 'question') {
+          // Palabras clave que indican NO es una solicitud de NanoBanana
+          const nonNanoBananaKeywords = [
+            // Plataforma
             'comunidad', 'comunidades', 'noticias', 'noticia', 'dashboard', 'perfil',
             'configuración', 'ajustes', 'cuenta', 'talleres', 'taller', 'workshops',
             'directorio', 'prompts', 'apps', 'aplicaciones', 'plataforma', 'sitio',
             'web', 'página', 'sección', 'menú', 'navegación', 'link', 'enlace',
-            'ayuda', 'soporte', 'funciona', 'qué es', 'cómo'
+            'ayuda', 'soporte', 'funciona', 'qué es', 'cómo',
+            // Cursos y contenido educativo
+            'curso', 'cursos', 'lección', 'leccion', 'módulo', 'modulo', 'módulos', 'modulos',
+            'tema', 'contenido', 'video', 'transcripción', 'transcripcion', 'resumen',
+            'actividad', 'actividades', 'ejercicio', 'ejercicios', 'tarea', 'tareas',
+            'cuántos', 'cuantos', 'cuántas', 'cuantas', 'aprendo', 'aprender', 'enseña',
+            'material', 'materiales', 'duración', 'duracion'
           ];
-          const isPlatformQuestion = platformKeywords.some(keyword => messageLower.includes(keyword));
           
-          if (isPlatformQuestion) {
-            console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a modo normal (pregunta plataforma)');
+          // Patrones de preguntas generales
+          const generalQuestionPatterns = [
+            /\bcuántos?\b/i, /\bcuantos?\b/i,
+            /\bqué\s+(es|son|tiene|hay)\b/i, /\bque\s+(es|son|tiene|hay)\b/i,
+            /\bcómo\s+(funciona|puedo|hago)\b/i, /\bcomo\s+(funciona|puedo|hago)\b/i,
+            /\bdónde\s+(está|encuentro)\b/i, /\bdonde\s+(esta|encuentro)\b/i
+          ];
+          
+          const isNonNanoBananaQuestion = nonNanoBananaKeywords.some(keyword => messageLower.includes(keyword)) ||
+                                          generalQuestionPatterns.some(p => p.test(messageLower));
+          
+          if (isNonNanoBananaQuestion) {
+            console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a modo normal (pregunta detectada)');
             shouldDeactivateNanoBananaMode = true;
             setIsNanoBananaMode(false);
             
@@ -1283,13 +1301,12 @@ export function AIChatAgent({
     const effectivePromptMode = (isPromptMode || shouldActivatePromptMode) && !shouldDeactivatePromptMode && !shouldActivateNanoBananaMode;
     const effectiveNanoBananaMode = (isNanoBananaMode || shouldActivateNanoBananaMode) && !shouldDeactivateNanoBananaMode;
 
-    // 🎯 IMPORTANTE: Si ACABAMOS de cambiar de modo, NO llamar al API
-    // Solo mostrar el mensaje de bienvenida y esperar el siguiente mensaje del usuario
-    const justActivatedNewMode = shouldActivateNanoBananaMode || shouldActivatePromptMode || 
-                                  shouldDeactivateNanoBananaMode || shouldDeactivatePromptMode;
+    // 🎯 IMPORTANTE: Solo esperar sin responder si se ACTIVÓ un modo especial (NanoBanana/Prompts)
+    // Si se DESACTIVÓ (salió) de un modo especial CON una pregunta, debe continuar y responder
+    const shouldWaitForDescription = shouldActivateNanoBananaMode || shouldActivatePromptMode;
     
-    if (justActivatedNewMode) {
-      console.log('[LIA Agent] ⏸️ Modo cambiado. Esperando siguiente mensaje del usuario...');
+    if (shouldWaitForDescription) {
+      console.log('[LIA Agent] ⏸️ Modo especial activado. Esperando descripción del usuario...');
       // Agregar el mensaje del usuario al historial correspondiente
       if (effectiveNanoBananaMode) {
         setNanoBananaMessages(prev => [...prev, userMessage]);
@@ -1306,7 +1323,12 @@ export function AIChatAgent({
           inputRef.current.style.overflowY = 'hidden';
         }
       }, 0);
-      return; // NO llamar al API, solo mostrar mensaje de bienvenida
+      return; // NO llamar al API, esperar que el usuario describa lo que quiere
+    }
+    
+    // Si se DESACTIVÓ un modo especial, continuar para responder la pregunta
+    if (shouldDeactivateNanoBananaMode || shouldDeactivatePromptMode) {
+      console.log('[LIA Agent] 🔄 Modo especial desactivado. Continuando para responder la pregunta...');
     }
 
     // Usar el setter correcto según el modo efectivo
