@@ -99,12 +99,23 @@ export class PostReportsService {
         }
       )
 
-      const data = await response.json()
-
-      if (!response.ok) {
+      let data
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError)
         return {
           success: false,
-          error: data.error || 'Error al crear el reporte',
+          error: `Error ${response.status}: ${response.statusText}`,
+        }
+      }
+
+      if (!response.ok) {
+        const errorMessage = data?.error || `Error al crear el reporte (${response.status})`
+        
+        return {
+          success: false,
+          error: errorMessage,
         }
       }
 
@@ -117,7 +128,7 @@ export class PostReportsService {
       console.error('Error creating report:', error)
       return {
         success: false,
-        error: 'Error de conexión al crear el reporte',
+        error: error instanceof Error ? error.message : 'Error de conexión al crear el reporte',
       }
     }
   }

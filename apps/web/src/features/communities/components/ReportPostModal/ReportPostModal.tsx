@@ -77,8 +77,22 @@ export function ReportPostModal({
       setReasonDetails('')
       setError(null)
       setSuccess(false)
+      setIsSubmitting(false)
     }
   }, [isOpen])
+
+  // Scroll al error cuando aparece
+  useEffect(() => {
+    if (error && !success) {
+      // Pequeño delay para asegurar que el DOM se haya actualizado
+      setTimeout(() => {
+        const errorElement = document.querySelector('[data-error-toast]')
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+    }
+  }, [error, success])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -95,6 +109,7 @@ export function ReportPostModal({
     }
 
     setIsSubmitting(true)
+    setError(null) // Asegurar que el error previo se limpie
 
     try {
       const result = await PostReportsService.createReport(communitySlug, postId, {
@@ -111,10 +126,12 @@ export function ReportPostModal({
           }
         }, 1500)
       } else {
-        setError(result.error || 'Error al enviar el reporte')
+        const errorMessage = result.error || 'Error al enviar el reporte'
+        setError(errorMessage)
       }
     } catch (err) {
-      setError('Error de conexión. Por favor intenta nuevamente.')
+      const errorMessage = err instanceof Error ? err.message : 'Error de conexión. Por favor intenta nuevamente.'
+      setError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -170,8 +187,41 @@ export function ReportPostModal({
                 </button>
               </div>
 
+              {/* Error Toast - Flotante */}
+              {error && !success && (
+                <motion.div
+                  data-error-toast
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="mx-6 mt-4 mb-0 p-4 bg-red-50 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600 rounded-lg flex items-start gap-3 shadow-xl z-10 sticky top-0"
+                >
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">
+                      {error.includes('Ya has reportado') || error.includes('ya reportado') || error.toLowerCase().includes('anteriormente')
+                        ? '⚠️ Ya reportaste este post'
+                        : '❌ Error al enviar el reporte'}
+                    </p>
+                    <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                      {error.includes('Ya has reportado') || error.includes('ya reportado') || error.toLowerCase().includes('anteriormente')
+                        ? 'No puedes reportar el mismo post dos veces. Ya has enviado un reporte para este contenido anteriormente.'
+                        : error}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-red-500 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0 p-1 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
+                    aria-label="Cerrar mensaje de error"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
+
               {/* Content */}
-              <div className="p-6 overflow-y-auto flex-1">
+              <div className={`p-6 overflow-y-auto flex-1 ${error && !success ? 'pt-2' : ''}`}>
                 {success ? (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
@@ -242,12 +292,6 @@ export function ReportPostModal({
                           className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
                           disabled={isSubmitting}
                         />
-                      </div>
-                    )}
-
-                    {error && (
-                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                       </div>
                     )}
                   </form>

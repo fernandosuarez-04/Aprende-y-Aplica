@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { cacheHeaders } from '@/lib/utils/cache-headers';
 import { logger } from '@/lib/utils/logger';
+import { canModerateCommunity } from '@/lib/auth/communityPermissions';
 
 export async function GET(
   request: NextRequest,
@@ -105,8 +106,15 @@ export async function GET(
       }
     }
 
-    // Obtener posts de la comunidad
-    const { data: posts, error: postsError } = await supabase
+    // Verificar si el usuario puede moderar (ver posts ocultos)
+    let canSeeHiddenPosts = false
+    if (user) {
+      canSeeHiddenPosts = await canModerateCommunity(user.id, community.id)
+      logger.log(`👮 User moderation status: ${canSeeHiddenPosts ? 'Can see hidden posts' : 'Cannot see hidden posts'}`)
+    }
+
+    // Construir query base para obtener posts
+    let postsQuery = supabase
       .from('community_posts')
       .select(`
         *,
@@ -119,6 +127,17 @@ export async function GET(
         )
       `)
       .eq('community_id', community.id)
+
+    // Si el usuario NO puede moderar, filtrar posts ocultos
+    if (!canSeeHiddenPosts) {
+      postsQuery = postsQuery.eq('is_hidden', false)
+      logger.log('🔒 Filtering out hidden posts for regular user')
+    } else {
+      logger.log('👮 Moderator/Admin: showing all posts including hidden ones')
+    }
+
+    // Aplicar orden y límite
+    const { data: posts, error: postsError } = await postsQuery
       .order('created_at', { ascending: false })
       .limit(50);
 
