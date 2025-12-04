@@ -42,6 +42,7 @@ const navigation = [
   { name: 'Comunidades', href: '/admin/communities', icon: UserGroupIcon, current: false },
   { name: 'Prompts', href: '/admin/prompts', icon: ChatBubbleLeftRightIcon, current: false },
   { name: 'Apps de IA', href: '/admin/apps', icon: CpuChipIcon, current: false },
+  { name: 'LIA Analytics', href: '/admin/lia-analytics', icon: ChartBarIcon, current: false },
   { name: 'Skills', href: '/admin/skills', icon: AcademicCapIcon, current: false },
   { name: 'Noticias', href: '/admin/news', icon: NewspaperIcon, current: false },
   { name: 'Reels', href: '/admin/reels', icon: PlayIcon, current: false },
