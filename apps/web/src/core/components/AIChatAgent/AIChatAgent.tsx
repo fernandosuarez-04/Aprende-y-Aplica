@@ -1093,23 +1093,13 @@ export function AIChatAgent({
         setNanoBananaDomain(detectedNanoBananaDomain);
         setNanoBananaFormat(detectedNanoBananaFormat);
       }
-      // CASO 0.5: Si estamos en modo NanoBanana, verificar si quiere salir
+      // CASO 0.5: Si estamos en modo NanoBanana, detectar intenciones para cambiar a CUALQUIER otro modo
       else if (isNanoBananaMode) {
         const messageLower = inputMessage.toLowerCase().trim();
         
-        const explicitExitPatterns = [
-          /\b(ll[eé]vame|llevame|llévame)\b/i,
-          /\b(ir\s+a|navegar\s+a|abrir)\b/i,
-          /\b(salir|salte|terminar|cancelar)\b.*\b(nanobana|modo)\b/i,
-          /\b(no\s+quiero|ya\s+no)\b.*\b(nanobana|json|imagen)\b/i,
-          /\bcrear\s+prompt\b/i // Cambiar a modo prompts
-        ];
-        
-        const wantsPromptMode = /\bcrear\s+prompt\b/i.test(messageLower);
-        const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
-        
-        if (wantsPromptMode) {
-          console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a Modo Prompts');
+        // 🎯 Detectar si quiere cambiar a MODO PROMPTS
+        if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
+          console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a Modo Prompts (detección automática)');
           shouldDeactivateNanoBananaMode = true;
           shouldActivatePromptMode = true;
           setIsNanoBananaMode(false);
@@ -1118,24 +1108,80 @@ export function AIChatAgent({
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
-            content: "✨ He cambiado al Modo Prompts para ayudarte a crear prompts de texto.",
+            content: "✨ He cambiado al Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?",
             timestamp: new Date()
           };
           setPromptMessages(prev => [...prev, systemMessage]);
-        } else if (isExplicitExit) {
-          console.log('[LIA Agent] 🔄 Saliendo del Modo NanoBanana');
+        }
+        // 🎯 Detectar navegación → Modo normal con contexto
+        else if (intentResult.intent === 'navigate') {
+          console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a modo normal (navegación detectada)');
           shouldDeactivateNanoBananaMode = true;
           setIsNanoBananaMode(false);
           
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
-            content: "🧠 He cambiado al modo normal para ayudarte.",
+            content: "🧠 He cambiado al modo normal para ayudarte con la navegación.",
             timestamp: new Date()
           };
           setNormalMessages(prev => [...prev, systemMessage]);
-        } else {
-          console.log('[LIA Agent] ✅ Manteniendo Modo NanoBanana');
+        }
+        // 🎯 Detectar preguntas generales sobre la plataforma → Modo normal
+        else if (intentResult.intent === 'general') {
+          const platformKeywords = [
+            'comunidad', 'comunidades', 'noticias', 'noticia', 'dashboard', 'perfil',
+            'configuración', 'ajustes', 'cuenta', 'talleres', 'taller', 'workshops',
+            'directorio', 'prompts', 'apps', 'aplicaciones', 'plataforma', 'sitio',
+            'web', 'página', 'sección', 'menú', 'navegación', 'link', 'enlace',
+            'ayuda', 'soporte', 'funciona', 'qué es', 'cómo'
+          ];
+          const isPlatformQuestion = platformKeywords.some(keyword => messageLower.includes(keyword));
+          
+          if (isPlatformQuestion) {
+            console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a modo normal (pregunta plataforma)');
+            shouldDeactivateNanoBananaMode = true;
+            setIsNanoBananaMode(false);
+            
+            const systemMessage: Message = {
+              id: `system-${Date.now()}`,
+              role: 'assistant',
+              content: "🧠 He cambiado al modo normal para responder tu pregunta.",
+              timestamp: new Date()
+            };
+            setNormalMessages(prev => [...prev, systemMessage]);
+          } else {
+            console.log('[LIA Agent] ✅ Manteniendo Modo NanoBanana');
+          }
+        }
+        // 🎯 Patrones explícitos de salida
+        else {
+          const explicitExitPatterns = [
+            /\b(ll[eé]vame|llevame|llévame)\b/i,
+            /\b(ir\s+a|navegar\s+a|abrir)\b/i,
+            /\b(salir|salte|terminar|cancelar)\b.*\b(nanobana|modo|json)\b/i,
+            /\b(no\s+quiero|ya\s+no)\b.*\b(nanobana|json|imagen)\b/i,
+            /\bdame\s+(el\s+)?(link|enlace)\b/i,
+            /\bquiero\s+(ir|ver|acceder)\s+a\b/i
+          ];
+          
+          const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
+          
+          if (isExplicitExit) {
+            console.log('[LIA Agent] 🔄 Saliendo del Modo NanoBanana (salida explícita)');
+            shouldDeactivateNanoBananaMode = true;
+            setIsNanoBananaMode(false);
+            
+            const systemMessage: Message = {
+              id: `system-${Date.now()}`,
+              role: 'assistant',
+              content: "🧠 He cambiado al modo normal para ayudarte.",
+              timestamp: new Date()
+            };
+            setNormalMessages(prev => [...prev, systemMessage]);
+          } else {
+            console.log('[LIA Agent] ✅ Manteniendo Modo NanoBanana');
+          }
         }
       }
       // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
@@ -1169,9 +1215,16 @@ export function AIChatAgent({
           /\b(no\s+quiero|ya\s+no)\b.*\bprompt\b/i
         ];
         
-        const wantsNanoBanana = /\bnanobana(na)?\b/i.test(messageLower) || 
-                               (/\b(wireframe|mockup|ui|interfaz|diagrama)\b/i.test(messageLower) && 
-                                /\b(json|generar|crear|diseñar)\b/i.test(messageLower));
+        // 🎨 Patrones mejorados para detectar intención de NanoBanana (generación visual/imágenes)
+        const nanoBananaKeywords = [
+          /\bnanobana(na)?\b/i,
+          /\b(wireframe|mockup|ui|interfaz|diagrama)\b.*\b(json|generar|crear|diseñar)\b/i,
+          /\b(crear?|genera[r]?|diseña[r]?|haz(me)?)\b.*\b(imagen|visual|wireframe|mockup|ui|interfaz|diagrama|app|pantalla)\b/i,
+          /\b(necesito|quiero|dame)\b.*\b(diseño|imagen|visual|interfaz|wireframe|mockup)\b/i,
+          /\b(diseña(r|me)?|dibuja(r|me)?)\b.*\b(una?\s*)?(app|aplicación|pantalla|interfaz)\b/i,
+          /\b(foto|imagen)\b.*\b(producto|marketing)\b/i
+        ];
+        const wantsNanoBanana = nanoBananaKeywords.some(p => p.test(messageLower));
         const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
         
         console.log('[LIA Agent] 📊 Análisis en Modo Prompts:', {
@@ -1229,6 +1282,32 @@ export function AIChatAgent({
     // Determinar el modo efectivo para esta llamada
     const effectivePromptMode = (isPromptMode || shouldActivatePromptMode) && !shouldDeactivatePromptMode && !shouldActivateNanoBananaMode;
     const effectiveNanoBananaMode = (isNanoBananaMode || shouldActivateNanoBananaMode) && !shouldDeactivateNanoBananaMode;
+
+    // 🎯 IMPORTANTE: Si ACABAMOS de cambiar de modo, NO llamar al API
+    // Solo mostrar el mensaje de bienvenida y esperar el siguiente mensaje del usuario
+    const justActivatedNewMode = shouldActivateNanoBananaMode || shouldActivatePromptMode || 
+                                  shouldDeactivateNanoBananaMode || shouldDeactivatePromptMode;
+    
+    if (justActivatedNewMode) {
+      console.log('[LIA Agent] ⏸️ Modo cambiado. Esperando siguiente mensaje del usuario...');
+      // Agregar el mensaje del usuario al historial correspondiente
+      if (effectiveNanoBananaMode) {
+        setNanoBananaMessages(prev => [...prev, userMessage]);
+      } else if (effectivePromptMode) {
+        setPromptMessages(prev => [...prev, userMessage]);
+      } else {
+        setNormalMessages(prev => [...prev, userMessage]);
+      }
+      setInputMessage('');
+      // Resetear altura del textarea
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.style.height = 'auto';
+          inputRef.current.style.overflowY = 'hidden';
+        }
+      }, 0);
+      return; // NO llamar al API, solo mostrar mensaje de bienvenida
+    }
 
     // Usar el setter correcto según el modo efectivo
     if (effectiveNanoBananaMode) {
