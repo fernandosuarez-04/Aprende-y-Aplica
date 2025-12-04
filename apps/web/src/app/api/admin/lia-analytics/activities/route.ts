@@ -6,36 +6,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    
     const supabase = await createClient();
-    
-    // Verificar autenticación y permisos de admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
-    
-    // Verificar rol de administrador
-    const { data: userData } = await supabase
-      .from('usuarios')
-      .select('cargo_rol')
-      .eq('id', user.id)
-      .single();
-    
-    if (userData?.cargo_rol !== 'Administrador') {
-      return NextResponse.json(
-        { success: false, error: 'Acceso denegado' },
-        { status: 403 }
-      );
-    }
     
     // Obtener parámetros
     const { searchParams } = new URL(request.url);
@@ -228,4 +209,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -6,36 +6,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    
     const supabase = await createClient();
-    
-    // Verificar autenticación y permisos de admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
-    
-    // Verificar rol de administrador
-    const { data: userData } = await supabase
-      .from('usuarios')
-      .select('cargo_rol')
-      .eq('id', user.id)
-      .single();
-    
-    if (userData?.cargo_rol !== 'Administrador') {
-      return NextResponse.json(
-        { success: false, error: 'Acceso denegado' },
-        { status: 403 }
-      );
-    }
     
     // Obtener parámetros
     const { searchParams } = new URL(request.url);
@@ -98,25 +79,33 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Obtener información de usuarios
+    // Obtener información de usuarios (usando tabla 'users')
     const userIds = [...new Set(conversations?.map(c => c.user_id) || [])];
-    const { data: users } = await supabase
-      .from('usuarios')
-      .select('id, nombre, apellido, email, avatar_url')
-      .in('id', userIds);
+    let usersMap = new Map();
     
-    const usersMap = new Map(users?.map(u => [u.id, u]) || []);
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, nombre, apellido, email, avatar_url')
+        .in('id', userIds);
+      
+      usersMap = new Map(users?.map(u => [u.id, u]) || []);
+    }
     
     // Obtener métricas de cada conversación
     const conversationIds = conversations?.map(c => c.conversation_id) || [];
     
-    const { data: messagesMetrics } = await supabase
-      .from('lia_messages')
-      .select('conversation_id, tokens_used, cost_usd, response_time_ms')
-      .in('conversation_id', conversationIds);
+    let messagesMetrics: any[] = [];
+    if (conversationIds.length > 0) {
+      const { data } = await supabase
+        .from('lia_messages')
+        .select('conversation_id, tokens_used, cost_usd, response_time_ms')
+        .in('conversation_id', conversationIds);
+      messagesMetrics = data || [];
+    }
     
     // Agrupar métricas por conversación
-    const metricsMap = new Map<string, { tokens: number; cost: number; avgResponseTime: number; messageCount: number }>();
+    const metricsMap = new Map<string, { tokens: number; cost: number; avgResponseTime: number; messageCount: number; totalResponseTime: number }>();
     
     messagesMetrics?.forEach(m => {
       const existing = metricsMap.get(m.conversation_id) || { 
@@ -127,7 +116,7 @@ export async function GET(request: NextRequest) {
         totalResponseTime: 0
       };
       
-      const totalResponseTime = (existing as any).totalResponseTime + (m.response_time_ms || 0);
+      const totalResponseTime = existing.totalResponseTime + (m.response_time_ms || 0);
       const messageCount = existing.messageCount + 1;
       
       metricsMap.set(m.conversation_id, {
@@ -136,7 +125,7 @@ export async function GET(request: NextRequest) {
         avgResponseTime: m.response_time_ms ? Math.round(totalResponseTime / messageCount) : existing.avgResponseTime,
         messageCount,
         totalResponseTime
-      } as any);
+      });
     });
     
     // Enriquecer datos de conversaciones
@@ -211,4 +200,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
