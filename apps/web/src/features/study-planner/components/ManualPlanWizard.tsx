@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Calendar, Clock, BookOpen, Coffee, Settings } from 'lucide-react';
 import { LearningRouteSelector } from './LearningRouteSelector';
@@ -32,6 +32,15 @@ interface ShortestLesson {
   lesson_title: string;
   total_minutes: number;
   course_title: string;
+  module_title: string;
+}
+
+interface LongestLesson {
+  lesson_id: string;
+  lesson_title: string;
+  total_minutes: number;
+  course_title: string;
+  module_title: string;
 }
 
 interface BreakInterval {
@@ -55,6 +64,7 @@ interface PlanConfig {
   maxStudySessionMinutes: number;
   minLessonTimeMinutes: number; // Tiempo mínimo de lección más corta
   shortestLesson: ShortestLesson | null;
+  longestLesson: LongestLesson | null;
   breakIntervals: BreakInterval[];
 }
 
@@ -71,6 +81,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
     maxStudySessionMinutes: 90, // Mejor práctica: máximo 90 min antes de descanso largo (según estudios científicos)
     minLessonTimeMinutes: 15, // Valor por defecto, se actualizará con los cursos seleccionados
     shortestLesson: null,
+    longestLesson: null,
     breakIntervals: [],
   });
 
@@ -83,6 +94,19 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
   ];
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
+
+  // Memoizar las funciones de callback para evitar recreaciones en cada render
+  const handleSettingsChange = useCallback((settings: {
+    minStudyMinutes: number;
+    minRestMinutes: number;
+    maxStudySessionMinutes: number;
+  }) => {
+    setConfig((prevConfig) => ({ ...prevConfig, ...settings }));
+  }, []);
+
+  const handleBreakIntervalsChange = useCallback((intervals: BreakInterval[]) => {
+    setConfig((prevConfig) => ({ ...prevConfig, breakIntervals: intervals }));
+  }, []);
 
   const handleNext = () => {
     const nextIndex = currentStepIndex + 1;
@@ -266,10 +290,12 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
       return;
     }
 
-    // Obtener tiempo mínimo de lecciones y lección más corta
-    const { minTime, shortestLesson } = await getMinLessonTime(courses.map(c => c.id));
+    // Obtener tiempo mínimo y máximo de lecciones, lección más corta y más larga
+    const { minTime, maxTime, shortestLesson, longestLesson } = await getMinLessonTime(courses.map(c => c.id));
     console.log('⏱️ Tiempo mínimo de lección:', minTime);
+    console.log('⏱️ Tiempo máximo de lección:', maxTime);
     console.log('📚 Lección más corta:', shortestLesson);
+    console.log('📚 Lección más larga:', longestLesson);
     
     // Obtener nombre de la ruta si existe
     let routeName = '';
@@ -297,6 +323,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
       selectedCourses: courses,
       minLessonTimeMinutes: minTime,
       shortestLesson: shortestLesson,
+      longestLesson: longestLesson,
       minStudyMinutes: adjustedMinStudy, // Ajustar automáticamente si es necesario
     };
 
@@ -343,7 +370,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
       }
       
       if (res.ok && responseData.route) {
-        const { minTime, shortestLesson } = await getMinLessonTime(courses.map(c => c.id));
+        const { minTime, maxTime, shortestLesson, longestLesson } = await getMinLessonTime(courses.map(c => c.id));
         
         // Ajustar minStudyMinutes: usar el máximo entre el valor actual (25 min Pomodoro) y el tiempo mínimo de lección
         const adjustedMinStudy = Math.max(25, minTime);
@@ -355,6 +382,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
           selectedCourses: courses,
           minLessonTimeMinutes: minTime,
           shortestLesson: shortestLesson,
+          longestLesson: longestLesson,
           minStudyMinutes: adjustedMinStudy, // Ajustar automáticamente si es necesario
         });
         
@@ -369,7 +397,12 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
     }
   };
 
-  const getMinLessonTime = async (courseIds: string[]): Promise<{ minTime: number; shortestLesson: ShortestLesson | null }> => {
+  const getMinLessonTime = async (courseIds: string[]): Promise<{ 
+    minTime: number; 
+    maxTime: number;
+    shortestLesson: ShortestLesson | null;
+    longestLesson: LongestLesson | null;
+  }> => {
     try {
       const res = await fetch('/api/study-planner/min-lesson-time', {
         method: 'POST',
@@ -381,13 +414,15 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
         const data = await res.json();
         return {
           minTime: data.minTimeMinutes || 15,
+          maxTime: data.maxTimeMinutes || 90,
           shortestLesson: data.shortestLesson || null,
+          longestLesson: data.longestLesson || null,
         };
       }
     } catch (error) {
       console.error('Error getting min lesson time:', error);
     }
-    return { minTime: 15, shortestLesson: null }; // Valor por defecto
+    return { minTime: 15, maxTime: 90, shortestLesson: null, longestLesson: null }; // Valor por defecto
   };
 
   const canProceed = () => {
@@ -397,10 +432,12 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
       case 'days':
         return config.selectedDays.length > 0;
       case 'settings':
-        // Validación CRÍTICA: el tiempo mínimo de estudio debe ser >= duración mínima de lección
-        // Esto asegura que el usuario pueda completar al menos una lección por sesión
+        // Validaciones:
+        // 1. El tiempo mínimo de estudio debe ser >= duración mínima de lección
+        // 2. El tiempo mínimo no puede ser mayor que el tiempo máximo
+        // 3. El tiempo máximo debe ser >= tiempo mínimo
         return config.minStudyMinutes >= config.minLessonTimeMinutes && 
-               config.minRestMinutes >= 5 && 
+               config.minStudyMinutes <= config.maxStudySessionMinutes &&
                config.maxStudySessionMinutes >= config.minStudyMinutes;
       case 'schedule':
         return config.timeSlots.length > 0;
@@ -533,9 +570,10 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
                 maxStudySessionMinutes={config.maxStudySessionMinutes}
                 minLessonTimeMinutes={config.minLessonTimeMinutes}
                 shortestLesson={config.shortestLesson}
+                longestLesson={config.longestLesson}
                 breakIntervals={config.breakIntervals}
-                onChange={(settings) => setConfig({ ...config, ...settings })}
-                onBreakIntervalsChange={(intervals) => setConfig({ ...config, breakIntervals: intervals })}
+                onChange={handleSettingsChange}
+                onBreakIntervalsChange={handleBreakIntervalsChange}
               />
             )}
 

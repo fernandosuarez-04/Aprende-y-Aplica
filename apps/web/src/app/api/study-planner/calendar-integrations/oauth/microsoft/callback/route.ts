@@ -32,11 +32,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const clientId = process.env.MICROSOFT_CALENDAR_CLIENT_ID;
-    const clientSecret = process.env.MICROSOFT_CALENDAR_CLIENT_SECRET;
+    // Aceptar tanto MICROSOFT_CALENDAR_* como MICROSOFT_* (fallback)
+    const clientId = process.env.MICROSOFT_CALENDAR_CLIENT_ID || process.env.MICROSOFT_CLIENT_ID;
+    const clientSecret = process.env.MICROSOFT_CALENDAR_CLIENT_SECRET || process.env.MICROSOFT_CLIENT_SECRET;
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/study-planner/calendar-integrations/oauth/microsoft/callback`;
 
     if (!clientId || !clientSecret) {
+      console.error('❌ Variables de Microsoft Calendar no configuradas:', {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        MICROSOFT_CALENDAR_CLIENT_ID: !!process.env.MICROSOFT_CALENDAR_CLIENT_ID,
+        MICROSOFT_CLIENT_ID: !!process.env.MICROSOFT_CLIENT_ID,
+        MICROSOFT_CALENDAR_CLIENT_SECRET: !!process.env.MICROSOFT_CALENDAR_CLIENT_SECRET,
+        MICROSOFT_CLIENT_SECRET: !!process.env.MICROSOFT_CLIENT_SECRET,
+      });
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/study-planner/dashboard?error=not_configured`
       );

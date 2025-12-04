@@ -70,13 +70,12 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Calcula intervalos de descanso usando lógica Pomodoro flexible
+ * Calcula intervalos de descanso usando lógica Pomodoro simplificada
  * 
- * Reglas:
- * - Descanso corto cada 25-30 minutos (basado en minStudyMinutes)
- * - Descanso largo después de 90 minutos o 2/3 del máximo
- * - Proporción 5:1 (estudio:descanso) como base
- * - Adaptar según maxStudySessionMinutes configurado
+ * Reglas simplificadas:
+ * - Para sesiones < 60 min: 1 descanso corto (5 min) a la mitad
+ * - Para sesiones 60-90 min: 1 descanso corto (5 min) + 1 descanso largo (10 min) al final
+ * - Para sesiones > 90 min: 1 descanso corto (5 min) a la mitad + 1 descanso largo (15 min) al final
  */
 function calculateBreakIntervals(
   minStudy: number,
@@ -93,40 +92,47 @@ function calculateBreakIntervals(
     break_type: 'short' | 'long';
   }> = [];
 
-  // Descanso corto: cada 25-30 minutos (usar minStudy como base, mínimo 25)
-  const shortBreakInterval = Math.max(25, Math.min(30, minStudy));
-  const shortBreakDuration = Math.max(5, minRest);
+  // Duración fija para descansos
+  const shortBreakDuration = 5; // 5 minutos fijos
+  const longBreakDuration = maxStudy >= 90 ? 15 : 10; // 15 min para sesiones largas, 10 min para medianas
 
-  // Descanso largo: después de 90 minutos o 2/3 del máximo (lo que sea menor)
-  const longBreakThreshold = Math.min(90, Math.floor(maxStudy * 0.67));
-  const longBreakDuration = Math.max(15, Math.min(30, minRest * 2));
-
-  // Calcular cuántos intervalos cortos caben en la sesión máxima
-  // Sin incluir el último intervalo si va a haber un descanso largo
-  const hasLongBreak = maxStudy >= longBreakThreshold;
-  const effectiveMaxStudy = hasLongBreak ? longBreakThreshold : maxStudy;
-  const shortBreaksCount = Math.floor(effectiveMaxStudy / shortBreakInterval);
-
-  // Agregar descansos cortos
-  for (let i = 1; i <= shortBreaksCount; i++) {
-    const intervalMinutes = shortBreakInterval * i;
-    
-    // No agregar si este intervalo coincide con el descanso largo
-    if (hasLongBreak && intervalMinutes >= longBreakThreshold) {
-      break;
-    }
-
+  if (maxStudy < 45) {
+    // Sesiones muy cortas (< 45 min): No necesitan descanso
+    // El estudiante puede completar la sesión sin interrupciones
+    return [];
+  } else if (maxStudy < 60) {
+    // Sesiones cortas (45-60 min): Solo un descanso corto a la mitad
+    const breakPoint = Math.floor(maxStudy / 2);
     intervals.push({
-      interval_minutes: intervalMinutes,
+      interval_minutes: breakPoint,
       break_duration_minutes: shortBreakDuration,
       break_type: 'short',
     });
-  }
-
-  // Agregar descanso largo si la sesión es suficientemente larga
-  if (hasLongBreak) {
+  } else if (maxStudy <= 90) {
+    // Sesiones medianas (60-90 min): 1 descanso corto a la mitad + 1 largo al final
+    const shortBreakPoint = Math.floor(maxStudy / 2);
     intervals.push({
-      interval_minutes: longBreakThreshold,
+      interval_minutes: shortBreakPoint,
+      break_duration_minutes: shortBreakDuration,
+      break_type: 'short',
+    });
+    
+    intervals.push({
+      interval_minutes: maxStudy,
+      break_duration_minutes: longBreakDuration,
+      break_type: 'long',
+    });
+  } else {
+    // Sesiones largas (> 90 min): 1 descanso corto a la mitad + 1 largo al final
+    const shortBreakPoint = Math.floor(maxStudy / 2);
+    intervals.push({
+      interval_minutes: shortBreakPoint,
+      break_duration_minutes: shortBreakDuration,
+      break_type: 'short',
+    });
+    
+    intervals.push({
+      interval_minutes: maxStudy,
       break_duration_minutes: longBreakDuration,
       break_type: 'long',
     });
