@@ -23,8 +23,16 @@ const usageLogs: OpenAIUsageLog[] = [];
 /**
  * ✅ Precios estimados por modelo (en USD por 1K tokens)
  * Actualizar según precios de OpenAI: https://openai.com/pricing
+ * Última actualización: Diciembre 2024
  */
 const MODEL_PRICING = {
+  // ===== Modelos O4 (Nuevos) =====
+  'o4-mini': {
+    input: 0.004,     // $4.00 / 1M tokens
+    output: 0.016,    // $16.00 / 1M tokens
+    cached_input: 0.001 // $1.00 / 1M tokens (entrada en caché)
+  },
+  // ===== Modelos GPT-4o =====
   'gpt-4o': {
     input: 0.0025,    // $2.50 / 1M tokens
     output: 0.01      // $10.00 / 1M tokens
@@ -33,6 +41,7 @@ const MODEL_PRICING = {
     input: 0.00015,   // $0.150 / 1M tokens
     output: 0.0006    // $0.600 / 1M tokens
   },
+  // ===== Modelos Legacy =====
   'gpt-4-turbo': {
     input: 0.01,      // $10.00 / 1M tokens
     output: 0.03      // $30.00 / 1M tokens
