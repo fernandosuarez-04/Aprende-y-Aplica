@@ -55,6 +55,7 @@ import {
   ThumbsDown,
   Sparkles,
   Brain,
+  Palette,
 } from 'lucide-react';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
@@ -71,6 +72,7 @@ import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
+import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -215,7 +217,11 @@ export default function CourseLearnPage() {
     currentMode,
     setMode,
     generatedPrompt,
-    clearPrompt
+    clearPrompt,
+    // 🎨 Nuevas propiedades para NanoBanana
+    generatedNanoBanana,
+    clearNanoBanana,
+    isNanoBananaMode
   } = useLiaChat(null);
   
   // Estado local para el input del mensaje
@@ -229,6 +235,8 @@ export default function CourseLearnPage() {
   // ✨ Estados para guardado de prompts
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [showPromptPreview, setShowPromptPreview] = useState(false);
+  // 🎨 Estados para NanoBanana
+  const [showNanoBananaPreview, setShowNanoBananaPreview] = useState(false);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
   // Ref para el botón del menú de Lia
@@ -1117,6 +1125,14 @@ export default function CourseLearnPage() {
       setShowPromptPreview(true);
     }
   }, [generatedPrompt, currentMode]);
+
+  // 🎨 Efecto: Mostrar panel de preview automáticamente cuando se genera un NanoBanana
+  useEffect(() => {
+    if (generatedNanoBanana && isNanoBananaMode) {
+      console.log('[LIA /learn] 🎨 NanoBanana generado, mostrando panel');
+      setShowNanoBananaPreview(true);
+    }
+  }, [generatedNanoBanana, isNanoBananaMode]);
 
   // Función para generar prompts sugeridos adaptados por rol (memoizada para evitar loops)
   const generateRoleBasedPrompts = useCallback(async (
@@ -3453,10 +3469,13 @@ Antes de cada respuesta, pregúntate:
                             ? 'bg-blue-500/90 text-white' 
                             : currentMode === 'prompts'
                             ? 'bg-purple-500/90 text-white animate-pulse'
+                            : currentMode === 'nanobana'
+                            ? 'bg-amber-500/90 text-white animate-pulse'
                             : 'bg-teal-500/90 text-white'
                         }`}>
                           {currentMode === 'course' ? '📚 Curso' 
-                            : currentMode === 'prompts' ? '🎯 Prompts' 
+                            : currentMode === 'prompts' ? '🎯 Prompts'
+                            : currentMode === 'nanobana' ? '🎨 NanoBanana'
                             : '🧠 Contexto'}
                         </span>
                       </div>
@@ -3552,6 +3571,23 @@ Antes de cada respuesta, pregúntate:
                                 <Brain className="w-4 h-4" />
                                 🧠 Contexto Persistente
                                 {currentMode === 'context' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                              </button>
+
+                              {/* 🎨 Modo NanoBanana */}
+                              <button
+                                onClick={() => {
+                                  setMode('nanobana');
+                                  setShowLiaMenu(false);
+                                }}
+                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
+                                  currentMode === 'nanobana'
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium'
+                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                }`}
+                              >
+                                <Palette className="w-4 h-4" />
+                                🎨 NanoBanana Pro
+                                {currentMode === 'nanobana' && <CheckCircle className="w-4 h-4 ml-auto" />}
                               </button>
 
                               {/* Separador */}
@@ -3905,6 +3941,24 @@ Antes de cada respuesta, pregúntate:
                             </div>
                           )}
                         </div>
+
+                        {/* 🎨 Botón para reabrir panel NanoBanana si el mensaje tiene uno generado */}
+                        {message.role === 'assistant' && message.generatedNanoBanana && (
+                          <button
+                            onClick={() => {
+                              console.log('[LIA /learn] 🎨 Reabriendo panel NanoBanana');
+                              // Restaurar los datos del NanoBanana al estado global
+                              // y abrir el panel
+                              setShowNanoBananaPreview(true);
+                            }}
+                            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Ver JSON NanoBanana
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -4138,6 +4192,38 @@ Antes de cada respuesta, pregúntate:
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* 🎨 Panel de Vista Previa de NanoBanana Generados */}
+            {showNanoBananaPreview && generatedNanoBanana && isNanoBananaMode && (
+              <div 
+                className="fixed right-4 top-20 z-[301]"
+                style={{
+                  width: 'min(400px, calc(100vw - 2rem))',
+                  maxHeight: 'calc(100vh - 6rem)'
+                }}
+              >
+                <NanoBananaPreviewPanel
+                  schema={generatedNanoBanana.schema}
+                  jsonString={generatedNanoBanana.jsonString}
+                  domain={generatedNanoBanana.domain}
+                  outputFormat={generatedNanoBanana.outputFormat}
+                  isOpen={showNanoBananaPreview}
+                  onClose={() => {
+                    setShowNanoBananaPreview(false);
+                  }}
+                  onCopy={() => {
+                    console.log('[LIA /learn] 📋 JSON NanoBanana copiado');
+                  }}
+                  onDownload={() => {
+                    console.log('[LIA /learn] 📥 JSON NanoBanana descargado');
+                  }}
+                  onRegenerate={() => {
+                    // Reabrir el input para regenerar
+                    console.log('[LIA /learn] 🔄 Regenerar solicitado');
+                  }}
+                />
+              </div>
+            )}
             </>
           )}
         </AnimatePresence>

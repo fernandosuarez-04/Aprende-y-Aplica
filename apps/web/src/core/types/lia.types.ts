@@ -1,3 +1,5 @@
+import type { NanoBananaSchema, NanoBananaDomain, OutputFormat } from '../../lib/nanobana/templates';
+
 // Tipos compartidos para LIA
 export interface CourseLessonContext {
   courseId?: string;
@@ -23,10 +25,20 @@ export interface CourseLessonContext {
   };
 }
 
+// Interfaz para NanoBanana generado
+export interface GeneratedNanoBananaData {
+  schema: NanoBananaSchema;
+  jsonString: string;
+  domain: NanoBananaDomain;
+  outputFormat: OutputFormat;
+}
+
 export interface LiaMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  // 🎨 Datos de NanoBanana generado (opcional)
+  generatedNanoBanana?: GeneratedNanoBananaData;
 }
 

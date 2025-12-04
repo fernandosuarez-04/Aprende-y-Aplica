@@ -2,11 +2,11 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
-import type { CourseLessonContext, LiaMessage } from '../types/lia.types';
+import type { CourseLessonContext, LiaMessage, GeneratedNanoBananaData } from '../types/lia.types';
 import { IntentDetectionService } from '../services/intent-detection.service';
 
 // Tipos de modo para el chat
-export type LiaChatMode = 'course' | 'prompts' | 'context';
+export type LiaChatMode = 'course' | 'prompts' | 'context' | 'nanobana';
 
 // Interfaz para prompts generados
 export interface GeneratedPrompt {
@@ -18,6 +18,9 @@ export interface GeneratedPrompt {
   use_cases: string[];
   tips: string[];
 }
+
+// Re-exportar tipo de NanoBanana desde lia.types
+export type { GeneratedNanoBananaData as GeneratedNanoBanana } from '../types/lia.types';
 
 export interface UseLiaChatReturn {
   messages: LiaMessage[];
@@ -32,6 +35,10 @@ export interface UseLiaChatReturn {
   setMode: (mode: LiaChatMode) => void;
   generatedPrompt: GeneratedPrompt | null;
   clearPrompt: () => void;
+  // 🎨 Funcionalidades para NanoBanana
+  generatedNanoBanana: GeneratedNanoBanana | null;
+  clearNanoBanana: () => void;
+  isNanoBananaMode: boolean;
 }
 
 export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
@@ -57,6 +64,9 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   // ✨ NUEVOS ESTADOS: Modos y prompts generados
   const [currentMode, setCurrentMode] = useState<LiaChatMode>('course');
   const [generatedPrompt, setGeneratedPrompt] = useState<GeneratedPrompt | null>(null);
+  
+  // 🎨 ESTADOS: NanoBanana
+  const [generatedNanoBanana, setGeneratedNanoBanana] = useState<GeneratedNanoBanana | null>(null);
 
   const sendMessage = useCallback(async (
     message: string,
@@ -82,13 +92,51 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           threshold: '70%'
         });
         
+        // CASO 0: Detectar intención de NanoBanana
+        const nanoBananaPatterns = [
+          /\b(nanobana|nanobanana|nano\s*banana)\b/i,
+          /\b(json|esquema|schema)\b.*\b(visual|diseño|imagen|ui|ux)\b/i,
+          /\b(generar?|crear?|dame)\b.*\b(json)\b.*\b(para|de)\b.*\b(imagen|diseño|visual)\b/i,
+          /\b(wireframe|mockup|render)\b.*\b(json)\b/i,
+          /\b(convertir?|traducir?)\b.*\b(json)\b/i
+        ];
+        const isNanoBananaIntent = nanoBananaPatterns.some(p => p.test(message));
+        
+        if (isNanoBananaIntent && currentMode !== 'nanobana') {
+          console.log('[LIA] 🎨 Activando Modo NanoBanana automáticamente');
+          modeForThisMessage = 'nanobana';
+          shouldNotifyModeChange = true;
+          modeChangeMessage = "🎨 He detectado que quieres generar un JSON para NanoBanana Pro. ¡Activo el modo de generación visual!\n\n¿Qué tipo de imagen o diseño quieres crear?";
+          setCurrentMode('nanobana');
+        }
         // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
-        if (currentMode !== 'prompts' && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
+        else if (currentMode !== 'prompts' && currentMode !== 'nanobana' && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
           console.log('[LIA] ✅ Activando Modo Prompts automáticamente');
           modeForThisMessage = 'prompts';
           shouldNotifyModeChange = true;
           modeChangeMessage = "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?";
           setCurrentMode('prompts');
+        }
+        // CASO 1.5: Si ESTAMOS en modo nanobana, mantener a menos que sea salida explícita
+        else if (currentMode === 'nanobana') {
+          const messageLower = message.toLowerCase().trim();
+          const explicitExitPatterns = [
+            /\b(salir|salte|terminar|cancelar)\b.*\b(nanobana|json|modo)\b/i,
+            /\b(no\s+quiero|ya\s+no)\b.*\b(json|nanobana)\b/i,
+            /\b(ll[eé]vame|llevame|llévame)\b/i,
+            /\b(ir\s+a|navegar\s+a)\b/i
+          ];
+          const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
+          
+          if (isExplicitExit) {
+            console.log('[LIA] 🔄 Saliendo de Modo NanoBanana');
+            modeForThisMessage = 'context';
+            shouldNotifyModeChange = true;
+            modeChangeMessage = "🧠 He cambiado al Modo Contexto para ayudarte.";
+            setCurrentMode('context');
+          } else {
+            console.log('[LIA] 🎨 Manteniendo Modo NanoBanana');
+          }
         }
         // CASO 2: Si ESTAMOS en modo prompts, MANTENER el modo a menos que sea EXPLÍCITAMENTE una petición de salir
         else if (currentMode === 'prompts' && intentResult.intent !== 'create_prompt') {
@@ -200,6 +248,9 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
       } else if (modeForThisMessage === 'prompts') {
         effectiveContext = 'prompts';
         shouldSendCourseContext = false; // NO enviar contexto del curso en modo prompts
+      } else if (modeForThisMessage === 'nanobana') {
+        effectiveContext = 'nanobana';
+        shouldSendCourseContext = false; // NO enviar contexto del curso en modo nanobana
       } else if (modeForThisMessage === 'context') {
         effectiveContext = 'general'; // Contexto persistente general de la plataforma
         shouldSendCourseContext = false; // NO enviar contexto del curso en modo contexto
@@ -209,9 +260,64 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         mode: modeForThisMessage,
         context: effectiveContext,
         isPromptMode: modeForThisMessage === 'prompts',
+        isNanoBananaMode: modeForThisMessage === 'nanobana',
         sendingCourseContext: shouldSendCourseContext
       });
 
+      // 🎨 Si estamos en modo NanoBanana, usar API diferente
+      if (modeForThisMessage === 'nanobana') {
+        console.log('[LIA] 🎨 Llamando API NanoBanana');
+        const nanoBananaResponse = await fetch('/api/ai-directory/generate-nanobana', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: message.trim(),
+            conversationHistory: messages.map(m => ({
+              sender: m.role === 'assistant' ? 'ai' : 'user',
+              text: m.content
+            }))
+          }),
+        });
+
+        if (!nanoBananaResponse.ok) {
+          const errorData = await nanoBananaResponse.json().catch(() => ({ error: 'Error desconocido' }));
+          throw new Error(errorData.error || `Error ${nanoBananaResponse.status}`);
+        }
+
+        const nanoBananaData = await nanoBananaResponse.json();
+        console.log('[LIA] 🎨 NanoBanana respuesta:', nanoBananaData);
+
+        // Guardar el schema generado
+        if (nanoBananaData.generatedSchema) {
+          setGeneratedNanoBanana({
+            schema: nanoBananaData.generatedSchema,
+            jsonString: nanoBananaData.jsonString,
+            domain: nanoBananaData.domain,
+            outputFormat: nanoBananaData.outputFormat
+          });
+        }
+
+        const assistantMessage: LiaMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: nanoBananaData.response || 'He generado el JSON para NanoBanana Pro.',
+          timestamp: new Date(),
+          // Guardar referencia al NanoBanana generado en el mensaje
+          generatedNanoBanana: nanoBananaData.generatedSchema ? {
+            schema: nanoBananaData.generatedSchema,
+            jsonString: nanoBananaData.jsonString,
+            domain: nanoBananaData.domain,
+            outputFormat: nanoBananaData.outputFormat
+          } : undefined
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+        return; // Terminar aquí para modo NanoBanana
+      }
+
+      // Llamada normal al API de chat
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -304,7 +410,10 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         modeMessage = "Modo cambiado a: Creación de Prompts 🎯\n\n¿Qué tipo de prompt quieres crear?";
         break;
       case 'context':
-        modeMessage = "Modo cambiado a: Contexto Persistente 🧠\n\nAhora mantendr\u00e9 el contexto de nuestra conversación entre lecciones.";
+        modeMessage = "Modo cambiado a: Contexto Persistente 🧠\n\nAhora mantendré el contexto de nuestra conversación entre lecciones.";
+        break;
+      case 'nanobana':
+        modeMessage = "Modo cambiado a: NanoBanana Pro 🎨\n\n¿Qué tipo de imagen o diseño quieres crear? Puedo generar JSON para UI, fotografía o diagramas.";
         break;
     }
     
@@ -321,6 +430,11 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   // ✨ Función para limpiar el prompt generado
   const clearPrompt = useCallback(() => {
     setGeneratedPrompt(null);
+  }, []);
+
+  // 🎨 Función para limpiar el NanoBanana generado
+  const clearNanoBanana = useCallback(() => {
+    setGeneratedNanoBanana(null);
   }, []);
 
   const loadConversation = useCallback(async (conversationId: string) => {
@@ -425,7 +539,11 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     currentMode,
     setMode,
     generatedPrompt,
-    clearPrompt
+    clearPrompt,
+    // 🎨 Funcionalidades para NanoBanana
+    generatedNanoBanana,
+    clearNanoBanana,
+    isNanoBananaMode: currentMode === 'nanobana'
   };
 }
 
