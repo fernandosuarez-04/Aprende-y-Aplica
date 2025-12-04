@@ -193,13 +193,14 @@ const getContextPrompt = (
   context: string, 
   userName?: string,
   courseContext?: CourseLessonContext,
+  workshopContext?: CourseLessonContext, // ✅ Nuevo: contexto para talleres
   pageContext?: PageContext,
   userRole?: string,
   language: SupportedLanguage = 'es',
   isFirstMessage: boolean = false  // ✅ Nuevo parámetro para detectar primer mensaje
 ) => {
   // Obtener rol del usuario (priorizar el pasado como parámetro, luego del contexto)
-  const role = userRole || courseContext?.userRole;
+  const role = userRole || courseContext?.userRole || workshopContext?.userRole;
   
   // Personalización con el nombre del usuario
   const nameGreeting = userName && userName !== 'usuario' 
@@ -330,8 +331,9 @@ Respuesta CORRECTA:
 3. Incluye ejemplos cuando sea posible
 4. Sé específico y detallado
 
-Además, en nuestra plataforma puedes crear prompts usando nuestra herramienta especializada. Puedes acceder a [Crear Prompt con IA](/prompt-directory/create) desde el [Directorio de Prompts](/prompt-directory). Allí encontrarás una interfaz diseñada específicamente para ayudarte a crear prompts profesionales paso a paso."
+Además, puedes pedirme directamente que te ayude a crear un prompt desde este chat. Solo dime qué tipo de prompt necesitas y te guiaré paso a paso."
 
+/* TEMPORALMENTE OCULTO - Directorio IA no disponible actualmente
 CASO ESPECIAL - "DIRECTORIO IA" (CRÍTICO):
 Cuando el usuario pregunte sobre "Directorio IA", "Directorio de IA", o cualquier variación similar:
 - DEBES mencionar que se refiere a DOS páginas separadas
@@ -341,6 +343,7 @@ Cuando el usuario pregunte sobre "Directorio IA", "Directorio de IA", o cualquie
 - Explica que el "Directorio IA" es un área que se divide en estas dos secciones
 - NUNCA proporciones un solo enlace cuando se pregunte sobre "Directorio IA"
 - Ejemplo de respuesta correcta: "El Directorio IA se divide en dos secciones principales: el [Directorio de Prompts](/prompt-directory) para plantillas de prompts y el [Directorio de Apps](/apps-directory) para herramientas y aplicaciones de IA."
+*/
 
 IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegación cuando sea relevante. No solo respondas la duda general, también guía al usuario hacia las herramientas de la plataforma cuando existan. SIEMPRE verifica que los enlaces estén en la lista de LINKS DISPONIBLES antes de proporcionarlos.`;
   
@@ -560,14 +563,65 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
       ? 'INSTRUÇÃO DE IDIOMA: Responda ESTRITAMENTE em PORTUGUÊS o tempo todo.'
       : 'INSTRUCCIÓN DE IDIOMA: Responde ESTRICTAMENTE en ESPAÑOL en todo momento.';
 
+  // ✅ Construir información de metadatos del taller si está disponible
+  let workshopMetadataInfo = '';
+  if (context === 'workshops' && workshopContext) {
+    const workshopInfo = workshopContext.courseTitle 
+      ? `\n\nTALLER ACTUAL:\n- Título: ${workshopContext.courseTitle}${workshopContext.courseDescription ? `\n- Descripción: ${workshopContext.courseDescription}` : ''}`
+      : '';
+    
+    const currentModuleInfo = workshopContext.moduleTitle
+      ? `\n\nMÓDULO ACTUAL: ${workshopContext.moduleTitle}`
+      : '';
+    
+    const currentLessonInfo = workshopContext.lessonTitle 
+      ? `\n\nLECCIÓN ACTUAL:\n- Título: ${workshopContext.lessonTitle}${workshopContext.lessonDescription ? `\n- Descripción: ${workshopContext.lessonDescription}` : ''}`
+      : '';
+    
+    // Construir información completa de módulos y lecciones disponibles
+    let modulesAndLessonsInfo = '';
+    if (workshopContext.allModules && workshopContext.allModules.length > 0) {
+      modulesAndLessonsInfo = '\n\nESTRUCTURA COMPLETA DEL TALLER (MÓDULOS Y LECCIONES DISPONIBLES):\n\n';
+      
+      workshopContext.allModules.forEach((module, moduleIndex) => {
+        modulesAndLessonsInfo += `MÓDULO ${module.moduleOrderIndex}: ${module.moduleTitle}${module.moduleDescription ? `\n  Descripción: ${module.moduleDescription}` : ''}\n`;
+        
+        if (module.lessons && module.lessons.length > 0) {
+          module.lessons.forEach((lesson, lessonIndex) => {
+            const duration = lesson.durationSeconds ? ` (${Math.round(lesson.durationSeconds / 60)} min)` : '';
+            modulesAndLessonsInfo += `  - Lección ${lesson.lessonOrderIndex}: ${lesson.lessonTitle}${duration}${lesson.lessonDescription ? `\n    ${lesson.lessonDescription}` : ''}\n`;
+          });
+        } else {
+          modulesAndLessonsInfo += `  (Este módulo aún no tiene lecciones)\n`;
+        }
+        
+        if (moduleIndex < workshopContext.allModules.length - 1) {
+          modulesAndLessonsInfo += '\n';
+        }
+      });
+      
+      modulesAndLessonsInfo += '\nINSTRUCCIONES IMPORTANTES SOBRE LA ESTRUCTURA DEL TALLER:\n';
+      modulesAndLessonsInfo += '- Cuando el usuario pregunte sobre qué módulos o lecciones tiene el taller, usa la información de arriba\n';
+      modulesAndLessonsInfo += '- Puedes referenciar módulos y lecciones específicas por su número y título\n';
+      modulesAndLessonsInfo += '- Si el usuario pregunta sobre un módulo o lección específica, proporciona información detallada basándote en los títulos y descripciones disponibles\n';
+      modulesAndLessonsInfo += '- Si el usuario pregunta "¿qué módulos tiene este taller?" o "¿cuántas lecciones hay?", usa la lista completa de arriba\n';
+      modulesAndLessonsInfo += '- Si el usuario pregunta sobre el orden o secuencia, respeta el orden numérico (module_order_index, lesson_order_index)\n';
+    } else {
+      modulesAndLessonsInfo = '\n\nNOTA: Este taller aún no tiene módulos o lecciones configuradas.';
+    }
+    
+    workshopMetadataInfo = `${workshopInfo}${currentModuleInfo}${currentLessonInfo}${modulesAndLessonsInfo}`;
+  }
+
   const contexts: Record<string, string> = {
     workshops: `${languageNote}
 
 Eres Lia, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
-${nameGreeting}${pageInfo}${urlInstructions}
+${nameGreeting}${pageInfo}${urlInstructions}${workshopMetadataInfo}
+
 Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.
 
-Si el usuario hace preguntas vagas o cortas como "Aquí qué" o "De qué trata esto", usa el contexto de la página actual para dar una respuesta clara y directa sobre qué contenido está viendo y qué puede hacer aquí.
+Si el usuario hace preguntas vagas o cortas como "Aquí qué" o "De qué trata esto", usa el contexto de la página actual y la información del taller para dar una respuesta clara y directa sobre qué contenido está viendo y qué puede hacer aquí.
 
 AYUDA CON NAVEGACIÓN Y CONTENIDO DE PÁGINAS:
 - Cuando el usuario pregunte sobre qué hay en una página específica (ej: "¿Qué hay en Editar perfil?", "¿Qué puedo hacer en Comunidades?"), usa el contexto de la plataforma para explicar:
@@ -579,6 +633,16 @@ AYUDA CON NAVEGACIÓN Y CONTENIDO DE PÁGINAS:
   * La explicación general de cómo hacerlo
   * La información sobre dónde hacerlo en la plataforma con el enlace correspondiente
 - SIEMPRE que menciones una página o funcionalidad de la plataforma, incluye el enlace en formato [texto](url)
+
+AYUDA CON ESTRUCTURA DEL TALLER:
+- Cuando el usuario pregunte sobre módulos o lecciones del taller, usa la información completa de la estructura del taller proporcionada arriba
+- Puedes responder preguntas como:
+  * "¿Qué módulos tiene este taller?" - Lista todos los módulos con sus lecciones
+  * "¿Cuántas lecciones tiene el módulo X?" - Cuenta las lecciones del módulo específico
+  * "¿De qué trata el módulo Y?" - Usa la descripción del módulo si está disponible
+  * "¿Qué lecciones hay en este taller?" - Lista todas las lecciones organizadas por módulo
+- Siempre referencia módulos y lecciones por su número y título exacto según la información proporcionada
+- Si el usuario pregunta sobre una lección o módulo específico, proporciona detalles basándote en la información disponible
 
 ${contentRestrictions}
 
@@ -702,8 +766,8 @@ Cuando generes el prompt final, preséntalo de manera clara y estructurada:
 - Incluye toda la información relevante sin ser excesivamente largo
 
 NAVEGACIÓN Y RECURSOS:
-- Si el usuario quiere explorar prompts existentes, sugiere [Directorio de Prompts](/prompt-directory)
-- Si quiere ver ejemplos, menciona que puede encontrar inspiración en la biblioteca
+- Si el usuario quiere explorar prompts existentes, ofrécele ayuda para crear uno desde este mismo chat
+- Si quiere ver ejemplos, proporciona ejemplos directamente en la conversación
 - Si tiene dudas sobre prompt engineering, ofrece explicaciones breves y prácticas
 
 INTERACCIÓN:
@@ -972,6 +1036,7 @@ export async function POST(request: NextRequest) {
       userName,
       userInfo: userInfoFromRequest,
       courseContext,
+      workshopContext, // ✅ Nuevo: contexto para talleres
       pageContext,
       isSystemMessage = false,
       conversationId: existingConversationId,
@@ -990,6 +1055,7 @@ export async function POST(request: NextRequest) {
         type_rol?: string;
       };
       courseContext?: CourseLessonContext;
+      workshopContext?: CourseLessonContext; // ✅ Nuevo: contexto para talleres
       pageContext?: PageContext;
       isSystemMessage?: boolean;
       conversationId?: string;
@@ -1062,8 +1128,8 @@ export async function POST(request: NextRequest) {
     // ✅ Si está en modo prompt, usar el contexto 'prompts'
     const effectiveContext = isPromptMode ? 'prompts' : context;
     
-    // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso y contexto de página
-    const contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, pageContext, userRole, language, isFirstMessage);
+    // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso/taller y contexto de página
+    const contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, workshopContext, pageContext, userRole, language, isFirstMessage);
 
     // ✅ OPTIMIZACIÓN: Inicializar analytics de forma asíncrona para no bloquear el procesamiento del mensaje
     let conversationId: string | null = existingConversationId || null;

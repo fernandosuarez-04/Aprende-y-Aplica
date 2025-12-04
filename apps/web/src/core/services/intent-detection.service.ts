@@ -8,6 +8,7 @@
 
 export type Intent =
   | 'create_prompt'
+  | 'nanobana'
   | 'navigate'
   | 'question'
   | 'feedback'
@@ -20,6 +21,8 @@ export interface IntentResult {
     promptTopic?: string;
     targetPage?: string;
     category?: string;
+    nanobananaDomain?: 'ui' | 'photo' | 'diagram';
+    outputFormat?: 'wireframe' | 'mockup' | 'render' | 'diagram';
   };
 }
 
@@ -37,6 +40,67 @@ const CREATE_PROMPT_PATTERNS = [
   /\bplantilla.*ia\b/i,
   /\bprompts?\b.*\b(efectivos?|buenos?|mejores?)\b/i,
 ];
+
+// Patrones para detectar intención de usar NanoBanana (generación visual/imágenes)
+const NANOBANA_PATTERNS = [
+  // Mención directa de NanoBanana
+  /\bnanobana(na)?\b/i,
+  /\bnano\s*banana\b/i,
+  
+  // Generación de imágenes con JSON
+  /\b(json|esquema)\b.*\b(imagen|diseño|ui|interfaz)\b/i,
+  /\b(imagen|diseño|ui|interfaz)\b.*\b(json|esquema)\b/i,
+  
+  // Wireframes y mockups
+  /\b(wireframe|mockup|prototipo|boceto)\b.*\b(generar|crear|diseñar|haz)\b/i,
+  /\b(generar|crear|diseñar|haz)\b.*\b(wireframe|mockup|prototipo|boceto)\b/i,
+  
+  // UI/App design - MEJORADO
+  /\b(diseñar?|crear|generar|haz(me)?)\b.*\b(app|aplicación|interfaz|ui|ux|pantalla)\b/i,
+  /\b(app|aplicación|interfaz|ui|ux|pantalla)\b.*\b(diseñar?|crear|generar|haz)\b/i,
+  
+  // Diagramas técnicos
+  /\b(diagrama|flowchart|arquitectura|flujo|esquema)\b.*\b(generar|crear|diseñar|haz)\b/i,
+  /\b(generar|crear|diseñar|haz)\b.*\b(diagrama|flowchart|arquitectura|flujo)\b/i,
+  
+  // Fotografía de producto
+  /\b(foto|fotografía|imagen)\b.*\b(producto|marketing|comercial|publicit)\b/i,
+  /\b(producto|marketing|comercial|publicit)\b.*\b(foto|fotografía|imagen)\b/i,
+  
+  // Render preciso
+  /\b(render|renderizar)\b.*\b(preciso|exacto|profesional)\b/i,
+  
+  // 🎨 NUEVOS: Frases comunes para crear imágenes/diseños
+  /\b(crear?|genera[r]?|diseña[r]?|haz(me)?|necesito|quiero|dame)\b.*\b(una?\s*)?(imagen|visual|visualización)\b/i,
+  /\b(crear?|genera[r]?|diseña[r]?|haz(me)?)\b.*\b(una?\s*)?(landing|página\s*web|dashboard|panel)\b/i,
+  /\b(crear?|genera[r]?|diseña[r]?|haz(me)?)\b.*\b(una?\s*)?(logo|banner|poster|cartel|anuncio)\b/i,
+  /\b(diseña(r|me)?|dibuja(r|me)?|crea(r|me)?)\b.*\b(una?\s*)?(app|aplicación|móvil|mobile)\b/i,
+  /\b(necesito|quiero|dame)\b.*\b(diseño|imagen|visual|interfaz|wireframe|mockup|prototipo)\b/i,
+  
+  // Comandos directos de diseño
+  /^diseña(me)?\s+/i,
+  /^crea(me)?\s+(una?\s*)?(imagen|diseño|app|interfaz|wireframe|mockup|diagrama)/i,
+  /^genera(me)?\s+(una?\s*)?(imagen|diseño|visual)/i,
+  /^haz(me)?\s+(una?\s*)?(imagen|diseño|app|interfaz|wireframe|mockup)/i,
+];
+
+// Keywords específicas de NanoBanana por dominio
+const NANOBANA_DOMAIN_KEYWORDS = {
+  ui: [
+    'app', 'aplicación', 'interfaz', 'ui', 'ux', 'wireframe', 'mockup',
+    'pantalla', 'screen', 'dashboard', 'landing', 'mobile', 'web',
+    'componente', 'botón', 'formulario', 'navbar', 'sidebar'
+  ],
+  photo: [
+    'foto', 'fotografía', 'imagen', 'producto', 'marketing', 'banner',
+    'publicidad', 'anuncio', 'estudio', 'iluminación', 'composición',
+    'render', 'escena'
+  ],
+  diagram: [
+    'diagrama', 'flujo', 'flowchart', 'arquitectura', 'esquema',
+    'proceso', 'secuencia', 'uml', 'erd', 'organigrama', 'mapa'
+  ]
+};
 
 // Patrones para detectar intención de navegar
 const NAVIGATE_PATTERNS = [
@@ -83,7 +147,8 @@ const PROMPT_KEYWORDS = [
 
 // Páginas conocidas del sitio
 const SITE_PAGES: Record<string, string[]> = {
-  'prompt-directory': ['prompts', 'plantillas', 'directorio', 'biblioteca'],
+  // 'prompt-directory': ['prompts', 'plantillas', 'directorio', 'biblioteca'], // TEMPORALMENTE OCULTO
+  // 'apps-directory': ['apps', 'aplicaciones', 'herramientas'], // TEMPORALMENTE OCULTO
   'courses': ['cursos', 'curso', 'formación', 'aprendizaje'],
   'workshops': ['talleres', 'taller', 'workshop', 'eventos'],
   'communities': ['comunidades', 'comunidad', 'grupos', 'networking'],
@@ -119,19 +184,25 @@ export class IntentDetectionService {
   static detectIntentLocal(message: string): IntentResult {
     const messageLower = message.toLowerCase().trim();
     
-    // 1. Detectar intención de crear prompt
+    // 1. Detectar intención de usar NanoBanana (prioridad alta)
+    const nanobanaIntent = this.detectNanoBananaIntent(messageLower, message);
+    if (nanobanaIntent.confidence >= 0.65) {
+      return nanobanaIntent;
+    }
+    
+    // 2. Detectar intención de crear prompt
     const promptIntent = this.detectCreatePromptIntent(messageLower, message);
     if (promptIntent.confidence >= 0.6) {
       return promptIntent;
     }
     
-    // 2. Detectar intención de navegar
+    // 3. Detectar intención de navegar
     const navigateIntent = this.detectNavigateIntent(messageLower);
     if (navigateIntent.confidence >= 0.6) {
       return navigateIntent;
     }
     
-    // 3. Detectar si es una pregunta
+    // 4. Detectar si es una pregunta
     if (this.isQuestion(messageLower)) {
       return {
         intent: 'question',
@@ -139,10 +210,86 @@ export class IntentDetectionService {
       };
     }
     
-    // 4. Por defecto, es conversación general
+    // 5. Por defecto, es conversación general
     return {
       intent: 'general',
       confidence: 0.5,
+    };
+  }
+
+  /**
+   * Detecta intención de usar NanoBanana para generación visual
+   */
+  private static detectNanoBananaIntent(
+    messageLower: string,
+    originalMessage: string
+  ): IntentResult {
+    let confidence = 0;
+    const entities: IntentResult['entities'] = {};
+    
+    // Verificar patrones de regex específicos de NanoBanana
+    let matchedPatterns = 0;
+    for (const pattern of NANOBANA_PATTERNS) {
+      if (pattern.test(originalMessage) || pattern.test(messageLower)) {
+        matchedPatterns++;
+      }
+    }
+    
+    // Mención directa de NanoBanana = alta confianza
+    if (/\bnanobana(na)?\b/i.test(messageLower) || /\bnano\s*banana\b/i.test(messageLower)) {
+      confidence = 0.95;
+    } else if (matchedPatterns >= 2) {
+      confidence = 0.8;
+    } else if (matchedPatterns === 1) {
+      confidence = 0.65;
+    }
+    
+    // Detectar dominio específico
+    let detectedDomain: 'ui' | 'photo' | 'diagram' | undefined;
+    let domainScore = { ui: 0, photo: 0, diagram: 0 };
+    
+    for (const [domain, keywords] of Object.entries(NANOBANA_DOMAIN_KEYWORDS)) {
+      const matches = keywords.filter(k => messageLower.includes(k)).length;
+      domainScore[domain as keyof typeof domainScore] = matches;
+    }
+    
+    const maxDomainScore = Math.max(domainScore.ui, domainScore.photo, domainScore.diagram);
+    if (maxDomainScore > 0) {
+      if (domainScore.ui === maxDomainScore) detectedDomain = 'ui';
+      else if (domainScore.photo === maxDomainScore) detectedDomain = 'photo';
+      else if (domainScore.diagram === maxDomainScore) detectedDomain = 'diagram';
+      
+      // Aumentar confianza si hay keywords de dominio
+      confidence += 0.1;
+    }
+    
+    // Detectar formato de salida preferido
+    let outputFormat: 'wireframe' | 'mockup' | 'render' | 'diagram' | undefined;
+    if (messageLower.includes('wireframe') || messageLower.includes('esquema') || messageLower.includes('boceto')) {
+      outputFormat = 'wireframe';
+    } else if (messageLower.includes('mockup') || messageLower.includes('prototipo') || messageLower.includes('alta fidelidad')) {
+      outputFormat = 'mockup';
+    } else if (messageLower.includes('render') || messageLower.includes('final')) {
+      outputFormat = 'render';
+    } else if (messageLower.includes('diagrama') || messageLower.includes('flowchart')) {
+      outputFormat = 'diagram';
+    }
+    
+    // Asignar entidades detectadas
+    if (detectedDomain) {
+      entities.nanobananaDomain = detectedDomain;
+    }
+    if (outputFormat) {
+      entities.outputFormat = outputFormat;
+    }
+    
+    // Limitar confianza máxima
+    confidence = Math.min(confidence, 0.95);
+    
+    return {
+      intent: 'nanobana',
+      confidence,
+      entities: Object.keys(entities).length > 0 ? entities : undefined,
     };
   }
 
