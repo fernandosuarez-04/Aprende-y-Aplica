@@ -5043,11 +5043,11 @@ function TranscriptContent({
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
+          <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-indigo-500 dark:text-indigo-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">{t('loading.transcript')}</p>
+          <p className="text-gray-600 dark:text-slate-300">{t('loading.transcript')}</p>
         </div>
       </div>
     );
@@ -5061,56 +5061,66 @@ function TranscriptContent({
       </div>
       
       {hasTranscript ? (
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 overflow-hidden">
-          {/* Header de la transcripción */}
-          <div className="bg-gray-50 dark:bg-slate-800 px-6 py-4 border-b-2 border-gray-300 dark:border-slate-600">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+          {/* Header de la transcripción mejorado */}
+          <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <ScrollText className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                <h3 className="text-gray-900 dark:text-white font-semibold">Transcripción Completa</h3>
+                <div className="p-2 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-lg">
+                  <ScrollText className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-gray-900 dark:text-white font-bold text-lg">Transcripción Completa</h3>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Texto completo del video</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
-                <span>{transcriptContent?.length || 0} caracteres</span>
-                <span>•</span>
-                <span>{estimatedReadingTime} min lectura</span>
+              <div className="flex items-center space-x-3">
+                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{transcriptContent?.length || 0}</span>
+                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">caracteres</span>
+                </div>
+                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{estimatedReadingTime}</span>
+                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">min lectura</span>
+                </div>
               </div>
             </div>
           </div>
           
           {/* Contenido de la transcripción */}
-          <div className="p-6">
+          <div className="p-6 bg-gray-50/50 dark:bg-slate-900/40">
             <div className="prose dark:prose-invert max-w-none">
-              <div className="text-gray-900 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+              <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
                 {transcriptContent}
               </div>
             </div>
           </div>
           
-          {/* Footer con acciones */}
-          <div className="bg-gray-50 dark:bg-slate-800 px-6 py-4 border-t-2 border-gray-300 dark:border-slate-600">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+          {/* Footer con acciones mejorado */}
+          <div className="bg-gray-50 dark:bg-slate-800/50 px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center space-x-3 flex-wrap">
                 <button 
                   onClick={handleCopyToClipboard}
-                  className="flex items-center space-x-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600"
+                  className="flex items-center space-x-2 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 shadow-sm hover:shadow-md transition-all"
                 >
                   {isCopied ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4" />}
-                  <span className="text-sm">{isCopied ? 'Copiado!' : 'Copiar'}</span>
+                  <span className="text-sm font-medium">{isCopied ? 'Copiado!' : 'Copiar'}</span>
                 </button>
                 <button 
                   onClick={handleDownloadTranscript}
-                  className="flex items-center space-x-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600"
+                  className="flex items-center space-x-2 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 shadow-sm hover:shadow-md transition-all"
                 >
                   <FileDown className="w-4 h-4" />
-                  <span className="text-sm">Descargar</span>
+                  <span className="text-sm font-medium">Descargar</span>
                 </button>
                 <button 
                   onClick={handleSaveToNotes}
                   disabled={isSaving}
-                  className="flex items-center space-x-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center space-x-2 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
-                  <span className="text-sm">{isSaving ? 'Guardando...' : 'Guardar en notas'}</span>
+                  <span className="text-sm font-medium">{isSaving ? 'Guardando...' : 'Guardar en notas'}</span>
                 </button>
               </div>
               <div className="text-xs text-gray-500 dark:text-slate-500">
@@ -5120,15 +5130,15 @@ function TranscriptContent({
           </div>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-gray-400 dark:text-slate-400" />
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
+          <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
           </div>
           <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Transcripción no disponible</h3>
           <p className="text-gray-600 dark:text-slate-400 mb-4">
             Esta lección aún no tiene transcripción disponible. La transcripción se agregará próximamente.
           </p>
-          <div className="text-sm text-gray-500 dark:text-slate-500">
+          <div className="text-sm text-gray-500 dark:text-slate-500 space-y-1">
             <p>• Verifica que el video tenga audio</p>
             <p>• La transcripción se genera automáticamente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
@@ -5188,11 +5198,11 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-amber-500 dark:text-amber-400 animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">{t('loading.summary')}</p>
+          <p className="text-gray-600 dark:text-slate-300">{t('loading.summary')}</p>
         </div>
       </div>
     );
@@ -5206,15 +5216,15 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
         </div>
         
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-gray-400 dark:text-slate-400" />
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-amber-500 dark:text-amber-400" />
           </div>
           <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Resumen no disponible</h3>
           <p className="text-gray-600 dark:text-slate-400 mb-4">
             Esta lección aún no tiene resumen disponible. El resumen se agregará próximamente.
           </p>
-          <div className="text-sm text-gray-500 dark:text-slate-500">
+          <div className="text-sm text-gray-500 dark:text-slate-500 space-y-1">
             <p>• El resumen se genera o agrega manualmente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
           </div>
@@ -5230,26 +5240,36 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
       </div>
       
-      <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 overflow-hidden">
-        {/* Header del resumen */}
-        <div className="bg-gray-50 dark:bg-slate-800 px-6 py-4 border-b-2 border-gray-300 dark:border-slate-600">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+        {/* Header del resumen mejorado */}
+        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <FileText className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-              <h3 className="text-gray-900 dark:text-white font-semibold">Resumen Completo</h3>
+              <div className="p-2 bg-amber-500/10 dark:bg-amber-500/20 rounded-lg">
+                <FileText className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-gray-900 dark:text-white font-bold text-lg">Resumen Completo</h3>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Puntos clave del video</p>
+              </div>
             </div>
-            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
-              <span>{summaryContent?.split(/\s+/).length || 0} palabras</span>
-              <span>•</span>
-              <span>{estimatedReadingTime} min lectura</span>
+            <div className="flex items-center space-x-3">
+              <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
+                <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{summaryContent?.split(/\s+/).length || 0}</span>
+                <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">palabras</span>
+              </div>
+              <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
+                <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{estimatedReadingTime}</span>
+                <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">min lectura</span>
+              </div>
             </div>
           </div>
         </div>
         
         {/* Contenido del resumen */}
-        <div className="p-6">
+        <div className="p-6 bg-gray-50/50 dark:bg-slate-900/40">
           <div className="prose dark:prose-invert max-w-none">
-            <div className="text-gray-900 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+            <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
               {summaryContent}
             </div>
           </div>
@@ -6700,41 +6720,63 @@ function ActivitiesContent({
 
       {/* Actividades */}
       {hasActivities && (
-        <div className="bg-white dark:bg-carbon-700 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden">
-          {/* Header de actividades */}
-          <div className="bg-gray-50 dark:bg-carbon-800 px-6 py-4 border-b border-gray-200 dark:border-carbon-600">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+          {/* Header de actividades mejorado */}
+          <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Activity className="w-5 h-5 text-blue-400" />
-                <h3 className="text-gray-900 dark:text-white font-semibold">Actividades</h3>
-      </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
-                <span>{activities.length} actividad{activities.length !== 1 ? 'es' : ''}</span>
+                <div className="p-2 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg">
+                  <Activity className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-gray-900 dark:text-white font-bold text-lg">Actividades</h3>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Ejercicios y prácticas interactivas</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{activities.length}</span>
+                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">actividad{activities.length !== 1 ? 'es' : ''}</span>
+                </div>
               </div>
             </div>
           </div>
           
           {/* Contenido de actividades */}
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 bg-gray-50/50 dark:bg-slate-900/30">
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
               
               return (
               <div
                 key={activity.activity_id}
-                className="bg-gray-50 dark:bg-carbon-800 rounded-lg border border-gray-200 dark:border-carbon-600 overflow-hidden"
+                className="group bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-xl transition-all duration-300 hover:border-blue-400 dark:hover:border-blue-500"
               >
-                {/* Header de la actividad con botón de colapsar/expandir */}
-                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-carbon-600">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{activity.activity_title}</h4>
+                {/* Header de la actividad mejorado */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCollapsedActivities(prev => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(activity.activity_id)) {
+                        newSet.delete(activity.activity_id);
+                      } else {
+                        newSet.add(activity.activity_id);
+                      }
+                      return newSet;
+                    });
+                  }}
+                  className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                >
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{activity.activity_title}</h4>
                       {activity.is_required && (
-                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
+                        <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm">
                           Requerida
                         </span>
                       )}
-                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 capitalize">
+                      <span className="px-2.5 py-1 bg-blue-500/15 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-full border border-blue-500/30 shadow-sm capitalize">
                         {activity.activity_type}
                       </span>
                       {/* Indicador de quiz obligatorio */}
@@ -6743,22 +6785,22 @@ function ActivitiesContent({
                         if (quizInfo) {
                           if (quizInfo.isPassed) {
                             return (
-                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
+                              <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
+                                <CheckCircle className="w-3.5 h-3.5" />
                                 Aprobado
                               </span>
                             );
                           } else if (quizInfo.isCompleted) {
                             return (
-                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 flex items-center gap-1">
-                                <X className="w-3 h-3" />
+                              <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
+                                <X className="w-3.5 h-3.5" />
                                 Reprobado ({quizInfo.percentage}%)
                               </span>
                             );
                           } else {
                             return (
-                              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30 flex items-center gap-1">
-                                <Activity className="w-3 h-3" />
+                              <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
+                                <Activity className="w-3.5 h-3.5" />
                                 Pendiente
                               </span>
                             );
@@ -6768,37 +6810,24 @@ function ActivitiesContent({
                       })()}
                     </div>
                     {activity.activity_description && !isCollapsed && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm">{activity.activity_description}</p>
+                      <p className="text-gray-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">{activity.activity_description}</p>
                     )}
                   </div>
                   
-                  {/* Botón de colapsar/expandir */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCollapsedActivities(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(activity.activity_id)) {
-                          newSet.delete(activity.activity_id);
-                        } else {
-                          newSet.add(activity.activity_id);
-                        }
-                        return newSet;
-                      });
-                    }}
-                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-carbon-600 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
-                    title={isCollapsed ? "Expandir actividad" : "Colapsar actividad"}
-                  >
-                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+                  {/* Botón de colapsar/expandir mejorado */}
+                  <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-600 dark:text-slate-400 hidden sm:inline transition-opacity">
                       {isCollapsed ? 'Expandir' : 'Colapsar'}
                     </span>
-                    {isCollapsed ? (
-                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    ) : (
-                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    )}
-                  </button>
-                </div>
+                    <div className="p-2 bg-gray-100 dark:bg-slate-700 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition-colors">
+                      {isCollapsed ? (
+                        <ChevronDown className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                      ) : (
+                        <ChevronUp className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                      )}
+                    </div>
+                  </div>
+                </button>
 
                 {/* Contenido de la actividad (colapsable) */}
                 <AnimatePresence initial={false}>
@@ -6808,9 +6837,9 @@ function ActivitiesContent({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden"
+                      className="overflow-hidden border-t border-gray-100 dark:border-slate-700"
                     >
-                      <div className="px-5 pb-5">
+                      <div className="px-6 py-6 bg-gray-50 dark:bg-slate-900/40">
                 {/* Botón especial para actividades ai_chat */}
                 {activity.activity_type === 'ai_chat' ? (
                   <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/10 dark:to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 dark:border-purple-500/30 text-center">
@@ -6972,40 +7001,62 @@ function ActivitiesContent({
 
       {/* Materiales */}
       {hasMaterials && (
-        <div className="bg-white dark:bg-carbon-700 rounded-xl border border-gray-200 dark:border-carbon-600 overflow-hidden">
-          {/* Header de materiales */}
-          <div className="bg-gray-50 dark:bg-carbon-800 px-6 py-4 border-b border-gray-200 dark:border-carbon-600">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+          {/* Header de materiales mejorado */}
+          <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <FileText className="w-5 h-5 text-green-400" />
-                <h3 className="text-gray-900 dark:text-white font-semibold">Materiales</h3>
+                <div className="p-2 bg-green-500/10 dark:bg-green-500/20 rounded-lg">
+                  <FileText className="w-5 h-5 text-green-500 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-gray-900 dark:text-white font-bold text-lg">Materiales</h3>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Recursos y documentos complementarios</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-slate-400">
-                <span>{materials.length} material{materials.length !== 1 ? 'es' : ''}</span>
+              <div className="flex items-center space-x-3">
+                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{materials.length}</span>
+                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">material{materials.length !== 1 ? 'es' : ''}</span>
+                </div>
               </div>
             </div>
           </div>
           
           {/* Contenido de materiales */}
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 bg-gray-50/50 dark:bg-slate-900/30">
             {materials.map((material) => {
               const isCollapsed = collapsedMaterials.has(material.material_id);
               
               return (
               <div
                 key={material.material_id}
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+                className="group bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-xl transition-all duration-300 hover:border-green-400 dark:hover:border-green-500"
               >
-                {/* Header del material con botón de colapsar/expandir */}
-                <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg">{material.material_title}</h4>
-                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 capitalize">
+                {/* Header del material mejorado */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCollapsedMaterials(prev => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(material.material_id)) {
+                        newSet.delete(material.material_id);
+                      } else {
+                        newSet.add(material.material_id);
+                      }
+                      return newSet;
+                    });
+                  }}
+                  className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                >
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{material.material_title}</h4>
+                      <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm capitalize">
                         {material.material_type}
                       </span>
                       {material.is_downloadable && (
-                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
+                        <span className="px-2.5 py-1 bg-blue-500/15 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-full border border-blue-500/30 shadow-sm">
                           Descargable
                         </span>
                       )}
@@ -7015,22 +7066,22 @@ function ActivitiesContent({
                         if (quizInfo) {
                           if (quizInfo.isPassed) {
                             return (
-                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
+                              <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
+                                <CheckCircle className="w-3.5 h-3.5" />
                                 Aprobado
                               </span>
                             );
                           } else if (quizInfo.isCompleted) {
                             return (
-                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 flex items-center gap-1">
-                                <X className="w-3 h-3" />
+                              <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
+                                <X className="w-3.5 h-3.5" />
                                 Reprobado ({quizInfo.percentage}%)
                               </span>
                             );
                           } else {
                             return (
-                              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30 flex items-center gap-1">
-                                <Activity className="w-3 h-3" />
+                              <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
+                                <Activity className="w-3.5 h-3.5" />
                                 Pendiente
                               </span>
                             );
@@ -7040,37 +7091,24 @@ function ActivitiesContent({
                       })()}
                     </div>
                     {material.material_description && material.material_type !== 'reading' && !isCollapsed && (
-                      <p className="text-gray-700 dark:text-slate-300 text-sm">{material.material_description}</p>
+                      <p className="text-gray-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">{material.material_description}</p>
                     )}
                   </div>
                   
-                  {/* Botón de colapsar/expandir */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCollapsedMaterials(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(material.material_id)) {
-                          newSet.delete(material.material_id);
-                        } else {
-                          newSet.add(material.material_id);
-                        }
-                        return newSet;
-                      });
-                    }}
-                    className="ml-4 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
-                    title={isCollapsed ? "Expandir material" : "Colapsar material"}
-                  >
-                    <span className="text-xs text-gray-600 dark:text-slate-400 hidden sm:inline">
+                  {/* Botón de colapsar/expandir mejorado */}
+                  <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-600 dark:text-slate-400 hidden sm:inline transition-opacity">
                       {isCollapsed ? 'Expandir' : 'Colapsar'}
                     </span>
-                    {isCollapsed ? (
-                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    ) : (
-                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-slate-400" />
-                    )}
-                  </button>
-                </div>
+                    <div className="p-2 bg-gray-100 dark:bg-slate-700 rounded-lg group-hover:bg-green-100 dark:group-hover:bg-green-500/20 transition-colors">
+                      {isCollapsed ? (
+                        <ChevronDown className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors" />
+                      ) : (
+                        <ChevronUp className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors" />
+                      )}
+                    </div>
+                  </div>
+                </button>
                 
                 {/* Contenido del material (colapsable) */}
                 <AnimatePresence initial={false}>
@@ -7080,9 +7118,9 @@ function ActivitiesContent({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden"
+                      className="overflow-hidden border-t border-gray-100 dark:border-slate-700"
                     >
-                      <div className="px-5 pb-5 pt-4">
+                      <div className="px-6 py-6 bg-gray-50 dark:bg-slate-900/40">
                 {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
                           <div className="w-full">
                     {material.material_type === 'quiz' && (() => {
