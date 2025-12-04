@@ -23,7 +23,7 @@ export interface UseLiaChatReturn {
   messages: LiaMessage[];
   isLoading: boolean;
   error: Error | null;
-  sendMessage: (message: string, courseContext?: CourseLessonContext, isSystemMessage?: boolean) => Promise<void>;
+  sendMessage: (message: string, courseContext?: CourseLessonContext, workshopContext?: CourseLessonContext, isSystemMessage?: boolean) => Promise<void>;
   clearHistory: () => void;
   loadConversation: (conversationId: string) => Promise<void>;
   currentConversationId: string | null;
@@ -61,6 +61,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   const sendMessage = useCallback(async (
     message: string,
     courseContext?: CourseLessonContext,
+    workshopContext?: CourseLessonContext, // ✅ Nuevo: contexto para talleres
     isSystemMessage: boolean = false
   ) => {
     if (!message.trim() || isLoading) return;
@@ -193,10 +194,15 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
       // ✨ Determinar el contexto según el modo (usar el modo detectado en esta llamada)
       let effectiveContext = 'general';
       let shouldSendCourseContext = false;
+      let shouldSendWorkshopContext = false;
       
       if (modeForThisMessage === 'course' && courseContext) {
         effectiveContext = 'course';
         shouldSendCourseContext = true;
+      } else if (workshopContext && workshopContext.contextType === 'workshop') {
+        // ✅ Si hay workshopContext, usar contexto de workshops
+        effectiveContext = 'workshops';
+        shouldSendWorkshopContext = true;
       } else if (modeForThisMessage === 'prompts') {
         effectiveContext = 'prompts';
         shouldSendCourseContext = false; // NO enviar contexto del curso en modo prompts
@@ -209,7 +215,8 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         mode: modeForThisMessage,
         context: effectiveContext,
         isPromptMode: modeForThisMessage === 'prompts',
-        sendingCourseContext: shouldSendCourseContext
+        sendingCourseContext: shouldSendCourseContext,
+        sendingWorkshopContext: shouldSendWorkshopContext
       });
 
       const response = await fetch('/api/ai-chat', {
@@ -241,6 +248,8 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
                     undefined,
           // ✨ IMPORTANTE: Solo enviar courseContext si estamos en modo course
           courseContext: shouldSendCourseContext ? courseContext : undefined,
+          // ✅ IMPORTANTE: Solo enviar workshopContext si estamos en contexto de workshops
+          workshopContext: shouldSendWorkshopContext ? workshopContext : undefined,
           isSystemMessage: isSystemMessage,
           // ✅ ANALYTICS: Enviar conversationId existente si lo hay
           conversationId: conversationIdRef.current || undefined

@@ -141,6 +141,8 @@ export default function CourseLearnPage() {
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
+  // ✅ Estado para metadatos del taller (módulos y lecciones completos)
+  const [workshopMetadata, setWorkshopMetadata] = useState<CourseLessonContext | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
   
   // Estado para detectar si estamos en móvil
@@ -940,7 +942,21 @@ export default function CourseLearnPage() {
       m.lessons.some(l => l.lesson_id === currentLesson.lesson_id)
     );
 
+    // ✅ Si tenemos metadatos del taller, usarlos (incluye allModules)
+    if (workshopMetadata) {
+      return {
+        ...workshopMetadata,
+        moduleTitle: currentModule?.module_title,
+        lessonTitle: currentLesson.lesson_title,
+        lessonDescription: currentLesson.lesson_description,
+        durationSeconds: currentLesson.duration_seconds,
+        userRole: user?.type_rol || undefined
+      };
+    }
+
+    // Fallback: contexto básico sin metadatos completos
     return {
+      contextType: 'course', // Por defecto es curso, pero puede ser workshop
       courseId: course.id || course.course_id || undefined,
       courseSlug: slug || undefined,
       courseTitle: course.title || course.course_title,
@@ -1057,8 +1073,13 @@ export default function CourseLearnPage() {
     // Construir contexto de la lección actual
     const lessonContext = getLessonContext();
 
-    // Enviar mensaje con contexto
-    await sendLiaMessage(message, lessonContext);
+    // ✅ Si es un taller (tiene workshopMetadata), enviar como workshopContext
+    // Si no, enviar como courseContext (comportamiento normal)
+    if (workshopMetadata && lessonContext?.contextType === 'workshop') {
+      await sendLiaMessage(message, undefined, lessonContext);
+    } else {
+      await sendLiaMessage(message, lessonContext);
+    }
   };
 
   // ✨ Función para guardar prompts generados en la biblioteca
@@ -1380,8 +1401,13 @@ Antes de cada respuesta, pregúntate:
     // Construir contexto de la lección
     const lessonContext = getLessonContext();
 
+    // ✅ Si es un taller, enviar como workshopContext
     // Enviar el mensaje del sistema (no será visible en el chat)
-    await sendLiaMessage(systemPrompt, lessonContext, true);
+    if (workshopMetadata && lessonContext?.contextType === 'workshop') {
+      await sendLiaMessage(systemPrompt, undefined, lessonContext, true);
+    } else {
+      await sendLiaMessage(systemPrompt, lessonContext, true);
+    }
 
     // Hacer scroll al chat
     setTimeout(() => {
@@ -1683,6 +1709,46 @@ Antes de cada respuesta, pregúntate:
         // Extraer datos del response unificado
         if (learnData.course) {
           setCourse(learnData.course);
+          
+          // ✅ Cargar metadatos del taller (módulos y lecciones completos) para LIA
+          // Esto permite que LIA tenga acceso a TODOS los módulos y lecciones
+          if (learnData.course.id || learnData.course.course_id) {
+            const courseId = learnData.course.id || learnData.course.course_id;
+            try {
+              const metadataResponse = await fetch(`/api/workshops/${courseId}/metadata`);
+              if (metadataResponse.ok) {
+                const metadataData = await metadataResponse.json();
+                if (metadataData.success && metadataData.metadata) {
+                  // Construir el contexto con todos los metadatos
+                  const workshopContext: CourseLessonContext = {
+                    contextType: 'workshop',
+                    courseId: metadataData.metadata.workshopId,
+                    courseSlug: slug,
+                    courseTitle: metadataData.metadata.workshopTitle,
+                    courseDescription: metadataData.metadata.workshopDescription,
+                    allModules: metadataData.metadata.modules.map((m: any) => ({
+                      moduleId: m.moduleId,
+                      moduleTitle: m.moduleTitle,
+                      moduleDescription: m.moduleDescription,
+                      moduleOrderIndex: m.moduleOrderIndex,
+                      lessons: m.lessons.map((l: any) => ({
+                        lessonId: l.lessonId,
+                        lessonTitle: l.lessonTitle,
+                        lessonDescription: l.lessonDescription,
+                        lessonOrderIndex: l.lessonOrderIndex,
+                        durationSeconds: l.durationSeconds
+                      }))
+                    })),
+                    userRole: user?.type_rol || undefined
+                  };
+                  setWorkshopMetadata(workshopContext);
+                }
+              }
+            } catch (error) {
+              // Silenciar errores - no es crítico si no se pueden cargar los metadatos
+              console.warn('No se pudieron cargar metadatos del taller para LIA:', error);
+            }
+          }
         }
 
         if (learnData.modules) {
@@ -2446,13 +2512,27 @@ Antes de cada respuesta, pregúntate:
         const completedActivities = currentActivities.filter(a => a.is_completed);
         
         // Construir contexto enriquecido de la lección con información de la dificultad detectada
-        const enrichedLessonContext = currentLesson && course ? {
+        // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
+        const baseContext = workshopMetadata ? {
+          ...workshopMetadata,
+          moduleTitle: modules.find(m => m.lessons.some(l => l.lesson_id === currentLesson.lesson_id))?.module_title,
+          lessonTitle: currentLesson.lesson_title,
+          lessonDescription: currentLesson.lesson_description,
+          durationSeconds: currentLesson.duration_seconds,
+        } : (currentLesson && course ? {
+          contextType: 'course' as const,
+          courseId: course.id || course.course_id || undefined,
+          courseSlug: slug || undefined,
           courseTitle: course.title || course.course_title,
           courseDescription: course.description || course.course_description,
           moduleTitle: modules.find(m => m.lessons.some(l => l.lesson_id === currentLesson.lesson_id))?.module_title,
           lessonTitle: currentLesson.lesson_title,
           lessonDescription: currentLesson.lesson_description,
           durationSeconds: currentLesson.duration_seconds,
+        } : undefined);
+        
+        const enrichedLessonContext = baseContext ? {
+          ...baseContext,
           userRole: user?.type_rol || undefined,
           // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
           activitiesContext: {
@@ -2503,7 +2583,12 @@ Antes de cada respuesta, pregúntate:
           // Enviar mensaje simple visible + contexto enriquecido en segundo plano
           // El mensaje se mostrará como usuario normal: "Necesito ayuda con esta lección"
           // El contexto enriquecido se procesará en el API pero NO se mostrará
-          await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, false);
+          // ✅ Si es un taller, enviar como workshopContext
+          if (workshopMetadata && enrichedLessonContext?.contextType === 'workshop') {
+            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, false);
+          } else {
+            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, false);
+          }
         } catch (error) {
           console.error('❌ Error enviando mensaje proactivo a LIA:', error);
         }
