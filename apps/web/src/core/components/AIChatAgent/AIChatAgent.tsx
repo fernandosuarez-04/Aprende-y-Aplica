@@ -2221,7 +2221,7 @@ Fecha: ${new Date().toLocaleString()}
                         ? 'text-teal-200 bg-teal-500/30 border-teal-400/50'
                         : 'text-white/80 bg-white/15 border-white/25'
                     }`}>
-                      {currentMode === 'nanobana' ? '🎨 NanoBanana' : currentMode === 'prompt' ? 'Prompt' : currentMode === 'analysis' ? 'Contexto' : 'Asistente'}
+                      {currentMode === 'nanobana' ? 'NanoBanana' : currentMode === 'prompt' ? 'Prompt' : currentMode === 'analysis' ? 'Contexto' : 'Asistente'}
                     </span>
                     <motion.div
                       className="flex items-center gap-1 text-white/90"
@@ -2295,7 +2295,7 @@ Fecha: ${new Date().toLocaleString()}
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <div className={`text-sm font-semibold ${currentMode==='nanobana' ? 'text-amber-600 dark:text-amber-400' : ''}`}>
-                                  🎨 NanoBanana Pro
+                                  NanoBanana Pro
                                 </div>
                                 <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-full font-medium">
                                   NEW
@@ -2409,7 +2409,7 @@ Fecha: ${new Date().toLocaleString()}
                       <img src="/icono.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
                     </div>
                     <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
-                      {currentMode === 'nanobana' ? '🎨 NanoBanana Pro' : currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Contexto Persistente' : 'Asistente'}
+                      {currentMode === 'nanobana' ? 'NanoBanana Pro' : currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Contexto Persistente' : 'Asistente'}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                       {currentMode === 'nanobana'

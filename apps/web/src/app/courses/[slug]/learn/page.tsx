@@ -3558,10 +3558,10 @@ Antes de cada respuesta, pregúntate:
                             ? 'bg-amber-500/90 text-white animate-pulse'
                             : 'bg-teal-500/90 text-white'
                         }`}>
-                          {currentMode === 'course' ? '📚 Curso' 
-                            : currentMode === 'prompts' ? '🎯 Prompts'
-                            : currentMode === 'nanobana' ? '🎨 NanoBanana'
-                            : '🧠 Contexto'}
+                          {currentMode === 'course' ? 'Curso' 
+                            : currentMode === 'prompts' ? 'Prompts'
+                            : currentMode === 'nanobana' ? 'NanoBanana'
+                            : 'Contexto'}
                         </span>
                       </div>
                     </div>
@@ -3620,7 +3620,7 @@ Antes de cada respuesta, pregúntate:
                                 }`}
                               >
                                 <BookOpen className="w-4 h-4" />
-                                📚 Modo Curso
+                                Modo Curso
                                 {currentMode === 'course' && <CheckCircle className="w-4 h-4 ml-auto" />}
                               </button>
 
@@ -3637,7 +3637,7 @@ Antes de cada respuesta, pregúntate:
                                 }`}
                               >
                                 <Sparkles className="w-4 h-4" />
-                                🎯 Crear Prompts
+                                Crear Prompts
                                 {currentMode === 'prompts' && <CheckCircle className="w-4 h-4 ml-auto" />}
                               </button>
 
@@ -3654,7 +3654,7 @@ Antes de cada respuesta, pregúntate:
                                 }`}
                               >
                                 <Brain className="w-4 h-4" />
-                                🧠 Contexto Persistente
+                                Contexto Persistente
                                 {currentMode === 'context' && <CheckCircle className="w-4 h-4 ml-auto" />}
                               </button>
 
@@ -3671,7 +3671,7 @@ Antes de cada respuesta, pregúntate:
                                 }`}
                               >
                                 <Palette className="w-4 h-4" />
-                                🎨 NanoBanana Pro
+                                NanoBanana Pro
                                 {currentMode === 'nanobana' && <CheckCircle className="w-4 h-4 ml-auto" />}
                               </button>
 
