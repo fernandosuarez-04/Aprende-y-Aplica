@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       min_rest_minutes,
       max_study_session_minutes,
       goal_hours_per_week,
+      break_intervals,
     } = body;
 
     console.log('📥 Creando plan manual:', {
@@ -109,6 +110,17 @@ export async function POST(request: NextRequest) {
     // Cliente normal para verificaciones (con RLS)
     const supabase = await createClient();
 
+    // Calcular intervalos de descanso si no vienen en el body
+    let calculatedBreakIntervals = break_intervals;
+    if (!calculatedBreakIntervals && min_study_minutes && max_study_session_minutes && min_rest_minutes) {
+      calculatedBreakIntervals = calculateBreakIntervals(
+        min_study_minutes,
+        max_study_session_minutes,
+        min_rest_minutes
+      );
+      console.log('✅ Intervalos de descanso calculados:', calculatedBreakIntervals);
+    }
+
     // Preparar datos del plan
     // Convertir preferred_days a formato PostgreSQL smallint[] explícitamente
     const planData: any = {
@@ -125,6 +137,20 @@ export async function POST(request: NextRequest) {
     // Incluir learning_route_id solo si está presente
     if (learning_route_id) {
       planData.learning_route_id = learning_route_id;
+    }
+
+    // Incluir tiempos y intervalos de descanso
+    if (min_study_minutes) {
+      planData.min_study_minutes = parseInt(String(min_study_minutes), 10);
+    }
+    if (min_rest_minutes) {
+      planData.min_rest_minutes = parseInt(String(min_rest_minutes), 10);
+    }
+    if (max_study_session_minutes) {
+      planData.max_study_session_minutes = parseInt(String(max_study_session_minutes), 10);
+    }
+    if (calculatedBreakIntervals && Array.isArray(calculatedBreakIntervals)) {
+      planData.break_intervals = calculatedBreakIntervals;
     }
 
     console.log('📋 Datos del plan a insertar:', {
@@ -378,22 +404,12 @@ export async function POST(request: NextRequest) {
         
         // NO limitar por semanas, generar hasta completar TODAS las lecciones
         
-        // Usar start_date del plan si está disponible, sino usar la fecha actual
-        let startDate: Date;
-        if (start_date) {
-          startDate = new Date(start_date);
-          startDate.setHours(0, 0, 0, 0);
-        } else {
-          startDate = new Date();
-          startDate.setHours(0, 0, 0, 0);
-          // Si no hay start_date, comenzar desde hoy o el próximo día válido
-          // Asegurar que empezamos desde un día válido si es necesario
-        }
+        // Usar la fecha actual como fecha de inicio
+        const startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
         
         console.log('📅 Fecha de inicio para sesiones:', {
-          start_date_from_plan: start_date,
           startDate_used: startDate.toISOString(),
-          weeksToGenerate,
         });
         
         // Los días ya vienen en formato JavaScript Date (0-6)
@@ -645,5 +661,69 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Calcula intervalos de descanso usando lógica Pomodoro flexible
+ * (Misma función que en calculate-break-intervals/route.ts)
+ */
+function calculateBreakIntervals(
+  minStudy: number,
+  maxStudy: number,
+  minRest: number
+): Array<{
+  interval_minutes: number;
+  break_duration_minutes: number;
+  break_type: 'short' | 'long';
+}> {
+  const intervals: Array<{
+    interval_minutes: number;
+    break_duration_minutes: number;
+    break_type: 'short' | 'long';
+  }> = [];
+
+  // Descanso corto: cada 25-30 minutos (usar minStudy como base, mínimo 25)
+  const shortBreakInterval = Math.max(25, Math.min(30, minStudy));
+  const shortBreakDuration = Math.max(5, minRest);
+
+  // Descanso largo: después de 90 minutos o 2/3 del máximo (lo que sea menor)
+  const longBreakThreshold = Math.min(90, Math.floor(maxStudy * 0.67));
+  const longBreakDuration = Math.max(15, Math.min(30, minRest * 2));
+
+  // Calcular cuántos intervalos cortos caben en la sesión máxima
+  // Sin incluir el último intervalo si va a haber un descanso largo
+  const hasLongBreak = maxStudy >= longBreakThreshold;
+  const effectiveMaxStudy = hasLongBreak ? longBreakThreshold : maxStudy;
+  const shortBreaksCount = Math.floor(effectiveMaxStudy / shortBreakInterval);
+
+  // Agregar descansos cortos
+  for (let i = 1; i <= shortBreaksCount; i++) {
+    const intervalMinutes = shortBreakInterval * i;
+    
+    // No agregar si este intervalo coincide con el descanso largo
+    if (hasLongBreak && intervalMinutes >= longBreakThreshold) {
+      break;
+    }
+
+    intervals.push({
+      interval_minutes: intervalMinutes,
+      break_duration_minutes: shortBreakDuration,
+      break_type: 'short',
+    });
+  }
+
+  // Agregar descanso largo si la sesión es suficientemente larga
+  if (hasLongBreak) {
+    intervals.push({
+      interval_minutes: longBreakThreshold,
+      break_duration_minutes: longBreakDuration,
+      break_type: 'long',
+    });
+  }
+
+  // Ordenar por interval_minutes
+  intervals.sort((a, b) => a.interval_minutes - b.interval_minutes);
+
+  return intervals;
 }
 

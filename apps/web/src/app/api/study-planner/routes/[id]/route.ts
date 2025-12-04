@@ -1,7 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
 import type { Database } from '@/lib/supabase/types';
+
+/**
+ * GET /api/study-planner/routes/[id]
+ * Obtiene una ruta de aprendizaje con sus cursos
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const currentUser = await SessionService.getCurrentUser();
+    
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    const { id: routeId } = await params;
+    const supabase = await createClient();
+
+    // Obtener la ruta
+    const { data: route, error: routeError } = await supabase
+      .from('learning_routes')
+      .select('id, name, description, user_id, created_at, is_active')
+      .eq('id', routeId)
+      .eq('is_active', true)
+      .single();
+
+    if (routeError || !route) {
+      console.error('❌ Ruta no encontrada:', {
+        routeId,
+        error: routeError?.message,
+      });
+      return NextResponse.json(
+        { error: 'Ruta no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // Verificar que la ruta pertenece al usuario
+    if (route.user_id !== currentUser.id) {
+      console.error('❌ Ruta no autorizada:', {
+        routeId,
+        routeUserId: route.user_id,
+        currentUserId: currentUser.id,
+      });
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 403 }
+      );
+    }
+
+    // Obtener los cursos de la ruta
+    const { data: routeCourses, error: coursesError } = await supabase
+      .from('learning_route_courses')
+      .select('course_id, course_order')
+      .eq('route_id', routeId)
+      .order('course_order', { ascending: true });
+
+    if (coursesError) {
+      console.error('❌ Error obteniendo cursos de la ruta:', coursesError);
+      return NextResponse.json(
+        { error: 'Error al obtener cursos de la ruta', details: coursesError.message },
+        { status: 500 }
+      );
+    }
+
+    // Obtener información completa de los cursos
+    const courseIds = routeCourses?.map(rc => rc.course_id) || [];
+    let courses: any[] = [];
+
+    if (courseIds.length > 0) {
+      const { data: coursesData, error: coursesDataError } = await supabase
+        .from('courses')
+        .select('id, title, description, thumbnail_url, slug, category, duration_total_minutes, level')
+        .in('id', courseIds);
+
+      if (coursesDataError) {
+        console.error('❌ Error obteniendo información de cursos:', coursesDataError);
+      } else {
+        // Ordenar los cursos según el orden en la ruta
+        courses = courseIds
+          .map(courseId => coursesData?.find(c => c.id === courseId))
+          .filter(Boolean) as any[];
+      }
+    }
+
+    console.log('✅ Ruta obtenida:', {
+      routeId: route.id,
+      routeName: route.name,
+      coursesCount: courses.length,
+    });
+
+    return NextResponse.json({
+      route: {
+        id: route.id,
+        name: route.name,
+        description: route.description,
+        created_at: route.created_at,
+      },
+      courses: courses,
+    });
+  } catch (error: any) {
+    console.error('Error getting route:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor', details: error.message },
+      { status: 500 }
+    );
+  }
+}
 
 /**
  * DELETE /api/study-planner/routes/[id]

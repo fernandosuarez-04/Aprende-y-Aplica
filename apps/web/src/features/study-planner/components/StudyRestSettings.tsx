@@ -1,19 +1,35 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Coffee, BookOpen } from 'lucide-react';
+import { Clock, Coffee, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
+
+interface ShortestLesson {
+  lesson_id: string;
+  lesson_title: string;
+  total_minutes: number;
+  course_title: string;
+}
+
+interface BreakInterval {
+  interval_minutes: number;
+  break_duration_minutes: number;
+  break_type: 'short' | 'long';
+}
 
 interface StudyRestSettingsProps {
   minStudyMinutes: number;
   minRestMinutes: number;
   maxStudySessionMinutes: number;
   minLessonTimeMinutes: number;
+  shortestLesson?: ShortestLesson | null;
+  breakIntervals?: BreakInterval[];
   onChange: (settings: {
     minStudyMinutes: number;
     minRestMinutes: number;
     maxStudySessionMinutes: number;
   }) => void;
+  onBreakIntervalsChange?: (intervals: BreakInterval[]) => void;
 }
 
 export function StudyRestSettings({
@@ -21,8 +37,53 @@ export function StudyRestSettings({
   minRestMinutes,
   maxStudySessionMinutes,
   minLessonTimeMinutes,
+  shortestLesson,
+  breakIntervals: initialBreakIntervals,
   onChange,
+  onBreakIntervalsChange,
 }: StudyRestSettingsProps) {
+  const [breakIntervals, setBreakIntervals] = useState<BreakInterval[]>(initialBreakIntervals || []);
+  const [loadingIntervals, setLoadingIntervals] = useState(false);
+
+  // Calcular intervalos de descanso cuando cambien los tiempos
+  useEffect(() => {
+    const calculateIntervals = async () => {
+      if (minStudyMinutes >= minLessonTimeMinutes && maxStudySessionMinutes >= minStudyMinutes) {
+        setLoadingIntervals(true);
+        try {
+          const response = await fetch('/api/study-planner/calculate-break-intervals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              minStudyMinutes,
+              maxStudySessionMinutes,
+              minRestMinutes,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setBreakIntervals(data.intervals || []);
+            if (onBreakIntervalsChange) {
+              onBreakIntervalsChange(data.intervals || []);
+            }
+          }
+        } catch (error) {
+          console.error('Error calculando intervalos:', error);
+        } finally {
+          setLoadingIntervals(false);
+        }
+      } else {
+        setBreakIntervals([]);
+        if (onBreakIntervalsChange) {
+          onBreakIntervalsChange([]);
+        }
+      }
+    };
+
+    calculateIntervals();
+  }, [minStudyMinutes, maxStudySessionMinutes, minRestMinutes, minLessonTimeMinutes, onBreakIntervalsChange]);
+
   // Ajustar automáticamente el tiempo mínimo si es menor que la duración mínima de lección
   useEffect(() => {
     if (minStudyMinutes < minLessonTimeMinutes) {
@@ -105,17 +166,26 @@ export function StudyRestSettings({
               className="mt-3 p-4 bg-red-500/20 border-2 border-red-500/50 rounded-lg"
             >
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/30 flex items-center justify-center">
-                  <span className="text-red-400 font-bold">!</span>
-                </div>
+                <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-red-400 text-sm font-bold mb-1">
+                  <p className="text-red-400 text-sm font-bold mb-2">
                     ⚠️ VALIDACIÓN CRÍTICA: Tiempo insuficiente
                   </p>
-                  <p className="text-red-300 text-xs leading-relaxed">
+                  <p className="text-red-300 text-xs leading-relaxed mb-2">
                     El tiempo mínimo de estudio ({minStudyMinutes} min) es menor que la duración de la lección más corta ({minLessonTimeMinutes} min).
                   </p>
-                  <p className="text-red-200 text-xs mt-2 font-medium">
+                  {shortestLesson && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-2">
+                      <p className="text-red-200 text-xs font-semibold mb-1">Lección más corta detectada:</p>
+                      <p className="text-red-100 text-xs">
+                        <strong>{shortestLesson.lesson_title}</strong>
+                      </p>
+                      <p className="text-red-200 text-xs">
+                        Curso: {shortestLesson.course_title} • Duración: {shortestLesson.total_minutes} minutos
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-red-200 text-xs font-medium">
                     📚 <strong>Razón:</strong> Cada sesión de estudio debe permitirte completar al menos una lección completa de tus cursos seleccionados. 
                     Ajusta el tiempo mínimo a {minLessonTimeMinutes} minutos o más para continuar.
                   </p>
@@ -221,6 +291,81 @@ export function StudyRestSettings({
             <span>240 min (4 horas)</span>
           </div>
         </motion.div>
+
+        {/* Intervalos de descanso calculados */}
+        {breakIntervals.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-slate-700/30 rounded-2xl p-6 border border-slate-600/50"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-lg bg-cyan-500/20">
+                <Coffee className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-white">Intervalos de descanso</h3>
+                <p className="text-gray-400 text-sm">
+                  Calculados automáticamente según mejores prácticas de aprendizaje (Pomodoro flexible)
+                </p>
+              </div>
+            </div>
+            {loadingIntervals ? (
+              <div className="text-center py-4">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
+                <p className="text-gray-400 text-sm mt-2">Calculando intervalos...</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {breakIntervals.map((interval, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-xl border-2 ${
+                      interval.break_type === 'long'
+                        ? 'bg-purple-500/10 border-purple-500/30'
+                        : 'bg-green-500/10 border-green-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-3 h-3 rounded-full ${
+                            interval.break_type === 'long' ? 'bg-purple-400' : 'bg-green-400'
+                          }`}
+                        />
+                        <div>
+                          <p className="text-white font-semibold">
+                            {interval.break_type === 'long' ? 'Descanso largo' : 'Descanso corto'}
+                          </p>
+                          <p className="text-gray-400 text-xs">
+                            Después de {interval.interval_minutes} minutos de estudio
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white font-bold text-lg">{interval.break_duration_minutes} min</p>
+                        <p className="text-gray-400 text-xs">duración</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-4 pt-4 border-t border-slate-600/50">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Total de descansos:</span>
+                    <span className="text-white font-semibold">{breakIntervals.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="text-gray-400">Tiempo total de descanso:</span>
+                    <span className="text-white font-semibold">
+                      {breakIntervals.reduce((sum, i) => sum + i.break_duration_minutes, 0)} min
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
     </div>
   );

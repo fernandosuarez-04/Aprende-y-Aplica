@@ -27,6 +27,19 @@ interface Course {
   level: string;
 }
 
+interface ShortestLesson {
+  lesson_id: string;
+  lesson_title: string;
+  total_minutes: number;
+  course_title: string;
+}
+
+interface BreakInterval {
+  interval_minutes: number;
+  break_duration_minutes: number;
+  break_type: 'short' | 'long';
+}
+
 interface PlanConfig {
   learningRouteId: string | null;
   learningRouteName: string;
@@ -41,6 +54,8 @@ interface PlanConfig {
   minRestMinutes: number;
   maxStudySessionMinutes: number;
   minLessonTimeMinutes: number; // Tiempo mínimo de lección más corta
+  shortestLesson: ShortestLesson | null;
+  breakIntervals: BreakInterval[];
 }
 
 export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps) {
@@ -55,6 +70,8 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
     minRestMinutes: 5, // Mejor práctica: descanso corto Pomodoro (5 min)
     maxStudySessionMinutes: 90, // Mejor práctica: máximo 90 min antes de descanso largo (según estudios científicos)
     minLessonTimeMinutes: 15, // Valor por defecto, se actualizará con los cursos seleccionados
+    shortestLesson: null,
+    breakIntervals: [],
   });
 
   const steps: Array<{ id: Step; title: string; icon: typeof Calendar }> = [
@@ -117,6 +134,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
         min_study_minutes: config.minStudyMinutes,
         min_rest_minutes: config.minRestMinutes,
         max_study_session_minutes: config.maxStudySessionMinutes,
+        break_intervals: config.breakIntervals,
         goal_hours_per_week: parseFloat(calculateTotalHours()),
       };
 
@@ -236,8 +254,22 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
   };
 
   const handleRouteSelect = async (routeId: string | null, courses: Course[]) => {
-    // Obtener tiempo mínimo de lecciones
-    const minLessonTime = await getMinLessonTime(courses.map(c => c.id));
+    console.log('🔄 handleRouteSelect llamado:', {
+      routeId,
+      coursesCount: courses.length,
+      courses: courses.map(c => ({ id: c.id, title: c.title })),
+    });
+
+    if (!courses || courses.length === 0) {
+      console.error('❌ No se recibieron cursos en handleRouteSelect');
+      alert('Error: La ruta seleccionada no tiene cursos asociados. Por favor, selecciona otra ruta o crea una nueva.');
+      return;
+    }
+
+    // Obtener tiempo mínimo de lecciones y lección más corta
+    const { minTime, shortestLesson } = await getMinLessonTime(courses.map(c => c.id));
+    console.log('⏱️ Tiempo mínimo de lección:', minTime);
+    console.log('📚 Lección más corta:', shortestLesson);
     
     // Obtener nombre de la ruta si existe
     let routeName = '';
@@ -247,6 +279,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
         if (res.ok) {
           const data = await res.json();
           routeName = data.route?.name || '';
+          console.log('📝 Nombre de ruta obtenido:', routeName);
         }
       } catch (error) {
         console.error('Error fetching route name:', error);
@@ -255,16 +288,36 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
     
     // Ajustar minStudyMinutes: usar el máximo entre el valor actual (25 min Pomodoro) y el tiempo mínimo de lección
     // Esto asegura que siempre se pueda completar al menos una lección por sesión
-    const adjustedMinStudy = Math.max(25, minLessonTime);
+    const adjustedMinStudy = Math.max(25, minTime);
     
-    setConfig({
+    const newConfig = {
       ...config,
       learningRouteId: routeId,
       learningRouteName: routeName,
       selectedCourses: courses,
-      minLessonTimeMinutes: minLessonTime,
+      minLessonTimeMinutes: minTime,
+      shortestLesson: shortestLesson,
       minStudyMinutes: adjustedMinStudy, // Ajustar automáticamente si es necesario
+    };
+
+    console.log('✅ Actualizando config con:', {
+      learningRouteId: newConfig.learningRouteId,
+      learningRouteName: newConfig.learningRouteName,
+      selectedCoursesCount: newConfig.selectedCourses.length,
+      minLessonTimeMinutes: newConfig.minLessonTimeMinutes,
+      shortestLesson: newConfig.shortestLesson,
+      minStudyMinutes: newConfig.minStudyMinutes,
     });
+
+    setConfig(newConfig);
+    
+    // Verificar que el estado se actualizó correctamente
+    setTimeout(() => {
+      console.log('🔍 Estado después de actualizar (verificación):', {
+        canProceed: canProceed(),
+        selectedCoursesCount: newConfig.selectedCourses.length,
+      });
+    }, 100);
   };
 
   const handleNewRoute = async (name: string, courses: Course[]) => {
@@ -290,17 +343,18 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
       }
       
       if (res.ok && responseData.route) {
-        const minLessonTime = await getMinLessonTime(courses.map(c => c.id));
+        const { minTime, shortestLesson } = await getMinLessonTime(courses.map(c => c.id));
         
         // Ajustar minStudyMinutes: usar el máximo entre el valor actual (25 min Pomodoro) y el tiempo mínimo de lección
-        const adjustedMinStudy = Math.max(25, minLessonTime);
+        const adjustedMinStudy = Math.max(25, minTime);
         
         setConfig({
           ...config,
           learningRouteId: responseData.route.id,
           learningRouteName: name,
           selectedCourses: courses,
-          minLessonTimeMinutes: minLessonTime,
+          minLessonTimeMinutes: minTime,
+          shortestLesson: shortestLesson,
           minStudyMinutes: adjustedMinStudy, // Ajustar automáticamente si es necesario
         });
         
@@ -315,7 +369,7 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
     }
   };
 
-  const getMinLessonTime = async (courseIds: string[]): Promise<number> => {
+  const getMinLessonTime = async (courseIds: string[]): Promise<{ minTime: number; shortestLesson: ShortestLesson | null }> => {
     try {
       const res = await fetch('/api/study-planner/min-lesson-time', {
         method: 'POST',
@@ -325,12 +379,15 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
       
       if (res.ok) {
         const data = await res.json();
-        return data.minTimeMinutes || 15;
+        return {
+          minTime: data.minTimeMinutes || 15,
+          shortestLesson: data.shortestLesson || null,
+        };
       }
     } catch (error) {
       console.error('Error getting min lesson time:', error);
     }
-    return 15; // Valor por defecto
+    return { minTime: 15, shortestLesson: null }; // Valor por defecto
   };
 
   const canProceed = () => {
@@ -475,7 +532,10 @@ export function ManualPlanWizard({ onComplete, onCancel }: ManualPlanWizardProps
                 minRestMinutes={config.minRestMinutes}
                 maxStudySessionMinutes={config.maxStudySessionMinutes}
                 minLessonTimeMinutes={config.minLessonTimeMinutes}
+                shortestLesson={config.shortestLesson}
+                breakIntervals={config.breakIntervals}
                 onChange={(settings) => setConfig({ ...config, ...settings })}
+                onBreakIntervalsChange={(intervals) => setConfig({ ...config, breakIntervals: intervals })}
               />
             )}
 
