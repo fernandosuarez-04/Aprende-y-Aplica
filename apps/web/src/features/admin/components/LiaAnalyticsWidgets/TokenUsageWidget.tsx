@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { BoltIcon } from '@heroicons/react/24/outline';
 
 interface ModelUsage {
   model: string;
@@ -94,8 +95,9 @@ export function TokenUsageWidget({ modelUsage, totalTokens, isLoading }: TokenUs
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            ⚡ Uso de Tokens por Modelo
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <BoltIcon className="w-5 h-5 text-amber-500" />
+            Uso de Tokens por Modelo
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Total: <span className="font-semibold text-amber-500">{formatTokens(totalTokens)}</span> tokens

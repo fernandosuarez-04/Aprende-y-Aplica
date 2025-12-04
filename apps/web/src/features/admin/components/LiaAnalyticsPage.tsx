@@ -5,6 +5,8 @@ import {
   ArrowPathIcon,
   ArrowDownTrayIcon,
   CalendarIcon,
+  CpuChipIcon,
+  LightBulbIcon,
 } from '@heroicons/react/24/outline';
 import {
   LiaStatsCards,
@@ -134,7 +136,9 @@ export function LiaAnalyticsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <span className="text-4xl">🤖</span>
+              <div className="p-2 bg-indigo-500/20 rounded-xl">
+                <CpuChipIcon className="w-8 h-8 text-indigo-500" />
+              </div>
               LIA Analytics Dashboard
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
@@ -268,7 +272,9 @@ export function LiaAnalyticsPage() {
       {/* Info Footer */}
       <div className="mt-8 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <div className="p-2 bg-indigo-500/20 rounded-lg flex-shrink-0">
+            <LightBulbIcon className="w-5 h-5 text-indigo-500" />
+          </div>
           <div>
             <h4 className="font-medium text-indigo-900 dark:text-indigo-300">
               Información sobre costos

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { UserCircleIcon, TrophyIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, TrophyIcon, UsersIcon } from '@heroicons/react/24/outline';
 
 interface TopUser {
   rank: number;
@@ -123,8 +123,9 @@ export function TopUsersWidget({ period = 'month', limit = 10, isLoading: extern
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          👥 Top Usuarios de LIA
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <UsersIcon className="w-5 h-5 text-indigo-500" />
+          Top Usuarios de LIA
         </h3>
         <select
           value={sortBy}

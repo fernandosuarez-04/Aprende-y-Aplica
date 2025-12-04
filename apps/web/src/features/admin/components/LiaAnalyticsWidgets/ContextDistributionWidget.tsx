@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { ChartPieIcon } from '@heroicons/react/24/outline';
 
 interface ContextData {
   contextType: string;
@@ -133,8 +134,9 @@ export function ContextDistributionWidget({ data, isLoading }: ContextDistributi
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            🥧 Distribución por Contexto
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <ChartPieIcon className="w-5 h-5 text-violet-500" />
+            Distribución por Contexto
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {totalConversations} conversaciones • ${totalCost.toFixed(4)} total

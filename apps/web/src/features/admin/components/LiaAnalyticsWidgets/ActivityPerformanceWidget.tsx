@@ -6,6 +6,7 @@ import {
   XCircleIcon,
   ClockIcon,
   ArrowPathIcon,
+  BoltIcon,
 } from '@heroicons/react/24/outline';
 
 interface ActivitySummary {
@@ -89,8 +90,9 @@ export function ActivityPerformanceWidget({ period = 'month', isLoading: externa
   if (!summary) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          ⚡ Rendimiento de Actividades
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <BoltIcon className="w-5 h-5 text-amber-500" />
+          Rendimiento de Actividades
         </h3>
         <p className="text-gray-500 dark:text-gray-400 text-center py-8">
           No hay datos de actividades disponibles
@@ -137,8 +139,9 @@ export function ActivityPerformanceWidget({ period = 'month', isLoading: externa
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            ⚡ Rendimiento de Actividades
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <BoltIcon className="w-5 h-5 text-amber-500" />
+            Rendimiento de Actividades
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {summary.totalActivities} actividades en total
