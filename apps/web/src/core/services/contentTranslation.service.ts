@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 type EntityType = 'course' | 'module' | 'lesson' | 'activity' | 'material';
 
 interface ContentTranslations {
-  [key: string]: string; // Cualquier campo traducido
+  [key: string]: string | string[]; // Cualquier campo traducido (soporta strings y arrays)
 }
 
 export class ContentTranslationService {
