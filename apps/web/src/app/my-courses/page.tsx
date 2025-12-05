@@ -15,8 +15,7 @@ import {
   Filter,
   Sparkles,
   Target,
-  TrendingDown,
-  Calendar
+  TrendingDown
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 
@@ -60,7 +59,6 @@ export default function MyCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [isCheckingPlan, setIsCheckingPlan] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -103,39 +101,6 @@ export default function MyCoursesPage() {
     
     return matchesSearch;
   });
-
-  const handleStudyPlannerClick = async () => {
-    try {
-      setIsCheckingPlan(true);
-      
-      // Verificar si el usuario tiene un plan
-      const response = await fetch('/api/study-planner/plans/check', {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        // Si hay error, redirigir a create por defecto
-        router.push('/study-planner/create');
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.hasPlan) {
-        // Si tiene plan, ir al dashboard
-        router.push('/study-planner/dashboard');
-      } else {
-        // Si no tiene plan, ir a crear
-        router.push('/study-planner/create');
-      }
-    } catch (error) {
-      // En caso de error, redirigir a create
-      console.error('Error verificando plan:', error);
-      router.push('/study-planner/create');
-    } finally {
-      setIsCheckingPlan(false);
-    }
-  };
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -193,22 +158,6 @@ export default function MyCoursesPage() {
               </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Mi Aprendizaje</h1>
             </div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="w-full sm:w-auto"
-            >
-              <Button
-                onClick={handleStudyPlannerClick}
-                variant="gradient"
-                className="flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto"
-                disabled={isCheckingPlan}
-              >
-                <Calendar className="w-5 h-5" />
-                {isCheckingPlan ? 'Verificando...' : 'Planificador de Estudios'}
-              </Button>
-            </motion.div>
           </div>
           <p className="text-gray-600 dark:text-slate-400 text-lg">Continúa donde lo dejaste</p>
         </motion.div>
