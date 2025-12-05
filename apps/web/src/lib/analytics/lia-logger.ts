@@ -125,6 +125,7 @@ export class LiaLogger {
 
   /**
    * Registra un mensaje en la conversación actual
+   * Guarda tokens, costo, modelo y tiempo de respuesta
    */
   async logMessage(
     role: MessageRole,
@@ -138,23 +139,56 @@ export class LiaLogger {
 
     const supabase = await createClient();
 
-    const { data, error } = await (supabase as any).rpc('log_lia_message', {
-      p_conversation_id: this.conversationId,
-      p_role: role,
-      p_content: content,
-      p_is_system_message: isSystemMessage,
-      p_model_used: metadata?.modelUsed || null,
-      p_tokens_used: metadata?.tokensUsed || null,
-      p_cost_usd: metadata?.costUsd || null,
-      p_response_time_ms: metadata?.responseTimeMs || null,
-    });
+    // Usar INSERT directo para mayor confiabilidad
+    const { data, error } = await supabase
+      .from('lia_messages' as any)
+      .insert({
+        conversation_id: this.conversationId,
+        role: role,
+        content: content,
+        is_system_message: isSystemMessage,
+        model_used: metadata?.modelUsed || null,
+        tokens_used: metadata?.tokensUsed || null,
+        cost_usd: metadata?.costUsd || null,
+        response_time_ms: metadata?.responseTimeMs || null,
+        created_at: new Date().toISOString()
+      } as any)
+      .select('message_id')
+      .single();
 
     if (error) {
       // console.error('Error logging message:', error);
       throw error;
     }
 
-    return data;
+    // Actualizar contadores en la conversación
+    try {
+      // Obtener contadores actuales
+      const { data: convData } = await supabase
+        .from('lia_conversations' as any)
+        .select('total_messages, total_lia_messages')
+        .eq('conversation_id', this.conversationId)
+        .single();
+
+      if (convData) {
+        const updates: any = {
+          total_messages: (convData.total_messages || 0) + 1
+        };
+        
+        if (role === 'assistant') {
+          updates.total_lia_messages = (convData.total_lia_messages || 0) + 1;
+        }
+
+        await supabase
+          .from('lia_conversations' as any)
+          .update(updates)
+          .eq('conversation_id', this.conversationId);
+      }
+    } catch (updateError) {
+      // Ignorar errores de actualización de contadores, no son críticos
+    }
+
+    return (data as any)?.message_id;
   }
 
   /**
@@ -167,10 +201,14 @@ export class LiaLogger {
 
     const supabase = await createClient();
 
-    const { error } = await (supabase as any).rpc('close_conversation', {
-      p_conversation_id: this.conversationId,
-      p_completed: completed,
-    });
+    // Usar UPDATE directo para mayor confiabilidad
+    const { error } = await supabase
+      .from('lia_conversations' as any)
+      .update({
+        ended_at: new Date().toISOString(),
+        is_completed: completed
+      } as any)
+      .eq('conversation_id', this.conversationId);
 
     if (error) {
       // console.error('Error ending conversation:', error);
