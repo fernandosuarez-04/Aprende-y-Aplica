@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
-import { LiaLogger } from '../../../../lib/analytics/lia-logger';
+import { SessionService } from '../../../../features/auth/services/session.service';
 
 /**
  * POST /api/lia/start-activity
@@ -9,15 +9,10 @@ import { LiaLogger } from '../../../../lib/analytics/lia-logger';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    // ✅ Usar SessionService para autenticación
+    const user = await SessionService.getCurrentUser();
 
-    // Verificar autenticación
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
@@ -25,29 +20,50 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener datos del body
-    const { conversationId, activityId, totalSteps } = await request.json();
+    const { conversationId, activityId, activityType, totalSteps = 1 } = await request.json();
 
-    if (!conversationId || !activityId || !totalSteps) {
+    if (!activityType) {
       return NextResponse.json(
-        { error: 'conversationId, activityId y totalSteps son requeridos' },
+        { error: 'activityType es requerido' },
         { status: 400 }
       );
     }
 
-    // Crear logger y registrar inicio de actividad
-    const logger = new LiaLogger(user.id);
-    logger.setConversationId(conversationId);
-    
-    const completionId = await logger.startActivity(activityId, totalSteps);
+    const supabase = await createClient();
+
+    // Crear registro de actividad directamente
+    const { data, error } = await supabase
+      .from('lia_activity_completions')
+      .insert({
+        conversation_id: conversationId || null,
+        user_id: user.id,
+        activity_id: activityId || activityType, // Usar activityType como ID si no hay activityId
+        status: 'started',
+        total_steps: totalSteps,
+        current_step: 1,
+        completed_steps: 0,
+        lia_had_to_redirect: 0,
+        started_at: new Date().toISOString()
+      } as any)
+      .select('completion_id')
+      .single();
+
+    if (error) {
+      console.error('Error starting activity:', error);
+      return NextResponse.json(
+        { error: 'Error al iniciar actividad' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      completionId,
-      activityId,
+      completionId: (data as any)?.completion_id,
+      activityId: activityId || activityType,
       totalSteps,
     });
   } catch (error) {
-    // console.error('Error starting activity:', error);
+    console.error('Error starting activity:', error);
     return NextResponse.json(
       { error: 'Error al iniciar actividad' },
       { status: 500 }

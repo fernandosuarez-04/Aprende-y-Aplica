@@ -60,6 +60,9 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   
   // ✅ ANALYTICS: Mantener conversationId en referencia para persistencia
   const conversationIdRef = useRef<string | null>(null);
+  
+  // ✅ ACTIVIDADES: Tracking de tiempo de inicio de actividad
+  const activityStartTimeRef = useRef<number | null>(null);
 
   // ✨ NUEVOS ESTADOS: Modos y prompts generados
   const [currentMode, setCurrentMode] = useState<LiaChatMode>('course');
@@ -67,6 +70,38 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   
   // 🎨 ESTADOS: NanoBanana
   const [generatedNanoBanana, setGeneratedNanoBanana] = useState<GeneratedNanoBanana | null>(null);
+
+  // ✅ ACTIVIDADES: Función para registrar actividad completada
+  const registerCompletedActivity = useCallback(async (
+    activityType: string,
+    generatedOutput?: any
+  ) => {
+    if (!user) return;
+    
+    try {
+      const timeSpentSeconds = activityStartTimeRef.current 
+        ? Math.floor((Date.now() - activityStartTimeRef.current) / 1000)
+        : 0;
+      
+      await fetch('/api/lia/complete-activity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId: conversationIdRef.current,
+          activityType,
+          generatedOutput,
+          timeSpentSeconds
+        }),
+      });
+      
+      console.log('[LIA Analytics] ✅ Actividad completada:', activityType);
+      activityStartTimeRef.current = null;
+    } catch (error) {
+      console.error('[LIA Analytics] Error registrando actividad:', error);
+    }
+  }, [user]);
 
   const sendMessage = useCallback(async (
     message: string,
@@ -367,6 +402,8 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         // Si se cambió a curso/contexto CON una pregunta, debe continuar y responder
         if (shouldWaitForNextMessage) {
           console.log('[LIA] ⏸️ Modo especial activado. Esperando descripción del usuario...');
+          // ✅ ACTIVIDADES: Iniciar tracking de tiempo
+          activityStartTimeRef.current = Date.now();
           setIsLoading(false);
           return;
         } else {
@@ -444,6 +481,13 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
             domain: nanoBananaData.domain,
             outputFormat: nanoBananaData.outputFormat
           });
+          
+          // ✅ ACTIVIDADES: Registrar NanoBanana completado
+          registerCompletedActivity('nanobana_generation', {
+            domain: nanoBananaData.domain,
+            outputFormat: nanoBananaData.outputFormat,
+            hasSchema: true
+          });
         }
 
         const assistantMessage: LiaMessage = {
@@ -518,6 +562,13 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
       // ✨ Si hay un prompt generado en la respuesta, guardarlo
       if (data.generatedPrompt && modeForThisMessage === 'prompts') {
         setGeneratedPrompt(data.generatedPrompt);
+        
+        // ✅ ACTIVIDADES: Registrar prompt completado
+        registerCompletedActivity('prompt_generation', {
+          title: data.generatedPrompt.title,
+          difficulty: data.generatedPrompt.difficulty_level,
+          tags: data.generatedPrompt.tags
+        });
       }
       
       const assistantMessage: LiaMessage = {
@@ -675,6 +726,26 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
       }
     };
   }, [user]);
+
+  // ✅ ACTIVIDADES: Registrar sesión de curso cuando hay mensajes suficientes
+  const messagesCountRef = useRef(0);
+  useEffect(() => {
+    // Contar solo mensajes del usuario
+    const userMessagesCount = messages.filter(m => m.role === 'user').length;
+    
+    // Si el usuario ha enviado al menos 3 mensajes en modo curso, registrar como sesión de aprendizaje
+    if (currentMode === 'course' && userMessagesCount >= 3 && userMessagesCount > messagesCountRef.current) {
+      // Solo registrar cada 3 mensajes adicionales
+      if (userMessagesCount % 3 === 0) {
+        registerCompletedActivity('course_learning_session', {
+          messagesCount: userMessagesCount,
+          mode: currentMode
+        });
+      }
+    }
+    
+    messagesCountRef.current = userMessagesCount;
+  }, [messages, currentMode, registerCompletedActivity]);
 
   return {
     messages,
