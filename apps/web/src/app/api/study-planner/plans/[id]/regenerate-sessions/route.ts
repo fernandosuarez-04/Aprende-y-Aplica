@@ -208,20 +208,32 @@ export async function POST(
     });
 
     // Obtener progreso del usuario para todas las lecciones de los cursos
+    // Excluir lecciones que ya están completadas, en progreso o iniciadas
     const enrollmentIds = Array.from(enrollmentsMap.values());
-    let completedLessonIds = new Set<string>();
+    let excludedLessonIds = new Set<string>();
     
     if (enrollmentIds.length > 0) {
+      // Obtener todas las lecciones que tienen algún progreso (completadas, en progreso, iniciadas)
       const { data: progressData } = await supabaseAdmin
         .from('user_lesson_progress')
-        .select('lesson_id, is_completed, lesson_status')
+        .select('lesson_id, is_completed, lesson_status, started_at')
         .in('enrollment_id', enrollmentIds)
-        .or('is_completed.eq.true,lesson_status.eq.completed');
+        .or('is_completed.eq.true,lesson_status.eq.completed,lesson_status.eq.in_progress,started_at.not.is.null');
 
       if (progressData && progressData.length > 0) {
-        completedLessonIds = new Set(progressData.map((p: any) => p.lesson_id));
-        console.log(`✅ Lecciones completadas encontradas: ${completedLessonIds.size}`);
-        console.log('📋 Lecciones completadas:', Array.from(completedLessonIds).slice(0, 10));
+        excludedLessonIds = new Set(progressData.map((p: any) => p.lesson_id));
+        
+        // Contar por tipo de estado para debugging
+        const completed = progressData.filter((p: any) => p.is_completed || p.lesson_status === 'completed').length;
+        const inProgress = progressData.filter((p: any) => p.lesson_status === 'in_progress' && !p.is_completed).length;
+        const started = progressData.filter((p: any) => p.started_at && !p.is_completed && p.lesson_status !== 'in_progress').length;
+        
+        console.log(`✅ Lecciones excluidas del plan: ${excludedLessonIds.size} total`, {
+          completadas: completed,
+          en_progreso: inProgress,
+          iniciadas: started,
+        });
+        console.log('📋 Lecciones excluidas:', Array.from(excludedLessonIds).slice(0, 10));
       }
     }
 
@@ -243,13 +255,63 @@ export async function POST(
       }>;
     }> = [];
     
+    let totalLessonsInAllCourses = 0; // Contador de todas las lecciones en módulos publicados
+    let totalLessonsInAllCoursesIncludingUnpublished = 0; // Contador de TODAS las lecciones (incluyendo módulos no publicados)
+    
+    // Primero, contar TODAS las lecciones del curso directamente desde course_lessons
     for (const courseId of courseIds) {
+      // Obtener TODOS los módulos del curso (publicados y no publicados)
+      const { data: allModules } = await supabaseAdmin
+        .from('course_modules')
+        .select('module_id, module_order_index, is_published')
+        .eq('course_id', courseId)
+        .order('module_order_index', { ascending: true });
+      
+      // Contar todas las lecciones del curso (sin filtrar por módulo publicado)
+      const allModuleIds = allModules?.map((m: any) => m.module_id) || [];
+      let totalLessonsInDB = 0;
+      if (allModuleIds.length > 0) {
+        const { count } = await supabaseAdmin
+          .from('course_lessons')
+          .select('*', { count: 'exact', head: true })
+          .in('module_id', allModuleIds);
+        totalLessonsInDB = count || 0;
+      }
+      
+      console.log(`🔍 Curso ${courseId} - Verificación directa desde BD:`, {
+        totalLeccionesEnBD: totalLessonsInDB,
+        totalModulos: allModules?.length || 0,
+      });
+      
+      // Obtener solo módulos publicados para procesar
       const { data: modules } = await supabaseAdmin
         .from('course_modules')
         .select('module_id, module_order_index')
         .eq('course_id', courseId)
         .eq('is_published', true)
         .order('module_order_index', { ascending: true });
+
+      // Contar lecciones en módulos no publicados
+      const unpublishedModuleIds = allModules?.filter((m: any) => !m.is_published).map((m: any) => m.module_id) || [];
+      let lessonsInUnpublishedModules = 0;
+      if (unpublishedModuleIds.length > 0) {
+        const { count } = await supabaseAdmin
+          .from('course_lessons')
+          .select('*', { count: 'exact', head: true })
+          .in('module_id', unpublishedModuleIds);
+        lessonsInUnpublishedModules = count || 0;
+      }
+
+      console.log(`📦 Curso ${courseId}:`, {
+        totalModulos: allModules?.length || 0,
+        modulosPublicados: modules?.length || 0,
+        modulosNoPublicados: (allModules?.length || 0) - (modules?.length || 0),
+        totalLeccionesEnBD: totalLessonsInDB,
+        leccionesEnModulosNoPublicados: lessonsInUnpublishedModules,
+        leccionesEnModulosPublicados: totalLessonsInDB - lessonsInUnpublishedModules,
+      });
+      
+      totalLessonsInAllCoursesIncludingUnpublished += totalLessonsInDB;
 
       if (modules && modules.length > 0) {
         const courseModules: Array<{
@@ -259,6 +321,13 @@ export async function POST(
         }> = [];
 
         for (const module of modules) {
+          // Obtener TODAS las lecciones (publicadas y no publicadas) para contar correctamente
+          const { data: allModuleLessons } = await supabaseAdmin
+            .from('course_lessons')
+            .select('lesson_id, is_published, lesson_title')
+            .eq('module_id', module.module_id);
+          
+          // Obtener solo lecciones publicadas para procesar
           const { data: lessons } = await supabaseAdmin
             .from('course_lessons')
             .select('lesson_id, lesson_title, duration_seconds, lesson_order_index, module_id')
@@ -266,15 +335,29 @@ export async function POST(
             .eq('is_published', true)
             .order('lesson_order_index', { ascending: true });
 
+          const leccionesNoPublicadas = allModuleLessons?.filter((l: any) => !l.is_published) || [];
+          
+          console.log(`  📚 Módulo ${module.module_id} (orden ${module.module_order_index}):`, {
+            totalLecciones: allModuleLessons?.length || 0,
+            leccionesPublicadas: lessons?.length || 0,
+            leccionesNoPublicadas: leccionesNoPublicadas.length,
+            leccionesNoPublicadasDetalle: leccionesNoPublicadas.map((l: any) => ({ id: l.lesson_id, title: l.lesson_title })),
+          });
+
           if (lessons && lessons.length > 0) {
-            // Filtrar lecciones completadas
-            const incompleteLessons = lessons.filter(lesson => !completedLessonIds.has(lesson.lesson_id));
+            // Contar todas las lecciones antes de filtrar
+            totalLessonsInAllCourses += lessons.length;
             
-            if (incompleteLessons.length > 0) {
+            // Filtrar lecciones que ya están completadas, en progreso o iniciadas
+            const pendingLessons = lessons.filter(lesson => !excludedLessonIds.has(lesson.lesson_id));
+            
+            console.log(`📝 Módulo ${module.module_id}: ${lessons.length} lecciones totales, ${pendingLessons.length} pendientes (${lessons.length - pendingLessons.length} excluidas)`);
+            
+            if (pendingLessons.length > 0) {
               courseModules.push({
                 moduleId: module.module_id,
                 moduleOrder: module.module_order_index || 0,
-                lessons: incompleteLessons.map(lesson => ({
+                lessons: pendingLessons.map(lesson => ({
                   ...lesson,
                   course_id: courseId,
                 })),
@@ -302,11 +385,20 @@ export async function POST(
       }
     }
 
-    const totalLessonsBeforeFilter = coursesWithLessons.reduce((sum, c) => 
-      sum + c.modules.reduce((s, m) => s + m.lessons.length, 0), 0
-    );
-
-    console.log(`📖 Lecciones encontradas: ${allLessons.length} (después de filtrar ${completedLessonIds.size} completadas)`);
+    console.log(`📖 Resumen de lecciones:`, {
+      totalEnBD: totalLessonsInAllCoursesIncludingUnpublished,
+      totalEnModulosPublicados: totalLessonsInAllCourses,
+      excluidas: excludedLessonIds.size,
+      pendientes: allLessons.length,
+      diferencia: totalLessonsInAllCourses - allLessons.length,
+      esperadoExcluidas: excludedLessonIds.size,
+      verificacion: totalLessonsInAllCourses === allLessons.length + excludedLessonIds.size ? '✅ Correcto' : '⚠️ Revisar',
+      diferenciaConBD: totalLessonsInAllCoursesIncludingUnpublished - totalLessonsInAllCourses,
+      leccionesEnModulosNoPublicados: totalLessonsInAllCoursesIncludingUnpublished - totalLessonsInAllCourses,
+      nota: totalLessonsInAllCoursesIncludingUnpublished !== totalLessonsInAllCourses 
+        ? `⚠️ Hay ${totalLessonsInAllCoursesIncludingUnpublished - totalLessonsInAllCourses} lecciones en módulos no publicados que no se están contando` 
+        : '',
+    });
     console.log(`📚 Cursos procesados: ${coursesWithLessons.length}`);
     coursesWithLessons.forEach((course, idx) => {
       const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);

@@ -295,19 +295,31 @@ export async function POST(request: NextRequest) {
       });
 
       // Obtener progreso del usuario para todas las lecciones de los cursos
+      // Excluir lecciones que ya están completadas, en progreso o iniciadas
       const enrollmentIds = Array.from(enrollmentsMap.values());
-      let completedLessonIds = new Set<string>();
+      let excludedLessonIds = new Set<string>();
       
       if (enrollmentIds.length > 0) {
+        // Obtener todas las lecciones que tienen algún progreso (completadas, en progreso, iniciadas)
         const { data: progressData } = await supabaseAdmin
           .from('user_lesson_progress')
-          .select('lesson_id, is_completed, lesson_status')
+          .select('lesson_id, is_completed, lesson_status, started_at')
           .in('enrollment_id', enrollmentIds)
-          .or('is_completed.eq.true,lesson_status.eq.completed');
+          .or('is_completed.eq.true,lesson_status.eq.completed,lesson_status.eq.in_progress,started_at.not.is.null');
 
         if (progressData && progressData.length > 0) {
-          completedLessonIds = new Set(progressData.map((p: any) => p.lesson_id));
-          console.log(`✅ Lecciones completadas encontradas: ${completedLessonIds.size}`);
+          excludedLessonIds = new Set(progressData.map((p: any) => p.lesson_id));
+          
+          // Contar por tipo de estado para debugging
+          const completed = progressData.filter((p: any) => p.is_completed || p.lesson_status === 'completed').length;
+          const inProgress = progressData.filter((p: any) => p.lesson_status === 'in_progress' && !p.is_completed).length;
+          const started = progressData.filter((p: any) => p.started_at && !p.is_completed && p.lesson_status !== 'in_progress').length;
+          
+          console.log(`✅ Lecciones excluidas del plan: ${excludedLessonIds.size} total`, {
+            completadas: completed,
+            en_progreso: inProgress,
+            iniciadas: started,
+          });
         }
       }
 
@@ -328,6 +340,8 @@ export async function POST(request: NextRequest) {
           }>;
         }>;
       }> = [];
+      
+      let totalLessonsInAllCourses = 0; // Contador de todas las lecciones antes de filtrar
       
       for (const courseId of course_ids) {
         // Obtener módulos del curso (usar cliente admin para bypass RLS)
@@ -355,14 +369,19 @@ export async function POST(request: NextRequest) {
               .order('lesson_order_index', { ascending: true });
 
             if (lessons && lessons.length > 0) {
-              // Filtrar lecciones completadas
-              const incompleteLessons = lessons.filter(lesson => !completedLessonIds.has(lesson.lesson_id));
+              // Contar todas las lecciones antes de filtrar
+              totalLessonsInAllCourses += lessons.length;
               
-              if (incompleteLessons.length > 0) {
+              // Filtrar lecciones que ya están completadas, en progreso o iniciadas
+              const pendingLessons = lessons.filter(lesson => !excludedLessonIds.has(lesson.lesson_id));
+              
+              console.log(`📝 Módulo ${module.module_id}: ${lessons.length} lecciones totales, ${pendingLessons.length} pendientes (${lessons.length - pendingLessons.length} excluidas)`);
+              
+              if (pendingLessons.length > 0) {
                 courseModules.push({
                   moduleId: module.module_id,
                   moduleOrder: module.module_order_index || 0,
-                  lessons: incompleteLessons.map(lesson => ({
+                  lessons: pendingLessons.map(lesson => ({
                     ...lesson,
                     course_id: courseId,
                   })),
@@ -382,6 +401,7 @@ export async function POST(request: NextRequest) {
 
       // Crear array plano de lecciones en orden secuencial: curso 1 completo, luego curso 2 completo, etc.
       const allLessons: any[] = [];
+      
       for (const course of coursesWithLessons) {
         for (const module of course.modules) {
           for (const lesson of module.lessons) {
@@ -389,8 +409,15 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-
-      console.log(`📖 Lecciones encontradas: ${allLessons.length} (después de filtrar ${completedLessonIds.size} completadas)`);
+      
+      console.log(`📖 Resumen de lecciones:`, {
+        totalEnCursos: totalLessonsInAllCourses,
+        excluidas: excludedLessonIds.size,
+        pendientes: allLessons.length,
+        diferencia: totalLessonsInAllCourses - allLessons.length,
+        esperadoExcluidas: excludedLessonIds.size,
+        verificacion: totalLessonsInAllCourses === allLessons.length + excludedLessonIds.size ? '✅ Correcto' : '⚠️ Revisar',
+      });
       console.log(`📚 Cursos procesados: ${coursesWithLessons.length}`);
       coursesWithLessons.forEach((course, idx) => {
         const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);

@@ -215,7 +215,7 @@ export function PlanSummary({ config }: PlanSummaryProps) {
             <BookOpen className="w-5 h-5 text-purple-400" />
             <h3 className="text-lg font-semibold text-white">Configuración de tiempos</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="bg-slate-800/50 rounded-xl p-4 border border-blue-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full bg-blue-400"></div>
@@ -251,71 +251,66 @@ export function PlanSummary({ config }: PlanSummaryProps) {
               )}
             </div>
           </div>
-        </motion.div>
 
-        {/* Intervalos de descanso */}
-        {config.breakIntervals && config.breakIntervals.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-slate-700/30 rounded-2xl p-6 border border-slate-600/50"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <Coffee className="w-5 h-5 text-cyan-400" />
-              <h3 className="text-lg font-semibold text-white">Intervalos de descanso</h3>
-            </div>
-            <p className="text-gray-400 text-sm mb-4">
-              Calculados automáticamente según mejores prácticas de aprendizaje (Pomodoro flexible)
-            </p>
-            <div className="space-y-3">
-              {config.breakIntervals.map((interval, index) => (
-                <div
-                  key={index}
-                  className={`p-4 rounded-xl border-2 ${
-                    interval.break_type === 'long'
-                      ? 'bg-purple-500/10 border-purple-500/30'
-                      : 'bg-green-500/10 border-green-500/30'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          interval.break_type === 'long' ? 'bg-purple-400' : 'bg-green-400'
-                        }`}
-                      />
-                      <div>
-                        <p className="text-white font-semibold">
-                          {interval.break_type === 'long' ? 'Descanso largo' : 'Descanso corto'}
-                        </p>
-                        <p className="text-gray-400 text-xs">
-                          Después de {interval.interval_minutes} minutos de estudio
-                        </p>
+          {/* Intervalos de descanso dentro de la misma sección */}
+          {config.breakIntervals && config.breakIntervals.length > 0 && (
+            <>
+              <div className="flex items-center gap-3 mb-4 pt-4 border-t border-slate-600/50">
+                <Coffee className="w-5 h-5 text-cyan-400" />
+                <h4 className="text-md font-semibold text-white">Descansos configurados</h4>
+              </div>
+              <p className="text-gray-400 text-sm mb-4">
+                Calculados automáticamente según mejores prácticas de aprendizaje (Pomodoro flexible)
+              </p>
+              <div className="space-y-3">
+                {config.breakIntervals.map((interval, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-xl border-2 ${
+                      interval.break_type === 'long'
+                        ? 'bg-purple-500/10 border-purple-500/30'
+                        : 'bg-green-500/10 border-green-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-3 h-3 rounded-full ${
+                            interval.break_type === 'long' ? 'bg-purple-400' : 'bg-green-400'
+                          }`}
+                        />
+                        <div>
+                          <p className="text-white font-semibold">
+                            {interval.break_type === 'long' ? 'Descanso largo' : 'Descanso corto'}
+                          </p>
+                          <p className="text-gray-400 text-xs">
+                            Después de {interval.interval_minutes} minutos de estudio
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white font-bold text-lg">{interval.break_duration_minutes} min</p>
+                        <p className="text-gray-400 text-xs">duración</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-white font-bold text-lg">{interval.break_duration_minutes} min</p>
-                      <p className="text-gray-400 text-xs">duración</p>
-                    </div>
                   </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-600/50">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Total de descansos:</span>
+                  <span className="text-white font-semibold">{config.breakIntervals.length}</span>
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-slate-600/50">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Total de descansos:</span>
-                <span className="text-white font-semibold">{config.breakIntervals.length}</span>
+                <div className="flex items-center justify-between text-sm mt-1">
+                  <span className="text-gray-400">Tiempo total de descanso:</span>
+                  <span className="text-white font-semibold">
+                    {config.breakIntervals.reduce((sum, i) => sum + i.break_duration_minutes, 0)} min
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-gray-400">Tiempo total de descanso:</span>
-                <span className="text-white font-semibold">
-                  {config.breakIntervals.reduce((sum, i) => sum + i.break_duration_minutes, 0)} min
-                </span>
-              </div>
-            </div>
-          </motion.div>
-        )}
+            </>
+          )}
+        </motion.div>
       </div>
     </div>
   );
