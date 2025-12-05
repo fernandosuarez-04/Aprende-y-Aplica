@@ -78,6 +78,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     contentSections: ['Noticias destacadas', 'Pestaña de Reels', 'Grid/Lista de noticias'],
     specialNotes: 'IMPORTANTE: Esta página tiene dos pestañas principales - "Noticias" para artículos escritos y "Reels" para videos cortos. Los reels están integrados dentro de esta página.'
   },
+  /* TEMPORALMENTE OCULTO - Directorio IA no disponible actualmente
   '/prompt-directory': {
     path: '/prompt-directory',
     title: 'Directorio de Prompts',
@@ -113,6 +114,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     contentSections: ['Búsqueda y filtros', 'Grid/Lista de apps'],
     specialNotes: 'IMPORTANTE: "Directorio IA" se refiere a DOS páginas: el Directorio de Prompts (/prompt-directory) y el Directorio de Apps (/apps-directory). Cuando el usuario pregunte sobre "Directorio IA", siempre menciona ambas páginas y proporciona ambos enlaces.'
   },
+  */
   '/profile': {
     path: '/profile',
     title: 'Perfil',
@@ -294,12 +296,19 @@ export function getAvailableLinksForLIA(userRole: UserRole | null = null): strin
     }
   });
   
+  /* TEMPORALMENTE OCULTO - Directorio IA no disponible actualmente
   // Agregar nota especial sobre Directorio IA
   linksText += `\n\n⚠️ NOTA IMPORTANTE SOBRE "DIRECTORIO IA":\n`;
   linksText += `Cuando el usuario pregunte sobre "Directorio IA" o "Directorio de IA", se refiere a DOS páginas separadas:\n`;
   linksText += `1. [Directorio de Prompts](/prompt-directory) - Para plantillas de prompts\n`;
   linksText += `2. [Directorio de Apps](/apps-directory) - Para herramientas y aplicaciones de IA\n`;
   linksText += `SIEMPRE menciona ambas páginas y proporciona ambos enlaces cuando el usuario pregunte sobre "Directorio IA".\n`;
+  */
+
+  // Agregar nota sobre creación de prompts desde el chat
+  linksText += `\n\n💡 NOTA SOBRE CREACIÓN DE PROMPTS:\n`;
+  linksText += `Si el usuario quiere crear prompts, ofrécele ayuda directamente desde este chat usando el Modo Prompts.\n`;
+  linksText += `Puedes activarlo automáticamente cuando detectes que el usuario quiere crear un prompt.\n`;
   
   // Agregar nota especial sobre ver todos los cursos
   linksText += `\n\n⚠️ NOTA IMPORTANTE SOBRE VER CURSOS:\n`;

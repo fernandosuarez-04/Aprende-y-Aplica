@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Coffee, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -9,6 +9,15 @@ interface ShortestLesson {
   lesson_title: string;
   total_minutes: number;
   course_title: string;
+  module_title: string;
+}
+
+interface LongestLesson {
+  lesson_id: string;
+  lesson_title: string;
+  total_minutes: number;
+  course_title: string;
+  module_title: string;
 }
 
 interface BreakInterval {
@@ -23,6 +32,7 @@ interface StudyRestSettingsProps {
   maxStudySessionMinutes: number;
   minLessonTimeMinutes: number;
   shortestLesson?: ShortestLesson | null;
+  longestLesson?: LongestLesson | null;
   breakIntervals?: BreakInterval[];
   onChange: (settings: {
     minStudyMinutes: number;
@@ -38,70 +48,186 @@ export function StudyRestSettings({
   maxStudySessionMinutes,
   minLessonTimeMinutes,
   shortestLesson,
+  longestLesson,
   breakIntervals: initialBreakIntervals,
   onChange,
   onBreakIntervalsChange,
 }: StudyRestSettingsProps) {
   const [breakIntervals, setBreakIntervals] = useState<BreakInterval[]>(initialBreakIntervals || []);
   const [loadingIntervals, setLoadingIntervals] = useState(false);
+  
+  // Refs para evitar loops infinitos
+  const onBreakIntervalsChangeRef = useRef(onBreakIntervalsChange);
+  const lastCalculatedParamsRef = useRef<string>('');
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isInternalUpdateRef = useRef<boolean>(false);
 
-  // Calcular intervalos de descanso cuando cambien los tiempos
+  // Función para comparar arrays de intervalos (definida antes de usarla)
+  const intervalsEqual = useCallback((a: BreakInterval[], b: BreakInterval[]): boolean => {
+    if (a.length !== b.length) return false;
+    return a.every((interval, index) => 
+      interval.interval_minutes === b[index].interval_minutes &&
+      interval.break_duration_minutes === b[index].break_duration_minutes &&
+      interval.break_type === b[index].break_type
+    );
+  }, []);
+
+  // Sincronizar la ref cuando cambie la función
   useEffect(() => {
-    const calculateIntervals = async () => {
-      if (minStudyMinutes >= minLessonTimeMinutes && maxStudySessionMinutes >= minStudyMinutes) {
-        setLoadingIntervals(true);
-        try {
-          const response = await fetch('/api/study-planner/calculate-break-intervals', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              minStudyMinutes,
-              maxStudySessionMinutes,
-              minRestMinutes,
-            }),
-          });
+    onBreakIntervalsChangeRef.current = onBreakIntervalsChange;
+  }, [onBreakIntervalsChange]);
 
-          if (response.ok) {
-            const data = await response.json();
-            setBreakIntervals(data.intervals || []);
-            if (onBreakIntervalsChange) {
-              onBreakIntervalsChange(data.intervals || []);
-            }
-          }
-        } catch (error) {
-          console.error('Error calculando intervalos:', error);
-        } finally {
-          setLoadingIntervals(false);
-        }
-      } else {
-        setBreakIntervals([]);
-        if (onBreakIntervalsChange) {
-          onBreakIntervalsChange([]);
-        }
-      }
-    };
 
-    calculateIntervals();
-  }, [minStudyMinutes, maxStudySessionMinutes, minRestMinutes, minLessonTimeMinutes, onBreakIntervalsChange]);
-
-  // Ajustar automáticamente el tiempo mínimo si es menor que la duración mínima de lección
+  // Sincronizar breakIntervals cuando cambien desde fuera (solo si realmente cambiaron)
+  // Ignorar cambios si son internos (calculados por este componente)
   useEffect(() => {
-    if (minStudyMinutes < minLessonTimeMinutes) {
-      onChange({
-        minStudyMinutes: minLessonTimeMinutes,
-        minRestMinutes,
-        maxStudySessionMinutes,
+    // Si el cambio es interno, ignorar sincronización externa
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false;
+      return;
+    }
+
+    if (initialBreakIntervals) {
+      setBreakIntervals(prevIntervals => {
+        // Solo actualizar si realmente cambiaron usando la función de comparación
+        if (!intervalsEqual(prevIntervals, initialBreakIntervals)) {
+          return initialBreakIntervals;
+        }
+        return prevIntervals;
       });
     }
-  }, [minLessonTimeMinutes]); // Solo cuando cambie minLessonTimeMinutes
+  }, [initialBreakIntervals, intervalsEqual]);
+
+  // Calcular intervalos de descanso cuando cambien los tiempos (con debounce)
+  useEffect(() => {
+    // Limpiar timer anterior
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Crear parámetros de cálculo para comparación
+    const currentParams = JSON.stringify({
+      minStudyMinutes,
+      maxStudySessionMinutes,
+      minRestMinutes,
+      minLessonTimeMinutes,
+    });
+
+    // Si los parámetros no cambiaron, no recalcular
+    if (currentParams === lastCalculatedParamsRef.current) {
+      return;
+    }
+
+    // Debounce: esperar 300ms antes de calcular
+    debounceTimerRef.current = setTimeout(async () => {
+      // Verificar nuevamente que los parámetros sigan siendo los mismos
+      const paramsAtExecution = JSON.stringify({
+        minStudyMinutes,
+        maxStudySessionMinutes,
+        minRestMinutes,
+        minLessonTimeMinutes,
+      });
+
+      if (paramsAtExecution !== lastCalculatedParamsRef.current) {
+        lastCalculatedParamsRef.current = paramsAtExecution;
+
+        if (minStudyMinutes >= minLessonTimeMinutes && maxStudySessionMinutes >= minStudyMinutes) {
+          setLoadingIntervals(true);
+          try {
+            const response = await fetch('/api/study-planner/calculate-break-intervals', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                minStudyMinutes,
+                maxStudySessionMinutes,
+                minRestMinutes: 5, // Valor por defecto, calculado automáticamente
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const newIntervals = data.intervals || [];
+              
+              // Verificar si realmente cambiaron antes de actualizar
+              let intervalsChanged = false;
+              setBreakIntervals(prevIntervals => {
+                if (!intervalsEqual(prevIntervals, newIntervals)) {
+                  intervalsChanged = true;
+                  // Marcar como actualización interna para evitar loop
+                  isInternalUpdateRef.current = true;
+                  return newIntervals;
+                }
+                return prevIntervals;
+              });
+              
+              // Notificar después de actualizar el estado (solo si realmente cambió)
+              if (intervalsChanged) {
+                // Ejecutar después del render para evitar setState durante render
+                Promise.resolve().then(() => {
+                  if (onBreakIntervalsChangeRef.current) {
+                    onBreakIntervalsChangeRef.current(newIntervals);
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Error calculando intervalos:', error);
+          } finally {
+            setLoadingIntervals(false);
+          }
+        } else {
+          // Solo limpiar si realmente hay intervalos
+          let shouldClear = false;
+          setBreakIntervals(prevIntervals => {
+            if (prevIntervals.length > 0) {
+              shouldClear = true;
+              // Marcar como actualización interna para evitar loop
+              isInternalUpdateRef.current = true;
+              return [];
+            }
+            return prevIntervals;
+          });
+          
+          // Notificar después de actualizar el estado (solo si realmente cambió)
+          if (shouldClear) {
+            // Ejecutar después del render para evitar setState durante render
+            Promise.resolve().then(() => {
+              if (onBreakIntervalsChangeRef.current) {
+                onBreakIntervalsChangeRef.current([]);
+              }
+            });
+          }
+        }
+      }
+    }, 300);
+
+    // Cleanup
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [minStudyMinutes, maxStudySessionMinutes, minRestMinutes, minLessonTimeMinutes, intervalsEqual]);
 
   const handleMinStudyChange = (value: number) => {
     // Asegurar que el valor nunca sea menor que minLessonTimeMinutes
     const adjustedValue = Math.max(value, minLessonTimeMinutes);
+    // Asegurar que el tiempo mínimo no sea mayor que el máximo
+    const finalValue = Math.min(adjustedValue, maxStudySessionMinutes);
     onChange({
-      minStudyMinutes: adjustedValue,
+      minStudyMinutes: finalValue,
       minRestMinutes,
       maxStudySessionMinutes,
+    });
+  };
+
+  const handleMaxStudyChange = (value: number) => {
+    // Asegurar que el tiempo máximo no sea menor que el mínimo
+    const adjustedValue = Math.max(value, minStudyMinutes);
+    onChange({
+      minStudyMinutes,
+      minRestMinutes,
+      maxStudySessionMinutes: adjustedValue,
     });
   };
   return (
@@ -113,7 +239,7 @@ export function StudyRestSettings({
         <div>
           <h2 className="text-2xl font-bold text-white">Configuración de tiempos</h2>
           <p className="text-gray-400 text-sm mt-1">
-            Define los tiempos mínimos de estudio y descanso basados en mejores prácticas científicas
+            Define los tiempos mínimos y máximos de estudio basados en mejores prácticas científicas
           </p>
         </div>
       </div>
@@ -134,8 +260,7 @@ export function StudyRestSettings({
               <p className="text-gray-400 text-sm">
                 Duración mínima de cada sesión de estudio (en minutos). 
                 <span className="block mt-1 text-blue-400">
-                  💡 Basado en la técnica Pomodoro: 25-30 min es óptimo para mantener la concentración. 
-                  <span className="font-semibold text-yellow-400">IMPORTANTE:</span> Debe ser al menos {minLessonTimeMinutes} min para completar una lección completa.
+                  💡 Basado en la técnica Pomodoro: 25-30 min es óptimo para mantener la concentración.
                 </span>
               </p>
             </div>
@@ -144,9 +269,9 @@ export function StudyRestSettings({
             <input
               type="range"
               min={minLessonTimeMinutes}
-              max="120"
+              max={Math.min(120, maxStudySessionMinutes)}
               step="5"
-              value={Math.max(minStudyMinutes, minLessonTimeMinutes)}
+              value={Math.max(Math.min(minStudyMinutes, maxStudySessionMinutes), minLessonTimeMinutes)}
               onChange={(e) => handleMinStudyChange(parseInt(e.target.value))}
               className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
@@ -156,8 +281,15 @@ export function StudyRestSettings({
             </div>
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-2">
-            <span>{minLessonTimeMinutes} min (mínimo - lección más corta)</span>
-            <span>120 min</span>
+            <span>
+              {minLessonTimeMinutes} min
+              {shortestLesson && (
+                <span className="block text-gray-400 mt-1 max-w-xs">
+                  <span className="font-semibold">{shortestLesson.module_title}:</span> {shortestLesson.lesson_title} ({shortestLesson.total_minutes} min)
+                </span>
+              )}
+            </span>
+            <span>{Math.min(120, maxStudySessionMinutes)} min (máximo permitido)</span>
           </div>
           {minStudyMinutes < minLessonTimeMinutes && (
             <motion.div
@@ -169,84 +301,34 @@ export function StudyRestSettings({
                 <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-red-400 text-sm font-bold mb-2">
-                    ⚠️ VALIDACIÓN CRÍTICA: Tiempo insuficiente
+                    ⚠️ VALIDACIÓN: Tiempo insuficiente
                   </p>
-                  <p className="text-red-300 text-xs leading-relaxed mb-2">
-                    El tiempo mínimo de estudio ({minStudyMinutes} min) es menor que la duración de la lección más corta ({minLessonTimeMinutes} min).
-                  </p>
-                  {shortestLesson && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-2">
-                      <p className="text-red-200 text-xs font-semibold mb-1">Lección más corta detectada:</p>
-                      <p className="text-red-100 text-xs">
-                        <strong>{shortestLesson.lesson_title}</strong>
-                      </p>
-                      <p className="text-red-200 text-xs">
-                        Curso: {shortestLesson.course_title} • Duración: {shortestLesson.total_minutes} minutos
-                      </p>
-                    </div>
-                  )}
-                  <p className="text-red-200 text-xs font-medium">
-                    📚 <strong>Razón:</strong> Cada sesión de estudio debe permitirte completar al menos una lección completa de tus cursos seleccionados. 
-                    Ajusta el tiempo mínimo a {minLessonTimeMinutes} minutos o más para continuar.
+                  <p className="text-red-300 text-xs leading-relaxed">
+                    El tiempo mínimo de estudio ({minStudyMinutes} min) debe ser al menos {minLessonTimeMinutes} min para completar la lección más corta.
                   </p>
                 </div>
               </div>
             </motion.div>
           )}
-          {minStudyMinutes >= minLessonTimeMinutes && minStudyMinutes >= 25 && (
+          {minStudyMinutes > maxStudySessionMinutes && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg"
+              className="mt-3 p-4 bg-red-500/20 border-2 border-red-500/50 rounded-lg"
             >
-              <p className="text-green-400 text-sm font-medium">
-                ✅ Configuración válida: El tiempo mínimo permite completar al menos una lección por sesión
-              </p>
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-400 text-sm font-bold mb-2">
+                    ⚠️ VALIDACIÓN: Tiempo mínimo mayor que máximo
+                  </p>
+                  <p className="text-red-300 text-xs leading-relaxed">
+                    El tiempo mínimo de estudio ({minStudyMinutes} min) no puede ser mayor que el tiempo máximo de sesión ({maxStudySessionMinutes} min).
+                  </p>
+                </div>
+              </div>
             </motion.div>
           )}
-        </motion.div>
-
-        {/* Tiempo mínimo de descanso */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-slate-700/30 rounded-2xl p-6 border border-slate-600/50"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-lg bg-green-500/20">
-              <Coffee className="w-5 h-5 text-green-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white">Tiempo mínimo de descanso</h3>
-              <p className="text-gray-400 text-sm">
-                Duración mínima de descanso entre sesiones (en minutos)
-                <span className="block mt-1 text-green-400">
-                  💡 Basado en la técnica Pomodoro: 5 min entre sesiones cortas, 15-30 min después de 4 sesiones (descanso largo). 
-                  Los descansos mejoran la retención y previenen la fatiga mental.
-                </span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <input
-              type="range"
-              min="5"
-              max="60"
-              step="5"
-              value={minRestMinutes}
-              onChange={(e) => onChange({ minStudyMinutes, minRestMinutes: parseInt(e.target.value), maxStudySessionMinutes })}
-              className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-green-500"
-            />
-            <div className="w-20 text-center">
-              <span className="text-2xl font-bold text-white">{minRestMinutes}</span>
-              <span className="text-gray-400 text-sm ml-1">min</span>
-            </div>
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-2">
-            <span>5 min (mínimo recomendado)</span>
-            <span>60 min</span>
-          </div>
         </motion.div>
 
         {/* Tiempo máximo de sesión */}
@@ -274,11 +356,11 @@ export function StudyRestSettings({
           <div className="flex items-center gap-4">
             <input
               type="range"
-              min="30"
+              min={Math.max(30, minStudyMinutes)}
               max="240"
               step="15"
               value={maxStudySessionMinutes}
-              onChange={(e) => onChange({ minStudyMinutes, minRestMinutes, maxStudySessionMinutes: parseInt(e.target.value) })}
+              onChange={(e) => handleMaxStudyChange(parseInt(e.target.value))}
               className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-500"
             />
             <div className="w-20 text-center">
@@ -288,7 +370,14 @@ export function StudyRestSettings({
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-2">
             <span>30 min</span>
-            <span>240 min (4 horas)</span>
+            <span className="text-right max-w-xs">
+              240 min (4 horas)
+              {longestLesson && (
+                <span className="block text-gray-400 mt-1">
+                  <span className="font-semibold">{longestLesson.module_title}:</span> {longestLesson.lesson_title} ({longestLesson.total_minutes} min)
+                </span>
+              )}
+            </span>
           </div>
         </motion.div>
 

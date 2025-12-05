@@ -117,3 +117,76 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * DELETE /api/study-planner/sessions
+ * Elimina todas las sesiones de estudio del usuario
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const currentUser = await SessionService.getCurrentUser();
+    
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // Crear cliente con Service Role Key para bypass RLS
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Variables de entorno faltantes');
+      return NextResponse.json(
+        { error: 'Configuración del servidor incompleta' },
+        { status: 500 }
+      );
+    }
+
+    const supabaseAdmin = createSupabaseClient<Database>(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Contar sesiones antes de eliminar
+    const { count: sessionsCount } = await supabaseAdmin
+      .from('study_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id);
+
+    // Eliminar todas las sesiones del usuario
+    const { error: deleteError } = await supabaseAdmin
+      .from('study_sessions')
+      .delete()
+      .eq('user_id', currentUser.id);
+
+    if (deleteError) {
+      console.error('❌ Error eliminando sesiones:', deleteError);
+      return NextResponse.json(
+        { error: 'Error al eliminar las sesiones', details: deleteError.message },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Todas las sesiones eliminadas:', {
+      userId: currentUser.id,
+      sessionsDeleted: sessionsCount || 0,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Se eliminaron ${sessionsCount || 0} sesión(es) del calendario`,
+      sessionsDeleted: sessionsCount || 0,
+    });
+  } catch (error: any) {
+    console.error('Error deleting all sessions:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -16,6 +16,7 @@ import {
   X,
   Edit,
   Trash2,
+  Eraser,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudyPlan, StudySession } from '@aprende-y-aplica/shared';
@@ -124,8 +125,24 @@ export default function StudyPlannerDashboardPage() {
         })));
       }
 
-      setPlans(plansData.plans || []);
-      setSessions(sessionsData.sessions || []);
+      const loadedPlans = plansData.plans || [];
+      const loadedSessions = sessionsData.sessions || [];
+      
+      // Filtrar sesiones: solo mostrar las que pertenecen a planes que existen
+      const planIds = new Set(loadedPlans.map((p: StudyPlan) => p.id));
+      const validSessions = loadedSessions.filter((s: StudySession) => 
+        s.plan_id && planIds.has(s.plan_id)
+      );
+      
+      console.log('🔍 Filtrado de sesiones:', {
+        totalSessions: loadedSessions.length,
+        validPlans: loadedPlans.length,
+        validSessions: validSessions.length,
+        filteredOut: loadedSessions.length - validSessions.length,
+      });
+
+      setPlans(loadedPlans);
+      setSessions(validSessions);
       setRoutes(routesData.routes || []);
       setCalendarIntegrations(integrationsData.integrations || []);
     } catch (err: any) {
@@ -272,6 +289,67 @@ export default function StudyPlannerDashboardPage() {
     router.push(`/study-planner/plans/${plan.id}?edit=true`);
   }, [router]);
 
+  const handleClearCalendar = useCallback(async () => {
+    if (sessions.length === 0) {
+      setNotification({
+        type: 'success',
+        message: 'El calendario ya está vacío',
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas limpiar el calendario?\n\nSe eliminarán todas las ${sessions.length} sesión(es) de todos tus planes. Esta acción no se puede deshacer.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      console.log('🧹 Iniciando limpieza del calendario...', {
+        sessionsCount: sessions.length,
+      });
+
+      // Eliminar todas las sesiones del usuario directamente primero
+      const response = await fetch('/api/study-planner/sessions', {
+        method: 'DELETE',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Error en respuesta:', error);
+        throw new Error(error.error || error.details || 'Error al eliminar las sesiones');
+      }
+
+      const result = await response.json();
+      console.log('✅ Sesiones eliminadas de la BD:', result);
+
+      // Limpiar inmediatamente todas las sesiones del estado local después de confirmar la eliminación
+      setSessions([]);
+      
+      // Recargar datos inmediatamente para asegurar sincronización
+      await loadDashboardData();
+      
+      setNotification({
+        type: 'success',
+        message: result.message || `Calendario limpiado correctamente. Se eliminaron ${result.sessionsDeleted || 0} sesión(es)`,
+      });
+      
+      console.log('✅ Limpieza del calendario completada');
+    } catch (err) {
+      console.error('❌ Error clearing calendar:', err);
+      setNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Error al limpiar el calendario',
+      });
+      // Si hay error, recargar datos para restaurar el estado correcto
+      await loadDashboardData();
+    }
+  }, [sessions.length, loadDashboardData]);
+
   const handleDeletePlan = useCallback(async (planId: string, planName: string) => {
     const confirmed = window.confirm(
       `¿Estás seguro de que deseas eliminar el plan "${planName}"?\n\nEsta acción eliminará el plan y todas sus sesiones. Esta acción no se puede deshacer.`
@@ -280,8 +358,15 @@ export default function StudyPlannerDashboardPage() {
     if (!confirmed) return;
 
     try {
+      // Limpiar inmediatamente las sesiones del plan del estado local
+      setSessions((prevSessions) => prevSessions.filter((s) => s.plan_id !== planId));
+      
+      // Limpiar el plan del estado local
+      setPlans((prevPlans) => prevPlans.filter((p) => p.id !== planId));
+
       const response = await fetch(`/api/study-planner/plans/${planId}`, {
         method: 'DELETE',
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -295,7 +380,7 @@ export default function StudyPlannerDashboardPage() {
         message: result.message || 'Plan eliminado correctamente',
       });
 
-      // Recargar datos
+      // Recargar datos completos para asegurar sincronización
       await loadDashboardData();
     } catch (err) {
       console.error('Error deleting plan:', err);
@@ -303,8 +388,10 @@ export default function StudyPlannerDashboardPage() {
         type: 'error',
         message: err instanceof Error ? err.message : 'Error al eliminar el plan',
       });
+      // Si hay error, recargar datos para restaurar el estado correcto
+      await loadDashboardData();
     }
-  }, [loadDashboardData, setNotification]);
+  }, [loadDashboardData]);
 
   const handleEditRoute = useCallback((route: any) => {
     // Por ahora, redirigir a la página de detalles de la ruta
@@ -361,53 +448,8 @@ export default function StudyPlannerDashboardPage() {
     }
   }, [loadDashboardData, setNotification]);
 
-  // Formatear sesiones para FullCalendar
-  const calendarEvents = sessions
-    .filter((session) => {
-      // Filtrar sesiones con fechas válidas
-      if (!session.start_time || !session.end_time) {
-        console.warn('⚠️ Sesión sin fechas válidas:', session.id);
-        return false;
-      }
-      return true;
-    })
-    .map((session) => {
-      // Asegurar que las fechas estén en formato ISO válido para FullCalendar
-      const startDate = new Date(session.start_time);
-      const endDate = new Date(session.end_time);
-      
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        console.warn('⚠️ Sesión con fechas inválidas:', {
-          id: session.id,
-          start_time: session.start_time,
-          end_time: session.end_time,
-        });
-        return null;
-      }
-
-      return {
-        id: session.id,
-        title: session.title || 'Sesión de estudio',
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        backgroundColor: getStatusColor(session.status),
-        borderColor: getStatusColor(session.status),
-        extendedProps: {
-          status: session.status,
-          description: session.description,
-          courseId: session.course_id,
-        },
-      };
-    })
-    .filter((event) => event !== null); // Filtrar eventos nulos
-
-  console.log('📅 Eventos del calendario formateados:', {
-    totalSessions: sessions.length,
-    validEvents: calendarEvents.length,
-    sampleEvent: calendarEvents[0] || null,
-  });
-
-  function getStatusColor(status: string): string {
+  // Función helper para obtener el color según el estado
+  const getStatusColor = useCallback((status: string): string => {
     switch (status) {
       case 'completed':
         return '#10b981'; // green
@@ -422,7 +464,57 @@ export default function StudyPlannerDashboardPage() {
       default:
         return '#6366f1'; // indigo
     }
-  }
+  }, []);
+
+  // Formatear sesiones para FullCalendar (memoizado para optimizar rendimiento)
+  const calendarEvents = useMemo(() => {
+    const events = sessions
+      .filter((session) => {
+        // Filtrar sesiones con fechas válidas
+        if (!session.start_time || !session.end_time) {
+          console.warn('⚠️ Sesión sin fechas válidas:', session.id);
+          return false;
+        }
+        return true;
+      })
+      .map((session) => {
+        // Asegurar que las fechas estén en formato ISO válido para FullCalendar
+        const startDate = new Date(session.start_time);
+        const endDate = new Date(session.end_time);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          console.warn('⚠️ Sesión con fechas inválidas:', {
+            id: session.id,
+            start_time: session.start_time,
+            end_time: session.end_time,
+          });
+          return null;
+        }
+
+        return {
+          id: session.id,
+          title: session.title || 'Sesión de estudio',
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          backgroundColor: getStatusColor(session.status),
+          borderColor: getStatusColor(session.status),
+          extendedProps: {
+            status: session.status,
+            description: session.description,
+            courseId: session.course_id,
+          },
+        };
+      })
+      .filter((event) => event !== null); // Filtrar eventos nulos
+
+    console.log('📅 Eventos del calendario formateados:', {
+      totalSessions: sessions.length,
+      validEvents: events.length,
+      sampleEvent: events[0] || null,
+    });
+
+    return events;
+  }, [sessions, getStatusColor]);
 
   if (authLoading || loading) {
     return (
@@ -712,13 +804,26 @@ export default function StudyPlannerDashboardPage() {
           transition={{ delay: 0.2 }}
           className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20"
         >
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-blue-400" />
-            Calendario de Sesiones
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-blue-400" />
+              Calendario de Sesiones
+            </h2>
+            {calendarEvents.length > 0 && (
+              <button
+                onClick={handleClearCalendar}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all border border-red-500/30 hover:border-red-500/50"
+                title="Limpiar todas las sesiones del calendario"
+              >
+                <Eraser className="w-4 h-4" />
+                <span className="text-sm font-medium">Limpiar calendario</span>
+              </button>
+            )}
+          </div>
           <div className="calendar-container">
             {calendarEvents.length > 0 ? (
               <FullCalendar
+                key={`calendar-${sessions.length}-${sessions.map(s => s.id).join('-')}`}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
                 headerToolbar={{

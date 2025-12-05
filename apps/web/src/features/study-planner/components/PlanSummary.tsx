@@ -9,6 +9,22 @@ interface BreakInterval {
   break_type: 'short' | 'long';
 }
 
+interface ShortestLesson {
+  lesson_id: string;
+  lesson_title: string;
+  total_minutes: number;
+  course_title: string;
+  module_title: string;
+}
+
+interface LongestLesson {
+  lesson_id: string;
+  lesson_title: string;
+  total_minutes: number;
+  course_title: string;
+  module_title: string;
+}
+
 interface PlanConfig {
   learningRouteId: string | null;
   learningRouteName: string;
@@ -32,6 +48,8 @@ interface PlanConfig {
   minRestMinutes: number;
   maxStudySessionMinutes: number;
   minLessonTimeMinutes: number;
+  shortestLesson?: ShortestLesson | null;
+  longestLesson?: LongestLesson | null;
   breakIntervals?: BreakInterval[];
 }
 
@@ -197,18 +215,40 @@ export function PlanSummary({ config }: PlanSummaryProps) {
             <BookOpen className="w-5 h-5 text-purple-400" />
             <h3 className="text-lg font-semibold text-white">Configuración de tiempos</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-800/50 rounded-xl p-4">
-              <div className="text-gray-400 text-sm mb-1">Mínimo de estudio</div>
-              <div className="text-2xl font-bold text-white">{config.minStudyMinutes} min</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                <div className="text-gray-400 text-sm">Tiempo mínimo de estudio</div>
+              </div>
+              <div className="text-2xl font-bold text-white mb-3">{config.minStudyMinutes} min</div>
+              {config.shortestLesson && (
+                <div className="text-xs text-gray-400 mt-3 pt-3 border-t border-slate-700/50">
+                  <div className="text-gray-300 mb-1">
+                    <span className="font-semibold">{config.shortestLesson.module_title}:</span> {config.shortestLesson.lesson_title}
+                  </div>
+                  <div className="text-blue-400 font-medium">
+                    Tiempo completo: {config.shortestLesson.total_minutes} min
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="bg-slate-800/50 rounded-xl p-4">
-              <div className="text-gray-400 text-sm mb-1">Mínimo de descanso</div>
-              <div className="text-2xl font-bold text-white">{config.minRestMinutes} min</div>
-            </div>
-            <div className="bg-slate-800/50 rounded-xl p-4">
-              <div className="text-gray-400 text-sm mb-1">Máximo de sesión</div>
-              <div className="text-2xl font-bold text-white">{config.maxStudySessionMinutes} min</div>
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-purple-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                <div className="text-gray-400 text-sm">Tiempo máximo de sesión</div>
+              </div>
+              <div className="text-2xl font-bold text-white mb-3">{config.maxStudySessionMinutes} min</div>
+              {config.longestLesson && (
+                <div className="text-xs text-gray-400 mt-3 pt-3 border-t border-slate-700/50">
+                  <div className="text-gray-300 mb-1">
+                    <span className="font-semibold">{config.longestLesson.module_title}:</span> {config.longestLesson.lesson_title}
+                  </div>
+                  <div className="text-purple-400 font-medium">
+                    Tiempo completo: {config.longestLesson.total_minutes} min
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>

@@ -18,3 +18,7 @@ export { AdminAccessRequestsPage } from './AdminAccessRequestsPage'
 export { AdminUserStatsPage } from './AdminUserStatsPage'
 export { CourseManagementPage } from './CourseManagementPage'
 export { AdminCompaniesPage } from './AdminCompaniesPage'
+export { LiaAnalyticsPage } from './LiaAnalyticsPage'
+
+// LIA Analytics Widgets
+export * from './LiaAnalyticsWidgets'

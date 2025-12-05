@@ -33,11 +33,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
+    // Aceptar tanto GOOGLE_CALENDAR_* como GOOGLE_* (fallback)
+    const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/study-planner/calendar-integrations/oauth/google/callback`;
 
     if (!clientId || !clientSecret) {
+      console.error('❌ Variables de Google Calendar no configuradas:', {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        GOOGLE_CALENDAR_CLIENT_ID: !!process.env.GOOGLE_CALENDAR_CLIENT_ID,
+        GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+        GOOGLE_CALENDAR_CLIENT_SECRET: !!process.env.GOOGLE_CALENDAR_CLIENT_SECRET,
+        GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+      });
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/study-planner/dashboard?error=not_configured`
       );

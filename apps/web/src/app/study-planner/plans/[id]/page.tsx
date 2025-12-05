@@ -336,8 +336,13 @@ export default function PlanDetailPage() {
     if (!confirmed) return;
 
     try {
+      // Limpiar inmediatamente las sesiones del estado local antes de eliminar
+      setSessions([]);
+      setPlan(null);
+
       const response = await fetch(`/api/study-planner/plans/${planId}`, {
         method: 'DELETE',
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -353,6 +358,8 @@ export default function PlanDetailPage() {
     } catch (err) {
       console.error('Error deleting plan:', err);
       alert(`Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+      // Si hay error, redirigir de todas formas para evitar estado inconsistente
+      router.push('/study-planner/dashboard');
     }
   };
 

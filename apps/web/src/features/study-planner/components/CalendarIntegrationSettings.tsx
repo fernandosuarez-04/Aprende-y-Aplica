@@ -70,17 +70,33 @@ export function CalendarIntegrationSettings({
     try {
       setConnecting(provider);
       const response = await fetch(`/api/study-planner/calendar-integrations/oauth/${provider}`);
+      
       if (response.ok) {
         const data = await response.json();
-        // Redirigir a la URL de autorización
-        window.location.href = data.authorization_url;
+        if (data.authorization_url) {
+          // Redirigir a la URL de autorización
+          window.location.href = data.authorization_url;
+        } else {
+          throw new Error('No se recibió la URL de autorización');
+        }
       } else {
-        alert('Error al iniciar la conexión');
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('Error en respuesta OAuth:', errorData);
+        
+        // Mostrar mensaje de error detallado
+        const errorMessage = errorData.details 
+          ? `${errorData.error}\n\n${errorData.details}\n\n${errorData.requiredEnvVars ? `Variables requeridas:\n${errorData.requiredEnvVars.join('\n')}` : ''}`
+          : errorData.error || 'Error al iniciar la conexión';
+        
+        alert(errorMessage);
         setConnecting(null);
       }
     } catch (error) {
       console.error('Error connecting calendar:', error);
-      alert('Error al conectar el calendario');
+      const errorMessage = error instanceof Error 
+        ? `Error al conectar el calendario: ${error.message}`
+        : 'Error al conectar el calendario';
+      alert(errorMessage);
       setConnecting(null);
     }
   };
