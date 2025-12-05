@@ -1,4 +1,4 @@
-'use server'
+'use server';
 
 import { SessionService } from '../services/session.service'
 import { redirect } from 'next/navigation'

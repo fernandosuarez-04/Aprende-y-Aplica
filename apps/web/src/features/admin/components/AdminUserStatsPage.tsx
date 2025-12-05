@@ -53,14 +53,14 @@ const BarChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
         return (
           <div
             key={index}
-            className="group flex items-center gap-4 p-2 rounded-lg hover:bg-white/5 transition-all duration-300 cursor-pointer"
+            className="group flex items-center gap-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 cursor-pointer"
           >
             <div className="w-32 text-right flex-shrink-0">
-              <span className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">
+              <span className="text-sm font-medium text-gray-700 dark:text-white/80 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                 {displayName}
               </span>
             </div>
-            <div className="flex-1 bg-white/10 rounded-full h-6 overflow-hidden relative">
+            <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-6 overflow-hidden relative">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${percentage}%` }}
@@ -77,7 +77,7 @@ const BarChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
               </motion.div>
             </div>
             <div className="w-16 text-left">
-              <span className="text-sm font-bold text-white/80 group-hover:text-white transition-colors">
+              <span className="text-sm font-bold text-gray-700 dark:text-white/80 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                 {item[dataKey]}
               </span>
             </div>
@@ -101,7 +101,7 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
   if (total === 0 || validData.length === 0) {
     // console.log('🎨 PieChartComponent - No hay datos suficientes')
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
+      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
         <p>No hay datos para mostrar</p>
       </div>
     )
@@ -118,14 +118,13 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
     <div className="flex items-center justify-center gap-6">
       {/* Gráfica de Pastel SVG */}
       <div className="flex-shrink-0">
-        <svg width="200" height="200" viewBox="0 0 200 200" className="transform -rotate-90">
+        <svg width="200" height="200" viewBox="0 0 200 200" className="transform -rotate-90 text-gray-300 dark:text-white">
           {/* Círculo de fondo */}
           <circle
             cx={centerX}
             cy={centerY}
             r={radius}
-            fill="rgba(255, 255, 255, 0.1)"
-            stroke="rgba(255, 255, 255, 0.2)"
+            className="fill-gray-200 dark:fill-white/10 stroke-gray-300 dark:stroke-white/20"
             strokeWidth="1"
           />
           
@@ -136,10 +135,9 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
               y={centerY}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill="white"
+              className="fill-gray-900 dark:fill-white transform rotate-90"
               fontSize="14"
               fontWeight="bold"
-              className="transform rotate-90"
             >
               {validData[0][dataKey]}
             </text>
@@ -153,20 +151,21 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
             // Para un círculo completo (100%), usar un círculo simple
             if (percentage >= 99.9) {
               return (
-                <motion.circle
-                  key={index}
-                  cx={centerX}
-                  cy={centerY}
-                  r={radius}
-                  fill={COLORS[index % COLORS.length]}
-                  className="hover:opacity-80 transition-opacity cursor-pointer"
-                  title={`${item[nameKey]}: ${item[dataKey]} (${percentage.toFixed(1)}%)`}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: index * 0.1, duration: 0.8 }}
-                  stroke="white"
-                  strokeWidth="2"
-                />
+                <g key={index}>
+                  <title>{`${item[nameKey]}: ${item[dataKey]} (${percentage.toFixed(1)}%)`}</title>
+                  <motion.circle
+                    cx={centerX}
+                    cy={centerY}
+                    r={radius}
+                    fill={COLORS[index % COLORS.length]}
+                    className="hover:opacity-80 transition-opacity cursor-pointer"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.1, duration: 0.8 }}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                </g>
               )
             }
             
@@ -201,18 +200,19 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
             // })
             
             return (
-              <motion.path
-                key={index}
-                d={pathData}
-                fill={COLORS[index % COLORS.length]}
-                className="hover:opacity-80 transition-opacity cursor-pointer"
-                title={`${item[nameKey]}: ${item[dataKey]} (${percentage.toFixed(1)}%)`}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ delay: index * 0.1, duration: 0.8 }}
-                stroke="white"
-                strokeWidth="2"
-              />
+              <g key={index}>
+                <title>{`${item[nameKey]}: ${item[dataKey]} (${percentage.toFixed(1)}%)`}</title>
+                <motion.path
+                  d={pathData}
+                  fill={COLORS[index % COLORS.length]}
+                  className="hover:opacity-80 transition-opacity cursor-pointer"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ delay: index * 0.1, duration: 0.8 }}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+              </g>
             )
           })}
         </svg>
@@ -228,9 +228,9 @@ const PieChartComponent = ({ data, dataKey, nameKey }: { data: any[], dataKey: s
                 className="w-4 h-4 rounded-full flex-shrink-0" 
                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
               />
-              <span className="text-gray-300 min-w-0 flex-1">{item[nameKey]}</span>
-              <span className="text-white font-semibold">{item[dataKey]}</span>
-              <span className="text-gray-400 text-xs">({percentage.toFixed(1)}%)</span>
+              <span className="text-gray-700 dark:text-gray-300 min-w-0 flex-1">{item[nameKey]}</span>
+              <span className="text-gray-900 dark:text-white font-semibold">{item[dataKey]}</span>
+              <span className="text-gray-600 dark:text-gray-400 text-xs">({percentage.toFixed(1)}%)</span>
             </div>
           )
         })}
@@ -321,8 +321,8 @@ export function AdminUserStatsPage() {
 
   if (error) {
     return (
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-        <p className="text-red-400">Error: {error}</p>
+      <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg p-4">
+        <p className="text-red-600 dark:text-red-400">Error: {error}</p>
       </div>
     )
   }
@@ -332,13 +332,13 @@ export function AdminUserStatsPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Estadísticas de Usuarios</h1>
-          <p className="text-gray-400">Administra la personalización de experiencia del usuario</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Estadísticas de Usuarios</h1>
+          <p className="text-gray-600 dark:text-gray-400">Administra la personalización de experiencia del usuario</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 mb-6 bg-gray-700 p-1 rounded-lg">
+      <div className="flex space-x-1 mb-6 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
         {[
           { id: 'overview', label: 'Resumen', icon: BarChart3 },
           { id: 'profiles', label: 'Perfiles', icon: Users },
@@ -352,7 +352,7 @@ export function AdminUserStatsPage() {
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
               activeTab === id
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -366,41 +366,41 @@ export function AdminUserStatsPage() {
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Usuarios</p>
-                  <p className="text-2xl font-bold text-white">{userStats?.totalUsers || 0}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Total Usuarios</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{userStats?.totalUsers || 0}</p>
                 </div>
                 <Users className="w-8 h-8 text-blue-500" />
               </div>
             </div>
             
-            <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Preguntas</p>
-                  <p className="text-2xl font-bold text-white">{questionStats?.totalQuestions || 0}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Total Preguntas</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{questionStats?.totalQuestions || 0}</p>
                 </div>
                 <HelpCircle className="w-8 h-8 text-green-500" />
               </div>
             </div>
             
-            <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Respuestas</p>
-                  <p className="text-2xl font-bold text-white">{answerStats?.totalAnswers || 0}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Total Respuestas</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{answerStats?.totalAnswers || 0}</p>
                 </div>
                 <MessageSquare className="w-8 h-8 text-purple-500" />
               </div>
             </div>
             
-            <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Índice AIPI Promedio</p>
-                  <p className="text-2xl font-bold text-white">{genAIStats?.averageAIPIIndex?.toFixed(2) || '0.00'}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Índice AIPI Promedio</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{genAIStats?.averageAIPIIndex?.toFixed(2) || '0.00'}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-yellow-500" />
               </div>
@@ -410,8 +410,8 @@ export function AdminUserStatsPage() {
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Users by Role - Gráfica de Pastel */}
-            <div className="bg-gray-700 rounded-lg p-6 border border-gray-600 min-h-[400px]">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 min-h-[400px]">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <PieChart className="w-5 h-5" />
                 Usuarios por Rol
               </h3>
@@ -422,15 +422,15 @@ export function AdminUserStatsPage() {
                   nameKey="role"
                 />
               ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400">
+                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
                   No hay datos disponibles
                 </div>
               )}
             </div>
 
             {/* Users by Area - Gráfica de Pastel */}
-            <div className="bg-gray-700 rounded-lg p-6 border border-gray-600 min-h-[400px]">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 min-h-[400px]">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Activity className="w-5 h-5" />
                 Usuarios por Área
               </h3>
@@ -441,15 +441,15 @@ export function AdminUserStatsPage() {
                   nameKey="area"
                 />
               ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400">
+                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
                   No hay datos disponibles
                 </div>
               )}
             </div>
 
             {/* Questions by Type - Gráfica de Barras */}
-            <div className="bg-gray-700 rounded-lg p-6 border border-gray-600 min-h-[400px]">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 min-h-[400px]">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
                 Preguntas por Tipo
               </h3>
@@ -460,15 +460,15 @@ export function AdminUserStatsPage() {
                   nameKey="type"
                 />
               ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400">
+                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
                   No hay datos disponibles
                 </div>
               )}
             </div>
 
             {/* Top Countries - Gráfica de Barras */}
-            <div className="bg-gray-700 rounded-lg p-6 border border-gray-600 min-h-[400px]">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 min-h-[400px]">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Globe className="w-5 h-5" />
                 Países con Mayor Índice AIPI
               </h3>
@@ -479,7 +479,7 @@ export function AdminUserStatsPage() {
                   nameKey="country"
                 />
               ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400">
+                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
                   No hay datos disponibles
                 </div>
               )}
@@ -492,17 +492,17 @@ export function AdminUserStatsPage() {
       {activeTab === 'profiles' && (
         <div className="space-y-6">
           {/* Filters */}
-          <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+          <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
                   <input
                     type="text"
                     placeholder="Buscar perfiles..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -514,34 +514,34 @@ export function AdminUserStatsPage() {
           </div>
 
           {/* Profiles Table */}
-          <div className="bg-gray-700 rounded-lg border border-gray-600 overflow-hidden">
+          <div className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-600">
+                <thead className="bg-gray-100 dark:bg-gray-600">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Usuario
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Cargo
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Rol
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Área
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       País
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Acciones
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-600">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                   {userProfiles.slice(0, 10).map((profile) => (
-                    <tr key={profile.id} className="hover:bg-gray-600/50">
+                    <tr key={profile.id} className="hover:bg-gray-50 dark:hover:bg-gray-600/50">
                       <td className="px-4 py-4">
                         <div className="flex items-center">
                           {profile.users?.profile_picture_url ? (
@@ -556,11 +556,11 @@ export function AdminUserStatsPage() {
                             </div>
                           )}
                           <div className="ml-3">
-                            <p className="text-sm font-medium text-white">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
                               {profile.users?.username || profile.user_id.slice(0, 8) + '...'}
                             </p>
                             {profile.users?.email && (
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
                                 {profile.users.email}
                               </p>
                             )}
@@ -568,40 +568,40 @@ export function AdminUserStatsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-sm text-gray-300">{profile.cargo_titulo}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">{profile.cargo_titulo}</p>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                           {profile.roles?.nombre || 'N/A'}
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
                           {profile.areas?.nombre || 'N/A'}
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-sm text-gray-300">{profile.pais}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{profile.pais}</span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center space-x-2">
                           <button 
                             onClick={() => handleViewProfile(profile)}
-                            className="text-blue-400 hover:text-blue-300 transition-colors"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                             title="Ver detalles"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={() => handleEditProfile(profile)}
-                            className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                            className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-colors"
                             title="Editar perfil"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={() => handleDeleteProfile(profile)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
+                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
                             title="Eliminar perfil"
                           >
                             <Trash2 className="w-4 h-4" />

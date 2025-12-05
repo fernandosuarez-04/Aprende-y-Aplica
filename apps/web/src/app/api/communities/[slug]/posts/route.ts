@@ -136,10 +136,8 @@ export async function GET(
       logger.log('👮 Moderator/Admin: showing all posts including hidden ones')
     }
 
-    // Aplicar orden y límite
+    // Obtener posts sin límite primero para poder ordenarlos correctamente
     const { data: posts, error: postsError } = await postsQuery
-      .order('created_at', { ascending: false })
-      .limit(50);
 
     if (postsError) {
       logger.error('❌ Error fetching posts:', postsError);
@@ -147,6 +145,23 @@ export async function GET(
     }
 
     logger.log('📊 Found posts:', posts?.length || 0);
+
+    // Ordenar posts: primero los fijados (is_pinned = true), luego por fecha de creación
+    // Los posts fijados aparecen primero, ordenados por fecha más reciente
+    // Los posts no fijados aparecen después, también ordenados por fecha más reciente
+    const sortedPosts = (posts || []).sort((a, b) => {
+      // Si uno está fijado y el otro no, el fijado va primero
+      if (a.is_pinned && !b.is_pinned) return -1
+      if (!a.is_pinned && b.is_pinned) return 1
+      
+      // Si ambos están fijados o ambos no están fijados, ordenar por fecha
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateB - dateA // Más reciente primero
+    })
+
+    // Aplicar límite después de ordenar
+    const limitedPosts = sortedPosts.slice(0, 50)
     
     // Debug: ver todos los attachment_types
     const attachmentTypes = posts?.map(p => p.attachment_type).filter(Boolean);
@@ -154,8 +169,8 @@ export async function GET(
 
     // ✅ OPTIMIZACIÓN: Obtener TODAS las reacciones del usuario en 1 sola query
     let userReactionsMap: Record<string, string> = {};
-    if (user && posts && posts.length > 0) {
-      const postIds = posts.map(post => post.id);
+    if (user && limitedPosts && limitedPosts.length > 0) {
+      const postIds = limitedPosts.map(post => post.id);
       const { data: reactions } = await supabase
         .from('community_reactions')
         .select('post_id, reaction_type')
@@ -172,7 +187,7 @@ export async function GET(
     }
 
     // Enriquecer posts con información del usuario
-    const enrichedPosts = posts?.map(post => {
+    const enrichedPosts = limitedPosts.map(post => {
       const userReaction = userReactionsMap[post.id] || null;
       
       // Debug: verificar datos de encuestas

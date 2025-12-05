@@ -1538,3 +1538,76 @@ select::-webkit-scrollbar-thumb:hover {
 .notes-editor ol ol ol {
   list-style-type: lower-roman;
 }
+
+/* Estilos para el reproductor de sesiones rrweb */
+.session-player-wrapper {
+  position: relative;
+  width: 100%;
+  background: #ffffff;
+  /* Las dimensiones se calculan dinámicamente basadas en el ancho del contenedor */
+}
+
+.dark .session-player-wrapper {
+  background: #1e293b;
+}
+
+.rrweb-player-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+}
+
+.dark .rrweb-player-container {
+  background: #1e293b !important;
+}
+
+.session-player-wrapper iframe,
+.session-player-wrapper canvas,
+.rrweb-player-container iframe,
+.rrweb-player-container canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  position: relative !important;
+  background: #ffffff !important;
+}
+
+.dark .session-player-wrapper iframe,
+.dark .session-player-wrapper canvas,
+.dark .rrweb-player-container iframe,
+.dark .rrweb-player-container canvas {
+  background: #1e293b !important;
+}
+
+.session-player-wrapper .rr-player,
+.rrweb-player-container .rr-player {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  display: block !important;
+}
+
+.session-player-wrapper .rr-player__frame,
+.rrweb-player-container .rr-player__frame {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  display: block !important;
+}
+
+.session-player-wrapper .rr-player__frame,
+.rrweb-player-container .rr-player__frame {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  display: block !important;
+  background: #ffffff !important;
+}
+
+.dark .session-player-wrapper .rr-player__frame,
+.dark .rrweb-player-container .rr-player__frame {
+  background: #1e293b !important;
+}

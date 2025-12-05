@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Loader2, Lock, UserPlus, Users, MessageSquare, Share2, Copy, Check, Send } from 'lucide-react'
+import { ArrowLeft, Loader2, Lock, UserPlus, Users, MessageSquare, Share2, Copy, Check, Send, Pin, EyeOff } from 'lucide-react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useQuestionnaireValidation } from '@/features/auth/hooks/useQuestionnaireValidation'
 import { QuestionnaireRequiredModal } from '@/features/auth/components/QuestionnaireRequiredModal'
@@ -232,6 +232,7 @@ interface Post {
   comment_count: number
   reaction_count: number
   is_pinned: boolean
+  is_hidden?: boolean
   is_edited: boolean
   created_at: string
   updated_at: string
@@ -575,12 +576,28 @@ export default function PostDetailPage() {
                   <Users className="w-5 h-5 text-white" />
                 )}
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  {post.user?.first_name && post.user?.last_name
-                    ? `${post.user.first_name} ${post.user.last_name}`
-                    : post.user?.username || post.user?.email || 'Usuario'}
-                </h3>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    {post.user?.first_name && post.user?.last_name
+                      ? `${post.user.first_name} ${post.user.last_name}`
+                      : post.user?.username || post.user?.email || 'Usuario'}
+                  </h3>
+                  {/* Indicador de post fijado - visible para todos */}
+                  {post.is_pinned && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium border border-yellow-300 dark:border-yellow-800">
+                      <Pin className="w-3 h-3" />
+                      Fijado
+                    </span>
+                  )}
+                  {/* Indicador de post oculto - solo para moderadores/owners */}
+                  {post.is_hidden && user && community && (community.user_role === 'admin' || community.user_role === 'moderator' || user.id === community.creator_id) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium border border-red-300 dark:border-red-800">
+                      <EyeOff className="w-3 h-3" />
+                      Oculto
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600 dark:text-slate-400">
                   {formatRelativeTime(post.created_at)} • {community?.name || 'Comunidad'}
                 </p>

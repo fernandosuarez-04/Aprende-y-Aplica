@@ -2,7 +2,7 @@ export type ReportReasonCategory = 'spam' | 'inappropriate' | 'harassment' | 'mi
 
 export type ReportStatus = 'pending' | 'reviewed' | 'resolved' | 'ignored'
 
-export type ResolutionAction = 'delete_post' | 'hide_post' | 'ignore_report' | 'warn_user'
+export type ResolutionAction = 'delete_post' | 'hide_post' | 'unhide_post' | 'ignore_report' | 'warn_user' | 'false_report' | 'warn_reporter'
 
 export interface PostReport {
   id: string
@@ -22,7 +22,17 @@ export interface PostReport {
     id: string
     content: string
     created_at: string
+    updated_at?: string
     user_id: string
+    attachment_url?: string | null
+    attachment_type?: string | null
+    attachment_data?: any
+    likes_count?: number
+    comment_count?: number
+    reaction_count?: number
+    is_pinned?: boolean
+    is_hidden?: boolean
+    is_edited?: boolean
     author?: {
       id: string
       username?: string
@@ -31,6 +41,15 @@ export interface PostReport {
       profile_picture_url?: string
       email?: string
     }
+    attachments?: Array<{
+      url: string
+      type: string
+      name?: string
+    }>
+    links?: Array<{
+      url: string
+      title?: string
+    }>
   }
   reported_by?: {
     id: string
@@ -56,8 +75,8 @@ export interface CreateReportData {
 
 export interface ResolveReportData {
   status: 'reviewed' | 'resolved' | 'ignored'
-  resolution_action?: ResolutionAction
-  resolution_notes?: string
+  resolution_action?: ResolutionAction | null
+  resolution_notes?: string | null
 }
 
 export interface GetReportsFilters {
@@ -258,12 +277,28 @@ export class PostReportsService {
         }
       )
 
-      const data = await response.json()
-
-      if (!response.ok) {
+      let data
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError)
         return {
           success: false,
-          error: data.error || 'Error al resolver el reporte',
+          error: `Error ${response.status}: ${response.statusText}`,
+        }
+      }
+
+      if (!response.ok) {
+        const errorMessage = data?.error || 'Error al resolver el reporte'
+        const errorDetails = data?.details ? ` - ${data.details}` : ''
+        console.error('❌ Error resolving report:', {
+          status: response.status,
+          error: errorMessage,
+          details: data?.details
+        })
+        return {
+          success: false,
+          error: `${errorMessage}${errorDetails}`,
         }
       }
 
@@ -276,7 +311,7 @@ export class PostReportsService {
       console.error('Error resolving report:', error)
       return {
         success: false,
-        error: 'Error de conexión al resolver el reporte',
+        error: error instanceof Error ? error.message : 'Error de conexión al resolver el reporte',
       }
     }
   }

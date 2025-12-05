@@ -11,23 +11,41 @@ export async function GET() {
     logger.log('🔄 Iniciando GET /api/admin/user-stats/stats/questions')
     const supabase = await createClient()
     
-    // Obtener preguntas sin relaciones complejas
-    const { data: questions, error } = await supabase
-      .from('preguntas')
-      .select(`
-        id,
-        codigo,
-        section,
-        tipo,
-        area_id
-      `)
+    // Obtener todas las preguntas sin relaciones complejas usando paginación
+    // Supabase tiene un límite de 1000 por defecto, así que necesitamos paginar
+    let allQuestions: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (error) {
-      logger.error('❌ Error fetching questions for stats:', error)
-      return NextResponse.json({ error: 'Failed to fetch questions', details: error.message }, { status: 500 })
+    while (hasMore) {
+      const { data: questions, error } = await supabase
+        .from('preguntas')
+        .select(`
+          id,
+          codigo,
+          section,
+          tipo,
+          area_id
+        `)
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+
+      if (error) {
+        logger.error('❌ Error fetching questions for stats:', error)
+        return NextResponse.json({ error: 'Failed to fetch questions', details: error.message }, { status: 500 })
+      }
+
+      if (questions && questions.length > 0) {
+        allQuestions = [...allQuestions, ...questions]
+        hasMore = questions.length === pageSize
+        page++
+      } else {
+        hasMore = false
+      }
     }
 
-    const totalQuestions = questions?.length || 0
+    const totalQuestions = allQuestions.length
+    const questions = allQuestions
     
     // Preguntas por área (simplificado)
     const questionsByArea = questions?.reduce((acc: any[], question) => {

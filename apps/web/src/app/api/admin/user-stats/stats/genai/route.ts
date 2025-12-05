@@ -11,16 +11,34 @@ export async function GET() {
     logger.log('🔄 Iniciando GET /api/admin/user-stats/stats/genai')
     const supabase = await createClient()
     
-    const { data: genAIAdoption, error } = await supabase
-      .from('adopcion_genai')
-      .select('id, pais, indice_aipi, fuente, fecha_fuente')
+    // Obtener todos los registros de adopción GenAI usando paginación
+    let allGenAIAdoption: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (error) {
-      logger.error('❌ Error fetching GenAI adoption for stats:', error)
-      return NextResponse.json({ error: 'Failed to fetch GenAI adoption', details: error.message }, { status: 500 })
+    while (hasMore) {
+      const { data: genAIAdoption, error } = await supabase
+        .from('adopcion_genai')
+        .select('id, pais, indice_aipi, fuente, fecha_fuente')
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+
+      if (error) {
+        logger.error('❌ Error fetching GenAI adoption for stats:', error)
+        return NextResponse.json({ error: 'Failed to fetch GenAI adoption', details: error.message }, { status: 500 })
+      }
+
+      if (genAIAdoption && genAIAdoption.length > 0) {
+        allGenAIAdoption = [...allGenAIAdoption, ...genAIAdoption]
+        hasMore = genAIAdoption.length === pageSize
+        page++
+      } else {
+        hasMore = false
+      }
     }
 
-    const totalRecords = genAIAdoption?.length || 0
+    const totalRecords = allGenAIAdoption.length
+    const genAIAdoption = allGenAIAdoption
     
     // Calcular índice AIPI promedio
     const totalAIPI = genAIAdoption?.reduce((sum, record) => sum + record.indice_aipi, 0) || 0

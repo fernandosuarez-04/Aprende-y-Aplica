@@ -11,21 +11,38 @@ export async function GET() {
     logger.log('🔄 Iniciando GET /api/admin/user-stats/stats/answers')
     const supabase = await createClient()
     
-    // Obtener respuestas sin relaciones complejas
-    const { data: answers, error } = await supabase
-      .from('respuestas')
-      .select(`
-        id,
-        pregunta_id,
-        user_perfil_id
-      `)
+    // Obtener todas las respuestas sin relaciones complejas usando paginación
+    let allAnswers: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (error) {
-      logger.error('❌ Error fetching answers for stats:', error)
-      return NextResponse.json({ error: 'Failed to fetch answers', details: error.message }, { status: 500 })
+    while (hasMore) {
+      const { data: answers, error } = await supabase
+        .from('respuestas')
+        .select(`
+          id,
+          pregunta_id,
+          user_perfil_id
+        `)
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+
+      if (error) {
+        logger.error('❌ Error fetching answers for stats:', error)
+        return NextResponse.json({ error: 'Failed to fetch answers', details: error.message }, { status: 500 })
+      }
+
+      if (answers && answers.length > 0) {
+        allAnswers = [...allAnswers, ...answers]
+        hasMore = answers.length === pageSize
+        page++
+      } else {
+        hasMore = false
+      }
     }
 
-    const totalAnswers = answers?.length || 0
+    const totalAnswers = allAnswers.length
+    const answers = allAnswers
     
     // Respuestas por pregunta (simplificado)
     const answersByQuestion = answers?.reduce((acc: any[], answer) => {

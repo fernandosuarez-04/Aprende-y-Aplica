@@ -11,33 +11,66 @@ export async function GET() {
     logger.log('🔄 Iniciando GET /api/admin/user-stats/stats/users')
     const supabase = await createClient()
     
-    // Obtener perfiles de usuario sin relaciones complejas
-    const { data: userProfiles, error: profilesError } = await supabase
-      .from('user_perfil')
-      .select(`
-        id,
-        user_id,
-        cargo_titulo,
-        pais,
-        rol_id,
-        nivel_id,
-        area_id,
-        relacion_id,
-        tamano_id,
-        sector_id
-      `)
+    // Obtener todos los perfiles de usuario sin relaciones complejas usando paginación
+    let allUserProfiles: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (profilesError) {
-      logger.error('❌ Error fetching user profiles for stats:', profilesError)
-      return NextResponse.json({ error: 'Failed to fetch user profiles' }, { status: 500 })
+    while (hasMore) {
+      const { data: userProfiles, error: profilesError } = await supabase
+        .from('user_perfil')
+        .select(`
+          id,
+          user_id,
+          cargo_titulo,
+          pais,
+          rol_id,
+          nivel_id,
+          area_id,
+          relacion_id,
+          tamano_id,
+          sector_id
+        `)
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+
+      if (profilesError) {
+        logger.error('❌ Error fetching user profiles for stats:', profilesError)
+        return NextResponse.json({ error: 'Failed to fetch user profiles' }, { status: 500 })
+      }
+
+      if (userProfiles && userProfiles.length > 0) {
+        allUserProfiles = [...allUserProfiles, ...userProfiles]
+        hasMore = userProfiles.length === pageSize
+        page++
+      } else {
+        hasMore = false
+      }
     }
 
+    // Obtener datos de lookup para roles, áreas, niveles, sectores y tamaños
+    const [rolesResult, areasResult, nivelesResult, sectoresResult, tamanosResult] = await Promise.all([
+      supabase.from('roles').select('id, nombre').order('nombre'),
+      supabase.from('areas').select('id, nombre').order('nombre'),
+      supabase.from('niveles').select('id, nombre').order('nombre'),
+      supabase.from('sectores').select('id, nombre').order('nombre'),
+      supabase.from('tamanos_empresa').select('id, nombre').order('nombre')
+    ])
+
+    // Crear mapas para lookup rápido
+    const rolesMap = new Map(rolesResult.data?.map(r => [r.id, r.nombre]) || [])
+    const areasMap = new Map(areasResult.data?.map(a => [a.id, a.nombre]) || [])
+    const nivelesMap = new Map(nivelesResult.data?.map(n => [n.id, n.nombre]) || [])
+    const sectoresMap = new Map(sectoresResult.data?.map(s => [s.id, s.nombre]) || [])
+    const tamanosMap = new Map(tamanosResult.data?.map(t => [t.id, t.nombre]) || [])
+
     // Calcular estadísticas
-    const totalUsers = userProfiles?.length || 0
+    const totalUsers = allUserProfiles.length
+    const userProfiles = allUserProfiles
     
-    // Usuarios por rol (simplificado)
+    // Usuarios por rol (con nombres reales)
     const usersByRole = userProfiles?.reduce((acc: any[], profile) => {
-      const roleName = `Rol ${profile.rol_id || 'Sin rol'}`
+      const roleName = profile.rol_id ? (rolesMap.get(profile.rol_id) || `Rol ${profile.rol_id}`) : 'Sin rol'
       const existing = acc.find(item => item.role === roleName)
       if (existing) {
         existing.count++
@@ -47,9 +80,9 @@ export async function GET() {
       return acc
     }, []) || []
 
-    // Usuarios por nivel (simplificado)
+    // Usuarios por nivel (con nombres reales)
     const usersByLevel = userProfiles?.reduce((acc: any[], profile) => {
-      const levelName = `Nivel ${profile.nivel_id || 'Sin nivel'}`
+      const levelName = profile.nivel_id ? (nivelesMap.get(profile.nivel_id) || `Nivel ${profile.nivel_id}`) : 'Sin nivel'
       const existing = acc.find(item => item.level === levelName)
       if (existing) {
         existing.count++
@@ -59,9 +92,9 @@ export async function GET() {
       return acc
     }, []) || []
 
-    // Usuarios por área (simplificado)
+    // Usuarios por área (con nombres reales)
     const usersByArea = userProfiles?.reduce((acc: any[], profile) => {
-      const areaName = `Área ${profile.area_id || 'Sin área'}`
+      const areaName = profile.area_id ? (areasMap.get(profile.area_id) || `Área ${profile.area_id}`) : 'Sin área'
       const existing = acc.find(item => item.area === areaName)
       if (existing) {
         existing.count++
@@ -71,9 +104,9 @@ export async function GET() {
       return acc
     }, []) || []
 
-    // Usuarios por sector (simplificado)
+    // Usuarios por sector (con nombres reales)
     const usersBySector = userProfiles?.reduce((acc: any[], profile) => {
-      const sectorName = `Sector ${profile.sector_id || 'Sin sector'}`
+      const sectorName = profile.sector_id ? (sectoresMap.get(profile.sector_id) || `Sector ${profile.sector_id}`) : 'Sin sector'
       const existing = acc.find(item => item.sector === sectorName)
       if (existing) {
         existing.count++
@@ -95,9 +128,9 @@ export async function GET() {
       return acc
     }, []) || []
 
-    // Usuarios por tamaño de empresa (simplificado)
+    // Usuarios por tamaño de empresa (con nombres reales)
     const usersByCompanySize = userProfiles?.reduce((acc: any[], profile) => {
-      const sizeName = `Tamaño ${profile.tamano_id || 'Sin tamaño'}`
+      const sizeName = profile.tamano_id ? (tamanosMap.get(profile.tamano_id) || `Tamaño ${profile.tamano_id}`) : 'Sin tamaño'
       const existing = acc.find(item => item.size === sizeName)
       if (existing) {
         existing.count++

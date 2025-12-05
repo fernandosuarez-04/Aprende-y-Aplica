@@ -156,11 +156,11 @@ export async function GET(
       (reports || []).map(async (report) => {
         const enriched: any = { ...report }
 
-        // Obtener información del post
+        // Obtener información del post con todos los detalles
         if (report.post_id) {
           const { data: post } = await adminSupabase
             .from('community_posts')
-            .select('id, content, created_at, user_id')
+            .select('id, content, created_at, updated_at, user_id, attachment_url, attachment_type, attachment_data, likes_count, comment_count, reaction_count, is_pinned, is_hidden, is_edited')
             .eq('id', report.post_id)
             .single()
 
@@ -177,6 +177,41 @@ export async function GET(
 
               if (author) {
                 enriched.post.author = author
+              }
+            }
+
+            // Procesar attachments si existen
+            if (post.attachment_url || post.attachment_type) {
+              enriched.post.attachments = []
+              
+              // Si hay attachment_url, agregarlo a attachments
+              if (post.attachment_url) {
+                enriched.post.attachments.push({
+                  url: post.attachment_url,
+                  type: post.attachment_type || 'unknown',
+                  name: post.attachment_data?.name || 'Archivo adjunto'
+                })
+              }
+
+              // Si attachment_data tiene múltiples attachments
+              if (post.attachment_data?.isMultiple && post.attachment_data?.attachments) {
+                enriched.post.attachments = post.attachment_data.attachments.map((att: any) => ({
+                  url: att.attachment_url,
+                  type: att.attachment_type || 'unknown',
+                  name: att.attachment_data?.name || 'Archivo adjunto'
+                }))
+              }
+            }
+
+            // Extraer links del contenido si existen
+            if (post.content) {
+              const urlRegex = /(https?:\/\/[^\s]+)/g
+              const links = post.content.match(urlRegex) || []
+              if (links.length > 0) {
+                enriched.post.links = links.map((url: string) => ({
+                  url,
+                  title: url
+                }))
               }
             }
           }

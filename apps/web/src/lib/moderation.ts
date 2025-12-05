@@ -46,15 +46,16 @@ export async function containsForbiddenContent(
 export async function registerWarning(
   userId: string,
   content: string,
-  contentType: 'post' | 'comment',
+  contentType: 'post' | 'comment' | 'report',
   supabase: SupabaseClient,
   contentId?: string
 ): Promise<WarningResult> {
   
   try {
+    const reason = contentType === 'report' ? 'reporte_falso' : 'contenido_ofensivo'
     const { data, error } = await supabase.rpc('register_user_warning', {
       p_user_id: userId,
-      p_reason: 'contenido_ofensivo',
+      p_reason: reason,
       p_content_type: contentType,
       p_content_id: contentId || null,
       p_blocked_content: content
@@ -150,3 +151,21 @@ export async function getUserWarningsCount(
     return 0;
   }
 }
+
+/**
+ * TODO FUTURO: Interfaz de administración para visualizar advertencias de usuarios
+ * 
+ * Funcionalidad pendiente:
+ * - Crear página/sección en el panel de administración para ver:
+ *   - Lista de usuarios con su conteo de advertencias
+ *   - Historial completo de advertencias por usuario
+ *   - Filtros por tipo de advertencia (contenido_ofensivo, reporte_falso)
+ *   - Búsqueda de usuarios por nombre/email
+ *   - Detalles de cada advertencia (fecha, razón, contenido bloqueado)
+ * 
+ * Funciones disponibles para usar:
+ * - getUserWarningsCount(userId) - Obtiene el conteo total
+ * - getUserWarningHistory(userId) - Obtiene el historial completo
+ * 
+ * Ubicación sugerida: /admin/users/warnings o agregar pestaña en AdminUsersPage
+ */

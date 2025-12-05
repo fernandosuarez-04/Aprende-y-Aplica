@@ -105,6 +105,33 @@ Una vez ejecutado el script, los usuarios podrán:
 - `scripts/supabase/setup-complete-community-reports.sql` (Completo)
 - `scripts/supabase/create-community-post-reports-table.sql` (Solo tabla)
 - `scripts/supabase/setup-community-post-reports-rls.sql` (Solo RLS)
+- `scripts/supabase/update-resolution-action-constraint.sql` (Actualizar constraint para incluir `unhide_post`)
+
+## Actualización del Constraint de resolution_action
+
+Si recibes un error al intentar usar la acción `unhide_post` (Mostrar Post):
+
+```
+Error: new row for relation "community_post_reports" violates check constraint 
+"community_post_reports_resolution_action_check"
+```
+
+**Solución:**
+
+1. Abre tu proyecto en **Supabase Dashboard**
+2. Ve a **SQL Editor**
+3. Copia y pega el contenido del archivo: `update-resolution-action-constraint.sql`
+4. Ejecuta el script (botón "Run" o `Ctrl + Enter`)
+5. Verifica que se ejecutó correctamente
+
+Este script actualiza el constraint para incluir `unhide_post` como valor válido junto con:
+- `delete_post`
+- `hide_post`
+- `unhide_post` (nuevo)
+- `ignore_report`
+- `warn_user`
+- `false_report`
+- `warn_reporter`
 
 ## Soporte
 

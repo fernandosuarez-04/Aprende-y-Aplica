@@ -349,15 +349,14 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
 
                       {/* Reproductor */}
                       {showPlayer && isMounted && (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-lg">
+                        <div className="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-lg bg-white dark:bg-gray-800 p-4">
                           <SessionPlayer
                             key={`player-${reporte.id}-${showPlayer}`}
                             session={session}
                             width="100%"
-                            height="600px"
-                            autoPlay={false}
+                            autoPlay={true}
                             showController={true}
-                            skipInactive={true}
+                            skipInactive={false}
                             speed={1}
                           />
                         </div>

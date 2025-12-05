@@ -81,10 +81,10 @@ export const InviteUserSchema = z.object({
   user_id: z.string()
     .uuid('ID de usuario inválido'),
   
-  role: z.enum(['Usuario', 'Moderador'], {
-    errorMap: () => ({ message: 'Rol inválido para invitación. Debe ser: Usuario o Moderador' })
+  role: z.enum(['member', 'moderator', 'admin'], {
+    errorMap: () => ({ message: 'Rol inválido para invitación. Debe ser: member, moderator o admin' })
   })
-    .default('Usuario'),
+    .default('member'),
 });
 
 /**

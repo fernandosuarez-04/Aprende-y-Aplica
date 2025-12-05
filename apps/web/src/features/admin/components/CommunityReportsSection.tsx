@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Flag, Eye, CheckCircle, XCircle, Clock, Filter, Loader2 } from 'lucide-react'
+import { Flag, Eye, CheckCircle, XCircle, Clock, Filter, Loader2, Edit2, Save, X } from 'lucide-react'
 import { PostReportsService, PostReport, ReportStatus, ResolutionAction } from '@/features/communities/services/postReports.service'
 
 interface CommunityReportsSectionProps {
@@ -46,6 +46,13 @@ export function CommunityReportsSection({ communitySlug }: CommunityReportsSecti
   const [selectedStatus, setSelectedStatus] = useState<ReportStatus | 'all'>('all')
   const [selectedReport, setSelectedReport] = useState<PostReport | null>(null)
   const [isResolving, setIsResolving] = useState(false)
+  const [editingNotes, setEditingNotes] = useState<string | null>(null)
+  const [notesValue, setNotesValue] = useState<string>('')
+  const [pendingAction, setPendingAction] = useState<{
+    reportId: string
+    status: 'reviewed' | 'resolved' | 'ignored'
+    action?: ResolutionAction
+  } | null>(null)
   const [pagination, setPagination] = useState({
     total: 0,
     limit: 50,
@@ -81,6 +88,83 @@ export function CommunityReportsSection({ communitySlug }: CommunityReportsSecti
     fetchReports()
   }, [selectedStatus, communitySlug])
 
+  const handleEditNotes = (report: PostReport) => {
+    setEditingNotes(report.id)
+    setNotesValue(report.resolution_notes || '')
+    setPendingAction(null)
+  }
+
+  const handleCancelEditNotes = () => {
+    setEditingNotes(null)
+    setNotesValue('')
+    setPendingAction(null)
+  }
+
+  const handleSaveNotes = async (reportId: string, currentStatus: ReportStatus, currentAction?: ResolutionAction | null) => {
+    setIsResolving(true)
+    try {
+      const result = await PostReportsService.resolveReport(communitySlug, reportId, {
+        status: currentStatus,
+        resolution_action: currentAction || undefined,
+        resolution_notes: notesValue.trim() || null,
+      })
+
+      if (result.success && result.report) {
+        setReports((prev) =>
+          prev.map((r) => (r.id === reportId ? result.report! : r))
+        )
+        await fetchReports()
+        handleCancelEditNotes()
+      } else {
+        const errorMessage = result.error || 'Error al actualizar las notas'
+        alert(errorMessage)
+      }
+    } catch (err) {
+      console.error('❌ Error updating notes:', err)
+      alert('Error al actualizar las notas')
+    } finally {
+      setIsResolving(false)
+    }
+  }
+
+  const handleActionWithNotes = (reportId: string, status: 'reviewed' | 'resolved' | 'ignored', action?: ResolutionAction) => {
+    const report = reports.find(r => r.id === reportId)
+    if (report) {
+      setPendingAction({ reportId, status, action })
+      setEditingNotes(reportId)
+      setNotesValue(report.resolution_notes || '')
+    }
+  }
+
+  const handleConfirmActionWithNotes = async () => {
+    if (!pendingAction) return
+    
+    setIsResolving(true)
+    try {
+      const result = await PostReportsService.resolveReport(communitySlug, pendingAction.reportId, {
+        status: pendingAction.status,
+        resolution_action: pendingAction.action,
+        resolution_notes: notesValue.trim() || null,
+      })
+
+      if (result.success && result.report) {
+        setReports((prev) =>
+          prev.map((r) => (r.id === pendingAction.reportId ? result.report! : r))
+        )
+        await fetchReports()
+        handleCancelEditNotes()
+      } else {
+        const errorMessage = result.error || 'Error al resolver el reporte'
+        alert(errorMessage)
+      }
+    } catch (err) {
+      console.error('❌ Error resolving report:', err)
+      alert('Error al resolver el reporte')
+    } finally {
+      setIsResolving(false)
+    }
+  }
+
   const handleResolveReport = async (
     reportId: string,
     status: 'reviewed' | 'resolved' | 'ignored',
@@ -92,20 +176,25 @@ export function CommunityReportsSection({ communitySlug }: CommunityReportsSecti
       const result = await PostReportsService.resolveReport(communitySlug, reportId, {
         status,
         resolution_action: resolutionAction,
-        resolution_notes: resolutionNotes,
+        resolution_notes: resolutionNotes || null,
       })
 
-      if (result.success) {
+      if (result.success && result.report) {
         // Actualizar el reporte en la lista
         setReports((prev) =>
           prev.map((r) => (r.id === reportId ? result.report! : r))
         )
         setSelectedReport(null)
+        // Recargar reportes para actualizar contadores
+        await fetchReports()
       } else {
-        alert(result.error || 'Error al resolver el reporte')
+        const errorMessage = result.error || 'Error al resolver el reporte'
+        alert(errorMessage)
       }
     } catch (err) {
-      alert('Error de conexión')
+      console.error('❌ Error resolving report:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Error de conexión. Por favor intenta nuevamente.'
+      alert(errorMessage)
     } finally {
       setIsResolving(false)
     }
@@ -248,53 +337,164 @@ export function CommunityReportsSection({ communitySlug }: CommunityReportsSecti
                     </div>
                   )}
 
-                  {report.resolution_notes && (
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {/* Notas de resolución - Editable */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Notas de resolución:
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {report.resolution_notes}
-                      </p>
+                      {editingNotes !== report.id && (
+                        <button
+                          onClick={() => handleEditNotes(report)}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Editar
+                        </button>
+                      )}
                     </div>
-                  )}
+                    {editingNotes === report.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={notesValue}
+                          onChange={(e) => setNotesValue(e.target.value)}
+                          placeholder="Agrega notas sobre la resolución de este reporte..."
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[80px]"
+                          rows={3}
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (pendingAction) {
+                                handleConfirmActionWithNotes()
+                              } else {
+                                handleSaveNotes(report.id, report.status, report.resolution_action || undefined)
+                              }
+                            }}
+                            disabled={isResolving}
+                            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            <Save className="w-3 h-3" />
+                            {pendingAction ? 'Confirmar Acción' : 'Guardar'}
+                          </button>
+                          <button
+                            onClick={handleCancelEditNotes}
+                            disabled={isResolving}
+                            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {report.resolution_notes || <span className="italic text-gray-400 dark:text-gray-500">Sin notas</span>}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 ml-4">
-                  {report.status === 'pending' && (
+                  {(report.status === 'pending' || report.status === 'resolved' || report.status === 'ignored') && (
                     <>
+                      {report.status !== 'pending' && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          <span className="block">
+                            Veredicto actual: {
+                              report.resolution_action === 'delete_post' && 'Post eliminado'
+                            }
+                            {report.resolution_action === 'hide_post' && 'Post oculto'}
+                            {report.resolution_action === 'unhide_post' && 'Post mostrado'}
+                            {report.resolution_action === 'ignore_report' && 'Reporte ignorado'}
+                            {report.resolution_action === 'warn_user' && 'Usuario advertido'}
+                            {report.resolution_action === 'false_report' && 'Reporte falso'}
+                            {report.resolution_action === 'warn_reporter' && 'Reporte falso - Usuario advertido'}
+                            {!report.resolution_action && 'Sin acción'}
+                          </span>
+                          {report.resolution_action === 'delete_post' && (
+                            <span className="block text-orange-600 dark:text-orange-400 mt-1">
+                              ⚠️ No se puede cambiar: el post ya fue eliminado
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <button
-                        onClick={() => handleResolveReport(report.id, 'resolved', 'delete_post', 'Post eliminado por violar las normas')}
-                        disabled={isResolving}
+                        onClick={() => handleActionWithNotes(report.id, 'resolved', 'delete_post')}
+                        disabled={isResolving || report.resolution_action === 'delete_post'}
                         className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
                         <XCircle className="w-3 h-3" />
-                        Eliminar Post
+                        {report.resolution_action === 'delete_post' ? 'Post Eliminado' : 'Eliminar Post'}
                       </button>
+                      {/* Botón para ocultar/mostrar post */}
+                      {/* Determinar si el post está oculto: priorizar is_hidden, luego resolution_action */}
+                      {report.post ? (
+                        (() => {
+                          // Determinar el estado real del post
+                          // Si resolution_action es unhide_post, el post está visible
+                          // Si resolution_action es hide_post, el post está oculto
+                          // Si is_hidden es true, el post está oculto
+                          const isPostHidden = report.resolution_action === 'unhide_post' 
+                            ? false 
+                            : (report.post.is_hidden === true || report.resolution_action === 'hide_post')
+                          
+                          return isPostHidden ? (
+                            <button
+                              onClick={() => handleActionWithNotes(report.id, 'resolved', 'unhide_post')}
+                              disabled={isResolving || report.resolution_action === 'delete_post'}
+                              className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
+                              Mostrar Post
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleActionWithNotes(report.id, 'resolved', 'hide_post')}
+                              disabled={isResolving || report.resolution_action === 'delete_post'}
+                              className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
+                              Ocultar Post
+                            </button>
+                          )
+                        })()
+                      ) : null}
                       <button
-                        onClick={() => handleResolveReport(report.id, 'resolved', 'hide_post', 'Post oculto por violar las normas')}
-                        disabled={isResolving}
-                        className="px-3 py-1.5 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                      >
-                        <Eye className="w-3 h-3" />
-                        Ocultar Post
-                      </button>
-                      <button
-                        onClick={() => handleResolveReport(report.id, 'ignored', 'ignore_report')}
-                        disabled={isResolving}
+                        onClick={() => handleActionWithNotes(report.id, 'ignored', 'ignore_report')}
+                        disabled={isResolving || report.resolution_action === 'ignore_report' || report.resolution_action === 'delete_post'}
                         className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
                         <Clock className="w-3 h-3" />
-                        Ignorar
+                        {report.resolution_action === 'ignore_report' ? 'Ignorado' : 'Ignorar'}
+                      </button>
+                      <button
+                        onClick={() => handleActionWithNotes(report.id, 'resolved', 'false_report')}
+                        disabled={isResolving || report.resolution_action === 'false_report' || report.resolution_action === 'warn_reporter' || report.resolution_action === 'delete_post'}
+                        className="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        <Flag className="w-3 h-3" />
+                        {report.resolution_action === 'false_report' ? 'Marcado como Falso' : 'Marcar como Falso'}
+                      </button>
+                      <button
+                        onClick={() => handleActionWithNotes(report.id, 'resolved', 'warn_reporter')}
+                        disabled={isResolving || report.resolution_action === 'warn_reporter' || report.resolution_action === 'false_report' || report.resolution_action === 'delete_post'}
+                        className="px-3 py-1.5 text-xs font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        <Flag className="w-3 h-3" />
+                        {report.resolution_action === 'warn_reporter' ? 'Falso - Usuario Advertido' : 'Falso y Advertir Usuario'}
                       </button>
                     </>
                   )}
-                  {report.status !== 'pending' && (
+                  {report.status === 'reviewed' && (
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {report.resolution_action === 'delete_post' && 'Post eliminado'}
                       {report.resolution_action === 'hide_post' && 'Post oculto'}
+                      {report.resolution_action === 'unhide_post' && 'Post mostrado'}
                       {report.resolution_action === 'ignore_report' && 'Reporte ignorado'}
                       {report.resolution_action === 'warn_user' && 'Usuario advertido'}
+                      {report.resolution_action === 'false_report' && 'Reporte falso'}
+                      {report.resolution_action === 'warn_reporter' && 'Reporte falso - Usuario advertido'}
                     </span>
                   )}
                 </div>

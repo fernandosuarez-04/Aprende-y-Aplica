@@ -93,7 +93,7 @@ export function InstructorCommunityDetailPage({ slug }: InstructorCommunityDetai
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ userId, role })
+        body: JSON.stringify({ user_id: userId, role })
       })
 
       const data = await response.json()
