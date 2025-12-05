@@ -294,9 +294,15 @@ export default function MyCoursesPage() {
             />
           </div>
           
+          <label htmlFor="filter-status" className="sr-only">
+            Filtrar cursos por estado
+          </label>
           <select
+            id="filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
+            title="Filtrar cursos por estado"
+            aria-label="Filtrar cursos por estado"
             className="px-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <option value="all">Todos</option>

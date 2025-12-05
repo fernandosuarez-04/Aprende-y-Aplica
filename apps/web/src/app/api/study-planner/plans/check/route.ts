@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { SessionService } from '@/features/auth/services/session.service';
 
 /**
  * Verifica si el usuario actual tiene un plan de estudios creado
@@ -7,26 +8,23 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Obtener el usuario actual usando el sistema de sesiones
+    const currentUser = await SessionService.getCurrentUser();
 
-    // Obtener el usuario actual
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
+    if (!currentUser) {
       return NextResponse.json(
         { success: false, hasPlan: false, error: 'Usuario no autenticado' },
         { status: 401 }
       );
     }
 
+    const supabase = await createClient();
+
     // Verificar si el usuario tiene un plan de estudios
     const { data: plans, error: plansError } = await supabase
       .from('study_plans')
       .select('id, name, created_at')
-      .eq('user_id', user.id)
+      .eq('user_id', currentUser.id)
       .order('created_at', { ascending: false })
       .limit(1);
 
