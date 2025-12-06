@@ -1221,13 +1221,25 @@ export async function POST(request: NextRequest) {
     // ✅ Detectar idioma del mensaje del usuario automáticamente
     const detectedMessageLanguage = detectMessageLanguage(message);
     
-    // ✅ Usar el idioma detectado del mensaje si es diferente del idioma de la plataforma
-    // Esto asegura que LIA responda en el mismo idioma que el usuario habló
-    const finalLanguage = detectedMessageLanguage !== 'es' ? detectedMessageLanguage : languageFromRequest;
+    // ✅ Priorizar el idioma de la plataforma si está explícitamente configurado
+    // Si el idioma de la plataforma es diferente de español, usarlo directamente
+    // Si el mensaje está en un idioma diferente al de la plataforma, usar el idioma del mensaje
+    let finalLanguage: SupportedLanguage;
+    if (languageFromRequest && languageFromRequest !== 'es') {
+      // Si la plataforma está en inglés o portugués, priorizar ese idioma
+      finalLanguage = normalizeLanguage(languageFromRequest);
+    } else if (detectedMessageLanguage !== 'es' && detectedMessageLanguage !== languageFromRequest) {
+      // Si el mensaje está en un idioma diferente (inglés o portugués), usar ese idioma
+      finalLanguage = detectedMessageLanguage;
+    } else {
+      // Por defecto, usar el idioma de la plataforma
+      finalLanguage = normalizeLanguage(languageFromRequest || 'es');
+    }
+    
     const language = normalizeLanguage(finalLanguage);
     
     // Log para debugging (solo en desarrollo)
-    if (process.env.NODE_ENV === 'development' && detectedMessageLanguage !== languageFromRequest) {
+    if (process.env.NODE_ENV === 'development') {
       logger.log(`🌍 Idioma detectado del mensaje: ${detectedMessageLanguage}, idioma de plataforma: ${languageFromRequest}, usando: ${language}`);
     }
 

@@ -65,11 +65,12 @@ import type { CourseLessonContext } from '../../../../core/types/lia.types';
 import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
 import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
 import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/components/ContextualVoiceGuide';
-import { COURSE_LEARN_TOUR_STEPS } from '../../../../features/courses/config/course-learn-tour';
+import { useCourseLearnTourSteps } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
+import { useLanguage } from '../../../../core/providers/I18nProvider';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
@@ -126,6 +127,9 @@ export default function CourseLearnPage() {
   const { t, i18n, ready } = useTranslation('learn');
   // Detectar idioma seleccionado
   const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  
+  // Obtener steps del tour traducidos
+  const courseLearnTourSteps = useCourseLearnTourSteps();
   
   // Estado para evitar errores de hidratación
   const [mounted, setMounted] = useState(false);
@@ -234,6 +238,18 @@ export default function CourseLearnPage() {
   const liaPanelRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // 🎙️ Ref para el reconocimiento de voz
+  const recognitionRef = useRef<any>(null);
+  
+  // 🎙️ Obtener idioma actual para reconocimiento de voz
+  const { language } = useLanguage();
+  
+  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  const speechLanguageMap: Record<string, string> = {
+    'es': 'es-ES',
+    'en': 'en-US',
+    'pt': 'pt-BR'
+  };
   // ✨ Estados para guardado de prompts
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [showPromptPreview, setShowPromptPreview] = useState(false);
@@ -1089,6 +1105,88 @@ export default function CourseLearnPage() {
       await sendLiaMessage(message, lessonContext);
     }
   };
+
+  // 🎙️ Inicializar reconocimiento de voz cuando cambia el idioma
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = speechLanguageMap[language] || 'es-ES';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript.trim()) {
+          setLiaMessage(prev => prev + (prev ? ' ' : '') + transcript);
+        }
+        setIsLiaRecording(false);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        setIsLiaRecording(false);
+        
+        if (event.error === 'not-allowed') {
+          alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
+        }
+      };
+      
+      recognition.onend = () => {
+        setIsLiaRecording(false);
+      };
+      
+      recognitionRef.current = recognition;
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore
+        }
+      }
+    };
+  }, [language, t]);
+  
+  // 🎙️ Función para activar/desactivar grabación de voz
+  const toggleRecording = useCallback(async () => {
+    if (!recognitionRef.current) {
+      alert(t('voice.speechNotSupported') || 'El reconocimiento de voz no está disponible en tu navegador');
+      return;
+    }
+    
+    if (isLiaRecording) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignore
+      }
+      setIsLiaRecording(false);
+    } else {
+      try {
+        // Solicitar permisos del micrófono primero
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Actualizar el idioma del reconocimiento
+        recognitionRef.current.lang = speechLanguageMap[language] || 'es-ES';
+        
+        recognitionRef.current.start();
+        setIsLiaRecording(true);
+      } catch (error: any) {
+        console.error('Error starting speech recognition:', error);
+        setIsLiaRecording(false);
+        
+        if (error?.name === 'NotAllowedError') {
+          alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
+        }
+      }
+    }
+  }, [isLiaRecording, language, t]);
 
   // ✨ Función para guardar prompts generados en la biblioteca
   const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
@@ -4217,8 +4315,7 @@ Antes de cada respuesta, pregúntate:
                           handleSendLiaMessage();
                         } else {
                           // Si no hay texto, activar/desactivar grabación
-                          setIsLiaRecording(!isLiaRecording);
-                          // Aquí se implementaría la lógica de reconocimiento de voz
+                          toggleRecording();
                         }
                       }}
                       disabled={isLiaLoading && !!liaMessage.trim()}
@@ -4731,7 +4828,7 @@ Antes de cada respuesta, pregúntate:
       {/* Tour de voz contextual para la página de aprendizaje */}
       <ContextualVoiceGuide
         tourId="course-learn"
-        steps={COURSE_LEARN_TOUR_STEPS}
+        steps={courseLearnTourSteps}
         triggerPaths={['/courses']}
         isReplayable={true}
         showDelay={2000}
