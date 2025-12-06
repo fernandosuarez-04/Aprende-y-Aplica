@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Sparkles, Star, Wand2, Heart, Grid3X3, List } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@aprende-y-aplica/ui';
 import { PromptCard } from '../../features/ai-directory/components/PromptCard';
 import { SearchBar } from '../../features/ai-directory/components/SearchBar';
@@ -38,6 +39,7 @@ const itemVariants = {
 };
 
 export default function PromptDirectoryPage() {
+  const { t } = useTranslation('common');
   const router = useRouter();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -370,13 +372,13 @@ export default function PromptDirectoryPage() {
         triggerPaths={['/prompt-directory']}
         isReplayable={true}
         showDelay={1500}
-        replayButtonLabel="Ver tour del directorio"
+        replayButtonLabel={t('tours.promptDirectory.replayButtonLabel')}
       />
 
       {/* Botón para volver a ver el tour */}
       <ReplayTourButton
         tourId="prompt-directory"
-        label="Ver Tour del Directorio"
+        label={t('tours.promptDirectory.buttonLabel')}
         allowedPaths={['/prompt-directory']}
       />
     </div>

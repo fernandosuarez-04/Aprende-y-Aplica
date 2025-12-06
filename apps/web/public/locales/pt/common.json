@@ -91,6 +91,15 @@
       "speechNotSupported": "Seu navegador não suporta reconhecimento de voz"
     }
   },
+  "tours": {
+    "viewTourWithLia": "Ver Tour com LIA",
+    "viewTourWithLiaTitle": "Ver novamente a experiência de boas-vindas com LIA",
+    "viewGuidedTour": "Ver tour guiado",
+    "promptDirectory": {
+      "replayButtonLabel": "Ver tour do diretório",
+      "buttonLabel": "Ver Tour do Diretório"
+    }
+  },
   "onboarding": {
     "steps": {
       "1": {

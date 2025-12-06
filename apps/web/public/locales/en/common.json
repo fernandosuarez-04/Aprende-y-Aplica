@@ -91,6 +91,15 @@
       "speechNotSupported": "Your browser doesn't support voice recognition"
     }
   },
+  "tours": {
+    "viewTourWithLia": "View Tour with LIA",
+    "viewTourWithLiaTitle": "View the welcome experience with LIA again",
+    "viewGuidedTour": "View guided tour",
+    "promptDirectory": {
+      "replayButtonLabel": "View directory tour",
+      "buttonLabel": "View Directory Tour"
+    }
+  },
   "onboarding": {
     "steps": {
       "1": {

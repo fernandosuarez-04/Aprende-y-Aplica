@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { resetOnboarding } from './utils';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -13,6 +14,7 @@ import { usePathname } from 'next/navigation';
 export function DevResetButton() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const { t } = useTranslation('common');
 
   // Solo mostrar si el usuario está autenticado y está en el dashboard
   if (!user || pathname !== '/dashboard') {
@@ -26,10 +28,10 @@ export function DevResetButton() {
         window.location.reload();
       }}
       className="fixed bottom-4 left-4 z-[10000] px-3 py-2 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-xs rounded-lg shadow-lg transition-all duration-200 font-semibold flex items-center gap-2 hover:scale-105"
-      title="Volver a ver la experiencia de bienvenida con LIA"
+      title={t('tours.viewTourWithLiaTitle')}
     >
       <span className="text-base">🎙️</span>
-      <span>Ver Tour con LIA</span>
+      <span>{t('tours.viewTourWithLia')}</span>
     </button>
   );
 }

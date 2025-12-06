@@ -43,6 +43,10 @@
   "assistant": {
     "initialMessage": "Hi! 👋 I'm Lia, your AI assistant. I'm here to help you with workshops, courses, and educational content. How can I assist you today?",
     "placeholder": "Ask about workshops, courses..."
+  },
+  "sections": {
+    "whatToLearnNow": "What to learn now",
+    "recommendationsForYou": "Recommendations for you"
   }
 }
 

@@ -325,10 +325,10 @@ export default function DashboardPage() {
         {/* Títulos de Sección - Tercero */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1.5 tracking-tight">
-            Qué aprender ahora
+            {t('sections.whatToLearnNow')}
           </h1>
           <p className="text-sm font-normal text-gray-600 dark:text-slate-400">
-            Recomendaciones para ti
+            {t('sections.recommendationsForYou')}
           </p>
         </div>
 
