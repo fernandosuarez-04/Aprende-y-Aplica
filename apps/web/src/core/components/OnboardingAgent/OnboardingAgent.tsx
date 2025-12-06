@@ -384,6 +384,13 @@ export function OnboardingAgent() {
     }
   };
 
+  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  const speechLanguageMap: Record<string, string> = {
+    'es': 'es-ES',
+    'en': 'en-US',
+    'pt': 'pt-BR'
+  };
+  
   // Inicializar reconocimiento de voz
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -391,7 +398,7 @@ export function OnboardingAgent() {
       
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
+        recognition.lang = speechLanguageMap[language] || 'es-ES';
         recognition.continuous = false;
         recognition.interimResults = false;
 
@@ -505,7 +512,7 @@ export function OnboardingAgent() {
         recognitionRef.current.stop();
       }
     };
-  }, []);
+  }, [language, speechLanguageMap]);
 
   // Función para iniciar/detener escucha
   const toggleListening = async () => {
@@ -632,7 +639,7 @@ export function OnboardingAgent() {
             platformContext: platformContextStr,
             availableLinks: availableLinks
           },
-          language: 'es'
+          language: language
         }),
       });
 

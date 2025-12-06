@@ -6,6 +6,7 @@ import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../providers/I18nProvider';
 import { ContextualVoiceGuideProps, VoiceGuideStep } from './types';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { getPlatformContext, getAvailableLinksForLIA } from '../../../lib/lia/page-metadata';
@@ -60,7 +61,15 @@ export function ContextualVoiceGuide({
   requireAuth = false,
 }: ContextualVoiceGuideProps) {
   const { t } = useTranslation('common');
+  const { language } = useLanguage();
   const ONBOARDING_STEPS = steps;
+  
+  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  const speechLanguageMap: Record<string, string> = {
+    'es': 'es-ES',
+    'en': 'en-US',
+    'pt': 'pt-BR'
+  };
   const storageKey = `has-seen-tour-${tourId}`;
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -351,7 +360,7 @@ export function ContextualVoiceGuide({
       
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
+        recognition.lang = speechLanguageMap[language] || 'es-ES';
         recognition.continuous = false;
         recognition.interimResults = false;
 
@@ -465,9 +474,9 @@ export function ContextualVoiceGuide({
         recognitionRef.current.stop();
       }
     };
-  }, []);
+  }, [language, speechLanguageMap]);
 
-  // FunciÃ³n para iniciar/detener escucha
+  // Función para iniciar/detener escucha
   const toggleListening = async () => {
     if (!recognitionRef.current) {
       alert(t('onboarding.voice.browserNotSupported'));
@@ -592,7 +601,7 @@ export function ContextualVoiceGuide({
             platformContext: platformContextStr,
             availableLinks: availableLinks
           },
-          language: 'es'
+          language: language
         }),
       });
 

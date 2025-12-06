@@ -615,10 +615,18 @@ export function AIChatAgent({
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
-  const [useContextMode, setUseContextMode] = useState(true); // � ACTIVADO POR DEFECTO para persistencia automática
+  const [useContextMode, setUseContextMode] = useState(true); // 🎯 ACTIVADO POR DEFECTO para persistencia automática
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
   const { user } = useAuth();
+  
+  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  const speechLanguageMap: Record<string, string> = {
+    'es': 'es-ES',
+    'en': 'en-US',
+    'pt': 'pt-BR'
+  };
   const prevPathnameRef = useRef<string>('');
   const hasOpenedRef = useRef<boolean>(false);
   const router = useRouter();
@@ -1585,10 +1593,86 @@ export function AIChatAgent({
     }
   }, [handleSendMessage]);
 
-  const toggleRecording = useCallback(() => {
-    setIsRecording(!isRecording);
-    // Aquí se implementaría la lógica de reconocimiento de voz
-    }, [isRecording]);
+  // 🎙️ Inicializar reconocimiento de voz cuando cambia el idioma
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = speechLanguageMap[language] || 'es-ES';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript.trim()) {
+          setInputMessage(prev => prev + (prev ? ' ' : '') + transcript);
+        }
+        setIsRecording(false);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        setIsRecording(false);
+        
+        if (event.error === 'not-allowed') {
+          alert(tCommon('aiChat.voice.microphoneError'));
+        }
+      };
+      
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+      
+      recognitionRef.current = recognition;
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore
+        }
+      }
+    };
+  }, [language, tCommon]);
+  
+  const toggleRecording = useCallback(async () => {
+    if (!recognitionRef.current) {
+      alert(tCommon('aiChat.voice.speechNotSupported'));
+      return;
+    }
+    
+    if (isRecording) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignore
+      }
+      setIsRecording(false);
+    } else {
+      try {
+        // Solicitar permisos del micrófono primero
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Actualizar el idioma del reconocimiento
+        recognitionRef.current.lang = speechLanguageMap[language] || 'es-ES';
+        
+        recognitionRef.current.start();
+        setIsRecording(true);
+      } catch (error: any) {
+        console.error('Error starting speech recognition:', error);
+        setIsRecording(false);
+        
+        if (error?.name === 'NotAllowedError') {
+          alert(tCommon('aiChat.voice.microphoneError'));
+        }
+      }
+    }
+  }, [isRecording, language, tCommon]);
 
   // Función para solicitar ayuda contextual
   // Permite pasar contenido de página directamente para evitar problemas de sincronización
