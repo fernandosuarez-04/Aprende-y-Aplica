@@ -279,7 +279,7 @@ export function CourseHoverPopover({
               </div>
 
               {/* Objetivos de aprendizaje */}
-              {course.learning_objectives && course.learning_objectives.length > 0 && (
+              {course.learning_objectives && Array.isArray(course.learning_objectives) && course.learning_objectives.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                     Lo que aprenderás:

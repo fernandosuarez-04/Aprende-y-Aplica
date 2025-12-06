@@ -12,6 +12,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
+import { ChartBarIcon } from '@heroicons/react/24/outline';
 
 interface CostDataPoint {
   date: string;
@@ -92,8 +93,9 @@ export function CostOverviewWidget({ data, isLoading, chartType = 'area' }: Cost
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            📈 Costos por Período
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <ChartBarIcon className="w-5 h-5 text-emerald-500" />
+            Costos por Período
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Total: <span className="font-semibold text-emerald-500">${totalCost.toFixed(4)}</span>

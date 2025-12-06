@@ -196,6 +196,7 @@ export default function DashboardPage() {
   }, [activeFilter, categories, getCategoryLabel]);
 
   // ⚡ Traducir cursos automáticamente según el idioma actual
+  // Nota: learning_objectives es un array y se maneja por separado en content_translations
   const translatedCourses = useTranslatedContent(
     'course',
     filteredCourses,
@@ -374,8 +375,8 @@ export default function DashboardPage() {
             {!coursesLoading && !coursesError && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {workshops.map((workshop) => {
-                  // Obtener el curso completo para el popover
-                  const fullCourse = courses.find(c => c.id === workshop.id);
+                  // Obtener el curso completo TRADUCIDO para el popover
+                  const fullCourse = translatedCourses.find(c => c.id === workshop.id);
                   
                   // Crear ref si no existe
                   if (!cardRefs.current[workshop.id]) {

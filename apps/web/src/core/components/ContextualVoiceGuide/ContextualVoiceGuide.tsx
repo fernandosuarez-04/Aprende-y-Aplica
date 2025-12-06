@@ -7,6 +7,48 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ContextualVoiceGuideProps, VoiceGuideStep } from './types';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { getPlatformContext, getAvailableLinksForLIA } from '../../../lib/lia/page-metadata';
+
+// Función para detectar automáticamente el contexto basado en la URL
+function detectContextFromURL(pathname: string): string {
+  if (pathname.includes('/communities')) return 'communities';
+  if (pathname.includes('/courses')) return 'courses';
+  if (pathname.includes('/workshops')) return 'workshops';
+  if (pathname.includes('/news')) return 'news';
+  if (pathname.includes('/dashboard')) return 'dashboard';
+  if (pathname.includes('/prompt-directory')) return 'prompts';
+  if (pathname.includes('/business-panel')) return 'business';
+  if (pathname.includes('/profile')) return 'profile';
+  return 'general';
+}
+
+// Función para obtener información contextual detallada de la página actual
+function getPageContextInfo(pathname: string): string {
+  const contextMap: Record<string, string> = {
+    '/communities': 'página de comunidades - donde los usuarios pueden unirse y participar en grupos',
+    '/courses': 'página de cursos - catálogo de cursos disponibles para aprendizaje',
+    '/workshops': 'página de talleres - eventos y sesiones de formación',
+    '/news': 'página de noticias - últimas actualizaciones y anuncios',
+    '/dashboard': 'panel principal del usuario - catálogo completo de talleres y cursos disponibles',
+    '/prompt-directory': 'directorio de prompts - colección de plantillas de prompts de IA',
+    '/business-panel': 'panel de negocios - herramientas para empresas',
+    '/profile': 'página de perfil de usuario',
+  };
+
+  // Buscar coincidencia exacta primero
+  if (contextMap[pathname]) {
+    return contextMap[pathname];
+  }
+
+  // Buscar coincidencia parcial
+  for (const [path, description] of Object.entries(contextMap)) {
+    if (pathname.includes(path)) {
+      return description;
+    }
+  }
+
+  return 'página principal de la plataforma';
+}
 
 export function ContextualVoiceGuide({
   tourId,
@@ -523,11 +565,15 @@ export function ContextualVoiceGuide({
         conversationHistory,
       };
 
-      console.log('ðŸ¤– Enviando pregunta a LIA:', question);
+      console.log('🤖 Enviando pregunta a LIA:', question);
 
-      // âœ… OPTIMIZACIÃ“N: Llamar directamente a /api/ai-chat (eliminando middleware)
-      // Esto reduce la latencia en ~100-200ms al evitar un salto HTTP innecesario
-      const platformContext = undefined;
+      // ✅ CORRECCIÓN: Construir pageContext correcto con pathname actual
+      // Esto permite que Lia sepa exactamente en qué página está el usuario
+      const currentPathname = pathname || '/';
+      const detectedArea = detectContextFromURL(currentPathname);
+      const pageDescription = getPageContextInfo(currentPathname);
+      const platformContextStr = getPlatformContext ? getPlatformContext() : undefined;
+      const availableLinks = getAvailableLinksForLIA ? getAvailableLinksForLIA() : undefined;
 
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
@@ -537,7 +583,13 @@ export function ContextualVoiceGuide({
           context: `tour-${tourId}`,
           conversationHistory: conversationHistory || [],
           userName: undefined,
-          pageContext: platformContext,
+          pageContext: {
+            pathname: currentPathname,
+            detectedArea: detectedArea,
+            description: pageDescription,
+            platformContext: platformContextStr,
+            availableLinks: availableLinks
+          },
           language: 'es'
         }),
       });

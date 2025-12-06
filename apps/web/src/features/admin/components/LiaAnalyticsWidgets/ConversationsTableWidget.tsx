@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   FunnelIcon,
   ArrowPathIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 
 interface Conversation {
@@ -152,8 +153,9 @@ export function ConversationsTableWidget({
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              📋 Conversaciones Recientes
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <ChatBubbleLeftRightIcon className="w-5 h-5 text-blue-500" />
+              Conversaciones Recientes
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {total} conversaciones en total

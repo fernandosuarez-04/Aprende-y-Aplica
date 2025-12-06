@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
-import { LiaLogger } from '../../../../lib/analytics/lia-logger';
+import { SessionService } from '../../../../features/auth/services/session.service';
 
 /**
  * POST /api/lia/update-activity
@@ -9,15 +9,10 @@ import { LiaLogger } from '../../../../lib/analytics/lia-logger';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    // ✅ Usar SessionService para autenticación
+    const user = await SessionService.getCurrentUser();
 
-    // Verificar autenticación
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
@@ -25,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener datos del body
-    const { completionId, ...progress } = await request.json();
+    const { completionId, currentStep, completedSteps, status, generatedOutput } = await request.json();
 
     if (!completionId) {
       return NextResponse.json(
@@ -34,17 +29,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear logger y actualizar progreso
-    const logger = new LiaLogger(user.id);
-    await logger.updateActivityProgress(completionId, progress);
+    const supabase = await createClient();
+
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (currentStep !== undefined) {
+      updateData.current_step = currentStep;
+    }
+    if (completedSteps !== undefined) {
+      updateData.completed_steps = completedSteps;
+    }
+    if (status !== undefined) {
+      updateData.status = status;
+      if (status === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+      }
+    }
+    if (generatedOutput !== undefined) {
+      updateData.generated_output = generatedOutput;
+    }
+
+    const { error } = await supabase
+      .from('lia_activity_completions')
+      .update(updateData)
+      .eq('completion_id', completionId);
+
+    if (error) {
+      console.error('Error updating activity progress:', error);
+      return NextResponse.json(
+        { error: 'Error al actualizar progreso de actividad' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       completionId,
-      progress,
+      updated: true
     });
   } catch (error) {
-    // console.error('Error updating activity progress:', error);
+    console.error('Error updating activity progress:', error);
     return NextResponse.json(
       { error: 'Error al actualizar progreso de actividad' },
       { status: 500 }
