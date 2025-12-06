@@ -65,6 +65,9 @@ interface AIChatAgentProps {
   context?: string; // Contexto específico para el agente (workshops, communities, news)
 }
 
+// 🎯 Máximo de mensajes para mantener contexto persistente
+const MAX_CONTEXT_MESSAGES = 7;
+
 // Función para detectar automáticamente el contexto basado en la URL
 function detectContextFromURL(pathname: string): string {
   if (pathname.includes('/communities')) return 'communities';
@@ -264,7 +267,7 @@ function renderTextWithLinks(text: string): React.ReactNode {
 export function AIChatAgent({
   assistantName = 'Lia',
   assistantAvatar = '/lia-avatar.png',
-  initialMessage = '¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.',
+  initialMessage,
   promptPlaceholder,
   context = 'general'
 }: AIChatAgentProps) {
@@ -293,8 +296,10 @@ export function AIChatAgent({
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   
+  // Traducciones i18n para el agente LIA
+  const translatedInitialMessage = initialMessage ?? tCommon('aiChat.initialMessage');
   const placeholderText = isPromptMode 
-    ? 'Describe qué tipo de prompt quieres crear...' 
+    ? tCommon('aiChat.promptMode.placeholder')
     : (promptPlaceholder ?? tCommon('aiChat.placeholder'));
   const onlineLabel = tCommon('aiChat.online');
   const pressEnterLabel = tCommon('aiChat.pressEnter');
@@ -305,6 +310,31 @@ export function AIChatAgent({
   const helpPrompt = tCommon('aiChat.helpPrompt');
   const helpFallback = tCommon('aiChat.helpFallback');
   const helpError = tCommon('aiChat.helpError');
+  
+  // Traducciones adicionales para UI
+  const clearConversationLabel = tCommon('aiChat.clearConversation');
+  const changeModeLabel = tCommon('aiChat.changeMode');
+  const clearContextLabel = tCommon('aiChat.clearContext');
+  const clearContextConfirmLabel = tCommon('aiChat.clearContextConfirm');
+  const reportProblemLabel = tCommon('aiChat.reportProblem');
+  
+  // Traducciones para modos
+  const promptModeTitle = tCommon('aiChat.promptMode.title');
+  const promptModeDesc = tCommon('aiChat.promptMode.description');
+  const promptModeEmptyDesc = tCommon('aiChat.promptMode.emptyDescription');
+  const nanobanaTitle = tCommon('aiChat.nanobanaMode.title');
+  const nanobanaDesc = tCommon('aiChat.nanobanaMode.description');
+  const nanobanaEmptyDesc = tCommon('aiChat.nanobanaMode.emptyDescription');
+  const nanobanaWelcome = tCommon('aiChat.nanobanaMode.welcome');
+  const contextModeTitle = tCommon('aiChat.contextMode.title');
+  const contextModeDesc = tCommon('aiChat.contextMode.description', { count: MAX_CONTEXT_MESSAGES });
+  const contextModeEmptyDesc = tCommon('aiChat.contextMode.emptyDescription', { count: MAX_CONTEXT_MESSAGES });
+  const assistantModeTitle = tCommon('aiChat.assistantMode.title');
+  const assistantModeEmptyDesc = tCommon('aiChat.assistantMode.emptyDescription');
+  
+  // Traducciones para voz
+  const voiceListening = tCommon('aiChat.voice.listening');
+  const voiceProcessing = tCommon('aiChat.voice.processing');
 
   // Detectar automáticamente el contexto basado en la URL
   const detectedContext = detectContextFromURL(pathname);
@@ -476,7 +506,6 @@ export function AIChatAgent({
   // ✅ PERSISTENCIA: Claves para localStorage
   const STORAGE_KEY_CONTEXT_MODE = 'lia-context-mode-enabled';
   const STORAGE_KEY_CONTEXT_MESSAGES = 'lia-context-mode-messages';
-  const MAX_CONTEXT_MESSAGES = 7; // 🎯 Máximo de mensajes para mantener contexto
 
   // ✅ PERSISTENCIA: Función para guardar mensajes en localStorage
   // Solo guarda los últimos MAX_CONTEXT_MESSAGES mensajes
@@ -597,7 +626,7 @@ export function AIChatAgent({
   // 💾 FUNCIÓN DE GUARDADO DE PROMPTS
   const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
     if (!user) {
-      alert('Debes iniciar sesión para guardar prompts');
+      alert(tCommon('aiChat.promptMode.loginRequired'));
       return;
     }
 
@@ -1940,7 +1969,7 @@ Fecha: ${new Date().toLocaleString()}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-orange-500 shadow-lg hover:shadow-red-500/50 transition-all cursor-pointer flex items-center justify-center group relative"
-                  title="Reportar problema"
+                  title={reportProblemLabel}
                 >
                   <Bug className="w-6 h-6 text-white" />
                   
@@ -2105,7 +2134,7 @@ Fecha: ${new Date().toLocaleString()}
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                       <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                      <span className="text-sm">Título</span>
+                      <span className="text-sm">{tCommon('aiChat.promptMode.titleLabel')}</span>
                     </h4>
                   </div>
                   <p className="text-gray-700 dark:text-slate-300 text-sm break-words">{generatedPrompt.title}</p>
@@ -2114,7 +2143,7 @@ Fecha: ${new Date().toLocaleString()}
                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm">Contenido</span>
+                    <span className="text-sm">{tCommon('aiChat.promptMode.contentLabel')}</span>
                   </h4>
                   <div className="text-gray-700 dark:text-slate-300 text-sm prose prose-sm max-w-none">
                     <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm leading-relaxed break-words">{generatedPrompt.content}</pre>
@@ -2136,7 +2165,7 @@ Fecha: ${new Date().toLocaleString()}
                   className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm"
                 >
                   <Download className="w-4 h-4" />
-                  Descargar
+                  {tCommon('aiChat.promptMode.download')}
                 </motion.button>
               </div>
             </div>
@@ -2221,7 +2250,7 @@ Fecha: ${new Date().toLocaleString()}
                         ? 'text-teal-200 bg-teal-500/30 border-teal-400/50'
                         : 'text-white/80 bg-white/15 border-white/25'
                     }`}>
-                      {currentMode === 'nanobana' ? 'NanoBanana' : currentMode === 'prompt' ? 'Prompt' : currentMode === 'analysis' ? 'Contexto' : 'Asistente'}
+                      {currentMode === 'nanobana' ? nanobanaTitle : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
                     </span>
                     <motion.div
                       className="flex items-center gap-1 text-white/90"
@@ -2240,8 +2269,8 @@ Fecha: ${new Date().toLocaleString()}
                 <button
                   onClick={handleClearConversation}
                   className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
-                  aria-label="Limpiar conversación"
-                  title="Limpiar conversación"
+                  aria-label={clearConversationLabel}
+                  title={clearConversationLabel}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -2249,8 +2278,8 @@ Fecha: ${new Date().toLocaleString()}
                 <button
                   onClick={() => setModeMenuOpen(!modeMenuOpen)}
                   className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
-                  aria-label="Cambiar modo de Lia"
-                  title="Cambiar modo de Lia"
+                  aria-label={changeModeLabel}
+                  title={changeModeLabel}
                 >
                   {/* Icono de hamburguesa simple */}
                   <div className="flex flex-col gap-[3px]">
@@ -2283,7 +2312,7 @@ Fecha: ${new Date().toLocaleString()}
                               const welcomeMessage: Message = {
                                 id: `welcome-nanobana-${Date.now()}`,
                                 role: 'assistant',
-                                content: "🎨 ¡Bienvenido al Modo NanoBanana!\n\nSoy tu asistente para crear JSON estructurado optimizado para NanoBanana Pro.\n\n**¿Qué puedo crear?**\n• 📱 UI/Wireframes (apps, dashboards, landing pages)\n• 📸 Fotografías (productos, marketing, lifestyle)\n• 📊 Diagramas (flujos, arquitecturas, procesos)\n\nDescríbeme lo que necesitas y generaré un JSON preciso y reproducible.",
+                                content: nanobanaWelcome,
                                 timestamp: new Date()
                               };
                               setNanoBananaMessages([welcomeMessage]);
@@ -2301,7 +2330,7 @@ Fecha: ${new Date().toLocaleString()}
                                   NEW
                                 </span>
                               </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">Genera JSON estructurado para renderizado visual preciso.</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">{nanobanaDesc}</div>
                             </div>
                           </div>
                         </button>
@@ -2313,8 +2342,8 @@ Fecha: ${new Date().toLocaleString()}
                           <div className="flex items-start gap-3">
                             <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-purple-500"></div>
                             <div className="flex-1">
-                              <div className={`text-sm font-semibold ${currentMode==='prompt' ? 'text-purple-600 dark:text-purple-400' : ''}`}>Diseñador de Prompts</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">Crea y refina prompts profesionales guiados por LIA.</div>
+                              <div className={`text-sm font-semibold ${currentMode==='prompt' ? 'text-purple-600 dark:text-purple-400' : ''}`}>{promptModeTitle}</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">{promptModeDesc}</div>
                             </div>
                           </div>
                         </button>
@@ -2328,7 +2357,7 @@ Fecha: ${new Date().toLocaleString()}
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <div className={`text-sm font-semibold ${currentMode==='analysis' ? 'text-teal-600 dark:text-teal-400' : ''}`}>
-                                  Contexto Persistente
+                                  {contextModeTitle}
                                 </div>
                                 {normalMessages.length > 0 && useContextMode && (
                                   <span className="text-[10px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-300 rounded-full font-medium">
@@ -2337,7 +2366,7 @@ Fecha: ${new Date().toLocaleString()}
                                 )}
                               </div>
                               <div className="text-xs text-gray-600 dark:text-gray-400">
-                                Mantiene los últimos {MAX_CONTEXT_MESSAGES} mensajes entre páginas
+                                {contextModeDesc}
                               </div>
                             </div>
                           </div>
@@ -2387,12 +2416,12 @@ Fecha: ${new Date().toLocaleString()}
                     </div>
                     <button
                       onClick={() => {
-                        if (window.confirm('¿Deseas limpiar el contexto y empezar una conversación nueva?')) {
+                        if (window.confirm(clearContextConfirmLabel)) {
                           clearContextMessages();
                         }
                       }}
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
-                      title="Limpiar contexto"
+                      title={clearContextLabel}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -2409,16 +2438,16 @@ Fecha: ${new Date().toLocaleString()}
                       <img src="/icono.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
                     </div>
                     <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
-                      {currentMode === 'nanobana' ? 'NanoBanana Pro' : currentMode === 'prompt' ? 'Diseñador de Prompts' : currentMode === 'analysis' ? 'Contexto Persistente' : 'Asistente'}
+                      {currentMode === 'nanobana' ? nanobanaTitle : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                       {currentMode === 'nanobana'
-                        ? 'Genera JSON estructurado para NanoBanana Pro. Describe UI, fotografías o diagramas y obtén esquemas precisos y reproducibles.'
+                        ? nanobanaEmptyDesc
                         : currentMode === 'prompt'
-                        ? 'Genera y refina prompts profesionales. Indica el objetivo, el tono y los requisitos; LIA te entrega un prompt listo para usar con buenas prácticas.'
+                        ? promptModeEmptyDesc
                         : currentMode === 'analysis'
-                        ? `Mantiene la conversación activa entre páginas. Guarda automáticamente los últimos ${MAX_CONTEXT_MESSAGES} mensajes para continuar donde lo dejaste.`
-                        : 'Asistente conversacional para resolver dudas generales, explorar contenido y guiarte por la plataforma.'}
+                        ? contextModeEmptyDesc
+                        : assistantModeEmptyDesc}
                     </p>
                   </div>
                 </div>
@@ -2483,7 +2512,7 @@ Fecha: ${new Date().toLocaleString()}
                         className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
                       >
                         <Sparkles className="w-3 h-3" />
-                        Ver Prompt Generado
+                        {tCommon('aiChat.promptMode.viewGenerated')}
                       </motion.button>
                     )}
                     

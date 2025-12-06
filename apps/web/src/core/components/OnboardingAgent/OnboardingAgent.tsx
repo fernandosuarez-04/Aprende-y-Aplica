@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../providers/I18nProvider';
 import { getPlatformContext, getAvailableLinksForLIA } from '../../../lib/lia/page-metadata';
 
 // Función para detectar automáticamente el contexto basado en la URL
@@ -59,62 +61,70 @@ interface OnboardingStep {
   };
 }
 
-const ONBOARDING_STEPS: OnboardingStep[] = [
-  {
-    id: 1,
-    title: '¡Bienvenido a Aprende y Aplica!',
-    description: 'Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial.',
-    speech: 'Bienvenido a Aprende y Aplica. Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial.'
-  },
-  {
-    id: 2,
-    title: 'Conoce a LIA',
-    description: 'LIA es tu compañera de aprendizaje que te acompañará en todas partes. Puede responder tus preguntas, ayudarte con tareas y adaptarse al contexto de cada página.',
-    speech: 'LIA es tu compañera de aprendizaje que te acompañará en todas partes. Puede responder tus preguntas y adaptarse al contexto de cada página.',
-    action: {
-      label: 'Ver Dashboard',
-      path: '/dashboard'
+// Hook para obtener los pasos traducidos
+function useOnboardingSteps() {
+  const { t } = useTranslation('common');
+  
+  return useMemo(() => [
+    {
+      id: 1,
+      title: t('onboarding.steps.1.title'),
+      description: t('onboarding.steps.1.description'),
+      speech: t('onboarding.steps.1.speech')
+    },
+    {
+      id: 2,
+      title: t('onboarding.steps.2.title'),
+      description: t('onboarding.steps.2.description'),
+      speech: t('onboarding.steps.2.speech'),
+      action: {
+        label: t('onboarding.steps.2.actionLabel'),
+        path: '/dashboard'
+      }
+    },
+    {
+      id: 3,
+      title: t('onboarding.steps.3.title'),
+      description: t('onboarding.steps.3.description'),
+      speech: t('onboarding.steps.3.speech'),
+      action: {
+        label: t('onboarding.steps.3.actionLabel'),
+        path: '/courses'
+      }
+    },
+    {
+      id: 4,
+      title: t('onboarding.steps.4.title'),
+      description: t('onboarding.steps.4.description'),
+      speech: t('onboarding.steps.4.speech'),
+      action: {
+        label: t('onboarding.steps.4.actionLabel'),
+        path: '/prompt-directory'
+      }
+    },
+    {
+      id: 5,
+      title: t('onboarding.steps.5.title'),
+      description: t('onboarding.steps.5.description'),
+      speech: t('onboarding.steps.5.speech'),
+    },
+    {
+      id: 6,
+      title: t('onboarding.steps.6.title'),
+      description: t('onboarding.steps.6.description'),
+      speech: t('onboarding.steps.6.speech'),
+      action: {
+        label: t('onboarding.steps.6.actionLabel'),
+        path: '/dashboard'
+      }
     }
-  },
-  {
-    id: 3,
-    title: 'Explora el contenido',
-    description: 'Accede a cursos, talleres, comunidades y noticias sobre IA. Todo diseñado para que aprendas de manera práctica y efectiva.',
-    speech: 'Accede a cursos, talleres, comunidades y noticias sobre inteligencia artificial. Todo diseñado para que aprendas de manera práctica y efectiva.',
-    action: {
-      label: 'Ver Cursos',
-      path: '/courses'
-    }
-  },
-  {
-    id: 4,
-    title: 'Directorio de Prompts',
-    description: 'Descubre y crea prompts de IA profesionales. Una herramienta poderosa para maximizar el potencial de la inteligencia artificial.',
-    speech: 'Descubre y crea prompts de IA profesionales. Una herramienta poderosa para maximizar el potencial de la inteligencia artificial.',
-    action: {
-      label: 'Ver Prompts',
-      path: '/prompt-directory'
-    }
-  },
-  {
-    id: 5,
-    title: 'Hablemos un momento',
-    description: 'Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Puedo hablarte por voz sobre lo que necesites saber.',
-    speech: 'Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Haz clic en el micrófono y háblame. Te responderé por voz.',
-  },
-  {
-    id: 6,
-    title: '¡Estás listo!',
-    description: 'Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible en la esquina inferior derecha para ayudarte.',
-    speech: 'Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible para ayudarte.',
-    action: {
-      label: 'Comenzar',
-      path: '/dashboard'
-    }
-  }
-];
+  ] as OnboardingStep[], [t]);
+}
 
 export function OnboardingAgent() {
+  const { t } = useTranslation('common');
+  const { language } = useLanguage();
+  const ONBOARDING_STEPS = useOnboardingSteps();
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -471,7 +481,7 @@ export function OnboardingAgent() {
           
           // Mostrar mensaje de error específico solo para errores importantes
           if (errorType === 'not-allowed') {
-            alert('Necesito permiso para usar el micrófono.\n\nPor favor:\n1. Haz clic en el icono de micrófono en la barra de direcciones\n2. Permite el acceso al micrófono\n3. Intenta de nuevo');
+            alert(t('onboarding.voice.micPermissionNeeded'));
           } else if (errorType === 'no-speech') {
             // No mostrar error para no-speech, es normal
           } else if (errorType === 'network') {
@@ -500,7 +510,7 @@ export function OnboardingAgent() {
   // Función para iniciar/detener escucha
   const toggleListening = async () => {
     if (!recognitionRef.current) {
-      alert('Tu navegador no soporta reconocimiento de voz. Por favor usa Chrome, Edge o Safari.');
+      alert(t('onboarding.voice.browserNotSupported'));
       return;
     }
 
@@ -548,12 +558,12 @@ export function OnboardingAgent() {
         setIsListening(false);
         
         if (error?.name === 'NotAllowedError') {
-          alert('Necesito permiso para usar el micrófono.\n\nPor favor permite el acceso al micrófono en tu navegador y vuelve a intentar.');
+          alert(t('onboarding.voice.micPermissionNeeded'));
         } else if (error?.message?.includes('already started')) {
           // Ya está iniciado, solo actualizar el estado
           setIsListening(true);
         } else {
-          alert('Error al acceder al micrófono. Por favor verifica que tu micrófono esté conectado y funcionando.');
+          alert(t('onboarding.voice.micError'));
         }
       }
     }
@@ -654,7 +664,7 @@ export function OnboardingAgent() {
 
     } catch (error) {
       console.error('❌ Error procesando pregunta:', error);
-      const errorMessage = 'Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?';
+      const errorMessage = t('onboarding.voice.errorProcessing');
       try { await speakText(errorMessage); } catch(e) { /* ignore */ }
     } finally {
       processingRef.current = false;
@@ -1177,10 +1187,10 @@ export function OnboardingAgent() {
                           className="text-xs sm:text-sm md:text-base text-gray-800 dark:text-gray-200 font-medium"
                         >
                           {isProcessing 
-                            ? 'Procesando tu pregunta...' 
+                            ? t('onboarding.voice.processing')
                             : isListening 
-                            ? 'Escuchando... Habla ahora' 
-                            : 'Haz clic en el micrófono para hablar con LIA'}
+                            ? t('onboarding.voice.listening')
+                            : t('onboarding.voice.clickToSpeak')}
                         </motion.p>
 
                         {/* ✅ Ocultado: Transcripción y historial de conversación */}
@@ -1213,7 +1223,7 @@ export function OnboardingAgent() {
                             whileHover={{ x: '100%' }}
                             transition={{ duration: 0.6, ease: 'easeInOut' }}
                           />
-                          <span className="relative z-10">Anterior</span>
+                          <span className="relative z-10">{t('onboarding.buttons.previous')}</span>
                         </motion.button>
                       )}
 
@@ -1272,8 +1282,8 @@ export function OnboardingAgent() {
                             transition={{ duration: 0.6, ease: 'easeInOut' }}
                           />
                           <span className="relative z-10">
-                            <span className="hidden sm:inline">{currentStep === 4 ? 'Continuar sin preguntar' : 'Siguiente'}</span>
-                            <span className="sm:hidden">{currentStep === 4 ? 'Continuar' : 'Siguiente'}</span>
+                            <span className="hidden sm:inline">{currentStep === 4 ? t('onboarding.buttons.continueWithoutAsking') : t('onboarding.buttons.next')}</span>
+                            <span className="sm:hidden">{currentStep === 4 ? t('onboarding.buttons.continue') : t('onboarding.buttons.next')}</span>
                           </span>
                           <motion.span
                             className="relative z-10"
@@ -1317,7 +1327,7 @@ export function OnboardingAgent() {
                               ease: 'easeInOut'
                             }}
                           >
-                            ¡Comenzar!
+                            {t('onboarding.buttons.start')}
                           </motion.span>
                         </motion.button>
                       )}
@@ -1345,7 +1355,7 @@ export function OnboardingAgent() {
                           }}
                           className="relative text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs sm:text-sm transition-colors font-medium group"
                         >
-                          <span className="relative z-10">Saltar introducción</span>
+                          <span className="relative z-10">{t('onboarding.buttons.skipIntro')}</span>
                           <motion.div
                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400 dark:bg-gray-500"
                             initial={{ scaleX: 0 }}
