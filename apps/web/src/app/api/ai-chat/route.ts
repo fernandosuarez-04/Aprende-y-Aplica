@@ -33,6 +33,49 @@ const normalizeLanguage = (lang?: string): SupportedLanguage => {
   return SUPPORTED_LANGUAGES.includes(lower as SupportedLanguage) ? (lower as SupportedLanguage) : 'es';
 };
 
+/**
+ * Detecta el idioma del mensaje del usuario basándose en palabras clave comunes
+ */
+const detectMessageLanguage = (message: string): SupportedLanguage => {
+  const lowerMessage = message.toLowerCase().trim();
+  
+  // Patrones específicos para inglés (más precisos)
+  const englishPatterns = [
+    /^(what|how|where|when|why|can|could|would|should|tell|show|give|help|i want|i need|i'm|i am|what can|what is|what are|how do|how can|how does)/i,
+    /\b(the|a|an|is|are|was|were|this|that|these|those|you|your|we|they|their)\b/i,
+    /\b(what|how|where|when|why|can|could|would|should|will|would|might)\b/i
+  ];
+  
+  // Patrones específicos para portugués
+  const portuguesePatterns = [
+    /^(o que|qual|quando|onde|como|por que|você|pode|pode me|me ajuda|preciso|quero|estou|sou|o que é|qual é)/i,
+    /\b(você|vocês|eu|nós|eles|elas|o|a|os|as|um|uma|uns|umas)\b/i,
+    /\b(que|qual|quando|onde|como|por|para|com|sem|de|do|da|dos|das|em|no|na|nos|nas)\b/i
+  ];
+  
+  // Contar coincidencias de patrones
+  const englishScore = englishPatterns.reduce((score, pattern) => {
+    return score + (pattern.test(lowerMessage) ? 1 : 0);
+  }, 0);
+  
+  const portugueseScore = portuguesePatterns.reduce((score, pattern) => {
+    return score + (pattern.test(lowerMessage) ? 1 : 0);
+  }, 0);
+  
+  // Si hay patrones claros de inglés
+  if (englishScore >= 2 || /^(what|how|where|when|why|can|could|would|should)/i.test(lowerMessage)) {
+    return 'en';
+  }
+  
+  // Si hay patrones claros de portugués
+  if (portugueseScore >= 2 || /^(o que|qual|quando|onde|como|você|pode)/i.test(lowerMessage)) {
+    return 'pt';
+  }
+  
+  // Por defecto, español
+  return 'es';
+};
+
 const LANGUAGE_CONFIG: Record<SupportedLanguage, { instruction: string; fallback: string }> = {
   es: {
     instruction: 'Responde siempre en español de manera natural, cercana y profesional. Usa un tono amigable y motivador.',
@@ -558,10 +601,10 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
 
   const languageNote =
     language === 'en'
-      ? 'LANGUAGE INSTRUCTION: Respond STRICTLY in ENGLISH at all times.'
+      ? '🚨 CRITICAL LANGUAGE INSTRUCTION: The user is speaking in ENGLISH. You MUST respond STRICTLY in ENGLISH at all times. Never use Spanish or Portuguese. Match the user\'s language exactly.'
       : language === 'pt'
-      ? 'INSTRUÇÃO DE IDIOMA: Responda ESTRITAMENTE em PORTUGUÊS o tempo todo.'
-      : 'INSTRUCCIÓN DE IDIOMA: Responde ESTRICTAMENTE en ESPAÑOL en todo momento.';
+      ? '🚨 INSTRUÇÃO CRÍTICA DE IDIOMA: O usuário está falando em PORTUGUÊS. Você DEVE responder ESTRITAMENTE em PORTUGUÊS o tempo todo. Nunca use espanhol ou inglês. Combine o idioma do usuário exatamente.'
+      : '🚨 INSTRUCCIÓN CRÍTICA DE IDIOMA: El usuario está hablando en ESPAÑOL. Debes responder ESTRICTAMENTE en ESPAÑOL en todo momento. Nunca uses inglés o portugués. Coincide exactamente con el idioma del usuario.';
 
   // ✅ Construir información de metadatos del taller si está disponible
   let workshopMetadataInfo = '';
@@ -806,6 +849,12 @@ ${contentRestrictions}
 FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
     
     onboarding: `${languageNote}
+
+${language === 'en' 
+  ? '🚨 CRITICAL: The user just spoke to you in ENGLISH. You MUST respond ONLY in ENGLISH. Never use Spanish or Portuguese. Match the user\'s language exactly.'
+  : language === 'pt'
+  ? '🚨 CRÍTICO: O usuário acabou de falar com você em PORTUGUÊS. Você DEVE responder APENAS em PORTUGUÊS. Nunca use espanhol ou inglês. Combine exatamente o idioma do usuário.'
+  : '🚨 CRÍTICO: El usuario acaba de hablarte en ESPAÑOL. Debes responder SOLO en ESPAÑOL. Nunca uses inglés o portugués. Coincide exactamente con el idioma del usuario.'}
 
 Eres Lia, un asistente virtual entusiasta que está guiando a un nuevo usuario en su proceso de onboarding en Aprende y Aplica.
 ${nameGreeting}${pageInfo}${urlInstructions}
@@ -1169,7 +1218,18 @@ export async function POST(request: NextRequest) {
       isPromptMode?: boolean;
     } = await request.json();
 
-    const language = normalizeLanguage(languageFromRequest);
+    // ✅ Detectar idioma del mensaje del usuario automáticamente
+    const detectedMessageLanguage = detectMessageLanguage(message);
+    
+    // ✅ Usar el idioma detectado del mensaje si es diferente del idioma de la plataforma
+    // Esto asegura que LIA responda en el mismo idioma que el usuario habló
+    const finalLanguage = detectedMessageLanguage !== 'es' ? detectedMessageLanguage : languageFromRequest;
+    const language = normalizeLanguage(finalLanguage);
+    
+    // Log para debugging (solo en desarrollo)
+    if (process.env.NODE_ENV === 'development' && detectedMessageLanguage !== languageFromRequest) {
+      logger.log(`🌍 Idioma detectado del mensaje: ${detectedMessageLanguage}, idioma de plataforma: ${languageFromRequest}, usando: ${language}`);
+    }
 
     // ✅ Validaciones básicas
     if (!message || typeof message !== 'string') {

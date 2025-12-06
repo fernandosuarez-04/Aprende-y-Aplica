@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../providers/I18nProvider';
 import { ContextualVoiceGuideProps, VoiceGuideStep } from './types';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { getPlatformContext, getAvailableLinksForLIA } from '../../../lib/lia/page-metadata';
@@ -58,7 +60,16 @@ export function ContextualVoiceGuide({
   showDelay = 1000,
   requireAuth = false,
 }: ContextualVoiceGuideProps) {
+  const { t } = useTranslation('common');
+  const { language } = useLanguage();
   const ONBOARDING_STEPS = steps;
+  
+  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  const speechLanguageMap: Record<string, string> = {
+    'es': 'es-ES',
+    'en': 'en-US',
+    'pt': 'pt-BR'
+  };
   const storageKey = `has-seen-tour-${tourId}`;
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -349,7 +360,7 @@ export function ContextualVoiceGuide({
       
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
+        recognition.lang = speechLanguageMap[language] || 'es-ES';
         recognition.continuous = false;
         recognition.interimResults = false;
 
@@ -439,7 +450,7 @@ export function ContextualVoiceGuide({
           
           // Mostrar mensaje de error específico solo para errores importantes
           if (errorType === 'not-allowed') {
-            alert('Necesito permiso para usar el micrófono.\n\nPor favor:\n1. Haz clic en el icono de micrófono en la barra de direcciones\n2. Permite el acceso al micrófono\n3. Intenta de nuevo');
+            alert(t('onboarding.voice.micPermissionNeeded'));
           } else if (errorType === 'no-speech') {
             // No mostrar error para no-speech, es normal
           } else if (errorType === 'network') {
@@ -463,12 +474,12 @@ export function ContextualVoiceGuide({
         recognitionRef.current.stop();
       }
     };
-  }, []);
+  }, [language, speechLanguageMap]);
 
-  // FunciÃ³n para iniciar/detener escucha
+  // Función para iniciar/detener escucha
   const toggleListening = async () => {
     if (!recognitionRef.current) {
-      alert('Tu navegador no soporta reconocimiento de voz. Por favor usa Chrome, Edge o Safari.');
+      alert(t('onboarding.voice.browserNotSupported'));
       return;
     }
 
@@ -516,12 +527,12 @@ export function ContextualVoiceGuide({
         setIsListening(false);
         
         if (error?.name === 'NotAllowedError') {
-          alert('Necesito permiso para usar el micrófono.\n\nPor favor permite el acceso al micrófono en tu navegador y vuelve a intentar.');
+          alert(t('onboarding.voice.micPermissionNeeded'));
         } else if (error?.message?.includes('already started')) {
           // Ya estÃ¡ iniciado, solo actualizar el estado
           setIsListening(true);
         } else {
-          alert('Error al acceder al micrófono. Por favor verifica que tu micrófono esté conectado y funcionando.');
+          alert(t('onboarding.voice.micError'));
         }
       }
     }
@@ -590,7 +601,7 @@ export function ContextualVoiceGuide({
             platformContext: platformContextStr,
             availableLinks: availableLinks
           },
-          language: 'es'
+          language: language
         }),
       });
 
@@ -622,7 +633,7 @@ export function ContextualVoiceGuide({
 
     } catch (error) {
       console.error('âŒ Error procesando pregunta:', error);
-      const errorMessage = 'Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?';
+      const errorMessage = t('onboarding.voice.errorProcessing');
       try { await speakText(errorMessage); } catch(e) { /* ignore */ }
     } finally {
       processingRef.current = false;
@@ -1145,10 +1156,10 @@ export function ContextualVoiceGuide({
                           className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium"
                         >
                           {isProcessing 
-                            ? 'Procesando tu pregunta...' 
+                            ? t('onboarding.voice.processing')
                             : isListening 
-                            ? 'Escuchando... Habla ahora' 
-                            : 'Haz clic en el micrófono para hablar con LIA'}
+                            ? t('onboarding.voice.listening')
+                            : t('onboarding.voice.clickToSpeak')}
                         </motion.p>
 
                         {/* âœ… Ocultado: TranscripciÃ³n y historial de conversaciÃ³n */}
@@ -1181,7 +1192,7 @@ export function ContextualVoiceGuide({
                             whileHover={{ x: '100%' }}
                             transition={{ duration: 0.6, ease: 'easeInOut' }}
                           />
-                          <span className="relative z-10">Anterior</span>
+                          <span className="relative z-10">{t('onboarding.buttons.previous')}</span>
                         </motion.button>
                       )}
 
@@ -1240,8 +1251,8 @@ export function ContextualVoiceGuide({
                             transition={{ duration: 0.6, ease: 'easeInOut' }}
                           />
                           <span className="relative z-10">
-                            <span className="hidden sm:inline">{currentStep === 4 ? 'Continuar sin preguntar' : 'Siguiente'}</span>
-                            <span className="sm:hidden">{currentStep === 4 ? 'Continuar' : 'Siguiente'}</span>
+                            <span className="hidden sm:inline">{currentStep === 4 ? t('onboarding.buttons.continueWithoutAsking') : t('onboarding.buttons.next')}</span>
+                            <span className="sm:hidden">{currentStep === 4 ? t('onboarding.buttons.continue') : t('onboarding.buttons.next')}</span>
                           </span>
                           <motion.span
                             className="relative z-10"
@@ -1285,7 +1296,7 @@ export function ContextualVoiceGuide({
                               ease: 'easeInOut'
                             }}
                           >
-                            ¡Comenzar!
+                            {t('onboarding.buttons.start')}
                           </motion.span>
                         </motion.button>
                       )}
@@ -1313,7 +1324,7 @@ export function ContextualVoiceGuide({
                           }}
                           className="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs sm:text-sm transition-colors font-medium group"
                         >
-                          <span className="relative z-10">Saltar introducción</span>
+                          <span className="relative z-10">{t('onboarding.buttons.skipIntro')}</span>
                           <motion.div
                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400 dark:bg-gray-500"
                             initial={{ scaleX: 0 }}
