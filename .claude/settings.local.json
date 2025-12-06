@@ -46,7 +46,8 @@
       "Bash(dir:*)",
       "Bash(powershell -Command \"if (Test-Path ''apps\\api\\node_modules'') { Remove-Item -Recurse -Force ''apps\\api\\node_modules'' }\")",
       "Bash(del package-lock.json)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
