@@ -125,7 +125,7 @@ export async function POST(
       )
     }
 
-    const material = await AdminMaterialsService.createMaterial(lessonId, body)
+    const material = await AdminMaterialsService.createMaterial(lessonId, body, instructorId)
 
     return NextResponse.json({
       success: true,

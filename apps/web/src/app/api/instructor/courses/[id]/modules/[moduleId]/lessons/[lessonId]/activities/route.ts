@@ -125,7 +125,7 @@ export async function POST(
       )
     }
 
-    const activity = await AdminActivitiesService.createActivity(lessonId, body)
+    const activity = await AdminActivitiesService.createActivity(lessonId, body, instructorId)
 
     return NextResponse.json({
       success: true,

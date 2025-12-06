@@ -36,16 +36,69 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
 
+    console.log('[API /admin/workshops/create] ========== INICIANDO CREACIÓN DE TALLER ==========');
+    console.log('[API /admin/workshops/create] Datos recibidos:', {
+      title: workshopData.title,
+      hasDescription: !!workshopData.description,
+      adminUserId
+    });
+    console.log('[API /admin/workshops/create] Verificando OPENAI_API_KEY:', {
+      hasKey: !!process.env.OPENAI_API_KEY,
+      keyLength: process.env.OPENAI_API_KEY?.length || 0,
+      keyPrefix: process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 7)}...` : 'N/A'
+    });
+
+    console.log('[API /admin/workshops/create] Llamando AdminWorkshopsService.createWorkshop...');
+    const startTime = Date.now();
+    
     const newWorkshop = await AdminWorkshopsService.createWorkshop(
       workshopData, 
       adminUserId,
       { ip, userAgent }
     )
 
-    return NextResponse.json({
-      success: true,
-      workshop: newWorkshop
-    })
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    console.log('[API /admin/workshops/create] ✅ Taller creado exitosamente, ID:', newWorkshop.id);
+    console.log('[API /admin/workshops/create] ⏱️ Tiempo total de creación:', duration, 'ms');
+    console.log('[API /admin/workshops/create] ========== FIN DE CREACIÓN DE TALLER ==========');
+
+    // Verificar si se guardaron traducciones en la BD
+    try {
+      const { createClient } = await import('@/lib/supabase/server');
+      const supabase = await createClient();
+      const { data: translations, error: translationError } = await supabase
+        .from('content_translations')
+        .select('*')
+        .eq('entity_type', 'course')
+        .eq('entity_id', newWorkshop.id);
+      
+      console.log('[API /admin/workshops/create] Verificación de traducciones en BD:', {
+        found: translations?.length || 0,
+        error: translationError?.message || null
+      });
+      
+      return NextResponse.json({
+        success: true,
+        workshop: newWorkshop,
+        translationStatus: {
+          executed: true,
+          translationsFound: translations?.length || 0,
+          duration: `${duration}ms`
+        }
+      });
+    } catch (verifyError) {
+      console.error('[API /admin/workshops/create] Error verificando traducciones:', verifyError);
+      return NextResponse.json({
+        success: true,
+        workshop: newWorkshop,
+        translationStatus: {
+          executed: true,
+          verificationError: verifyError instanceof Error ? verifyError.message : 'Unknown error'
+        }
+      });
+    }
   } catch (error) {
     // ✅ SEGURIDAD: Manejo específico de errores de validación
     if (error instanceof z.ZodError) {

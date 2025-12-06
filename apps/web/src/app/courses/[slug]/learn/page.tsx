@@ -1784,18 +1784,18 @@ Antes de cada respuesta, pregúntate:
               const translatedLessons = await Promise.all(
                 m.lessons.map(async (l: Lesson) => {
                   const lessonWithId = { ...l, id: l.lesson_id };
-                  // Solo traducir lesson_title desde content_translations
-                  // lesson_description, summary_content y transcript_content vienen desde la tabla correcta según idioma
+                  // Traducir todos los campos traducibles desde content_translations
+                  const fieldsToTranslate = ['lesson_title'];
+                  if (l.lesson_description) fieldsToTranslate.push('lesson_description');
+                  if (l.summary_content) fieldsToTranslate.push('summary_content');
+                  if (l.transcript_content) fieldsToTranslate.push('transcript_content');
+                  
                   const translated = await ContentTranslationService.translateObject(
                     'lesson',
                     lessonWithId,
-                    ['lesson_title'],
+                    fieldsToTranslate,
                     i18n.language
                   );
-                  // Mantener lesson_description, summary_content y transcript_content desde la tabla por idioma
-                  translated.lesson_description = l.lesson_description;
-                  translated.summary_content = l.summary_content;
-                  translated.transcript_content = l.transcript_content;
                   return translated;
                 })
               );

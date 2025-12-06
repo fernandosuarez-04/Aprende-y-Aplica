@@ -42,8 +42,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { id: courseId } = await params
     const body = await request.json() as CreateModuleData
+    const adminUserId = auth.userId
 
     if (!courseId) {
       return NextResponse.json(
@@ -59,7 +63,7 @@ export async function POST(
       )
     }
 
-    const module = await AdminModulesService.createModule(courseId, body)
+    const module = await AdminModulesService.createModule(courseId, body, adminUserId)
 
     return NextResponse.json({
       success: true,

@@ -212,11 +212,10 @@ async function loadModulesWithProgress(
     userEnrollment = enrollment
   }
 
-  // Obtener TODAS las lecciones en una query (sin filtrar por is_published primero)
-  // Usar la tabla correcta según el idioma para obtener lesson_description, transcript y summary
-  const lessonsTableName = getLessonsTableName(language)
-  const { data: allLessonsData } = await supabase
-    .from(lessonsTableName)
+  // IMPORTANTE: Siempre leer de course_lessons (tabla principal)
+  // Las traducciones se aplican desde content_translations
+  const { data: allLessonsData, error: lessonsError } = await supabase
+    .from('course_lessons')
     .select(`
       lesson_id,
       lesson_title,
@@ -232,6 +231,10 @@ async function loadModulesWithProgress(
     `)
     .in('module_id', modules.map((m: any) => m.module_id))
     .order('lesson_order_index', { ascending: true })
+
+  if (lessonsError) {
+    console.error('[learn-data/route] Error obteniendo lecciones:', lessonsError);
+  }
 
   // Obtener progreso del usuario
   let progressMap = new Map()
@@ -407,12 +410,11 @@ async function loadLessonData(
   lessonId: string,
   language: string = 'es'
 ) {
-  // Usar la tabla correcta según el idioma para obtener lesson_description, transcript y summary
-  const lessonsTableName = getLessonsTableName(language)
-  
+  // IMPORTANTE: Siempre leer de course_lessons (tabla principal)
+  // Las traducciones se aplican desde content_translations
   // Validar que la lección pertenece al curso
   const { data: lesson, error: lessonError } = await supabase
-    .from(lessonsTableName)
+    .from('course_lessons')
     .select(`
       lesson_id,
       module_id,

@@ -88,16 +88,17 @@ export async function GET(
       module_id: string;
     }> = [];
 
-    // Detectar idioma por query param (?lang=es|en|pt)
-    const url = new URL(request.url);
-    const lang = url.searchParams.get('lang') || 'es';
-    let lessonsTable = 'course_lessons';
-    if (lang === 'en') lessonsTable = 'course_lessons_en';
-    if (lang === 'pt') lessonsTable = 'course_lessons_pt';
-
+    // IMPORTANTE: Siempre leer de course_lessons (tabla principal)
+    // Las traducciones se aplican desde content_translations en el frontend
     if (modules.length > 0) {
-      const { data: lessonsData } = await supabase
-        .from(lessonsTable)
+      const moduleIds = modules.map((m) => m.module_id);
+      console.log('[modules/route] Obteniendo lecciones para módulos:', {
+        moduleCount: modules.length,
+        moduleIds: moduleIds
+      });
+
+      const { data: lessonsData, error: lessonsError } = await supabase
+        .from('course_lessons')
         .select(`
           lesson_id,
           lesson_title,
@@ -114,12 +115,26 @@ export async function GET(
           updated_at,
           instructor_id
         `)
-        .in('module_id', modules.map((m) => m.module_id))
+        .in('module_id', moduleIds)
         .order('lesson_order_index', { ascending: true });
 
-      // No es necesario modificar la consulta, ya que transcript_content y summary_content existen en todas las tablas
-      // Solo aseguramos que lessonsTable apunte a la tabla correcta según el idioma
+      if (lessonsError) {
+        console.error('[modules/route] ❌ Error obteniendo lecciones:', lessonsError);
+      } else {
+        console.log('[modules/route] ✅ Lecciones obtenidas:', {
+          count: lessonsData?.length || 0,
+          lessons: lessonsData?.map(l => ({
+            id: l.lesson_id,
+            title: l.lesson_title,
+            module_id: l.module_id,
+            is_published: l.is_published
+          }))
+        });
+      }
+
       allLessonsData = lessonsData ?? [];
+    } else {
+      console.log('[modules/route] ⚠️ No hay módulos, no se pueden obtener lecciones');
     }
 
     let progressMap = new Map<
@@ -154,11 +169,29 @@ export async function GET(
 
     const modulesWithLessons = modules.map((module) => {
       const moduleLessons = lessonsByModule.get(module.module_id) || [];
+      console.log(`[modules/route] Módulo ${module.module_id} (${module.module_title}):`, {
+        totalLessons: moduleLessons.length,
+        publishedLessons: moduleLessons.filter(l => l.is_published === true).length,
+        allLessons: moduleLessons.map(l => ({
+          id: l.lesson_id,
+          title: l.lesson_title,
+          is_published: l.is_published
+        }))
+      });
+      
       const publishedLessons = moduleLessons.filter(
         (lesson) => lesson.is_published === true
       );
       const lessons =
         publishedLessons.length > 0 ? publishedLessons : moduleLessons;
+      
+      console.log(`[modules/route] Lecciones finales para módulo ${module.module_id}:`, {
+        count: lessons.length,
+        lessons: lessons.map(l => ({
+          id: l.lesson_id,
+          title: l.lesson_title
+        }))
+      });
 
       const lessonsWithProgress = lessons.map((lesson) => {
         let videoUrl = lesson.video_provider_id;

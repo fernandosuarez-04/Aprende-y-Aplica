@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
+import { ContentTranslationService } from '@/core/services/contentTranslation.service';
+import { SupportedLanguage } from '@/core/i18n/i18n';
 
 /**
  * GET /api/courses/[slug]/lessons/[lessonId]/activities
- * Obtiene todas las actividades de una lección
+ * Obtiene todas las actividades de una lección (con traducción si está disponible)
  */
 export async function GET(
   request: NextRequest,
@@ -12,6 +14,8 @@ export async function GET(
 ) {
   try {
     const { slug, lessonId } = await params;
+    const { searchParams } = new URL(request.url);
+    const language = (searchParams.get('language') || 'es') as SupportedLanguage;
     const supabase = await createClient();
 
     // Optimización: Obtener curso primero, luego validar lección y módulo en una consulta
@@ -58,20 +62,38 @@ export async function GET(
       .order('activity_order_index', { ascending: true });
 
     if (activitiesError) {
-      // console.error('Error fetching activities:', activitiesError);
+      console.error('[activities/route] Error obteniendo actividades:', activitiesError);
       return NextResponse.json(
         { error: 'Error al obtener actividades' },
         { status: 500 }
       );
     }
 
+    // Aplicar traducciones si no es español
+    let translatedActivities = activities || [];
+    if (language !== 'es' && translatedActivities.length > 0) {
+      try {
+        translatedActivities = await ContentTranslationService.translateArray(
+          'activity',
+          translatedActivities.map((a: any) => ({ ...a, id: a.activity_id })),
+          ['activity_title', 'activity_description', 'activity_content', 'ai_prompts'],
+          language,
+          supabase // Pasar el cliente del servidor
+        );
+        console.log(`[activities/route] ✅ Traducciones aplicadas para ${translatedActivities.length} actividades en ${language}`);
+      } catch (translationError) {
+        console.error(`[activities/route] Error aplicando traducciones:`, translationError);
+        // Continuar con actividades originales si falla la traducción
+      }
+    }
+
     // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos estáticos - 1 hora)
     return withCacheHeaders(
-      NextResponse.json(activities || []),
+      NextResponse.json(translatedActivities),
       cacheHeaders.static
     );
   } catch (error) {
-    // console.error('Error in activities API:', error);
+    console.error('[activities/route] Error inesperado:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

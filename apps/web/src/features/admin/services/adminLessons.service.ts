@@ -160,7 +160,7 @@ export class AdminLessonsService {
     }
   }
 
-  static async createLesson(moduleId: string, lessonData: CreateLessonData): Promise<AdminLesson> {
+  static async createLesson(moduleId: string, lessonData: CreateLessonData, userId?: string): Promise<AdminLesson> {
     const supabase = await createClient()
 
     try {
@@ -232,6 +232,24 @@ export class AdminLessonsService {
 
       // Recalcular duración del módulo
       await this.updateModuleDuration(moduleId)
+
+      // Traducir automáticamente la lección a inglés y portugués
+      try {
+        const { translateLessonOnCreate } = await import('@/core/services/courseTranslation.service')
+        await translateLessonOnCreate(
+          createdLesson.lesson_id,
+          {
+            lesson_title: createdLesson.lesson_title,
+            lesson_description: createdLesson.lesson_description,
+            transcript_content: createdLesson.transcript_content,
+            summary_content: createdLesson.summary_content
+          },
+          userId
+        )
+      } catch (translationError) {
+        // No fallar la creación de la lección si falla la traducción
+        console.error('Error en traducción automática de la lección:', translationError)
+      }
 
       // Obtener nombre del instructor
       if (createdLesson?.instructor_id) {
