@@ -43,6 +43,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   const isPaymentMethodsPage = pathname.startsWith('/payment-methods');
   const isPurchaseHistoryPage = pathname.startsWith('/purchase-history');
   const isAccountSettingsPage = pathname.startsWith('/account-settings');
+  const isStudyPlannerCreatePage = pathname.startsWith('/study-planner/create');
   
   // Verificar si el usuario tiene rol Business o Business User
   const userRole = user?.cargo_rol?.toLowerCase().trim() || '';
@@ -55,9 +56,10 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
   // NO mostrar navbar en /statistics y /questionnaire si el usuario es Business o Business User
   // NO mostrar navbar regular (Aprende y Aplica) si el usuario es Business o Business User
   // NO mostrar navbar regular en páginas de cart, subscriptions, payment-methods, purchase-history, account-settings
+  // NO mostrar navbar en /study-planner/create
   const shouldShowBusinessNavbar = isBusinessPage;
-  const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && !isBusinessPage && !isBusinessPanelPage && !isBusinessUserPage && !shouldHideNavbarForBusiness && (isDashboardPage || isNewsPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage);
-  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !shouldShowBusinessNavbar && !isProfilePage && !isAdminPage && !isInstructorPage && !isCreditsPage && !isReelsPage && !isLearnPage && !isAuthPage && !isBusinessPanelPage && !isBusinessUserPage && !isBusinessRole && !isCartPage && !isSubscriptionsPage && !isPaymentMethodsPage && !isPurchaseHistoryPage && !isAccountSettingsPage && !isCertificatesPage;
+  const shouldShowDashboardNavbar = pathname !== '/' && !isLearnPage && !isBusinessPage && !isBusinessPanelPage && !isBusinessUserPage && !shouldHideNavbarForBusiness && !isStudyPlannerCreatePage && (isDashboardPage || isNewsPage || isCommunitiesPage || isStatisticsPage || isQuestionnairePage || isCoursePage || isMyCoursesPage || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage);
+  const shouldShowRegularNavbar = !shouldShowDashboardNavbar && !shouldShowBusinessNavbar && !isProfilePage && !isAdminPage && !isInstructorPage && !isCreditsPage && !isReelsPage && !isLearnPage && !isAuthPage && !isBusinessPanelPage && !isBusinessUserPage && !isBusinessRole && !isCartPage && !isSubscriptionsPage && !isPaymentMethodsPage && !isPurchaseHistoryPage && !isAccountSettingsPage && !isCertificatesPage && !isStudyPlannerCreatePage;
   
   return (
     <>
@@ -70,7 +72,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
       {/* Mostrar Navbar regular para páginas que no son del dashboard */}
       {shouldShowRegularNavbar && <Navbar />}
       
-      <main className={shouldShowDashboardNavbar || shouldShowBusinessNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage || isAuthPage || isBusinessPanelPage || isBusinessUserPage || shouldHideNavbarForBusiness || isBusinessRole || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage ? '' : 'pt-16 lg:pt-20'}>
+      <main className={shouldShowDashboardNavbar || shouldShowBusinessNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage || isAuthPage || isBusinessPanelPage || isBusinessUserPage || shouldHideNavbarForBusiness || isBusinessRole || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage || isStudyPlannerCreatePage ? '' : 'pt-16 lg:pt-20'}>
         {children}
       </main>
     </>
