@@ -16,7 +16,7 @@ Se ha implementado exitosamente la integración de **Gemini Live API** junto con
 #### `.env.local` (actualizado)
 ```bash
 # Gemini Live API
-NEXT_PUBLIC_GEMINI_API_KEY=AIzaSyC-9yMwvHWISM877plibd1db53sMop3DeE
+NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
 NEXT_PUBLIC_GEMINI_MODEL=gemini-2.0-flash-live-001
 NEXT_PUBLIC_GEMINI_VOICE=Aoede
 NEXT_PUBLIC_VOICE_AGENT_MODE=hybrid

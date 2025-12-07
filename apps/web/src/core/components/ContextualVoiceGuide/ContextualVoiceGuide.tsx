@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,7 @@ import { useLanguage } from '../../providers/I18nProvider';
 import { ContextualVoiceGuideProps, VoiceGuideStep } from './types';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { getPlatformContext, getAvailableLinksForLIA } from '../../../lib/lia/page-metadata';
+import { useVoiceAgent } from '@/lib/voice';
 
 // Función para detectar automáticamente el contexto basado en la URL
 function detectContextFromURL(pathname: string): string {
@@ -63,75 +64,81 @@ export function ContextualVoiceGuide({
   const { t } = useTranslation('common');
   const { language } = useLanguage();
   const ONBOARDING_STEPS = steps;
-  
+
   // 🎙️ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
     'es': 'es-ES',
     'en': 'en-US',
     'pt': 'pt-BR'
   };
+
+  // ✅ NUEVO: Hook de voz unificado con Gemini
+  const voice = useVoiceAgent({
+    mode: 'gemini',
+    context: 'conversational',
+    language: speechLanguageMap[language] || 'es-ES',
+    systemInstruction: `Eres LIA, la asistente de voz de Aprende y Aplica.
+    Estás guiando al usuario en un tour por la plataforma.
+    Responde de forma breve, clara y amigable a las preguntas del usuario.`,
+    onError: (error) => {
+      console.error('🔴 [ContextualVoiceGuide] Error en voice agent:', error);
+    },
+  });
+
   const storageKey = `has-seen-tour-${tourId}`;
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
-  // Estados para conversaciÃ³n por voz
-  const [isListening, setIsListening] = useState(false);
+
+  // Estados para conversación por voz
   const [transcript, setTranscript] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const ttsAbortRef = useRef<AbortController | null>(null);
-  const recognitionRef = useRef<any>(null);
+
   const lastTranscriptRef = useRef<{ text: string; ts: number }>({ text: '', ts: 0 });
   const processingRef = useRef<boolean>(false);
-  const pendingTranscriptRef = useRef<string | null>(null);
-  const pendingTimeoutRef = useRef<number | null>(null);
   const conversationHistoryRef = useRef(conversationHistory);
-  const lastErrorTimeRef = useRef<number>(0);
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const hasAttemptedOpenRef = useRef<boolean>(false); // Para evitar aperturas múltiples
-  const isOpeningRef = useRef<boolean>(false); // Para evitar aperturas simultáneas
-  const lastPathnameRef = useRef<string>(''); // Para detectar cambios reales de pathname
+  const hasAttemptedOpenRef = useRef<boolean>(false);
+  const isOpeningRef = useRef<boolean>(false);
+  const lastPathnameRef = useRef<string>('');
 
-  // Detiene todo audio/voz en reproducciÃ³n (ElevenLabs audio y SpeechSynthesis)
-  const stopAllAudio = () => {
-    try {
-      // Abort any in-flight TTS fetch
-      if (ttsAbortRef.current) {
-        try { ttsAbortRef.current.abort(); } catch (e) { /* ignore */ }
-        ttsAbortRef.current = null;
-      }
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+  // Logging detallado para debugging
+  useEffect(() => {
+    console.log('🎙️ [ContextualVoiceGuide] Estado de voz:', {
+      selectedAgent: voice.selectedAgent,
+      isConnected: voice.isConnected,
+      isSpeaking: voice.isSpeaking,
+      isListening: voice.isListening,
+      isProcessing: voice.isProcessing,
+      connectionState: voice.connectionState,
+    });
+  }, [voice.selectedAgent, voice.isConnected, voice.isSpeaking, voice.isListening, voice.isProcessing, voice.connectionState]);
 
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        // Cancelar cualquier utterance en curso
-        window.speechSynthesis.cancel();
-        utteranceRef.current = null;
-      }
+  // Conectar a Gemini al montar
+  useEffect(() => {
+    console.log('🔌 [ContextualVoiceGuide] Conectando a Gemini...');
+    voice.connect().then(() => {
+      console.log('✅ [ContextualVoiceGuide] Conectado a Gemini exitosamente');
+    }).catch((error) => {
+      console.error('❌ [ContextualVoiceGuide] Error conectando a Gemini:', error);
+    });
 
-      setIsSpeaking(false);
-    } catch (err) {
-      console.warn('Error deteniendo audio:', err);
-    }
-  };
+    return () => {
+      console.log('🔌 [ContextualVoiceGuide] Desconectando de Gemini...');
+      voice.disconnect();
+    };
+  }, []);
 
   // Detectar tamaño de pantalla
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -139,47 +146,30 @@ export function ContextualVoiceGuide({
 
   // Verificar si debe mostrar el tour
   useEffect(() => {
-    // ✅ CORRECCIÓN: Verificar PRIMERO si el usuario ya vio el tour
-    // Si ya lo vio (tiene cualquier valor en localStorage), NUNCA abrir automáticamente
     const hasSeenTour = localStorage.getItem(storageKey);
     if (hasSeenTour) {
-      // Marcar que no debemos intentar abrir automáticamente
       hasAttemptedOpenRef.current = true;
       return;
     }
 
-    // Evitar aperturas múltiples
     if (isOpeningRef.current || hasAttemptedOpenRef.current || isVisible) {
       return;
     }
 
     if (requireAuth && !user) return;
 
-    // Obtener pathname base sin query params para comparación
     const basePathname = pathname?.split('?')[0] || '';
-    const lastBasePathname = lastPathnameRef.current?.split('?')[0] || '';
-
     const shouldShow = triggerPaths.some(path => pathname === path || pathname?.startsWith(path));
 
-    // ✅ CORRECCIÓN: Solo abrir automáticamente si:
-    // 1. NO ha visto el tour NUNCA (localStorage es null)
-    // 2. Debe mostrarse en esta ruta
-    // 3. Es la primera vez que se monta el componente (hasAttemptedOpenRef es false)
     if (shouldShow && !hasSeenTour) {
-      // Marcar que ya intentamos abrir (para evitar reaperturas)
       hasAttemptedOpenRef.current = true;
       isOpeningRef.current = true;
-
-      // Guardar el pathname base actual
       lastPathnameRef.current = basePathname;
 
-      // Pequeño delay para que la página cargue primero
       setTimeout(() => {
-        // ✅ Verificar nuevamente que no se ha marcado como visto
         const stillHasntSeen = !localStorage.getItem(storageKey);
         if (stillHasntSeen && !isVisible) {
           setIsVisible(true);
-          // ✅ Guardar inmediatamente al abrir por primera vez para evitar reaperturas
           localStorage.setItem(storageKey, 'true');
         }
         isOpeningRef.current = false;
@@ -187,24 +177,17 @@ export function ContextualVoiceGuide({
     }
   }, [pathname, storageKey, triggerPaths, isReplayable, showDelay, requireAuth, user, isVisible]);
 
-  // ✅ Listener para abrir el tour manualmente (desde "Ver Tour del Curso" u otros botones)
+  // Listener para abrir el tour manualmente
   useEffect(() => {
     const handleOpenTour = () => {
-      // ✅ CORRECCIÓN: NO resetear hasAttemptedOpenRef para evitar reaperturas automáticas
-      // Solo marcar que estamos abriendo
       isOpeningRef.current = true;
-
-      // Abrir el modal
       setIsVisible(true);
       setCurrentStep(0);
-
-      // Marcar que ya no estamos abriendo
       setTimeout(() => {
         isOpeningRef.current = false;
       }, 100);
     };
 
-    // Escuchar evento personalizado para abrir el tour
     const eventName = `open-tour-${tourId}`;
     window.addEventListener(eventName, handleOpenTour);
 
@@ -213,324 +196,54 @@ export function ContextualVoiceGuide({
     };
   }, [tourId]);
 
-  // ✅ Reproducir audio automáticamente cuando se abre el modal
+  // Reproducir audio automáticamente cuando se abre el modal
   useEffect(() => {
-    if (isVisible && currentStep === 0 && isAudioEnabled) {
-      // Pequeño delay para asegurar que el modal esté completamente renderizado
+    if (isVisible && currentStep === 0 && isAudioEnabled && voice.isConnected) {
       const timer = setTimeout(() => {
-        speakText(ONBOARDING_STEPS[0].speech);
+        console.log('🔊 [ContextualVoiceGuide] Reproduciendo paso inicial:', ONBOARDING_STEPS[0].speech);
+        voice.speak(ONBOARDING_STEPS[0].speech).catch((err) => {
+          console.error('❌ [ContextualVoiceGuide] Error reproduciendo paso inicial:', err);
+        });
         setHasUserInteracted(true);
       }, 500);
-      
+
       return () => clearTimeout(timer);
     }
-  }, [isVisible]);
-
-  // FunciÃ³n para sÃ­ntesis de voz con ElevenLabs
-  const speakText = async (text: string) => {
-    if (!isAudioEnabled || typeof window === 'undefined') return;
-
-    // Asegurar que no haya audio superpuesto
-    stopAllAudio();
-
-    try {
-      setIsSpeaking(true);
-
-      // Acceder directamente a las variables sin validaciÃ³n previa
-      const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
-      const voiceId = '15Y62ZlO8it2f5wduybx';
-      // âœ… OPTIMIZACIÃ“N: Usar modelo turbo para mayor velocidad
-      const modelId = 'eleven_turbo_v2_5';
-
-      // Debug: mostrar valores (comentado para reducir logs)
-      // console.log('ElevenLabs Config (OPTIMIZED):', { 
-      //   apiKey: apiKey.substring(0, 15) + '...', 
-      //   voiceId,
-      //   modelId
-      // });
-
-      if (!apiKey || !voiceId) {
-        console.warn('âš ï¸ ElevenLabs credentials not found, using fallback Web Speech API');
-        
-        // Fallback a Web Speech API
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-ES';
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-        
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          utteranceRef.current = null;
-        };
-        utterance.onerror = () => {
-          setIsSpeaking(false);
-          utteranceRef.current = null;
-        };
-        
-        utteranceRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
-        return;
-      }
-
-      // Setup abort controller so we can cancel in-flight TTS requests
-      const controller = new AbortController();
-      ttsAbortRef.current = controller;
-
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-        {
-          signal: controller.signal,
-          method: 'POST',
-          headers: {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            text: text,
-            model_id: modelId || 'eleven_turbo_v2_5',
-            voice_settings: {
-              // âœ… OPTIMIZACIÃ“N: ConfiguraciÃ³n ajustada para velocidad
-              stability: 0.4,              // Reducido de 0.5 para mÃ¡s velocidad
-              similarity_boost: 0.65,      // Reducido de 0.75
-              style: 0.3,                  // Reducido de 0.5
-              use_speaker_boost: false     // Desactivado para mayor velocidad
-            },
-            // âœ… OPTIMIZACIÃ“N: Nuevos parÃ¡metros de latencia
-            optimize_streaming_latency: 4,  // MÃ¡xima optimizaciÃ³n (0-4)
-            output_format: 'mp3_22050_32'   // Menor bitrate = menor latencia
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`ElevenLabs API error: ${response.status}`);
-      }
-
-      const audioBlob = await response.blob();
-      // If the request was aborted, do not proceed
-      if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
-        console.log('TTS request aborted, skipping playback');
-        ttsAbortRef.current = null;
-        return;
-      }
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        if (audioRef.current === audio) audioRef.current = null;
-      };
-
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        if (audioRef.current === audio) audioRef.current = null;
-      };
-
-      // Intentar reproducir el audio
-      try {
-        await audio.play();
-        // Playback started successfully; clear abort controller
-        if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
-      } catch (playError: any) {
-        // Autoplay bloqueado por el navegador - esto es normal y esperado
-        // El audio se reproducirÃ¡ cuando el usuario haga clic en un botÃ³n
-        setIsSpeaking(false);
-      }
-    } catch (error: any) {
-      // Si la peticiÃ³n fue abortada, lo manejamos como info
-      if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-        console.log('TTS aborted:', error.message || error);
-      } else {
-        console.error('Error en sÃ­ntesis de voz con ElevenLabs:', error);
-      }
-      setIsSpeaking(false);
-    }
-  };
-
-  // Inicializar reconocimiento de voz
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.lang = speechLanguageMap[language] || 'es-ES';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-        recognition.onresult = (event: any) => {
-          const speechToTextRaw = event.results[0][0].transcript || '';
-          const speechToText = speechToTextRaw.trim();
-          console.log('TranscripciÃ³n raw:', speechToTextRaw);
-
-          // Normalizar texto para deduplicaciÃ³n
-          const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-          const norm = normalize(speechToText);
-
-          // Ignorar transcripciones demasiado cortas
-          if (norm.length < 2) {
-            console.warn('TranscripciÃ³n demasiado corta, ignorando.');
-            setIsListening(false);
-            return;
-          }
-
-          // Guardar como transcripciÃ³n pendiente y usar un pequeÃ±o debounce
-          pendingTranscriptRef.current = speechToText;
-
-          // Limpiar timeout anterior
-          if (pendingTimeoutRef.current) {
-            window.clearTimeout(pendingTimeoutRef.current);
-            pendingTimeoutRef.current = null;
-          }
-
-          // Ejecutar procesamiento despuÃ©s de un breve retardo; si viene otra onresult este timeout se reiniciarÃ¡
-          pendingTimeoutRef.current = window.setTimeout(() => {
-            pendingTimeoutRef.current = null;
-
-            // Revalidar normalizado y evitar duplicados rÃ¡pidos
-            const now = Date.now();
-            if (lastTranscriptRef.current.text === norm && now - lastTranscriptRef.current.ts < 3000) {
-              console.warn('Resultado duplicado detectado (post-debounce), ignorando.');
-              setIsListening(false);
-              return;
-            }
-
-            // Si ya estamos procesando otra pregunta, ignorar esta
-            if (processingRef.current) {
-              console.warn('Reconocimiento produjo resultado pero ya hay procesamiento en curso, ignorando.');
-              setIsListening(false);
-              return;
-            }
-
-            // Registrar la transcripciÃ³n final recibida y procesarla.
-            // No marcar processingRef aquÃ­ para evitar que handleVoiceQuestion vea
-            // la bandera ya establecida y se salga prematuramente; handleVoiceQuestion
-            // es responsable de establecer processingRef de forma atÃ³mica.
-            lastTranscriptRef.current = { text: norm, ts: now };
-
-            const finalTranscript = pendingTranscriptRef.current || speechToText;
-            pendingTranscriptRef.current = null;
-
-            setTranscript(finalTranscript);
-            setIsListening(false);
-
-            // handleVoiceQuestion liberarÃ¡ processingRef al finalizar
-            handleVoiceQuestion(finalTranscript);
-          }, 350);
-        };
-
-        const ERROR_DEBOUNCE_MS = 2000; // 2 segundos entre errores
-
-        recognition.onerror = (event: any) => {
-          const errorType = event.error || 'unknown';
-          const now = Date.now();
-          
-          // Detener el reconocimiento
-          try {
-            if (recognitionRef.current) {
-              recognitionRef.current.stop();
-            }
-          } catch (e) {
-            // Ignorar errores al detener
-          }
-          
-          setIsListening(false);
-          
-          // Evitar spam de errores - solo mostrar si han pasado al menos 2 segundos
-          if (now - lastErrorTimeRef.current < ERROR_DEBOUNCE_MS && errorType === 'network') {
-            return; // Ignorar errores de red repetidos
-          }
-          lastErrorTimeRef.current = now;
-          
-          // Mostrar mensaje de error específico solo para errores importantes
-          if (errorType === 'not-allowed') {
-            alert(t('onboarding.voice.micPermissionNeeded'));
-          } else if (errorType === 'no-speech') {
-            // No mostrar error para no-speech, es normal
-          } else if (errorType === 'network') {
-            // Solo mostrar una vez, no repetir
-            console.warn('Error de red en reconocimiento de voz. Verifica tu conexiÃ³n a internet.');
-          } else if (errorType === 'aborted') {
-            // No mostrar error para aborted, es normal cuando se cancela
-          } else {
-            console.warn(`Error en reconocimiento de voz: ${errorType}`);
-          }
-        };
-
-        recognitionRef.current = recognition;
-      } else {
-        console.warn('El navegador no soporta reconocimiento de voz');
-      }
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, [language, speechLanguageMap]);
+  }, [isVisible, voice.isConnected]);
 
   // Función para iniciar/detener escucha
   const toggleListening = async () => {
-    if (!recognitionRef.current) {
-      alert(t('onboarding.voice.browserNotSupported'));
-      return;
-    }
+    console.log('🎤 [ContextualVoiceGuide] Toggle listening. Estado actual:', voice.isListening);
 
-    if (isListening) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) { 
-        // Ignorar errores al detener
-      }
-      setIsListening(false);
+    if (voice.isListening) {
+      console.log('⏹️ [ContextualVoiceGuide] Deteniendo escucha...');
+      voice.stopListening();
     } else {
-      // âœ… Detener audio de LIA si estÃ¡ hablando antes de que el usuario hable
-      stopAllAudio();
-      
       try {
-        // Asegurarse de que el reconocimiento esté detenido antes de iniciarlo
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {
-          // Ignorar si ya estÃ¡ detenido
-        }
-        
-        // Pequeño delay para asegurar que se detuvo completamente
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Solicitar permisos del micrófono primero
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('🎙️ [ContextualVoiceGuide] Iniciando escucha...');
+        console.log('🔍 [ContextualVoiceGuide] Estado de conexión:', voice.connectionState);
+        console.log('🔍 [ContextualVoiceGuide] ¿Está conectado?:', voice.isConnected);
 
-        setTranscript('');
-        
-        // Verificar que no esté ya iniciado antes de iniciar
-        try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch (startError: any) {
-          if (startError.message?.includes('already started')) {
-            // Ya estÃ¡ iniciado, solo actualizar el estado
-            setIsListening(true);
-          } else {
-            throw startError;
-          }
+        if (!voice.isConnected) {
+          console.warn('⚠️ [ContextualVoiceGuide] No conectado. Intentando conectar...');
+          await voice.connect();
+          console.log('✅ [ContextualVoiceGuide] Conectado exitosamente');
         }
+
+        voice.setIsProcessing(false);
+        await voice.startListening();
+        console.log('✅ [ContextualVoiceGuide] Escucha iniciada correctamente');
+        setTranscript('');
       } catch (error: any) {
-        console.error('Error al solicitar permisos de micrófono:', error);
-        setIsListening(false);
-        
+        console.error('❌ [ContextualVoiceGuide] Error al iniciar escucha:', error);
+        console.error('❌ [ContextualVoiceGuide] Error detallado:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+        });
+
         if (error?.name === 'NotAllowedError') {
           alert(t('onboarding.voice.micPermissionNeeded'));
-        } else if (error?.message?.includes('already started')) {
-          // Ya estÃ¡ iniciado, solo actualizar el estado
-          setIsListening(true);
         } else {
           alert(t('onboarding.voice.micError'));
         }
@@ -538,48 +251,38 @@ export function ContextualVoiceGuide({
     }
   };
 
-  // FunciÃ³n para procesar pregunta de voz con LIA
+  // Función para procesar pregunta de voz con LIA
   const handleVoiceQuestion = async (question: string) => {
     if (!question.trim()) return;
-    // Evitar procesar preguntas en paralelo
+
     if (processingRef.current) {
-      console.warn('Otra pregunta estÃ¡ en curso, ignorando la nueva.');
+      console.warn('⚠️ [ContextualVoiceGuide] Ya hay una pregunta procesándose, ignorando.');
       return;
     }
 
-    // Detener cualquier audio/voz que esté sonando
-    stopAllAudio();
+    console.log('💬 [ContextualVoiceGuide] Procesando pregunta:', question);
 
+    voice.stopAllAudio();
     processingRef.current = true;
-    setIsProcessing(true);
+    voice.setIsProcessing(true);
 
-    // Evitar preguntas muy similares ya procesadas recientemente
+    // Evitar preguntas similares
     const lastUserMsg = conversationHistoryRef.current.slice().reverse().find(m => m.role === 'user');
     const now = Date.now();
     if (lastUserMsg) {
       const lastText = lastUserMsg.content || '';
       const recent = now - (lastTranscriptRef.current.ts || 0) < 5000;
       if (recent && (lastText === question || lastText.includes(question) || question.includes(lastText))) {
-        console.warn('Pregunta similar ya procesada recientemente, ignorando.');
+        console.warn('⚠️ [ContextualVoiceGuide] Pregunta similar ya procesada, ignorando.');
         processingRef.current = false;
-        setIsProcessing(false);
+        voice.setIsProcessing(false);
         return;
       }
     }
-    
+
     try {
-      // Construir contexto para LIA
-      const context = {
-        isOnboarding: true,
-        currentStep: currentStep + 1,
-        totalSteps: ONBOARDING_STEPS.length,
-        conversationHistory,
-      };
+      console.log('🤖 [ContextualVoiceGuide] Enviando pregunta a LIA...');
 
-      console.log('🤖 Enviando pregunta a LIA:', question);
-
-      // ✅ CORRECCIÓN: Construir pageContext correcto con pathname actual
-      // Esto permite que Lia sepa exactamente en qué página está el usuario
       const currentPathname = pathname || '/';
       const detectedArea = detectContextFromURL(currentPathname);
       const pageDescription = getPageContextInfo(currentPathname);
@@ -612,9 +315,9 @@ export function ContextualVoiceGuide({
       const data = await response.json();
       const liaResponse = data.response;
 
-      console.log('ðŸ’¬ Respuesta de LIA:', liaResponse);
+      console.log('💬 [ContextualVoiceGuide] Respuesta de LIA:', liaResponse);
 
-      // Actualizar historial de conversaciÃ³n, evitando duplicados consecutivos
+      // Actualizar historial de conversación
       setConversationHistory(prev => {
         const last = prev[prev.length - 1];
         const lastUser = prev.slice().reverse().find(m => m.role === 'user');
@@ -628,83 +331,86 @@ export function ContextualVoiceGuide({
         return next;
       });
 
-      // Reproducir respuesta con ElevenLabs
-      await speakText(liaResponse);
+      // Reproducir respuesta con Gemini
+      console.log('🔊 [ContextualVoiceGuide] Reproduciendo respuesta de LIA...');
+      await voice.speak(liaResponse);
+      console.log('✅ [ContextualVoiceGuide] Respuesta reproducida');
 
     } catch (error) {
-      console.error('âŒ Error procesando pregunta:', error);
+      console.error('❌ [ContextualVoiceGuide] Error procesando pregunta:', error);
       const errorMessage = t('onboarding.voice.errorProcessing');
-      try { await speakText(errorMessage); } catch(e) { /* ignore */ }
+      try {
+        await voice.speak(errorMessage);
+      } catch(e) {
+        console.error('❌ [ContextualVoiceGuide] Error reproduciendo mensaje de error:', e);
+      }
     } finally {
       processingRef.current = false;
-      setIsProcessing(false);
+      voice.setIsProcessing(false);
     }
   };
 
   // Limpiar al desmontar
   useEffect(() => {
     return () => {
-      stopAllAudio();
+      voice.stopAllAudio();
     };
   }, []);
 
   const handleNext = () => {
-    // Detener cualquier audio en reproducciÃ³n
-    stopAllAudio();
-
-    // âœ… Ya no necesitamos verificar hasUserInteracted porque el audio se inicia automÃ¡ticamente
+    voice.stopAllAudio();
     setHasUserInteracted(true);
-    
+
     const nextStep = currentStep + 1;
-    
+
     if (nextStep < ONBOARDING_STEPS.length) {
       setCurrentStep(nextStep);
-      speakText(ONBOARDING_STEPS[nextStep].speech);
+      console.log('➡️ [ContextualVoiceGuide] Avanzando al paso:', nextStep);
+      voice.speak(ONBOARDING_STEPS[nextStep].speech).catch((err) => {
+        console.error('❌ [ContextualVoiceGuide] Error reproduciendo paso:', err);
+      });
     } else {
       handleComplete();
     }
   };
 
   const handlePrevious = () => {
-    // Detener cualquier audio en reproducciÃ³n
-    stopAllAudio();
+    voice.stopAllAudio();
 
-    // Marcar que el usuario ha interactuado
     if (!hasUserInteracted) {
       setHasUserInteracted(true);
     }
-    
+
     if (currentStep > 0) {
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
-      speakText(ONBOARDING_STEPS[prevStep].speech);
+      console.log('⬅️ [ContextualVoiceGuide] Retrocediendo al paso:', prevStep);
+      voice.speak(ONBOARDING_STEPS[prevStep].speech).catch((err) => {
+        console.error('❌ [ContextualVoiceGuide] Error reproduciendo paso:', err);
+      });
     }
   };
 
   const handleSkip = () => {
-    stopAllAudio();
+    voice.stopAllAudio();
     setIsVisible(false);
-    // Guardar inmediatamente en localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem(storageKey, 'true');
-      // Marcar que ya intentamos abrir para evitar reaperturas
       hasAttemptedOpenRef.current = true;
     }
   };
 
   const handleComplete = () => {
-    stopAllAudio();
-    // Guardar inmediatamente en localStorage antes de navegar
+    voice.stopAllAudio();
     if (typeof window !== 'undefined') {
       localStorage.setItem(storageKey, 'true');
-      // Marcar que ya intentamos abrir para evitar reaperturas
       hasAttemptedOpenRef.current = true;
     }
-    
+
     const lastStep = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
-    
+
     setIsVisible(false);
-    
+
     if (lastStep.action) {
       router.push(lastStep.action.path);
     }
@@ -713,11 +419,9 @@ export function ContextualVoiceGuide({
   const handleActionClick = () => {
     const step = ONBOARDING_STEPS[currentStep];
     if (step.action) {
-      stopAllAudio();
-      // Guardar inmediatamente en localStorage antes de navegar
+      voice.stopAllAudio();
       if (typeof window !== 'undefined') {
         localStorage.setItem(storageKey, 'true');
-        // Marcar que ya intentamos abrir para evitar reaperturas
         hasAttemptedOpenRef.current = true;
       }
       setIsVisible(false);
@@ -728,11 +432,13 @@ export function ContextualVoiceGuide({
   const toggleAudio = () => {
     const newState = !isAudioEnabled;
     setIsAudioEnabled(newState);
-    
+
     if (!newState) {
-      stopAllAudio();
+      voice.stopAllAudio();
     } else {
-      speakText(ONBOARDING_STEPS[currentStep].speech);
+      voice.speak(ONBOARDING_STEPS[currentStep].speech).catch((err) => {
+        console.error('❌ [ContextualVoiceGuide] Error reproduciendo paso:', err);
+      });
     }
   };
 
@@ -758,24 +464,24 @@ export function ContextualVoiceGuide({
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ 
-                type: 'spring', 
-                stiffness: 300, 
+              transition={{
+                type: 'spring',
+                stiffness: 300,
                 damping: 30,
-                duration: 0.6 
+                duration: 0.6
               }}
               className="relative max-w-4xl w-full pointer-events-auto max-h-[95vh] flex flex-col items-center justify-center"
             >
-              {/* Esfera animada estilo JARVIS - MÃ¡s compacta */}
+              {/* Esfera animada estilo JARVIS - Más compacta */}
               <div className="relative flex flex-col items-center flex-shrink-0">
                 {/* Esfera central con anillos - Más pequeña para pantallas pequeñas */}
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
                   {/* Esfera central con foto de LIA - Más compacta */}
                   <motion.div
                     className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
-                    animate={{ 
-                      scale: isSpeaking ? [1, 1.08, 1] : 1,
-                      boxShadow: isSpeaking 
+                    animate={{
+                      scale: voice.isSpeaking ? [1, 1.08, 1] : 1,
+                      boxShadow: voice.isSpeaking
                         ? [
                             '0 0 30px rgba(59, 130, 246, 0.6)',
                             '0 0 80px rgba(168, 85, 247, 0.9)',
@@ -783,7 +489,7 @@ export function ContextualVoiceGuide({
                           ]
                         : '0 0 50px rgba(139, 92, 246, 0.7)'
                     }}
-                    transition={{ 
+                    transition={{
                       scale: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' },
                       boxShadow: { duration: 1.2, repeat: Infinity, ease: 'easeInOut' }
                     }}
@@ -801,9 +507,8 @@ export function ContextualVoiceGuide({
                     </div>
                   </motion.div>
 
-                  {/* PartÃ­culas flotantes - MÃ¡s pequeÃ±as y compactas */}
+                  {/* Partículas flotantes - Más pequeñas y compactas */}
                   {[...Array(8)].map((_, i) => {
-                    // Radio mÃ¡s pequeÃ±o para pantallas pequeÃ±as
                     const radius = isMobile ? 50 : 70;
                     return (
                       <motion.div
@@ -829,8 +534,8 @@ export function ContextualVoiceGuide({
                     );
                   })}
 
-                  {/* Pulso de voz cuando estÃ¡ hablando - MÃ¡s compacto */}
-                  {isSpeaking && (
+                  {/* Pulso de voz cuando está hablando - Más compacto */}
+                  {voice.isSpeaking && (
                     <motion.div
                       className="absolute inset-6 sm:inset-8 rounded-full border-2 border-white/50"
                       animate={{
@@ -846,15 +551,15 @@ export function ContextualVoiceGuide({
                   )}
                 </div>
 
-                {/* Panel de contenido - MÃ¡s compacto sin scroll */}
+                {/* Panel de contenido - Más compacto sin scroll */}
                 <motion.div
                   key={currentStep}
                   initial={{ opacity: 0, y: 30, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -30, scale: 0.95 }}
-                  transition={{ 
-                    type: 'spring', 
-                    stiffness: 300, 
+                  transition={{
+                    type: 'spring',
+                    stiffness: 300,
                     damping: 30,
                     duration: 0.5
                   }}
@@ -876,7 +581,7 @@ export function ContextualVoiceGuide({
                     }}
                   />
 
-                  {/* PatrÃ³n de fondo sutil */}
+                  {/* Patrón de fondo sutil */}
                   <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
                     <div className="absolute inset-0" style={{
                       backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
@@ -890,15 +595,15 @@ export function ContextualVoiceGuide({
                     <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex gap-1 sm:gap-1.5">
                       <motion.button
                         onClick={toggleAudio}
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.15,
                           rotate: [0, -10, 10, -10, 0],
                           boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
                         }}
                         whileTap={{ scale: 0.85 }}
-                        transition={{ 
-                          type: 'spring', 
-                          stiffness: 400, 
+                        transition={{
+                          type: 'spring',
+                          stiffness: 400,
                           damping: 17,
                           rotate: { duration: 0.5 }
                         }}
@@ -912,7 +617,7 @@ export function ContextualVoiceGuide({
                         />
                         <motion.span
                           className="relative z-10"
-                          animate={isSpeaking ? {
+                          animate={voice.isSpeaking ? {
                             scale: [1, 1.2, 1],
                           } : {}}
                           transition={{
@@ -926,15 +631,15 @@ export function ContextualVoiceGuide({
                       </motion.button>
                       <motion.button
                         onClick={handleSkip}
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.15,
                           rotate: 90,
                           boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
                         }}
                         whileTap={{ scale: 0.85 }}
-                        transition={{ 
-                          type: 'spring', 
-                          stiffness: 400, 
+                        transition={{
+                          type: 'spring',
+                          stiffness: 400,
                           damping: 17,
                           rotate: { duration: 0.3 }
                         }}
@@ -952,7 +657,7 @@ export function ContextualVoiceGuide({
                       </motion.button>
                     </div>
 
-                    {/* Indicador de progreso - MÃ¡s compacto */}
+                    {/* Indicador de progreso - Más compacto */}
                     <div className="flex gap-1 sm:gap-1.5 mb-1.5 sm:mb-2 md:mb-3 justify-center items-center">
                       {ONBOARDING_STEPS.map((_, idx) => (
                         <motion.div
@@ -962,10 +667,10 @@ export function ContextualVoiceGuide({
                         >
                           <motion.div
                             className={`h-1 sm:h-1.5 rounded-full transition-all ${
-                              idx === currentStep 
-                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 shadow-lg shadow-blue-500/50' 
-                                : idx < currentStep 
-                                ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500' 
+                              idx === currentStep
+                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 shadow-lg shadow-blue-500/50'
+                                : idx < currentStep
+                                ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500'
                                 : 'w-4 sm:w-5 md:w-6 bg-gray-300 dark:bg-gray-600'
                             }`}
                             animate={idx === currentStep ? {
@@ -998,7 +703,7 @@ export function ContextualVoiceGuide({
                       ))}
                     </div>
 
-                    {/* Contenido del paso - MÃ¡s compacto */}
+                    {/* Contenido del paso - Más compacto */}
                     <div className="text-center space-y-1.5 sm:space-y-2">
                       <motion.h2
                         key={`title-${currentStep}`}
@@ -1009,7 +714,7 @@ export function ContextualVoiceGuide({
                       >
                         {step.title}
                       </motion.h2>
-                      
+
                       <motion.p
                         key={`description-${currentStep}`}
                         initial={{ opacity: 0, y: 10 }}
@@ -1020,7 +725,7 @@ export function ContextualVoiceGuide({
                         {step.description}
                       </motion.p>
 
-                    {/* Interfaz de conversaciÃ³n por voz (solo en paso 5) - MÃ¡s compacta */}
+                    {/* Interfaz de conversación por voz (solo en paso 5) - Más compacta */}
                     {currentStep === 4 && (
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -1032,7 +737,7 @@ export function ContextualVoiceGuide({
                         <div className="flex justify-center">
                           <motion.div
                             className="relative"
-                            animate={isListening ? {
+                            animate={voice.isListening ? {
                               scale: [1, 1.05],
                             } : {}}
                             transition={{
@@ -1043,8 +748,8 @@ export function ContextualVoiceGuide({
                               ease: 'easeInOut'
                             }}
                           >
-                            {/* Anillos de pulso cuando estÃ¡ escuchando */}
-                            {isListening && (
+                            {/* Anillos de pulso cuando está escuchando */}
+                            {voice.isListening && (
                               <>
                                 <motion.div
                                   className="absolute inset-0 rounded-full border-2 border-green-400/50"
@@ -1073,35 +778,35 @@ export function ContextualVoiceGuide({
                                 />
                               </>
                             )}
-                            
+
                             <motion.button
                               onClick={toggleListening}
-                              disabled={isProcessing}
+                              disabled={voice.isProcessing}
                               className={`relative p-5 sm:p-6 md:p-7 rounded-full transition-all shadow-2xl overflow-hidden ${
-                                isListening 
-                                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500' 
-                                  : isProcessing
+                                voice.isListening
+                                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500'
+                                  : voice.isProcessing
                                   ? 'bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed'
                                   : 'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600'
                               }`}
-                              whileHover={isProcessing ? {} : { 
+                              whileHover={voice.isProcessing ? {} : {
                                 scale: 1.12,
                                 boxShadow: '0 10px 40px rgba(59, 130, 246, 0.5)'
                               }}
-                              whileTap={isProcessing ? {} : { scale: 0.88 }}
-                              animate={isListening ? {
+                              whileTap={voice.isProcessing ? {} : { scale: 0.88 }}
+                              animate={voice.isListening ? {
                                 boxShadow: [
                                   '0 0 25px rgba(34, 197, 94, 0.7)',
                                   '0 0 70px rgba(34, 197, 94, 1)',
                                 ],
                                 scale: [1, 1.05]
-                              } : isProcessing ? {
+                              } : voice.isProcessing ? {
                                 boxShadow: [
                                   '0 0 20px rgba(107, 114, 128, 0.5)',
                                   '0 0 35px rgba(107, 114, 128, 0.7)',
                                 ]
                               } : {}}
-                              transition={{ 
+                              transition={{
                                 boxShadow: {
                                   type: 'tween',
                                   duration: 1.5,
@@ -1119,7 +824,7 @@ export function ContextualVoiceGuide({
                               }}
                             >
                               {/* Efecto de brillo animado */}
-                              {!isProcessing && (
+                              {!voice.isProcessing && (
                                 <motion.div
                                   className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
                                   initial={{ x: '-100%' }}
@@ -1132,14 +837,14 @@ export function ContextualVoiceGuide({
                                   }}
                                 />
                               )}
-                              {isProcessing ? (
+                              {voice.isProcessing ? (
                                 <motion.div
                                   animate={{ rotate: 360 }}
                                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                                 >
                                   <Mic size={24} className="sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                                 </motion.div>
-                              ) : isListening ? (
+                              ) : voice.isListening ? (
                                 <MicOff size={24} className="sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                               ) : (
                                 <Mic size={24} className="sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
@@ -1150,39 +855,36 @@ export function ContextualVoiceGuide({
 
                         {/* Estado del micrófono compacto */}
                         <motion.p
-                          key={isListening ? 'listening' : isProcessing ? 'processing' : 'idle'}
+                          key={voice.isListening ? 'listening' : voice.isProcessing ? 'processing' : 'idle'}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium"
                         >
-                          {isProcessing 
+                          {voice.isProcessing
                             ? t('onboarding.voice.processing')
-                            : isListening 
+                            : voice.isListening
                             ? t('onboarding.voice.listening')
                             : t('onboarding.voice.clickToSpeak')}
                         </motion.p>
-
-                        {/* âœ… Ocultado: TranscripciÃ³n y historial de conversaciÃ³n */}
-                        {/* Solo se reproduce la voz, sin mostrar el texto en pantalla */}
                       </motion.div>
                     )}
                   </div>
 
-                    {/* Botones de navegaciÃ³n - Con animaciones mejoradas */}
+                    {/* Botones de navegación - Con animaciones mejoradas */}
                     <div className="flex flex-col sm:flex-row gap-2 justify-center items-center mt-2 sm:mt-3 md:mt-4">
                       {currentStep > 0 && (
                         <motion.button
                           onClick={handlePrevious}
-                          whileHover={{ 
-                            scale: 1.08, 
+                          whileHover={{
+                            scale: 1.08,
                             x: -4,
                             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                           }}
                           whileTap={{ scale: 0.92 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-4 sm:px-5 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium transition-colors shadow-md border border-gray-200 dark:border-gray-600 text-xs sm:text-sm overflow-hidden group"
                         >
@@ -1196,19 +898,19 @@ export function ContextualVoiceGuide({
                         </motion.button>
                       )}
 
-                      {/* Solo mostrar el botÃ³n de acciÃ³n si NO es el Ãºltimo paso */}
+                      {/* Solo mostrar el botón de acción si NO es el último paso */}
                       {step.action && currentStep < ONBOARDING_STEPS.length - 1 && (
                         <motion.button
                           onClick={handleActionClick}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.08,
                             boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)',
                           }}
                           whileTap={{ scale: 0.92 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-blue-500/30 dark:shadow-blue-500/20 text-xs sm:text-sm overflow-hidden group"
                         >
@@ -1232,15 +934,15 @@ export function ContextualVoiceGuide({
                       {currentStep < ONBOARDING_STEPS.length - 1 ? (
                         <motion.button
                           onClick={handleNext}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.08,
                             boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)',
                           }}
                           whileTap={{ scale: 0.92 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-blue-500/30 dark:shadow-blue-500/20 text-xs sm:text-sm overflow-hidden group"
                         >
@@ -1265,15 +967,15 @@ export function ContextualVoiceGuide({
                       ) : (
                         <motion.button
                           onClick={handleComplete}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.1,
                             boxShadow: '0 10px 30px rgba(34, 197, 94, 0.5)',
                           }}
                           whileTap={{ scale: 0.9 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white font-bold shadow-xl shadow-green-500/30 dark:shadow-green-500/20 text-sm sm:text-base overflow-hidden group"
                         >
@@ -1312,15 +1014,15 @@ export function ContextualVoiceGuide({
                       >
                         <motion.button
                           onClick={handleSkip}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.05,
                             y: -2
                           }}
                           whileTap={{ scale: 0.95 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs sm:text-sm transition-colors font-medium group"
                         >

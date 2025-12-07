@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../providers/I18nProvider';
 import { getPlatformContext, getAvailableLinksForLIA } from '../../../lib/lia/page-metadata';
+import { useVoiceAgent } from '@/lib/voice';
 
 // Función para detectar automáticamente el contexto basado en la URL
 function detectContextFromURL(pathname: string): string {
@@ -64,7 +65,7 @@ interface OnboardingStep {
 // Hook para obtener los pasos traducidos
 function useOnboardingSteps() {
   const { t } = useTranslation('common');
-  
+
   return useMemo(() => [
     {
       id: 1,
@@ -125,264 +126,6 @@ export function OnboardingAgent() {
   const { t } = useTranslation('common');
   const { language } = useLanguage();
   const ONBOARDING_STEPS = useOnboardingSteps();
-  const [isVisible, setIsVisible] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  
-  // Estados para conversación por voz
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const ttsAbortRef = useRef<AbortController | null>(null);
-  const recognitionRef = useRef<any>(null);
-  const lastTranscriptRef = useRef<{ text: string; ts: number }>({ text: '', ts: 0 });
-  const processingRef = useRef<boolean>(false);
-  const pendingTranscriptRef = useRef<string | null>(null);
-  const pendingTimeoutRef = useRef<number | null>(null);
-  const conversationHistoryRef = useRef(conversationHistory);
-  const lastErrorTimeRef = useRef<number>(0);
-  const router = useRouter();
-  const pathname = usePathname();
-  const hasAttemptedOpenRef = useRef<boolean>(false); // Para evitar aperturas múltiples
-  const isOpeningRef = useRef<boolean>(false); // Para evitar aperturas simultáneas
-
-  // Detiene todo audio/voz en reproducción (ElevenLabs audio y SpeechSynthesis)
-  const stopAllAudio = () => {
-    try {
-      // Abort any in-flight TTS fetch
-      if (ttsAbortRef.current) {
-        try { ttsAbortRef.current.abort(); } catch (e) { /* ignore */ }
-        ttsAbortRef.current = null;
-      }
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        // Cancelar cualquier utterance en curso
-        window.speechSynthesis.cancel();
-        utteranceRef.current = null;
-      }
-
-      setIsSpeaking(false);
-    } catch (err) {
-      console.warn('Error deteniendo audio:', err);
-    }
-  };
-
-  // Detectar tamaño de pantalla
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Verificar si es la primera visita
-  useEffect(() => {
-    // Evitar aperturas múltiples
-    if (isOpeningRef.current || hasAttemptedOpenRef.current || isVisible) {
-      return;
-    }
-
-    const hasSeenOnboarding = localStorage.getItem('has-seen-onboarding');
-    
-    // Solo mostrar en dashboard y si no ha visto el onboarding
-    if (!hasSeenOnboarding && pathname === '/dashboard') {
-      // Marcar que ya intentamos abrir
-      hasAttemptedOpenRef.current = true;
-      isOpeningRef.current = true;
-      
-      // Pequeño delay para que la página cargue primero
-      setTimeout(() => {
-        // Verificar nuevamente antes de abrir (por si el usuario lo cerró rápidamente)
-        const stillHasntSeen = localStorage.getItem('has-seen-onboarding') !== 'true';
-        if (stillHasntSeen && !isVisible) {
-          setIsVisible(true);
-        }
-        isOpeningRef.current = false;
-      }, 1000);
-    } else {
-      // Si ya vio el onboarding, marcar que no debemos intentar abrir
-      hasAttemptedOpenRef.current = true;
-    }
-  }, [pathname, isVisible]);
-
-  // ✅ Listener para abrir el modal manualmente (desde "Ver Tour del Curso" u otros botones)
-  useEffect(() => {
-    const handleOpenOnboarding = () => {
-      // Resetear el flag para permitir apertura manual
-      hasAttemptedOpenRef.current = false;
-      isOpeningRef.current = true;
-      
-      // Abrir el modal
-      setIsVisible(true);
-      setCurrentStep(0);
-      
-      // Marcar que ya no estamos abriendo
-      setTimeout(() => {
-        isOpeningRef.current = false;
-      }, 100);
-    };
-
-    // Escuchar evento personalizado para abrir el onboarding
-    window.addEventListener('open-onboarding', handleOpenOnboarding);
-
-    return () => {
-      window.removeEventListener('open-onboarding', handleOpenOnboarding);
-    };
-  }, []);
-
-  // ✅ Reproducir audio automáticamente cuando se abre el modal
-  useEffect(() => {
-    if (isVisible && currentStep === 0 && isAudioEnabled) {
-      // Pequeño delay para asegurar que el modal esté completamente renderizado
-      const timer = setTimeout(() => {
-        speakText(ONBOARDING_STEPS[0].speech);
-        setHasUserInteracted(true);
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible]);
-
-  // Función para síntesis de voz con ElevenLabs
-  const speakText = async (text: string) => {
-    if (!isAudioEnabled || typeof window === 'undefined') return;
-
-    // Asegurar que no haya audio superpuesto
-    stopAllAudio();
-
-    try {
-      setIsSpeaking(true);
-
-      // Acceder directamente a las variables sin validación previa
-      const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
-      const voiceId = '15Y62ZlO8it2f5wduybx';
-      // ✅ OPTIMIZACIÓN: Usar modelo turbo para mayor velocidad
-      const modelId = 'eleven_turbo_v2_5';
-
-      // Debug: mostrar valores (comentado para reducir logs)
-      // console.log('ElevenLabs Config (OPTIMIZED):', { 
-      //   apiKey: apiKey.substring(0, 15) + '...', 
-      //   voiceId,
-      //   modelId
-      // });
-
-      if (!apiKey || !voiceId) {
-        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
-        
-        // Fallback a Web Speech API
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-ES';
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-        
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          utteranceRef.current = null;
-        };
-        utterance.onerror = () => {
-          setIsSpeaking(false);
-          utteranceRef.current = null;
-        };
-        
-        utteranceRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
-        return;
-      }
-
-      // Setup abort controller so we can cancel in-flight TTS requests
-      const controller = new AbortController();
-      ttsAbortRef.current = controller;
-
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-        {
-          signal: controller.signal,
-          method: 'POST',
-          headers: {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            text: text,
-            model_id: modelId || 'eleven_turbo_v2_5',
-            voice_settings: {
-              // ✅ OPTIMIZACIÓN: Configuración ajustada para velocidad
-              stability: 0.4,              // Reducido de 0.5 para más velocidad
-              similarity_boost: 0.65,      // Reducido de 0.75
-              style: 0.3,                  // Reducido de 0.5
-              use_speaker_boost: false     // Desactivado para mayor velocidad
-            },
-            // ✅ OPTIMIZACIÓN: Nuevos parámetros de latencia
-            optimize_streaming_latency: 4,  // Máxima optimización (0-4)
-            output_format: 'mp3_22050_32'   // Menor bitrate = menor latencia
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`ElevenLabs API error: ${response.status}`);
-      }
-
-      const audioBlob = await response.blob();
-      // If the request was aborted, do not proceed
-      if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
-        console.log('TTS request aborted, skipping playback');
-        ttsAbortRef.current = null;
-        return;
-      }
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        if (audioRef.current === audio) audioRef.current = null;
-      };
-
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        if (audioRef.current === audio) audioRef.current = null;
-      };
-
-      // Intentar reproducir el audio
-      try {
-        await audio.play();
-        // Playback started successfully; clear abort controller
-        if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
-      } catch (playError: any) {
-        // Autoplay bloqueado por el navegador - esto es normal y esperado
-        // El audio se reproducirá cuando el usuario haga clic en un botón
-        setIsSpeaking(false);
-      }
-    } catch (error: any) {
-      // Si la petición fue abortada, lo manejamos como info
-      if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-        console.log('TTS aborted:', error.message || error);
-      } else {
-        console.error('Error en síntesis de voz con ElevenLabs:', error);
-      }
-      setIsSpeaking(false);
-    }
-  };
 
   // 🎙️ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
@@ -390,185 +133,168 @@ export function OnboardingAgent() {
     'en': 'en-US',
     'pt': 'pt-BR'
   };
-  
-  // Inicializar reconocimiento de voz
+
+  // ✅ NUEVO: Hook de voz unificado con Gemini
+  const voice = useVoiceAgent({
+    mode: 'gemini',
+    context: 'conversational',
+    language: speechLanguageMap[language] || 'es-ES',
+    systemInstruction: `Eres LIA, la asistente de voz de Aprende y Aplica.
+    Estás ayudando al usuario en su primer recorrido por la plataforma (onboarding).
+    Responde de forma breve, clara y amigable a las preguntas del usuario.
+    Tu objetivo es que el usuario se sienta bienvenido y aprenda a usar la plataforma.`,
+    onError: (error) => {
+      console.error('🔴 [OnboardingAgent] Error en voice agent:', error);
+    },
+  });
+
+  const [isVisible, setIsVisible] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Estados para conversación por voz
+  const [transcript, setTranscript] = useState('');
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
+
+  const lastTranscriptRef = useRef<{ text: string; ts: number }>({ text: '', ts: 0 });
+  const processingRef = useRef<boolean>(false);
+  const conversationHistoryRef = useRef(conversationHistory);
+  const router = useRouter();
+  const pathname = usePathname();
+  const hasAttemptedOpenRef = useRef<boolean>(false);
+  const isOpeningRef = useRef<boolean>(false);
+
+  // Logging detallado para debugging
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.lang = speechLanguageMap[language] || 'es-ES';
-        recognition.continuous = false;
-        recognition.interimResults = false;
+    console.log('🎙️ [OnboardingAgent] Estado de voz:', {
+      selectedAgent: voice.selectedAgent,
+      isConnected: voice.isConnected,
+      isSpeaking: voice.isSpeaking,
+      isListening: voice.isListening,
+      isProcessing: voice.isProcessing,
+      connectionState: voice.connectionState,
+    });
+  }, [voice.selectedAgent, voice.isConnected, voice.isSpeaking, voice.isListening, voice.isProcessing, voice.connectionState]);
 
-        recognition.onresult = (event: any) => {
-          const speechToTextRaw = event.results[0][0].transcript || '';
-          const speechToText = speechToTextRaw.trim();
-          console.log('Transcripción raw:', speechToTextRaw);
-
-          // Normalizar texto para deduplicación
-          const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-          const norm = normalize(speechToText);
-
-          // Ignorar transcripciones demasiado cortas
-          if (norm.length < 2) {
-            console.warn('Transcripción demasiado corta, ignorando.');
-            setIsListening(false);
-            return;
-          }
-
-          // Guardar como transcripción pendiente y usar un pequeño debounce
-          pendingTranscriptRef.current = speechToText;
-
-          // Limpiar timeout anterior
-          if (pendingTimeoutRef.current) {
-            window.clearTimeout(pendingTimeoutRef.current);
-            pendingTimeoutRef.current = null;
-          }
-
-          // Ejecutar procesamiento después de un breve retardo; si viene otra onresult este timeout se reiniciará
-          pendingTimeoutRef.current = window.setTimeout(() => {
-            pendingTimeoutRef.current = null;
-
-            // Revalidar normalizado y evitar duplicados rápidos
-            const now = Date.now();
-            if (lastTranscriptRef.current.text === norm && now - lastTranscriptRef.current.ts < 3000) {
-              console.warn('Resultado duplicado detectado (post-debounce), ignorando.');
-              setIsListening(false);
-              return;
-            }
-
-            // Si ya estamos procesando otra pregunta, ignorar esta
-            if (processingRef.current) {
-              console.warn('Reconocimiento produjo resultado pero ya hay procesamiento en curso, ignorando.');
-              setIsListening(false);
-              return;
-            }
-
-            // Registrar la transcripción final recibida y procesarla.
-            // No marcar processingRef aquí para evitar que handleVoiceQuestion vea
-            // la bandera ya establecida y se salga prematuramente; handleVoiceQuestion
-            // es responsable de establecer processingRef de forma atómica.
-            lastTranscriptRef.current = { text: norm, ts: now };
-
-            const finalTranscript = pendingTranscriptRef.current || speechToText;
-            pendingTranscriptRef.current = null;
-
-            setTranscript(finalTranscript);
-            setIsListening(false);
-
-            // handleVoiceQuestion liberará processingRef al finalizar
-            handleVoiceQuestion(finalTranscript);
-          }, 350);
-        };
-
-        const ERROR_DEBOUNCE_MS = 2000; // 2 segundos entre errores
-
-        recognition.onerror = (event: any) => {
-          const errorType = event.error || 'unknown';
-          const now = Date.now();
-          
-          // Detener el reconocimiento
-          try {
-            if (recognitionRef.current) {
-              recognitionRef.current.stop();
-            }
-          } catch (e) {
-            // Ignorar errores al detener
-          }
-          
-          setIsListening(false);
-          
-          // Evitar spam de errores - solo mostrar si han pasado al menos 2 segundos
-          if (now - lastErrorTimeRef.current < ERROR_DEBOUNCE_MS && errorType === 'network') {
-            return; // Ignorar errores de red repetidos
-          }
-          lastErrorTimeRef.current = now;
-          
-          // Mostrar mensaje de error específico solo para errores importantes
-          if (errorType === 'not-allowed') {
-            alert(t('onboarding.voice.micPermissionNeeded'));
-          } else if (errorType === 'no-speech') {
-            // No mostrar error para no-speech, es normal
-          } else if (errorType === 'network') {
-            // Solo mostrar una vez, no repetir
-            console.warn('Error de red en reconocimiento de voz. Verifica tu conexión a internet.');
-          } else if (errorType === 'aborted') {
-            // No mostrar error para aborted, es normal cuando se cancela
-          } else {
-            console.warn(`Error en reconocimiento de voz: ${errorType}`);
-          }
-        };
-
-        recognitionRef.current = recognition;
-      } else {
-        console.warn('El navegador no soporta reconocimiento de voz');
-      }
-    }
+  // Conectar a Gemini al montar
+  useEffect(() => {
+    console.log('🔌 [OnboardingAgent] Conectando a Gemini...');
+    voice.connect().then(() => {
+      console.log('✅ [OnboardingAgent] Conectado a Gemini exitosamente');
+    }).catch((error) => {
+      console.error('❌ [OnboardingAgent] Error conectando a Gemini:', error);
+    });
 
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      console.log('🔌 [OnboardingAgent] Desconectando de Gemini...');
+      voice.disconnect();
     };
-  }, [language, speechLanguageMap]);
+  }, []);
 
-  // Función para iniciar/detener escucha
-  const toggleListening = async () => {
-    if (!recognitionRef.current) {
-      alert(t('onboarding.voice.browserNotSupported'));
+  // Detectar tamaño de pantalla
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Verificar si es la primera visita
+  useEffect(() => {
+    if (isOpeningRef.current || hasAttemptedOpenRef.current || isVisible) {
       return;
     }
 
-    if (isListening) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) { 
-        // Ignorar errores al detener
-      }
-      setIsListening(false);
-    } else {
-      // ✅ Detener audio de LIA si está hablando antes de que el usuario hable
-      stopAllAudio();
-      
-      try {
-        // Asegurarse de que el reconocimiento esté detenido antes de iniciarlo
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {
-          // Ignorar si ya está detenido
-        }
-        
-        // Pequeño delay para asegurar que se detuvo completamente
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Solicitar permisos del micrófono primero
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+    const hasSeenOnboarding = localStorage.getItem('has-seen-onboarding');
 
-        setTranscript('');
-        
-        // Verificar que no esté ya iniciado antes de iniciar
-        try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch (startError: any) {
-          if (startError.message?.includes('already started')) {
-            // Ya está iniciado, solo actualizar el estado
-            setIsListening(true);
-          } else {
-            throw startError;
-          }
+    if (!hasSeenOnboarding && pathname === '/dashboard') {
+      hasAttemptedOpenRef.current = true;
+      isOpeningRef.current = true;
+
+      setTimeout(() => {
+        const stillHasntSeen = localStorage.getItem('has-seen-onboarding') !== 'true';
+        if (stillHasntSeen && !isVisible) {
+          setIsVisible(true);
         }
+        isOpeningRef.current = false;
+      }, 1000);
+    } else {
+      hasAttemptedOpenRef.current = true;
+    }
+  }, [pathname, isVisible]);
+
+  // Listener para abrir el modal manualmente
+  useEffect(() => {
+    const handleOpenOnboarding = () => {
+      hasAttemptedOpenRef.current = false;
+      isOpeningRef.current = true;
+      setIsVisible(true);
+      setCurrentStep(0);
+      setTimeout(() => {
+        isOpeningRef.current = false;
+      }, 100);
+    };
+
+    window.addEventListener('open-onboarding', handleOpenOnboarding);
+
+    return () => {
+      window.removeEventListener('open-onboarding', handleOpenOnboarding);
+    };
+  }, []);
+
+  // Reproducir audio automáticamente cuando se abre el modal
+  useEffect(() => {
+    if (isVisible && currentStep === 0 && isAudioEnabled && voice.isConnected) {
+      const timer = setTimeout(() => {
+        console.log('🔊 [OnboardingAgent] Reproduciendo paso inicial:', ONBOARDING_STEPS[0].speech);
+        voice.speak(ONBOARDING_STEPS[0].speech).catch((err) => {
+          console.error('❌ [OnboardingAgent] Error reproduciendo paso inicial:', err);
+        });
+        setHasUserInteracted(true);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, voice.isConnected]);
+
+  // Función para iniciar/detener escucha
+  const toggleListening = async () => {
+    console.log('🎤 [OnboardingAgent] Toggle listening. Estado actual:', voice.isListening);
+
+    if (voice.isListening) {
+      console.log('⏹️ [OnboardingAgent] Deteniendo escucha...');
+      voice.stopListening();
+    } else {
+      try {
+        console.log('🎙️ [OnboardingAgent] Iniciando escucha...');
+        console.log('🔍 [OnboardingAgent] Estado de conexión:', voice.connectionState);
+        console.log('🔍 [OnboardingAgent] ¿Está conectado?:', voice.isConnected);
+
+        if (!voice.isConnected) {
+          console.warn('⚠️ [OnboardingAgent] No conectado. Intentando conectar...');
+          await voice.connect();
+          console.log('✅ [OnboardingAgent] Conectado exitosamente');
+        }
+
+        voice.setIsProcessing(false);
+        await voice.startListening();
+        console.log('✅ [OnboardingAgent] Escucha iniciada correctamente');
+        setTranscript('');
       } catch (error: any) {
-        console.error('Error al solicitar permisos de micrófono:', error);
-        setIsListening(false);
-        
+        console.error('❌ [OnboardingAgent] Error al iniciar escucha:', error);
+        console.error('❌ [OnboardingAgent] Error detallado:', {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+        });
+
         if (error?.name === 'NotAllowedError') {
           alert(t('onboarding.voice.micPermissionNeeded'));
-        } else if (error?.message?.includes('already started')) {
-          // Ya está iniciado, solo actualizar el estado
-          setIsListening(true);
         } else {
           alert(t('onboarding.voice.micError'));
         }
@@ -579,45 +305,35 @@ export function OnboardingAgent() {
   // Función para procesar pregunta de voz con LIA
   const handleVoiceQuestion = async (question: string) => {
     if (!question.trim()) return;
-    // Evitar procesar preguntas en paralelo
+
     if (processingRef.current) {
-      console.warn('Otra pregunta está en curso, ignorando la nueva.');
+      console.warn('⚠️ [OnboardingAgent] Ya hay una pregunta procesándose, ignorando.');
       return;
     }
 
-    // Detener cualquier audio/voz que esté sonando
-    stopAllAudio();
+    console.log('💬 [OnboardingAgent] Procesando pregunta:', question);
 
+    voice.stopAllAudio();
     processingRef.current = true;
-    setIsProcessing(true);
+    voice.setIsProcessing(true);
 
-    // Evitar preguntas muy similares ya procesadas recientemente
+    // Evitar preguntas similares
     const lastUserMsg = conversationHistoryRef.current.slice().reverse().find(m => m.role === 'user');
     const now = Date.now();
     if (lastUserMsg) {
       const lastText = lastUserMsg.content || '';
       const recent = now - (lastTranscriptRef.current.ts || 0) < 5000;
       if (recent && (lastText === question || lastText.includes(question) || question.includes(lastText))) {
-        console.warn('Pregunta similar ya procesada recientemente, ignorando.');
+        console.warn('⚠️ [OnboardingAgent] Pregunta similar ya procesada, ignorando.');
         processingRef.current = false;
-        setIsProcessing(false);
+        voice.setIsProcessing(false);
         return;
       }
     }
-    
+
     try {
-      // Construir contexto para LIA
-      const context = {
-        isOnboarding: true,
-        currentStep: currentStep + 1,
-        totalSteps: ONBOARDING_STEPS.length,
-        conversationHistory,
-      };
+      console.log('🤖 [OnboardingAgent] Enviando pregunta a LIA...');
 
-      console.log('🤖 Enviando pregunta a LIA:', question);
-
-      // ✅ CORRECCIÓN: Construir pageContext correcto con pathname actual
-      // Esto permite que Lia sepa exactamente en qué página está el usuario
       const currentPathname = pathname || '/dashboard';
       const detectedArea = detectContextFromURL(currentPathname);
       const pageDescription = getPageContextInfo(currentPathname);
@@ -650,9 +366,9 @@ export function OnboardingAgent() {
       const data = await response.json();
       const liaResponse = data.response;
 
-      console.log('💬 Respuesta de LIA:', liaResponse);
+      console.log('💬 [OnboardingAgent] Respuesta de LIA:', liaResponse);
 
-      // Actualizar historial de conversación, evitando duplicados consecutivos
+      // Actualizar historial de conversación
       setConversationHistory(prev => {
         const last = prev[prev.length - 1];
         const lastUser = prev.slice().reverse().find(m => m.role === 'user');
@@ -666,83 +382,86 @@ export function OnboardingAgent() {
         return next;
       });
 
-      // Reproducir respuesta con ElevenLabs
-      await speakText(liaResponse);
+      // Reproducir respuesta con Gemini
+      console.log('🔊 [OnboardingAgent] Reproduciendo respuesta de LIA...');
+      await voice.speak(liaResponse);
+      console.log('✅ [OnboardingAgent] Respuesta reproducida');
 
     } catch (error) {
-      console.error('❌ Error procesando pregunta:', error);
+      console.error('❌ [OnboardingAgent] Error procesando pregunta:', error);
       const errorMessage = t('onboarding.voice.errorProcessing');
-      try { await speakText(errorMessage); } catch(e) { /* ignore */ }
+      try {
+        await voice.speak(errorMessage);
+      } catch(e) {
+        console.error('❌ [OnboardingAgent] Error reproduciendo mensaje de error:', e);
+      }
     } finally {
       processingRef.current = false;
-      setIsProcessing(false);
+      voice.setIsProcessing(false);
     }
   };
 
   // Limpiar al desmontar
   useEffect(() => {
     return () => {
-      stopAllAudio();
+      voice.stopAllAudio();
     };
   }, []);
 
   const handleNext = () => {
-    // Detener cualquier audio en reproducción
-    stopAllAudio();
-
-    // ✅ Ya no necesitamos verificar hasUserInteracted porque el audio se inicia automáticamente
+    voice.stopAllAudio();
     setHasUserInteracted(true);
-    
+
     const nextStep = currentStep + 1;
-    
+
     if (nextStep < ONBOARDING_STEPS.length) {
       setCurrentStep(nextStep);
-      speakText(ONBOARDING_STEPS[nextStep].speech);
+      console.log('➡️ [OnboardingAgent] Avanzando al paso:', nextStep);
+      voice.speak(ONBOARDING_STEPS[nextStep].speech).catch((err) => {
+        console.error('❌ [OnboardingAgent] Error reproduciendo paso:', err);
+      });
     } else {
       handleComplete();
     }
   };
 
   const handlePrevious = () => {
-    // Detener cualquier audio en reproducción
-    stopAllAudio();
+    voice.stopAllAudio();
 
-    // Marcar que el usuario ha interactuado
     if (!hasUserInteracted) {
       setHasUserInteracted(true);
     }
-    
+
     if (currentStep > 0) {
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
-      speakText(ONBOARDING_STEPS[prevStep].speech);
+      console.log('⬅️ [OnboardingAgent] Retrocediendo al paso:', prevStep);
+      voice.speak(ONBOARDING_STEPS[prevStep].speech).catch((err) => {
+        console.error('❌ [OnboardingAgent] Error reproduciendo paso:', err);
+      });
     }
   };
 
   const handleSkip = () => {
-    stopAllAudio();
+    voice.stopAllAudio();
     setIsVisible(false);
-    // Guardar inmediatamente en localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('has-seen-onboarding', 'true');
-      // Marcar que ya intentamos abrir para evitar reaperturas
       hasAttemptedOpenRef.current = true;
     }
   };
 
   const handleComplete = () => {
-    stopAllAudio();
-    // Guardar inmediatamente en localStorage antes de navegar
+    voice.stopAllAudio();
     if (typeof window !== 'undefined') {
       localStorage.setItem('has-seen-onboarding', 'true');
-      // Marcar que ya intentamos abrir para evitar reaperturas
       hasAttemptedOpenRef.current = true;
     }
-    
+
     const lastStep = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
-    
+
     setIsVisible(false);
-    
+
     if (lastStep.action) {
       router.push(lastStep.action.path);
     }
@@ -751,11 +470,9 @@ export function OnboardingAgent() {
   const handleActionClick = () => {
     const step = ONBOARDING_STEPS[currentStep];
     if (step.action) {
-      stopAllAudio();
-      // Guardar inmediatamente en localStorage antes de navegar
+      voice.stopAllAudio();
       if (typeof window !== 'undefined') {
         localStorage.setItem('has-seen-onboarding', 'true');
-        // Marcar que ya intentamos abrir para evitar reaperturas
         hasAttemptedOpenRef.current = true;
       }
       setIsVisible(false);
@@ -766,11 +483,13 @@ export function OnboardingAgent() {
   const toggleAudio = () => {
     const newState = !isAudioEnabled;
     setIsAudioEnabled(newState);
-    
+
     if (!newState) {
-      stopAllAudio();
+      voice.stopAllAudio();
     } else {
-      speakText(ONBOARDING_STEPS[currentStep].speech);
+      voice.speak(ONBOARDING_STEPS[currentStep].speech).catch((err) => {
+        console.error('❌ [OnboardingAgent] Error reproduciendo paso:', err);
+      });
     }
   };
 
@@ -796,11 +515,11 @@ export function OnboardingAgent() {
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ 
-                type: 'spring', 
-                stiffness: 300, 
+              transition={{
+                type: 'spring',
+                stiffness: 300,
                 damping: 30,
-                duration: 0.6 
+                duration: 0.6
               }}
               className="relative max-w-4xl w-full pointer-events-auto max-h-[95vh] flex flex-col items-center justify-center"
             >
@@ -811,9 +530,9 @@ export function OnboardingAgent() {
                   {/* Esfera central con foto de LIA - Más compacta */}
                   <motion.div
                     className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
-                    animate={{ 
-                      scale: isSpeaking ? [1, 1.08, 1] : 1,
-                      boxShadow: isSpeaking 
+                    animate={{
+                      scale: voice.isSpeaking ? [1, 1.08, 1] : 1,
+                      boxShadow: voice.isSpeaking
                         ? [
                             '0 0 30px rgba(59, 130, 246, 0.6)',
                             '0 0 80px rgba(168, 85, 247, 0.9)',
@@ -821,7 +540,7 @@ export function OnboardingAgent() {
                           ]
                         : '0 0 50px rgba(139, 92, 246, 0.7)'
                     }}
-                    transition={{ 
+                    transition={{
                       scale: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' },
                       boxShadow: { duration: 1.2, repeat: Infinity, ease: 'easeInOut' }
                     }}
@@ -841,7 +560,6 @@ export function OnboardingAgent() {
 
                   {/* Partículas flotantes - Más pequeñas y compactas */}
                   {[...Array(8)].map((_, i) => {
-                    // Radio más pequeño para pantallas pequeñas
                     const radius = isMobile ? 50 : 70;
                     return (
                       <motion.div
@@ -868,7 +586,7 @@ export function OnboardingAgent() {
                   })}
 
                   {/* Pulso de voz cuando está hablando - Más compacto */}
-                  {isSpeaking && (
+                  {voice.isSpeaking && (
                     <motion.div
                       className="absolute inset-6 sm:inset-8 rounded-full border-2 border-white/50"
                       animate={{
@@ -890,9 +608,9 @@ export function OnboardingAgent() {
                   initial={{ opacity: 0, y: 30, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -30, scale: 0.95 }}
-                  transition={{ 
-                    type: 'spring', 
-                    stiffness: 300, 
+                  transition={{
+                    type: 'spring',
+                    stiffness: 300,
                     damping: 30,
                     duration: 0.5
                   }}
@@ -928,15 +646,15 @@ export function OnboardingAgent() {
                     <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex gap-1 sm:gap-1.5">
                       <motion.button
                         onClick={toggleAudio}
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.15,
                           rotate: [0, -10, 10, -10, 0],
                           boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
                         }}
                         whileTap={{ scale: 0.85 }}
-                        transition={{ 
-                          type: 'spring', 
-                          stiffness: 400, 
+                        transition={{
+                          type: 'spring',
+                          stiffness: 400,
                           damping: 17,
                           rotate: { duration: 0.5 }
                         }}
@@ -950,7 +668,7 @@ export function OnboardingAgent() {
                         />
                         <motion.span
                           className="relative z-10"
-                          animate={isSpeaking ? {
+                          animate={voice.isSpeaking ? {
                             scale: [1, 1.2, 1],
                           } : {}}
                           transition={{
@@ -964,15 +682,15 @@ export function OnboardingAgent() {
                       </motion.button>
                       <motion.button
                         onClick={handleSkip}
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.15,
                           rotate: 90,
                           boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
                         }}
                         whileTap={{ scale: 0.85 }}
-                        transition={{ 
-                          type: 'spring', 
-                          stiffness: 400, 
+                        transition={{
+                          type: 'spring',
+                          stiffness: 400,
                           damping: 17,
                           rotate: { duration: 0.3 }
                         }}
@@ -1000,10 +718,10 @@ export function OnboardingAgent() {
                         >
                           <motion.div
                             className={`h-1 sm:h-1.5 rounded-full transition-all ${
-                              idx === currentStep 
-                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 shadow-lg shadow-blue-500/50' 
-                                : idx < currentStep 
-                                ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500' 
+                              idx === currentStep
+                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 shadow-lg shadow-blue-500/50'
+                                : idx < currentStep
+                                ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500'
                                 : 'w-4 sm:w-5 md:w-6 bg-gray-300 dark:bg-gray-600'
                             }`}
                             animate={idx === currentStep ? {
@@ -1047,7 +765,7 @@ export function OnboardingAgent() {
                       >
                         {step.title}
                       </motion.h2>
-                      
+
                       <motion.p
                         key={`description-${currentStep}`}
                         initial={{ opacity: 0, y: 10 }}
@@ -1070,7 +788,7 @@ export function OnboardingAgent() {
                         <div className="flex justify-center">
                           <motion.div
                             className="relative"
-                            animate={isListening ? {
+                            animate={voice.isListening ? {
                               scale: [1, 1.05],
                             } : {}}
                             transition={{
@@ -1082,7 +800,7 @@ export function OnboardingAgent() {
                             }}
                           >
                             {/* Anillos de pulso cuando está escuchando */}
-                            {isListening && (
+                            {voice.isListening && (
                               <>
                                 <motion.div
                                   className="absolute inset-0 rounded-full border-2 border-green-400/50"
@@ -1111,35 +829,35 @@ export function OnboardingAgent() {
                                 />
                               </>
                             )}
-                            
+
                             <motion.button
                               onClick={toggleListening}
-                              disabled={isProcessing}
+                              disabled={voice.isProcessing}
                               className={`relative p-5 sm:p-6 md:p-7 rounded-full transition-all shadow-2xl overflow-hidden ${
-                                isListening 
-                                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500' 
-                                  : isProcessing
+                                voice.isListening
+                                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500'
+                                  : voice.isProcessing
                                   ? 'bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed'
                                   : 'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600'
                               }`}
-                              whileHover={isProcessing ? {} : { 
+                              whileHover={voice.isProcessing ? {} : {
                                 scale: 1.12,
                                 boxShadow: '0 10px 40px rgba(59, 130, 246, 0.5)'
                               }}
-                              whileTap={isProcessing ? {} : { scale: 0.88 }}
-                              animate={isListening ? {
+                              whileTap={voice.isProcessing ? {} : { scale: 0.88 }}
+                              animate={voice.isListening ? {
                                 boxShadow: [
                                   '0 0 25px rgba(34, 197, 94, 0.7)',
                                   '0 0 70px rgba(34, 197, 94, 1)',
                                 ],
                                 scale: [1, 1.05]
-                              } : isProcessing ? {
+                              } : voice.isProcessing ? {
                                 boxShadow: [
                                   '0 0 20px rgba(107, 114, 128, 0.5)',
                                   '0 0 35px rgba(107, 114, 128, 0.7)',
                                 ]
                               } : {}}
-                              transition={{ 
+                              transition={{
                                 boxShadow: {
                                   type: 'tween',
                                   duration: 1.5,
@@ -1157,7 +875,7 @@ export function OnboardingAgent() {
                               }}
                             >
                               {/* Efecto de brillo animado */}
-                              {!isProcessing && (
+                              {!voice.isProcessing && (
                                 <motion.div
                                   className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
                                   initial={{ x: '-100%' }}
@@ -1170,14 +888,14 @@ export function OnboardingAgent() {
                                   }}
                                 />
                               )}
-                              {isProcessing ? (
+                              {voice.isProcessing ? (
                                 <motion.div
                                   animate={{ rotate: 360 }}
                                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                                 >
                                   <Mic size={24} className="sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                                 </motion.div>
-                              ) : isListening ? (
+                              ) : voice.isListening ? (
                                 <MicOff size={24} className="sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                               ) : (
                                 <Mic size={24} className="sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
@@ -1188,20 +906,17 @@ export function OnboardingAgent() {
 
                         {/* Estado del micrófono compacto */}
                         <motion.p
-                          key={isListening ? 'listening' : isProcessing ? 'processing' : 'idle'}
+                          key={voice.isListening ? 'listening' : voice.isProcessing ? 'processing' : 'idle'}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="text-xs sm:text-sm md:text-base text-gray-800 dark:text-gray-200 font-medium"
+                          className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium"
                         >
-                          {isProcessing 
+                          {voice.isProcessing
                             ? t('onboarding.voice.processing')
-                            : isListening 
+                            : voice.isListening
                             ? t('onboarding.voice.listening')
                             : t('onboarding.voice.clickToSpeak')}
                         </motion.p>
-
-                        {/* ✅ Ocultado: Transcripción y historial de conversación */}
-                        {/* Solo se reproduce la voz, sin mostrar el texto en pantalla */}
                       </motion.div>
                     )}
                   </div>
@@ -1211,16 +926,16 @@ export function OnboardingAgent() {
                       {currentStep > 0 && (
                         <motion.button
                           onClick={handlePrevious}
-                          whileHover={{ 
-                            scale: 1.08, 
+                          whileHover={{
+                            scale: 1.08,
                             x: -4,
                             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                           }}
                           whileTap={{ scale: 0.92 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-4 sm:px-5 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium transition-colors shadow-md border border-gray-200 dark:border-gray-600 text-xs sm:text-sm overflow-hidden group"
                         >
@@ -1238,15 +953,15 @@ export function OnboardingAgent() {
                       {step.action && currentStep < ONBOARDING_STEPS.length - 1 && (
                         <motion.button
                           onClick={handleActionClick}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.08,
                             boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)',
                           }}
                           whileTap={{ scale: 0.92 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-blue-500/30 dark:shadow-blue-500/20 text-xs sm:text-sm overflow-hidden group"
                         >
@@ -1270,15 +985,15 @@ export function OnboardingAgent() {
                       {currentStep < ONBOARDING_STEPS.length - 1 ? (
                         <motion.button
                           onClick={handleNext}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.08,
                             boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)',
                           }}
                           whileTap={{ scale: 0.92 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-blue-500/30 dark:shadow-blue-500/20 text-xs sm:text-sm overflow-hidden group"
                         >
@@ -1303,15 +1018,15 @@ export function OnboardingAgent() {
                       ) : (
                         <motion.button
                           onClick={handleComplete}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.1,
                             boxShadow: '0 10px 30px rgba(34, 197, 94, 0.5)',
                           }}
                           whileTap={{ scale: 0.9 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
                           className="relative w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white font-bold shadow-xl shadow-green-500/30 dark:shadow-green-500/20 text-sm sm:text-base overflow-hidden group"
                         >
@@ -1350,17 +1065,17 @@ export function OnboardingAgent() {
                       >
                         <motion.button
                           onClick={handleSkip}
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.05,
                             y: -2
                           }}
                           whileTap={{ scale: 0.95 }}
-                          transition={{ 
-                            type: 'spring', 
-                            stiffness: 400, 
-                            damping: 17 
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 17
                           }}
-                          className="relative text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs sm:text-sm transition-colors font-medium group"
+                          className="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs sm:text-sm transition-colors font-medium group"
                         >
                           <span className="relative z-10">{t('onboarding.buttons.skipIntro')}</span>
                           <motion.div

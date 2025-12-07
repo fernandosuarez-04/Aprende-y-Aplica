@@ -105,7 +105,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com data: https://r2cdn.perplexity.ai",
               "img-src 'self' data: blob: https://*.supabase.co https://via.placeholder.com https://picsum.photos https://images.unsplash.com https://img.youtube.com https://*.googleusercontent.com",
               "media-src 'self' blob: https://*.supabase.co",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.elevenlabs.io https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com",
               "frame-src 'self' https://accounts.google.com https://www.youtube.com https://*.supabase.co",
               "object-src 'none'",
               "base-uri 'self'",
