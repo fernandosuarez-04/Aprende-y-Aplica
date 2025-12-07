@@ -5,8 +5,9 @@
 
 import { AutoTranslationService } from './autoTranslation.service';
 import { ContentTranslationService } from './contentTranslation.service';
+import { LanguageDetectionService } from './languageDetection.service';
 import { SupportedLanguage } from '../i18n/i18n';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '../../lib/supabase/server';
 
 type EntityType = 'course' | 'module' | 'lesson' | 'activity' | 'material';
 
@@ -57,15 +58,12 @@ export async function translateCourseOnCreate(
       success: false,
       languages: [],
       errors: { 
+        es: 'OPENAI_API_KEY no está configurada en las variables de entorno', 
         en: 'OPENAI_API_KEY no está configurada en las variables de entorno', 
         pt: 'OPENAI_API_KEY no está configurada en las variables de entorno' 
       }
     };
   }
-
-  const targetLanguages: SupportedLanguage[] = ['en', 'pt'];
-  const errors: Record<SupportedLanguage, string> = {} as Record<SupportedLanguage, string>;
-  let successCount = 0;
 
   // Usar el cliente proporcionado o crear uno nuevo
   console.log('[CourseTranslation] Obteniendo cliente de Supabase...');
@@ -76,11 +74,29 @@ export async function translateCourseOnCreate(
     return {
       success: false,
       languages: [],
-      errors: { en: 'Error al crear cliente de Supabase', pt: 'Error al crear cliente de Supabase' }
+      errors: { es: 'Error al crear cliente de Supabase', en: 'Error al crear cliente de Supabase', pt: 'Error al crear cliente de Supabase' }
     };
   }
   
   console.log('[CourseTranslation] ✅ Cliente de Supabase obtenido correctamente');
+
+  // PASO 1: Detectar el idioma del contenido
+  console.log('[CourseTranslation] ========== PASO 1: DETECTANDO IDIOMA ==========');
+  const textsToAnalyze: string[] = [courseData.title];
+  if (courseData.description) textsToAnalyze.push(courseData.description);
+  
+  const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
+  console.log(`[CourseTranslation] ✅ Idioma detectado: ${detectedLanguage}`);
+
+  // PASO 2: Determinar idiomas destino (los otros dos)
+  const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
+  const targetLanguages = allLanguages.filter(lang => lang !== detectedLanguage) as SupportedLanguage[];
+  console.log(`[CourseTranslation] ========== PASO 2: IDIOMAS DESTINO ==========`);
+  console.log(`[CourseTranslation] Idioma origen: ${detectedLanguage}`);
+  console.log(`[CourseTranslation] Idiomas destino: ${targetLanguages.join(', ')}`);
+
+  const errors: Record<SupportedLanguage, string> = {} as Record<SupportedLanguage, string>;
+  let successCount = 0;
 
   // Campos a traducir
   const fieldsToTranslate: string[] = ['title'];
@@ -89,7 +105,7 @@ export async function translateCourseOnCreate(
     fieldsToTranslate.push('learning_objectives');
   }
 
-  // Traducir a cada idioma
+  // PASO 3: Traducir a cada idioma destino
   for (const lang of targetLanguages) {
     try {
       console.log(`[CourseTranslation] Iniciando traducción del curso ${courseId} a ${lang}...`);
@@ -100,6 +116,14 @@ export async function translateCourseOnCreate(
         hasLearningObjectives: !!courseData.learning_objectives
       });
 
+      console.log(`[CourseTranslation] ========== PASO 3: TRADUCIENDO A ${lang.toUpperCase()} ==========`);
+      console.log(`[CourseTranslation] Detalles de traducción:`, {
+        sourceLanguage: detectedLanguage,
+        targetLanguage: lang,
+        fieldsToTranslate,
+        courseTitle: courseData.title?.substring(0, 50)
+      });
+      
       const translations = await AutoTranslationService.translateEntity(
         courseData,
         fieldsToTranslate,
@@ -108,8 +132,15 @@ export async function translateCourseOnCreate(
         {
           context: 'Este es un curso de una plataforma educativa sobre inteligencia artificial aplicada.',
           preserveFormatting: true,
+          sourceLanguage: detectedLanguage, // Pasar el idioma de origen detectado
         }
       );
+      
+      console.log(`[CourseTranslation] ✅ Traducción completada para ${lang}:`, {
+        translationKeys: Object.keys(translations),
+        hasTitle: !!translations.title,
+        titlePreview: translations.title?.substring(0, 50)
+      });
 
       console.log(`[CourseTranslation] Traducciones obtenidas para ${lang}:`, JSON.stringify(translations, null, 2));
       console.log(`[CourseTranslation] Preparando para guardar traducción...`, {
@@ -166,7 +197,17 @@ export async function translateModuleOnCreate(
   },
   userId?: string
 ): Promise<TranslationResult> {
-  const targetLanguages: SupportedLanguage[] = ['en', 'pt'];
+  // Detectar idioma del contenido
+  const textsToAnalyze: string[] = [moduleData.module_title];
+  if (moduleData.module_description) textsToAnalyze.push(moduleData.module_description);
+  
+  const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
+  console.log(`[CourseTranslation] Módulo ${moduleId}: Idioma detectado: ${detectedLanguage}`);
+
+  // Determinar idiomas destino (los otros dos)
+  const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
+  const targetLanguages = allLanguages.filter(lang => lang !== detectedLanguage) as SupportedLanguage[];
+  
   const errors: Record<SupportedLanguage, string> = {} as Record<SupportedLanguage, string>;
   let successCount = 0;
 
@@ -186,6 +227,7 @@ export async function translateModuleOnCreate(
         {
           context: 'Este es un módulo de un curso educativo sobre inteligencia artificial.',
           preserveFormatting: true,
+          sourceLanguage: detectedLanguage, // Pasar el idioma de origen detectado
         }
       );
 
@@ -231,7 +273,23 @@ export async function translateLessonOnCreate(
   },
   userId?: string
 ): Promise<TranslationResult> {
-  const targetLanguages: SupportedLanguage[] = ['en', 'pt'];
+  // Detectar idioma del contenido (usar título y descripción, no transcripción/resumen que pueden ser muy largos)
+  const textsToAnalyze: string[] = [lessonData.lesson_title];
+  if (lessonData.lesson_description) textsToAnalyze.push(lessonData.lesson_description);
+  // Si no hay descripción, usar una muestra del transcript o summary
+  if (textsToAnalyze.length === 1 && lessonData.transcript_content) {
+    textsToAnalyze.push(lessonData.transcript_content.substring(0, 200));
+  } else if (textsToAnalyze.length === 1 && lessonData.summary_content) {
+    textsToAnalyze.push(lessonData.summary_content.substring(0, 200));
+  }
+  
+  const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
+  console.log(`[CourseTranslation] Lección ${lessonId}: Idioma detectado: ${detectedLanguage}`);
+
+  // Determinar idiomas destino (los otros dos)
+  const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
+  const targetLanguages = allLanguages.filter(lang => lang !== detectedLanguage) as SupportedLanguage[];
+  
   const errors: Record<SupportedLanguage, string> = {} as Record<SupportedLanguage, string>;
   let successCount = 0;
 
@@ -253,8 +311,22 @@ export async function translateLessonOnCreate(
         {
           context: 'Este es el contenido de una lección educativa sobre inteligencia artificial. La transcripción es el texto completo del video y el resumen es una síntesis de los conceptos clave.',
           preserveFormatting: true,
+          sourceLanguage: detectedLanguage, // Pasar el idioma de origen detectado
         }
       );
+
+      console.log(`[CourseTranslation] Intentando guardar traducción a ${lang} para lección ${lessonId}`, {
+        translationKeys: Object.keys(translations),
+        translationSizes: Object.keys(translations).reduce((acc, key) => {
+          const value = translations[key];
+          acc[key] = typeof value === 'string' ? value.length : Array.isArray(value) ? value.length : 'N/A';
+          return acc;
+        }, {} as Record<string, any>),
+        hasTranscript: !!translations.transcript_content,
+        transcriptLength: translations.transcript_content?.length || 0,
+        hasSummary: !!translations.summary_content,
+        summaryLength: translations.summary_content?.length || 0
+      });
 
       const saved = await ContentTranslationService.saveTranslation(
         'lesson',
@@ -267,9 +339,16 @@ export async function translateLessonOnCreate(
 
       if (saved) {
         successCount++;
-        console.log(`[CourseTranslation] Lección ${lessonId} traducida exitosamente a ${lang}`);
+        console.log(`[CourseTranslation] ✅ Lección ${lessonId} traducida exitosamente a ${lang}`);
       } else {
-        errors[lang] = 'Error al guardar traducción';
+        const errorMsg = `Error al guardar traducción a ${lang}. Revisa los logs del servidor para más detalles.`;
+        errors[lang] = errorMsg;
+        console.error(`[CourseTranslation] ❌ ${errorMsg}`, {
+          lessonId,
+          language: lang,
+          translationKeys: Object.keys(translations),
+          translationCount: Object.keys(translations).length
+        });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -298,7 +377,20 @@ export async function translateActivityOnCreate(
   },
   userId?: string
 ): Promise<TranslationResult> {
-  const targetLanguages: SupportedLanguage[] = ['en', 'pt'];
+  // Detectar idioma del contenido
+  const textsToAnalyze: string[] = [activityData.activity_title];
+  if (activityData.activity_description) textsToAnalyze.push(activityData.activity_description);
+  if (activityData.activity_content) {
+    textsToAnalyze.push(activityData.activity_content.substring(0, 200)); // Muestra del contenido
+  }
+  
+  const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
+  console.log(`[CourseTranslation] Actividad ${activityId}: Idioma detectado: ${detectedLanguage}`);
+
+  // Determinar idiomas destino (los otros dos)
+  const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
+  const targetLanguages = allLanguages.filter(lang => lang !== detectedLanguage) as SupportedLanguage[];
+  
   const errors: Record<SupportedLanguage, string> = {} as Record<SupportedLanguage, string>;
   let successCount = 0;
 
@@ -320,6 +412,7 @@ export async function translateActivityOnCreate(
         {
           context: 'Esta es una actividad práctica de un curso educativo. El contenido incluye instrucciones paso a paso y prompts para interactuar con un asistente de IA.',
           preserveFormatting: true,
+          sourceLanguage: detectedLanguage, // Pasar el idioma de origen detectado
         }
       );
 
@@ -364,7 +457,17 @@ export async function translateMaterialOnCreate(
   },
   userId?: string
 ): Promise<TranslationResult> {
-  const targetLanguages: SupportedLanguage[] = ['en', 'pt'];
+  // Detectar idioma del contenido
+  const textsToAnalyze: string[] = [materialData.material_title];
+  if (materialData.material_description) textsToAnalyze.push(materialData.material_description);
+  
+  const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
+  console.log(`[CourseTranslation] Material ${materialId}: Idioma detectado: ${detectedLanguage}`);
+
+  // Determinar idiomas destino (los otros dos)
+  const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
+  const targetLanguages = allLanguages.filter(lang => lang !== detectedLanguage) as SupportedLanguage[];
+  
   const errors: Record<SupportedLanguage, string> = {} as Record<SupportedLanguage, string>;
   let successCount = 0;
 
@@ -388,6 +491,7 @@ export async function translateMaterialOnCreate(
         {
           context: 'Este es un material educativo complementario de un curso sobre inteligencia artificial.',
           preserveFormatting: true,
+          sourceLanguage: detectedLanguage, // Pasar el idioma de origen detectado
         }
       );
 

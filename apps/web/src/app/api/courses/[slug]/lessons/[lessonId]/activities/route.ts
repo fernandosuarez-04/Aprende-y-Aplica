@@ -69,9 +69,10 @@ export async function GET(
       );
     }
 
-    // Aplicar traducciones si no es español
+    // IMPORTANTE: Siempre intentar aplicar traducciones, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos las traducciones a español
     let translatedActivities = activities || [];
-    if (language !== 'es' && translatedActivities.length > 0) {
+    if (translatedActivities.length > 0) {
       try {
         translatedActivities = await ContentTranslationService.translateArray(
           'activity',

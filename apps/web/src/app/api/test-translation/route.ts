@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { translateCourseOnCreate } from '@/core/services/courseTranslation.service'
+import { LanguageDetectionService } from '@/core/services/languageDetection.service'
+import { ContentTranslationService } from '@/core/services/contentTranslation.service'
 import { createClient } from '@/lib/supabase/server'
+import { SupportedLanguage } from '@/core/i18n/i18n'
 
 /**
  * Endpoint de prueba para verificar que el sistema de traducción funciona
@@ -94,7 +97,15 @@ export async function GET(request: NextRequest) {
     console.log('[TEST-TRANSLATION] ========== RESULTADO DE PRUEBA ==========')
     console.log('[TEST-TRANSLATION] Resultado:', JSON.stringify(result, null, 2))
 
-    // Verificar si se guardaron traducciones
+    // PASO 1: Detectar idioma del contenido original
+    console.log('[TEST-TRANSLATION] ========== DETECTANDO IDIOMA ==========')
+    const textsToAnalyze: string[] = [course.title]
+    if (course.description) textsToAnalyze.push(course.description)
+    
+    const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze)
+    console.log('[TEST-TRANSLATION] Idioma detectado:', detectedLanguage)
+
+    // PASO 2: Verificar traducciones guardadas
     const { data: translations, error: translationsError } = await supabase
       .from('content_translations')
       .select('*')
@@ -107,14 +118,50 @@ export async function GET(request: NextRequest) {
       error: translationsError
     })
 
+    // PASO 3: Probar carga de traducciones para cada idioma
+    console.log('[TEST-TRANSLATION] ========== PROBANDO CARGA DE TRADUCCIONES ==========')
+    const translationTests: Record<string, any> = {}
+    
+    for (const lang of ['es', 'en', 'pt'] as SupportedLanguage[]) {
+      try {
+        const loadedTranslations = await ContentTranslationService.loadTranslations(
+          'course',
+          courseId,
+          lang,
+          supabase
+        )
+        translationTests[lang] = {
+          success: true,
+          hasTranslations: Object.keys(loadedTranslations).length > 0,
+          translationKeys: Object.keys(loadedTranslations),
+          sampleTranslation: loadedTranslations.title || loadedTranslations.description || 'N/A'
+        }
+        console.log(`[TEST-TRANSLATION] Traducciones para ${lang}:`, translationTests[lang])
+      } catch (error) {
+        translationTests[lang] = {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       course: {
         id: course.id,
-        title: course.title
+        title: course.title,
+        description: course.description?.substring(0, 100) || null
       },
+      detectedLanguage: detectedLanguage,
       translationResult: result,
       translationsInDB: translations || [],
+      translationLoadTests: translationTests,
+      summary: {
+        originalLanguage: detectedLanguage,
+        expectedTargetLanguages: detectedLanguage === 'es' ? ['en', 'pt'] : detectedLanguage === 'en' ? ['es', 'pt'] : ['es', 'en'],
+        actualTranslationsInDB: translations?.map(t => t.language_code) || [],
+        allTranslationsLoaded: Object.values(translationTests).every((t: any) => t.success)
+      },
       environment: {
         hasOpenAIKey: !!process.env.OPENAI_API_KEY,
         openAIModel: process.env.OPENAI_MODEL || 'gpt-4o-mini'

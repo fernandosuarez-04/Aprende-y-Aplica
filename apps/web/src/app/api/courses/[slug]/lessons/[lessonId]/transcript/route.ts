@@ -72,8 +72,9 @@ export async function GET(
 
     let transcriptContent = lessonData?.transcript_content || null;
 
-    // Aplicar traducción si no es español y hay contenido
-    if (language !== 'es' && transcriptContent) {
+    // IMPORTANTE: Siempre intentar aplicar traducción, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
+    if (transcriptContent) {
       try {
         const translations = await ContentTranslationService.loadTranslations(
           'lesson',

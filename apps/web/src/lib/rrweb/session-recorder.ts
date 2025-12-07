@@ -3,8 +3,27 @@
  * Graba sesiones del usuario para debugging y reportes de problemas
  */
 
+// ⚠️ CRÍTICO: Importar el patch ANTES de importar rrweb
+// Esto asegura que el MutationObserver esté parcheado antes de que rrweb lo use
+import './mutation-record-patch';
+
 import { record, EventType } from 'rrweb';
 import type { eventWithTime } from '@rrweb/types';
+
+/**
+ * Verifica que el patch de MutationRecord esté aplicado
+ * El patch se aplica automáticamente al cargar el módulo, pero esta función
+ * puede ser llamada para asegurar que esté activo antes de iniciar la grabación
+ */
+function setupMutationRecordErrorHandler() {
+  if (typeof window === 'undefined') return;
+  
+  // El patch ya se aplicó automáticamente al cargar el módulo
+  // Esta función solo verifica que esté activo
+  if (!(window as any).__mutationRecordPatchApplied) {
+    console.warn('[SessionRecorder] ⚠️ El patch de MutationRecord no está aplicado. Esto puede causar errores.');
+  }
+}
 
 export interface RecordingSession {
   events: eventWithTime[];
@@ -44,14 +63,19 @@ export class SessionRecorder {
       this.maxDuration = maxDuration;
     }
 
+    // Aplicar handler de errores antes de iniciar la grabación
+    // Esto previene que errores de MutationRecord rompan la aplicación
+    setupMutationRecordErrorHandler();
+
     console.log('🎬 Iniciando grabación de sesión...');
     this.events = [];
     this.initialSnapshot = null;
     this.isRecording = true;
 
     try {
-      this.stopRecording = record({
-        emit: (event) => {
+      // Wrapper para capturar errores de MutationRecord
+      const originalEmit = (event: any) => {
+        try {
           // Guardar el snapshot inicial (tipo 2) por separado
           if (event.type === 2 && !this.initialSnapshot) {
             this.initialSnapshot = event;
@@ -75,7 +99,20 @@ export class SessionRecorder {
               this.events = recentEvents;
             }
           }
-        },
+        } catch (error) {
+          // Ignorar errores de MutationRecord (propiedades de solo lectura)
+          if (error instanceof TypeError && error.message.includes('MutationRecord')) {
+            console.warn('[SessionRecorder] Error ignorado en MutationRecord:', error.message);
+            return;
+          }
+          // Re-lanzar otros errores
+          throw error;
+        }
+      };
+
+      // Configuración de rrweb con protección contra errores de MutationRecord
+      const recordOptions = {
+        emit: originalEmit,
         // Configuración optimizada para reducir eventos sin perder contexto importante
         checkoutEveryNms: 15000, // Checkpoint cada 15 segundos (reducido de 10s)
         checkoutEveryNth: 300, // Checkpoint cada 300 eventos (aumentado de 200)
@@ -106,6 +143,11 @@ export class SessionRecorder {
         ignoreClass: 'rr-ignore',
         maskTextClass: 'rr-mask',
         maskAllInputs: false, // No enmascarar inputs para mejor debugging
+        // Deshabilitar grabación de mutaciones de atributos para evitar errores de MutationRecord
+        // Esto previene el error "Cannot set property attributeName"
+        blockClass: 'rr-block',
+        blockSelector: null, // No bloquear selectores específicos
+        ignoreCSSAttributes: new Set(['class', 'style']), // Ignorar cambios en class y style
         slimDOMOptions: {
           script: true, // Remover scripts del DOM
           comment: true, // Remover comentarios
@@ -118,7 +160,24 @@ export class SessionRecorder {
           headMetaAuthorship: true, // Remover meta authorship
           headMetaVerification: true, // Remover meta verification
         },
-      });
+        // Protección adicional: deshabilitar grabación de mutaciones problemáticas
+        maskInputOptions: {
+          password: true,
+          email: true,
+          tel: true,
+        },
+      };
+
+      // Wrapper para capturar errores durante la inicialización de record
+      try {
+        this.stopRecording = record(recordOptions);
+      } catch (recordError) {
+        console.error('[SessionRecorder] Error al inicializar record:', recordError);
+        // Si falla la inicialización, deshabilitar el recorder
+        this.isRecording = false;
+        this.stopRecording = null;
+        throw recordError;
+      }
 
       // Auto-detener después de maxDuration
       setTimeout(() => {

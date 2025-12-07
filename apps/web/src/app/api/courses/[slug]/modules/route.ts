@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
 import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
+import { ContentTranslationService } from '@/core/services/contentTranslation.service';
+import { SupportedLanguage } from '@/core/i18n/i18n';
 
 /**
  * GET /api/courses/[slug]/modules
@@ -13,6 +15,8 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
+    const { searchParams } = new URL(request.url);
+    const language = (searchParams.get('lang') || 'es') as SupportedLanguage;
     const supabase = await createClient();
 
     // Obtener el curso por slug para obtener su ID
@@ -167,33 +171,65 @@ export async function GET(
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
-    const modulesWithLessons = modules.map((module) => {
-      const moduleLessons = lessonsByModule.get(module.module_id) || [];
-      console.log(`[modules/route] Módulo ${module.module_id} (${module.module_title}):`, {
-        totalLessons: moduleLessons.length,
-        publishedLessons: moduleLessons.filter(l => l.is_published === true).length,
-        allLessons: moduleLessons.map(l => ({
-          id: l.lesson_id,
-          title: l.lesson_title,
-          is_published: l.is_published
-        }))
-      });
-      
-      const publishedLessons = moduleLessons.filter(
-        (lesson) => lesson.is_published === true
-      );
-      const lessons =
-        publishedLessons.length > 0 ? publishedLessons : moduleLessons;
-      
-      console.log(`[modules/route] Lecciones finales para módulo ${module.module_id}:`, {
-        count: lessons.length,
-        lessons: lessons.map(l => ({
-          id: l.lesson_id,
-          title: l.lesson_title
-        }))
-      });
+    // Aplicar traducciones a módulos y lecciones
+    const modulesWithLessons = await Promise.all(
+      modules.map(async (module) => {
+        // Traducir módulo
+        const moduleWithId = { ...module, id: module.module_id };
+        const translatedModule = await ContentTranslationService.translateObject(
+          'module',
+          moduleWithId,
+          ['module_title', 'module_description'],
+          language,
+          supabase
+        );
 
-      const lessonsWithProgress = lessons.map((lesson) => {
+        const moduleLessons = lessonsByModule.get(module.module_id) || [];
+        console.log(`[modules/route] Módulo ${module.module_id} (${module.module_title}):`, {
+          totalLessons: moduleLessons.length,
+          publishedLessons: moduleLessons.filter(l => l.is_published === true).length,
+          allLessons: moduleLessons.map(l => ({
+            id: l.lesson_id,
+            title: l.lesson_title,
+            is_published: l.is_published
+          }))
+        });
+        
+        const publishedLessons = moduleLessons.filter(
+          (lesson) => lesson.is_published === true
+        );
+        const lessons =
+          publishedLessons.length > 0 ? publishedLessons : moduleLessons;
+        
+        // Traducir lecciones
+        const translatedLessons = await Promise.all(
+          lessons.map(async (lesson) => {
+            const lessonWithId = { ...lesson, id: lesson.lesson_id };
+            const translatedLesson = await ContentTranslationService.translateObject(
+              'lesson',
+              lessonWithId,
+              ['lesson_title', 'lesson_description'],
+              language,
+              supabase
+            );
+            
+            return {
+              ...lesson,
+              lesson_title: translatedLesson.lesson_title || lesson.lesson_title,
+              lesson_description: translatedLesson.lesson_description || lesson.lesson_description
+            };
+          })
+        );
+        
+        console.log(`[modules/route] Lecciones finales para módulo ${module.module_id}:`, {
+          count: translatedLessons.length,
+          lessons: translatedLessons.map(l => ({
+            id: l.lesson_id,
+            title: l.lesson_title
+          }))
+        });
+
+      const lessonsWithProgress = translatedLessons.map((lesson) => {
         let videoUrl = lesson.video_provider_id;
 
         if (
@@ -230,13 +266,15 @@ export async function GET(
 
       return {
         module_id: module.module_id,
-        module_title: module.module_title,
+        module_title: translatedModule.module_title || module.module_title,
+        module_description: translatedModule.module_description || module.module_description,
         module_order_index: module.module_order_index,
         module_duration_minutes: module.module_duration_minutes,
         is_published: module.is_published,
         lessons: lessonsWithProgress,
       };
-    });
+      })
+    );
 
     const overallProgress = userEnrollment?.overall_progress_percentage
       ? Number(userEnrollment.overall_progress_percentage)

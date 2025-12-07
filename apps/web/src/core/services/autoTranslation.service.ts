@@ -5,11 +5,13 @@
 
 import { SupportedLanguage } from '../i18n/i18n';
 
-type TargetLanguage = 'en' | 'pt';
+type TargetLanguage = SupportedLanguage; // 'es' | 'en' | 'pt'
+type SourceLanguage = 'es' | 'en' | 'pt';
 
 interface TranslationOptions {
   context?: string;
   preserveFormatting?: boolean;
+  sourceLanguage?: SourceLanguage; // Idioma de origen (opcional, por defecto 'es')
 }
 
 export class AutoTranslationService {
@@ -44,7 +46,10 @@ export class AutoTranslationService {
   }
 
   /**
-   * Traduce un texto individual de español a otro idioma
+   * Traduce un texto individual de un idioma a otro
+   * @param text Texto a traducir
+   * @param targetLanguage Idioma destino (es, en, pt)
+   * @param options Opciones incluyendo sourceLanguage (idioma de origen)
    */
   static async translateText(
     text: string,
@@ -55,24 +60,48 @@ export class AutoTranslationService {
       return text;
     }
 
+    // Obtener idioma de origen (debe ser proporcionado explícitamente)
+    const sourceLanguage = options.sourceLanguage;
+    if (!sourceLanguage) {
+      console.error(`[AutoTranslationService] ❌ sourceLanguage no proporcionado en options. Options:`, options);
+      console.warn(`[AutoTranslationService] ⚠️ Asumiendo español por defecto, pero esto puede causar traducciones incorrectas`);
+    }
+    
+    const finalSourceLanguage = sourceLanguage || 'es';
+    
+    if (finalSourceLanguage === targetLanguage) {
+      console.log(`[AutoTranslationService] Idioma origen y destino son iguales (${finalSourceLanguage}), retornando texto original`);
+      return text;
+    }
+    
+    console.log(`[AutoTranslationService] Traduciendo de ${finalSourceLanguage} a ${targetLanguage}`, {
+      providedSourceLanguage: sourceLanguage,
+      finalSourceLanguage,
+      targetLanguage
+    });
+
     if (!this.isConfigured()) {
       console.warn('[AutoTranslationService] ⚠️ OPENAI_API_KEY no configurada, retornando texto original sin traducir');
       return text;
     }
 
-    console.log(`[AutoTranslationService] Iniciando traducción de texto a ${targetLanguage} (longitud: ${text.length} caracteres)`);
+    console.log(`[AutoTranslationService] Iniciando traducción de ${finalSourceLanguage} a ${targetLanguage} (longitud: ${text.length} caracteres)`);
 
-    const languageNames = {
+    const languageNames: Record<SourceLanguage | TargetLanguage, string> = {
+      es: 'español',
       en: 'inglés',
       pt: 'portugués brasileño'
     };
+
+    const sourceLangName = languageNames[finalSourceLanguage];
+    const targetLangName = languageNames[targetLanguage];
 
     const contextPrompt = options.context 
       ? `\n\nContexto: ${options.context}`
       : '';
 
     const systemPrompt = `Eres un traductor profesional especializado en contenido educativo y tecnológico. 
-Tu tarea es traducir texto del español al ${languageNames[targetLanguage]} manteniendo:
+Tu tarea es traducir texto del ${sourceLangName} al ${targetLangName} manteniendo:
 - El tono profesional y preciso
 - La terminología técnica correcta
 - El formato y estructura original
@@ -82,7 +111,7 @@ ${options.preserveFormatting ? 'IMPORTANTE: Mantén todos los saltos de línea, 
 
 Responde ÚNICAMENTE con la traducción, sin explicaciones ni comentarios adicionales.`;
 
-    const userPrompt = `Traduce el siguiente texto de español a ${languageNames[targetLanguage]}.${contextPrompt}
+    const userPrompt = `Traduce el siguiente texto del ${sourceLangName} al ${targetLangName}.${contextPrompt}
 
 Texto original:
 ${text}
@@ -179,7 +208,10 @@ Traducción:`;
         const translatedArray = await Promise.all(
           value.map(async (item: any) => {
             if (typeof item === 'string' && item.trim().length > 0) {
-              return await this.translateText(item, targetLanguage, options);
+              return await this.translateText(item, targetLanguage, {
+                ...options,
+                sourceLanguage: options.sourceLanguage, // Pasar el idioma de origen
+              });
             }
             return item;
           })
@@ -189,7 +221,10 @@ Traducción:`;
 
       // Si es un string, traducirlo
       if (typeof value === 'string' && value.trim().length > 0) {
-        const translated = await this.translateText(value, targetLanguage, options);
+        const translated = await this.translateText(value, targetLanguage, {
+          ...options,
+          sourceLanguage: options.sourceLanguage, // Pasar el idioma de origen
+        });
         return { field, translated };
       }
 

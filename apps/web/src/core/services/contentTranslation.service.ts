@@ -31,6 +31,10 @@ export class ContentTranslationService {
   /**
    * Obtiene las traducciones de una entidad desde la BD
    * @param supabaseClient Cliente opcional de Supabase (para uso en servidor)
+   * 
+   * IMPORTANTE: Ahora siempre intenta cargar traducciones, incluso para español.
+   * Esto es necesario porque cuando el contenido original está en inglés o portugués,
+   * necesitamos cargar la traducción al español desde content_translations.
    */
   static async loadTranslations(
     entityType: EntityType,
@@ -38,10 +42,8 @@ export class ContentTranslationService {
     language: SupportedLanguage,
     supabaseClient?: any
   ): Promise<ContentTranslations> {
-    // Si es español, retornar vacío (usar valores originales)
-    if (language === 'es') {
-      return {};
-    }
+    // IMPORTANTE: Ya no retornamos vacío para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
 
     // Verificar caché
     const cacheKey = this.getCacheKey(entityType, entityId, language);
@@ -83,6 +85,8 @@ export class ContentTranslationService {
 
   /**
    * Obtiene la traducción de un campo específico
+   * IMPORTANTE: Ahora intenta traducir incluso cuando language === 'es'
+   * porque el contenido original puede estar en inglés/portugués
    */
   static async getTranslation(
     entityType: EntityType,
@@ -91,16 +95,15 @@ export class ContentTranslationService {
     language: SupportedLanguage,
     fallback: string
   ): Promise<string> {
-    if (language === 'es') {
-      return fallback;
-    }
-
+    // Siempre intentar cargar traducciones, incluso para español
     const translations = await this.loadTranslations(entityType, entityId, language);
     return translations[field] || fallback;
   }
 
   /**
    * Traduce un objeto completo
+   * IMPORTANTE: Ahora intenta traducir incluso cuando language === 'es'
+   * porque el contenido original puede estar en inglés/portugués
    */
   static async translateObject<T extends Record<string, any>>(
     entityType: EntityType,
@@ -108,16 +111,19 @@ export class ContentTranslationService {
     fields: string[],
     language: SupportedLanguage
   ): Promise<T> {
-    if (language === 'es' || !obj.id) {
+    if (!obj.id) {
       return obj;
     }
 
+    // Siempre intentar cargar traducciones, incluso para español
     const translations = await this.loadTranslations(entityType, obj.id, language);
     
+    // Si no hay traducciones, retornar objeto original
     if (Object.keys(translations).length === 0) {
       return obj;
     }
 
+    // Aplicar traducciones
     const translated = { ...obj } as any;
     fields.forEach(field => {
       if (translations[field]) {
@@ -139,7 +145,9 @@ export class ContentTranslationService {
     language: SupportedLanguage,
     supabaseClient?: any
   ): Promise<T[]> {
-    if (language === 'es' || array.length === 0) {
+    // IMPORTANTE: Ya no retornamos el array original para español
+    // Si el contenido original está en inglés/portugués, necesitamos traducir a español
+    if (array.length === 0) {
       return array;
     }
 
@@ -184,20 +192,29 @@ export class ContentTranslationService {
 
       // Aplicar traducciones
       return array.map(item => {
-        if (!item.id) return item;
+        if (!item.id) {
+          console.log(`[translateArray] ⚠️ Item sin ID:`, item);
+          return item;
+        }
         
         const translations = translationsMap.get(item.id);
         if (!translations) {
-          console.log(`[translateArray] No translation for entity ${item.id}`);
+          console.log(`[translateArray] ⚠️ No translation found for entity ${item.id} (${entityType}) in language ${language}`);
+          console.log(`[translateArray] Available translations in map:`, Array.from(translationsMap.keys()));
           return item;
         }
 
-        console.log(`[translateArray] Applying translations for ${item.id}:`, translations);
+        console.log(`[translateArray] ✅ Applying translations for ${entityType}:${item.id} (${language}):`, {
+          fields: Object.keys(translations),
+          sample: translations[fields[0]]
+        });
 
         const translated = { ...item } as any;
         fields.forEach(field => {
           if (translations[field]) {
+            const originalValue = translated[field];
             translated[field] = translations[field];
+            console.log(`[translateArray]   ${field}: "${originalValue}" → "${translations[field]}"`);
           }
         });
         return translated;
@@ -220,16 +237,33 @@ export class ContentTranslationService {
     userId?: string,
     supabaseClient?: any // Cliente de Supabase opcional (para uso en servidor)
   ): Promise<boolean> {
-    if (language === 'es') {
-      console.log('[ContentTranslationService] No se guardan traducciones para español');
-      return false; // No guardar traducciones para español
-    }
+    // IMPORTANTE: Ahora guardamos traducciones a TODOS los idiomas, incluyendo español
+    // La lógica de "no traducir a español" se maneja en las funciones de traducción
+    // cuando el contenido original ya está en español. Pero si el contenido original
+    // está en inglés o portugués, SÍ necesitamos guardar la traducción a español.
+    console.log(`[ContentTranslationService] Guardando traducción para ${entityType}:${entityId}:${language}`);
 
     try {
       // Validar que tenemos traducciones para guardar
       if (!translations || Object.keys(translations).length === 0) {
-        console.warn(`[ContentTranslationService] No hay traducciones para guardar para ${entityType}:${entityId}:${language}`);
+        console.warn(`[ContentTranslationService] ⚠️ No hay traducciones para guardar para ${entityType}:${entityId}:${language}`);
         return false;
+      }
+
+      // Verificar tamaño total de las traducciones (Supabase tiene límites)
+      const translationsJson = JSON.stringify(translations);
+      const translationsSize = new Blob([translationsJson]).size;
+      console.log(`[ContentTranslationService] Tamaño de traducciones para ${entityType}:${entityId}:${language}:`, {
+        sizeBytes: translationsSize,
+        sizeKB: (translationsSize / 1024).toFixed(2),
+        sizeMB: (translationsSize / (1024 * 1024)).toFixed(2),
+        fieldCount: Object.keys(translations).length,
+        fields: Object.keys(translations)
+      });
+
+      // Supabase JSONB tiene un límite de ~1GB, pero en la práctica es mejor mantenerlo bajo
+      if (translationsSize > 10 * 1024 * 1024) { // 10MB
+        console.warn(`[ContentTranslationService] ⚠️ Traducciones muy grandes (${(translationsSize / (1024 * 1024)).toFixed(2)}MB) para ${entityType}:${entityId}:${language}`);
       }
 
       console.log(`[ContentTranslationService] Guardando traducción para ${entityType}:${entityId}:${language}`, {
