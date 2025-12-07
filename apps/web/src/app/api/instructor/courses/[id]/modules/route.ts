@@ -111,7 +111,7 @@ export async function POST(
       )
     }
 
-    const module = await AdminModulesService.createModule(courseId, body)
+    const module = await AdminModulesService.createModule(courseId, body, instructorId)
 
     return NextResponse.json({
       success: true,

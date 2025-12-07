@@ -42,8 +42,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string, moduleId: string, lessonId: string }> }
 ) {
   try {
+    const auth = await requireAdmin()
+    if (auth instanceof NextResponse) return auth
+    
     const { lessonId } = await params
     const body = await request.json() as CreateActivityData
+    const adminUserId = auth.userId
 
     if (!lessonId) {
       return NextResponse.json(
@@ -59,7 +63,7 @@ export async function POST(
       )
     }
 
-    const activity = await AdminActivitiesService.createActivity(lessonId, body)
+    const activity = await AdminActivitiesService.createActivity(lessonId, body, adminUserId)
 
     return NextResponse.json({
       success: true,

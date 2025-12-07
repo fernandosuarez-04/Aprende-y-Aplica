@@ -77,7 +77,7 @@ export class AdminActivitiesService {
     }
   }
 
-  static async createActivity(lessonId: string, activityData: CreateActivityData): Promise<AdminActivity> {
+  static async createActivity(lessonId: string, activityData: CreateActivityData, userId?: string): Promise<AdminActivity> {
     const supabase = await createClient()
 
     try {
@@ -108,6 +108,27 @@ export class AdminActivitiesService {
       if (error) {
         logger.error('Error creating activity', { error: error.message, lessonId })
         throw error
+      }
+
+      // Traducir automáticamente la actividad a inglés y portugués
+      try {
+        const { translateActivityOnCreate } = await import('@/core/services/courseTranslation.service')
+        await translateActivityOnCreate(
+          data.activity_id,
+          {
+            activity_title: data.activity_title,
+            activity_description: data.activity_description,
+            activity_content: data.activity_content,
+            ai_prompts: data.ai_prompts
+          },
+          userId
+        )
+      } catch (translationError) {
+        // No fallar la creación de la actividad si falla la traducción
+        logger.error('Error en traducción automática de la actividad', { 
+          error: translationError instanceof Error ? translationError.message : String(translationError),
+          activityId: data.activity_id 
+        })
       }
 
       return data

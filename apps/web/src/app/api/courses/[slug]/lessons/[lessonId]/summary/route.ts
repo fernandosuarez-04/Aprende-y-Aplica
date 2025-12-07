@@ -1,25 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
-
-/**
- * Obtiene el nombre de la tabla de lecciones según el idioma
- */
-function getLessonsTableName(language: string): string {
-  switch (language) {
-    case 'en':
-      return 'course_lessons_en'
-    case 'pt':
-      return 'course_lessons_pt'
-    case 'es':
-    default:
-      return 'course_lessons'
-  }
-}
+import { ContentTranslationService } from '@/core/services/contentTranslation.service';
+import { SupportedLanguage } from '@/core/i18n/i18n';
 
 /**
  * GET /api/courses/[slug]/lessons/[lessonId]/summary
- * Obtiene el resumen de una lección
+ * Obtiene el resumen de una lección (con traducción si está disponible)
  */
 export async function GET(
   request: NextRequest,
@@ -28,7 +15,7 @@ export async function GET(
   try {
     const { slug, lessonId } = await params;
     const { searchParams } = new URL(request.url);
-    const language = searchParams.get('language') || 'es'; // Por defecto español
+    const language = (searchParams.get('language') || 'es') as SupportedLanguage;
     const supabase = await createClient();
 
     // Optimización: Obtener curso primero, luego validar lección y módulo en una consulta
@@ -45,12 +32,10 @@ export async function GET(
       );
     }
 
-    // Usar la tabla correcta según el idioma
-    const lessonsTableName = getLessonsTableName(language);
-    
+    // IMPORTANTE: Siempre leer de course_lessons (tabla principal)
     // Optimización: Verificar lección y módulo en una sola consulta con JOIN
     const { data: lesson, error: lessonError } = await supabase
-      .from(lessonsTableName)
+      .from('course_lessons')
       .select(`
         lesson_id,
         module_id,
@@ -70,30 +55,55 @@ export async function GET(
       );
     }
 
-    // Obtener resumen de la lección desde la tabla correcta según idioma
+    // Obtener resumen de la lección desde course_lessons
     const { data: lessonData, error: summaryError } = await supabase
-      .from(lessonsTableName)
+      .from('course_lessons')
       .select('summary_content')
       .eq('lesson_id', lessonId)
       .single();
 
     if (summaryError) {
-      // console.error('Error fetching summary:', summaryError);
+      console.error('[summary/route] Error obteniendo resumen:', summaryError);
       return NextResponse.json(
         { error: 'Error al obtener resumen' },
         { status: 500 }
       );
     }
 
+    let summaryContent = lessonData?.summary_content || null;
+
+    // IMPORTANTE: Siempre intentar aplicar traducción, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
+    if (summaryContent) {
+      try {
+        const translations = await ContentTranslationService.loadTranslations(
+          'lesson',
+          lessonId,
+          language,
+          supabase // Pasar el cliente del servidor
+        );
+        
+        if (translations.summary_content) {
+          summaryContent = translations.summary_content as string;
+          console.log(`[summary/route] ✅ Traducción aplicada para ${lessonId}:${language}`);
+        } else {
+          console.log(`[summary/route] ⚠️ No hay traducción disponible para ${lessonId}:${language}, usando original`);
+        }
+      } catch (translationError) {
+        console.error(`[summary/route] Error aplicando traducción:`, translationError);
+        // Continuar con el contenido original si falla la traducción
+      }
+    }
+
     // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos estáticos - 1 hora)
     return withCacheHeaders(
       NextResponse.json({
-        summary_content: lessonData?.summary_content || null
+        summary_content: summaryContent
       }),
       cacheHeaders.static
     );
   } catch (error) {
-    // console.error('Error in summary API:', error);
+    console.error('[summary/route] Error inesperado:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

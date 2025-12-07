@@ -79,7 +79,7 @@ export class AdminMaterialsService {
     }
   }
 
-  static async createMaterial(lessonId: string, materialData: CreateMaterialData): Promise<AdminMaterial> {
+  static async createMaterial(lessonId: string, materialData: CreateMaterialData, userId?: string): Promise<AdminMaterial> {
     const supabase = await createClient()
 
     try {
@@ -119,6 +119,23 @@ export class AdminMaterialsService {
       if (error) {
         // console.error('Error creating material:', error)
         throw error
+      }
+
+      // Traducir automáticamente el material a inglés y portugués
+      try {
+        const { translateMaterialOnCreate } = await import('@/core/services/courseTranslation.service')
+        await translateMaterialOnCreate(
+          data.material_id,
+          {
+            material_title: data.material_title,
+            material_description: data.material_description,
+            content_data: data.content_data
+          },
+          userId
+        )
+      } catch (translationError) {
+        // No fallar la creación del material si falla la traducción
+        console.error('Error en traducción automática del material:', translationError)
       }
 
       return data

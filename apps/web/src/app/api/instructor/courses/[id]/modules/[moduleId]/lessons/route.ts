@@ -136,7 +136,7 @@ export async function POST(
       )
     }
 
-    const lesson = await AdminLessonsService.createLesson(moduleId, body)
+    const lesson = await AdminLessonsService.createLesson(moduleId, body, instructorId)
 
     return NextResponse.json({
       success: true,
