@@ -58,7 +58,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
   }
 
   const handleSettings = () => {
-    router.push('/admin/settings')
+    router.push('/profile')
     setIsOpen(false)
   }
 

@@ -269,8 +269,23 @@ export function AdminWorkshopsPage() {
         </div>
 
         {/* Workshops Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredWorkshops.map((workshop) => (
+        {filteredWorkshops.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12">
+            <div className="flex flex-col items-center justify-center">
+              <BookOpenIcon className="h-16 w-16 text-gray-400 dark:text-gray-500 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No se encontraron talleres
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                {searchTerm || filterCategory !== 'all' || filterStatus !== 'all'
+                  ? 'Intenta ajustar los filtros de búsqueda'
+                  : 'No hay talleres creados en el sistema'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredWorkshops.map((workshop) => (
             <div key={workshop.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col">
               {/* Thumbnail */}
               <div className="h-48 bg-gray-200 dark:bg-gray-700 relative overflow-hidden flex-shrink-0">
@@ -356,8 +371,9 @@ export function AdminWorkshopsPage() {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Modal de Creación */}

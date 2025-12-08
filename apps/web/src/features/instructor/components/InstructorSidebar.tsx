@@ -128,16 +128,6 @@ export function InstructorSidebar({
             setTimeout(() => setShowPinFeedback(false), 2000)
           }
         }}
-        onClick={(event) => {
-          // Manejar clicks en el sidebar colapsado
-          if (isCollapsed && isHovered && !isPinned && !isClicking) {
-            setIsClicking(true)
-            event.preventDefault()
-            event.stopPropagation()
-            onTogglePin()
-            setTimeout(() => setIsClicking(false), 300)
-          }
-        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-purple-800/40 flex-shrink-0">

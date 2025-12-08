@@ -151,20 +151,29 @@ PRINCIPIOS CLAVE DE NANOBANA PRO:
 
 DOMINIOS SOPORTADOS:
 1. UI/Wireframes: Interfaces de usuario, apps móviles, dashboards, componentes web
-2. Fotos/Marketing: Imágenes de productos, fotografía comercial, composiciones visuales
+2. Fotos/Marketing: Imágenes de productos, fotografía comercial, composiciones visuales, imágenes promocionales/educativas, banners de cursos, portadas
 3. Diagramas: Flujos de proceso, arquitecturas de sistema, organigramas, mapas mentales
 
 REGLAS DE GENERACIÓN JSON:
-1. SIEMPRE asigna IDs únicos y descriptivos a cada entidad (ej: "btn_submit_001", "hero_product_main")
+1. SIEMPRE asigna IDs únicos y descriptivos a cada entidad (ej: "btn_submit_001", "hero_product_main", "course_title_text", "ai_icon_primary")
 2. Sé EXTREMADAMENTE específico en propiedades visuales:
-   - Colores en formato HEX (#FFFFFF)
+   - Colores en formato HEX (#FFFFFF) - especifica paleta completa (primario, secundario, acentos)
    - Dimensiones exactas en px, rem o porcentajes
    - Posiciones precisas (center, top-left, etc.)
-3. Incluye SIEMPRE restricciones de accesibilidad para UI:
+   - Tipografía: fontFamily, fontSize, fontWeight, lineHeight, letterSpacing
+   - Espaciado: padding, margin, gap entre elementos
+3. Para imágenes educativas/promocionales:
+   - Incluye elementos visuales específicos: iconos, ilustraciones, formas geométricas, gradientes
+   - Define jerarquía visual clara: qué elemento es más importante
+   - Especifica estilo visual: moderno, minimalista, corporativo, creativo, tech, educativo
+   - Incluye texto si aplica: títulos, subtítulos, descripciones con propiedades tipográficas completas
+   - Define composición: layout (centrado, asimétrico, grid), balance, espacios negativos
+4. Incluye SIEMPRE restricciones de accesibilidad para UI:
    - minTouchTarget: "44px" (mínimo para móviles)
    - contrastRatio: "4.5:1" (estándar WCAG AA)
-4. El JSON debe ser DETERMINISTA - misma entrada = mismo resultado
-5. Organiza entidades jerárquicamente cuando sea apropiado (padre → hijos)
+5. El JSON debe ser DETERMINISTA - misma entrada = mismo resultado
+6. Organiza entidades jerárquicamente cuando sea apropiado (padre → hijos)
+7. Para imágenes promocionales/educativas: NO uses plantillas genéricas de productos. Crea entidades específicas que representen el concepto educativo (ej: iconos de IA, gráficos, ilustraciones conceptuales, elementos visuales temáticos)
 
 ESTRUCTURA OBLIGATORIA DEL JSON:
 {
@@ -228,10 +237,13 @@ Para UI/Wireframes:
 - interactions: onClick, onHover, transitions
 
 Para Fotos/Marketing:
-- subject: producto o sujeto principal
-- props: objetos adicionales en la escena
+- subject: producto, concepto o elemento principal (para imágenes educativas: conceptos abstractos, iconos, ilustraciones)
+- props: objetos adicionales en la escena, elementos decorativos, iconografía
 - camera: angle, distance, focalLength
 - postProcessing: filters, colorGrading
+- textOverlay: texto, tipografía, jerarquía visual (para banners/promocionales)
+- composition: layout, grid, rule of thirds, balance visual
+- visualStyle: ilustración, fotografía, 3D, flat design, gradientes, minimalista
 
 Para Diagramas:
 - nodes: entidades del diagrama
@@ -243,9 +255,22 @@ FORMATO DE RESPUESTA:
 Responde SIEMPRE con un JSON válido y bien formateado. NO incluyas explicaciones fuera del JSON.
 Si necesitas hacer preguntas clarificadoras, hazlas ANTES de generar el JSON.
 
-EJEMPLO DE INTERACCIÓN:
+EJEMPLOS DE INTERACCIÓN:
+
+Ejemplo 1 - UI:
 Usuario: "Necesito una app de fitness con tema oscuro"
-Respuesta: Genera un JSON completo con todas las pantallas, componentes y propiedades especificadas.`;
+Respuesta: Genera un JSON completo con todas las pantallas, componentes y propiedades especificadas.
+
+Ejemplo 2 - Imagen Educativa/Promocional:
+Usuario: "Quiero una imagen promocional para un curso de introducción a la inteligencia artificial"
+Respuesta: Genera un JSON con:
+- Entidades visuales específicas: iconos de IA, circuitos, nodos, elementos tech
+- Composición moderna: layout centrado o asimétrico, gradientes, espacios negativos
+- Texto tipográfico: título del curso con propiedades completas (fontFamily, fontSize, color, weight)
+- Elementos decorativos: formas geométricas, líneas, patrones
+- Paleta de colores profesional: azules tech, morados innovadores, blancos/grises limpios
+- Estilo visual: moderno, minimalista, tech, profesional
+- NO uses plantillas de productos físicos - crea una composición conceptual visual`;
 
 // Función para detectar el dominio basado en el mensaje
 function detectDomain(message: string): NanoBananaDomain {
@@ -259,12 +284,13 @@ function detectDomain(message: string): NanoBananaDomain {
     'móvil', 'mobile', 'web', 'responsive', 'componente', 'landing'
   ];
   
-  // Patrones para fotos
+  // Patrones para fotos (incluye imágenes promocionales/educativas)
   const photoPatterns = [
     'foto', 'photo', 'imagen', 'image', 'producto', 'product',
     'marketing', 'publicidad', 'anuncio', 'banner', 'poster',
     'retrato', 'portrait', 'escena', 'scene', 'estudio', 'studio',
-    'iluminación', 'lighting', 'composición'
+    'iluminación', 'lighting', 'composición', 'portada', 'cover',
+    'promocional', 'educativo', 'curso', 'course', 'ilustración', 'illustration'
   ];
   
   // Patrones para diagramas
@@ -357,10 +383,26 @@ Genera un JSON completo basado en la solicitud del usuario, utilizando la planti
       });
     });
 
-    // Agregar el mensaje actual
+    // Agregar el mensaje actual con contexto mejorado
+    let userPrompt = `Genera un JSON estructurado para NanoBanana Pro basado en esta descripción:\n\n${message}\n\nDominio: ${domain}\nFormato: ${outputFormat}\n\n`;
+    
+    // Instrucciones específicas para imágenes educativas/promocionales
+    if (domain === 'photo' && (message.toLowerCase().includes('curso') || message.toLowerCase().includes('educativo') || message.toLowerCase().includes('promocional') || message.toLowerCase().includes('banner') || message.toLowerCase().includes('portada'))) {
+      userPrompt += `\nIMPORTANTE: Esta es una imagen educativa/promocional. NO uses plantillas de fotografía de productos físicos.\n
+- Crea una composición visual moderna y atractiva con elementos conceptuales (iconos, ilustraciones, formas, gradientes)
+- Define claramente la jerarquía visual: elemento principal, secundario, fondo
+- Incluye propiedades tipográficas completas si hay texto
+- Especifica estilo visual (moderno, minimalista, tech, corporativo, creativo)
+- Usa colores que transmitan el concepto educativo/profesional
+- Define layout y composición (centrado, grid, asimétrico)
+- Incluye elementos visuales temáticos relacionados con el contenido (ej: para IA: circuitos, nodos, redes, iconos tecnológicos)\n\n`;
+    }
+    
+    userPrompt += `Responde SOLO con el JSON válido, sin explicaciones adicionales.`;
+    
     messages.push({
       role: 'user',
-      content: `Genera un JSON estructurado para NanoBanana Pro basado en esta descripción:\n\n${message}\n\nDominio: ${domain}\nFormato: ${outputFormat}\n\nResponde SOLO con el JSON válido, sin explicaciones adicionales.`
+      content: userPrompt
     });
 
     // Llamar a OpenAI
