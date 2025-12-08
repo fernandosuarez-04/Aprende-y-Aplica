@@ -9,9 +9,6 @@ let withPWA = (config: NextConfig) => config;
 
 const nextConfig: NextConfig = {
   // Deshabilitar checks durante builds de producción
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
