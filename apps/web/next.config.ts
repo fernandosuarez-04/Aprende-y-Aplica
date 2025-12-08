@@ -16,20 +16,25 @@ const nextConfig: NextConfig = {
   // Configuración para el monorepo
   transpilePackages: ['@aprende-y-aplica/shared', '@aprende-y-aplica/ui'],
 
-  // Excluir paquetes pesados del bundle del servidor
-  // Estos paquetes solo se necesitan en el cliente y se importan dinámicamente
-  serverComponentsExternalPackages: [
-    'canvas',
-    'sharp',
-    'html2canvas',
-    'jspdf',
-  ],
-
   // Configuración experimental para permitir directorios externos
   experimental: {
     externalDir: true,
     // Optimizar importaciones de paquetes como lucide-react
     optimizePackageImports: ['lucide-react'],
+  },
+
+  // Configuración de Turbopack (Next.js 15+ default)
+  turbopack: {
+    resolveAlias: {
+      '@': path.resolve(__dirname, 'src'),
+      '@/features': path.resolve(__dirname, 'src/features'),
+      '@/core': path.resolve(__dirname, 'src/core'),
+      '@/app': path.resolve(__dirname, 'src/app'),
+      '@/components': path.resolve(__dirname, 'src/shared/components'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@/utils': path.resolve(__dirname, 'src/shared/utils'),
+      '@/hooks': path.resolve(__dirname, 'src/shared/hooks'),
+    },
   },
 
   // Configuración para resolver advertencia de múltiples lockfiles
