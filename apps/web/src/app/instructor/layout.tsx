@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import { InstructorLayout } from '@/features/instructor/components'
+import { ThemeProvider } from '@/core/components/ThemeProvider'
 
 export const metadata: Metadata = {
   title: 'Panel de Instructor | Aprende y Aplica',
@@ -11,6 +12,10 @@ export default function InstructorLayoutPage({
 }: {
   children: React.ReactNode
 }) {
-  return <InstructorLayout>{children}</InstructorLayout>
+  return (
+    <ThemeProvider>
+      <InstructorLayout>{children}</InstructorLayout>
+    </ThemeProvider>
+  )
 }
 
