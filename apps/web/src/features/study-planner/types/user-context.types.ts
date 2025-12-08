@@ -442,6 +442,8 @@ export interface UserBasicInfo {
  * Contexto completo del usuario para el planificador
  */
 export interface UserContext {
+  /** ID del usuario (para detectar cambios de sesión) */
+  userId?: string;
   /** Información básica del usuario */
   user: UserBasicInfo;
   /** Tipo de usuario (B2B o B2C) */

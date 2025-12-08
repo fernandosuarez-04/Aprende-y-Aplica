@@ -22,6 +22,21 @@ interface PageContext {
   platformContext?: string;
   // Links disponibles según el rol del usuario
   availableLinks?: string;
+  // Contexto del usuario (para study-planner y otros contextos específicos)
+  userContext?: {
+    userType?: string;
+    rol?: string;
+    area?: string;
+    nivel?: string;
+    tamanoEmpresa?: string;
+    organizationName?: string;
+    isB2B?: boolean;
+    calendarConnected?: boolean;
+    calendarProvider?: string | null;
+    hasCalendarAnalyzed?: boolean;
+    hasRecommendedSchedules?: boolean;
+    [key: string]: any; // Permitir propiedades adicionales
+  } | null;
 }
 
 const SUPPORTED_LANGUAGES = ['es', 'en', 'pt'] as const;
@@ -140,7 +155,22 @@ function filterSystemPromptFromResponse(text: string): string {
     'NUNCA, BAJO NINGUNA CIRCUNSTANCIA',
     'antiMarkdownInstructions',
     'systemPrompt',
-    'IMPORTANTE: El usuario está viendo esta página específica'
+    'IMPORTANTE: El usuario está viendo esta página específica',
+    // Nuevos indicadores del prompt maestro
+    'PROMPT MAESTRO',
+    'INSTRUCCIÓN DE IDIOMA',
+    'INFORMACIÓN DEL USUARIO',
+    'TU ROL:',
+    'TU ROL',
+    'Estoy aquí para ayudarte con nuestros cursos',
+    'Responde ESTRICTAMENTE en ESPAÑOL',
+    'El nombre del usuario es:',
+    'la asistente inteligente del Planificador de Estudios',
+    'INSTRUCCIONES CRÍTICAS',
+    'CONTEXTO ESPECIAL',
+    'LANGUAGE INSTRUCTION',
+    'USER INFORMATION',
+    'YOUR ROLE'
   ];
 
   // Si comienza con alguno de estos indicadores CRÍTICOS, definitivamente es el prompt
@@ -159,10 +189,30 @@ function filterSystemPromptFromResponse(text: string): string {
     }
   }
 
-  // Solo filtrar si hay 5 o más indicadores críticos (era 3, ahora más estricto)
-  if (criticalIndicatorCount >= 5) {
+  // Solo filtrar si hay 3 o más indicadores críticos (más sensible para capturar el prompt maestro)
+  if (criticalIndicatorCount >= 3) {
     logger.warn('🚫 Filtro activado - múltiples indicadores de prompt detectados:', criticalIndicatorCount);
     return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
+  }
+  
+  // Detectar patrones específicos del prompt maestro que pueden aparecer en cualquier parte
+  const masterPromptPatterns = [
+    /PROMPT\s+MAESTRO/i,
+    /INSTRUCCI[ÓO]N\s+DE\s+IDIOMA/i,
+    /INFORMACI[ÓO]N\s+DEL\s+USUARIO/i,
+    /TU\s+ROL\s*:/i,
+    /Responde\s+ESTRICTAMENTE\s+en\s+ESPA[ÑN]OL/i,
+    /El\s+nombre\s+del\s+usuario\s+es:/i,
+    /la\s+asistente\s+inteligente\s+del\s+Planificador/i,
+    /NUNCA.*usar.*nombre.*usuario/i,
+    /NUNCA.*saludar.*usuario/i
+  ];
+  
+  for (const pattern of masterPromptPatterns) {
+    if (pattern.test(text)) {
+      logger.warn('🚫 Filtro activado - patrón de prompt maestro detectado:', pattern.toString());
+      return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
+    }
   }
 
   // Detectar si la respuesta es SOLO código o variables del sistema (longitud < 200 caracteres)
@@ -236,6 +286,22 @@ const getContextPrompt = (
     
     if (pageContext.metaDescription) {
       pageInfo += `\n- Descripción meta: "${pageContext.metaDescription}"`;
+    }
+    
+    // Agregar información del estado del calendario si está disponible (solo para study-planner)
+    if (pageContext.detectedArea === 'study-planner' && pageContext.userContext) {
+      const userContext = pageContext.userContext as any;
+      if (userContext.calendarConnected) {
+        pageInfo += `\n- ✅ ESTADO DEL CALENDARIO: CONECTADO (${userContext.calendarProvider || 'desconocido'})`;
+        if (userContext.hasCalendarAnalyzed) {
+          pageInfo += `\n- ✅ El calendario ya fue analizado y se dieron recomendaciones de horarios`;
+        }
+        if (userContext.hasRecommendedSchedules) {
+          pageInfo += `\n- ✅ Ya se proporcionaron metas semanales y horarios recomendados`;
+        }
+      } else {
+        pageInfo += `\n- ⚠️ ESTADO DEL CALENDARIO: NO CONECTADO`;
+      }
     }
     
     if (pageContext.headings && pageContext.headings.length > 0) {
@@ -595,7 +661,7 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
           modulesAndLessonsInfo += `  (Este módulo aún no tiene lecciones)\n`;
         }
         
-        if (moduleIndex < workshopContext.allModules.length - 1) {
+        if (workshopContext.allModules && moduleIndex < workshopContext.allModules.length - 1) {
           modulesAndLessonsInfo += '\n';
         }
       });
@@ -1023,12 +1089,43 @@ FASES DEL PLANIFICADOR:
 6. Días y Horarios: Configurar días y horarios preferidos
 7. Resumen y Confirmación: Mostrar resumen y permitir modificaciones
 
+🚨 REGLA CRÍTICA SOBRE EL CALENDARIO:
+- Si el calendario YA ESTÁ CONECTADO (calendarConnected: true), NO debes pedir que se conecte de nuevo
+- Si ya se analizó el calendario y se dieron recomendaciones de horarios, NO vuelvas a pedir conexión
+- Si el usuario confirma horarios propuestos y el calendario está conectado, continúa con el siguiente paso
+- Solo pide conexión del calendario si calendarConnected es false o null
+- Revisa el historial de conversación para ver si ya se mencionó el calendario o se dieron recomendaciones
+
 REGLAS CRÍTICAS:
 - El tiempo MÍNIMO de sesión debe permitir completar al menos UNA lección completa
 - Los tiempos deben respetar la disponibilidad del calendario
 - Para B2B: SIEMPRE validar que los tiempos permitan cumplir los plazos
 - Para B2C: Ofrecer flexibilidad pero dar recomendaciones fundamentadas
 - Todos los cálculos deben hacerse con IA generativa, NO usar valores predefinidos
+
+🚨 CÁLCULO DE METAS SEMANALES (CRÍTICO):
+Cuando veas la sección "INFORMACIÓN PARA CALCULAR METAS SEMANALES" en el mensaje del usuario, DEBES:
+1. Leer cuidadosamente los datos proporcionados:
+   - Total de lecciones pendientes (ya se restaron las completadas)
+   - Semanas hasta la fecha objetivo
+   - Enfoque de estudio (rápido/normal/largo)
+   - Horas semanales disponibles según calendario
+
+2. CALCULAR las metas semanales REALISTAS usando esta fórmula:
+   - Lecciones por semana = CEIL(Total lecciones pendientes / Semanas hasta objetivo)
+   - Horas por semana = CEIL(Lecciones por semana × 1.5) [considerando tiempo de actividades y práctica]
+   - Distribuir las lecciones proporcionalmente entre los cursos seleccionados
+
+3. PRESENTAR las metas en una sección "METAS SEMANALES:" con:
+   - Metas generales: "Completar X lecciones por semana" y "Dedicar Y horas semanales"
+   - Metas por curso: Lista de cada curso con sus lecciones semanales
+   - Objetivos de aprendizaje: Qué aprenderá esta semana
+
+4. IMPORTANTE: NO uses valores predefinidos como "1 lección por semana" si los datos indican que necesita más.
+   Si tiene 30 lecciones pendientes y 6 semanas, debe completar 5 lecciones por semana (30/6 = 5).
+   Si tiene 20 lecciones pendientes y 4 semanas, debe completar 5 lecciones por semana (20/4 = 5).
+
+5. SIEMPRE verifica que las metas sean REALISTAS y permitan cumplir con la fecha objetivo.
 
 ANÁLISIS DE DISPONIBILIDAD (usar IA generativa):
 Considera estos factores para estimar disponibilidad:

@@ -5,7 +5,7 @@ import { StudyPlannerLIA } from '../../../features/study-planner/components/Stud
 
 export default function CreateStudyPlanPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" suppressHydrationWarning>
       <StudyPlannerLIA />
     </div>
   );

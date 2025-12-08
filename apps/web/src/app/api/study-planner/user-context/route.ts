@@ -49,6 +49,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<UserContex
     
     const enrichedContext: UserContext = {
       ...userContext,
+      userId: user.id, // Incluir userId para detectar cambios de sesión
       courses: enrichedCourses as any,
     };
     

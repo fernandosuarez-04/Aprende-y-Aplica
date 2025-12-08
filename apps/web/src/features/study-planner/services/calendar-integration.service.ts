@@ -6,6 +6,8 @@
  */
 
 import { createClient } from '../../../lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
+import type { Database } from '../../../lib/supabase/types';
 import type {
   CalendarIntegration,
   CalendarEvent,
@@ -13,12 +15,46 @@ import type {
   TimeBlock,
 } from '../types/user-context.types';
 
-// Configuración de OAuth
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CALENDAR_CLIENT_ID;
-const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CALENDAR_CLIENT_SECRET;
-const REDIRECT_URI = process.env.NEXT_PUBLIC_APP_URL + '/api/study-planner/calendar/callback';
+// Configuración de OAuth - buscar en múltiples nombres de variables para compatibilidad
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || 
+                         process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_CLIENT_ID ||
+                         process.env.GOOGLE_CLIENT_ID ||
+                         process.env.GOOGLE_OAUTH_CLIENT_ID;
+
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET ||
+                             process.env.GOOGLE_CLIENT_SECRET ||
+                             process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CALENDAR_CLIENT_ID ||
+                            process.env.NEXT_PUBLIC_MICROSOFT_CALENDAR_CLIENT_ID ||
+                            process.env.MICROSOFT_CLIENT_ID ||
+                            process.env.MICROSOFT_OAUTH_CLIENT_ID;
+
+const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CALENDAR_CLIENT_SECRET ||
+                                process.env.MICROSOFT_CLIENT_SECRET ||
+                                process.env.MICROSOFT_OAUTH_CLIENT_SECRET;
+
+const REDIRECT_URI = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') + '/api/study-planner/calendar/callback';
+
+/**
+ * Crea un cliente de Supabase con Service Role Key para bypass de RLS
+ * Útil para operaciones del servidor donde ya validamos la autenticación
+ */
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY no está configurada. Necesaria para operaciones del servidor.');
+  }
+
+  return createServiceClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+}
 
 export class CalendarIntegrationService {
   /**
@@ -66,9 +102,20 @@ export class CalendarIntegrationService {
 
   /**
    * Conecta Google Calendar usando el código de autorización
+   * Verifica que el email del calendario coincida con el del usuario de la app
    */
-  static async connectGoogleCalendar(userId: string, authCode: string): Promise<CalendarIntegration | null> {
+  static async connectGoogleCalendar(userId: string, authCode: string, expectedEmail?: string): Promise<CalendarIntegration | null> {
     try {
+      // Construir redirect_uri de forma consistente
+      const redirectUri = REDIRECT_URI;
+      
+      console.log('[Calendar Integration] Intercambiando código por tokens:', {
+        clientId: GOOGLE_CLIENT_ID ? `${GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'NO CONFIGURADO',
+        redirectUri,
+        hasClientSecret: !!GOOGLE_CLIENT_SECRET,
+        codeLength: authCode.length
+      });
+      
       // Intercambiar código por tokens
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -78,30 +125,138 @@ export class CalendarIntegrationService {
           client_secret: GOOGLE_CLIENT_SECRET || '',
           code: authCode,
           grant_type: 'authorization_code',
-          redirect_uri: REDIRECT_URI,
+          redirect_uri: redirectUri,
         }),
       });
       
       if (!tokenResponse.ok) {
-        console.error('Error obteniendo tokens de Google:', await tokenResponse.text());
-        return null;
+        const errorText = await tokenResponse.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: 'unknown_error', error_description: errorText };
+        }
+        console.error('[Calendar Integration] Error obteniendo tokens de Google:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          error: errorData,
+          redirectUriUsed: redirectUri,
+          clientIdUsed: GOOGLE_CLIENT_ID ? `${GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'NO CONFIGURADO'
+        });
+        
+        // Detectar errores específicos de modo de prueba y verificación
+        const errorMsg = this.parseGoogleOAuthError(errorData);
+        throw new Error(errorMsg);
       }
       
       const tokens = await tokenResponse.json();
       
-      // Guardar en base de datos
-      return await this.saveCalendarIntegration(userId, 'google', tokens);
+      // VERIFICACIÓN DE SEGURIDAD: Obtener el email del usuario del calendario
+      const calendarUserEmail = await this.getGoogleUserEmail(tokens.access_token);
+      
+      if (calendarUserEmail) {
+        console.log('[Calendar Integration] Email del calendario:', calendarUserEmail);
+        
+        // Si tenemos email esperado, verificar que coincida
+        if (expectedEmail && expectedEmail.toLowerCase() !== calendarUserEmail.toLowerCase()) {
+          console.warn('[Calendar Integration] ⚠️ El email del calendario no coincide con el usuario de la app:', {
+            emailApp: expectedEmail,
+            emailCalendar: calendarUserEmail
+          });
+          throw new Error(`EMAIL_MISMATCH: El calendario conectado pertenece a "${calendarUserEmail}" pero estás logueado como "${expectedEmail}". Por favor, inicia sesión en Google con la cuenta correcta o cierra la sesión de Google y vuelve a intentar.`);
+        }
+      }
+      
+      // Guardar en base de datos con el email del calendario
+      return await this.saveCalendarIntegration(userId, 'google', tokens, calendarUserEmail);
       
     } catch (error) {
       console.error('Error conectando Google Calendar:', error);
+      // Re-lanzar el error para que se maneje en el callback
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Error desconocido al conectar con Google Calendar');
+    }
+  }
+  
+  /**
+   * Obtiene el email del usuario de Google usando el access token
+   */
+  private static async getGoogleUserEmail(accessToken: string): Promise<string | null> {
+    try {
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('Error obteniendo info de usuario de Google:', await response.text());
+        return null;
+      }
+      
+      const data = await response.json();
+      return data.email || null;
+    } catch (error) {
+      console.error('Error obteniendo email de Google:', error);
       return null;
     }
+  }
+  
+  /**
+   * Parsea errores de OAuth de Google y devuelve mensajes claros
+   */
+  private static parseGoogleOAuthError(errorData: { error?: string; error_description?: string }): string {
+    const error = errorData.error || '';
+    const description = errorData.error_description || '';
+    
+    // Error de usuario no autorizado (modo de prueba)
+    if (error === 'access_denied' || description.includes('access_denied')) {
+      if (description.includes('test') || description.includes('Testing')) {
+        return 'TEST_MODE_USER_NOT_ADDED: Tu email no está agregado como usuario de prueba. Ve a Google Cloud Console > OAuth consent screen > Test users y agrega tu email.';
+      }
+      return 'ACCESS_DENIED: Acceso denegado. Asegúrate de aceptar todos los permisos solicitados.';
+    }
+    
+    // App no verificada o rechazo por políticas
+    if (description.includes("doesn't comply with Google's OAuth 2.0 policy") || 
+        description.includes('OAuth 2.0 policy') ||
+        description.includes('unverified') ||
+        description.includes('validation rules')) {
+      // Mensaje más específico con posibles causas
+      return 'APP_NOT_VERIFIED: Google rechazó la conexión por políticas de OAuth. Posibles causas:\n' +
+             '1. Los cambios en Google Cloud Console pueden tardar 10-20 minutos en aplicarse\n' +
+             '2. Verifica que el redirect URI en Credentials coincida EXACTAMENTE con: ' + REDIRECT_URI + '\n' +
+             '3. Asegúrate de que tu email esté en usuarios de prueba y espera unos minutos\n' +
+             '4. Si el problema persiste, intenta crear nuevas credenciales OAuth 2.0';
+    }
+    
+    // Error de redirect_uri
+    if (error === 'redirect_uri_mismatch' || description.includes('redirect_uri')) {
+      return 'REDIRECT_URI_MISMATCH: La URI de redirección no coincide. Verifica que tengas configurado: ' + REDIRECT_URI + ' en Google Cloud Console > Credentials > OAuth 2.0 Client ID.';
+    }
+    
+    // Error de client_id
+    if (error === 'invalid_client' || description.includes('client_id')) {
+      return 'INVALID_CLIENT: El Client ID es inválido. Verifica tu configuración en Google Cloud Console.';
+    }
+    
+    // Error de código expirado
+    if (error === 'invalid_grant' || description.includes('expired')) {
+      return 'CODE_EXPIRED: El código de autorización ha expirado. Por favor, intenta conectar de nuevo.';
+    }
+    
+    // Error genérico
+    return description || error || 'Error desconocido al conectar con Google Calendar';
   }
 
   /**
    * Conecta Microsoft Calendar usando el código de autorización
+   * Verifica que el email del calendario coincida con el del usuario de la app
    */
-  static async connectMicrosoftCalendar(userId: string, authCode: string): Promise<CalendarIntegration | null> {
+  static async connectMicrosoftCalendar(userId: string, authCode: string, expectedEmail?: string): Promise<CalendarIntegration | null> {
     try {
       // Intercambiar código por tokens
       const tokenResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
@@ -124,17 +279,61 @@ export class CalendarIntegrationService {
       
       const tokens = await tokenResponse.json();
       
+      // VERIFICACIÓN DE SEGURIDAD: Obtener el email del usuario del calendario
+      const calendarUserEmail = await this.getMicrosoftUserEmail(tokens.access_token);
+      
+      if (calendarUserEmail) {
+        console.log('[Calendar Integration] Email del calendario Microsoft:', calendarUserEmail);
+        
+        // Si tenemos email esperado, verificar que coincida
+        if (expectedEmail && expectedEmail.toLowerCase() !== calendarUserEmail.toLowerCase()) {
+          console.warn('[Calendar Integration] ⚠️ El email del calendario Microsoft no coincide con el usuario de la app:', {
+            emailApp: expectedEmail,
+            emailCalendar: calendarUserEmail
+          });
+          throw new Error(`EMAIL_MISMATCH: El calendario conectado pertenece a "${calendarUserEmail}" pero estás logueado como "${expectedEmail}". Por favor, inicia sesión en Microsoft con la cuenta correcta o cierra la sesión y vuelve a intentar.`);
+        }
+      }
+      
       // Guardar en base de datos
-      return await this.saveCalendarIntegration(userId, 'microsoft', tokens);
+      return await this.saveCalendarIntegration(userId, 'microsoft', tokens, calendarUserEmail);
       
     } catch (error) {
       console.error('Error conectando Microsoft Calendar:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      return null;
+    }
+  }
+  
+  /**
+   * Obtiene el email del usuario de Microsoft usando el access token
+   */
+  private static async getMicrosoftUserEmail(accessToken: string): Promise<string | null> {
+    try {
+      const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('Error obteniendo info de usuario de Microsoft:', await response.text());
+        return null;
+      }
+      
+      const data = await response.json();
+      return data.mail || data.userPrincipalName || null;
+    } catch (error) {
+      console.error('Error obteniendo email de Microsoft:', error);
       return null;
     }
   }
 
   /**
    * Guarda o actualiza la integración de calendario en la base de datos
+   * Usa Service Role Key para bypass de RLS ya que este proyecto no usa Supabase Auth
    */
   private static async saveCalendarIntegration(
     userId: string,
@@ -144,9 +343,12 @@ export class CalendarIntegrationService {
       refresh_token?: string;
       expires_in?: number;
       scope?: string;
-    }
+    },
+    calendarEmail?: string | null
   ): Promise<CalendarIntegration | null> {
-    const supabase = await createClient();
+    // Usar cliente admin con Service Role Key para bypass de RLS
+    // Ya validamos la autenticación del usuario antes de llegar aquí
+    const supabase = createAdminClient();
     
     const expiresAt = tokens.expires_in 
       ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
@@ -179,7 +381,13 @@ export class CalendarIntegrationService {
       
       if (error) {
         console.error('Error actualizando integración:', error);
-        return null;
+        
+        // Si es error de RLS, dar mensaje más específico
+        if (error.code === '42501' || error.message?.includes('row-level security')) {
+          throw new Error('RLS_ERROR: No tienes permisos para actualizar integraciones de calendario. Las políticas RLS están bloqueando la operación. Verifica las políticas de la tabla calendar_integrations en Supabase.');
+        }
+        
+        throw error;
       }
       result = data;
     } else {
@@ -199,7 +407,13 @@ export class CalendarIntegrationService {
       
       if (error) {
         console.error('Error creando integración:', error);
-        return null;
+        
+        // Si es error de RLS, dar mensaje más específico
+        if (error.code === '42501' || error.message?.includes('row-level security')) {
+          throw new Error('RLS_ERROR: No tienes permisos para crear integraciones de calendario. Las políticas RLS están bloqueando la operación. Verifica las políticas de la tabla calendar_integrations en Supabase.');
+        }
+        
+        throw error;
       }
       result = data;
     }
@@ -216,9 +430,10 @@ export class CalendarIntegrationService {
 
   /**
    * Obtiene la integración de calendario del usuario
+   * Usa Service Role Key para leer de la BD
    */
   static async getCalendarIntegration(userId: string): Promise<CalendarIntegration | null> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
     const { data, error } = await supabase
       .from('calendar_integrations')
@@ -247,9 +462,10 @@ export class CalendarIntegrationService {
 
   /**
    * Refresca el token de acceso si está expirado
+   * Usa Service Role Key para leer de la BD
    */
   static async refreshTokenIfNeeded(userId: string): Promise<string | null> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
     const { data: integration } = await supabase
       .from('calendar_integrations')
@@ -335,10 +551,63 @@ export class CalendarIntegrationService {
   }
 
   /**
-   * Obtiene eventos del calendario de Google
+   * Obtiene eventos del calendario de Google desde TODOS los calendarios del usuario
    */
   static async getGoogleCalendarEvents(
     accessToken: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<CalendarEvent[]> {
+    try {
+      // Primero, obtener la lista de calendarios del usuario
+      const calendarsResponse = await fetch(
+        'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!calendarsResponse.ok) {
+        console.error('Error obteniendo lista de calendarios:', await calendarsResponse.text());
+        // Fallback: intentar solo con primary
+        return await this.getEventsFromSingleCalendar(accessToken, 'primary', startDate, endDate);
+      }
+
+      const calendarsData = await calendarsResponse.json();
+      const calendars = calendarsData.items || [];
+      
+      console.log(`📅 Calendarios encontrados: ${calendars.length}`);
+
+      // Obtener eventos de todos los calendarios del propietario
+      const allEvents: CalendarEvent[] = [];
+      
+      for (const calendar of calendars) {
+        if (calendar.accessRole === 'owner' || calendar.accessRole === 'writer' || calendar.primary) {
+          const events = await this.getEventsFromSingleCalendar(accessToken, calendar.id, startDate, endDate);
+          allEvents.push(...events);
+        }
+      }
+
+      console.log(`📅 Total de eventos obtenidos: ${allEvents.length}`);
+      
+      // Ordenar por fecha de inicio
+      allEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+      
+      return allEvents;
+    } catch (error) {
+      console.error('Error obteniendo eventos de Google:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Obtiene eventos de un calendario específico de Google
+   */
+  private static async getEventsFromSingleCalendar(
+    accessToken: string,
+    calendarId: string,
     startDate: Date,
     endDate: Date
   ): Promise<CalendarEvent[]> {
@@ -348,11 +617,11 @@ export class CalendarIntegrationService {
         timeMax: endDate.toISOString(),
         singleEvents: 'true',
         orderBy: 'startTime',
-        maxResults: '100',
+        maxResults: '250',
       });
       
       const response = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -361,7 +630,7 @@ export class CalendarIntegrationService {
       );
       
       if (!response.ok) {
-        console.error('Error obteniendo eventos de Google:', await response.text());
+        console.error(`Error obteniendo eventos del calendario ${calendarId}:`, await response.text());
         return [];
       }
       
@@ -378,10 +647,11 @@ export class CalendarIntegrationService {
         location: event.location,
         status: event.status === 'confirmed' ? 'confirmed' : 
                 event.status === 'tentative' ? 'tentative' : 'cancelled',
+        calendarId: calendarId,
       }));
       
     } catch (error) {
-      console.error('Error obteniendo eventos de Google:', error);
+      console.error(`Error obteniendo eventos del calendario ${calendarId}:`, error);
       return [];
     }
   }
@@ -610,9 +880,10 @@ export class CalendarIntegrationService {
 
   /**
    * Desconecta el calendario del usuario
+   * Usa Service Role Key para operaciones de BD
    */
   static async disconnectCalendar(userId: string, provider?: 'google' | 'microsoft'): Promise<boolean> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
     let query = supabase
       .from('calendar_integrations')

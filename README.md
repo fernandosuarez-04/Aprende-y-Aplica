@@ -481,10 +481,13 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Integración de Calendarios (Opcional)
-GOOGLE_CLIENT_ID=tu_google_client_id
-GOOGLE_CLIENT_SECRET=tu_google_client_secret
-MICROSOFT_CLIENT_ID=tu_microsoft_client_id
-MICROSOFT_CLIENT_SECRET=tu_microsoft_client_secret
+# IMPORTANTE: Para usar en el frontend (cliente), las variables deben tener el prefijo NEXT_PUBLIC_
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=tu_google_client_id
+GOOGLE_CALENDAR_CLIENT_ID=tu_google_client_id
+GOOGLE_CALENDAR_CLIENT_SECRET=tu_google_client_secret
+NEXT_PUBLIC_MICROSOFT_CLIENT_ID=tu_microsoft_client_id
+MICROSOFT_CALENDAR_CLIENT_ID=tu_microsoft_client_id
+MICROSOFT_CALENDAR_CLIENT_SECRET=tu_microsoft_client_secret
 
 # Email (Opcional)
 SMTP_HOST=smtp.example.com
@@ -522,16 +525,77 @@ JWT_SECRET=tu_jwt_secret_seguro
 
 Para habilitar la integración de calendarios:
 
-1. **Google Calendar**:
-   - Crear proyecto en [Google Cloud Console](https://console.cloud.google.com)
-   - Habilitar Google Calendar API
-   - Crear credenciales OAuth 2.0
-   - Configurar redirect URI: `http://localhost:3000/api/study-planner/calendar-integrations/oauth/google/callback`
+#### 1. Google Calendar - Configuración Completa
 
-2. **Microsoft Calendar**:
-   - Crear app en [Azure Portal](https://portal.azure.com)
-   - Registrar aplicación Azure AD
-   - Configurar redirect URI: `http://localhost:3000/api/study-planner/calendar-integrations/oauth/microsoft/callback`
+##### Paso 1: Crear Proyecto y Credenciales
+
+1. Crear proyecto en [Google Cloud Console](https://console.cloud.google.com)
+2. Habilitar Google Calendar API:
+   - Ve a "APIs & Services" > "Library"
+   - Busca "Google Calendar API" y habilítala
+3. Crear credenciales OAuth 2.0:
+   - Ve a "APIs & Services" > "Credentials"
+   - Click en "Create Credentials" > "OAuth client ID"
+   - Tipo de aplicación: "Web application"
+4. **IMPORTANTE**: Configurar redirect URIs autorizadas:
+   - Desarrollo: `http://localhost:3000/api/study-planner/calendar/callback`
+   - Producción: `https://tu-dominio.com/api/study-planner/calendar/callback`
+   - ⚠️ **El redirect URI debe coincidir EXACTAMENTE** (incluyendo protocolo, dominio y ruta)
+
+##### Paso 2: Configurar OAuth Consent Screen
+
+1. Ve a "APIs & Services" > "OAuth consent screen"
+2. Selecciona el tipo de usuario:
+   - **Interno**: Solo para usuarios de tu organización (G Suite/Workspace)
+   - **Externo**: Para cualquier usuario de Google
+3. Completa la información requerida:
+   - Nombre de la aplicación
+   - Email de soporte
+   - Logo (opcional)
+   - Dominio de la aplicación
+4. Agrega los scopes requeridos:
+   - `https://www.googleapis.com/auth/calendar.readonly`
+   - `https://www.googleapis.com/auth/calendar.events.readonly`
+
+##### Paso 3: Modo de Prueba (Para Desarrollo)
+
+⚠️ **IMPORTANTE**: Si tu app está en modo "External" y no está verificada por Google, debes usar el modo de prueba:
+
+1. En "OAuth consent screen", verifica que el estado sea **"Testing"** (Prueba)
+   - Si está en "In production" (En producción), haz click en "BACK TO TESTING"
+2. Agrega usuarios de prueba:
+   - En la sección "Test users", click en "+ ADD USERS"
+   - Agrega los emails de las personas que usarán la app durante desarrollo
+   - Solo estos usuarios podrán conectar su calendario
+3. **Límite**: Máximo 100 usuarios de prueba
+
+##### Paso 4: Verificación de Google (Para Producción)
+
+Cuando estés listo para producción y necesites más de 100 usuarios:
+
+1. Ve a "OAuth consent screen"
+2. Click en "PUBLISH APP" o "SUBMIT FOR VERIFICATION"
+3. Google revisará tu aplicación (puede tomar varias semanas)
+4. Requisitos para verificación:
+   - Política de privacidad pública
+   - Términos de servicio
+   - Dominio verificado
+   - Demostrar uso legítimo de los scopes
+
+##### Solución de Errores Comunes
+
+| Error | Causa | Solución |
+|-------|-------|----------|
+| `access_denied` (usuario no autorizado) | Email no está en usuarios de prueba | Agregar email en OAuth consent screen > Test users |
+| `redirect_uri_mismatch` | URI no coincide | Verificar URI exacta en Credentials |
+| `invalid_client` | Client ID incorrecto | Verificar NEXT_PUBLIC_GOOGLE_CLIENT_ID |
+| `App doesn't comply with OAuth 2.0 policy` | App en producción sin verificar | Volver a modo Testing y agregar usuarios de prueba |
+
+#### 2. Microsoft Calendar
+
+1. Crear app en [Azure Portal](https://portal.azure.com)
+2. Registrar aplicación Azure AD
+3. Configurar redirect URI: `http://localhost:3000/api/study-planner/calendar-integrations/oauth/microsoft/callback`
 
 ---
 
