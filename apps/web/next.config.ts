@@ -16,6 +16,15 @@ const nextConfig: NextConfig = {
   // Configuración para el monorepo
   transpilePackages: ['@aprende-y-aplica/shared', '@aprende-y-aplica/ui'],
 
+  // Excluir paquetes pesados del bundle del servidor
+  // Estos paquetes solo se necesitan en el cliente y se importan dinámicamente
+  serverComponentsExternalPackages: [
+    'canvas',
+    'sharp',
+    'html2canvas',
+    'jspdf',
+  ],
+
   // Configuración experimental para permitir directorios externos
   experimental: {
     externalDir: true,
@@ -207,6 +216,18 @@ const nextConfig: NextConfig = {
       };
     }
 
+    // Excluir dependencias pesadas del bundle del servidor
+    // Estas librerías solo se necesitan en el cliente
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        canvas: 'commonjs canvas',
+        sharp: 'commonjs sharp',
+        html2canvas: 'commonjs html2canvas',
+        jspdf: 'commonjs jspdf',
+      });
+    }
+
     // Configuración para librerías que solo funcionan en el cliente
     if (!isServer) {
       config.resolve.fallback = {
@@ -214,6 +235,8 @@ const nextConfig: NextConfig = {
         fs: false,
         path: false,
         os: false,
+        canvas: false,
+        sharp: false,
       };
     }
 

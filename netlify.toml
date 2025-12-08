@@ -56,7 +56,9 @@
   # Directorio para funciones tradicionales de Netlify (opcional)
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["sharp", "canvas"]
+  # Excluir dependencias pesadas que solo se necesitan en el cliente
+  # Estas librerías se importan dinámicamente solo en el cliente
+  external_node_modules = ["sharp", "canvas", "html2canvas", "jspdf"]
 
 # Configuración específica para diferentes contextos (opcional)
 # Si no se especifica, se usa el comando de [build]

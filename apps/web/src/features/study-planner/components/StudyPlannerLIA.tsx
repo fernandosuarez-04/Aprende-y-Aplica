@@ -117,6 +117,18 @@ export function StudyPlannerLIA() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
+  // Estado para guardar la distribución de lecciones para el resumen final
+  type StoredLessonDistribution = {
+    dateStr: string;
+    dayName: string;
+    startTime: string;
+    endTime: string;
+    lessons: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }>;
+  };
+  const [savedLessonDistribution, setSavedLessonDistribution] = useState<StoredLessonDistribution[]>([]);
+  const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
+  const [savedTotalLessons, setSavedTotalLessons] = useState<number>(0);
+  
   // Estado para guardar el userId actual (para detectar cambios de usuario)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
@@ -3011,6 +3023,15 @@ export function StudyPlannerLIA() {
             const lessons = allLessonsByCourse.get(courseId) || [];
             const completedIds = completedLessonIdsByCourse.get(courseId) || [];
             
+            console.log(`📚 Curso ${courseId} (${courseTitle}):`);
+            console.log(`   Total lecciones: ${lessons.length}`);
+            console.log(`   Lecciones completadas: ${completedIds.length}`);
+            if (completedIds.length > 0) {
+              console.log(`   IDs completados:`, completedIds);
+            }
+            
+            let pendingCount = 0;
+            let skippedCount = 0;
             lessons.forEach(lesson => {
               if (!completedIds.includes(lesson.lesson_id)) {
                 allPendingLessons.push({
@@ -3018,8 +3039,13 @@ export function StudyPlannerLIA() {
                   courseTitle,
                   ...lesson
                 });
+                pendingCount++;
+              } else {
+                skippedCount++;
+                console.log(`   ✓ Lección ${lesson.lesson_order_index} (${lesson.lesson_id}) ya completada - omitida`);
               }
             });
+            console.log(`   Lecciones pendientes agregadas: ${pendingCount}, omitidas: ${skippedCount}`);
           });
           
           // Ordenar todas las lecciones por curso y luego por orden
@@ -3032,7 +3058,18 @@ export function StudyPlannerLIA() {
           
           console.log(`📚 Lecciones pendientes totales: ${allPendingLessons.length}`);
           if (allPendingLessons.length > 0) {
-            console.log(`   Primeras 5 lecciones:`, allPendingLessons.slice(0, 5).map(l => `Lección ${l.lesson_order_index}: ${l.lesson_title}`));
+            console.log(`   Primeras 5 lecciones pendientes:`, allPendingLessons.slice(0, 5).map(l => ({
+              index: l.lesson_order_index,
+              title: l.lesson_title,
+              id: l.lesson_id,
+              course: l.courseTitle
+            })));
+          }
+          
+          // Validar que las lecciones tengan datos correctos
+          const invalidLessons = allPendingLessons.filter(l => !l.lesson_title || l.lesson_title === '');
+          if (invalidLessons.length > 0) {
+            console.warn(`⚠️ ${invalidLessons.length} lecciones sin título encontradas`);
           }
           
           // Guardar distribución de lecciones para el resumen final (no mostrar en recomendaciones iniciales)
@@ -3089,7 +3126,40 @@ export function StudyPlannerLIA() {
           });
           
           // Guardar distribución en el estado para usar en el resumen final
-          // (Se puede usar más adelante cuando el usuario confirme)
+          // Convertir a formato almacenable con validación de datos
+          const distributionToSave: StoredLessonDistribution[] = lessonDistribution.map(item => ({
+            dateStr: item.slot.dateStr,
+            dayName: item.slot.dayName,
+            startTime: item.slot.start.toLocaleTimeString('es-ES', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            }),
+            endTime: item.slot.end.toLocaleTimeString('es-ES', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            }),
+            // Asegurar que cada lección tenga datos válidos
+            lessons: item.lessons.map(lesson => ({
+              courseTitle: lesson.courseTitle || 'Curso',
+              lesson_title: lesson.lesson_title || `Lección del curso`,
+              lesson_order_index: lesson.lesson_order_index || 0
+            }))
+          }));
+          
+          setSavedLessonDistribution(distributionToSave);
+          setSavedTargetDate(targetDate);
+          setSavedTotalLessons(totalLessonsNeeded);
+          
+          console.log(`📦 Distribución de lecciones guardada: ${distributionToSave.length} slots`);
+          // Log detallado para debugging
+          if (distributionToSave.length > 0) {
+            console.log(`📦 Primera distribución:`, JSON.stringify(distributionToSave[0], null, 2));
+            const allSavedLessons = distributionToSave.flatMap(d => d.lessons);
+            console.log(`📦 Total lecciones en distribución: ${allSavedLessons.length}`);
+            console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lesson_order_index}: ${l.lesson_title}`));
+          }
           
           // Mostrar solo los horarios en las recomendaciones iniciales (sin lecciones)
           const shownDates = new Set<string>();
@@ -3474,7 +3544,98 @@ Cuéntame:
 
     stopAllAudio();
     
-    // Agregar mensaje del usuario
+    // Detectar si el usuario está confirmando los horarios propuestos
+    const lowerMessage = message.toLowerCase();
+    const isConfirmingSchedules = (
+      lowerMessage.includes('sí') || 
+      lowerMessage.includes('si') || 
+      lowerMessage.includes('me sirven') || 
+      lowerMessage.includes('confirmo') || 
+      lowerMessage.includes('está bien') || 
+      lowerMessage.includes('perfecto') ||
+      lowerMessage.includes('de acuerdo') ||
+      lowerMessage.includes('adelante') ||
+      lowerMessage.includes('procede')
+    ) && savedLessonDistribution.length > 0;
+    
+    // Si está confirmando, agregar la distribución de lecciones al mensaje
+    let enrichedMessage = message;
+    if (isConfirmingSchedules) {
+      // Función para formatear la fecha de forma legible
+      const formatDateForDisplay = (dateStr: string, dayName: string): string => {
+        try {
+          // dateStr viene en formato YYYY-MM-DD
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            const day = parseInt(parts[2]);
+            const month = parseInt(parts[1]) - 1;
+            const year = parseInt(parts[0]);
+            const date = new Date(year, month, day);
+            
+            const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                               'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            return `${capitalizedDay} ${day} de ${monthNames[month]} de ${year}`;
+          }
+        } catch (e) {
+          console.error('Error formateando fecha:', e);
+        }
+        return dayName + ' ' + dateStr;
+      };
+      
+      // Construir el resumen detallado con la distribución de lecciones
+      let distributionSummary = `\n\n**DISTRIBUCIÓN DETALLADA DE LECCIONES PARA MOSTRAR EN EL RESUMEN FINAL:**\n`;
+      distributionSummary += `Fecha límite: ${savedTargetDate || 'No especificada'}\n`;
+      distributionSummary += `Total de lecciones a completar: ${savedTotalLessons}\n`;
+      distributionSummary += `Enfoque de estudio: ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n\n`;
+      distributionSummary += `**HORARIOS CON LECCIONES ASIGNADAS (mostrar TODOS):**\n`;
+      
+      let totalLessonsAssigned = 0;
+      console.log('📋 Preparando distribución para LIA:');
+      console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
+      
+      savedLessonDistribution.forEach((item, slotIndex) => {
+        const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
+        distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}\n`;
+        
+        if (item.lessons && item.lessons.length > 0) {
+          distributionSummary += `Lecciones a estudiar:\n`;
+          item.lessons.forEach((lesson, lessonIndex) => {
+            // Usar el título real de la lección o un fallback descriptivo
+            const lessonTitle = lesson.lesson_title && lesson.lesson_title.trim() !== '' 
+              ? lesson.lesson_title 
+              : `Lección ${lesson.lesson_order_index} del curso`;
+            const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
+            
+            distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
+            totalLessonsAssigned++;
+            
+            // Log para debugging
+            if (slotIndex < 2 && lessonIndex < 3) {
+              console.log(`   Slot ${slotIndex}, Lección ${lessonIndex}: ${lessonNum} - ${lessonTitle}`);
+            }
+          });
+        }
+      });
+      
+      distributionSummary += `\n**VERIFICACIÓN:**\n`;
+      distributionSummary += `- Lecciones asignadas: ${totalLessonsAssigned} de ${savedTotalLessons}\n`;
+      if (totalLessonsAssigned >= savedTotalLessons) {
+        distributionSummary += `- ✅ Se pueden completar todas las lecciones antes de la fecha límite\n`;
+      } else {
+        distributionSummary += `- ⚠️ Faltan ${savedTotalLessons - totalLessonsAssigned} lecciones por asignar. Considera agregar más horarios o extender la fecha.\n`;
+      }
+      
+      distributionSummary += `\n⚠️ INSTRUCCIÓN CRÍTICA: Muestra este resumen final al usuario con TODAS las lecciones distribuidas en sus horarios correspondientes. NO omitas ningún horario. Incluye la fecha límite y la verificación de cumplimiento.`;
+      
+      enrichedMessage = message + distributionSummary;
+      console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA');
+      console.log(`   Total de horarios: ${savedLessonDistribution.length}`);
+      console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
+    }
+    
+    // Agregar mensaje del usuario (sin el enriquecimiento visible)
     const newHistory = [...conversationHistory, { role: 'user', content: message }];
     setConversationHistory(newHistory);
     setIsProcessing(true);
@@ -3484,7 +3645,7 @@ Cuéntame:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message,
+          message: enrichedMessage,
           context: 'study-planner',
           conversationHistory: newHistory.slice(-10),
           pageContext: {
