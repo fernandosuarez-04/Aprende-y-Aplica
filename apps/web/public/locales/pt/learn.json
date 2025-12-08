@@ -241,6 +241,52 @@
   },
   "tour": {
     "courseLearnLabel": "Ver tour do curso",
-    "replayLabel": "Ver Tour do Curso"
+    "replayLabel": "Ver Tour do Curso",
+    "steps": {
+      "welcome": {
+        "title": "Bem-vindo ao seu curso!",
+        "description": "Este é o seu espaço de aprendizado interativo. Aqui você encontrará lições, atividades práticas e recursos para dominar o tópico.",
+        "speech": "Bem-vindo ao seu curso. Este é o seu espaço de aprendizado interativo. Aqui você encontrará lições, atividades práticas e recursos para dominar o tópico."
+      },
+      "navigation": {
+        "title": "Navegação do curso",
+        "description": "No painel esquerdo você verá todos os módulos e lições do curso. Clique em qualquer lição para acessar seu conteúdo.",
+        "speech": "No painel esquerdo você verá todos os módulos e lições do curso. Clique em qualquer lição para acessar seu conteúdo."
+      },
+      "materials": {
+        "title": "Materiais da lição",
+        "description": "Cada lição pode incluir vídeos, textos, PDFs para download e recursos adicionais. Explore todo o conteúdo disponível.",
+        "speech": "Cada lição pode incluir vídeos, textos, PDFs para download e recursos adicionais. Explore todo o conteúdo disponível."
+      },
+      "activities": {
+        "title": "Atividades práticas",
+        "description": "Complete as atividades para colocar em prática o que aprendeu. Elas são fundamentais para seu progresso e certificação.",
+        "speech": "Complete as atividades para colocar em prática o que aprendeu. Elas são fundamentais para seu progresso e certificação."
+      },
+      "lia": {
+        "title": "LIA está aqui para ajudá-lo",
+        "description": "Se você tiver dúvidas sobre o conteúdo, as atividades ou qualquer tópico do curso, pergunte à LIA. Ela o ajudará a qualquer momento.",
+        "speech": "Se você tiver dúvidas sobre o conteúdo, as atividades ou qualquer tópico do curso, pergunte à LIA. Ela o ajudará a qualquer momento."
+      },
+      "progress": {
+        "title": "Acompanhamento de progresso",
+        "description": "Seu progresso é salvo automaticamente. Você pode ver quanto avançou no curso e quais lições completou.",
+        "speech": "Seu progresso é salvo automaticamente. Você pode ver quanto avançou no curso e quais lições completou."
+      },
+      "questions": {
+        "title": "Você tem alguma pergunta?",
+        "description": "Antes de começar, se você tiver alguma dúvida sobre como usar a plataforma de aprendizado, pode me perguntar. Clique no microfone e fale comigo.",
+        "speech": "Antes de começar, se você tiver alguma dúvida sobre como usar a plataforma de aprendizado, clique no microfone e fale comigo. Responderei por voz."
+      },
+      "ready": {
+        "title": "Pronto para aprender!",
+        "description": "Agora você está preparado para começar sua jornada de aprendizado. Lembre-se, LIA estará sempre disponível para ajudá-lo.",
+        "speech": "Agora você está preparado para começar sua jornada de aprendizado. Lembre-se, LIA estará sempre disponível para ajudá-lo."
+      }
+    }
+  },
+  "voice": {
+    "microphoneError": "É necessária permissão para usar o microfone",
+    "speechNotSupported": "Seu navegador não suporta reconhecimento de voz"
   }
 }

@@ -25,10 +25,10 @@ export function ConditionalAIChatAgent() {
   }
 
   // Renderizar normalmente en el resto de páginas
+  // El mensaje inicial se obtiene de i18n dentro de AIChatAgent
   return (
     <AIChatAgent
       assistantName="Lia"
-      initialMessage="¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas."
     />
   );
 }

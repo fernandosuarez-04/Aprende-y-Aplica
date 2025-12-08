@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -40,6 +41,7 @@ import { SkillBadgeList } from '../../../features/skills/components/SkillBadgeLi
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { i18n } = useTranslation();
   const slug = params.slug as string;
   
   const [course, setCourse] = useState<CourseWithInstructor | null>(null);
@@ -68,11 +70,14 @@ export default function CourseDetailPage() {
         setLoading(true);
         setCheckingPurchase(true);
 
+        // Obtener idioma actual del usuario desde i18n
+        const userLanguage = i18n.language || 'es';
+        
         // ⚡ Paralelizar: Curso + Purchase Check + Modules
         const [courseResponse, purchaseResponse, modulesResponse] = await Promise.all([
-          fetch(`/api/courses/${slug}`),
+          fetch(`/api/courses/${slug}?lang=${userLanguage}`),
           fetch(`/api/courses/${slug}/check-purchase`),
-          fetch(`/api/courses/${slug}/modules`)
+          fetch(`/api/courses/${slug}/modules?lang=${userLanguage}`)
         ]);
 
         // Procesar curso

@@ -139,7 +139,8 @@ export async function POST(
     }
 
     // Crear la lección
-    const lesson = await AdminLessonsService.createLesson(moduleId, body)
+    const adminUserId = auth.userId
+    const lesson = await AdminLessonsService.createLesson(moduleId, body, adminUserId)
 
     return NextResponse.json({
       success: true,

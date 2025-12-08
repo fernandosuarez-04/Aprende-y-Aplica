@@ -128,8 +128,8 @@ export async function GET(request: NextRequest) {
       const messageCount = existing.messageCount + 1;
       
       metricsMap.set(m.conversation_id, {
-        tokens: existing.tokens + (m.tokens_used || 0),
-        cost: existing.cost + (m.cost_usd || 0),
+        tokens: existing.tokens + (Number(m.tokens_used) || 0),
+        cost: existing.cost + (Number(m.cost_usd) || 0),
         avgResponseTime: m.response_time_ms ? Math.round(totalResponseTime / messageCount) : existing.avgResponseTime,
         messageCount,
         totalResponseTime

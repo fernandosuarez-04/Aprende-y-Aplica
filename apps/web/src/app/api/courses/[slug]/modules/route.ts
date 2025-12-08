@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
 import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers';
+import { ContentTranslationService } from '@/core/services/contentTranslation.service';
+import { SupportedLanguage } from '@/core/i18n/i18n';
 
 /**
  * GET /api/courses/[slug]/modules
@@ -13,6 +15,8 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
+    const { searchParams } = new URL(request.url);
+    const language = (searchParams.get('lang') || 'es') as SupportedLanguage;
     const supabase = await createClient();
 
     // Obtener el curso por slug para obtener su ID
@@ -88,16 +92,17 @@ export async function GET(
       module_id: string;
     }> = [];
 
-    // Detectar idioma por query param (?lang=es|en|pt)
-    const url = new URL(request.url);
-    const lang = url.searchParams.get('lang') || 'es';
-    let lessonsTable = 'course_lessons';
-    if (lang === 'en') lessonsTable = 'course_lessons_en';
-    if (lang === 'pt') lessonsTable = 'course_lessons_pt';
-
+    // IMPORTANTE: Siempre leer de course_lessons (tabla principal)
+    // Las traducciones se aplican desde content_translations en el frontend
     if (modules.length > 0) {
-      const { data: lessonsData } = await supabase
-        .from(lessonsTable)
+      const moduleIds = modules.map((m) => m.module_id);
+      console.log('[modules/route] Obteniendo lecciones para módulos:', {
+        moduleCount: modules.length,
+        moduleIds: moduleIds
+      });
+
+      const { data: lessonsData, error: lessonsError } = await supabase
+        .from('course_lessons')
         .select(`
           lesson_id,
           lesson_title,
@@ -114,12 +119,26 @@ export async function GET(
           updated_at,
           instructor_id
         `)
-        .in('module_id', modules.map((m) => m.module_id))
+        .in('module_id', moduleIds)
         .order('lesson_order_index', { ascending: true });
 
-      // No es necesario modificar la consulta, ya que transcript_content y summary_content existen en todas las tablas
-      // Solo aseguramos que lessonsTable apunte a la tabla correcta según el idioma
+      if (lessonsError) {
+        console.error('[modules/route] ❌ Error obteniendo lecciones:', lessonsError);
+      } else {
+        console.log('[modules/route] ✅ Lecciones obtenidas:', {
+          count: lessonsData?.length || 0,
+          lessons: lessonsData?.map(l => ({
+            id: l.lesson_id,
+            title: l.lesson_title,
+            module_id: l.module_id,
+            is_published: l.is_published
+          }))
+        });
+      }
+
       allLessonsData = lessonsData ?? [];
+    } else {
+      console.log('[modules/route] ⚠️ No hay módulos, no se pueden obtener lecciones');
     }
 
     let progressMap = new Map<
@@ -152,15 +171,65 @@ export async function GET(
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
-    const modulesWithLessons = modules.map((module) => {
-      const moduleLessons = lessonsByModule.get(module.module_id) || [];
-      const publishedLessons = moduleLessons.filter(
-        (lesson) => lesson.is_published === true
-      );
-      const lessons =
-        publishedLessons.length > 0 ? publishedLessons : moduleLessons;
+    // Aplicar traducciones a módulos y lecciones
+    const modulesWithLessons = await Promise.all(
+      modules.map(async (module) => {
+        // Traducir módulo
+        const moduleWithId = { ...module, id: module.module_id };
+        const translatedModule = await ContentTranslationService.translateObject(
+          'module',
+          moduleWithId,
+          ['module_title', 'module_description'],
+          language,
+          supabase
+        );
 
-      const lessonsWithProgress = lessons.map((lesson) => {
+        const moduleLessons = lessonsByModule.get(module.module_id) || [];
+        console.log(`[modules/route] Módulo ${module.module_id} (${module.module_title}):`, {
+          totalLessons: moduleLessons.length,
+          publishedLessons: moduleLessons.filter(l => l.is_published === true).length,
+          allLessons: moduleLessons.map(l => ({
+            id: l.lesson_id,
+            title: l.lesson_title,
+            is_published: l.is_published
+          }))
+        });
+        
+        const publishedLessons = moduleLessons.filter(
+          (lesson) => lesson.is_published === true
+        );
+        const lessons =
+          publishedLessons.length > 0 ? publishedLessons : moduleLessons;
+        
+        // Traducir lecciones
+        const translatedLessons = await Promise.all(
+          lessons.map(async (lesson) => {
+            const lessonWithId = { ...lesson, id: lesson.lesson_id };
+            const translatedLesson = await ContentTranslationService.translateObject(
+              'lesson',
+              lessonWithId,
+              ['lesson_title', 'lesson_description'],
+              language,
+              supabase
+            );
+            
+            return {
+              ...lesson,
+              lesson_title: translatedLesson.lesson_title || lesson.lesson_title,
+              lesson_description: translatedLesson.lesson_description || lesson.lesson_description
+            };
+          })
+        );
+        
+        console.log(`[modules/route] Lecciones finales para módulo ${module.module_id}:`, {
+          count: translatedLessons.length,
+          lessons: translatedLessons.map(l => ({
+            id: l.lesson_id,
+            title: l.lesson_title
+          }))
+        });
+
+      const lessonsWithProgress = translatedLessons.map((lesson) => {
         let videoUrl = lesson.video_provider_id;
 
         if (
@@ -197,13 +266,15 @@ export async function GET(
 
       return {
         module_id: module.module_id,
-        module_title: module.module_title,
+        module_title: translatedModule.module_title || module.module_title,
+        module_description: translatedModule.module_description || module.module_description,
         module_order_index: module.module_order_index,
         module_duration_minutes: module.module_duration_minutes,
         is_published: module.is_published,
         lessons: lessonsWithProgress,
       };
-    });
+      })
+    );
 
     const overallProgress = userEnrollment?.overall_progress_percentage
       ? Number(userEnrollment.overall_progress_percentage)

@@ -143,6 +143,30 @@ export class InstructorWorkshopsService {
         throw error
       }
 
+      // Traducir automáticamente el curso a inglés y portugués
+      try {
+        console.log('[InstructorWorkshopsService] Iniciando traducción automática del curso:', data.id);
+        const { translateCourseOnCreate } = await import('@/core/services/courseTranslation.service')
+        const translationResult = await translateCourseOnCreate(
+          data.id,
+          {
+            title: data.title,
+            description: data.description,
+            learning_objectives: data.learning_objectives
+          },
+          instructorId,
+          supabase // Pasar el cliente de Supabase existente
+        )
+        console.log('[InstructorWorkshopsService] Resultado de traducción:', translationResult);
+        if (!translationResult.success) {
+          console.warn('[InstructorWorkshopsService] La traducción no fue completamente exitosa:', translationResult.errors);
+        }
+      } catch (translationError) {
+        // No fallar la creación del curso si falla la traducción
+        console.error('[InstructorWorkshopsService] ❌ Error en traducción automática del curso:', translationError);
+        console.error('[InstructorWorkshopsService] Stack trace:', translationError instanceof Error ? translationError.stack : 'No stack trace');
+      }
+
       return data as InstructorWorkshop
     } catch (error) {
       // console.error('Error in InstructorWorkshopsService.createWorkshop:', error)

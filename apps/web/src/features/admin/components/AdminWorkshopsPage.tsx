@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   BookOpenIcon, 
@@ -20,6 +20,7 @@ import { useAdminWorkshops } from '../hooks/useAdminWorkshops'
 import { AdminWorkshop } from '../services/adminWorkshops.service'
 import { EditWorkshopModal } from './EditWorkshopModal'
 import { AddWorkshopModal } from './AddWorkshopModal'
+import { DeleteWorkshopModal } from './DeleteWorkshopModal'
 
 // Componente interno para manejar la imagen del taller con fallback
 function WorkshopThumbnail({ thumbnailUrl, title }: { thumbnailUrl?: string; title: string }) {
@@ -52,6 +53,12 @@ export function AdminWorkshopsPage() {
   const [editingWorkshop, setEditingWorkshop] = useState<AdminWorkshop | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [workshopToDelete, setWorkshopToDelete] = useState<AdminWorkshop | null>(null)
+
+  // Debug: Log cuando cambia el estado del modal
+  useEffect(() => {
+    console.log('[AdminWorkshopsPage] Estado workshopToDelete cambió:', workshopToDelete);
+  }, [workshopToDelete]);
 
   const filteredWorkshops = workshops.filter(workshop => {
     const matchesSearch = workshop.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -334,13 +341,14 @@ export function AdminWorkshopsPage() {
                       <PencilIcon className="h-4 w-4" />
                     </button>
                     <button 
-                      onClick={() => {
-                        if (confirm('¿Estás seguro de eliminar este taller?')) {
-                          // console.log('Eliminar taller:', workshop.id)
-                        }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setWorkshopToDelete(workshop);
                       }}
                       className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                       title="Eliminar taller"
+                      type="button"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
@@ -389,6 +397,40 @@ export function AdminWorkshopsPage() {
               alert(error instanceof Error ? error.message : 'Error al actualizar el taller')
             } finally {
               setIsUpdating(false)
+            }
+          }}
+        />
+      )}
+
+      {/* Modal de Eliminación */}
+      {workshopToDelete && (
+        <DeleteWorkshopModal
+          isOpen={true}
+          onClose={() => {
+            console.log('[AdminWorkshopsPage] Cerrando modal');
+            setWorkshopToDelete(null);
+          }}
+          workshop={workshopToDelete}
+          onConfirm={async () => {
+            if (!workshopToDelete) return
+
+            try {
+              const response = await fetch(`/api/admin/workshops/${workshopToDelete.id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+              })
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.error || 'Error al eliminar el taller')
+              }
+
+              await refetch()
+              setWorkshopToDelete(null)
+            } catch (error) {
+              // console.error('Error deleting workshop:', error)
+              alert(error instanceof Error ? error.message : 'Error al eliminar el taller')
+              throw error
             }
           }}
         />

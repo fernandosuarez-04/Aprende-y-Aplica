@@ -43,7 +43,117 @@
     "errorGeneric": "Lo siento, ocurrió un error. Por favor intenta de nuevo.",
     "helpPrompt": "¿Qué puedo hacer aquí? Ayúdame",
     "helpFallback": "Lo siento, no pude generar una respuesta.",
-    "helpError": "Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo."
+    "helpError": "Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo.",
+    "initialMessage": "¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.",
+    "clearConversation": "Limpiar conversación",
+    "changeMode": "Cambiar modo de Lia",
+    "clearContext": "Limpiar contexto",
+    "clearContextConfirm": "¿Deseas limpiar el contexto y empezar una conversación nueva?",
+    "reportProblem": "Reportar problema",
+    "promptMode": {
+      "placeholder": "Describe qué tipo de prompt quieres crear...",
+      "title": "Diseñador de Prompts",
+      "description": "Crea y refina prompts profesionales guiados por LIA.",
+      "viewGenerated": "Ver Prompt Generado",
+      "download": "Descargar",
+      "titleLabel": "Título",
+      "contentLabel": "Contenido",
+      "emptyDescription": "Genera y refina prompts profesionales. Indica el objetivo, el tono y los requisitos; LIA te entrega un prompt listo para usar con buenas prácticas.",
+      "loginRequired": "Debes iniciar sesión para guardar prompts"
+    },
+    "nanobanaMode": {
+      "title": "NanoBanana Pro",
+      "description": "Genera JSON estructurado para renderizado visual preciso.",
+      "emptyDescription": "Genera JSON estructurado para NanoBanana Pro. Describe UI, fotografías o diagramas y obtén esquemas precisos y reproducibles.",
+      "welcome": "🎨 ¡Bienvenido al Modo NanoBanana!\n\nSoy tu asistente para crear JSON estructurado optimizado para NanoBanana Pro.\n\n**¿Qué puedo crear?**\n• 📱 UI/Wireframes (apps, dashboards, landing pages)\n• 📸 Fotografías (productos, marketing, lifestyle)\n• 📊 Diagramas (flujos, arquitecturas, procesos)\n\nDescríbeme lo que necesitas y generaré un JSON preciso y reproducible.",
+      "viewJson": "Ver JSON NanoBanana"
+    },
+    "contextMode": {
+      "title": "Contexto Persistente",
+      "description": "Mantiene los últimos {{count}} mensajes entre páginas",
+      "emptyDescription": "Mantiene la conversación activa entre páginas. Guarda automáticamente los últimos {{count}} mensajes para continuar donde lo dejaste.",
+      "active": "Contexto activo: {{count}} mensaje",
+      "active_plural": "Contexto activo: {{count}} mensajes",
+      "showingLast": "(mostrando últimos {{count}})"
+    },
+    "assistantMode": {
+      "title": "Asistente",
+      "emptyDescription": "Asistente conversacional para resolver dudas generales, explorar contenido y guiarte por la plataforma."
+    },
+    "voice": {
+      "listening": "Escuchando...",
+      "processing": "Procesando...",
+      "thinking": "Pensando...",
+      "speaking": "Hablando...",
+      "tapToSpeak": "Toca para hablar",
+      "tapToStop": "Toca para detener",
+      "microphoneError": "Error al acceder al micrófono",
+      "speechNotSupported": "Tu navegador no soporta reconocimiento de voz"
+    }
+  },
+  "tours": {
+    "viewTourWithLia": "Ver Tour con LIA",
+    "viewTourWithLiaTitle": "Volver a ver la experiencia de bienvenida con LIA",
+    "viewGuidedTour": "Ver tour guiado",
+    "promptDirectory": {
+      "replayButtonLabel": "Ver tour del directorio",
+      "buttonLabel": "Ver Tour del Directorio"
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "1": {
+        "title": "¡Bienvenido a Aprende y Aplica!",
+        "description": "Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial.",
+        "speech": "Bienvenido a Aprende y Aplica. Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial."
+      },
+      "2": {
+        "title": "Conoce a LIA",
+        "description": "LIA es tu compañera de aprendizaje que te acompañará en todas partes. Puede responder tus preguntas, ayudarte con tareas y adaptarse al contexto de cada página.",
+        "speech": "LIA es tu compañera de aprendizaje que te acompañará en todas partes. Puede responder tus preguntas y adaptarse al contexto de cada página.",
+        "actionLabel": "Ver Dashboard"
+      },
+      "3": {
+        "title": "Explora el contenido",
+        "description": "Accede a cursos, talleres, comunidades y noticias sobre IA. Todo diseñado para que aprendas de manera práctica y efectiva.",
+        "speech": "Accede a cursos, talleres, comunidades y noticias sobre inteligencia artificial. Todo diseñado para que aprendas de manera práctica y efectiva.",
+        "actionLabel": "Ver Cursos"
+      },
+      "4": {
+        "title": "Directorio de Prompts",
+        "description": "Descubre y crea prompts de IA profesionales. Una herramienta poderosa para maximizar el potencial de la inteligencia artificial.",
+        "speech": "Descubre y crea prompts de IA profesionales. Una herramienta poderosa para maximizar el potencial de la inteligencia artificial.",
+        "actionLabel": "Ver Prompts"
+      },
+      "5": {
+        "title": "Hablemos un momento",
+        "description": "Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Puedo hablarte por voz sobre lo que necesites saber.",
+        "speech": "Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Haz clic en el micrófono y háblame. Te responderé por voz."
+      },
+      "6": {
+        "title": "¡Estás listo!",
+        "description": "Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible en la esquina inferior derecha para ayudarte.",
+        "speech": "Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible para ayudarte.",
+        "actionLabel": "Comenzar"
+      }
+    },
+    "buttons": {
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "continueWithoutAsking": "Continuar sin preguntar",
+      "continue": "Continuar",
+      "start": "¡Comenzar!",
+      "skipIntro": "Saltar introducción"
+    },
+    "voice": {
+      "processing": "Procesando tu pregunta...",
+      "listening": "Escuchando... Habla ahora",
+      "clickToSpeak": "Haz clic en el micrófono para hablar con LIA",
+      "errorProcessing": "Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?",
+      "browserNotSupported": "Tu navegador no soporta reconocimiento de voz. Por favor usa Chrome, Edge o Safari.",
+      "micPermissionNeeded": "Necesito permiso para usar el micrófono.\n\nPor favor:\n1. Haz clic en el icono de micrófono en la barra de direcciones\n2. Permite el acceso al micrófono\n3. Intenta de nuevo",
+      "micError": "Error al acceder al micrófono. Por favor verifica que tu micrófono esté conectado y funcionando."
+    }
   },
   "menu": {
     "stats": "Mis Estadísticas",

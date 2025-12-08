@@ -65,11 +65,12 @@ import type { CourseLessonContext } from '../../../../core/types/lia.types';
 import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
 import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
 import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/components/ContextualVoiceGuide';
-import { COURSE_LEARN_TOUR_STEPS } from '../../../../features/courses/config/course-learn-tour';
+import { useCourseLearnTourSteps } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
+import { useLanguage } from '../../../../core/providers/I18nProvider';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
@@ -126,6 +127,9 @@ export default function CourseLearnPage() {
   const { t, i18n, ready } = useTranslation('learn');
   // Detectar idioma seleccionado
   const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  
+  // Obtener steps del tour traducidos
+  const courseLearnTourSteps = useCourseLearnTourSteps();
   
   // Estado para evitar errores de hidratación
   const [mounted, setMounted] = useState(false);
@@ -234,6 +238,18 @@ export default function CourseLearnPage() {
   const liaPanelRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // 🎙️ Ref para el reconocimiento de voz
+  const recognitionRef = useRef<any>(null);
+  
+  // 🎙️ Obtener idioma actual para reconocimiento de voz
+  const { language } = useLanguage();
+  
+  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  const speechLanguageMap: Record<string, string> = {
+    'es': 'es-ES',
+    'en': 'en-US',
+    'pt': 'pt-BR'
+  };
   // ✨ Estados para guardado de prompts
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [showPromptPreview, setShowPromptPreview] = useState(false);
@@ -433,7 +449,10 @@ export default function CourseLearnPage() {
       });
 
       // VALIDAR en segundo plano (async, no bloquea UI)
-      markLessonAsCompleted(previousLesson.lesson_id).then(canComplete => {
+      // Usar AbortController para poder cancelar si el usuario cambia de lección rápidamente
+      const abortController = new AbortController();
+      
+      markLessonAsCompleted(previousLesson.lesson_id, abortController.signal).then(canComplete => {
         // Si falla la validación, REVERTIR cambio
         if (!canComplete) {
           console.warn('❌ Validación falló, revirtiendo a lección anterior');
@@ -447,7 +466,15 @@ export default function CourseLearnPage() {
             reason: 'previous_lesson_not_completed'
           });
         }
+      }).catch(error => {
+        // Ignorar errores de cancelación
+        if (error?.name !== 'AbortError' && process.env.NODE_ENV === 'development') {
+          console.warn('Error en validación de lección (ignorado):', error);
+        }
       });
+      
+      // Limpiar el abort controller cuando se cambie de lección
+      // Esto se manejará en un useEffect que limpie cuando currentLesson cambie
       return;
     }
 
@@ -1089,6 +1116,88 @@ export default function CourseLearnPage() {
       await sendLiaMessage(message, lessonContext);
     }
   };
+
+  // 🎙️ Inicializar reconocimiento de voz cuando cambia el idioma
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = speechLanguageMap[language] || 'es-ES';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript.trim()) {
+          setLiaMessage(prev => prev + (prev ? ' ' : '') + transcript);
+        }
+        setIsLiaRecording(false);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        setIsLiaRecording(false);
+        
+        if (event.error === 'not-allowed') {
+          alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
+        }
+      };
+      
+      recognition.onend = () => {
+        setIsLiaRecording(false);
+      };
+      
+      recognitionRef.current = recognition;
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore
+        }
+      }
+    };
+  }, [language, t]);
+  
+  // 🎙️ Función para activar/desactivar grabación de voz
+  const toggleRecording = useCallback(async () => {
+    if (!recognitionRef.current) {
+      alert(t('voice.speechNotSupported') || 'El reconocimiento de voz no está disponible en tu navegador');
+      return;
+    }
+    
+    if (isLiaRecording) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignore
+      }
+      setIsLiaRecording(false);
+    } else {
+      try {
+        // Solicitar permisos del micrófono primero
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Actualizar el idioma del reconocimiento
+        recognitionRef.current.lang = speechLanguageMap[language] || 'es-ES';
+        
+        recognitionRef.current.start();
+        setIsLiaRecording(true);
+      } catch (error: any) {
+        console.error('Error starting speech recognition:', error);
+        setIsLiaRecording(false);
+        
+        if (error?.name === 'NotAllowedError') {
+          alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
+        }
+      }
+    }
+  }, [isLiaRecording, language, t]);
 
   // ✨ Función para guardar prompts generados en la biblioteca
   const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
@@ -1768,44 +1877,14 @@ Antes de cada respuesta, pregúntate:
         }
 
         if (learnData.modules) {
-          // Traducir títulos de módulos y títulos/descripciones de lecciones según idioma
-          const translatedModules = await Promise.all(
-            learnData.modules.map(async (m: Module) => {
-              // Traducir el título del módulo
-              const moduleWithId = { ...m, id: m.module_id };
-              const translatedModule = await ContentTranslationService.translateObject(
-                'module',
-                moduleWithId,
-                ['module_title'],
-                i18n.language
-              );
-
-              // Traducir las lecciones del módulo
-              const translatedLessons = await Promise.all(
-                m.lessons.map(async (l: Lesson) => {
-                  const lessonWithId = { ...l, id: l.lesson_id };
-                  // Solo traducir lesson_title desde content_translations
-                  // lesson_description, summary_content y transcript_content vienen desde la tabla correcta según idioma
-                  const translated = await ContentTranslationService.translateObject(
-                    'lesson',
-                    lessonWithId,
-                    ['lesson_title'],
-                    i18n.language
-                  );
-                  // Mantener lesson_description, summary_content y transcript_content desde la tabla por idioma
-                  translated.lesson_description = l.lesson_description;
-                  translated.summary_content = l.summary_content;
-                  translated.transcript_content = l.transcript_content;
-                  return translated;
-                })
-              );
-              return { ...translatedModule, lessons: translatedLessons };
-            })
-          );
-          setModules(translatedModules);
+          // IMPORTANTE: Las traducciones ya se aplicaron en el servidor (endpoint learn-data)
+          // Solo necesitamos usar los datos tal como vienen del servidor
+          // El servidor ya aplicó traducciones usando ContentTranslationService
+          console.log('[learn/page] Módulos recibidos del servidor (ya traducidos):', learnData.modules.length);
+          setModules(learnData.modules);
 
           // Calcular progreso
-          const allLessons = translatedModules.flatMap((m: Module) => m.lessons);
+          const allLessons = learnData.modules.flatMap((m: Module) => m.lessons);
           const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
           const totalProgress = allLessons.length > 0
             ? Math.round((completedLessons.length / allLessons.length) * 100)
@@ -2172,11 +2251,24 @@ Antes de cada respuesta, pregúntate:
   };
 
   // Función para verificar el estado de los quizzes obligatorios
-  const checkQuizStatus = async (lessonId: string): Promise<{ canComplete: boolean; error?: string; details?: any }> => {
+  const checkQuizStatus = async (lessonId: string, signal?: AbortSignal): Promise<{ canComplete: boolean; error?: string; details?: any }> => {
     try {
-      const response = await fetch(`/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`);
+      const response = await fetch(`/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`, {
+        signal, // Pasar el signal para poder cancelar la petición
+      });
+      
+      // Si la petición fue cancelada, retornar sin error
+      if (signal?.aborted) {
+        return { canComplete: true };
+      }
+      
       if (!response.ok) {
-        return { canComplete: true }; // Si hay error, permitir completar (retrocompatibilidad)
+        // Si hay error HTTP, permitir completar (retrocompatibilidad)
+        // No loguear errores 404/401 ya que pueden ser normales
+        if (response.status !== 404 && response.status !== 401) {
+          console.warn('Error verificando estado de quizzes:', response.status, response.statusText);
+        }
+        return { canComplete: true };
       }
 
       const data = await response.json();
@@ -2198,14 +2290,32 @@ Antes de cada respuesta, pregúntate:
           message: `Debes completar y aprobar todos los quizzes obligatorios (${data.passedQuizzes}/${data.totalRequiredQuizzes} completados)`,
         },
       };
-    } catch (error) {
-      console.error('Error verificando estado de quizzes:', error);
+    } catch (error: any) {
+      // Ignorar errores de cancelación (AbortError)
+      if (error?.name === 'AbortError' || signal?.aborted) {
+        return { canComplete: true };
+      }
+      
+      // Ignorar errores de red (Failed to fetch) - pueden ocurrir si la página se está desmontando
+      // o si hay problemas de conectividad temporales
+      if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
+        // No loguear en producción para evitar ruido
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Error de red verificando estado de quizzes (ignorado):', error.message);
+        }
+        return { canComplete: true }; // En caso de error de red, permitir completar
+      }
+      
+      // Para otros errores, loguear pero permitir completar
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error verificando estado de quizzes:', error);
+      }
       return { canComplete: true }; // En caso de error, permitir completar
     }
   };
 
   // ⚡ OPTIMIZADO: Marcar lección como completada con validaciones en paralelo
-  const markLessonAsCompleted = async (lessonId: string): Promise<boolean> => {
+  const markLessonAsCompleted = async (lessonId: string, signal?: AbortSignal): Promise<boolean> => {
     if (!canCompleteLesson(lessonId)) {
       return false;
     }
@@ -2229,14 +2339,33 @@ Antes de cada respuesta, pregúntate:
     // 🚀 PARALLELIZAR: Verificar quizzes Y guardar en BD al mismo tiempo
     try {
       const [quizStatus, saveResponse] = await Promise.all([
-        checkQuizStatus(lessonId),
+        checkQuizStatus(lessonId, signal),
         fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          signal, // Pasar el signal para poder cancelar
+        }).catch((fetchError: any) => {
+          // Si el fetch falla (red, cancelación, etc.), retornar una respuesta simulada
+          // que permita continuar sin errores
+          if (fetchError?.name === 'AbortError' || signal?.aborted) {
+            // Crear una respuesta simulada para cancelación
+            return new Response(null, { status: 200, statusText: 'Cancelled' });
+          }
+          // Para otros errores de red, crear una respuesta simulada
+          // El estado local ya se actualizó, así que permitir continuar
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Error de red guardando progreso (ignorado):', fetchError.message);
+          }
+          return new Response(null, { status: 200, statusText: 'Network Error (ignored)' });
         })
       ]);
+      
+      // Si la petición fue cancelada, retornar true (el estado local ya se actualizó)
+      if (signal?.aborted) {
+        return true;
+      }
 
       // Verificar si falló validación de quizzes
       if (!quizStatus.canComplete) {
@@ -2273,13 +2402,27 @@ Antes de cada respuesta, pregúntate:
       // Verificar si guardado en BD falló
       const response = saveResponse;
 
+      // Si la respuesta no es OK, puede ser un error o una cancelación
+      if (!response.ok) {
+        // Si es un error 404/401, puede ser normal (no inscrito, etc.)
+        // Si es otro error, loguear pero permitir continuar
+        if (response.status !== 404 && response.status !== 401 && process.env.NODE_ENV === 'development') {
+          console.warn('Error guardando progreso de lección:', response.status, response.statusText);
+        }
+        // Retornar true porque el estado local ya se actualizó
+        return true;
+      }
+
       // Intentar parsear la respuesta primero (puede ser éxito o error)
       let responseData: any;
       try {
         responseData = await response.json();
       } catch (jsonError) {
-        // Si no es JSON válido, manejar como error
-        // console.warn('Respuesta no es JSON válido - Status:', response.status);
+        // Si no es JSON válido, manejar como éxito (el estado local ya se actualizó)
+        // No loguear en producción para evitar ruido
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Respuesta no es JSON válido - Status:', response.status);
+        }
         // Retornar true porque el estado local se actualizó
         return true;
       }
@@ -2378,8 +2521,25 @@ Antes de cada respuesta, pregúntate:
       }
 
       return true;
-    } catch (error) {
-      // console.error('Error al guardar progreso en BD:', error);
+    } catch (error: any) {
+      // Si el error es de cancelación, retornar true (el estado local ya se actualizó)
+      if (error?.name === 'AbortError' || signal?.aborted) {
+        return true;
+      }
+      
+      // Para errores de red, también permitir continuar
+      if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Error de red marcando lección como completada (ignorado):', error.message);
+        }
+        // El estado local ya se actualizó, así que permitir continuar
+        return true;
+      }
+      
+      // Para otros errores, loguear pero permitir continuar
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Error al guardar progreso en BD (ignorado):', error);
+      }
       // Mantener el estado local aunque falle la BD
       return true;
     }
@@ -4217,8 +4377,7 @@ Antes de cada respuesta, pregúntate:
                           handleSendLiaMessage();
                         } else {
                           // Si no hay texto, activar/desactivar grabación
-                          setIsLiaRecording(!isLiaRecording);
-                          // Aquí se implementaría la lógica de reconocimiento de voz
+                          toggleRecording();
                         }
                       }}
                       disabled={isLiaLoading && !!liaMessage.trim()}
@@ -4731,7 +4890,7 @@ Antes de cada respuesta, pregúntate:
       {/* Tour de voz contextual para la página de aprendizaje */}
       <ContextualVoiceGuide
         tourId="course-learn"
-        steps={COURSE_LEARN_TOUR_STEPS}
+        steps={courseLearnTourSteps}
         triggerPaths={['/courses']}
         isReplayable={true}
         showDelay={2000}

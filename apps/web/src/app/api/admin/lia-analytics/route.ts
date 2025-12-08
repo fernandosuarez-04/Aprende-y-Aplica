@@ -16,31 +16,40 @@ interface DateRange {
 }
 
 function getDateRange(period: string): DateRange {
+  // IMPORTANTE: Usar UTC para coincidir con cómo se guardan los datos en la BD
+  // Las fechas se guardan como "2025-12-05 16:04:55.295407+00" (UTC)
   const now = new Date();
+  
+  // endDate: Hasta el final del día actual (23:59:59.999) en UTC
   const endDate = new Date(now);
-  endDate.setHours(23, 59, 59, 999);
+  endDate.setUTCHours(23, 59, 59, 999);
   
   let startDate = new Date(now);
   
   switch (period) {
     case 'day':
-      startDate.setHours(0, 0, 0, 0);
+      // Hoy desde las 00:00:00 en UTC
+      startDate.setUTCHours(0, 0, 0, 0);
       break;
     case 'week':
-      startDate.setDate(startDate.getDate() - 7);
-      startDate.setHours(0, 0, 0, 0);
+      // Últimos 7 días (incluyendo hoy) en UTC
+      startDate.setUTCDate(startDate.getUTCDate() - 6); // -6 para incluir hoy (7 días total)
+      startDate.setUTCHours(0, 0, 0, 0);
       break;
     case 'month':
-      startDate.setMonth(startDate.getMonth() - 1);
-      startDate.setHours(0, 0, 0, 0);
+      // Último mes (30 días, incluyendo hoy) en UTC
+      startDate.setUTCDate(startDate.getUTCDate() - 29); // -29 para incluir hoy (30 días total)
+      startDate.setUTCHours(0, 0, 0, 0);
       break;
     case 'year':
-      startDate.setFullYear(startDate.getFullYear() - 1);
-      startDate.setHours(0, 0, 0, 0);
+      // Último año (365 días, incluyendo hoy) en UTC
+      startDate.setUTCDate(startDate.getUTCDate() - 364); // -364 para incluir hoy (365 días total)
+      startDate.setUTCHours(0, 0, 0, 0);
       break;
     default:
-      startDate.setMonth(startDate.getMonth() - 1);
-      startDate.setHours(0, 0, 0, 0);
+      // Por defecto: último mes
+      startDate.setUTCDate(startDate.getUTCDate() - 29);
+      startDate.setUTCHours(0, 0, 0, 0);
   }
   
   return { startDate, endDate };
@@ -74,19 +83,22 @@ export async function GET(request: NextRequest) {
     
     // ===== MÉTRICAS PRINCIPALES =====
     
+    // Usar fecha actual para incluir datos hasta el momento presente
+    const nowISO = new Date().toISOString();
+    
     // Total de conversaciones
     const { count: totalConversations } = await supabase
       .from('lia_conversations')
       .select('*', { count: 'exact', head: true })
       .gte('started_at', startDate.toISOString())
-      .lte('started_at', endDate.toISOString());
+      .lte('started_at', nowISO);
     
     // Total de mensajes y métricas
     const { data: messagesData } = await supabase
       .from('lia_messages')
       .select('tokens_used, cost_usd, response_time_ms, model_used, role')
       .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString());
+      .lte('created_at', nowISO);
     
     const totalMessages = messagesData?.length || 0;
     const assistantMessages = messagesData?.filter(m => m.role === 'assistant') || [];
@@ -107,34 +119,159 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'completed')
       .gte('completed_at', startDate.toISOString())
-      .lte('completed_at', endDate.toISOString());
+      .lte('completed_at', nowISO);
     
     // ===== COSTOS POR DÍA =====
-    const { data: dailyCosts } = await supabase
-      .from('lia_messages')
-      .select('created_at, cost_usd, tokens_used')
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .order('created_at', { ascending: true });
+    // IMPORTANTE: Las fechas en la BD se guardan en UTC (toISOString())
+    // startDate ya viene en UTC desde getDateRange(), solo necesitamos asegurar que esté en inicio del día
+    const startDateUTC = new Date(startDate);
+    startDateUTC.setUTCHours(0, 0, 0, 0);
     
-    // Agrupar por día
+    // Consultar TODOS los mensajes del período
+    // Supabase tiene un límite por defecto de 1000 registros, pero podemos obtener más con paginación
+    let allDailyCosts: any[] = [];
+    let hasMore = true;
+    let offset = 0;
+    const limit = 1000; // Límite por página de Supabase
+    
+    while (hasMore) {
+      const { data: pageData, error: dailyCostsError } = await supabase
+        .from('lia_messages')
+        .select('created_at, cost_usd, tokens_used')
+        .gte('created_at', startDateUTC.toISOString())
+        .lte('created_at', nowISO)
+        .order('created_at', { ascending: true })
+        .range(offset, offset + limit - 1);
+      
+      if (dailyCostsError) {
+        console.error('[LIA Analytics] Error fetching daily costs:', dailyCostsError);
+        break;
+      }
+      
+      if (pageData && pageData.length > 0) {
+        allDailyCosts = [...allDailyCosts, ...pageData];
+        offset += limit;
+        hasMore = pageData.length === limit; // Si hay menos registros que el límite, no hay más páginas
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    const dailyCosts = allDailyCosts;
+    
+    // Agrupar por día usando UTC (las fechas en BD están en UTC)
+    // IMPORTANTE: Las fechas se guardan como "2025-12-05 16:04:55.295407+00" (UTC)
+    // Necesitamos extraer el día directamente del string o usar UTC para evitar problemas de zona horaria
     const costsByDay = new Map<string, { cost: number; tokens: number; messages: number }>();
-    dailyCosts?.forEach(msg => {
-      const date = new Date(msg.created_at).toISOString().split('T')[0];
-      const existing = costsByDay.get(date) || { cost: 0, tokens: 0, messages: 0 };
-      costsByDay.set(date, {
-        cost: existing.cost + (msg.cost_usd || 0),
-        tokens: existing.tokens + (msg.tokens_used || 0),
-        messages: existing.messages + 1
+    
+    if (dailyCosts && dailyCosts.length > 0) {
+      dailyCosts.forEach(msg => {
+        if (!msg.created_at) return; // Saltar si no hay fecha
+        
+        // Extraer la fecha directamente del string UTC para evitar problemas de conversión
+        // El formato es "2025-12-05 16:04:55.295407+00" o ISO string
+        let date: string;
+        
+        if (typeof msg.created_at === 'string') {
+          // Si viene como "2025-12-05 16:04:55.295407+00", extraer solo la parte de fecha
+          if (msg.created_at.includes(' ')) {
+            date = msg.created_at.split(' ')[0]; // "2025-12-05"
+          } else {
+            // Si viene como ISO string "2025-12-05T16:04:55.295Z"
+            date = msg.created_at.split('T')[0]; // "2025-12-05"
+          }
+        } else {
+          // Fallback: usar Date y métodos UTC
+          const msgDate = new Date(msg.created_at);
+          const year = msgDate.getUTCFullYear();
+          const month = String(msgDate.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(msgDate.getUTCDate()).padStart(2, '0');
+          date = `${year}-${month}-${day}`;
+        }
+        
+        const existing = costsByDay.get(date) || { cost: 0, tokens: 0, messages: 0 };
+        costsByDay.set(date, {
+          cost: existing.cost + (Number(msg.cost_usd) || 0),
+          tokens: existing.tokens + (Number(msg.tokens_used) || 0),
+          messages: existing.messages + 1
+        });
       });
+    }
+    
+    // Debug: Verificar qué datos se obtuvieron y agrupados (usando UTC)
+    const uniqueDatesFromData = dailyCosts ? [...new Set(dailyCosts.map(m => {
+      const d = new Date(m.created_at);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    }))].sort() : [];
+    
+    console.log('[LIA Analytics] Consulta de costos diarios:', {
+      queryRange: {
+        startDateUTC: startDateUTC.toISOString(),
+        endDateUTC: nowISO,
+        startDateLocal: startDate.toISOString()
+      },
+      totalRecords: dailyCosts?.length || 0,
+      dateRange: dailyCosts?.length > 0 ? {
+        first: dailyCosts[0]?.created_at,
+        last: dailyCosts[dailyCosts.length - 1]?.created_at
+      } : null,
+      uniqueDatesFromData,
+      groupedDates: Array.from(costsByDay.keys()).sort(),
+      groupedDataSample: Array.from(costsByDay.entries()).slice(0, 10).reduce((acc, [date, data]) => {
+        acc[date] = { cost: data.cost, tokens: data.tokens, messages: data.messages };
+        return acc;
+      }, {} as Record<string, any>)
     });
     
-    const costsByPeriod = Array.from(costsByDay.entries()).map(([date, data]) => ({
-      date,
-      cost: Number(data.cost.toFixed(6)),
-      tokens: data.tokens,
-      messages: data.messages
-    }));
+    // Asegurar que incluimos todos los días del rango, incluso si no hay datos
+    // IMPORTANTE: Usar UTC para coincidir con cómo se agruparon los datos
+    const costsByPeriod: Array<{ date: string; cost: number; tokens: number; messages: number }> = [];
+    
+    // Reutilizar startDateUTC que ya fue declarado arriba para la consulta
+    // Solo necesitamos crear todayUTC para el bucle
+    const todayUTC = new Date(); // Fecha actual
+    todayUTC.setUTCHours(23, 59, 59, 999);
+    
+    // Iterar día por día desde startDate hasta hoy (en UTC)
+    const tempDate = new Date(startDateUTC);
+    let dayCount = 0;
+    const maxDays = 365; // Límite de seguridad
+    
+    while (tempDate <= todayUTC && dayCount < maxDays) {
+      const year = tempDate.getUTCFullYear();
+      const month = String(tempDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(tempDate.getUTCDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      const dayData = costsByDay.get(dateStr) || { cost: 0, tokens: 0, messages: 0 };
+      costsByPeriod.push({
+        date: dateStr,
+        cost: Number(dayData.cost.toFixed(6)),
+        tokens: dayData.tokens,
+        messages: dayData.messages
+      });
+      
+      // Avanzar al siguiente día (en UTC)
+      tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+      dayCount++;
+    }
+    
+    // Debug: Log para verificar datos
+    console.log('[LIA Analytics] Costos por período:', {
+      startDateUTC: startDateUTC.toISOString(),
+      todayUTC: todayUTC.toISOString(),
+      totalDays: costsByPeriod.length,
+      daysWithData: costsByPeriod.filter(d => d.messages > 0).length,
+      firstDate: costsByPeriod[0]?.date,
+      lastDate: costsByPeriod[costsByPeriod.length - 1]?.date,
+      totalMessagesFound: dailyCosts?.length || 0,
+      sampleDaysWithData: costsByPeriod.filter(d => d.messages > 0).slice(0, 10).map(d => ({
+        date: d.date,
+        messages: d.messages,
+        cost: d.cost,
+        tokens: d.tokens
+      }))
+    });
     
     // ===== DISTRIBUCIÓN POR CONTEXTO =====
     const { data: contextData } = await supabase
@@ -144,7 +281,7 @@ export async function GET(request: NextRequest) {
         conversation_id
       `)
       .gte('started_at', startDate.toISOString())
-      .lte('started_at', endDate.toISOString());
+      .lte('started_at', nowISO);
     
     // Obtener costos por conversación
     const conversationIds = contextData?.map(c => c.conversation_id) || [];
@@ -212,25 +349,30 @@ export async function GET(request: NextRequest) {
     }));
     
     // ===== MÉTRICAS DE HOY Y COMPARACIÓN =====
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // Usar fecha local (no UTC) para calcular "hoy" correctamente
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0); // Inicio del día en hora local
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999); // Final del día en hora local
+    
+    // Usar fecha actual para incluir datos hasta ahora
+    const nowForToday = new Date().toISOString();
     
     const { data: todayMessages } = await supabase
       .from('lia_messages')
       .select('cost_usd, tokens_used')
       .gte('created_at', todayStart.toISOString())
-      .lte('created_at', todayEnd.toISOString());
+      .lte('created_at', nowForToday);
     
     const todayCost = todayMessages?.reduce((sum, m) => sum + (m.cost_usd || 0), 0) || 0;
     const todayTokens = todayMessages?.reduce((sum, m) => sum + (m.tokens_used || 0), 0) || 0;
     
-    // Ayer para comparación
+    // Ayer para comparación (usando hora local)
     const yesterdayStart = new Date(todayStart);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
     const yesterdayEnd = new Date(todayStart);
-    yesterdayEnd.setMilliseconds(-1);
+    yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
     
     const { data: yesterdayMessages } = await supabase
       .from('lia_messages')
@@ -255,7 +397,7 @@ export async function GET(request: NextRequest) {
       data: {
         period: {
           start: startDate.toISOString(),
-          end: endDate.toISOString(),
+          end: nowISO,
           type: period
         },
         summary: {
@@ -279,6 +421,12 @@ export async function GET(request: NextRequest) {
         costsByPeriod,
         contextDistribution,
         modelUsage
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       }
     });
     

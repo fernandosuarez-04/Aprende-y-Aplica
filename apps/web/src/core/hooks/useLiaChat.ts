@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import type { CourseLessonContext, LiaMessage, GeneratedNanoBananaData } from '../types/lia.types';
 import { IntentDetectionService } from '../services/intent-detection.service';
+import { useLanguage } from '../providers/I18nProvider';
 
 // Tipos de modo para el chat
 export type LiaChatMode = 'course' | 'prompts' | 'context' | 'nanobana';
@@ -43,6 +44,7 @@ export interface UseLiaChatReturn {
 
 export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [messages, setMessages] = useState<LiaMessage[]>(
     initialMessage !== null && initialMessage !== undefined && initialMessage !== ''
       ? [
@@ -517,6 +519,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         body: JSON.stringify({
           message: message.trim(),
           context: effectiveContext,
+          language: language, // ✅ Enviar idioma actual al API
           isPromptMode: modeForThisMessage === 'prompts', // ✨ Usar el modo detectado para esta llamada
           conversationHistory: messages.map(m => ({
             role: m.role,

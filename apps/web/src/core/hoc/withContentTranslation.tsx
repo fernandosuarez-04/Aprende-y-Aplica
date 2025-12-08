@@ -28,14 +28,8 @@ export function useTranslatedContent<T extends Record<string, any>>(
 
     console.log(`[useTranslatedContent] Language: ${language}, EntityType: ${entityType}, Data count: ${data.length}`);
 
-    // Si es español, usar datos originales sin traducir
-    if (language === 'es') {
-      console.log('[useTranslatedContent] Using original Spanish data');
-      setTranslatedData(data);
-      return;
-    }
-
-    // Traducir datos para otros idiomas
+    // IMPORTANTE: Ahora siempre intentamos traducir, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
     let isCancelled = false;
 
     const translateData = async () => {
@@ -94,11 +88,8 @@ export function useTranslatedObject<T extends Record<string, any>>(
       return;
     }
 
-    if (language === 'es') {
-      setTranslatedData(data);
-      return;
-    }
-
+    // IMPORTANTE: Ahora siempre intentamos traducir, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
     let isCancelled = false;
 
     const translateData = async () => {

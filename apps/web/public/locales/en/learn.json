@@ -241,6 +241,52 @@
   },
   "tour": {
     "courseLearnLabel": "View course tour",
-    "replayLabel": "View Course Tour"
+    "replayLabel": "View Course Tour",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to your course!",
+        "description": "This is your interactive learning space. Here you'll find lessons, practical activities and resources to master the topic.",
+        "speech": "Welcome to your course. This is your interactive learning space. Here you'll find lessons, practical activities and resources to master the topic."
+      },
+      "navigation": {
+        "title": "Course navigation",
+        "description": "In the left panel you'll see all the modules and lessons of the course. Click on any lesson to access its content.",
+        "speech": "In the left panel you'll see all the modules and lessons of the course. Click on any lesson to access its content."
+      },
+      "materials": {
+        "title": "Lesson materials",
+        "description": "Each lesson may include videos, texts, downloadable PDFs and additional resources. Explore all available content.",
+        "speech": "Each lesson may include videos, texts, downloadable PDFs and additional resources. Explore all available content."
+      },
+      "activities": {
+        "title": "Practical activities",
+        "description": "Complete the activities to put what you've learned into practice. They are essential for your progress and certification.",
+        "speech": "Complete the activities to put what you've learned into practice. They are essential for your progress and certification."
+      },
+      "lia": {
+        "title": "LIA is here to help you",
+        "description": "If you have questions about the content, activities or any topic in the course, ask LIA. She will help you at all times.",
+        "speech": "If you have questions about the content, activities or any topic in the course, ask LIA. She will help you at all times."
+      },
+      "progress": {
+        "title": "Progress tracking",
+        "description": "Your progress is saved automatically. You can see how much you've advanced in the course and which lessons you've completed.",
+        "speech": "Your progress is saved automatically. You can see how much you've advanced in the course and which lessons you've completed."
+      },
+      "questions": {
+        "title": "Do you have any questions?",
+        "description": "Before starting, if you have any questions about how to use the learning platform, you can ask me. Click on the microphone and speak to me.",
+        "speech": "Before starting, if you have any questions about how to use the learning platform, click on the microphone and speak to me. I'll respond by voice."
+      },
+      "ready": {
+        "title": "Ready to learn!",
+        "description": "Now you're ready to begin your learning journey. Remember, LIA will always be available to help you.",
+        "speech": "Now you're ready to begin your learning journey. Remember, LIA will always be available to help you."
+      }
+    }
+  },
+  "voice": {
+    "microphoneError": "Microphone permission is required",
+    "speechNotSupported": "Your browser does not support speech recognition"
   }
 }

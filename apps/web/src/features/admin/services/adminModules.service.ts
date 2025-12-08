@@ -102,7 +102,7 @@ export class AdminModulesService {
     }
   }
 
-  static async createModule(courseId: string, moduleData: CreateModuleData): Promise<AdminModule> {
+  static async createModule(courseId: string, moduleData: CreateModuleData, userId?: string): Promise<AdminModule> {
     const supabase = await createClient()
 
     try {
@@ -151,6 +151,22 @@ export class AdminModulesService {
       if (error) {
         // console.error('Error creating module:', error)
         throw error
+      }
+
+      // Traducir automáticamente el módulo a inglés y portugués
+      try {
+        const { translateModuleOnCreate } = await import('@/core/services/courseTranslation.service')
+        await translateModuleOnCreate(
+          data.module_id,
+          {
+            module_title: data.module_title,
+            module_description: data.module_description
+          },
+          userId
+        )
+      } catch (translationError) {
+        // No fallar la creación del módulo si falla la traducción
+        console.error('Error en traducción automática del módulo:', translationError)
       }
 
       return data

@@ -1,5 +1,65 @@
 import { VoiceGuideStep } from '../../../core/components/ContextualVoiceGuide';
+import { useTranslation } from 'react-i18next';
 
+/**
+ * Hook para obtener los steps del tour traducidos
+ */
+export function useCourseLearnTourSteps(): VoiceGuideStep[] {
+  const { t } = useTranslation('learn');
+
+  return [
+    {
+      id: 1,
+      title: t('tour.steps.welcome.title'),
+      description: t('tour.steps.welcome.description'),
+      speech: t('tour.steps.welcome.speech')
+    },
+    {
+      id: 2,
+      title: t('tour.steps.navigation.title'),
+      description: t('tour.steps.navigation.description'),
+      speech: t('tour.steps.navigation.speech')
+    },
+    {
+      id: 3,
+      title: t('tour.steps.materials.title'),
+      description: t('tour.steps.materials.description'),
+      speech: t('tour.steps.materials.speech')
+    },
+    {
+      id: 4,
+      title: t('tour.steps.activities.title'),
+      description: t('tour.steps.activities.description'),
+      speech: t('tour.steps.activities.speech')
+    },
+    {
+      id: 5,
+      title: t('tour.steps.lia.title'),
+      description: t('tour.steps.lia.description'),
+      speech: t('tour.steps.lia.speech')
+    },
+    {
+      id: 6,
+      title: t('tour.steps.progress.title'),
+      description: t('tour.steps.progress.description'),
+      speech: t('tour.steps.progress.speech')
+    },
+    {
+      id: 7,
+      title: t('tour.steps.questions.title'),
+      description: t('tour.steps.questions.description'),
+      speech: t('tour.steps.questions.speech')
+    },
+    {
+      id: 8,
+      title: t('tour.steps.ready.title'),
+      description: t('tour.steps.ready.description'),
+      speech: t('tour.steps.ready.speech')
+    }
+  ];
+}
+
+// Exportar steps por defecto en español para compatibilidad (deprecated)
 export const COURSE_LEARN_TOUR_STEPS: VoiceGuideStep[] = [
   {
     id: 1,

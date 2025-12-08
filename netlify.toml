@@ -21,6 +21,8 @@
 # Este plugin maneja automáticamente el build y deployment de Next.js
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+  # Nota: Si el error persiste, puede ser necesario esperar una actualización del plugin
+  # o contactar al soporte de Netlify ya que es un error HTTP 500 del lado del servidor
 
 # Redirecciones automáticas para Next.js (el plugin las maneja)
 # Solo necesitamos mantener esto para rutas específicas si es necesario

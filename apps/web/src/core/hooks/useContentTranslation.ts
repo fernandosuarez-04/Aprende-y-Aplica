@@ -22,12 +22,8 @@ export function useContentTranslation() {
     field: string,
     fallbackValue: string
   ): string => {
-    // Si el idioma es español, retornar el valor original
-    if (currentLanguage === 'es') {
-      return fallbackValue;
-    }
-
-    // Intentar obtener la traducción
+    // IMPORTANTE: Ahora siempre intentamos obtener traducción, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
     const translationKey = `${entityType}.${entityId}.${field}`;
     const translation = t(translationKey, { defaultValue: '' });
 
@@ -46,8 +42,9 @@ export function useContentTranslation() {
     entity: T,
     fields: string[]
   ): T => {
-    // Si el idioma es español, retornar el objeto original
-    if (currentLanguage === 'es' || !entity.id) {
+    // IMPORTANTE: Ahora siempre intentamos traducir, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
+    if (!entity.id) {
       return entity;
     }
 
@@ -78,10 +75,8 @@ export function useContentTranslation() {
     entities: T[],
     fields: string[]
   ): T[] => {
-    if (currentLanguage === 'es') {
-      return entities;
-    }
-
+    // IMPORTANTE: Ahora siempre intentamos traducir, incluso para español
+    // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
     return entities.map(entity => translateEntity(entityType, entity, fields));
   };
 

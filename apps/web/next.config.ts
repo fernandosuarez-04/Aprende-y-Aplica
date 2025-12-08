@@ -9,9 +9,6 @@ let withPWA = (config: NextConfig) => config;
 
 const nextConfig: NextConfig = {
   // Deshabilitar checks durante builds de producción
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -22,6 +19,8 @@ const nextConfig: NextConfig = {
   // Configuración experimental para permitir directorios externos
   experimental: {
     externalDir: true,
+    // Optimizar importaciones de paquetes como lucide-react
+    optimizePackageImports: ['lucide-react'],
   },
 
   // Configuración para resolver advertencia de múltiples lockfiles
@@ -162,6 +161,50 @@ const nextConfig: NextConfig = {
       '@/utils': path.resolve(__dirname, 'src/shared/utils'),
       '@/hooks': path.resolve(__dirname, 'src/shared/hooks'),
     };
+
+    // Resolver problema de casing en Windows
+    // Normalizar el casing de las rutas para evitar problemas en Windows
+    const nodeModulesPath = path.resolve(__dirname, 'node_modules');
+    config.resolve.modules = [
+      ...(config.resolve.modules || []),
+      nodeModulesPath,
+    ];
+
+    // Configuración para evitar problemas de casing en Windows
+    // Esto normaliza las rutas de módulos para que usen el mismo casing
+    if (process.platform === 'win32') {
+      // Normalizar todas las rutas a minúsculas para evitar conflictos de casing
+      const normalizePath = (p: string) => {
+        if (p && typeof p === 'string' && p.match(/^[A-Z]:/)) {
+          return p.charAt(0).toLowerCase() + p.slice(1);
+        }
+        return p;
+      };
+
+      // Normalizar el path de node_modules
+      const normalizedNodeModules = normalizePath(nodeModulesPath);
+      
+      config.resolve = {
+        ...config.resolve,
+        // Deshabilitar symlinks para evitar problemas de casing
+        symlinks: false,
+        // Normalizar rutas de módulos
+        cacheWithContext: false,
+        // Asegurar que los módulos se resuelvan con el mismo casing
+        modules: [
+          ...(config.resolve.modules || []).map((m: any) => 
+            typeof m === 'string' ? normalizePath(m) : m
+          ),
+          normalizedNodeModules,
+        ],
+      };
+
+      // Interceptar la resolución de módulos para normalizar el casing
+      config.resolveLoader = {
+        ...config.resolveLoader,
+        symlinks: false,
+      };
+    }
 
     // Configuración para librerías que solo funcionan en el cliente
     if (!isServer) {

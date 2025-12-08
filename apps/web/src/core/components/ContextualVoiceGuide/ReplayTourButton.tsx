@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import Image from 'next/image';
@@ -14,13 +15,17 @@ interface ReplayTourButtonProps {
 
 export function ReplayTourButton({ 
   tourId, 
-  label = 'Ver tour guiado',
+  label,
   allowedPaths,
   requireAuth = false 
 }: ReplayTourButtonProps) {
+  const { t } = useTranslation('common');
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();
+  
+  // Usar traducción si no se proporciona un label personalizado
+  const displayLabel = label || t('tours.viewGuidedTour');
 
   useEffect(() => {
     setMounted(true);
@@ -46,7 +51,7 @@ export function ReplayTourButton({
     <button
       onClick={handleReplayTour}
       className="fixed bottom-20 left-4 z-[10000] px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs rounded-lg shadow-lg transition-all duration-200 font-semibold flex items-center gap-2 hover:scale-105"
-      title={label}
+      title={displayLabel}
     >
       <div className="relative w-6 h-6">
         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-0.5 animate-pulse-slow">
@@ -61,7 +66,7 @@ export function ReplayTourButton({
           </div>
         </div>
       </div>
-      <span>{label}</span>
+      <span>{displayLabel}</span>
     </button>
   );
 }
