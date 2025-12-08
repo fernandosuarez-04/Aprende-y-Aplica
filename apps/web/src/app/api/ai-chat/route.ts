@@ -213,7 +213,19 @@ function filterSystemPromptFromResponse(text: string): string {
     'CONTEXTO ESPECIAL',
     'LANGUAGE INSTRUCTION',
     'USER INFORMATION',
-    'YOUR ROLE'
+    'YOUR ROLE',
+    // Indicadores específicos de instrucciones del sistema que NO deben mostrarse
+    'METAS SEMANALES (YA CALCULADAS - PRESENTAR DIRECTAMENTE)',
+    'DATOS DEL SISTEMA (no preguntar al usuario)',
+    'METAS YA CALCULADAS (presentar al usuario)',
+    'INSTRUCCIÓN CRÍTICA:',
+    '⚠️ INSTRUCCIÓN CRÍTICA',
+    'DISTRIBUCIÓN DETALLADA DE LECCIONES PARA MOSTRAR',
+    'HORARIOS CON LECCIONES ASIGNADAS (mostrar TODOS)',
+    'VERIFICACIÓN:',
+    'no preguntar al usuario',
+    'presentar directamente',
+    'YA CALCULADAS'
   ];
 
   // Si comienza con alguno de estos indicadores CRÍTICOS, definitivamente es el prompt
@@ -232,10 +244,37 @@ function filterSystemPromptFromResponse(text: string): string {
     }
   }
 
-  // Solo filtrar si hay 3 o más indicadores críticos (más sensible para capturar el prompt maestro)
-  if (criticalIndicatorCount >= 3) {
+  // Solo filtrar si hay 2 o más indicadores críticos (más sensible para capturar el prompt maestro)
+  if (criticalIndicatorCount >= 2) {
     logger.warn('🚫 Filtro activado - múltiples indicadores de prompt detectados:', criticalIndicatorCount);
     return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
+  }
+  
+  // Eliminar bloques de instrucciones del sistema que puedan aparecer en el texto
+  let cleanedText = text;
+  
+  // Patrones regex para eliminar bloques de instrucciones
+  const instructionPatterns = [
+    /\*\*METAS SEMANALES.*?INSTRUCCIÓN CRÍTICA.*?\*\*/gis,
+    /\*\*DATOS DEL SISTEMA.*?\*\*/gis,
+    /\*\*METAS YA CALCULADAS.*?\*\*/gis,
+    /⚠️ INSTRUCCIÓN CRÍTICA:.*?\n/gi,
+    /DATOS DEL SISTEMA \(no preguntar al usuario\):.*?\n/gi,
+    /METAS YA CALCULADAS \(presentar al usuario\):.*?\n/gi,
+    /INSTRUCCIÓN CRÍTICA:.*?\n/gi,
+    /no preguntar al usuario/gi,
+    /presentar directamente/gi,
+    /YA CALCULADAS - PRESENTAR DIRECTAMENTE/gi
+  ];
+  
+  instructionPatterns.forEach(pattern => {
+    cleanedText = cleanedText.replace(pattern, '');
+  });
+  
+  // Si se eliminó contenido significativo, usar el texto limpio
+  if (cleanedText.length < text.length * 0.8) {
+    logger.warn('🚫 Se eliminaron instrucciones del sistema del texto');
+    text = cleanedText.trim();
   }
   
   // Detectar patrones específicos del prompt maestro que pueden aparecer en cualquier parte
@@ -248,7 +287,15 @@ function filterSystemPromptFromResponse(text: string): string {
     /El\s+nombre\s+del\s+usuario\s+es:/i,
     /la\s+asistente\s+inteligente\s+del\s+Planificador/i,
     /NUNCA.*usar.*nombre.*usuario/i,
-    /NUNCA.*saludar.*usuario/i
+    /NUNCA.*saludar.*usuario/i,
+    // Patrones específicos para instrucciones del sistema que NO deben mostrarse
+    /METAS\s+SEMANALES\s*\(.*YA\s+CALCULADAS.*PRESENTAR\s+DIRECTAMENTE.*\)/i,
+    /DATOS\s+DEL\s+SISTEMA\s*\(.*no\s+preguntar.*usuario.*\)/i,
+    /METAS\s+YA\s+CALCULADAS\s*\(.*presentar.*usuario.*\)/i,
+    /⚠️\s*INSTRUCCI[ÓO]N\s+CR[ÍI]TICA/i,
+    /INSTRUCCI[ÓO]N\s+CR[ÍI]TICA:.*NO\s+preguntes/i,
+    /DISTRIBUCI[ÓO]N\s+DETALLADA\s+DE\s+LECCIONES\s+PARA\s+MOSTRAR/i,
+    /HORARIOS\s+CON\s+LECCIONES\s+ASIGNADAS\s*\(.*mostrar\s+TODOS.*\)/i
   ];
   
   for (const pattern of masterPromptPatterns) {
@@ -1458,8 +1505,11 @@ export async function POST(request: NextRequest) {
     // ✅ Si está en modo prompt, usar el contexto 'prompts'
     const effectiveContext = isPromptMode ? 'prompts' : context;
     
+    // FORZAR ESPAÑOL para study-planner siempre
+    const effectiveLanguage = (effectiveContext === 'study-planner' || effectiveContext === 'study-planner-availability') ? 'es' : language;
+    
     // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso/taller y contexto de página
-    const contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, workshopContext, pageContext, userRole, language, isFirstMessage);
+    const contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, workshopContext, pageContext, userRole, effectiveLanguage, isFirstMessage);
 
     // ✅ OPTIMIZACIÓN: Inicializar analytics de forma asíncrona para no bloquear el procesamiento del mensaje
     let conversationId: string | null = existingConversationId || null;
@@ -1573,7 +1623,9 @@ export async function POST(request: NextRequest) {
         const startTime = Date.now();
         logger.info('🔥 Llamando a OpenAI', { message: message.substring(0, 50), hasKey: !!openaiApiKey });
         // ✅ OPTIMIZACIÓN: Pasar contexto a callOpenAI para optimizaciones específicas
-        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage, language, context);
+        // FORZAR ESPAÑOL para study-planner siempre
+        const effectiveLanguage = (context === 'study-planner' || context === 'study-planner-availability') ? 'es' : language;
+        const result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage, effectiveLanguage, context);
         const responseTime = Date.now() - startTime;
         // Filtrar prompt del sistema y limpiar markdown
         response = filterSystemPromptFromResponse(result.response);
@@ -1587,14 +1639,18 @@ export async function POST(request: NextRequest) {
           hasApiKey: !!openaiApiKey,
           apiKeyPrefix: openaiApiKey ? openaiApiKey.substring(0, 10) + '...' : 'none'
         });
-        const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt, language);
+        // FORZAR ESPAÑOL para study-planner siempre
+        const effectiveLanguage = (context === 'study-planner' || context === 'study-planner-availability') ? 'es' : language;
+        const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt, effectiveLanguage);
         response = filterSystemPromptFromResponse(fallbackResponse);
         response = cleanMarkdownFromResponse(response);
       }
     } else {
       // Usar respuestas predeterminadas si no hay API key
       logger.warn('⚠️ No hay OPENAI_API_KEY configurada, usando fallback');
-      const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt, language);
+      // FORZAR ESPAÑOL para study-planner siempre
+      const effectiveLanguage = (context === 'study-planner' || context === 'study-planner-availability') ? 'es' : language;
+      const fallbackResponse = generateAIResponse(message, context, limitedHistory, contextPrompt, effectiveLanguage);
       response = filterSystemPromptFromResponse(fallbackResponse);
       response = cleanMarkdownFromResponse(response);
     }

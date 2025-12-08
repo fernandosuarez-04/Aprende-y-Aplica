@@ -2956,26 +2956,57 @@ export function StudyPlannerLIA() {
                     
                     if (courseSlug) {
                       try {
-                        // Obtener módulos y lecciones del curso
-                        const modulesResponse = await fetch(`/api/courses/${courseSlug}/modules`);
+                        // Obtener módulos y lecciones del curso EN ESPAÑOL
+                        const modulesResponse = await fetch(`/api/courses/${courseSlug}/modules?lang=es`);
                         if (modulesResponse.ok) {
                           const modulesData = await modulesResponse.json();
                           if (modulesData.modules && Array.isArray(modulesData.modules)) {
-                            const allLessons = modulesData.modules.flatMap((module: any) => 
-                              (module.lessons || []).map((lesson: any) => ({
-                                lesson_id: lesson.lesson_id,
-                                lesson_title: lesson.lesson_title,
-                                lesson_order_index: lesson.lesson_order_index || 0,
-                                duration_seconds: lesson.duration_seconds || 0
-                              }))
-                            );
+                            // Extraer lecciones de todos los módulos
+                            const allLessons = modulesData.modules.flatMap((module: any) => {
+                              if (!module.lessons || !Array.isArray(module.lessons)) {
+                                return [];
+                              }
+                              return module.lessons.map((lesson: any) => {
+                                // Validar que la lección tenga todos los campos requeridos
+                                if (!lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string') {
+                                  console.warn(`   ⚠️ Lección inválida en módulo ${module.module_id}:`, lesson);
+                                  return null;
+                                }
+                                return {
+                                  lesson_id: lesson.lesson_id,
+                                  lesson_title: lesson.lesson_title.trim(),
+                                  lesson_order_index: lesson.lesson_order_index || 0,
+                                  duration_seconds: lesson.duration_seconds || 0
+                                };
+                              }).filter((lesson: any) => lesson !== null); // Filtrar nulos
+                            });
                             
-                            // Filtrar solo lecciones publicadas y ordenar por índice
+                            // Filtrar solo lecciones válidas con título no vacío
                             const publishedLessons = allLessons
-                              .filter((lesson: any) => lesson.lesson_id && (lesson.is_published !== false))
+                              .filter((lesson: any) => {
+                                const isValid = lesson && 
+                                  lesson.lesson_id && 
+                                  lesson.lesson_title && 
+                                  typeof lesson.lesson_title === 'string' &&
+                                  lesson.lesson_title.trim() !== '' &&
+                                  lesson.lesson_order_index >= 0;
+                                if (!isValid) {
+                                  console.warn(`   ⚠️ Lección filtrada por datos inválidos:`, lesson);
+                                }
+                                return isValid;
+                              })
                               .sort((a: any, b: any) => a.lesson_order_index - b.lesson_order_index);
                             
-                            console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones publicadas`);
+                            console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas`);
+                            if (publishedLessons.length > 0) {
+                              console.log(`   Primeras 5 lecciones:`, publishedLessons.slice(0, 5).map((l: any) => ({
+                                index: l.lesson_order_index,
+                                id: l.lesson_id,
+                                title: l.lesson_title
+                              })));
+                            } else {
+                              console.warn(`   ⚠️ NO se encontraron lecciones válidas para el curso ${courseId}`);
+                            }
                             allLessonsByCourse.set(courseId, publishedLessons);
                             
                             // Obtener lecciones completadas
@@ -3033,16 +3064,26 @@ export function StudyPlannerLIA() {
             let pendingCount = 0;
             let skippedCount = 0;
             lessons.forEach(lesson => {
+              // Validar que la lección tenga título válido antes de agregarla
+              if (!lesson.lesson_title || lesson.lesson_title.trim() === '') {
+                console.warn(`   ⚠️ Lección ${lesson.lesson_order_index} (${lesson.lesson_id}) sin título válido - omitida`);
+                skippedCount++;
+                return;
+              }
+              
               if (!completedIds.includes(lesson.lesson_id)) {
                 allPendingLessons.push({
                   courseId,
                   courseTitle,
-                  ...lesson
+                  lesson_id: lesson.lesson_id,
+                  lesson_title: lesson.lesson_title.trim(), // Asegurar que no tenga espacios extra
+                  lesson_order_index: lesson.lesson_order_index || 0,
+                  duration_seconds: lesson.duration_seconds || 0
                 });
                 pendingCount++;
               } else {
                 skippedCount++;
-                console.log(`   ✓ Lección ${lesson.lesson_order_index} (${lesson.lesson_id}) ya completada - omitida`);
+                console.log(`   ✓ Lección ${lesson.lesson_order_index} "${lesson.lesson_title}" (${lesson.lesson_id}) ya completada - omitida`);
               }
             });
             console.log(`   Lecciones pendientes agregadas: ${pendingCount}, omitidas: ${skippedCount}`);
@@ -3103,50 +3144,93 @@ export function StudyPlannerLIA() {
             : sortedSlots;
           
           // Calcular distribución de lecciones (guardar para resumen final)
-          slotsUntilTarget.forEach(slot => {
+          console.log(`📊 Distribuyendo ${allPendingLessons.length} lecciones pendientes en ${slotsUntilTarget.length} slots`);
+          slotsUntilTarget.forEach((slot, slotIndex) => {
             const slotDurationMinutes = slot.durationMinutes;
             const sessionsInSlot = Math.max(1, Math.floor(slotDurationMinutes / cycleDuration));
             
-            // Asignar lecciones a este slot
+            // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
             for (let i = 0; i < sessionsInSlot && currentLessonIndex < allPendingLessons.length; i++) {
               const lesson = allPendingLessons[currentLessonIndex];
+              
+              // Validar que la lección tenga datos válidos antes de asignarla
+              if (!lesson || !lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
+                console.warn(`⚠️ Lección en índice ${currentLessonIndex} tiene datos inválidos, saltando:`, lesson);
+                currentLessonIndex++;
+                continue;
+              }
+              
               lessonsForSlot.push({
-                courseTitle: lesson.courseTitle,
-                lesson_title: lesson.lesson_title,
-                lesson_order_index: lesson.lesson_order_index
+                courseTitle: lesson.courseTitle || 'Curso',
+                lesson_title: lesson.lesson_title.trim(),
+                lesson_order_index: lesson.lesson_order_index || 0
               });
+              
+              // Log para las primeras asignaciones
+              if (slotIndex < 3 && i < 2) {
+                console.log(`   Slot ${slotIndex}, Sesión ${i}: Lección ${lesson.lesson_order_index} - ${lesson.lesson_title}`);
+              }
+              
               currentLessonIndex++;
             }
             
-            lessonDistribution.push({
-              slot,
-              lessons: lessonsForSlot
-            });
+            // Solo agregar slots que tengan lecciones válidas asignadas
+            if (lessonsForSlot.length > 0) {
+              lessonDistribution.push({
+                slot,
+                lessons: lessonsForSlot
+              });
+            } else if (slotIndex < 5) {
+              console.warn(`⚠️ Slot ${slotIndex} no tiene lecciones asignadas`);
+            }
           });
           
+          console.log(`✅ Distribución completada: ${lessonDistribution.length} slots con lecciones, ${currentLessonIndex} lecciones asignadas de ${allPendingLessons.length} totales`);
+          
           // Guardar distribución en el estado para usar en el resumen final
-          // Convertir a formato almacenable con validación de datos
-          const distributionToSave: StoredLessonDistribution[] = lessonDistribution.map(item => ({
-            dateStr: item.slot.dateStr,
-            dayName: item.slot.dayName,
-            startTime: item.slot.start.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            }),
-            endTime: item.slot.end.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            }),
-            // Asegurar que cada lección tenga datos válidos
-            lessons: item.lessons.map(lesson => ({
-              courseTitle: lesson.courseTitle || 'Curso',
-              lesson_title: lesson.lesson_title || `Lección del curso`,
-              lesson_order_index: lesson.lesson_order_index || 0
-            }))
-          }));
+          // Convertir a formato almacenable con validación estricta de datos
+          const distributionToSave: StoredLessonDistribution[] = lessonDistribution
+            .map(item => {
+              // Validar y filtrar lecciones inválidas
+              const validLessons = item.lessons.filter(lesson => {
+                const isValid = lesson && 
+                  lesson.lesson_title && 
+                  typeof lesson.lesson_title === 'string' &&
+                  lesson.lesson_title.trim() !== '' &&
+                  lesson.lesson_order_index >= 0;
+                if (!isValid) {
+                  console.warn(`⚠️ Lección inválida filtrada de distribución:`, lesson);
+                }
+                return isValid;
+              }).map(lesson => ({
+                courseTitle: lesson.courseTitle || 'Curso',
+                lesson_title: lesson.lesson_title.trim(), // Asegurar sin espacios extra
+                lesson_order_index: lesson.lesson_order_index || 0
+              }));
+              
+              // Solo incluir slots que tengan lecciones válidas
+              if (validLessons.length === 0) {
+                return null;
+              }
+              
+              return {
+                dateStr: item.slot.dateStr,
+                dayName: item.slot.dayName,
+                startTime: item.slot.start.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                }),
+                endTime: item.slot.end.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                }),
+                lessons: validLessons
+              };
+            })
+            .filter((item): item is StoredLessonDistribution => item !== null); // Filtrar nulos
           
           setSavedLessonDistribution(distributionToSave);
           setSavedTargetDate(targetDate);
@@ -3213,22 +3297,15 @@ export function StudyPlannerLIA() {
             const sessionDurationMinutes = studyApproach === 'rapido' ? 25 : studyApproach === 'normal' ? 45 : 60;
             const breakMinutes = studyApproach === 'rapido' ? 5 : studyApproach === 'normal' ? 10 : 15;
             
+            // Enviar datos en formato estructurado para LIA (sin instrucciones visibles)
             calendarMessage += `\n`;
-            calendarMessage += `**METAS SEMANALES (YA CALCULADAS - PRESENTAR DIRECTAMENTE):**\n`;
+            calendarMessage += `**METAS SEMANALES:**\n`;
             calendarMessage += `\n`;
-            calendarMessage += `DATOS DEL SISTEMA (no preguntar al usuario):\n`;
-            calendarMessage += `- Lecciones pendientes: ${totalLessonsNeeded}\n`;
-            calendarMessage += `- Semanas hasta fecha objetivo (${targetDate}): ${weeksUntilTarget}\n`;
-            calendarMessage += `- Enfoque: ${studyApproach === 'rapido' ? 'Sesiones rápidas' : studyApproach === 'normal' ? 'Sesiones normales' : 'Sesiones largas'}\n`;
-            calendarMessage += `- Duración sesión: ${sessionDurationMinutes} minutos\n`;
-            calendarMessage += `- Descanso: ${breakMinutes} minutos\n`;
-            calendarMessage += `- Horas disponibles semanales: ${Math.round(weeklyAvailableMinutes / 60 * 10) / 10}h\n`;
-            calendarMessage += `\n`;
-            calendarMessage += `METAS YA CALCULADAS (presentar al usuario):\n`;
+            calendarMessage += `Basándome en tu calendario y objetivos, estas son tus metas semanales:\n`;
             calendarMessage += `- Lecciones por semana: ${lessonsPerWeekCalc}\n`;
             calendarMessage += `- Horas semanales de estudio: ${hoursPerWeekCalc}\n`;
             calendarMessage += `\n`;
-            calendarMessage += `⚠️ INSTRUCCIÓN CRÍTICA: NO preguntes NADA sobre estos datos. Ya los tienes. Presenta las metas directamente y pregunta si le parecen bien los horarios propuestos.\n`;
+            calendarMessage += `*Datos de referencia: ${totalLessonsNeeded} lecciones pendientes, ${weeksUntilTarget} semanas hasta ${targetDate}, enfoque de ${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}*\n`;
           }
           
           // Mensaje de cierre personalizado
@@ -3585,27 +3662,47 @@ Cuéntame:
       };
       
       // Construir el resumen detallado con la distribución de lecciones
-      let distributionSummary = `\n\n**DISTRIBUCIÓN DETALLADA DE LECCIONES PARA MOSTRAR EN EL RESUMEN FINAL:**\n`;
-      distributionSummary += `Fecha límite: ${savedTargetDate || 'No especificada'}\n`;
-      distributionSummary += `Total de lecciones a completar: ${savedTotalLessons}\n`;
-      distributionSummary += `Enfoque de estudio: ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n\n`;
-      distributionSummary += `**HORARIOS CON LECCIONES ASIGNADAS (mostrar TODOS):**\n`;
+      // Formato estructurado para LIA sin instrucciones visibles
+      let distributionSummary = `\n\n**RESUMEN DEL PLAN DE ESTUDIOS:**\n`;
+      distributionSummary += `\n`;
+      distributionSummary += `**Curso(s) seleccionado(s):**\n`;
+      selectedCourseIds.forEach(courseId => {
+        const course = availableCourses.find(c => c.id === courseId);
+        if (course) {
+          distributionSummary += `- ${course.title}\n`;
+        }
+      });
+      distributionSummary += `\n`;
+      distributionSummary += `**Enfoque de estudio:** ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n`;
+      distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
+      distributionSummary += `\n`;
+      distributionSummary += `**DISTRIBUCIÓN DE LECCIONES POR HORARIO:**\n`;
       
       let totalLessonsAssigned = 0;
       console.log('📋 Preparando distribución para LIA:');
       console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
       
       savedLessonDistribution.forEach((item, slotIndex) => {
+        // Validar que el item tenga datos válidos
+        if (!item || !item.dateStr || !item.startTime || !item.endTime) {
+          console.warn(`⚠️ Slot ${slotIndex} tiene datos inválidos, omitiendo:`, item);
+          return;
+        }
+        
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
         distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}\n`;
         
-        if (item.lessons && item.lessons.length > 0) {
+        if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
           distributionSummary += `Lecciones a estudiar:\n`;
           item.lessons.forEach((lesson, lessonIndex) => {
-            // Usar el título real de la lección o un fallback descriptivo
-            const lessonTitle = lesson.lesson_title && lesson.lesson_title.trim() !== '' 
-              ? lesson.lesson_title 
-              : `Lección ${lesson.lesson_order_index} del curso`;
+            // Validar que la lección tenga datos válidos
+            if (!lesson || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
+              console.warn(`⚠️ Lección ${lessonIndex} en slot ${slotIndex} tiene datos inválidos, omitiendo:`, lesson);
+              return;
+            }
+            
+            // Usar el título real de la lección (ya validado)
+            const lessonTitle = lesson.lesson_title.trim();
             const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
             
             distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
@@ -3616,18 +3713,21 @@ Cuéntame:
               console.log(`   Slot ${slotIndex}, Lección ${lessonIndex}: ${lessonNum} - ${lessonTitle}`);
             }
           });
+        } else {
+          console.warn(`⚠️ Slot ${slotIndex} no tiene lecciones válidas`);
         }
       });
       
-      distributionSummary += `\n**VERIFICACIÓN:**\n`;
-      distributionSummary += `- Lecciones asignadas: ${totalLessonsAssigned} de ${savedTotalLessons}\n`;
+      distributionSummary += `\n`;
+      distributionSummary += `**VERIFICACIÓN:**\n`;
       if (totalLessonsAssigned >= savedTotalLessons) {
-        distributionSummary += `- ✅ Se pueden completar todas las lecciones antes de la fecha límite\n`;
+        distributionSummary += `✅ Se pueden completar todas las ${savedTotalLessons} lecciones antes de la fecha límite (${savedTargetDate}).\n`;
       } else {
-        distributionSummary += `- ⚠️ Faltan ${savedTotalLessons - totalLessonsAssigned} lecciones por asignar. Considera agregar más horarios o extender la fecha.\n`;
+        distributionSummary += `⚠️ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} lecciones por asignar.\n`;
       }
       
-      distributionSummary += `\n⚠️ INSTRUCCIÓN CRÍTICA: Muestra este resumen final al usuario con TODAS las lecciones distribuidas en sus horarios correspondientes. NO omitas ningún horario. Incluye la fecha límite y la verificación de cumplimiento.`;
+      distributionSummary += `\n`;
+      distributionSummary += `*Nota: Muestra este resumen completo con todos los horarios y lecciones asignadas al usuario.*`;
       
       enrichedMessage = message + distributionSummary;
       console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA');
@@ -3647,6 +3747,7 @@ Cuéntame:
         body: JSON.stringify({
           message: enrichedMessage,
           context: 'study-planner',
+          language: 'es', // FORZAR ESPAÑOL siempre
           conversationHistory: newHistory.slice(-10),
           pageContext: {
             pathname: '/study-planner/create',
