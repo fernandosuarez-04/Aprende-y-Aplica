@@ -83,7 +83,15 @@ export function LiaAnalyticsPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/lia-analytics?period=${period}`);
+      // Agregar timestamp para evitar cache y forzar datos frescos
+      const timestamp = Date.now();
+      const response = await fetch(`/api/admin/lia-analytics?period=${period}&_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        }
+      });
       const result = await response.json();
 
       if (result.success) {
