@@ -46,7 +46,10 @@
       "Bash(dir:*)",
       "Bash(powershell -Command \"if (Test-Path ''apps\\api\\node_modules'') { Remove-Item -Recurse -Force ''apps\\api\\node_modules'' }\")",
       "Bash(del package-lock.json)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(tasklist:*)",
+      "Bash(del \"C:\\Users\\Gael\\Desktop\\Ecos de Liderazgo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\.next\\dev\\lock\")",
+      "Bash(if exist \"C:\\Users\\Gael\\Desktop\\Ecos de Liderazgo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\.next\\dev\\lock\" del \"C:\\Users\\Gael\\Desktop\\Ecos de Liderazgo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\.next\\dev\\lock\")"
     ],
     "deny": [],
     "ask": []
