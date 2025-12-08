@@ -153,6 +153,7 @@ const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
       '@/features': path.resolve(__dirname, 'src/features'),
       '@/core': path.resolve(__dirname, 'src/core'),
       '@/app': path.resolve(__dirname, 'src/app'),

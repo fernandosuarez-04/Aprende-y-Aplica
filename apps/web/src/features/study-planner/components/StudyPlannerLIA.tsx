@@ -3135,24 +3135,30 @@ export function StudyPlannerLIA() {
             calendarMessage += `\n**Nota:** Quedan ${remainingLessons} lecciones pendientes por asignar. Considera agregar más horarios o extender la fecha objetivo para completar todas las lecciones.`;
           }
           
-          // Agregar datos crudos para que LIA calcule las metas semanales
+          // Agregar datos crudos para que LIA calcule las metas semanales AUTOMÁTICAMENTE
           if (selectedCourseIds.length > 0 && totalLessonsNeeded > 0 && weeksUntilTarget > 0 && studyApproach && targetDate) {
+            // Calcular metas automáticamente
+            const lessonsPerWeekCalc = Math.ceil(totalLessonsNeeded / weeksUntilTarget);
+            const hoursPerWeekCalc = Math.ceil(lessonsPerWeekCalc * 1.5);
+            const sessionDurationMinutes = studyApproach === 'rapido' ? 25 : studyApproach === 'normal' ? 45 : 60;
+            const breakMinutes = studyApproach === 'rapido' ? 5 : studyApproach === 'normal' ? 10 : 15;
+            
             calendarMessage += `\n`;
-            calendarMessage += `**INFORMACIÓN PARA CALCULAR METAS SEMANALES:**\n`;
+            calendarMessage += `**METAS SEMANALES (YA CALCULADAS - PRESENTAR DIRECTAMENTE):**\n`;
             calendarMessage += `\n`;
-            calendarMessage += `El usuario tiene ${totalLessonsNeeded} lecciones pendientes en total (ya completó algunas lecciones, estas son solo las pendientes).\n`;
-            calendarMessage += `Tiene ${weeksUntilTarget} semanas hasta la fecha objetivo: ${targetDate}.\n`;
-            calendarMessage += `Su enfoque de estudio es: ${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}.\n`;
-            calendarMessage += `Tiene aproximadamente ${Math.round(weeklyAvailableMinutes / 60 * 10) / 10} horas semanales disponibles para estudiar según su calendario.\n`;
+            calendarMessage += `DATOS DEL SISTEMA (no preguntar al usuario):\n`;
+            calendarMessage += `- Lecciones pendientes: ${totalLessonsNeeded}\n`;
+            calendarMessage += `- Semanas hasta fecha objetivo (${targetDate}): ${weeksUntilTarget}\n`;
+            calendarMessage += `- Enfoque: ${studyApproach === 'rapido' ? 'Sesiones rápidas' : studyApproach === 'normal' ? 'Sesiones normales' : 'Sesiones largas'}\n`;
+            calendarMessage += `- Duración sesión: ${sessionDurationMinutes} minutos\n`;
+            calendarMessage += `- Descanso: ${breakMinutes} minutos\n`;
+            calendarMessage += `- Horas disponibles semanales: ${Math.round(weeklyAvailableMinutes / 60 * 10) / 10}h\n`;
             calendarMessage += `\n`;
-            calendarMessage += `**IMPORTANTE:** Debes calcular las metas semanales REALISTAS basándote en estos datos:\n`;
-            calendarMessage += `- Lecciones pendientes totales: ${totalLessonsNeeded}\n`;
-            calendarMessage += `- Semanas hasta objetivo: ${weeksUntilTarget}\n`;
-            calendarMessage += `- Esto significa que necesita completar aproximadamente ${Math.ceil(totalLessonsNeeded / weeksUntilTarget)} lecciones por semana para cumplir con la fecha objetivo.\n`;
-            calendarMessage += `- Debe dedicar aproximadamente ${Math.ceil((totalLessonsNeeded / weeksUntilTarget) * 1.5)} horas semanales al estudio (considerando tiempo de actividades y práctica).\n`;
+            calendarMessage += `METAS YA CALCULADAS (presentar al usuario):\n`;
+            calendarMessage += `- Lecciones por semana: ${lessonsPerWeekCalc}\n`;
+            calendarMessage += `- Horas semanales de estudio: ${hoursPerWeekCalc}\n`;
             calendarMessage += `\n`;
-            calendarMessage += `Ahora calcula y presenta las METAS SEMANALES de forma clara y realista, distribuyendo las lecciones entre los cursos seleccionados.`;
-            calendarMessage += `\n`;
+            calendarMessage += `⚠️ INSTRUCCIÓN CRÍTICA: NO preguntes NADA sobre estos datos. Ya los tienes. Presenta las metas directamente y pregunta si le parecen bien los horarios propuestos.\n`;
           }
           
           // Mensaje de cierre personalizado
