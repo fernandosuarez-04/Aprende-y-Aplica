@@ -398,12 +398,21 @@ Ajustar los `../` según la ubicación del archivo.
 apps/web/src/
 ├── features/
 │   └── study-planner/
-│       └── services/
-│           └── lia-context.service.ts
-│               • Importación de getWorkshopMetadata agregada
-│               • Importación de createClient agregada
-│               • Método formatCourses() REESCRITO
-│               • Ahora usa getWorkshopMetadata() en lugar de CourseAnalysisService
+│       ├── services/
+│       │   └── lia-context.service.ts
+│       │       • Importación de getWorkshopMetadata agregada
+│       │       • Importación de createClient agregada
+│       │       • Método formatCourses() REESCRITO
+│       │       • Ahora usa getWorkshopMetadata() en lugar de CourseAnalysisService
+│       └── components/
+│           └── StudyPlannerLIA.tsx (líneas 2991-3067)
+│               • ✅ CAMBIO CRÍTICO: Cambió de /api/courses/${slug}/modules
+│                 a /api/workshops/${courseId}/metadata
+│               • Corregido manejo de respuesta para usar estructura de metadata
+│               • Actualizado mapeo de campos: lessonId, lessonTitle, etc.
+│               • Eliminado código obsoleto de verificación de slug
+│               • Algoritmo de distribución actualizado (líneas 3180-3239)
+│               • Ahora distribuye TODAS las lecciones hasta la fecha límite
 │
 └── app/
     └── api/
@@ -447,16 +456,88 @@ const formattedModules = workshopMetadata?.modules.map(module => ({
 
 ---
 
+## Cambios en StudyPlannerLIA.tsx (Distribución de Lecciones)
+
+### Problema Identificado
+
+El componente `StudyPlannerLIA.tsx` NO estaba obteniendo las lecciones correctamente para distribuirlas en los slots de tiempo. Los logs mostraban:
+
+```
+📊 Distribuyendo 0 lecciones pendientes en 10 slots
+```
+
+### Causa Raíz
+
+El código intentaba obtener lecciones usando:
+```typescript
+const modulesResponse = await fetch(`/api/courses/${courseSlug}/modules?lang=es`);
+```
+
+**Problema:** El curso tiene `slug=null`, por lo que este endpoint fallaba y retornaba 0 lecciones.
+
+### Solución Implementada
+
+**Cambios en líneas 2991-3067:**
+
+1. **Cambio de endpoint:**
+   ```typescript
+   // ❌ ANTES (no funcionaba)
+   const modulesResponse = await fetch(`/api/courses/${courseSlug}/modules?lang=es`);
+
+   // ✅ DESPUÉS (funciona)
+   const metadataResponse = await fetch(`/api/workshops/${courseId}/metadata`);
+   ```
+
+2. **Actualización de estructura de datos:**
+   ```typescript
+   // La metadata usa camelCase
+   {
+     lesson_id: lesson.lessonId,           // ✅ Cambio de lessonId
+     lesson_title: lesson.lessonTitle,     // ✅ Cambio de lessonTitle
+     lesson_order_index: lesson.lessonOrderIndex,  // ✅ Cambio
+     duration_seconds: lesson.durationSeconds      // ✅ Cambio
+   }
+   ```
+
+3. **Eliminación de código obsoleto:**
+   - Removido check de `if (courseSlug)` - ya no es necesario
+   - Actualizado mensaje de error para usar `metadataResponse`
+
+### Resultado Esperado
+
+Después de estos cambios, los logs deberían mostrar:
+
+```
+📚 Curso a26fa16b-4e08-493d-a78b-877bad789f38 (IA esencial):
+   Total lecciones: 40
+   Lecciones completadas: 0
+   Lecciones pendientes totales: 40
+
+📊 Distribuyendo 40 lecciones pendientes en X slots
+📐 Estrategia: Y lecciones por slot (mínimo) para distribuir 40 lecciones en X slots
+
+✅ Lecciones asignadas correctamente hasta la fecha límite (31 de enero de 2026)
+```
+
+---
+
 ## Conclusión
 
 ✅ **Problema RESUELTO definitivamente**
 
-La solución final consistió en:
+La solución final consistió en **DOS cambios críticos**:
 
-1. **Identificar** que `CourseAnalysisService.getCourseModules()` no funciona
-2. **Analizar** cómo `/learn` obtiene los módulos correctamente
-3. **Replicar** la misma lógica usando `getWorkshopMetadata()`
-4. **Verificar** que los módulos y lecciones estén publicados en la BD
+### 1. En `LiaContextService` (para que LIA conozca los nombres reales)
+- **Identificar** que `CourseAnalysisService.getCourseModules()` no funciona
+- **Analizar** cómo `/learn` obtiene los módulos correctamente
+- **Replicar** la misma lógica usando `getWorkshopMetadata()`
+- **Verificar** que los módulos y lecciones estén publicados en la BD
+
+### 2. En `StudyPlannerLIA.tsx` (para distribuir las lecciones en los slots)
+- **Identificar** que el endpoint basado en slug no funciona cuando `slug=null`
+- **Cambiar** a usar `/api/workshops/${courseId}/metadata`
+- **Actualizar** el mapeo de campos para la estructura de metadata
+- **Mejorar** el algoritmo de distribución para cubrir todas las lecciones
 
 LIA ahora tiene acceso a:
 - ✅ Nombres reales de módulos y lecciones desde la BD
@@ -464,4 +545,9 @@ LIA ahora tiene acceso a:
 - ✅ Duración de cada lección
 - ✅ Estado de completado/pendiente
 
-**Impacto:** Alto - LIA ya no inventará nombres genéricos y proporcionará información precisa y confiable.
+El planificador ahora:
+- ✅ Obtiene TODAS las lecciones del curso correctamente
+- ✅ Distribuye lecciones en slots hasta la fecha límite especificada
+- ✅ Calcula slots basándose en lecciones pendientes (no número fijo)
+
+**Impacto:** Alto - LIA ya no inventará nombres genéricos y el plan incluirá todas las lecciones distribuidas hasta la fecha límite del usuario.

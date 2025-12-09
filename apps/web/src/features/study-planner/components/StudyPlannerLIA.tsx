@@ -2809,7 +2809,7 @@ export function StudyPlannerLIA() {
       const slotsPerWeek = Math.max(1, Math.ceil(sessionsPerWeekNeeded));
       
       // Distribuir slots uniformemente a lo largo de las semanas hasta la fecha objetivo
-      for (let week = 0; week < totalWeeks && week < 12; week++) { // Máximo 12 semanas
+      for (let week = 0; week < totalWeeks; week++) {
         const weekStart = Math.floor((week * validDateSlots.length) / totalWeeks);
         const weekEnd = Math.floor(((week + 1) * validDateSlots.length) / totalWeeks);
         const weekSlots = validDateSlots.slice(weekStart, weekEnd);
@@ -2988,32 +2988,33 @@ export function StudyPlannerLIA() {
                     
                     console.log(`   Curso ${courseId}: slug=${courseSlug}, enrollmentId=${enrollmentId}`);
                     
-                    if (courseSlug) {
-                      try {
-                        // Obtener módulos y lecciones del curso EN ESPAÑOL
-                        const modulesResponse = await fetch(`/api/courses/${courseSlug}/modules?lang=es`);
-                        if (modulesResponse.ok) {
-                          const modulesData = await modulesResponse.json();
-                          if (modulesData.modules && Array.isArray(modulesData.modules)) {
-                            // Extraer lecciones de todos los módulos
-                            const allLessons = modulesData.modules.flatMap((module: any) => {
-                              if (!module.lessons || !Array.isArray(module.lessons)) {
-                                return [];
+                    // Usar el endpoint de metadata que funciona con courseId (no requiere slug)
+                    try {
+                      // ✅ Usar /api/workshops/${courseId}/metadata en lugar de /api/courses/${slug}/modules
+                      // Esto funciona incluso si el curso no tiene slug
+                      const metadataResponse = await fetch(`/api/workshops/${courseId}/metadata`);
+                      if (metadataResponse.ok) {
+                        const metadataData = await metadataResponse.json();
+                        if (metadataData.success && metadataData.metadata && metadataData.metadata.modules && Array.isArray(metadataData.metadata.modules)) {
+                          // Extraer lecciones de todos los módulos usando la estructura de metadata
+                          const allLessons = metadataData.metadata.modules.flatMap((module: any) => {
+                            if (!module.lessons || !Array.isArray(module.lessons)) {
+                              return [];
+                            }
+                            return module.lessons.map((lesson: any) => {
+                              // Validar que la lección tenga todos los campos requeridos
+                              if (!lesson.lessonId || !lesson.lessonTitle || typeof lesson.lessonTitle !== 'string') {
+                                console.warn(`   ⚠️ Lección inválida en módulo ${module.moduleId}:`, lesson);
+                                return null;
                               }
-                              return module.lessons.map((lesson: any) => {
-                                // Validar que la lección tenga todos los campos requeridos
-                                if (!lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string') {
-                                  console.warn(`   ⚠️ Lección inválida en módulo ${module.module_id}:`, lesson);
-                                  return null;
-                                }
-                                return {
-                                  lesson_id: lesson.lesson_id,
-                                  lesson_title: lesson.lesson_title.trim(),
-                                  lesson_order_index: lesson.lesson_order_index || 0,
-                                  duration_seconds: lesson.duration_seconds || 0
-                                };
-                              }).filter((lesson: any) => lesson !== null); // Filtrar nulos
-                            });
+                              return {
+                                lesson_id: lesson.lessonId,
+                                lesson_title: lesson.lessonTitle.trim(),
+                                lesson_order_index: lesson.lessonOrderIndex || 0,
+                                duration_seconds: lesson.durationSeconds || 0
+                              };
+                            }).filter((lesson: any) => lesson !== null); // Filtrar nulos
+                          });
                             
                             // Filtrar solo lecciones válidas con título no vacío
                             const publishedLessons = allLessons
@@ -3059,14 +3060,11 @@ export function StudyPlannerLIA() {
                             }
                           }
                         } else {
-                          console.warn(`Error obteniendo módulos del curso ${courseId}:`, modulesResponse.status);
+                          console.warn(`Error obteniendo metadata del curso ${courseId}:`, metadataResponse.status);
                         }
                       } catch (e) {
                         console.warn(`Error obteniendo lecciones del curso ${courseId}:`, e);
                       }
-                    } else {
-                      console.warn(`Curso ${courseId} no tiene slug`);
-                    }
                   } else {
                     console.warn(`Curso ${courseId} no encontrado en mis cursos`);
                   }
@@ -3179,36 +3177,54 @@ export function StudyPlannerLIA() {
           
           // Calcular distribución de lecciones (guardar para resumen final)
           console.log(`📊 Distribuyendo ${allPendingLessons.length} lecciones pendientes en ${slotsUntilTarget.length} slots`);
+
+          // Calcular cuántas lecciones por slot se necesitan para cubrir todas las lecciones
+          const totalSlotsAvailable = slotsUntilTarget.length;
+          const totalLessons = allPendingLessons.length;
+          const lessonsPerSlot = totalSlotsAvailable > 0 ? Math.ceil(totalLessons / totalSlotsAvailable) : 1;
+
+          console.log(`📐 Estrategia: ${lessonsPerSlot} lecciones por slot (mínimo) para distribuir ${totalLessons} lecciones en ${totalSlotsAvailable} slots`);
+
           slotsUntilTarget.forEach((slot, slotIndex) => {
             const slotDurationMinutes = slot.durationMinutes;
-            const sessionsInSlot = Math.max(1, Math.floor(slotDurationMinutes / cycleDuration));
-            
+
+            // Calcular cuántas sesiones caben en el slot basado en la duración
+            const maxSessionsInSlot = Math.max(1, Math.floor(slotDurationMinutes / cycleDuration));
+
+            // Usar el mayor entre: lecciones necesarias por slot y sesiones que caben
+            // Esto asegura que se distribuyan todas las lecciones hasta la fecha límite
+            const sessionsToAssign = Math.max(lessonsPerSlot, maxSessionsInSlot);
+
             // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
-            for (let i = 0; i < sessionsInSlot && currentLessonIndex < allPendingLessons.length; i++) {
+
+            // Continuar asignando mientras haya lecciones pendientes y espacio en el slot
+            let assignedInSlot = 0;
+            while (assignedInSlot < sessionsToAssign && currentLessonIndex < allPendingLessons.length) {
               const lesson = allPendingLessons[currentLessonIndex];
-              
+
               // Validar que la lección tenga datos válidos antes de asignarla
               if (!lesson || !lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
                 console.warn(`⚠️ Lección en índice ${currentLessonIndex} tiene datos inválidos, saltando:`, lesson);
                 currentLessonIndex++;
                 continue;
               }
-              
+
               lessonsForSlot.push({
                 courseTitle: lesson.courseTitle || 'Curso',
                 lesson_title: lesson.lesson_title.trim(),
                 lesson_order_index: lesson.lesson_order_index || 0
               });
-              
+
               // Log para las primeras asignaciones
-              if (slotIndex < 3 && i < 2) {
-                console.log(`   Slot ${slotIndex}, Sesión ${i}: Lección ${lesson.lesson_order_index} - ${lesson.lesson_title}`);
+              if (slotIndex < 3 && assignedInSlot < 2) {
+                console.log(`   Slot ${slotIndex}, Sesión ${assignedInSlot}: Lección ${lesson.lesson_order_index} - ${lesson.lesson_title}`);
               }
-              
+
               currentLessonIndex++;
+              assignedInSlot++;
             }
-            
+
             // Solo agregar slots que tengan lecciones válidas asignadas
             if (lessonsForSlot.length > 0) {
               lessonDistribution.push({
@@ -3696,7 +3712,7 @@ Cuéntame:
       };
       
       // Construir el resumen detallado con la distribución de lecciones
-      // Formato estructurado para LIA sin instrucciones visibles
+      // Formato OPTIMIZADO para LIA - solo primeros y últimos slots para evitar error 400
       let distributionSummary = `\n\n**RESUMEN DEL PLAN DE ESTUDIOS:**\n`;
       distributionSummary += `\n`;
       distributionSummary += `**Curso(s) seleccionado(s):**\n`;
@@ -3710,58 +3726,82 @@ Cuéntame:
       distributionSummary += `**Enfoque de estudio:** ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n`;
       distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
       distributionSummary += `\n`;
-      distributionSummary += `**DISTRIBUCIÓN DE LECCIONES POR HORARIO:**\n`;
-      
+
       let totalLessonsAssigned = 0;
       console.log('📋 Preparando distribución para LIA:');
       console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
-      
-      savedLessonDistribution.forEach((item, slotIndex) => {
-        // Validar que el item tenga datos válidos
-        if (!item || !item.dateStr || !item.startTime || !item.endTime) {
-          console.warn(`⚠️ Slot ${slotIndex} tiene datos inválidos, omitiendo:`, item);
-          return;
-        }
-        
-        const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
-        distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}\n`;
-        
-        if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
-          distributionSummary += `Lecciones a estudiar:\n`;
-          item.lessons.forEach((lesson, lessonIndex) => {
-            // Validar que la lección tenga datos válidos
-            if (!lesson || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
-              console.warn(`⚠️ Lección ${lessonIndex} en slot ${slotIndex} tiene datos inválidos, omitiendo:`, lesson);
-              return;
-            }
-            
-            // Usar el título real de la lección (ya validado)
-            const lessonTitle = lesson.lesson_title.trim();
-            const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
-            
-            distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
-            totalLessonsAssigned++;
-            
-            // Log para debugging
-            if (slotIndex < 2 && lessonIndex < 3) {
-              console.log(`   Slot ${slotIndex}, Lección ${lessonIndex}: ${lessonNum} - ${lessonTitle}`);
-            }
-          });
-        } else {
-          console.warn(`⚠️ Slot ${slotIndex} no tiene lecciones válidas`);
+
+      // Contar total de lecciones
+      savedLessonDistribution.forEach((item) => {
+        if (item?.lessons && Array.isArray(item.lessons)) {
+          totalLessonsAssigned += item.lessons.filter(l => l?.lesson_title?.trim()).length;
         }
       });
-      
+
+      // SOLO mostrar primeros 3 y últimos 2 slots para evitar mensaje muy largo
+      const maxSlotsToShow = 5;
+      const firstSlots = savedLessonDistribution.slice(0, 3);
+      const lastSlots = savedLessonDistribution.slice(-2);
+      const slotsToShow = savedLessonDistribution.length <= maxSlotsToShow
+        ? savedLessonDistribution
+        : [...firstSlots, ...lastSlots];
+
+      distributionSummary += `**DISTRIBUCIÓN DE LECCIONES:**\n`;
+      distributionSummary += `Total de sesiones: ${savedLessonDistribution.length}\n`;
+      distributionSummary += `Total de lecciones asignadas: ${totalLessonsAssigned}\n\n`;
+
+      if (savedLessonDistribution.length > maxSlotsToShow) {
+        distributionSummary += `**Primeras 3 sesiones:**\n`;
+      }
+
+      slotsToShow.forEach((item, idx) => {
+        // Validar que el item tenga datos válidos
+        if (!item || !item.dateStr || !item.startTime || !item.endTime) {
+          return;
+        }
+
+        const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
+        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+
+        distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}\n`;
+        distributionSummary += `• ${lessonCount} lección(es) asignadas\n`;
+
+        // Solo mostrar títulos para los primeros 3 slots
+        if (idx < 3 && item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
+          item.lessons.slice(0, 2).forEach((lesson, lessonIndex) => {
+            if (lesson?.lesson_title?.trim()) {
+              const lessonTitle = lesson.lesson_title.trim();
+              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
+              distributionSummary += `  - Lección ${lessonNum}: ${lessonTitle}\n`;
+
+              // Log para debugging
+              if (idx === 0 && lessonIndex < 3) {
+                console.log(`   Slot ${idx}, Lección ${lessonIndex}: ${lessonNum} - ${lessonTitle}`);
+              }
+            }
+          });
+          if (item.lessons.length > 2) {
+            distributionSummary += `  - ... y ${item.lessons.length - 2} más\n`;
+          }
+        }
+      });
+
+      if (savedLessonDistribution.length > maxSlotsToShow) {
+        distributionSummary += `\n...[${savedLessonDistribution.length - maxSlotsToShow} sesiones más]...\n`;
+        distributionSummary += `\n**Últimas 2 sesiones:**\n`;
+        // Las últimas 2 ya están incluidas en slotsToShow
+      }
+
       distributionSummary += `\n`;
       distributionSummary += `**VERIFICACIÓN:**\n`;
       if (totalLessonsAssigned >= savedTotalLessons) {
-        distributionSummary += `✅ Se pueden completar todas las ${savedTotalLessons} lecciones antes de la fecha límite (${savedTargetDate}).\n`;
+        distributionSummary += `✅ Se completarán todas las ${savedTotalLessons} lecciones antes de ${savedTargetDate}.\n`;
       } else {
-        distributionSummary += `⚠️ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} lecciones por asignar.\n`;
+        distributionSummary += `⚠️ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
       }
-      
+
       distributionSummary += `\n`;
-      distributionSummary += `*Nota: Muestra este resumen completo con todos los horarios y lecciones asignadas al usuario.*`;
+      distributionSummary += `*Nota: Genera un resumen detallado con TODOS los horarios y las lecciones correspondientes del curso. Usa los nombres reales de las lecciones que tienes en tu contexto.*`;
       
       enrichedMessage = message + distributionSummary;
       console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA');
