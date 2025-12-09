@@ -2,8 +2,39 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
+
+// Componentes de iconos de Google y Microsoft
+const GoogleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+    <path
+      d="M17.64 9.20443C17.64 8.56625 17.5827 7.95262 17.4764 7.36353H9V10.8449H13.8436C13.635 11.9699 13.0009 12.9231 12.0477 13.5613V15.8194H14.9564C16.6582 14.2526 17.64 11.9453 17.64 9.20443Z"
+      fill="#4285F4"
+    />
+    <path
+      d="M8.99976 18C11.4298 18 13.467 17.1941 14.9561 15.8195L12.0475 13.5613C11.2416 14.1013 10.2107 14.4204 8.99976 14.4204C6.65567 14.4204 4.67158 12.8372 3.96385 10.71H0.957031V13.0418C2.43794 15.9831 5.48158 18 8.99976 18Z"
+      fill="#34A853"
+    />
+    <path
+      d="M3.96409 10.7098C3.78409 10.1698 3.68182 9.59301 3.68182 8.99983C3.68182 8.40665 3.78409 7.82983 3.96409 7.28983V4.95801H0.957273C0.347727 6.17301 0 7.54756 0 8.99983C0 10.4521 0.347727 11.8266 0.957273 13.0416L3.96409 10.7098Z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M8.99976 3.57955C10.3211 3.57955 11.5075 4.03364 12.4402 4.92545L15.0216 2.34409C13.4629 0.891818 11.4257 0 8.99976 0C5.48158 0 2.43794 2.01682 0.957031 4.95818L3.96385 7.29C4.67158 5.16273 6.65567 3.57955 8.99976 3.57955Z"
+      fill="#EA4335"
+    />
+  </svg>
+);
+
+const MicrosoftIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+    <rect width="10" height="10" x="1" y="1" fill="#F25022" />
+    <rect width="10" height="10" x="12" y="1" fill="#7FBA00" />
+    <rect width="10" height="10" x="1" y="12" fill="#00A4EF" />
+    <rect width="10" height="10" x="12" y="12" fill="#FFB900" />
+  </svg>
+);
 
 interface StudyPlannerStep {
   id: number;
@@ -97,6 +128,9 @@ export function StudyPlannerLIA() {
   
   // Estados para selector de cursos
   const [showCourseSelector, setShowCourseSelector] = useState(false);
+  
+  // Estados para hover de botones del header
+  const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [availableCourses, setAvailableCourses] = useState<Array<{id: string, title: string, category: string, progress: number}>>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
@@ -2956,26 +2990,57 @@ export function StudyPlannerLIA() {
                     
                     if (courseSlug) {
                       try {
-                        // Obtener módulos y lecciones del curso
-                        const modulesResponse = await fetch(`/api/courses/${courseSlug}/modules`);
+                        // Obtener módulos y lecciones del curso EN ESPAÑOL
+                        const modulesResponse = await fetch(`/api/courses/${courseSlug}/modules?lang=es`);
                         if (modulesResponse.ok) {
                           const modulesData = await modulesResponse.json();
                           if (modulesData.modules && Array.isArray(modulesData.modules)) {
-                            const allLessons = modulesData.modules.flatMap((module: any) => 
-                              (module.lessons || []).map((lesson: any) => ({
-                                lesson_id: lesson.lesson_id,
-                                lesson_title: lesson.lesson_title,
-                                lesson_order_index: lesson.lesson_order_index || 0,
-                                duration_seconds: lesson.duration_seconds || 0
-                              }))
-                            );
+                            // Extraer lecciones de todos los módulos
+                            const allLessons = modulesData.modules.flatMap((module: any) => {
+                              if (!module.lessons || !Array.isArray(module.lessons)) {
+                                return [];
+                              }
+                              return module.lessons.map((lesson: any) => {
+                                // Validar que la lección tenga todos los campos requeridos
+                                if (!lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string') {
+                                  console.warn(`   ⚠️ Lección inválida en módulo ${module.module_id}:`, lesson);
+                                  return null;
+                                }
+                                return {
+                                  lesson_id: lesson.lesson_id,
+                                  lesson_title: lesson.lesson_title.trim(),
+                                  lesson_order_index: lesson.lesson_order_index || 0,
+                                  duration_seconds: lesson.duration_seconds || 0
+                                };
+                              }).filter((lesson: any) => lesson !== null); // Filtrar nulos
+                            });
                             
-                            // Filtrar solo lecciones publicadas y ordenar por índice
+                            // Filtrar solo lecciones válidas con título no vacío
                             const publishedLessons = allLessons
-                              .filter((lesson: any) => lesson.lesson_id && (lesson.is_published !== false))
+                              .filter((lesson: any) => {
+                                const isValid = lesson && 
+                                  lesson.lesson_id && 
+                                  lesson.lesson_title && 
+                                  typeof lesson.lesson_title === 'string' &&
+                                  lesson.lesson_title.trim() !== '' &&
+                                  lesson.lesson_order_index >= 0;
+                                if (!isValid) {
+                                  console.warn(`   ⚠️ Lección filtrada por datos inválidos:`, lesson);
+                                }
+                                return isValid;
+                              })
                               .sort((a: any, b: any) => a.lesson_order_index - b.lesson_order_index);
                             
-                            console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones publicadas`);
+                            console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas`);
+                            if (publishedLessons.length > 0) {
+                              console.log(`   Primeras 5 lecciones:`, publishedLessons.slice(0, 5).map((l: any) => ({
+                                index: l.lesson_order_index,
+                                id: l.lesson_id,
+                                title: l.lesson_title
+                              })));
+                            } else {
+                              console.warn(`   ⚠️ NO se encontraron lecciones válidas para el curso ${courseId}`);
+                            }
                             allLessonsByCourse.set(courseId, publishedLessons);
                             
                             // Obtener lecciones completadas
@@ -3033,16 +3098,26 @@ export function StudyPlannerLIA() {
             let pendingCount = 0;
             let skippedCount = 0;
             lessons.forEach(lesson => {
+              // Validar que la lección tenga título válido antes de agregarla
+              if (!lesson.lesson_title || lesson.lesson_title.trim() === '') {
+                console.warn(`   ⚠️ Lección ${lesson.lesson_order_index} (${lesson.lesson_id}) sin título válido - omitida`);
+                skippedCount++;
+                return;
+              }
+              
               if (!completedIds.includes(lesson.lesson_id)) {
                 allPendingLessons.push({
                   courseId,
                   courseTitle,
-                  ...lesson
+                  lesson_id: lesson.lesson_id,
+                  lesson_title: lesson.lesson_title.trim(), // Asegurar que no tenga espacios extra
+                  lesson_order_index: lesson.lesson_order_index || 0,
+                  duration_seconds: lesson.duration_seconds || 0
                 });
                 pendingCount++;
               } else {
                 skippedCount++;
-                console.log(`   ✓ Lección ${lesson.lesson_order_index} (${lesson.lesson_id}) ya completada - omitida`);
+                console.log(`   ✓ Lección ${lesson.lesson_order_index} "${lesson.lesson_title}" (${lesson.lesson_id}) ya completada - omitida`);
               }
             });
             console.log(`   Lecciones pendientes agregadas: ${pendingCount}, omitidas: ${skippedCount}`);
@@ -3103,50 +3178,93 @@ export function StudyPlannerLIA() {
             : sortedSlots;
           
           // Calcular distribución de lecciones (guardar para resumen final)
-          slotsUntilTarget.forEach(slot => {
+          console.log(`📊 Distribuyendo ${allPendingLessons.length} lecciones pendientes en ${slotsUntilTarget.length} slots`);
+          slotsUntilTarget.forEach((slot, slotIndex) => {
             const slotDurationMinutes = slot.durationMinutes;
             const sessionsInSlot = Math.max(1, Math.floor(slotDurationMinutes / cycleDuration));
             
-            // Asignar lecciones a este slot
+            // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
             for (let i = 0; i < sessionsInSlot && currentLessonIndex < allPendingLessons.length; i++) {
               const lesson = allPendingLessons[currentLessonIndex];
+              
+              // Validar que la lección tenga datos válidos antes de asignarla
+              if (!lesson || !lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
+                console.warn(`⚠️ Lección en índice ${currentLessonIndex} tiene datos inválidos, saltando:`, lesson);
+                currentLessonIndex++;
+                continue;
+              }
+              
               lessonsForSlot.push({
-                courseTitle: lesson.courseTitle,
-                lesson_title: lesson.lesson_title,
-                lesson_order_index: lesson.lesson_order_index
+                courseTitle: lesson.courseTitle || 'Curso',
+                lesson_title: lesson.lesson_title.trim(),
+                lesson_order_index: lesson.lesson_order_index || 0
               });
+              
+              // Log para las primeras asignaciones
+              if (slotIndex < 3 && i < 2) {
+                console.log(`   Slot ${slotIndex}, Sesión ${i}: Lección ${lesson.lesson_order_index} - ${lesson.lesson_title}`);
+              }
+              
               currentLessonIndex++;
             }
             
-            lessonDistribution.push({
-              slot,
-              lessons: lessonsForSlot
-            });
+            // Solo agregar slots que tengan lecciones válidas asignadas
+            if (lessonsForSlot.length > 0) {
+              lessonDistribution.push({
+                slot,
+                lessons: lessonsForSlot
+              });
+            } else if (slotIndex < 5) {
+              console.warn(`⚠️ Slot ${slotIndex} no tiene lecciones asignadas`);
+            }
           });
           
+          console.log(`✅ Distribución completada: ${lessonDistribution.length} slots con lecciones, ${currentLessonIndex} lecciones asignadas de ${allPendingLessons.length} totales`);
+          
           // Guardar distribución en el estado para usar en el resumen final
-          // Convertir a formato almacenable con validación de datos
-          const distributionToSave: StoredLessonDistribution[] = lessonDistribution.map(item => ({
-            dateStr: item.slot.dateStr,
-            dayName: item.slot.dayName,
-            startTime: item.slot.start.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            }),
-            endTime: item.slot.end.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            }),
-            // Asegurar que cada lección tenga datos válidos
-            lessons: item.lessons.map(lesson => ({
-              courseTitle: lesson.courseTitle || 'Curso',
-              lesson_title: lesson.lesson_title || `Lección del curso`,
-              lesson_order_index: lesson.lesson_order_index || 0
-            }))
-          }));
+          // Convertir a formato almacenable con validación estricta de datos
+          const distributionToSave: StoredLessonDistribution[] = lessonDistribution
+            .map(item => {
+              // Validar y filtrar lecciones inválidas
+              const validLessons = item.lessons.filter(lesson => {
+                const isValid = lesson && 
+                  lesson.lesson_title && 
+                  typeof lesson.lesson_title === 'string' &&
+                  lesson.lesson_title.trim() !== '' &&
+                  lesson.lesson_order_index >= 0;
+                if (!isValid) {
+                  console.warn(`⚠️ Lección inválida filtrada de distribución:`, lesson);
+                }
+                return isValid;
+              }).map(lesson => ({
+                courseTitle: lesson.courseTitle || 'Curso',
+                lesson_title: lesson.lesson_title.trim(), // Asegurar sin espacios extra
+                lesson_order_index: lesson.lesson_order_index || 0
+              }));
+              
+              // Solo incluir slots que tengan lecciones válidas
+              if (validLessons.length === 0) {
+                return null;
+              }
+              
+              return {
+                dateStr: item.slot.dateStr,
+                dayName: item.slot.dayName,
+                startTime: item.slot.start.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                }),
+                endTime: item.slot.end.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                }),
+                lessons: validLessons
+              };
+            })
+            .filter((item): item is StoredLessonDistribution => item !== null); // Filtrar nulos
           
           setSavedLessonDistribution(distributionToSave);
           setSavedTargetDate(targetDate);
@@ -3213,22 +3331,15 @@ export function StudyPlannerLIA() {
             const sessionDurationMinutes = studyApproach === 'rapido' ? 25 : studyApproach === 'normal' ? 45 : 60;
             const breakMinutes = studyApproach === 'rapido' ? 5 : studyApproach === 'normal' ? 10 : 15;
             
+            // Enviar datos en formato estructurado para LIA (sin instrucciones visibles)
             calendarMessage += `\n`;
-            calendarMessage += `**METAS SEMANALES (YA CALCULADAS - PRESENTAR DIRECTAMENTE):**\n`;
+            calendarMessage += `**METAS SEMANALES:**\n`;
             calendarMessage += `\n`;
-            calendarMessage += `DATOS DEL SISTEMA (no preguntar al usuario):\n`;
-            calendarMessage += `- Lecciones pendientes: ${totalLessonsNeeded}\n`;
-            calendarMessage += `- Semanas hasta fecha objetivo (${targetDate}): ${weeksUntilTarget}\n`;
-            calendarMessage += `- Enfoque: ${studyApproach === 'rapido' ? 'Sesiones rápidas' : studyApproach === 'normal' ? 'Sesiones normales' : 'Sesiones largas'}\n`;
-            calendarMessage += `- Duración sesión: ${sessionDurationMinutes} minutos\n`;
-            calendarMessage += `- Descanso: ${breakMinutes} minutos\n`;
-            calendarMessage += `- Horas disponibles semanales: ${Math.round(weeklyAvailableMinutes / 60 * 10) / 10}h\n`;
-            calendarMessage += `\n`;
-            calendarMessage += `METAS YA CALCULADAS (presentar al usuario):\n`;
+            calendarMessage += `Basándome en tu calendario y objetivos, estas son tus metas semanales:\n`;
             calendarMessage += `- Lecciones por semana: ${lessonsPerWeekCalc}\n`;
             calendarMessage += `- Horas semanales de estudio: ${hoursPerWeekCalc}\n`;
             calendarMessage += `\n`;
-            calendarMessage += `⚠️ INSTRUCCIÓN CRÍTICA: NO preguntes NADA sobre estos datos. Ya los tienes. Presenta las metas directamente y pregunta si le parecen bien los horarios propuestos.\n`;
+            calendarMessage += `*Datos de referencia: ${totalLessonsNeeded} lecciones pendientes, ${weeksUntilTarget} semanas hasta ${targetDate}, enfoque de ${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}*\n`;
           }
           
           // Mensaje de cierre personalizado
@@ -3585,27 +3696,47 @@ Cuéntame:
       };
       
       // Construir el resumen detallado con la distribución de lecciones
-      let distributionSummary = `\n\n**DISTRIBUCIÓN DETALLADA DE LECCIONES PARA MOSTRAR EN EL RESUMEN FINAL:**\n`;
-      distributionSummary += `Fecha límite: ${savedTargetDate || 'No especificada'}\n`;
-      distributionSummary += `Total de lecciones a completar: ${savedTotalLessons}\n`;
-      distributionSummary += `Enfoque de estudio: ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n\n`;
-      distributionSummary += `**HORARIOS CON LECCIONES ASIGNADAS (mostrar TODOS):**\n`;
+      // Formato estructurado para LIA sin instrucciones visibles
+      let distributionSummary = `\n\n**RESUMEN DEL PLAN DE ESTUDIOS:**\n`;
+      distributionSummary += `\n`;
+      distributionSummary += `**Curso(s) seleccionado(s):**\n`;
+      selectedCourseIds.forEach(courseId => {
+        const course = availableCourses.find(c => c.id === courseId);
+        if (course) {
+          distributionSummary += `- ${course.title}\n`;
+        }
+      });
+      distributionSummary += `\n`;
+      distributionSummary += `**Enfoque de estudio:** ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n`;
+      distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
+      distributionSummary += `\n`;
+      distributionSummary += `**DISTRIBUCIÓN DE LECCIONES POR HORARIO:**\n`;
       
       let totalLessonsAssigned = 0;
       console.log('📋 Preparando distribución para LIA:');
       console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
       
       savedLessonDistribution.forEach((item, slotIndex) => {
+        // Validar que el item tenga datos válidos
+        if (!item || !item.dateStr || !item.startTime || !item.endTime) {
+          console.warn(`⚠️ Slot ${slotIndex} tiene datos inválidos, omitiendo:`, item);
+          return;
+        }
+        
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
         distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}\n`;
         
-        if (item.lessons && item.lessons.length > 0) {
+        if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
           distributionSummary += `Lecciones a estudiar:\n`;
           item.lessons.forEach((lesson, lessonIndex) => {
-            // Usar el título real de la lección o un fallback descriptivo
-            const lessonTitle = lesson.lesson_title && lesson.lesson_title.trim() !== '' 
-              ? lesson.lesson_title 
-              : `Lección ${lesson.lesson_order_index} del curso`;
+            // Validar que la lección tenga datos válidos
+            if (!lesson || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
+              console.warn(`⚠️ Lección ${lessonIndex} en slot ${slotIndex} tiene datos inválidos, omitiendo:`, lesson);
+              return;
+            }
+            
+            // Usar el título real de la lección (ya validado)
+            const lessonTitle = lesson.lesson_title.trim();
             const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
             
             distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
@@ -3616,18 +3747,21 @@ Cuéntame:
               console.log(`   Slot ${slotIndex}, Lección ${lessonIndex}: ${lessonNum} - ${lessonTitle}`);
             }
           });
+        } else {
+          console.warn(`⚠️ Slot ${slotIndex} no tiene lecciones válidas`);
         }
       });
       
-      distributionSummary += `\n**VERIFICACIÓN:**\n`;
-      distributionSummary += `- Lecciones asignadas: ${totalLessonsAssigned} de ${savedTotalLessons}\n`;
+      distributionSummary += `\n`;
+      distributionSummary += `**VERIFICACIÓN:**\n`;
       if (totalLessonsAssigned >= savedTotalLessons) {
-        distributionSummary += `- ✅ Se pueden completar todas las lecciones antes de la fecha límite\n`;
+        distributionSummary += `✅ Se pueden completar todas las ${savedTotalLessons} lecciones antes de la fecha límite (${savedTargetDate}).\n`;
       } else {
-        distributionSummary += `- ⚠️ Faltan ${savedTotalLessons - totalLessonsAssigned} lecciones por asignar. Considera agregar más horarios o extender la fecha.\n`;
+        distributionSummary += `⚠️ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} lecciones por asignar.\n`;
       }
       
-      distributionSummary += `\n⚠️ INSTRUCCIÓN CRÍTICA: Muestra este resumen final al usuario con TODAS las lecciones distribuidas en sus horarios correspondientes. NO omitas ningún horario. Incluye la fecha límite y la verificación de cumplimiento.`;
+      distributionSummary += `\n`;
+      distributionSummary += `*Nota: Muestra este resumen completo con todos los horarios y lecciones asignadas al usuario.*`;
       
       enrichedMessage = message + distributionSummary;
       console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA');
@@ -3647,6 +3781,7 @@ Cuéntame:
         body: JSON.stringify({
           message: enrichedMessage,
           context: 'study-planner',
+          language: 'es', // FORZAR ESPAÑOL siempre
           conversationHistory: newHistory.slice(-10),
           pageContext: {
             pathname: '/study-planner/create',
@@ -4302,18 +4437,158 @@ Cuéntame:
               <h1 className="text-lg font-bold text-white">LIA - Planificador de Estudios</h1>
               <p className="text-sm text-slate-400">Tu asistente para crear planes personalizados</p>
             </div>
-            <motion.button
-              onClick={toggleAudio}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className={`p-3 rounded-full transition-colors ${
-                isAudioEnabled 
-                  ? 'bg-purple-600 text-white' 
-                  : 'bg-slate-700 text-slate-400'
-              }`}
-            >
-              {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-            </motion.button>
+            
+            {/* Botones de acción como iconos que se expanden con texto */}
+            <div className="flex items-center gap-2">
+              {/* Botón Seleccionar cursos */}
+              <motion.button
+                layout
+                onClick={() => loadUserCourses()}
+                disabled={isProcessing || showCourseSelector}
+                onMouseEnter={() => setHoveredButton('courses')}
+                onMouseLeave={() => setHoveredButton(null)}
+                whileTap={{ scale: 0.95 }}
+                className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${
+                  isProcessing || showCourseSelector
+                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                    : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30'
+                }`}
+              >
+                <div className="p-2.5 flex-shrink-0">
+                  <GraduationCap size={20} />
+                </div>
+                <AnimatePresence>
+                  {hoveredButton === 'courses' && (
+                    <motion.span
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: 150, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                    >
+                      Seleccionar cursos
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+
+              {/* Botón Calendario conectado / Conectar calendario */}
+              {connectedCalendar ? (
+                <motion.button
+                  layout
+                  onClick={() => {
+                    const action = window.confirm(
+                      `Tu calendario de ${connectedCalendar === 'google' ? 'Google' : 'Microsoft'} está conectado.\n\n¿Deseas analizar tu calendario de nuevo?`
+                    );
+                    if (action) {
+                      analyzeCalendarAndSuggest(connectedCalendar);
+                    }
+                  }}
+                  disabled={isProcessing}
+                  onMouseEnter={() => setHoveredButton('calendar-connected')}
+                  onMouseLeave={() => setHoveredButton(null)}
+                  whileTap={{ scale: 0.95 }}
+                  className={`rounded-lg transition-colors disabled:opacity-50 bg-white/10 hover:bg-white/20 border border-white/20 flex items-center ${
+                    isProcessing ? 'cursor-not-allowed' : ''
+                  }`}
+                >
+                  <div className="p-2.5 flex-shrink-0 flex items-center justify-center">
+                    {connectedCalendar === 'google' ? <GoogleIcon /> : <MicrosoftIcon />}
+                  </div>
+                  <AnimatePresence>
+                    {hoveredButton === 'calendar-connected' && (
+                      <motion.span
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 180, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="pr-3 whitespace-nowrap text-sm font-medium text-white overflow-hidden inline-block"
+                      >
+                        {connectedCalendar === 'google' ? 'Google' : 'Microsoft'} conectado
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              ) : (
+                <motion.button
+                  layout
+                  onClick={() => setShowCalendarModal(true)}
+                  disabled={isProcessing || showCalendarModal}
+                  onMouseEnter={() => setHoveredButton('calendar')}
+                  onMouseLeave={() => setHoveredButton(null)}
+                  whileTap={{ scale: 0.95 }}
+                  className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${
+                    isProcessing || showCalendarModal
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                  }`}
+                >
+                  <div className="p-2.5 flex-shrink-0">
+                    <Calendar size={20} />
+                  </div>
+                  <AnimatePresence>
+                    {hoveredButton === 'calendar' && (
+                      <motion.span
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 160, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                      >
+                        Conectar calendario
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              )}
+
+              {/* Botón ¿Cómo funciona? */}
+              <motion.button
+                layout
+                onClick={() => handleSendMessage('¿Cómo funciona?')}
+                disabled={isProcessing}
+                onMouseEnter={() => setHoveredButton('help')}
+                onMouseLeave={() => setHoveredButton(null)}
+                whileTap={{ scale: 0.95 }}
+                className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${
+                  isProcessing
+                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                }`}
+              >
+                <div className="p-2.5 flex-shrink-0">
+                  <HelpCircle size={20} />
+                </div>
+                <AnimatePresence>
+                  {hoveredButton === 'help' && (
+                    <motion.span
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: 140, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                    >
+                      ¿Cómo funciona?
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+
+              {/* Botón de audio */}
+              <motion.button
+                layout
+                onClick={toggleAudio}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`p-2.5 rounded-lg transition-colors ${
+                  isAudioEnabled 
+                    ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                }`}
+              >
+                {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+              </motion.button>
+            </div>
           </div>
         </div>
 
@@ -5212,114 +5487,90 @@ Cuéntame:
         <div className="flex-shrink-0 bg-slate-900/80 backdrop-blur-xl border-t border-slate-700/50 px-4 py-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3">
-              {/* Botón de micrófono */}
-              <motion.button
-                onClick={toggleListening}
-                disabled={isProcessing}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`p-4 rounded-full transition-all ${
-                  isListening
-                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/50'
-                    : isProcessing
-                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                    : 'bg-purple-600 text-white hover:bg-purple-500'
-                }`}
-              >
-                {isListening ? <MicOff size={24} /> : <Mic size={24} />}
-              </motion.button>
-
               {/* Input de texto */}
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={userMessage}
-                  onChange={(e) => setUserMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && userMessage.trim()) {
-                      e.preventDefault();
-                      handleSendMessage(userMessage);
-                      setUserMessage('');
-                    }
-                  }}
-                  placeholder="Escribe tu mensaje o usa el micrófono..."
-                  disabled={isProcessing || isListening}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 disabled:opacity-50"
-                />
-              </div>
-
-              {/* Botón de enviar */}
-              <motion.button
-                onClick={() => {
-                  if (userMessage.trim()) {
+              <input
+                type="text"
+                value={userMessage}
+                onChange={(e) => setUserMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && userMessage.trim()) {
+                    e.preventDefault();
                     handleSendMessage(userMessage);
                     setUserMessage('');
                   }
                 }}
-                disabled={isProcessing || isListening || !userMessage.trim()}
+                placeholder="Escribe tu mensaje o usa el micrófono..."
+                disabled={isProcessing || isListening}
+                className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 disabled:opacity-50"
+              />
+
+              {/* Botón dinámico fusionado: micrófono cuando está vacío, enviar cuando hay texto */}
+              <motion.button
+                onClick={() => {
+                  if (userMessage.trim()) {
+                    // Si hay texto, enviar mensaje
+                    handleSendMessage(userMessage);
+                    setUserMessage('');
+                  } else {
+                    // Si no hay texto, activar/desactivar grabación
+                    toggleListening();
+                  }
+                }}
+                disabled={isProcessing || (isListening && userMessage.trim())}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-4 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg ${
+                  userMessage.trim()
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-purple-500/30'
+                    : isListening
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-green-500/50'
+                    : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-purple-500/30'
+                } ${isProcessing || (isListening && userMessage.trim()) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
-                <ChevronRight size={24} />
+                <AnimatePresence mode="wait">
+                  {isProcessing && userMessage.trim() ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Loader2 size={20} className="animate-spin" />
+                    </motion.div>
+                  ) : userMessage.trim() ? (
+                    <motion.div
+                      key="send"
+                      initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
+                      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, rotate: 90 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Send size={20} />
+                    </motion.div>
+                  ) : isListening ? (
+                    <motion.div
+                      key="mic-off"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <MicOff size={20} />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="mic"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Mic size={20} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.button>
-            </div>
-
-            {/* Sugerencias rápidas */}
-            <div className="flex flex-wrap gap-2 mt-3">
-              <motion.button
-                onClick={() => loadUserCourses()}
-                disabled={isProcessing || showCourseSelector}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-full text-sm text-purple-300 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <BookOpen size={14} />
-                Seleccionar cursos
-              </motion.button>
-              {connectedCalendar ? (
-                <motion.button
-                  onClick={() => {
-                    // Mostrar opciones: analizar de nuevo o desconectar
-                    const action = window.confirm(
-                      `Tu calendario de ${connectedCalendar === 'google' ? 'Google' : 'Microsoft'} está conectado.\n\n¿Deseas analizar tu calendario de nuevo?`
-                    );
-                    if (action) {
-                      analyzeCalendarAndSuggest(connectedCalendar);
-                    }
-                  }}
-                  disabled={isProcessing}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-full text-sm text-green-300 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  <Check size={14} />
-                  {connectedCalendar === 'google' ? 'Google' : 'Microsoft'} conectado
-                </motion.button>
-              ) : (
-              <motion.button
-                onClick={() => setShowCalendarModal(true)}
-                disabled={isProcessing || showCalendarModal}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-full text-sm text-blue-300 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <Calendar size={14} />
-                Conectar calendario
-              </motion.button>
-              )}
-              {['¿Cómo funciona?'].map((suggestion) => (
-                <motion.button
-                  key={suggestion}
-                  onClick={() => handleSendMessage(suggestion)}
-                  disabled={isProcessing}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-full text-sm text-slate-300 transition-colors disabled:opacity-50"
-                >
-                  {suggestion}
-                </motion.button>
-              ))}
             </div>
           </div>
         </div>
