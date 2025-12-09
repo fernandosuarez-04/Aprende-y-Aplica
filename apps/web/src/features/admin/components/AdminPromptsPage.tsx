@@ -62,17 +62,25 @@ export function AdminPromptsPage() {
 
   // Filtrar prompts
   const filteredPrompts = prompts.filter(prompt => {
+    // Manejar tags correctamente (puede ser array, string o null)
+    let tagsString = ''
+    if (Array.isArray(prompt.tags)) {
+      tagsString = prompt.tags.join(' ')
+    } else if (typeof prompt.tags === 'string') {
+      tagsString = prompt.tags
+    }
+
     const matchesSearch = prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          prompt.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         prompt.tags.toLowerCase().includes(searchTerm.toLowerCase())
-    
+                         tagsString.toLowerCase().includes(searchTerm.toLowerCase())
+
     const matchesCategory = selectedCategory === 'all' || prompt.category_id === selectedCategory
-    
-    const matchesStatus = selectedStatus === 'all' || 
+
+    const matchesStatus = selectedStatus === 'all' ||
                          (selectedStatus === 'active' && prompt.is_active) ||
                          (selectedStatus === 'inactive' && !prompt.is_active) ||
                          (selectedStatus === 'featured' && prompt.is_featured)
-    
+
     return matchesSearch && matchesCategory && matchesStatus
   })
 

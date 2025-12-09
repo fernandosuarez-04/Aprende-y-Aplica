@@ -46,7 +46,7 @@ const navigation = [
   { name: 'Skills', href: '/instructor/skills', icon: AcademicCapIcon },
   { name: 'Noticias', href: '/instructor/news', icon: NewspaperIcon },
   { name: 'Reels', href: '/instructor/reels', icon: PlayIcon },
-  { name: 'Estadísticas de Usuarios', href: '/instructor/user-stats', icon: MapPinIcon },
+  { name: 'Estadísticas', href: '/instructor/stats', icon: ChartBarIcon },
   { name: 'Empresas', href: '/instructor/companies', icon: BuildingOffice2Icon },
   { name: 'Reportes', href: '/instructor/reportes', icon: DocumentTextIcon },
 ]
