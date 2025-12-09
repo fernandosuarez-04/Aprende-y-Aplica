@@ -104,20 +104,22 @@ export class ContentTranslationService {
    * Traduce un objeto completo
    * IMPORTANTE: Ahora intenta traducir incluso cuando language === 'es'
    * porque el contenido original puede estar en inglés/portugués
+   * @param supabaseClient Cliente opcional de Supabase (para uso en servidor)
    */
   static async translateObject<T extends Record<string, any>>(
     entityType: EntityType,
     obj: T,
     fields: string[],
-    language: SupportedLanguage
+    language: SupportedLanguage,
+    supabaseClient?: any
   ): Promise<T> {
     if (!obj.id) {
       return obj;
     }
 
     // Siempre intentar cargar traducciones, incluso para español
-    const translations = await this.loadTranslations(entityType, obj.id, language);
-    
+    const translations = await this.loadTranslations(entityType, obj.id, language, supabaseClient);
+
     // Si no hay traducciones, retornar objeto original
     if (Object.keys(translations).length === 0) {
       return obj;
