@@ -5,9 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   HomeIcon,
-  UsersIcon,
   BookOpenIcon,
-  ChatBubbleLeftRightIcon,
   CpuChipIcon,
   NewspaperIcon,
   PlayIcon,
@@ -38,15 +36,13 @@ interface InstructorSidebarProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/instructor/dashboard', icon: HomeIcon },
-  { name: 'Usuarios', href: '/instructor/users', icon: UsersIcon },
   { name: 'Talleres', href: '/instructor/workshops', icon: BookOpenIcon },
   { name: 'Comunidades', href: '/instructor/communities', icon: UserGroupIcon },
-  { name: 'Prompts', href: '/instructor/prompts', icon: ChatBubbleLeftRightIcon },
   { name: 'Apps de IA', href: '/instructor/apps', icon: CpuChipIcon },
   { name: 'Skills', href: '/instructor/skills', icon: AcademicCapIcon },
   { name: 'Noticias', href: '/instructor/news', icon: NewspaperIcon },
   { name: 'Reels', href: '/instructor/reels', icon: PlayIcon },
-  { name: 'Estadísticas de Usuarios', href: '/instructor/user-stats', icon: MapPinIcon },
+  { name: 'Estadísticas', href: '/instructor/stats', icon: ChartBarIcon },
   { name: 'Empresas', href: '/instructor/companies', icon: BuildingOffice2Icon },
   { name: 'Reportes', href: '/instructor/reportes', icon: DocumentTextIcon },
 ]

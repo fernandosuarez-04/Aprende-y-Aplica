@@ -200,7 +200,9 @@ export class AdminPromptsService {
         .select('*', { count: 'exact', head: true })
 
       if (totalError) {
-        }
+        console.error('❌ Error fetching total prompts count:', totalError)
+        throw totalError
+      }
 
       const { count: activePrompts, error: activeError } = await supabase
         .from('ai_prompts')
@@ -208,7 +210,9 @@ export class AdminPromptsService {
         .eq('is_active', true)
 
       if (activeError) {
-        }
+        console.error('❌ Error fetching active prompts count:', activeError)
+        throw activeError
+      }
 
       const { count: featuredPrompts, error: featuredError } = await supabase
         .from('ai_prompts')
@@ -216,7 +220,9 @@ export class AdminPromptsService {
         .eq('is_featured', true)
 
       if (featuredError) {
-        }
+        console.error('❌ Error fetching featured prompts count:', featuredError)
+        throw featuredError
+      }
 
       // Obtener estadísticas agregadas
       const { data: statsData, error: statsError } = await supabase
@@ -225,7 +231,9 @@ export class AdminPromptsService {
         .eq('is_active', true)
 
       if (statsError) {
-        }
+        console.error('❌ Error fetching prompts stats:', statsError)
+        throw statsError
+      }
 
       const stats = statsData || []
       const totalLikes = stats.reduce((sum, prompt) => sum + (prompt.like_count || 0), 0)
