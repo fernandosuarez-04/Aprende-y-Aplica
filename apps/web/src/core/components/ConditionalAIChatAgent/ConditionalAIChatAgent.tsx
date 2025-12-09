@@ -17,7 +17,8 @@ export function ConditionalAIChatAgent() {
 
   // No mostrar en páginas de lecciones (learn) donde ya existe Lia propia
   // Tampoco mostrar en la página principal (/) ni en auth
-  const shouldHideAgent = pathname.includes('/learn') || pathname === '/' || pathname.startsWith('/auth');
+  // No mostrar en el planificador de estudios donde hay un LIA específico
+  const shouldHideAgent = pathname.includes('/learn') || pathname === '/' || pathname.startsWith('/auth') || pathname.startsWith('/study-planner');
 
   // Si debe ocultarse, no renderizar nada
   if (shouldHideAgent) {
