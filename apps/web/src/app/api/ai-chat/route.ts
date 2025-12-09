@@ -1181,6 +1181,12 @@ ${studyPlannerContextString}
 - NUNCA inventes nombres genéricos como "Lección 1", "Lección 2" - usa los títulos reales
 - Al generar el resumen del plan, usa los nombres exactos de las lecciones que se asignarán a cada horario
 
+⚠️ CRÍTICO - LECCIONES COMPLETADAS vs PENDIENTES:
+- Cada lección está marcada como [✓ Completada] o [○ Pendiente]
+- SOLO incluye en el plan las lecciones marcadas como [○ Pendiente]
+- NUNCA incluyas lecciones marcadas como [✓ Completada]
+- Las lecciones completadas ya fueron estudiadas por el usuario y NO deben estar en el plan de estudios
+
 ` : ''}
 
 IMPORTANTE - TIPOS DE USUARIO:

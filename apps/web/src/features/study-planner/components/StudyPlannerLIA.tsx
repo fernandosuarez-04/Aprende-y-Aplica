@@ -3011,6 +3011,7 @@ export function StudyPlannerLIA() {
                                 lesson_id: lesson.lessonId,
                                 lesson_title: lesson.lessonTitle.trim(),
                                 lesson_order_index: lesson.lessonOrderIndex || 0,
+                                module_order_index: module.moduleOrderIndex || 0, // ✅ AGREGADO para ordenar correctamente
                                 duration_seconds: lesson.durationSeconds || 0
                               };
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
@@ -3110,6 +3111,7 @@ export function StudyPlannerLIA() {
                   lesson_id: lesson.lesson_id,
                   lesson_title: lesson.lesson_title.trim(), // Asegurar que no tenga espacios extra
                   lesson_order_index: lesson.lesson_order_index || 0,
+                  module_order_index: (lesson as any).module_order_index || 0, // ✅ AGREGADO
                   duration_seconds: lesson.duration_seconds || 0
                 });
                 pendingCount++;
@@ -3120,12 +3122,18 @@ export function StudyPlannerLIA() {
             });
             console.log(`   Lecciones pendientes agregadas: ${pendingCount}, omitidas: ${skippedCount}`);
           });
-          
-          // Ordenar todas las lecciones por curso y luego por orden
+
+          // Ordenar todas las lecciones por curso, luego por módulo, luego por lección
           allPendingLessons.sort((a, b) => {
+            // Primero por curso
             if (a.courseId !== b.courseId) {
               return selectedCourseIds.indexOf(a.courseId) - selectedCourseIds.indexOf(b.courseId);
             }
+            // Luego por módulo dentro del curso
+            if ((a as any).module_order_index !== (b as any).module_order_index) {
+              return ((a as any).module_order_index || 0) - ((b as any).module_order_index || 0);
+            }
+            // Finalmente por lección dentro del módulo
             return a.lesson_order_index - b.lesson_order_index;
           });
           
@@ -3426,7 +3434,7 @@ export function StudyPlannerLIA() {
           }
           
           if (busiestDays.length > 0) {
-            closingParts.push(`Estos horarios están en los días que menos eventos tienes en tu calendario (evitando ${busiestDays.slice(0, 2).join(' y ')}).`);
+            closingParts.push(`He identificado que ${busiestDays.slice(0, 2).join(' y ')} son tus días más ocupados. Los horarios propuestos buscan aprovechar tus huecos libres disponibles.`);
           }
           
           closingParts.push(`¿Te sirven estos horarios que te propuse o te gustaría ajustar otros horarios en específico?`);
@@ -3800,8 +3808,16 @@ Cuéntame:
         distributionSummary += `⚠️ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
       }
 
+      // Instrucciones importantes sobre qué lecciones incluir
       distributionSummary += `\n`;
-      distributionSummary += `*Nota: Genera un resumen detallado con TODOS los horarios y las lecciones correspondientes del curso. Usa los nombres reales de las lecciones que tienes en tu contexto.*`;
+      distributionSummary += `**⚠️ IMPORTANTE PARA EL RESUMEN:**\n`;
+      distributionSummary += `- Total de lecciones en el plan: ${totalLessonsAssigned} lecciones PENDIENTES\n`;
+      distributionSummary += `- Las lecciones YA COMPLETADAS fueron filtradas y NO están en este plan\n`;
+      distributionSummary += `- En tu contexto, SOLO usa las lecciones marcadas como "○ Pendiente"\n`;
+      distributionSummary += `- NO incluyas lecciones marcadas como "✓ Completada"\n`;
+      distributionSummary += `- Distribuye las ${totalLessonsAssigned} lecciones pendientes secuencialmente en los ${savedLessonDistribution.length} horarios\n`;
+      distributionSummary += `\n`;
+      distributionSummary += `*Genera un resumen completo con TODOS los horarios, usando únicamente las lecciones pendientes de tu contexto.*`;
       
       enrichedMessage = message + distributionSummary;
       console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA');
