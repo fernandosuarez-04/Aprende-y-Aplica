@@ -1,0 +1,41 @@
+{
+  "loading": "Loading your courses...",
+  "header": {
+    "title": "My Learning",
+    "subtitle": "Continue where you left off"
+  },
+  "stats": {
+    "totalCourses": "Total Courses",
+    "completed": "Completed",
+    "inProgress": "In Progress",
+    "totalTime": "Total Time"
+  },
+  "search": {
+    "placeholder": "Search in my courses..."
+  },
+  "filters": {
+    "all": "All",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "notStarted": "Not Started"
+  },
+  "empty": {
+    "title": "You don't have any courses yet",
+    "subtitle": "Get courses to start your learning",
+    "exploreButton": "Explore Courses"
+  },
+  "course": {
+    "imagePlaceholder": "Course image",
+    "completedBadge": "{{percentage}}% completed",
+    "instructor": "By {{name}}",
+    "progress": "Progress",
+    "continueButton": "Continue",
+    "startButton": "Start",
+    "completedStatus": "Completed"
+  },
+  "difficulty": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  }
+}
