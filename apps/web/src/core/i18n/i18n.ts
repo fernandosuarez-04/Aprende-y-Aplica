@@ -18,6 +18,9 @@ import learnPt from '../../../public/locales/pt/learn.json';
 import myCoursesEs from '../../../public/locales/es/my-courses.json';
 import myCoursesEn from '../../../public/locales/en/my-courses.json';
 import myCoursesPt from '../../../public/locales/pt/my-courses.json';
+import statisticsResultsEs from '../../../public/locales/es/statistics-results.json';
+import statisticsResultsEn from '../../../public/locales/en/statistics-results.json';
+import statisticsResultsPt from '../../../public/locales/pt/statistics-results.json';
 
 export type SupportedLanguage = 'es' | 'en' | 'pt';
 
@@ -28,6 +31,7 @@ const resources: Resource = {
     content: contentEs,
     learn: learnEs,
     'my-courses': myCoursesEs,
+    'statistics-results': statisticsResultsEs,
   },
   en: {
     common: commonEn,
@@ -35,6 +39,7 @@ const resources: Resource = {
     content: contentEn,
     learn: learnEn,
     'my-courses': myCoursesEn,
+    'statistics-results': statisticsResultsEn,
   },
   pt: {
     common: commonPt,
@@ -42,6 +47,7 @@ const resources: Resource = {
     content: contentPt,
     learn: learnPt,
     'my-courses': myCoursesPt,
+    'statistics-results': statisticsResultsPt,
   },
 };
 
@@ -53,7 +59,7 @@ export const initI18n = () => {
       resources,
       lng: 'es',
       fallbackLng: 'es',
-      ns: ['common', 'dashboard', 'content', 'learn', 'my-courses'],
+      ns: ['common', 'dashboard', 'content', 'learn', 'my-courses', 'statistics-results'],
       defaultNS: 'common',
       interpolation: {
         escapeValue: false,

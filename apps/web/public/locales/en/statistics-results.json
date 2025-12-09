@@ -1,0 +1,131 @@
+{
+  "loading": "Analyzing your results...",
+  "error": {
+    "title": "Error",
+    "backButton": "Back to Statistics",
+    "userNotAuthenticated": "User not authenticated",
+    "profileNotFound": "User profile not found",
+    "loadingError": "Error loading statistics"
+  },
+  "difficultyModal": {
+    "title": "Update Difficulty Level",
+    "subtitle": "Select your current AI usage level",
+    "question": "How much do you use AI in your work environment?",
+    "required": "*",
+    "selectPlaceholder": "Select an option",
+    "options": {
+      "never": "Never",
+      "rarely": "Rarely (1-2 times a month)",
+      "sometimes": "Sometimes (1-2 times a week)",
+      "frequently": "Frequently (3-4 times a week)",
+      "always": "Always (every or almost every day)"
+    },
+    "currentLevel": "Current level:",
+    "nextLevelHint": "If you think you can do the next level, select a higher option.",
+    "cancelButton": "Cancel",
+    "updatingButton": "Updating...",
+    "continueButton": "Continue",
+    "selectOption": "Please select an option",
+    "authError": "Error: User not authenticated",
+    "updateError": "Error updating difficulty. Please try again."
+  },
+  "header": {
+    "title": "My Statistics",
+    "subtitle": "Personalized analysis of your results",
+    "newSurvey": "New Survey"
+  },
+  "radar": {
+    "title": "AI Competencies Radar",
+    "description": "Visualization of your strengths by functional area based on your questionnaire. Each dimension is evaluated on a scale of 0 to 100 points.",
+    "difficultyLevel": "Difficulty Level:",
+    "difficultyInfo": "Your scores are normalized according to your difficulty level. The maximum possible for your level is {{max}} points.",
+    "difficultyAdvance": "As you advance in your AI knowledge, you will be able to reach higher levels.",
+    "dimensionsTitle": "What does each dimension mean?",
+    "dimensions": {
+      "knowledge": {
+        "title": "Knowledge",
+        "description": "Your theoretical understanding of AI, fundamental concepts and terminology."
+      },
+      "application": {
+        "title": "Application",
+        "description": "Your ability to implement AI in real use cases."
+      },
+      "productivity": {
+        "title": "Productivity",
+        "description": "How you use AI to optimize your daily work."
+      },
+      "strategy": {
+        "title": "Strategy",
+        "description": "Your vision of the strategic impact of AI in your organization."
+      },
+      "investment": {
+        "title": "Investment",
+        "description": "Your willingness to invest in AI tools and training."
+      }
+    }
+  },
+  "analysis": {
+    "adoption": {
+      "title": "AI Adoption",
+      "points": "points"
+    },
+    "knowledge": {
+      "title": "Technical Knowledge",
+      "correct": "correct"
+    }
+  },
+  "levels": {
+    "advanced": "Advanced",
+    "intermediate": "Intermediate",
+    "medium": "Medium",
+    "basic": "Basic",
+    "beginner": "Beginner"
+  },
+  "adoptionDescriptions": {
+    "excellent": "Excellent AI adoption level. You have effectively integrated AI tools in multiple areas of your work.",
+    "good": "Good AI adoption level. You have started integrating AI tools in some aspects of your work.",
+    "medium": "Medium AI adoption level. You are exploring some AI tools in your daily work.",
+    "basic": "Basic AI adoption level. You have started experimenting with some AI tools.",
+    "beginner": "Beginner AI adoption level. There are many opportunities to start integrating AI into your work."
+  },
+  "knowledgeDescriptions": {
+    "excellent": "Excellent technical understanding of AI. You answered correctly {{correct}} out of {{total}} questions ({{score}}%).",
+    "good": "Good technical understanding of AI. You answered correctly {{correct}} out of {{total}} questions ({{score}}%).",
+    "medium": "Medium understanding of AI. You answered correctly {{correct}} out of {{total}} questions ({{score}}%).",
+    "basic": "Basic understanding of AI. You answered correctly {{correct}} out of {{total}} questions ({{score}}%).",
+    "beginner": "Beginner understanding of AI. You answered correctly {{correct}} out of {{total}} questions ({{score}}%). There are significant opportunities to expand your technical understanding."
+  },
+  "recommendations": {
+    "title": "Personalized Recommendations",
+    "improvementTitle": "Improve in: {{dimension}}",
+    "improvementDescription": "Your score in {{dimension}} is {{score}} points. Focus on developing this area to balance your competency profile.",
+    "technicalTitle": "Deepen your technical knowledge",
+    "technicalDescription": "With {{correct}}/{{total}} correct answers ({{score}}%), focus on better understanding AI fundamentals and best practices.",
+    "adoptionTitle": "Increase your AI adoption",
+    "adoptionDescription": "Explore more AI tools and look for opportunities to integrate them into your daily workflow."
+  },
+  "countries": {
+    "title": "GenAI Adoption in Spanish-speaking Countries",
+    "description": "AI Adoption and Implementation Index (AIPI) by country. Compare your adoption level with the average in your region.",
+    "yourCountry": "(Your country)",
+    "stats": {
+      "title": "General Statistics",
+      "countriesAnalyzed": "Countries analyzed:",
+      "averageAIPI": "Average AIPI:",
+      "maximum": "Maximum:",
+      "minimum": "Minimum:",
+      "range": "Range:",
+      "yourCountryLabel": "Your country ({{country}}):",
+      "position": "Position #{{position}} of {{total}}"
+    },
+    "methodology": {
+      "title": "Source and Methodology",
+      "aipiTitle": "AIPI Methodology",
+      "aipiDescription": "The AI Adoption and Implementation Index (AIPI) evaluates the level of artificial intelligence adoption in Spanish-speaking countries based on enterprise implementation metrics, personal use, technology investment and public policies.",
+      "sourcesTitle": "Data Sources",
+      "sourcesDescription": "• Enterprise adoption studies (2023-2024)\n• Personal AI usage surveys\n• Technology investment by country\n• Digitalization public policies\n• Technology innovation indexes",
+      "updateTitle": "Update",
+      "updateDescription": "Data updated quarterly. Last update: January 2025"
+    }
+  }
+}
