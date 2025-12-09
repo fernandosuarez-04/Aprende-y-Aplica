@@ -4594,18 +4594,32 @@ Cuéntame:
 
         {/* Área de mensajes */}
         <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
-          <div className="max-w-4xl mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-3">
             {conversationHistory.map((msg, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  duration: 0.4,
+                  ease: [0.16, 1, 0.3, 1],
+                  delay: idx * 0.05
+                }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}
               >
-                <div className={`flex items-start gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-end gap-2.5 max-w-[78%] sm:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   {msg.role === 'assistant' && (
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/30 flex-shrink-0">
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ 
+                        delay: idx * 0.05 + 0.1,
+                        type: 'spring',
+                        stiffness: 200,
+                        damping: 15
+                      }}
+                      className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-purple-500/40 flex-shrink-0 shadow-lg shadow-purple-500/20"
+                    >
                       <Image
                         src="/lia-avatar.png"
                         alt="LIA"
@@ -4613,23 +4627,92 @@ Cuéntame:
                         sizes="40px"
                         className="object-cover"
                       />
-                    </div>
+                    </motion.div>
                   )}
-                  <div
-                    className={`px-5 py-4 rounded-2xl ${
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ 
+                      delay: idx * 0.05 + 0.15,
+                      type: 'spring',
+                      stiffness: 300,
+                      damping: 20
+                    }}
+                    className={`relative ${
                       msg.role === 'user'
-                        ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-br-md shadow-lg shadow-purple-500/20'
-                        : 'bg-gradient-to-br from-slate-700/90 via-slate-700/80 to-slate-800/90 text-slate-100 rounded-bl-md shadow-lg shadow-slate-900/50 border border-slate-600/30'
-                    }`}
+                        ? 'bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 text-white'
+                        : 'bg-gradient-to-br from-slate-800/95 via-slate-700/95 to-slate-800/95 text-slate-100 border border-slate-600/50'
+                    } px-4 py-2.5 sm:px-5 sm:py-3 rounded-[20px] sm:rounded-[22px] shadow-lg ${
+                      msg.role === 'user' 
+                        ? 'shadow-purple-500/25 rounded-br-[6px]' 
+                        : 'shadow-black/30 rounded-bl-[6px]'
+                    } overflow-hidden`}
                   >
-                    {msg.role === 'assistant' ? (
-                      <div className="text-sm sm:text-base leading-relaxed">
-                        {formatLIAMessage(msg.content)}
-                      </div>
+                    {/* Cola de burbuja estilo WhatsApp/Messenger mejorada */}
+                    {msg.role === 'user' ? (
+                      <svg
+                        className="absolute -right-[8px] bottom-0 h-[20px] w-[8px] text-purple-600"
+                        viewBox="0 0 8 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M0 0C0 11.046 0 15.046 0 20C4.046 20 8.046 20 8 20C8 15.046 8 11.046 8 0C4.046 0 0 0 0 0Z"
+                          fill="currentColor"
+                          className="drop-shadow-lg"
+                        />
+                      </svg>
                     ) : (
-                    <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <svg
+                        className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-slate-800"
+                        viewBox="0 0 8 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M8 0C8 11.046 8 15.046 8 20C3.954 20 0 20 0 20C0 15.046 0 11.046 0 0C3.954 0 8 0 8 0Z"
+                          fill="currentColor"
+                          className="drop-shadow-lg"
+                        />
+                      </svg>
                     )}
-                  </div>
+                    
+                    {/* Efecto de brillo sutil al hover */}
+                    <motion.div
+                      className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-r from-transparent via-white/15 to-transparent'
+                          : 'bg-gradient-to-r from-transparent via-white/8 to-transparent'
+                      }`}
+                      animate={{
+                        x: ['-100%', '200%']
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        repeatDelay: 4,
+                        ease: 'linear'
+                      }}
+                    />
+                    
+                    {/* Contenido del mensaje */}
+                    <div className="relative z-10">
+                      {msg.role === 'assistant' ? (
+                        <div className="text-sm sm:text-base leading-relaxed font-normal">
+                          {formatLIAMessage(msg.content)}
+                        </div>
+                      ) : (
+                        <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-normal">{msg.content}</p>
+                      )}
+                    </div>
+                    
+                    {/* Efecto de profundidad sutil */}
+                    <div className={`absolute inset-0 rounded-[22px] pointer-events-none ${
+                      msg.role === 'user'
+                        ? 'bg-gradient-to-br from-white/10 via-white/5 to-transparent'
+                        : 'bg-gradient-to-br from-white/5 via-white/2 to-transparent'
+                    }`} />
+                  </motion.div>
                 </div>
               </motion.div>
             ))}
@@ -4637,12 +4720,24 @@ Cuéntame:
             {/* Indicador de procesamiento */}
             {isProcessing && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex justify-start"
+                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="flex justify-start group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500/30">
+                <div className="flex items-end gap-2.5">
+                  <motion.div 
+                    className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-purple-500/40 shadow-lg shadow-purple-500/20"
+                    animate={{ 
+                      scale: [1, 1.05, 1],
+                      boxShadow: [
+                        '0 0 0px rgba(168, 85, 247, 0.2)',
+                        '0 0 20px rgba(168, 85, 247, 0.4)',
+                        '0 0 0px rgba(168, 85, 247, 0.2)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
                     <Image
                       src="/lia-avatar.png"
                       alt="LIA"
@@ -4650,26 +4745,58 @@ Cuéntame:
                       sizes="40px"
                       className="object-cover"
                     />
-                  </div>
-                  <div className="bg-slate-700/70 px-4 py-3 rounded-2xl rounded-bl-md">
-                    <div className="flex gap-1">
+                  </motion.div>
+                  <motion.div 
+                    className="relative bg-gradient-to-br from-slate-800/95 via-slate-700/95 to-slate-800/95 px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] sm:rounded-[22px] shadow-lg shadow-black/30 border border-slate-600/50 rounded-bl-[6px] overflow-hidden"
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    {/* Cola de burbuja */}
+                    <svg
+                      className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-slate-800"
+                      viewBox="0 0 8 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M8 0C8 11.046 8 15.046 8 20C3.954 20 0 20 0 20C0 15.046 0 11.046 0 0C3.954 0 8 0 8 0Z"
+                        fill="currentColor"
+                        className="drop-shadow-lg"
+                      />
+                    </svg>
+                    
+                    {/* Efecto de brillo */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
+                    
+                    {/* Puntos animados mejorados */}
+                    <div className="relative z-10 flex gap-1.5 items-center">
                       <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                        className="w-2 h-2 bg-purple-400 rounded-full"
+                        animate={{ 
+                          scale: [1, 1.3, 1],
+                          y: [0, -4, 0]
+                        }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0, ease: 'easeInOut' }}
+                        className="w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50"
                       />
                       <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                        className="w-2 h-2 bg-purple-400 rounded-full"
+                        animate={{ 
+                          scale: [1, 1.3, 1],
+                          y: [0, -4, 0]
+                        }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2, ease: 'easeInOut' }}
+                        className="w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50"
                       />
                       <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                        className="w-2 h-2 bg-purple-400 rounded-full"
+                        animate={{ 
+                          scale: [1, 1.3, 1],
+                          y: [0, -4, 0]
+                        }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4, ease: 'easeInOut' }}
+                        className="w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50"
                       />
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
               </motion.div>
             )}
