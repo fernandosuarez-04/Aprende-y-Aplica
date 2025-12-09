@@ -7,6 +7,7 @@ import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor
 import type { Database } from '../../../lib/supabase/types';
 import { SessionService } from '../../../features/auth/services/session.service';
 import { LiaLogger, type ContextType } from '../../../lib/analytics/lia-logger';
+import { LiaContextService } from '../../../features/study-planner/services/lia-context.service';
 
 // Tipo para el contexto de la página
 interface PageContext {
@@ -330,14 +331,15 @@ function filterSystemPromptFromResponse(text: string): string {
 
 // Contextos específicos para diferentes secciones
 const getContextPrompt = (
-  context: string, 
+  context: string,
   userName?: string,
   courseContext?: CourseLessonContext,
   workshopContext?: CourseLessonContext, // ✅ Nuevo: contexto para talleres
   pageContext?: PageContext,
   userRole?: string,
   language: SupportedLanguage = 'es',
-  isFirstMessage: boolean = false  // ✅ Nuevo parámetro para detectar primer mensaje
+  isFirstMessage: boolean = false,  // ✅ Nuevo parámetro para detectar primer mensaje
+  studyPlannerContextString?: string  // ✅ Nuevo: contexto detallado del planificador de estudios
 ) => {
   // Obtener rol del usuario (priorizar el pasado como parámetro, luego del contexto)
   const role = userRole || courseContext?.userRole || workshopContext?.userRole;
@@ -1170,6 +1172,17 @@ TU ROL:
 Ayudas a los usuarios a crear planes de estudio personalizados de forma conversacional.
 Debes guiar al usuario a través de las diferentes fases del proceso de planificación.
 
+${studyPlannerContextString ? `INFORMACIÓN COMPLETA DEL USUARIO Y SUS CURSOS:
+${studyPlannerContextString}
+
+⚠️ IMPORTANTE: USA ESTA INFORMACIÓN PARA:
+- Conocer los NOMBRES EXACTOS de los módulos y lecciones
+- Cuando menciones lecciones específicas, usa los nombres reales que aparecen arriba
+- NUNCA inventes nombres genéricos como "Lección 1", "Lección 2" - usa los títulos reales
+- Al generar el resumen del plan, usa los nombres exactos de las lecciones que se asignarán a cada horario
+
+` : ''}
+
 IMPORTANTE - TIPOS DE USUARIO:
 - Usuario B2B: Pertenece a una organización. Sus cursos ya están asignados con plazos fijos.
   NO puede seleccionar otros cursos. Debes respetar los plazos del administrador.
@@ -1507,9 +1520,26 @@ export async function POST(request: NextRequest) {
     
     // FORZAR ESPAÑOL para study-planner siempre
     const effectiveLanguage = (effectiveContext === 'study-planner' || effectiveContext === 'study-planner-availability') ? 'es' : language;
-    
+
+    // Obtener contexto detallado para el planificador de estudios
+    let studyPlannerContextString = '';
+    if (effectiveContext === 'study-planner' && user) {
+      try {
+        logger.info('📚 Construyendo contexto detallado del planificador de estudios para LIA', { userId: user.id });
+        const studyPlannerContext = await LiaContextService.buildStudyPlannerContext(user.id);
+        studyPlannerContextString = LiaContextService.formatContextForPrompt(studyPlannerContext);
+        logger.info('✅ Contexto del planificador construido exitosamente', {
+          coursesCount: studyPlannerContext.courses.length,
+          hasModules: studyPlannerContext.courses.some(c => c.modules && c.modules.length > 0)
+        });
+      } catch (error) {
+        logger.error('❌ Error construyendo contexto del planificador:', error);
+        // Continuar sin el contexto detallado si hay error
+      }
+    }
+
     // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso/taller y contexto de página
-    const contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, workshopContext, pageContext, userRole, effectiveLanguage, isFirstMessage);
+    const contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, workshopContext, pageContext, userRole, effectiveLanguage, isFirstMessage, studyPlannerContextString);
 
     // ✅ OPTIMIZACIÓN: Inicializar analytics de forma asíncrona para no bloquear el procesamiento del mensaje
     let conversationId: string | null = existingConversationId || null;

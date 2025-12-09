@@ -8,6 +8,8 @@
 import { UserContextService } from './user-context.service';
 import { CourseAnalysisService } from './course-analysis.service';
 import { CalendarIntegrationService } from './calendar-integration.service';
+import { getWorkshopMetadata } from '../../../lib/utils/workshop-metadata';
+import { createClient } from '../../../lib/supabase/server';
 import type {
   UserContext,
   CalendarEvent,
@@ -56,6 +58,18 @@ export interface StudyPlannerLIAContext {
     completionPercentage: number;
     dueDate?: string; // Solo B2B
     assignedBy?: string; // Solo B2B
+    modules?: Array<{
+      moduleId: string;
+      moduleTitle: string;
+      moduleOrderIndex: number;
+      lessons: Array<{
+        lessonId: string;
+        lessonTitle: string;
+        lessonOrderIndex: number;
+        durationMinutes: number;
+        isCompleted: boolean;
+      }>;
+    }>;
   }>;
   
   // Análisis de cursos
@@ -226,17 +240,44 @@ export class LiaContextService {
    * Formatea los cursos para LIA
    */
   private static async formatCourses(
-    userId: string, 
+    userId: string,
     userContext: UserContext
   ): Promise<StudyPlannerLIAContext['courses']> {
     const formattedCourses: StudyPlannerLIAContext['courses'] = [];
-    
+    const supabase = await createClient();
+
     for (const courseAssignment of userContext.courses) {
       const progress = await CourseAnalysisService.getUserCourseProgress(
         userId,
         courseAssignment.courseId
       );
-      
+
+      // Usar getWorkshopMetadata para obtener módulos y lecciones (misma lógica que /learn)
+      const workshopMetadata = await getWorkshopMetadata(courseAssignment.courseId);
+
+      // Obtener lecciones completadas del usuario
+      const { data: completedLessonsData } = await supabase
+        .from('user_lesson_progress')
+        .select('lesson_id')
+        .eq('user_id', userId)
+        .eq('is_completed', true);
+
+      const completedLessonIds = new Set((completedLessonsData || []).map(l => l.lesson_id));
+
+      // Formatear módulos y lecciones usando los datos del workshopMetadata
+      const formattedModules = workshopMetadata?.modules.map(module => ({
+        moduleId: module.moduleId,
+        moduleTitle: module.moduleTitle,
+        moduleOrderIndex: module.moduleOrderIndex,
+        lessons: module.lessons.map(lesson => ({
+          lessonId: lesson.lessonId,
+          lessonTitle: lesson.lessonTitle,
+          lessonOrderIndex: lesson.lessonOrderIndex,
+          durationMinutes: lesson.durationSeconds ? Math.ceil(lesson.durationSeconds / 60) : 0,
+          isCompleted: completedLessonIds.has(lesson.lessonId),
+        })),
+      })) || [];
+
       formattedCourses.push({
         id: courseAssignment.courseId,
         title: courseAssignment.course.title,
@@ -246,9 +287,10 @@ export class LiaContextService {
         completionPercentage: progress.progressPercentage,
         dueDate: courseAssignment.dueDate,
         assignedBy: courseAssignment.assignedBy,
+        modules: formattedModules,
       });
     }
-    
+
     return formattedCourses;
   }
 
@@ -359,6 +401,25 @@ export class LiaContextService {
       }
       if (course.assignedBy) {
         prompt += `  - Asignado por: ${course.assignedBy}\n`;
+      }
+
+      // Agregar módulos y lecciones si están disponibles
+      if (course.modules && course.modules.length > 0) {
+        prompt += `  \n  MÓDULOS Y LECCIONES:\n`;
+        let totalLessons = 0;
+        let completedLessons = 0;
+
+        for (const module of course.modules) {
+          prompt += `    ${module.moduleOrderIndex}. ${module.moduleTitle}\n`;
+          for (const lesson of module.lessons) {
+            const status = lesson.isCompleted ? '✓ Completada' : '○ Pendiente';
+            prompt += `       ${lesson.lessonOrderIndex}. ${lesson.lessonTitle} (${lesson.durationMinutes} min) [${status}]\n`;
+            totalLessons++;
+            if (lesson.isCompleted) completedLessons++;
+          }
+        }
+
+        prompt += `  \n  RESUMEN: ${completedLessons} de ${totalLessons} lecciones completadas\n`;
       }
     }
     
