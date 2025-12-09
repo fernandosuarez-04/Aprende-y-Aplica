@@ -226,7 +226,7 @@ export function StudyPlannerLIA() {
         const paraText = currentParagraph.join(' ').trim();
         if (paraText) {
           elements.push(
-            <p key={`p-${elements.length}`} className="mb-3 text-slate-200 leading-relaxed">
+            <p key={`p-${elements.length}`} className="mb-3 text-slate-50 leading-[1.6] [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
               {formatInlineStyles(paraText)}
             </p>
           );
@@ -257,20 +257,31 @@ export function StudyPlannerLIA() {
 
       while ((match = boldRegex.exec(text)) !== null) {
         if (match.index > lastIndex) {
-          parts.push(<span key={`text-${key++}`} className="text-slate-200">{text.substring(lastIndex, match.index)}</span>);
+          parts.push(
+            <span key={`text-${key++}`} className="text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+              {text.substring(lastIndex, match.index)}
+            </span>
+          );
         }
         parts.push(
-          <strong key={`bold-${key++}`} className="font-bold text-white">
+          <strong 
+            key={`bold-${key++}`} 
+            className="font-bold text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.6),0_0_10px_rgba(168,85,247,0.3)] relative"
+          >
             {match[1]}
           </strong>
         );
         lastIndex = match.index + match[0].length;
       }
       if (lastIndex < text.length) {
-        parts.push(<span key={`text-${key++}`} className="text-slate-200">{text.substring(lastIndex)}</span>);
+        parts.push(
+          <span key={`text-${key++}`} className="text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+            {text.substring(lastIndex)}
+          </span>
+        );
       }
 
-      return parts.length > 0 ? <>{parts}</> : <span className="text-slate-200">{text}</span>;
+      return parts.length > 0 ? <>{parts}</> : <span className="text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{text}</span>;
     };
 
     lines.forEach((line, index) => {
@@ -288,7 +299,7 @@ export function StudyPlannerLIA() {
           titleClass = 'font-bold text-lg bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-6 mb-4 pb-2 border-b border-purple-500/30';
         }
         elements.push(
-          <h2 key={`h2-${index}`} className={titleClass}>
+          <h2 key={`h2-${index}`} className={`${titleClass} [text-shadow:0_2px_8px_rgba(0,0,0,0.4)]`}>
             {title}
           </h2>
         );
@@ -307,7 +318,7 @@ export function StudyPlannerLIA() {
           subtitleClass = 'font-semibold text-sm text-blue-300 mt-4 mb-2';
         }
         elements.push(
-          <h3 key={`h3-${index}`} className={subtitleClass}>
+          <h3 key={`h3-${index}`} className={`${subtitleClass} [text-shadow:0_1px_4px_rgba(0,0,0,0.4)]`}>
             {subtitle}
           </h3>
         );
@@ -320,9 +331,9 @@ export function StudyPlannerLIA() {
         flushParagraph();
         const noteText = trimmed.replace(/^Nota:\s*/i, '').trim();
         elements.push(
-          <div key={`note-${index}`} className="mt-4 mb-3 p-3 bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg">
-            <p className="font-semibold text-sm text-yellow-300 mb-1">Nota:</p>
-            <p className="text-sm text-yellow-200/90 leading-relaxed">{formatInlineStyles(noteText)}</p>
+          <div key={`note-${index}`} className="mt-4 mb-3 p-3 bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg backdrop-blur-sm">
+            <p className="font-semibold text-sm text-yellow-300 mb-1 [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">Nota:</p>
+            <p className="text-sm text-yellow-200/90 leading-[1.6] [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{formatInlineStyles(noteText)}</p>
           </div>
         );
         return;
@@ -337,8 +348,8 @@ export function StudyPlannerLIA() {
         const itemText = trimmed.replace(/^[•\-]\s+/, '').trim();
         if (itemText) {
           listItems.push(
-            <li key={`li-${index}`} className="flex items-start gap-3 text-slate-200 leading-relaxed">
-              <span className="text-purple-400 font-bold mt-1 flex-shrink-0">•</span>
+            <li key={`li-${index}`} className="flex items-start gap-3 text-slate-50 leading-[1.6] [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+              <span className="text-purple-300 font-bold mt-1 flex-shrink-0 [text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">•</span>
               <span className="flex-1">{formatInlineStyles(itemText)}</span>
             </li>
           );
@@ -4698,11 +4709,11 @@ Cuéntame:
                     {/* Contenido del mensaje */}
                     <div className="relative z-10">
                       {msg.role === 'assistant' ? (
-                        <div className="text-sm sm:text-base leading-relaxed font-normal">
+                        <div className="text-sm sm:text-base leading-[1.6] font-medium text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
                           {formatLIAMessage(msg.content)}
                         </div>
                       ) : (
-                        <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-normal">{msg.content}</p>
+                        <p className="text-sm sm:text-base leading-[1.6] font-medium whitespace-pre-wrap text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">{msg.content}</p>
                       )}
                     </div>
                     
