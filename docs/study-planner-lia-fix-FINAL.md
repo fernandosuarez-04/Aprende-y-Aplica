@@ -405,20 +405,26 @@ apps/web/src/
 │       │       • Método formatCourses() REESCRITO
 │       │       • Ahora usa getWorkshopMetadata() en lugar de CourseAnalysisService
 │       └── components/
-│           └── StudyPlannerLIA.tsx (líneas 2991-3067)
-│               • ✅ CAMBIO CRÍTICO: Cambió de /api/courses/${slug}/modules
-│                 a /api/workshops/${courseId}/metadata
+│           └── StudyPlannerLIA.tsx
+│               • ✅ CAMBIO CRÍTICO 1: Cambió de /api/courses/${slug}/modules
+│                 a /api/workshops/${courseId}/metadata (líneas 2991-3067)
 │               • Corregido manejo de respuesta para usar estructura de metadata
 │               • Actualizado mapeo de campos: lessonId, lessonTitle, etc.
 │               • Eliminado código obsoleto de verificación de slug
+│               • ✅ CAMBIO CRÍTICO 2: Eliminado límite de 12 semanas (línea 2812)
+│               • Ahora distribuye en TODAS las semanas hasta fecha límite
+│               • ✅ CAMBIO CRÍTICO 3: Optimizado distributionSummary (líneas 3715-3804)
+│               • Solo envía primeros 3 y últimos 2 slots para evitar error 400
+│               • LIA genera el resumen completo usando contexto
 │               • Algoritmo de distribución actualizado (líneas 3180-3239)
-│               • Ahora distribuye TODAS las lecciones hasta la fecha límite
 │
 └── app/
     └── api/
         └── ai-chat/
-            └── route.ts
-                • (Sin cambios adicionales - cambios anteriores siguen válidos)
+            └── route.ts (líneas 1918-1922)
+                • ✅ CAMBIO CRÍTICO 4: Aumentado max_tokens para study-planner
+                • De 700 tokens a 3000 tokens
+                • Permite generar resúmenes completos sin cortar
 ```
 
 ---
@@ -547,7 +553,121 @@ LIA ahora tiene acceso a:
 
 El planificador ahora:
 - ✅ Obtiene TODAS las lecciones del curso correctamente
-- ✅ Distribuye lecciones en slots hasta la fecha límite especificada
+- ✅ Distribuye lecciones en slots hasta la fecha límite especificada (sin límite de 12 semanas)
 - ✅ Calcula slots basándose en lecciones pendientes (no número fijo)
+- ✅ Genera resúmenes completos sin cortarse (3000 tokens en lugar de 700)
 
 **Impacto:** Alto - LIA ya no inventará nombres genéricos y el plan incluirá todas las lecciones distribuidas hasta la fecha límite del usuario.
+
+---
+
+## Correcciones Adicionales (Post-Testing)
+
+### Problema 3: Límite de 12 semanas en distribución de slots
+
+**Síntoma:** Aunque había 26 slots válidos hasta la fecha objetivo, solo se usaban 10-12 slots.
+
+**Causa:** Línea 2812 tenía un límite hardcodeado:
+```typescript
+for (let week = 0; week < totalWeeks && week < 12; week++) { // Máximo 12 semanas
+```
+
+**Solución:**
+```typescript
+for (let week = 0; week < totalWeeks; week++) {
+```
+
+**Resultado:** Ahora usa todos los slots disponibles hasta la fecha límite, independientemente de cuántas semanas sean.
+
+---
+
+### Problema 4: Mensaje de LIA cortado a mitad
+
+**Síntoma:** El resumen de LIA se cortaba a mitad de una lección:
+```
+Lección 8.1:
+```
+
+**Causa:** El límite de `max_tokens` era de solo 700 tokens, insuficiente para generar un resumen de 26+ sesiones con todas las lecciones.
+
+**Solución en `route.ts` (líneas 1918-1922):**
+```typescript
+max_tokens: context === 'onboarding'
+  ? 150  // Respuestas cortas para voz
+  : context === 'study-planner'
+  ? 3000 // Respuestas largas para resúmenes detallados ✅ NUEVO
+  : parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')),
+```
+
+**Cálculo de tokens necesarios:**
+- 26 sesiones × (fecha + hora + 1-2 lecciones) ≈ 2000-2500 tokens
+- 3000 tokens proporciona margen suficiente
+
+**Resultado:** LIA ahora puede generar el resumen completo sin cortarse.
+
+---
+
+### Problema 5: Error 400 (Bad Request) al enviar mensaje a LIA
+
+**Síntoma:** Error 400 al confirmar horarios y enviar distribución a LIA.
+
+**Causa:** El `distributionSummary` enviaba TODOS los detalles de TODOS los slots (26+) con TODAS las lecciones, excediendo límites del request body.
+
+**Solución en `StudyPlannerLIA.tsx` (líneas 3715-3804):**
+- En lugar de enviar todos los detalles, envía resumen optimizado:
+  - Primeras 3 sesiones con detalles
+  - Últimas 2 sesiones
+  - Total de sesiones y lecciones
+  - Instrucción para que LIA use el contexto que ya tiene
+
+**Beneficios:**
+1. Evita error 400 por request demasiado grande
+2. Reduce duplicación de datos (LIA ya tiene los nombres en el contexto)
+3. LIA aún puede generar resumen completo usando `LiaContextService`
+
+**Resultado:** La comunicación con LIA funciona correctamente y LIA genera el plan completo.
+
+---
+
+## Resumen de Todos los Cambios
+
+| # | Archivo | Línea(s) | Cambio | Impacto |
+|---|---------|----------|--------|---------|
+| 1 | `lia-context.service.ts` | Todo el archivo | Usa `getWorkshopMetadata()` | LIA conoce nombres reales |
+| 2 | `route.ts` | Múltiples | Integra `LiaContextService` | Contexto llega a LIA |
+| 3 | `StudyPlannerLIA.tsx` | 2991-3067 | Usa endpoint de metadata | Obtiene lecciones correctamente |
+| 4 | `StudyPlannerLIA.tsx` | 2812 | Elimina límite 12 semanas | Usa todos los slots disponibles |
+| 5 | `StudyPlannerLIA.tsx` | 3715-3804 | Optimiza distributionSummary | Evita error 400 |
+| 6 | `route.ts` | 1918-1922 | Aumenta max_tokens a 3000 | Resumen completo sin cortar |
+
+---
+
+## Verificación Final
+
+Después de aplicar TODOS estos cambios, el flujo debería ser:
+
+1. **Usuario completa formulario:**
+   - Selecciona curso
+   - Define disponibilidad
+   - Especifica fecha límite (ej: 31 enero 2026)
+
+2. **Sistema distribuye lecciones:**
+   ```
+   📚 Curso: 33 lecciones, 4 completadas, 29 pendientes
+   📅 Slots válidos hasta objetivo: 26
+   📊 Distribuyendo 29 lecciones pendientes en 26 slots ✅
+   📐 Estrategia: 2 lecciones por slot (mínimo)
+   ✅ Distribución completada: 26 slots, 29 lecciones asignadas
+   ```
+
+3. **Usuario confirma horarios:**
+   - Request optimizado (< 1MB)
+   - Sin error 400 ✅
+
+4. **LIA genera resumen:**
+   - Usa 3000 tokens (en lugar de 700) ✅
+   - Genera resumen completo sin cortarse ✅
+   - Usa nombres REALES de lecciones del contexto ✅
+   - Muestra TODAS las 26 sesiones hasta la fecha límite ✅
+
+**Todo debería funcionar correctamente ahora.** 🎉

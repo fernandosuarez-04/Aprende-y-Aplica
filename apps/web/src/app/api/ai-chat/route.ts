@@ -1912,11 +1912,13 @@ ${antiMarkdownInstructions}
       model: process.env.CHATBOT_MODEL || 'gpt-4o-mini',
       messages: messages,
       // ✅ OPTIMIZACIÓN: Configuración específica para onboarding (conversación por voz)
-      temperature: context === 'onboarding' 
+      temperature: context === 'onboarding'
         ? 0.7  // Más creativo y natural para conversación
         : parseFloat(process.env.CHATBOT_TEMPERATURE || (hasCourseContext ? '0.5' : '0.6')),
       max_tokens: context === 'onboarding'
         ? 150  // Respuestas cortas para voz (50-80 palabras)
+        : context === 'study-planner'
+        ? 3000 // Respuestas largas para resúmenes de planificación detallados
         : parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')),
       stream: false,
       // ✅ OPTIMIZACIÓN: Nuevos parámetros para mejor rendimiento
