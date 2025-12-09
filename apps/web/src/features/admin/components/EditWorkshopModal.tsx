@@ -24,6 +24,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
   })
 
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const categories = [
     { value: 'ia', label: 'Inteligencia Artificial' },
@@ -58,11 +59,40 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
         approval_status: workshop.approval_status || 'pending',
         rejection_reason: workshop.rejection_reason || ''
       })
+      setErrors({})
     }
   }, [workshop])
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.title || formData.title.trim() === '') {
+      newErrors.title = 'El título es obligatorio'
+    }
+
+    if (!formData.description || formData.description.trim() === '') {
+      newErrors.description = 'La descripción es obligatoria'
+    }
+
+    if (!formData.duration_total_minutes || formData.duration_total_minutes <= 0) {
+      newErrors.duration_total_minutes = 'La duración debe ser mayor a 0'
+    }
+
+    if (formData.approval_status === 'rejected' && (!formData.rejection_reason || formData.rejection_reason.trim() === '')) {
+      newErrors.rejection_reason = 'La razón de rechazo es obligatoria cuando el estado es "Rechazado"'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -71,7 +101,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
       if (formData.approval_status !== 'rejected') {
         dataToSave.rejection_reason = ''
       }
-      
+
       await onSave(dataToSave)
       onClose()
     } catch (error) {
@@ -87,6 +117,14 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
       ...prev,
       [field]: value
     }))
+    // Limpiar error del campo cuando el usuario escribe
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
   }
 
   if (!workshop) return null
@@ -118,12 +156,21 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
               </label>
               <input
                 type="text"
-                required
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                  errors.title
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-gray-600 focus:ring-blue-500'
+                }`}
                 placeholder="Título del taller"
               />
+              {errors.title && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.title}
+                </p>
+              )}
             </div>
 
             {/* Descripción */}
@@ -132,13 +179,22 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                 Descripción *
               </label>
               <textarea
-                required
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                  errors.description
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-gray-600 focus:ring-blue-500'
+                }`}
                 placeholder="Descripción del taller"
               />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.description}
+                </p>
+              )}
             </div>
 
             {/* Categoría y Nivel */}
@@ -148,7 +204,6 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                   Categoría *
                 </label>
                 <select
-                  required
                   value={formData.category}
                   onChange={(e) => handleInputChange('category', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -164,7 +219,6 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                   Nivel *
                 </label>
                 <select
-                  required
                   value={formData.level}
                   onChange={(e) => handleInputChange('level', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -184,12 +238,21 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                 </label>
                 <input
                   type="number"
-                  required
                   min="0"
                   value={formData.duration_total_minutes}
                   onChange={(e) => handleInputChange('duration_total_minutes', parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                    errors.duration_total_minutes
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-600 focus:ring-blue-500'
+                  }`}
                 />
+                {errors.duration_total_minutes && (
+                  <p className="mt-1 text-sm text-red-400 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.duration_total_minutes}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -239,7 +302,6 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                 Estado de Aprobación *
               </label>
               <select
-                required
                 value={formData.approval_status}
                 onChange={(e) => handleInputChange('approval_status', e.target.value as 'pending' | 'approved' | 'rejected')}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -276,16 +338,26 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                   Razón de Rechazo *
                 </label>
                 <textarea
-                  required={formData.approval_status === 'rejected'}
                   value={formData.rejection_reason}
                   onChange={(e) => handleInputChange('rejection_reason', e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 bg-gray-700 border border-red-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                    errors.rejection_reason
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-red-600 focus:ring-red-500'
+                  }`}
                   placeholder="Explica por qué se rechaza este taller..."
                 />
-                <p className="mt-1 text-xs text-gray-400">
-                  La razón de rechazo es obligatoria cuando el estado es "Rechazado"
-                </p>
+                {errors.rejection_reason ? (
+                  <p className="mt-1 text-sm text-red-400 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.rejection_reason}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-400">
+                    La razón de rechazo es obligatoria cuando el estado es "Rechazado"
+                  </p>
+                )}
               </div>
             )}
 
