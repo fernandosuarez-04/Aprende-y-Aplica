@@ -222,7 +222,18 @@ export async function POST(
       }, { status: 403 });
     }
 
-    const { title, content, attachment_url, attachment_type, attachment_data } = await request.json();
+    let requestBody: any;
+    try {
+      requestBody = await request.json();
+    } catch (jsonError) {
+      logger.error('❌ Error parsing request body:', jsonError);
+      return NextResponse.json({ 
+        error: 'Error al procesar los datos del post',
+        details: 'El cuerpo de la petición no es un JSON válido'
+      }, { status: 400 });
+    }
+
+    const { title, content, attachment_url, attachment_type, attachment_data } = requestBody;
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json({ error: 'El contenido es requerido' }, { status: 400 });
@@ -458,8 +469,11 @@ export async function POST(
         error_code: postError.code,
         error_message: postError.message,
         error_details: postError.details,
-        error_hint: postError.hint
+        error_hint: postError.hint,
+        has_slug: !!postSlug
       });
+
+
       return NextResponse.json({ 
         error: 'Error al crear el post',
         details: postError.message || 'Error desconocido',
@@ -558,8 +572,19 @@ export async function POST(
 
   } catch (error) {
     logger.error('❌ Error in create post API:', error);
+    
+    // Asegurar que siempre devolvemos un JSON válido
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    const errorDetails = error instanceof Error && process.env.NODE_ENV === 'development' 
+      ? { stack: error instanceof Error ? error.stack : undefined }
+      : undefined;
+    
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: 'Error al crear el post',
+        details: errorMessage,
+        ...errorDetails
+      },
       { status: 500 }
     );
   }

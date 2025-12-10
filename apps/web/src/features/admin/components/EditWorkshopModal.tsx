@@ -130,13 +130,13 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
   if (!workshop) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-600">
-          <h2 className="text-xl font-semibold text-white">Editar Taller</h2>
+    <div className="fixed inset-0 bg-gray-900/50 dark:bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Editar Taller</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -145,13 +145,13 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Información Básica */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white border-b border-gray-600 pb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
               Información Básica
             </h3>
 
             {/* Título */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Título *
               </label>
               <input
@@ -175,7 +175,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
 
             {/* Descripción */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Descripción *
               </label>
               <textarea
@@ -200,13 +200,13 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
             {/* Categoría y Nivel */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Categoría *
                 </label>
                 <select
                   value={formData.category}
                   onChange={(e) => handleInputChange('category', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {categories.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -215,13 +215,13 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nivel *
                 </label>
                 <select
                   value={formData.level}
                   onChange={(e) => handleInputChange('level', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {levels.map(level => (
                     <option key={level.value} value={level.value}>{level.label}</option>
@@ -233,7 +233,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
             {/* Duración y Precio */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Duración (minutos) *
                 </label>
                 <input
@@ -256,7 +256,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Precio
                 </label>
                 <input
@@ -265,7 +265,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -273,15 +273,15 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
 
           {/* Estado y Aprobación */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white border-b border-gray-600 pb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
               Estado y Aprobación
             </h3>
 
             {/* Estado Activo/Inactivo */}
-            <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
               <div className="flex items-center space-x-3">
-                <div className={`w-3 h-3 rounded-full ${formData.is_active ? 'bg-green-500' : 'bg-gray-500'}`}></div>
-                <span className="text-sm font-medium text-gray-300">
+                <div className={`w-3 h-3 rounded-full ${formData.is_active ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-500'}`}></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {formData.is_active ? 'Taller Activo' : 'Taller Inactivo'}
                 </span>
               </div>
@@ -298,13 +298,13 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
 
             {/* Estado de Aprobación */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Estado de Aprobación *
               </label>
               <select
                 value={formData.approval_status}
                 onChange={(e) => handleInputChange('approval_status', e.target.value as 'pending' | 'approved' | 'rejected')}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {approvalStatuses.map(status => {
                   const Icon = status.icon
@@ -320,7 +320,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
                   if (status.value === formData.approval_status) {
                     const Icon = status.icon
                     return (
-                      <div key={status.value} className={`flex items-center space-x-1 ${status.color}`}>
+                      <div key={status.value} className={`flex items-center space-x-1 ${status.value === 'pending' ? 'text-yellow-600 dark:text-yellow-400' : status.value === 'approved' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         <Icon className="w-4 h-4" />
                         <span className="text-xs">{status.label}</span>
                       </div>
@@ -334,7 +334,7 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
             {/* Razón de Rechazo (solo si está rechazado) */}
             {formData.approval_status === 'rejected' && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Razón de Rechazo *
                 </label>
                 <textarea
@@ -363,12 +363,12 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
 
             {/* Información de aprobación (solo lectura si está aprobado) */}
             {formData.approval_status === 'approved' && workshop.approved_at && (
-              <div className="p-3 bg-green-900/20 border border-green-700/30 rounded-lg">
-                <p className="text-sm text-green-400">
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/30 rounded-lg">
+                <p className="text-sm text-green-700 dark:text-green-400">
                   <strong>Aprobado el:</strong> {new Date(workshop.approved_at).toLocaleString('es-ES')}
                 </p>
                 {workshop.approved_by && (
-                  <p className="text-xs text-green-300 mt-1">
+                  <p className="text-xs text-green-600 dark:text-green-300 mt-1">
                     Por: {workshop.approved_by}
                   </p>
                 )}
@@ -377,11 +377,11 @@ export function EditWorkshopModal({ workshop, onClose, onSave }: EditWorkshopMod
           </div>
 
           {/* Botones */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-600">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white rounded-lg transition-colors"
               disabled={loading}
             >
               Cancelar

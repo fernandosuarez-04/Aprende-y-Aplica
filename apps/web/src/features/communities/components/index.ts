@@ -12,4 +12,7 @@ export { ImageModal } from './ImageModal';
 export { YouTubeLinkModal, PollModal } from './AttachmentModals';
 export { InfinitePostsFeed } from './InfinitePostsFeed';
 export { OptimizedPostCard } from './OptimizedPostCard';
+export { PostMenu } from './PostMenu';
+export { EditPostModal } from './EditPostModal';
+export { ConfirmDeleteModal } from './ConfirmDeleteModal';
 export * from './CommunitySkeletons';

@@ -241,8 +241,6 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
         </div>
       </div>
       
-      {/* Botón oculto de administración */}
-      <HiddenAdminButton />
     </motion.header>
   )
 }

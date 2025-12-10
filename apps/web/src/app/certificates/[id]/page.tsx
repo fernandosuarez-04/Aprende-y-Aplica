@@ -21,6 +21,7 @@ import {
 import { getFullUrl } from '@/lib/env'
 import { CertificateDisplay } from '@/core/components/CertificateDisplay/CertificateDisplay'
 import { generateCertificatePDF } from '@/core/utils/certificatePDF'
+import { useShareModalContext } from '@/core/providers/ShareModalProvider'
 
 interface Certificate {
   certificate_id: string
@@ -44,6 +45,7 @@ interface Certificate {
 export default function CertificateDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { openShareModal } = useShareModalContext()
   const certificateId = params.id as string
   const [certificate, setCertificate] = useState<Certificate | null>(null)
   const [loading, setLoading] = useState(true)
@@ -134,16 +136,16 @@ export default function CertificateDetailPage() {
   const shareCertificate = () => {
     if (certificate) {
       const verifyUrl = getFullUrl(`/certificates/verify/${certificate.certificate_hash}`)
-      if (navigator.share) {
-        navigator.share({
-          title: `Certificado: ${certificate.course_title}`,
-          text: `He completado el curso "${certificate.course_title}" y obtuve este certificado.`,
-          url: verifyUrl
-        }).catch(err => {/* console.error('Error sharing:', err) */})
-      } else {
-        navigator.clipboard.writeText(verifyUrl)
-        alert('Enlace de verificación copiado al portapapeles')
-      }
+      const shareTitle = `Certificado: ${certificate.course_title}`
+      const shareText = `He completado el curso "${certificate.course_title}" y obtuve este certificado.`
+      
+      // Abrir modal de compartir global
+      openShareModal({
+        url: verifyUrl,
+        title: shareTitle,
+        text: shareText,
+        description: shareText,
+      })
     }
   }
 

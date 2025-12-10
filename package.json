@@ -59,7 +59,7 @@
     "react-dom": "18.3.1",
     "react-qr-code": "^2.0.18",
     "recharts": "^3.5.0",
-    "rrweb": "^2.0.0-alpha.4",
+    "rrweb": "^2.0.0-alpha.18",
     "rrweb-player": "^1.0.0-alpha.4",
     "zod": "^3.25.76"
   }

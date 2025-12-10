@@ -68,6 +68,7 @@ import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/compone
 import { useCourseLearnTourSteps } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
+import { useSwipe } from '../../../../hooks/useSwipe';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 import { useLanguage } from '../../../../core/providers/I18nProvider';
@@ -661,6 +662,26 @@ export default function CourseLearnPage() {
       }
     }
   }, [isMobile]); // Solo cuando cambia isMobile
+
+  // Hook para detectar gestos de swipe en móvil
+  // Solo funciona cuando ambos paneles están cerrados para evitar conflictos
+  const swipeRef = useSwipe({
+    onSwipeRight: () => {
+      // Swipe de izquierda a derecha → abrir panel izquierdo
+      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
+        setIsLeftPanelOpen(true);
+      }
+    },
+    onSwipeLeft: () => {
+      // Swipe de derecha a izquierda → abrir panel derecho
+      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
+        setIsRightPanelOpen(true);
+      }
+    },
+    threshold: 50, // Mínimo 50px de desplazamiento
+    velocity: 0.3, // Mínimo 0.3px/ms de velocidad
+    enabled: isMobile && !isLeftPanelOpen && !isRightPanelOpen // Solo habilitado en móvil cuando ambos paneles están cerrados
+  });
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -2821,7 +2842,10 @@ Antes de cada respuesta, pregúntate:
       </motion.div>
 
       {/* Contenido principal - 3 paneles - Responsive */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
+      <div 
+        ref={swipeRef}
+        className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10"
+      >
         {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
         <AnimatePresence>
           {isLeftPanelOpen && (
@@ -2845,7 +2869,7 @@ Antes de cada respuesta, pregúntate:
                 className={`
                   ${isMobile 
                     ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative'
+                    : 'relative h-full'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col overflow-hidden shadow-xl 
                   ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
@@ -3670,7 +3694,7 @@ Antes de cada respuesta, pregúntate:
                 className={`
                   ${isMobile 
                     ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative'
+                    : 'relative h-full'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
                   ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
@@ -3685,10 +3709,8 @@ Antes de cada respuesta, pregúntate:
                         }),
                       }
                     : {
-                        ...(calculateLiaMaxHeight && {
-                          height: calculateLiaMaxHeight,
-                          maxHeight: calculateLiaMaxHeight,
-                        }),
+                        // En desktop, no usar altura calculada, dejar que h-full de la clase maneje la altura
+                        // para que coincida con los otros paneles
                       }
                 }
               >

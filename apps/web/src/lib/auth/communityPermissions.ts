@@ -175,3 +175,83 @@ export async function getUsersToNotifyForAccessRequest(
   }
 }
 
+/**
+ * Verifica si un usuario puede moderar una comunidad (ver y gestionar reportes).
+ * 
+ * Un usuario puede moderar si:
+ * 1. Es Administrador (cargo_rol = 'Administrador')
+ * 2. Es el creador de la comunidad (creator_id = user_id)
+ * 3. Es admin o moderador de la comunidad (role = 'admin' o 'moderator' en community_members)
+ * 
+ * @param userId - ID del usuario
+ * @param communityId - ID de la comunidad
+ * @returns true si el usuario puede moderar, false en caso contrario
+ */
+export async function canModerateCommunity(
+  userId: string,
+  communityId: string
+): Promise<boolean> {
+  try {
+    const supabase = await createClient()
+
+    // 1. Obtener información del usuario
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, cargo_rol')
+      .eq('id', userId)
+      .single()
+
+    if (userError || !user) {
+      logger.error('Error fetching user for moderation permissions', { userId, error: userError })
+      return false
+    }
+
+    // 2. Si es Administrador, puede moderar cualquier comunidad
+    if (user.cargo_rol === 'Administrador') {
+      return true
+    }
+
+    // 3. Obtener información de la comunidad
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
+      .select('creator_id')
+      .eq('id', communityId)
+      .single()
+
+    if (communityError || !community) {
+      logger.error('Error fetching community for moderation permissions', { communityId, error: communityError })
+      return false
+    }
+
+    // 4. Si es el creador de la comunidad, puede moderar
+    if (community.creator_id === userId) {
+      return true
+    }
+
+    // 5. Verificar si es admin o moderador de la comunidad
+    const { data: membership, error: membershipError } = await supabase
+      .from('community_members')
+      .select('role')
+      .eq('community_id', communityId)
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single()
+
+    if (membershipError && membershipError.code !== 'PGRST116') {
+      logger.error('Error fetching community membership for moderation', { userId, communityId, error: membershipError })
+      return false
+    }
+
+    // Si es admin o moderador de la comunidad, puede moderar
+    if (membership && (membership.role === 'admin' || membership.role === 'moderator')) {
+      return true
+    }
+
+    // Si no cumple ninguna condición, no puede moderar
+    return false
+  } catch (error) {
+    logger.error('Error in canModerateCommunity', error)
+    return false
+  }
+}
+

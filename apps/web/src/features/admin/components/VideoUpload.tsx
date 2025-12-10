@@ -117,26 +117,26 @@ export function VideoUpload({ value, onChange, disabled = false }: VideoUploadPr
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-300">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Video *
       </label>
       
       {value ? (
         <div className="relative">
-          <div className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600">
-            <Play className="w-5 h-5 text-blue-500 flex-shrink-0" />
+          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+            <Play className="w-5 h-5 text-blue-600 dark:text-blue-500 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white truncate">
+              <p className="text-sm text-gray-900 dark:text-white truncate">
                 Video subido exitosamente
               </p>
-              <p className="text-xs text-gray-400 truncate">
+              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                 {value.split('/').pop()}
               </p>
             </div>
             <button
               onClick={removeFile}
               disabled={disabled}
-              className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors disabled:opacity-50"
             >
               <X className="w-4 h-4" />
             </button>
@@ -146,8 +146,8 @@ export function VideoUpload({ value, onChange, disabled = false }: VideoUploadPr
         <div
           className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
             dragActive
-              ? 'border-blue-500 bg-blue-500/10'
-              : 'border-gray-600 hover:border-gray-500'
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-gray-50 dark:bg-gray-800'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -165,12 +165,12 @@ export function VideoUpload({ value, onChange, disabled = false }: VideoUploadPr
           
           <div className="text-center">
             <Upload className={`w-8 h-8 mx-auto mb-2 ${
-              dragActive ? 'text-blue-500' : 'text-gray-400'
+              dragActive ? 'text-blue-600 dark:text-blue-500' : 'text-gray-500 dark:text-gray-400'
             }`} />
-            <p className="text-sm text-gray-300 mb-1">
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
               {dragActive ? 'Suelta el video aquí' : 'Arrastra un video aquí o haz clic para seleccionar'}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-500">
               MP4, WebM, OGG, AVI, MOV (máximo 100MB)
             </p>
           </div>
@@ -180,12 +180,12 @@ export function VideoUpload({ value, onChange, disabled = false }: VideoUploadPr
       {uploading && (
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-            <span className="text-sm text-gray-300">Subiendo video...</span>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-500"></div>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Subiendo video...</span>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div 
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
@@ -193,7 +193,7 @@ export function VideoUpload({ value, onChange, disabled = false }: VideoUploadPr
       )}
 
       {error && (
-        <div className="flex items-center space-x-2 text-red-400 text-sm">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400 text-sm">
           <AlertCircle className="w-4 h-4" />
           <span>{error}</span>
         </div>
