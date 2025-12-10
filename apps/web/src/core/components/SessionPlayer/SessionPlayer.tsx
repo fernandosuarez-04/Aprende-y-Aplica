@@ -3,9 +3,9 @@
  */
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import rrwebPlayer from 'rrweb-player';
+import React, { useEffect, useRef, useState } from 'react';
 import type { RecordingSession } from '../../../lib/rrweb/session-recorder';
+import { loadRrwebPlayer } from '../../../lib/rrweb/rrweb-loader';
 // Nota: Los estilos de rrweb-player están incluidos en el paquete JavaScript
 // No es necesario importar CSS adicional para la versión alpha
 
@@ -46,8 +46,8 @@ export function SessionPlayer({
     let attemptCount = 0;
     const maxAttempts = 50; // Máximo 50 intentos (unos 3 segundos)
 
-    // Esperar a que el ref esté disponible con requestAnimationFrame
-    const initializePlayer = () => {
+    // Función asíncrona para inicializar el player
+    const initializePlayer = async () => {
       attemptCount++;
       
       if (!containerRef.current) {
@@ -58,7 +58,7 @@ export function SessionPlayer({
           return;
         }
         console.log(`⏳ Intento ${attemptCount}/${maxAttempts}: Ref no disponible aún, reintentando...`);
-        requestAnimationFrame(initializePlayer);
+        requestAnimationFrame(() => initializePlayer());
         return;
       }
 
@@ -66,26 +66,49 @@ export function SessionPlayer({
       console.log('✅ Contenedor encontrado después de', attemptCount, 'intentos');
 
       try {
-        console.log('🎬 PASO 1: Iniciando proceso de player...');
+        console.log('🎬 PASO 1: Cargando módulo rrweb-player...');
         
-        // Limpiar player anterior si existe
-        if (playerRef.current) {
-          console.log('🧹 Limpiando player anterior...');
-          playerRef.current.pause();
-          container.innerHTML = '';
+        // Cargar rrweb-player dinámicamente
+        const RrwebPlayer = await loadRrwebPlayer();
+        
+        if (!RrwebPlayer) {
+          throw new Error('No se pudo cargar rrweb-player');
         }
 
         console.log('🎬 PASO 2: Preparando datos...');
         console.log('   - Total eventos:', session.events.length);
-        console.log('   - Primeros 5 eventos:', session.events.slice(0, 5).map((e: any) => ({
-          type: e.type,
-          timestamp: e.timestamp
-        })));
-
-        console.log('🎬 PASO 3: Creando instancia de rrwebPlayer...');
         
-        // Crear nuevo player
-        playerRef.current = new rrwebPlayer({
+        // Validar que tenemos eventos válidos
+        if (!session.events || session.events.length === 0) {
+          throw new Error('No hay eventos válidos para reproducir');
+        }
+
+        // Verificar que tenemos snapshot inicial (tipo 2)
+        const hasSnapshot = session.events.some((e: any) => e.type === 2);
+        if (!hasSnapshot) {
+          console.warn('⚠️ No se encontró snapshot inicial en los eventos');
+        }
+
+        console.log('🎬 PASO 3: Limpiando player anterior si existe...');
+        
+        // Limpiar player anterior si existe
+        if (playerRef.current) {
+          try {
+            playerRef.current.pause();
+            if (typeof playerRef.current.destroy === 'function') {
+              playerRef.current.destroy();
+            }
+          } catch (cleanupError) {
+            console.warn('⚠️ Error al limpiar player anterior:', cleanupError);
+          }
+          container.innerHTML = '';
+        }
+
+        console.log('🎬 PASO 4: Creando instancia de rrwebPlayer...');
+        
+        // Crear nuevo player usando el módulo cargado dinámicamente
+        const PlayerClass = RrwebPlayer.default || RrwebPlayer;
+        playerRef.current = new PlayerClass({
           target: container,
           props: {
             events: session.events,
@@ -99,7 +122,7 @@ export function SessionPlayer({
           },
         });
 
-        console.log('🎬 PASO 4: Player creado, verificando...');
+        console.log('🎬 PASO 5: Player creado, verificando...');
         console.log('   - Player ref:', !!playerRef.current);
         console.log('   - Container children:', container.children.length);
         
@@ -107,9 +130,9 @@ export function SessionPlayer({
         setIsLoading(false);
         setError(null);
       } catch (err) {
-        console.error('❌ Error inicializando player en algún paso:', err);
+        console.error('❌ Error inicializando player:', err);
         console.error('   Stack:', (err as Error).stack);
-        setError('Error al cargar la reproducción: ' + (err as Error).message);
+        setError('Error al cargar la reproducción: ' + ((err as Error).message || 'Error desconocido'));
         setIsLoading(false);
       }
     };
@@ -121,10 +144,19 @@ export function SessionPlayer({
     return () => {
       if (playerRef.current) {
         try {
-          playerRef.current.pause();
+          if (typeof playerRef.current.pause === 'function') {
+            playerRef.current.pause();
+          }
+          if (typeof playerRef.current.destroy === 'function') {
+            playerRef.current.destroy();
+          }
+          if (containerRef.current) {
+            containerRef.current.innerHTML = '';
+          }
         } catch (err) {
-          console.error('Error al pausar player:', err);
+          console.error('Error al limpiar player:', err);
         }
+        playerRef.current = null;
       }
     };
   }, [session, width, height, autoPlay, showController, skipInactive, speed]);

@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { UserDropdown } from '../UserDropdown'
 import { ShoppingCart } from '../ShoppingCart'
+import { LanguageSelector } from '../LanguageSelector'
 import { HiddenAdminButton } from '../HiddenAdminButton'
 import { NotificationBell } from '../NotificationBell'
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg'
@@ -185,6 +186,9 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
             {/* Carrito de compras */}
             <ShoppingCart />
 
+            {/* Selector de idioma */}
+            <LanguageSelector />
+
             {/* User Dropdown */}
             <UserDropdown />
           </motion.div>
@@ -237,8 +241,6 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
         </div>
       </div>
       
-      {/* Botón oculto de administración */}
-      <HiddenAdminButton />
     </motion.header>
   )
 }

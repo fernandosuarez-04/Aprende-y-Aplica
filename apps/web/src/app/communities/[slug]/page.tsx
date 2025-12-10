@@ -39,7 +39,8 @@ import {
   X,
   Image as ImageIcon,
   Link2,
-  Globe
+  Globe,
+  Shield
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
@@ -76,7 +77,7 @@ const InfinitePostsFeed = dynamic(() => import('../../../features/communities/co
     </div>
   )
 });
-import { InlineAttachmentButtons, AttachmentPreview, PostAttachment } from '../../../features/communities/components';
+import { InlineAttachmentButtons, AttachmentPreview, PostAttachment, PostMenu, EditPostModal } from '../../../features/communities/components';
 import { formatRelativeTime } from '../../../core/utils/date-utils';
 import { getBaseUrl } from '../../../lib/env';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
@@ -266,7 +267,8 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const postUrl = `${getBaseUrl()}/communities/${communitySlug}#post-${postId}`;
+  // Usar el ID del post para la URL
+  const postUrl = `${getBaseUrl()}/communities/${communitySlug}/posts/${postId}`;
   const shareText = `Mira este post de ${communityName}: "${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}"`;
 
   const copyToClipboard = async (text: string) => {
@@ -1299,6 +1301,7 @@ interface Community {
   has_pending_request?: boolean;
   user_role?: string;
   can_join?: boolean;
+  creator_id?: string;
 }
 
 interface Post {
@@ -1371,6 +1374,7 @@ export default function CommunityDetailPage() {
   const [postReactions, setPostReactions] = useState<Record<string, { type: string | null; count: number }>>({});
   const [showCommentsForPost, setShowCommentsForPost] = useState<Record<string, boolean>>({});
   const [userReactions, setUserReactions] = useState<Record<string, string | null>>({});
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [showReactionDetails, setShowReactionDetails] = useState<Record<string, boolean>>({});
   const [selectedReactionType, setSelectedReactionType] = useState<string | null>(null);
   const [postReactionStats, setPostReactionStats] = useState<Record<string, any>>({});
@@ -2166,8 +2170,18 @@ export default function CommunityDetailPage() {
           </motion.div>
 
           <motion.div className="space-y-4" variants={itemVariants}>
-            <div className="hidden md:block">
+            <div className="hidden md:block space-y-3">
               {getAccessButton()}
+              {/* Botón de moderación - Solo visible para owners y moderadores */}
+              {user && community && (community.user_role === 'admin' || community.user_role === 'moderator' || user.id === community.creator_id) && (
+                <Button
+                  onClick={() => router.push(`/communities/${slug}/moderation/reports`)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  Panel de Moderación
+                </Button>
+              )}
             </div>
             <div className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-5">
               <div className="flex items-center justify-between">
@@ -2303,7 +2317,8 @@ export default function CommunityDetailPage() {
                     initial="hidden"
                     animate="visible"
                     whileHover="hover"
-                    className="community-post"
+                    className="community-post cursor-pointer"
+                    onClick={() => router.push(`/communities/${slug}/posts/${post.id}`)}
                   >
                     {/* Post Header */}
                     <div className="community-post-header">
@@ -2339,9 +2354,21 @@ export default function CommunityDetailPage() {
                           </p>
                         </div>
                       </div>
-                      <button className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <PostMenu
+                          post={post}
+                          communitySlug={slug}
+                          onEdit={() => setEditingPost(post)}
+                          onDelete={() => {
+                            // Eliminar el post del estado local inmediatamente
+                            setPosts(prevPosts => prevPosts.filter(p => p.id !== post.id))
+                          }}
+                          onPostUpdate={() => {
+                            // Recargar posts cuando se actualiza uno (para otros cambios como pin/hide)
+                            fetchPosts()
+                          }}
+                        />
+                      </div>
                     </div>
 
                     {/* Post Content */}
@@ -2361,7 +2388,10 @@ export default function CommunityDetailPage() {
                     )}
 
                     {/* Facebook-style Post Stats Bar - Reacciones y comentarios */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30">
+                    <div 
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {/* Reacciones */}
                       {(() => {
                         const totalReactions = postReactions[post.id]?.count || post.reaction_count || 0;
@@ -2412,7 +2442,10 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Facebook-style Action Buttons */}
-                    <div className="flex flex-nowrap items-center justify-between gap-1 sm:gap-2 py-1.5 sm:py-2 px-1 sm:px-2 border-t border-gray-200 dark:border-slate-700/30">
+                    <div 
+                      className="flex flex-nowrap items-center justify-between gap-1 sm:gap-2 py-1.5 sm:py-2 px-1 sm:px-2 border-t border-gray-200 dark:border-slate-700/30"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {/* Botón de Reacciones */}
                       <div className="flex-1 min-w-0 flex justify-center">
                         <ReactionButton
@@ -2456,7 +2489,10 @@ export default function CommunityDetailPage() {
                     </div>
 
                     {/* Sección de comentarios */}
-                    <div id={`comments-${post.id}`}>
+                    <div 
+                      id={`comments-${post.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <LocalCommentsSection
                         postId={post.id}
                         communitySlug={slug}
@@ -2582,6 +2618,36 @@ export default function CommunityDetailPage() {
         onClose={() => setShowPollModal(false)}
         onConfirm={handlePollConfirm}
       />
+
+      {/* Modal de edición de post */}
+      {editingPost && (
+        <EditPostModal
+          isOpen={!!editingPost}
+          onClose={() => {
+            // Solo permitir cerrar si no se está guardando
+            // El modal maneja internamente si se está procesando un attachment
+            setEditingPost(null)
+          }}
+          post={editingPost}
+          communitySlug={slug}
+          onSave={(updatedPost) => {
+            if (updatedPost) {
+              // Actualizar el post en el estado local
+              setPosts(prevPosts => 
+                prevPosts.map(p => 
+                  p.id === updatedPost.id 
+                    ? { ...p, ...updatedPost }
+                    : p
+                )
+              )
+            } else {
+              // Si no hay post actualizado, recargar todos los posts
+              fetchPosts()
+            }
+            setEditingPost(null)
+          }}
+        />
+      )}
     </div>
   );
 }

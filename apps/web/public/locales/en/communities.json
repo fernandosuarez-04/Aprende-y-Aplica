@@ -1,0 +1,105 @@
+{
+  "title": "Aprende y Aplica Community",
+  "subtitle": "Connect with other students, share knowledge and participate in discussions about artificial intelligence and educational technology",
+  "stats": {
+    "members": "MEMBERS",
+    "communities": "COMMUNITIES"
+  },
+  "search": {
+    "placeholder": "Search communities or content..."
+  },
+  "categories": {
+    "all": "All",
+    "general": "General",
+    "ai": "AI",
+    "data": "Data",
+    "development": "Development",
+    "design": "Design",
+    "it": "IT & Software",
+    "marketing": "Marketing",
+    "business": "Business"
+  },
+  "accessTypes": {
+    "member": "Member",
+    "invitation": "Invitation",
+    "paid": "Paid"
+  },
+  "community": {
+    "updated": "Updated",
+    "members": "Members",
+    "open": "Open community",
+    "moderated": "Moderated access",
+    "active": "Active",
+    "paused": "On pause",
+    "alreadyMember": "You are already a member",
+    "requestSent": "Request sent",
+    "viewDetails": "View details",
+    "enter": "Enter",
+    "join": "Join",
+    "requestPending": "Pending request"
+  },
+  "errors": {
+    "loadError": "Error loading communities",
+    "loadErrorMessage": "An error occurred while trying to load communities",
+    "retry": "Retry",
+    "noCommunities": "No communities available",
+    "noCommunitiesMessage": "No communities have been created on the platform yet",
+    "noResults": "No communities found",
+    "noResultsMessage": "Try adjusting your search filters"
+  },
+  "rules": {
+    "button": "View Community Rules",
+    "title": "Community Rules",
+    "subtitle": "Help us maintain a respectful and constructive environment",
+    "respectful": {
+      "title": "Be Respectful",
+      "description": "Treat all members with respect and courtesy. We do not tolerate harassment or discrimination."
+    },
+    "shareKnowledge": {
+      "title": "Share Knowledge",
+      "description": "Contribute useful and constructive information. Help others learn and grow."
+    },
+    "privacy": {
+      "title": "Maintain Privacy",
+      "description": "Do not share personal information of other members without their consent."
+    },
+    "report": {
+      "title": "Report Issues",
+      "description": "If you see inappropriate content, report it immediately to moderators."
+    },
+    "understood": "Understood"
+  },
+  "details": {
+    "close": "Close community details",
+    "community": "Community",
+    "public": "Public",
+    "private": "Private",
+    "freeAccess": "Free access",
+    "invitationOnly": "Invitation only",
+    "premiumAccess": "Premium access",
+    "members": "Members",
+    "postsPublished": "Published posts",
+    "created": "Created",
+    "keyInfo": "Key information",
+    "activeModeration": {
+      "title": "Active moderation",
+      "description": "A dedicated team maintains healthy and focused conversations."
+    },
+    "constantCollaboration": {
+      "title": "Constant collaboration",
+      "description": "Share ideas, questions and resources with like-minded professionals."
+    },
+    "administrators": "Administrators",
+    "creator": "Creator",
+    "moderator": "Moderator",
+    "admin": "Administrator",
+    "member": "Member",
+    "noAdditionalAdmins": "No additional administrators have been assigned yet.",
+    "recentMembers": "Recent members",
+    "beFirst": "Be the first to join this community.",
+    "enterCommunity": "Enter Community",
+    "closeButton": "Close",
+    "errorLoadingDetails": "Could not load all details. Please try again later."
+  }
+}
+

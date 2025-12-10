@@ -173,9 +173,57 @@ export function useAttachments() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido al crear el post' }));
-        console.error('Error response:', errorData);
-        throw new Error(errorData.error || errorData.details || 'Error al crear el post');
+        let errorData: any = { error: 'Error desconocido al crear el post' };
+        
+        try {
+          // Leer el body una sola vez
+          const text = await response.text();
+          const contentType = response.headers.get('content-type');
+          
+          if (text && text.trim()) {
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                errorData = JSON.parse(text);
+              } catch (jsonError) {
+                // Si no es JSON válido, usar el texto como mensaje
+                errorData = { 
+                  error: text,
+                  details: 'La respuesta no es un JSON válido'
+                };
+              }
+            } else {
+              // Si no es JSON, usar el texto como mensaje
+              errorData = { 
+                error: text || `Error ${response.status}: ${response.statusText || 'Error al crear el post'}`,
+                status: response.status,
+                statusText: response.statusText
+              };
+            }
+          } else {
+            // Si el body está vacío, usar el status
+            errorData = { 
+              error: `Error ${response.status}: ${response.statusText || 'Error al crear el post'}`,
+              status: response.status,
+              statusText: response.statusText
+            };
+          }
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+          errorData = { 
+            error: `Error ${response.status}: ${response.statusText || 'Error al crear el post'}`,
+            status: response.status,
+            details: parseError instanceof Error ? parseError.message : 'Error desconocido al parsear la respuesta'
+          };
+        }
+        
+        console.error('Error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        
+        const errorMessage = errorData.error || errorData.details || errorData.message || `Error ${response.status}: Error al crear el post`;
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();

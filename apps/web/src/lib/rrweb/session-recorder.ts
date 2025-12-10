@@ -7,8 +7,8 @@
 // Esto asegura que el MutationObserver esté parcheado antes de que rrweb lo use
 import './mutation-record-patch';
 
-import { record, EventType } from 'rrweb';
 import type { eventWithTime } from '@rrweb/types';
+import { loadRrweb, type RrwebModule, type RrwebRecordOptions } from './rrweb-loader';
 
 /**
  * Verifica que el patch de MutationRecord esté aplicado
@@ -31,6 +31,20 @@ export interface RecordingSession {
   endTime?: number;
 }
 
+// Tipo para el objeto sessionRecorder exportado (para usar en hooks sin typeof import)
+export interface SessionRecorderInstance {
+  startRecording(maxDuration?: number): Promise<void>;
+  stop(): RecordingSession | null;
+  captureSnapshot(): RecordingSession | null;
+  getCurrentSession(): RecordingSession | null;
+  isActive(): boolean;
+  isRrwebAvailable(): boolean;
+  exportSession(session: RecordingSession): string;
+  exportSessionBase64(session: RecordingSession): string;
+  getSessionSize(session: RecordingSession): number;
+  getSessionSizeFormatted(session: RecordingSession): string;
+}
+
 export class SessionRecorder {
   private static instance: SessionRecorder;
   private events: eventWithTime[] = [];
@@ -39,8 +53,12 @@ export class SessionRecorder {
   private maxEvents = 20000; // Aumentado a 20000 para capturar ~3 minutos de contexto
   private maxDuration = 60000; // 60 segundos máximo
   private initialSnapshot: eventWithTime | null = null; // Guardar snapshot inicial
+  private rrwebAvailable = false; // Flag para verificar si rrweb está disponible
 
-  private constructor() {}
+  private constructor() {
+    // No hacer nada en el constructor para evitar ejecución en el servidor
+    // La verificación de rrweb se hará cuando se necesite (en startRecording)
+  }
 
   static getInstance(): SessionRecorder {
     if (!SessionRecorder.instance) {
@@ -50,12 +68,46 @@ export class SessionRecorder {
   }
 
   /**
+   * Verifica si rrweb está disponible en el entorno actual
+   */
+  private async checkRrwebAvailability(): Promise<boolean> {
+    // Solo verificar en el cliente
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    try {
+      const rrweb = await loadRrweb();
+      const isAvailable = rrweb !== null && typeof rrweb?.record === 'function';
+      this.rrwebAvailable = isAvailable;
+      return isAvailable;
+    } catch (error) {
+      console.error('❌ Error verificando disponibilidad de rrweb:', error);
+      this.rrwebAvailable = false;
+      return false;
+    }
+  }
+
+  /**
    * Inicia la grabación de la sesión
    * @param maxDuration Duración máxima en ms (por defecto 60 segundos)
    */
-  startRecording(maxDuration?: number): void {
+  async startRecording(maxDuration?: number): Promise<void> {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      console.warn('⚠️ SessionRecorder solo funciona en el cliente');
+      return;
+    }
+
     if (this.isRecording) {
       console.warn('⚠️ Ya hay una grabación en curso');
+      return;
+    }
+
+    // Verificar disponibilidad de rrweb
+    const isAvailable = await this.checkRrwebAvailability();
+    if (!isAvailable) {
+      console.error('❌ rrweb no está disponible. La grabación no puede iniciarse.');
       return;
     }
 
@@ -73,6 +125,31 @@ export class SessionRecorder {
     this.isRecording = true;
 
     try {
+      // Cargar rrweb dinámicamente (ya verificado arriba, pero lo cargamos de nuevo para asegurar)
+      const rrweb = await loadRrweb();
+      
+      // Validación estricta con verificación de tipo en tiempo de ejecución
+      if (!rrweb) {
+        throw new Error('rrweb module no se pudo cargar');
+      }
+      
+      // Verificar que record existe y es una función ANTES de crear recordOptions
+      if (typeof rrweb.record !== 'function') {
+        console.error('[SessionRecorder] rrweb.record no es una función:', {
+          rrweb: rrweb,
+          hasRecord: 'record' in rrweb,
+          recordType: typeof rrweb.record,
+          rrwebKeys: Object.keys(rrweb),
+        });
+        throw new Error('rrweb.record no está disponible o no es una función');
+      }
+
+      // Extraer la función record de forma segura ANTES de usarla
+      const recordFunction = rrweb.record;
+      if (typeof recordFunction !== 'function') {
+        throw new Error('rrweb.record no es una función después de extraerla');
+      }
+
       // Wrapper para capturar errores de MutationRecord
       const originalEmit = (event: any) => {
         try {
@@ -110,34 +187,39 @@ export class SessionRecorder {
         }
       };
 
-      // Configuración de rrweb con protección contra errores de MutationRecord
-      const recordOptions = {
+      // Configuración de rrweb balanceada según entorno
+      // En desarrollo: más eventos para mejor debugging
+      // En producción: optimizado para reducir tamaño
+      const isDev = process.env.NODE_ENV === 'development';
+      
+      const recordOptions: RrwebRecordOptions = {
         emit: originalEmit,
         // Configuración optimizada para reducir eventos sin perder contexto importante
-        checkoutEveryNms: 15000, // Checkpoint cada 15 segundos (reducido de 10s)
-        checkoutEveryNth: 300, // Checkpoint cada 300 eventos (aumentado de 200)
+        checkoutEveryNms: isDev ? 10000 : 15000, // Checkpoint más frecuente en dev
+        checkoutEveryNth: isDev ? 200 : 300, // Checkpoint más frecuente en dev
         recordCanvas: false, // No grabar canvas (muy pesado)
         recordCrossOriginIframes: false, // No grabar iframes externos
         collectFonts: false, // No recolectar fuentes (reduce tamaño)
         inlineStylesheet: false, // No inline CSS (reduce eventos)
-        // Sampling agresivo para reducir ruido
+        // Sampling balanceado: más detallado en dev, optimizado en prod
         sampling: {
           mousemove: true,
-          mousemoveCallback: 500, // Sample mousemove cada 500ms (más espaciado)
+          mousemoveCallback: isDev ? 200 : 500, // Más frecuente en dev para mejor debugging
           mouseInteraction: {
-            MouseUp: false, // No capturar mouse up
-            MouseDown: false, // No capturar mouse down
-            Click: true, // Solo clicks (importante para reproducir acciones)
+            // En dev, capturar más eventos para mejor debugging
+            MouseUp: isDev, // Capturar mouse up en dev
+            MouseDown: isDev, // Capturar mouse down en dev
+            Click: true, // Siempre capturar clicks (importante para reproducir acciones)
             ContextMenu: false, // No menu contextual
-            DblClick: true, // Double clicks (importante)
-            Focus: false, // No focus events
-            Blur: false, // No blur events
+            DblClick: true, // Siempre capturar double clicks (importante)
+            Focus: isDev, // Capturar focus en dev para debugging
+            Blur: false, // No blur events (menos importante)
             TouchStart: false, // No touch start
             TouchEnd: false, // No touch end
           },
-          scroll: 300, // Sample scroll cada 300ms (más espaciado)
-          media: 800, // Sample media cada 800ms
-          input: 'last', // Solo el último valor de inputs (no cada keystroke)
+          scroll: isDev ? 150 : 300, // Más frecuente en dev
+          media: isDev ? 500 : 800, // Más frecuente en dev
+          input: isDev ? true : 'last', // En dev capturar todos los cambios, en prod solo el último
         },
         // Ignorar ciertos elementos que generan mucho ruido
         ignoreClass: 'rr-ignore',
@@ -147,7 +229,7 @@ export class SessionRecorder {
         // Esto previene el error "Cannot set property attributeName"
         blockClass: 'rr-block',
         blockSelector: null, // No bloquear selectores específicos
-        ignoreCSSAttributes: new Set(['class', 'style']), // Ignorar cambios en class y style
+        // NOTA: ignoreCSSAttributes no existe en la API oficial de rrweb, se elimina
         slimDOMOptions: {
           script: true, // Remover scripts del DOM
           comment: true, // Remover comentarios
@@ -168,9 +250,14 @@ export class SessionRecorder {
         },
       };
 
-      // Wrapper para capturar errores durante la inicialización de record
+      // Llamar a record con la función extraída (ya validada arriba)
       try {
-        this.stopRecording = record(recordOptions);
+        this.stopRecording = recordFunction(recordOptions);
+        
+        // Verificar que stopRecording es una función
+        if (typeof this.stopRecording !== 'function') {
+          throw new Error('rrweb.record no retornó una función de detención');
+        }
       } catch (recordError) {
         console.error('[SessionRecorder] Error al inicializar record:', recordError);
         // Si falla la inicialización, deshabilitar el recorder
@@ -192,6 +279,14 @@ export class SessionRecorder {
     } catch (error) {
       console.error('❌ Error iniciando grabación:', error);
       this.isRecording = false;
+      this.stopRecording = null;
+      this.rrwebAvailable = false;
+      // Reintentar verificar disponibilidad después de un error
+      setTimeout(() => {
+        this.checkRrwebAvailability().catch(() => {
+          // Ignorar errores en la verificación
+        });
+      }, 5000);
     }
   }
 
@@ -309,6 +404,13 @@ export class SessionRecorder {
   }
 
   /**
+   * Verifica si rrweb está disponible
+   */
+  isRrwebAvailable(): boolean {
+    return this.rrwebAvailable;
+  }
+
+  /**
    * Exporta la sesión a JSON
    */
   exportSession(session: RecordingSession): string {
@@ -354,5 +456,67 @@ export class SessionRecorder {
   }
 }
 
-// Export singleton
-export const sessionRecorder = SessionRecorder.getInstance();
+// Función helper para obtener el singleton de forma segura
+function getSessionRecorderInstance(): SessionRecorder {
+  // Solo inicializar en el cliente
+  if (typeof window === 'undefined') {
+    // Retornar un objeto mock en el servidor que no hace nada
+    return {
+      startRecording: async () => {},
+      stop: () => null,
+      captureSnapshot: () => null,
+      getCurrentSession: () => null,
+      isActive: () => false,
+      isRrwebAvailable: () => false,
+      exportSession: () => '',
+      exportSessionBase64: () => '',
+      getSessionSize: () => 0,
+      getSessionSizeFormatted: () => '0 B',
+    } as unknown as SessionRecorder;
+  }
+  
+  return SessionRecorder.getInstance();
+}
+
+// Export singleton con métodos proxy para mantener compatibilidad
+export const sessionRecorder = {
+  async startRecording(maxDuration?: number): Promise<void> {
+    return getSessionRecorderInstance().startRecording(maxDuration);
+  },
+  
+  stop(): RecordingSession | null {
+    return getSessionRecorderInstance().stop();
+  },
+  
+  captureSnapshot(): RecordingSession | null {
+    return getSessionRecorderInstance().captureSnapshot();
+  },
+  
+  getCurrentSession(): RecordingSession | null {
+    return getSessionRecorderInstance().getCurrentSession();
+  },
+  
+  isActive(): boolean {
+    return getSessionRecorderInstance().isActive();
+  },
+  
+  isRrwebAvailable(): boolean {
+    return getSessionRecorderInstance().isRrwebAvailable();
+  },
+  
+  exportSession(session: RecordingSession): string {
+    return getSessionRecorderInstance().exportSession(session);
+  },
+  
+  exportSessionBase64(session: RecordingSession): string {
+    return getSessionRecorderInstance().exportSessionBase64(session);
+  },
+  
+  getSessionSize(session: RecordingSession): number {
+    return getSessionRecorderInstance().getSessionSize(session);
+  },
+  
+  getSessionSizeFormatted(session: RecordingSession): string {
+    return getSessionRecorderInstance().getSessionSizeFormatted(session);
+  },
+};

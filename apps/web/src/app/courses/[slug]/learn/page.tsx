@@ -68,9 +68,11 @@ import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/compone
 import { useCourseLearnTourSteps } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
+import { useSwipe } from '../../../../hooks/useSwipe';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 import { useLanguage } from '../../../../core/providers/I18nProvider';
+import { LanguageSelector } from '../../../../core/components/LanguageSelector';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
@@ -661,6 +663,26 @@ export default function CourseLearnPage() {
       }
     }
   }, [isMobile]); // Solo cuando cambia isMobile
+
+  // Hook para detectar gestos de swipe en móvil
+  // Solo funciona cuando ambos paneles están cerrados para evitar conflictos
+  const swipeRef = useSwipe({
+    onSwipeRight: () => {
+      // Swipe de izquierda a derecha → abrir panel izquierdo
+      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
+        setIsLeftPanelOpen(true);
+      }
+    },
+    onSwipeLeft: () => {
+      // Swipe de derecha a izquierda → abrir panel derecho
+      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
+        setIsRightPanelOpen(true);
+      }
+    },
+    threshold: 50, // Mínimo 50px de desplazamiento
+    velocity: 0.3, // Mínimo 0.3px/ms de velocidad
+    enabled: isMobile && !isLeftPanelOpen && !isRightPanelOpen // Solo habilitado en móvil cuando ambos paneles están cerrados
+  });
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -2686,6 +2708,26 @@ Antes de cada respuesta, pregúntate:
         const requiredActivities = currentActivities.filter(a => a.is_required);
         const pendingRequired = requiredActivities.filter(a => !a.is_completed);
         const completedActivities = currentActivities.filter(a => a.is_completed);
+
+        // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
+        // Basado en el tab activo y el scroll/interacciones recientes
+        let currentActivityFocus = null;
+        if (activeTab === 'activities' && pendingRequired.length > 0) {
+          // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
+          currentActivityFocus = pendingRequired[0];
+        } else if (pendingRequired.length > 0) {
+          // Si no está en actividades pero hay pendientes, mencionar que tiene actividades sin completar
+          currentActivityFocus = null;
+        }
+
+        // 🎯 Detectar patrones temporales y de progreso
+        const totalLessonsInCourse = modules.reduce((total, module) => total + module.lessons.length, 0);
+        const currentLessonIndex = getAllLessonsOrdered().findIndex(
+          item => item.lesson.lesson_id === currentLesson?.lesson_id
+        );
+        const progressPercentage = totalLessonsInCourse > 0
+          ? Math.round(((currentLessonIndex + 1) / totalLessonsInCourse) * 100)
+          : 0;
         
         // Construir contexto enriquecido de la lección con información de la dificultad detectada
         // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
@@ -2722,10 +2764,27 @@ Antes de cada respuesta, pregúntate:
               type: a.activity_type,
               isRequired: a.is_required,
               isCompleted: a.is_completed
-            }))
+            })),
+            // 🎯 NUEVO: Actividad actual en foco
+            currentActivityFocus: currentActivityFocus ? {
+              title: currentActivityFocus.activity_title,
+              type: currentActivityFocus.activity_type,
+              isRequired: currentActivityFocus.is_required,
+              description: currentActivityFocus.activity_description || 'Sin descripción'
+            } : null
           },
           // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
           userBehaviorContext: behaviorAnalysis,
+          // 🎯 NUEVO: Contexto de progreso del usuario
+          learningProgressContext: {
+            currentLessonNumber: currentLessonIndex + 1,
+            totalLessons: totalLessonsInCourse,
+            progressPercentage: progressPercentage,
+            currentTab: activeTab, // video, transcript, summary, activities
+            timeInCurrentLesson: currentLesson?.duration_seconds
+              ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
+              : 'Desconocido'
+          },
           // Agregar información de la dificultad detectada al contexto
           difficultyDetected: {
             patterns: analysis.patterns.map(p => ({
@@ -2751,19 +2810,41 @@ Antes de cada respuesta, pregúntate:
               })()
             })),
             overallScore: analysis.overallScore,
-            shouldIntervene: analysis.shouldIntervene
+            shouldIntervene: analysis.shouldIntervene,
+            // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
+            suggestedHelpType: (() => {
+              const primaryPattern = analysis.patterns[0];
+              if (!primaryPattern) return 'general';
+
+              switch (primaryPattern.type) {
+                case 'inactivity':
+                  return activeTab === 'activities' ? 'activity_guidance' : 'content_explanation';
+                case 'excessive_scroll':
+                  return 'content_navigation';
+                case 'failed_attempts':
+                  return 'activity_hints';
+                case 'frequent_deletion':
+                  return 'activity_structure';
+                case 'repetitive_cycles':
+                  return 'concept_clarification';
+                case 'erroneous_clicks':
+                  return 'interface_guidance';
+                default:
+                  return 'general';
+              }
+            })()
           }
         } : getLessonContext();
         
         try {
-          // Enviar mensaje simple visible + contexto enriquecido en segundo plano
-          // El mensaje se mostrará como usuario normal: "Necesito ayuda con esta lección"
-          // El contexto enriquecido se procesará en el API pero NO se mostrará
+          // Enviar mensaje con contexto enriquecido en segundo plano
+          // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
+          // pero SÍ se enviará al API para que LIA responda con ayuda contextual
           // ✅ Si es un taller, enviar como workshopContext
           if (workshopMetadata && enrichedLessonContext?.contextType === 'workshop') {
-            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, false);
+            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, true);
           } else {
-            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, false);
+            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, undefined, true);
           }
         } catch (error) {
           console.error('❌ Error enviando mensaje proactivo a LIA:', error);
@@ -2817,11 +2898,19 @@ Antes de cada respuesta, pregúntate:
               {courseProgress}%
             </span>
           </div>
+
+          {/* Sección derecha: Selector de idioma */}
+          <div className="flex items-center gap-2 shrink-0">
+            <LanguageSelector className="z-[1000]" />
+          </div>
         </div>
       </motion.div>
 
       {/* Contenido principal - 3 paneles - Responsive */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
+      <div 
+        ref={swipeRef}
+        className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10"
+      >
         {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
         <AnimatePresence>
           {isLeftPanelOpen && (
@@ -2845,7 +2934,7 @@ Antes de cada respuesta, pregúntate:
                 className={`
                   ${isMobile 
                     ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative'
+                    : 'relative h-full'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col overflow-hidden shadow-xl 
                   ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
@@ -3670,7 +3759,7 @@ Antes de cada respuesta, pregúntate:
                 className={`
                   ${isMobile 
                     ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative'
+                    : 'relative h-full'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
                   ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
@@ -3685,10 +3774,8 @@ Antes de cada respuesta, pregúntate:
                         }),
                       }
                     : {
-                        ...(calculateLiaMaxHeight && {
-                          height: calculateLiaMaxHeight,
-                          maxHeight: calculateLiaMaxHeight,
-                        }),
+                        // En desktop, no usar altura calculada, dejar que h-full de la clase maneje la altura
+                        // para que coincida con los otros paneles
                       }
                 }
               >

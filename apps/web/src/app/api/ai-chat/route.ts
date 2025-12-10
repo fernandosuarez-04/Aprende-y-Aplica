@@ -50,6 +50,127 @@ const normalizeLanguage = (lang?: string): SupportedLanguage => {
 };
 
 /**
+ * Genera instrucciones específicas de ayuda basadas en el tipo de dificultad detectada
+ */
+const generateHelpInstructions = (helpType: string, context: any): string => {
+  const currentActivity = context?.activitiesContext?.currentActivityFocus;
+  const userRole = context?.userRole;
+
+  const instructions: Record<string, string> = {
+    'activity_guidance': `
+El estudiante está trabajando en una actividad específica pero está inactivo.
+${currentActivity ? `
+ACTIVIDAD EN FOCO: "${currentActivity.title}"
+- Tipo: ${currentActivity.type}
+- Obligatoria: ${currentActivity.isRequired ? 'Sí' : 'No'}
+- Descripción: ${currentActivity.description}
+
+ESTRATEGIA DE AYUDA:
+1. Reconoce el esfuerzo y la dificultad que puede presentar esta actividad
+2. NO des la respuesta directa, pero sí proporciona:
+   - Una pista sobre QUÉ buscar en el contenido de la lección
+   - Una pregunta guía que le ayude a reflexionar
+   - Un ejemplo similar (pero no idéntico) si es apropiado
+3. Sugiere revisar secciones específicas de la lección que podrían ayudar
+4. Motiva al estudiante a intentarlo de nuevo con las pistas proporcionadas
+${userRole ? `5. Adapta el ejemplo al contexto de "${userRole}"` : ''}
+` : 'Ayuda al estudiante a identificar en qué actividad está trabajando y ofrece orientación general.'}`,
+
+    'content_explanation': `
+El estudiante está inactivo en la visualización de contenido (video, transcripción o resumen).
+ESTRATEGIA DE AYUDA:
+1. Pregunta qué parte del contenido le genera dudas
+2. Ofrece un resumen ejecutivo de los puntos clave de la lección
+3. Identifica conceptos que podrían ser complejos y ofrece explicaciones simples
+4. Sugiere técnicas de estudio activo (tomar notas, hacer preguntas, relacionar con experiencia previa)
+${userRole ? `5. Proporciona ejemplos relevantes para alguien en el rol de "${userRole}"` : ''}`,
+
+    'content_navigation': `
+El estudiante está haciendo scroll excesivo, lo que indica que busca información específica.
+ESTRATEGIA DE AYUDA:
+1. Pregunta directamente QUÉ está buscando
+2. Proporciona un índice o mapa del contenido de la lección con timestamps/secciones
+3. Identifica las secciones clave donde podría encontrar lo que busca
+4. Sugiere usar Ctrl+F o la función de búsqueda si aplica`,
+
+    'activity_hints': `
+El estudiante ha fallado múltiples intentos en una actividad.
+${currentActivity ? `
+ACTIVIDAD CON DIFICULTADES: "${currentActivity.title}"
+
+ESTRATEGIA DE AYUDA PROGRESIVA:
+1. PRIMER NIVEL - Pista general:
+   - Indica el concepto o sección de la lección que contiene la respuesta
+   - Formula una pregunta guía que le ayude a pensar en la dirección correcta
+
+2. SEGUNDO NIVEL - Pista específica (si sigue con problemas):
+   - Proporciona un ejemplo paralelo que ilustre el concepto
+   - Desglosa la actividad en pasos más pequeños
+
+3. TERCER NIVEL - Casi la respuesta (solo si ya ha intentado con las pistas anteriores):
+   - Da la estructura o formato de la respuesta esperada
+   - Indica qué elementos debe incluir, pero sin darle el contenido exacto
+
+4. MOTIVACIÓN CONSTANTE:
+   - Refuerza que la dificultad es normal y parte del proceso de aprendizaje
+   - Celebra el esfuerzo y la persistencia
+${userRole ? `   - Conecta la importancia de esta actividad con su rol como "${userRole}"` : ''}
+` : 'Ayuda al estudiante a identificar qué actividad está causando problemas.'}`,
+
+    'activity_structure': `
+El estudiante está escribiendo y borrando frecuentemente, lo que indica inseguridad sobre cómo estructurar su respuesta.
+
+ESTRATEGIA DE AYUDA:
+1. Proporciona una plantilla o estructura clara de cómo debería organizarse la respuesta
+2. Da ejemplos del formato esperado (lista de puntos, párrafos, tabla, etc.)
+3. Indica la longitud aproximada esperada
+4. Sugiere un enfoque paso a paso para construir la respuesta
+${currentActivity ? `5. Para la actividad "${currentActivity.title}", específicamente sugiere cómo organizar las ideas` : ''}`,
+
+    'concept_clarification': `
+El estudiante está navegando repetitivamente entre secciones, indicando confusión conceptual.
+
+ESTRATEGIA DE AYUDA:
+1. Identifica cuál podría ser el concepto central que genera confusión
+2. Explica el concepto de manera simple, usando analogías cotidianas
+3. Conecta cómo las diferentes partes de la lección se relacionan entre sí
+4. Crea un "mapa conceptual" textual que muestre las relaciones
+5. Sugiere un orden lógico para revisar el material
+${userRole ? `6. Usa ejemplos del mundo "${userRole}" para ilustrar los conceptos` : ''}`,
+
+    'interface_guidance': `
+El estudiante ha hecho clicks sin resultado, indicando problemas de navegación o uso de la interfaz.
+
+ESTRATEGIA DE AYUDA:
+1. Explica cómo navegar correctamente por la plataforma de aprendizaje
+2. Indica dónde encontrar las diferentes pestañas (video, transcripción, resumen, actividades)
+3. Explica cómo completar y enviar actividades
+4. Sugiere usar el botón de ayuda o tutoriales de la plataforma si están disponibles`,
+
+    'general': `
+El estudiante ha solicitado ayuda general o el sistema detectó dificultades no específicas.
+
+ESTRATEGIA DE AYUDA GENERAL:
+1. Haz preguntas diagnósticas abiertas:
+   - "¿En qué parte de la lección sientes que necesitas más apoyo?"
+   - "¿Hay algún concepto específico que no te quede claro?"
+   - "¿Estás trabajando en alguna actividad en particular?"
+
+2. Proporciona un resumen de lo que cubre la lección actual
+
+3. Ofrece múltiples tipos de ayuda:
+   - Explicación de conceptos
+   - Ayuda con actividades
+   - Orientación de navegación
+
+4. Mantén un tono cálido, paciente y motivador
+${userRole ? `5. Ten en cuenta que el estudiante tiene el rol de "${userRole}" al dar ejemplos` : ''}`
+  };
+
+  return instructions[helpType] || instructions['general'];
+};
+
+/**
  * Detecta el idioma del mensaje del usuario basándose en palabras clave comunes
  */
 const detectMessageLanguage = (message: string): SupportedLanguage => {
@@ -534,9 +655,24 @@ IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegació
       ? `\n\nCURSO: ${courseContext.courseTitle}${courseContext.courseDescription ? `\n${courseContext.courseDescription}` : ''}`
       : '';
     
+    // Información de actividades del curso (si existe)
+    const courseActivitiesInfo = courseContext.activitiesContext
+      ? `\n\n📝 INFORMACIÓN DE ACTIVIDADES DE LA LECCIÓN:\n- Total de actividades: ${courseContext.activitiesContext.totalActivities}\n- Actividades obligatorias: ${courseContext.activitiesContext.requiredActivities}\n- Actividades completadas: ${courseContext.activitiesContext.completedActivities}\n- Actividades obligatorias pendientes: ${courseContext.activitiesContext.pendingRequiredCount}${courseContext.activitiesContext.pendingRequiredTitles ? `\n- Pendientes: ${courseContext.activitiesContext.pendingRequiredTitles}` : ''}${courseContext.activitiesContext.currentActivityFocus ? `\n\n🎯 ACTIVIDAD ACTUAL EN FOCO:\n- Título: "${courseContext.activitiesContext.currentActivityFocus.title}"\n- Tipo: ${courseContext.activitiesContext.currentActivityFocus.type}\n- Descripción: ${courseContext.activitiesContext.currentActivityFocus.description}\n- Obligatoria: ${courseContext.activitiesContext.currentActivityFocus.isRequired ? 'Sí' : 'No'}` : ''}`
+      : '';
+
     // Información de dificultad detectada (si existe)
     const difficultyInfo = courseContext.difficultyDetected
-      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${courseContext.difficultyDetected.patterns.map(p => `- ${p.description}`).join('\n')}\n\n⚠️ IMPORTANTE: El estudiante necesita ayuda específica y práctica. Tu respuesta debe ser directa, útil y enfocada en resolver su dificultad inmediata. Proporciona pasos claros y concretos que pueda seguir.`
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${courseContext.difficultyDetected.patterns.map(p => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${courseContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(courseContext.difficultyDetected.suggestedHelpType, courseContext)}`
+      : '';
+
+    // Información de comportamiento del usuario en el curso (si existe)
+    const courseBehaviorInfo = courseContext.userBehaviorContext
+      ? `\n\n👤 ANÁLISIS DE COMPORTAMIENTO DEL ESTUDIANTE:\n${courseContext.userBehaviorContext}`
+      : '';
+
+    // Información de progreso del usuario (si existe)
+    const courseProgressInfo = courseContext.learningProgressContext
+      ? `\n\n📊 PROGRESO DEL ESTUDIANTE:\n- Lección actual: ${courseContext.learningProgressContext.currentLessonNumber} de ${courseContext.learningProgressContext.totalLessons} (${courseContext.learningProgressContext.progressPercentage}% completado)\n- Pestaña actual: ${courseContext.learningProgressContext.currentTab}\n- Duración de la lección: ${courseContext.learningProgressContext.timeInCurrentLesson}`
       : '';
     
     // Restricciones de contenido para cursos
@@ -625,7 +761,7 @@ FORMATO DE RESPUESTAS - REGLAS ABSOLUTAS (CRÍTICO):
 
 RECUERDA: Tu respuesta debe ser texto plano puro, EXCEPTO para enlaces donde DEBES usar [texto](url). Si detectas que estás a punto de usar cualquier símbolo de Markdown que no sea para enlaces, detente y reescribe sin ese símbolo.
 
-CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${summaryInfo}${transcriptInfo}${difficultyInfo}
+CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${summaryInfo}${transcriptInfo}${courseActivitiesInfo}${difficultyInfo}${courseBehaviorInfo}${courseProgressInfo}
 
 IMPORTANTE: Cuando respondas, siempre indica si la información proviene del video actual o si necesitarías revisar otra lección.`;
   }
@@ -774,8 +910,28 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
     } else {
       modulesAndLessonsInfo = '\n\nNOTA: Este taller aún no tiene módulos o lecciones configuradas.';
     }
-    
-    workshopMetadataInfo = `${workshopInfo}${currentModuleInfo}${currentLessonInfo}${modulesAndLessonsInfo}`;
+
+    // ✅ Información de actividades del taller (si existe)
+    const workshopActivitiesInfo = workshopContext.activitiesContext
+      ? `\n\n📝 INFORMACIÓN DE ACTIVIDADES DE LA LECCIÓN:\n- Total de actividades: ${workshopContext.activitiesContext.totalActivities}\n- Actividades obligatorias: ${workshopContext.activitiesContext.requiredActivities}\n- Actividades completadas: ${workshopContext.activitiesContext.completedActivities}\n- Actividades obligatorias pendientes: ${workshopContext.activitiesContext.pendingRequiredCount}${workshopContext.activitiesContext.pendingRequiredTitles ? `\n- Pendientes: ${workshopContext.activitiesContext.pendingRequiredTitles}` : ''}${workshopContext.activitiesContext.currentActivityFocus ? `\n\n🎯 ACTIVIDAD ACTUAL EN FOCO:\n- Título: "${workshopContext.activitiesContext.currentActivityFocus.title}"\n- Tipo: ${workshopContext.activitiesContext.currentActivityFocus.type}\n- Descripción: ${workshopContext.activitiesContext.currentActivityFocus.description}\n- Obligatoria: ${workshopContext.activitiesContext.currentActivityFocus.isRequired ? 'Sí' : 'No'}` : ''}`
+      : '';
+
+    // ✅ Información de dificultad detectada para talleres (si existe)
+    const workshopDifficultyInfo = workshopContext.difficultyDetected
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${workshopContext.difficultyDetected.patterns.map((p: any) => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${workshopContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(workshopContext.difficultyDetected.suggestedHelpType, workshopContext)}`
+      : '';
+
+    // ✅ Información de comportamiento del usuario en el taller (si existe)
+    const workshopBehaviorInfo = workshopContext.userBehaviorContext
+      ? `\n\n👤 ANÁLISIS DE COMPORTAMIENTO DEL ESTUDIANTE:\n${workshopContext.userBehaviorContext}`
+      : '';
+
+    // ✅ Información de progreso del usuario (si existe)
+    const workshopProgressInfo = workshopContext.learningProgressContext
+      ? `\n\n📊 PROGRESO DEL ESTUDIANTE:\n- Lección actual: ${workshopContext.learningProgressContext.currentLessonNumber} de ${workshopContext.learningProgressContext.totalLessons} (${workshopContext.learningProgressContext.progressPercentage}% completado)\n- Pestaña actual: ${workshopContext.learningProgressContext.currentTab}\n- Duración de la lección: ${workshopContext.learningProgressContext.timeInCurrentLesson}`
+      : '';
+
+    workshopMetadataInfo = `${workshopInfo}${currentModuleInfo}${currentLessonInfo}${modulesAndLessonsInfo}${workshopActivitiesInfo}${workshopDifficultyInfo}${workshopBehaviorInfo}${workshopProgressInfo}`;
   }
 
   const contexts: Record<string, string> = {

@@ -1,0 +1,105 @@
+{
+  "title": "Comunidade Aprende y Aplica",
+  "subtitle": "Conecte-se com outros estudantes, compartilhe conhecimentos e participe de discussões sobre inteligência artificial e tecnologia educacional",
+  "stats": {
+    "members": "MEMBROS",
+    "communities": "COMUNIDADES"
+  },
+  "search": {
+    "placeholder": "Buscar comunidades ou conteúdo..."
+  },
+  "categories": {
+    "all": "Todos",
+    "general": "Geral",
+    "ai": "IA",
+    "data": "Dados",
+    "development": "Desenvolvimento",
+    "design": "Design",
+    "it": "TI e Software",
+    "marketing": "Marketing",
+    "business": "Negócios"
+  },
+  "accessTypes": {
+    "member": "Membro",
+    "invitation": "Convite",
+    "paid": "Pago"
+  },
+  "community": {
+    "updated": "Atualizado",
+    "members": "Membros",
+    "open": "Comunidade aberta",
+    "moderated": "Acesso moderado",
+    "active": "Ativa",
+    "paused": "Em pausa",
+    "alreadyMember": "Você já é membro",
+    "requestSent": "Solicitação enviada",
+    "viewDetails": "Ver detalhes",
+    "enter": "Entrar",
+    "join": "Juntar-se",
+    "requestPending": "Solicitação pendente"
+  },
+  "errors": {
+    "loadError": "Erro ao carregar comunidades",
+    "loadErrorMessage": "Ocorreu um erro ao tentar carregar as comunidades",
+    "retry": "Tentar novamente",
+    "noCommunities": "Nenhuma comunidade disponível",
+    "noCommunitiesMessage": "Ainda não foram criadas comunidades na plataforma",
+    "noResults": "Nenhuma comunidade encontrada",
+    "noResultsMessage": "Tente ajustar seus filtros de busca"
+  },
+  "rules": {
+    "button": "Ver Regras da Comunidade",
+    "title": "Regras da Comunidade",
+    "subtitle": "Ajude-nos a manter um ambiente respeitoso e construtivo",
+    "respectful": {
+      "title": "Seja Respeitoso",
+      "description": "Trate todos os membros com respeito e cortesia. Não toleramos assédio ou discriminação."
+    },
+    "shareKnowledge": {
+      "title": "Compartilhe Conhecimento",
+      "description": "Contribua com informações úteis e construtivas. Ajude outros a aprender e crescer."
+    },
+    "privacy": {
+      "title": "Mantenha a Privacidade",
+      "description": "Não compartilhe informações pessoais de outros membros sem seu consentimento."
+    },
+    "report": {
+      "title": "Reporte Problemas",
+      "description": "Se você ver conteúdo inadequado, reporte imediatamente aos moderadores."
+    },
+    "understood": "Entendido"
+  },
+  "details": {
+    "close": "Fechar detalhes da comunidade",
+    "community": "Comunidade",
+    "public": "Pública",
+    "private": "Privada",
+    "freeAccess": "Acesso livre",
+    "invitationOnly": "Apenas convite",
+    "premiumAccess": "Acesso premium",
+    "members": "Membros",
+    "postsPublished": "Posts publicados",
+    "created": "Criada",
+    "keyInfo": "Informações-chave",
+    "activeModeration": {
+      "title": "Moderação ativa",
+      "description": "Uma equipe dedicada mantém conversas saudáveis e focadas."
+    },
+    "constantCollaboration": {
+      "title": "Colaboração constante",
+      "description": "Compartilhe ideias, dúvidas e recursos com profissionais afins."
+    },
+    "administrators": "Administradores",
+    "creator": "Criador",
+    "moderator": "Moderador",
+    "admin": "Administrador",
+    "member": "Membro",
+    "noAdditionalAdmins": "Ainda não foram atribuídos administradores adicionais.",
+    "recentMembers": "Membros recentes",
+    "beFirst": "Seja o primeiro a se juntar a esta comunidade.",
+    "enterCommunity": "Entrar na Comunidade",
+    "closeButton": "Fechar",
+    "errorLoadingDetails": "Não foi possível carregar todos os detalhes. Tente novamente mais tarde."
+  }
+}
+

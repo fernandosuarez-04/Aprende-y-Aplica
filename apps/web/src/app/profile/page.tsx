@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { 
   ArrowLeft, 
   Save, 
@@ -26,13 +28,18 @@ import {
   PlayCircle,
   CreditCard,
   Crown,
-  Zap
+  Zap,
+  Eye,
+  EyeOff,
+  Lock
 } from 'lucide-react'
 import { useAuth } from '../../features/auth/hooks/useAuth'
 import { useProfile, UserProfile, UpdateProfileRequest } from '../../features/profile/hooks/useProfile'
 import { useRouter } from 'next/navigation'
 import { useUserSkills } from '../../features/skills/hooks/useUserSkills'
 import { UserSkillsSection } from '../../features/profile/components/UserSkillsSection'
+import { ChangePasswordSchema, type ChangePasswordInput } from '../../lib/schemas/user.schema'
+import { ProfileService } from '../../features/profile/services/profile.service'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -45,10 +52,53 @@ export default function ProfilePage() {
     saving, 
     updateProfile, 
     uploadProfilePicture, 
-    uploadCurriculum 
+    uploadCurriculum,
+    changePassword
   } = useProfile()
   const [formData, setFormData] = useState<UpdateProfileRequest>({})
   const { skills: userSkills, isLoading: skillsLoading, refreshSkills } = useUserSkills(user?.id || null)
+  
+  // Estados para el formulario de cambio de contraseña
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null)
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string | null>(null)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+
+  const {
+    register: registerPassword,
+    handleSubmit: handleSubmitPassword,
+    formState: { errors: passwordErrors },
+    reset: resetPasswordForm,
+    watch: watchPassword,
+    trigger: triggerPassword
+  } = useForm<ChangePasswordInput>({
+    resolver: zodResolver(ChangePasswordSchema),
+    mode: 'onChange', // Validar mientras el usuario escribe
+    defaultValues: {
+      current_password: '',
+      new_password: '',
+      confirm_password: ''
+    }
+  })
+
+  // Observar cambios en las contraseñas para validar en tiempo real
+  const currentPassword = watchPassword('current_password')
+  const newPassword = watchPassword('new_password')
+  
+  // Validar cuando cambien las contraseñas para mostrar el error si son iguales
+  // Esto asegura que se muestre el error si la nueva contraseña es igual a la actual
+  useEffect(() => {
+    if (newPassword && currentPassword && newPassword.length > 0 && currentPassword.length > 0) {
+      // Pequeño delay para evitar validaciones mientras el usuario está escribiendo
+      const timeoutId = setTimeout(() => {
+        triggerPassword('new_password')
+      }, 300)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [newPassword, currentPassword, triggerPassword])
 
   // Sincronizar formData con profile
   useEffect(() => {
@@ -69,6 +119,33 @@ export default function ProfilePage() {
       await updateProfile(formData)
     } catch (error) {
       // console.error('Error saving profile:', error)
+    }
+  }
+
+  const handleChangePassword = async (data: ChangePasswordInput) => {
+    if (!user?.id) {
+      setPasswordChangeError('Usuario no autenticado')
+      return
+    }
+
+    setIsChangingPassword(true)
+    setPasswordChangeError(null)
+    setPasswordChangeSuccess(null)
+
+    try {
+      await ProfileService.changePassword(user.id, data.current_password, data.new_password)
+      setPasswordChangeSuccess('Contraseña cambiada exitosamente')
+      resetPasswordForm()
+      
+      // Limpiar mensaje de éxito después de 5 segundos
+      setTimeout(() => {
+        setPasswordChangeSuccess(null)
+      }, 5000)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al cambiar la contraseña'
+      setPasswordChangeError(errorMessage)
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -564,7 +641,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Correo Electrónico *
@@ -577,39 +654,151 @@ export default function ProfilePage() {
                       placeholder="tu@email.com"
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Nueva Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
-                      placeholder="Mínimo 8 caracteres"
-                    />
+                {/* Formulario de Cambio de Contraseña */}
+                <div className="border-t border-gray-200 dark:border-carbon-700 pt-6 mt-6">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Lock className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-text-primary">Cambiar Contraseña</h3>
+                      <p className="text-sm text-gray-500 dark:text-text-tertiary">Actualiza tu contraseña de acceso</p>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Contraseña Actual
-                    </label>
-                    <input
-                      type="password"
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
-                      placeholder="Ingresa tu contraseña actual"
-                    />
-                  </div>
+                  <form onSubmit={handleSubmitPassword(handleChangePassword)} className="space-y-4">
+                    {/* Mensajes de éxito/error */}
+                    {passwordChangeSuccess && (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-400 text-sm">
+                        {passwordChangeSuccess}
+                      </div>
+                    )}
+                    {passwordChangeError && (
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+                        {passwordChangeError}
+                      </div>
+                    )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Confirmar Nueva Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      className="w-full px-4 py-3 bg-white dark:bg-carbon-700 border border-gray-300 dark:border-carbon-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors"
-                      placeholder="Confirma tu nueva contraseña"
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Contraseña Actual */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                          Contraseña Actual *
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPassword ? 'text' : 'password'}
+                            {...registerPassword('current_password')}
+                            className={`w-full px-4 py-3 pr-10 bg-white dark:bg-carbon-700 border rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors ${
+                              passwordErrors.current_password
+                                ? 'border-red-500 dark:border-red-500'
+                                : 'border-gray-300 dark:border-carbon-600'
+                            }`}
+                            placeholder="Ingresa tu contraseña actual"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-text-tertiary hover:text-gray-600 dark:hover:text-text-secondary"
+                          >
+                            {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                        {passwordErrors.current_password && (
+                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                            {passwordErrors.current_password.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Nueva Contraseña */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                          Nueva Contraseña *
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? 'text' : 'password'}
+                            {...registerPassword('new_password')}
+                            className={`w-full px-4 py-3 pr-10 bg-white dark:bg-carbon-700 border rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors ${
+                              passwordErrors.new_password
+                                ? 'border-red-500 dark:border-red-500'
+                                : 'border-gray-300 dark:border-carbon-600'
+                            }`}
+                            placeholder="Mínimo 8 caracteres"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-text-tertiary hover:text-gray-600 dark:hover:text-text-secondary"
+                          >
+                            {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                        {passwordErrors.new_password && (
+                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                            {passwordErrors.new_password.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Confirmar Nueva Contraseña */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-600 dark:text-text-secondary mb-2">
+                          Confirmar Nueva Contraseña *
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            {...registerPassword('confirm_password')}
+                            className={`w-full px-4 py-3 pr-10 bg-white dark:bg-carbon-700 border rounded-lg text-gray-900 dark:text-text-primary placeholder-gray-400 dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-colors ${
+                              passwordErrors.confirm_password
+                                ? 'border-red-500 dark:border-red-500'
+                                : 'border-gray-300 dark:border-carbon-600'
+                            }`}
+                            placeholder="Confirma tu nueva contraseña"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-text-tertiary hover:text-gray-600 dark:hover:text-text-secondary"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                        {passwordErrors.confirm_password && (
+                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                            {passwordErrors.confirm_password.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Botón de Cambiar Contraseña */}
+                    <div className="flex justify-end pt-4">
+                      <motion.button
+                        type="submit"
+                        disabled={isChangingPassword}
+                        className="flex items-center space-x-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        whileHover={{ scale: isChangingPassword ? 1 : 1.02 }}
+                        whileTap={{ scale: isChangingPassword ? 1 : 0.98 }}
+                      >
+                        {isChangingPassword ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Cambiando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-4 h-4" />
+                            <span>Cambiar Contraseña</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </form>
                 </div>
               </motion.div>
 

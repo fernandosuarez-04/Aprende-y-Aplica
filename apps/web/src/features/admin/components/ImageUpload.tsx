@@ -117,9 +117,9 @@ export function ImageUpload({
         onClick={handleClick}
         className={`
             relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-          ${disabled || isUploading
-              ? 'border-carbon-600 bg-carbon-800 cursor-not-allowed'
-              : 'border-carbon-500 bg-carbon-800 hover:bg-carbon-750'
+          ${disabled || isUploading 
+              ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 cursor-not-allowed' 
+              : 'border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 hover:border-blue-500 dark:hover:border-primary hover:bg-gray-100 dark:hover:bg-gray-700'
             }
           `}
         style={!(disabled || isUploading) ? {
@@ -143,15 +143,15 @@ export function ImageUpload({
                     }}
                   />
                 </div>
-                <div className="text-xs text-carbon-400 mt-1">{uploadProgress}%</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{uploadProgress}%</div>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <PhotoIcon className="mx-auto h-12 w-12 text-carbon-400" />
-              <div className="text-sm text-carbon-300">
+              <PhotoIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-400" />
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 <div className="font-medium">Hacer clic para subir imagen</div>
-                <div className="text-xs text-carbon-400 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   PNG, JPG, GIF hasta 5MB
                 </div>
               </div>
@@ -164,13 +164,13 @@ export function ImageUpload({
             <img
             src={value}
               alt="Preview"
-            className="w-full h-48 object-cover rounded-lg border border-carbon-600"
+            className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
             />
               <button
                 type="button"
             onClick={handleRemoveImage}
             disabled={disabled || isUploading}
-            className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 disabled:bg-carbon-600 text-white rounded-full transition-colors"
+            className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-full transition-colors"
               >
                 <XMarkIcon className="h-4 w-4" />
               </button>
@@ -202,7 +202,7 @@ export function ImageUpload({
 
       {/* Mostrar error */}
       {error && (
-        <div className="text-sm text-red-400 bg-red-500/20 border border-red-500/50 rounded-lg p-3">
+        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 rounded-lg p-3">
           {error}
         </div>
       )}

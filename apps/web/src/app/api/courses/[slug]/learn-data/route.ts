@@ -168,6 +168,16 @@ function getLessonsTableName(language: string): string {
 }
 
 /**
+ * Normaliza el nombre de un campo de lección a su nombre estándar
+ * Las tablas *_en y *_pt usan nombres sin prefijo de idioma
+ */
+function normalizeLessonFieldName(fieldName: string, language: string): string {
+  // Para tablas traducidas, los campos se llaman igual que en español
+  // No hay sufijos _en o _pt en las tablas course_lessons_en/pt
+  return fieldName;
+}
+
+/**
  * Carga módulos y lecciones con progreso del usuario
  */
 async function loadModulesWithProgress(
@@ -214,10 +224,11 @@ async function loadModulesWithProgress(
     userEnrollment = enrollment
   }
 
-  // IMPORTANTE: Siempre leer de course_lessons (tabla principal)
-  // Las traducciones se aplican desde content_translations
+  // IMPORTANTE: Usar la tabla de lecciones según el idioma
+  // course_lessons (español), course_lessons_en (inglés), course_lessons_pt (portugués)
+  const lessonsTableName = getLessonsTableName(language);
   const { data: allLessonsData, error: lessonsError } = await supabase
-    .from('course_lessons')
+    .from(lessonsTableName)
     .select(`
       lesson_id,
       lesson_title,
@@ -342,12 +353,12 @@ async function loadModulesWithProgress(
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
-  console.log(`[learn-data] Aplicando traducciones a módulos y lecciones para idioma: ${language}`);
-  
-  // Construir módulos con lecciones y aplicar traducciones
+  console.log(`[learn-data] Usando tabla de lecciones: ${getLessonsTableName(language)} para idioma: ${language}`);
+
+  // Construir módulos con lecciones (ya vienen traducidas de la tabla correcta)
   const modulesWithLessons = await Promise.all(
     modules.map(async (module: any) => {
-      // Traducir módulo
+      // Traducir módulo usando ContentTranslationService
       const moduleWithId = { ...module, id: module.module_id };
       const translatedModule = await ContentTranslationService.translateObject(
         'module',
@@ -356,14 +367,14 @@ async function loadModulesWithProgress(
         language as SupportedLanguage,
         supabase
       );
-      
+
       console.log(`[learn-data] Módulo ${module.module_id}:`, {
         originalTitle: module.module_title,
         translatedTitle: translatedModule.module_title || module.module_title
       });
 
       const moduleLessons = lessonsByModule.get(module.module_id) || []
-      
+
       // Filtrar solo las lecciones publicadas si hay alguna publicada, sino mostrar todas
       // (misma lógica que en /api/courses/[slug]/modules)
       const publishedLessons = moduleLessons.filter(
@@ -371,23 +382,10 @@ async function loadModulesWithProgress(
       )
       const lessonsToShow = publishedLessons.length > 0 ? publishedLessons : moduleLessons
 
-      // Traducir lecciones
-      console.log(`[learn-data] Traduciendo ${lessonsToShow.length} lecciones a ${language}`);
-      const lessonsWithTranslations = await ContentTranslationService.translateArray(
-        'lesson',
-        lessonsToShow.map((l: any) => ({ ...l, id: l.lesson_id })),
-        ['lesson_title', 'lesson_description'],
-        language as SupportedLanguage,
-        supabase
-      );
-      
-      console.log(`[learn-data] Lecciones traducidas:`, lessonsWithTranslations.map((l: any) => ({
-        id: l.lesson_id,
-        originalTitle: lessonsToShow.find((orig: any) => orig.lesson_id === l.lesson_id)?.lesson_title,
-        translatedTitle: l.lesson_title
-      })));
+      // Las lecciones ya vienen traducidas de la tabla específica del idioma
+      console.log(`[learn-data] Procesando ${lessonsToShow.length} lecciones (ya traducidas de ${getLessonsTableName(language)})`);
 
-      const lessonsWithProgress = lessonsWithTranslations.map((lesson: any) => {
+      const lessonsWithProgress = lessonsToShow.map((lesson: any) => {
         // Reconstruir URL de video
         let videoUrl = lesson.video_provider_id
         if (lesson.video_provider === 'direct' && videoUrl && !videoUrl.startsWith('http')) {
@@ -448,11 +446,13 @@ async function loadLessonData(
   lessonId: string,
   language: string = 'es'
 ) {
-  // IMPORTANTE: Siempre leer de course_lessons (tabla principal)
-  // Las traducciones se aplican desde content_translations
+  // IMPORTANTE: Usar la tabla de lecciones según el idioma
+  // course_lessons (español), course_lessons_en (inglés), course_lessons_pt (portugués)
+  const lessonsTableName = getLessonsTableName(language);
+
   // Validar que la lección pertenece al curso
   const { data: lesson, error: lessonError } = await supabase
-    .from('course_lessons')
+    .from(lessonsTableName)
     .select(`
       lesson_id,
       module_id,
