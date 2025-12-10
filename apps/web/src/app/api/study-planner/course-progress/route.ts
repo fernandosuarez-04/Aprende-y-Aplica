@@ -19,10 +19,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const enrollmentId = searchParams.get('enrollmentId');
     const courseId = searchParams.get('courseId');
+    const userId = searchParams.get('userId') || currentUser.id;
 
-    if (!enrollmentId || !courseId) {
+    if (!courseId) {
       return NextResponse.json(
-        { error: 'enrollmentId y courseId son requeridos' },
+        { error: 'courseId es requerido' },
         { status: 400 }
       );
     }
@@ -30,11 +31,31 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     // Obtener lecciones completadas del usuario para este curso
-    const { data: completedLessons, error: progressError } = await supabase
+    // Si hay enrollmentId, filtrar por enrollment_id (más preciso)
+    // Si no hay enrollmentId, filtrar por user_id y obtener las lecciones del curso
+    let query = supabase
       .from('user_lesson_progress')
-      .select('lesson_id, is_completed')
-      .eq('enrollment_id', enrollmentId)
+      .select('lesson_id, is_completed, enrollment_id')
+      .eq('user_id', userId)
       .eq('is_completed', true);
+
+    if (enrollmentId) {
+      query = query.eq('enrollment_id', enrollmentId);
+    } else {
+      // Si no hay enrollmentId, obtener el enrollment del curso y filtrar por él
+      const { data: enrollment } = await supabase
+        .from('user_course_enrollments')
+        .select('enrollment_id')
+        .eq('user_id', userId)
+        .eq('course_id', courseId)
+        .single();
+      
+      if (enrollment?.enrollment_id) {
+        query = query.eq('enrollment_id', enrollment.enrollment_id);
+      }
+    }
+
+    const { data: completedLessons, error: progressError } = await query;
 
     if (progressError) {
       console.error('Error obteniendo progreso de lecciones:', progressError);

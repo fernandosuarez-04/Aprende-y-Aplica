@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
+import { HolidayService } from '@/lib/holidays';
 
 // Componentes de iconos de Google y Microsoft
 const GoogleIcon = () => (
@@ -163,6 +164,12 @@ export function StudyPlannerLIA() {
   const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
   const [savedTotalLessons, setSavedTotalLessons] = useState<number>(0);
   
+  // Estado para guardar los datos del calendario analizado (para validar conflictos)
+  const [savedCalendarData, setSavedCalendarData] = useState<Record<string, {
+    busySlots: Array<{ start: Date; end: Date }>;
+    events: any[];
+  }> | null>(null);
+  
   // Estado para guardar el userId actual (para detectar cambios de usuario)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
@@ -197,12 +204,15 @@ export function StudyPlannerLIA() {
   const hasAttemptedOpenRef = useRef<boolean>(false);
   const isOpeningRef = useRef<boolean>(false);
 
-  // Función para formatear mensajes de LIA con estilos mejorados
+  // Función para formatear mensajes de LIA con estilos mejorados y tipografía Inter
   const formatLIAMessage = (text: string): React.ReactNode => {
     if (!text) return null;
 
-    // Limpiar emojis
-    let cleaned = text
+    // Limpiar TODOS los emojis usando regex Unicode
+    let cleaned = text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+    
+    // Limpiar emojis específicos adicionales
+    cleaned = cleaned
       .replace(/🎯/g, '')
       .replace(/📈/g, '')
       .replace(/📚/g, '')
@@ -212,7 +222,35 @@ export function StudyPlannerLIA() {
       .replace(/📋/g, '')
       .replace(/✅/g, '')
       .replace(/❌/g, '')
-      .replace(/⚠️/g, '');
+      .replace(/⚠️/g, '')
+      .replace(/🔥/g, '')
+      .replace(/✨/g, '')
+      .replace(/🎉/g, '')
+      .replace(/🚀/g, '')
+      .replace(/💪/g, '')
+      .replace(/⭐/g, '')
+      .replace(/🎓/g, '')
+      .replace(/📖/g, '')
+      .replace(/📝/g, '')
+      .replace(/🎯/g, '')
+      .replace(/🏆/g, '')
+      .replace(/💼/g, '')
+      .replace(/🌐/g, '')
+      .replace(/🔔/g, '')
+      .replace(/📊/g, '')
+      .replace(/🎨/g, '')
+      .replace(/⚡/g, '')
+      .replace(/🌟/g, '')
+      .replace(/🎁/g, '')
+      .replace(/🔒/g, '')
+      .replace(/🔓/g, '')
+      .replace(/📱/g, '')
+      .replace(/💻/g, '')
+      .replace(/⌨️/g, '')
+      .replace(/🖥️/g, '')
+      .replace(/🖱️/g, '')
+      .replace(/⌨️/g, '')
+      .trim();
 
     // Dividir en líneas
     const lines = cleaned.split('\n');
@@ -221,12 +259,23 @@ export function StudyPlannerLIA() {
     let inList = false;
     let listItems: React.ReactNode[] = [];
 
+    // Función para agregar línea separadora
+    const addSeparator = () => {
+      elements.push(
+        <div key={`separator-${elements.length}`} className="my-6 flex items-center justify-center">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-500/40 to-transparent"></div>
+          <div className="mx-4 w-2 h-2 rounded-full bg-slate-500/40"></div>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-500/40 to-transparent"></div>
+        </div>
+      );
+    };
+
     const flushParagraph = () => {
       if (currentParagraph.length > 0) {
         const paraText = currentParagraph.join(' ').trim();
         if (paraText) {
           elements.push(
-            <p key={`p-${elements.length}`} className="mb-3 text-slate-50 leading-[1.6] [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+            <p key={`p-${elements.length}`} className="mb-4 font-body text-[15px] leading-[1.75] text-slate-50 tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
               {formatInlineStyles(paraText)}
             </p>
           );
@@ -238,7 +287,7 @@ export function StudyPlannerLIA() {
     const flushList = () => {
       if (listItems.length > 0) {
         elements.push(
-          <ul key={`ul-${elements.length}`} className="space-y-2 my-4 ml-2">
+          <ul key={`ul-${elements.length}`} className="space-y-3 my-5 ml-1 pl-4 border-l-2 border-purple-500/20">
             {listItems}
           </ul>
         );
@@ -258,7 +307,7 @@ export function StudyPlannerLIA() {
       while ((match = boldRegex.exec(text)) !== null) {
         if (match.index > lastIndex) {
           parts.push(
-            <span key={`text-${key++}`} className="text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+            <span key={`text-${key++}`} className="font-body text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
               {text.substring(lastIndex, match.index)}
             </span>
           );
@@ -266,7 +315,7 @@ export function StudyPlannerLIA() {
         parts.push(
           <strong 
             key={`bold-${key++}`} 
-            className="font-bold text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.6),0_0_10px_rgba(168,85,247,0.3)] relative"
+            className="font-body font-semibold text-white tracking-tight [text-shadow:0_2px_6px_rgba(0,0,0,0.6),0_0_10px_rgba(168,85,247,0.3)] relative"
           >
             {match[1]}
           </strong>
@@ -275,28 +324,40 @@ export function StudyPlannerLIA() {
       }
       if (lastIndex < text.length) {
         parts.push(
-          <span key={`text-${key++}`} className="text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+          <span key={`text-${key++}`} className="font-body text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
             {text.substring(lastIndex)}
           </span>
         );
       }
 
-      return parts.length > 0 ? <>{parts}</> : <span className="text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{text}</span>;
+      return parts.length > 0 ? <>{parts}</> : <span className="font-body text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{text}</span>;
     };
 
     lines.forEach((line, index) => {
       const trimmed = line.trim();
       
+      // Detectar líneas separadoras manuales (guiones, iguales, etc.)
+      if (trimmed.match(/^[-=]{3,}$/)) {
+        flushList();
+        flushParagraph();
+        addSeparator();
+        return;
+      }
+      
       // Detectar títulos de sección principales
       if (trimmed.match(/^(MIS RECOMENDACIONES|METAS SEMANALES|HE REVISADO TU PERFIL):/i)) {
         flushList();
         flushParagraph();
-        const title = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '');
-        let titleClass = 'font-bold text-xl bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-6 mb-4 pb-2 border-b border-purple-500/30';
+        // Agregar línea separadora antes del título importante
+        if (elements.length > 0) {
+          addSeparator();
+        }
+        const title = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
+        let titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/40 tracking-tight';
         if (trimmed.includes('METAS SEMANALES')) {
-          titleClass = 'font-bold text-xl bg-gradient-to-r from-blue-400 via-blue-300 to-blue-400 bg-clip-text text-transparent mt-6 mb-4 pb-2 border-b border-blue-500/30';
+          titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-blue-400 via-blue-300 to-blue-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-blue-500/40 tracking-tight';
         } else if (trimmed.includes('HE REVISADO TU PERFIL')) {
-          titleClass = 'font-bold text-lg bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-6 mb-4 pb-2 border-b border-purple-500/30';
+          titleClass = 'font-heading font-bold text-[20px] sm:text-[22px] bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/40 tracking-tight';
         }
         elements.push(
           <h2 key={`h2-${index}`} className={`${titleClass} [text-shadow:0_2px_8px_rgba(0,0,0,0.4)]`}>
@@ -310,12 +371,12 @@ export function StudyPlannerLIA() {
       if (trimmed.match(/^(Por curso|Esta semana aprenderás sobre|ESTIMACIÓN BASADA EN TU PERFIL):/i)) {
         flushList();
         flushParagraph();
-        const subtitle = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '');
-        let subtitleClass = 'font-semibold text-base text-purple-200 mt-5 mb-3';
+        const subtitle = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
+        let subtitleClass = 'font-body font-semibold text-[17px] text-purple-200 mt-8 mb-5 tracking-wide';
         if (trimmed.includes('Esta semana aprenderás')) {
-          subtitleClass = 'font-semibold text-base text-blue-200 mt-5 mb-3';
+          subtitleClass = 'font-body font-semibold text-[17px] text-blue-200 mt-8 mb-5 tracking-wide';
         } else if (trimmed.includes('ESTIMACIÓN BASADA')) {
-          subtitleClass = 'font-semibold text-sm text-blue-300 mt-4 mb-2';
+          subtitleClass = 'font-body font-semibold text-[15px] text-blue-300 mt-7 mb-4 tracking-wide';
         }
         elements.push(
           <h3 key={`h3-${index}`} className={`${subtitleClass} [text-shadow:0_1px_4px_rgba(0,0,0,0.4)]`}>
@@ -331,9 +392,9 @@ export function StudyPlannerLIA() {
         flushParagraph();
         const noteText = trimmed.replace(/^Nota:\s*/i, '').trim();
         elements.push(
-          <div key={`note-${index}`} className="mt-4 mb-3 p-3 bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg backdrop-blur-sm">
-            <p className="font-semibold text-sm text-yellow-300 mb-1 [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">Nota:</p>
-            <p className="text-sm text-yellow-200/90 leading-[1.6] [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{formatInlineStyles(noteText)}</p>
+          <div key={`note-${index}`} className="mt-5 mb-4 p-4 bg-yellow-500/10 border-l-4 border-yellow-500/60 rounded-r-xl backdrop-blur-sm shadow-lg shadow-yellow-500/5">
+            <p className="font-body font-semibold text-[14px] text-yellow-300 mb-2 tracking-wide [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">Nota:</p>
+            <p className="font-body text-[14px] text-yellow-200/90 leading-[1.7] tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{formatInlineStyles(noteText)}</p>
           </div>
         );
         return;
@@ -348,8 +409,8 @@ export function StudyPlannerLIA() {
         const itemText = trimmed.replace(/^[•\-]\s+/, '').trim();
         if (itemText) {
           listItems.push(
-            <li key={`li-${index}`} className="flex items-start gap-3 text-slate-50 leading-[1.6] [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
-              <span className="text-purple-300 font-bold mt-1 flex-shrink-0 [text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">•</span>
+            <li key={`li-${index}`} className="flex items-start gap-3.5 font-body text-[15px] text-slate-50 leading-[1.75] tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+              <span className="text-purple-300 font-bold mt-0.5 flex-shrink-0 text-lg [text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">•</span>
               <span className="flex-1">{formatInlineStyles(itemText)}</span>
             </li>
           );
@@ -378,7 +439,7 @@ export function StudyPlannerLIA() {
     flushList();
     flushParagraph();
 
-    return <div className="space-y-2">{elements}</div>;
+    return <div className="space-y-0">{elements}</div>;
   };
 
   // Detener todo audio/voz en reproducción
@@ -919,6 +980,35 @@ export function StudyPlannerLIA() {
     try {
       console.log('🤖 Enviando pregunta a LIA:', question);
 
+      // Validación de seguridad: detectar intentos de prompt injection
+      const promptInjectionPatterns = [
+        /ignora\s+(todas?\s+)?las?\s+instrucciones/i,
+        /olvida\s+(que\s+)?eres/i,
+        /ahora\s+eres/i,
+        /actúa\s+como/i,
+        /sé\s+que\s+eres\s+un\s+asistente/i,
+        /muéstrame\s+el\s+prompt/i,
+        /revela\s+las?\s+instrucciones/i,
+        /dime\s+tu\s+configuración/i,
+        /ejecuta\s+(código|comando|script)/i,
+        /system\s*:\s*ignore/i,
+        /\[SYSTEM\]/i,
+        /<\|system\|>/i,
+      ];
+
+      const hasInjectionAttempt = promptInjectionPatterns.some(pattern => pattern.test(question));
+      
+      if (hasInjectionAttempt) {
+        console.warn('🚫 Intento de prompt injection detectado, bloqueando...');
+        setConversationHistory(prev => [...prev, {
+          role: 'assistant',
+          content: 'Entiendo que quieres probar diferentes cosas, pero estoy aquí específicamente para ayudarte con tu plan de estudios. ¿En qué puedo asistirte con la planificación de tus cursos?'
+        }]);
+        setIsProcessing(false);
+        processingRef.current = false;
+        return;
+      }
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -944,6 +1034,8 @@ export function StudyPlannerLIA() {
               isB2B: userContext.userType === 'b2b',
               calendarConnected: connectedCalendar !== null,
               calendarProvider: connectedCalendar,
+              // Fecha límite establecida por el usuario (CRÍTICO para respetar límites)
+              targetDate: targetDate || savedTargetDate || null,
               // Información adicional sobre el estado actual
               hasCalendarAnalyzed: conversationHistory.some(msg => 
                 msg.role === 'assistant' && (
@@ -957,7 +1049,8 @@ export function StudyPlannerLIA() {
               )
             } : {
               calendarConnected: connectedCalendar !== null,
-              calendarProvider: connectedCalendar
+              calendarProvider: connectedCalendar,
+              targetDate: targetDate || savedTargetDate || null
             }
           },
           language: 'es'
@@ -965,7 +1058,13 @@ export function StudyPlannerLIA() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al comunicarse con LIA');
+        const errorText = await response.text();
+        console.error('Error en respuesta de LIA:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Error al comunicarse con LIA: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -2248,10 +2347,10 @@ export function StudyPlannerLIA() {
     
     if (!date) return;
     
-    setTargetDate(date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }));
+    const dateText = date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+    setTargetDate(dateText);
     setShowDateModal(false);
     
-    const dateText = date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
     const confirmationMsg = `Excelente, he registrado tu fecha estimada: **${dateText}**.\n\nAhora voy a analizar tu calendario para crear las mejores recomendaciones de horarios que se ajusten a tu enfoque de **${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}** y tu objetivo de completar los cursos para ${dateText}.\n\nDéjame analizar tu disponibilidad...`;
     
     setConversationHistory(prev => [...prev, { role: 'assistant', content: confirmationMsg }]);
@@ -2260,10 +2359,10 @@ export function StudyPlannerLIA() {
       await speakText(`Excelente. He registrado tu fecha estimada. Ahora voy a analizar tu calendario para crear las mejores recomendaciones.`);
     }
     
-    // Proceder con el análisis del calendario
+    // Proceder con el análisis del calendario - pasar la fecha como parámetro para evitar problemas de timing
     setTimeout(async () => {
       if (connectedCalendar) {
-        await analyzeCalendarAndSuggest(connectedCalendar);
+        await analyzeCalendarAndSuggest(connectedCalendar, dateText);
       } else {
         setShowCalendarModal(true);
       }
@@ -2303,10 +2402,24 @@ export function StudyPlannerLIA() {
   };
 
   // Analizar calendario y obtener contexto del usuario
-  const analyzeCalendarAndSuggest = async (provider: string) => {
+  const analyzeCalendarAndSuggest = async (provider: string, targetDateParam?: string) => {
     // Evitar múltiples llamadas simultáneas
     if (isProcessing) {
       console.log('Análisis de calendario ya en curso, ignorando llamada duplicada');
+      return;
+    }
+    
+    // Usar el parámetro si está disponible, sino usar el estado
+    const effectiveTargetDate = targetDateParam || targetDate;
+    
+    // Verificar que se tengan los datos necesarios antes de analizar
+    if (!studyApproach) {
+      console.log('⚠️ No se puede analizar: falta enfoque de estudio');
+      return;
+    }
+    
+    if (!effectiveTargetDate || effectiveTargetDate === 'No tengo fecha específica') {
+      console.log('⚠️ No se puede analizar: falta fecha objetivo');
       return;
     }
     
@@ -2335,37 +2448,51 @@ export function StudyPlannerLIA() {
         }
       }
 
-      // 2. OBTENER EVENTOS DEL CALENDARIO (hasta la fecha objetivo o 30 días mínimo)
+      // 2. OBTENER EVENTOS DEL CALENDARIO (hasta la fecha objetivo del usuario, sin límite mínimo)
       // Primero necesitamos calcular la fecha objetivo ANTES de obtener eventos
       let targetDateObjForEvents: Date | null = null;
-      if (targetDate && studyApproach) {
+      
+      console.log(`🔍 [DEBUG] Estado al inicio de analyzeCalendarAndSuggest:`);
+      console.log(`   targetDate (estado): "${targetDate}"`);
+      console.log(`   targetDateParam (parámetro): "${targetDateParam}"`);
+      console.log(`   effectiveTargetDate (usado): "${effectiveTargetDate}"`);
+      console.log(`   studyApproach: "${studyApproach}"`);
+      
+      if (effectiveTargetDate && studyApproach && effectiveTargetDate !== 'No tengo fecha específica') {
         try {
-          // Intentar parsear la fecha objetivo
-          if (targetDate.includes('febrero') || targetDate.includes('marzo') || targetDate.includes('abril') || 
-              targetDate.includes('mayo') || targetDate.includes('junio') || targetDate.includes('julio') ||
-              targetDate.includes('agosto') || targetDate.includes('septiembre') || targetDate.includes('octubre') ||
-              targetDate.includes('noviembre') || targetDate.includes('diciembre') || targetDate.includes('enero')) {
-            // Formato de fecha en español (ej: "19 de enero de 2026")
-            const dateMatch = targetDate.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
-            if (dateMatch) {
-              const day = parseInt(dateMatch[1]);
-              const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
-                                 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-              const month = monthNames.findIndex(m => m.toLowerCase() === dateMatch[2].toLowerCase());
-              const year = parseInt(dateMatch[3]);
-              if (month >= 0) {
-                targetDateObjForEvents = new Date(year, month, day);
-              }
-            }
-          } else {
-            // Intentar parsear como fecha estándar
-            targetDateObjForEvents = new Date(targetDate);
-            if (isNaN(targetDateObjForEvents.getTime())) {
-              targetDateObjForEvents = null;
+          // Intentar parsear la fecha objetivo - múltiples formatos posibles
+          const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                             'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+          
+          // Formato 1: "21 de enero de 2026" (formato estándar de toLocaleDateString)
+          let dateMatch = effectiveTargetDate.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+          
+          if (dateMatch) {
+            const day = parseInt(dateMatch[1]);
+            const monthName = dateMatch[2].toLowerCase();
+            const month = monthNames.findIndex(m => m.toLowerCase() === monthName);
+            const year = parseInt(dateMatch[3]);
+            
+            if (month >= 0 && day > 0 && day <= 31 && year >= 2020) {
+              targetDateObjForEvents = new Date(year, month, day);
+              console.log(`✅ Fecha objetivo parseada: ${targetDateObjForEvents.toLocaleDateString('es-ES')} (desde: "${effectiveTargetDate}")`);
             }
           }
+          
+          // Si no funcionó el primer formato, intentar parsear como fecha estándar
+          if (!targetDateObjForEvents) {
+            const standardDate = new Date(effectiveTargetDate);
+            if (!isNaN(standardDate.getTime()) && standardDate.getFullYear() >= 2020) {
+              targetDateObjForEvents = standardDate;
+              console.log(`✅ Fecha objetivo parseada como estándar: ${targetDateObjForEvents.toLocaleDateString('es-ES')}`);
+            }
+          }
+          
+          if (!targetDateObjForEvents) {
+            console.warn(`⚠️ No se pudo parsear la fecha objetivo: "${effectiveTargetDate}"`);
+          }
         } catch (e) {
-          console.warn('Error parseando fecha objetivo para eventos:', e);
+          console.warn('❌ Error parseando fecha objetivo para eventos:', e);
         }
       }
       
@@ -2377,8 +2504,10 @@ export function StudyPlannerLIA() {
       if (targetDateObjForEvents) {
         endDate = new Date(targetDateObjForEvents);
         endDate.setHours(23, 59, 59, 999); // Incluir todo el día objetivo
+        console.log(`✅ Usando fecha objetivo para rango: ${targetDateObjForEvents.toLocaleDateString('es-ES')} -> ${endDate.toLocaleDateString('es-ES')}`);
       } else {
         endDate.setDate(endDate.getDate() + 30);
+        console.log(`⚠️ No hay fecha objetivo, usando 30 días por defecto`);
       }
       
       console.log(`📅 Rango de análisis del calendario:`);
@@ -2443,11 +2572,11 @@ export function StudyPlannerLIA() {
       const daysAnalysis: DayAnalysis[] = [];
       const daySlots: Record<string, DayAnalysis> = {};
 
-      // Calcular cuántos días analizar (hasta la fecha objetivo o mínimo 30 días)
+      // Calcular cuántos días analizar (hasta la fecha objetivo del usuario, sin límite mínimo)
       // Usar targetDateObjForEvents que ya fue calculado al principio
       const daysToAnalyze = targetDateObjForEvents 
-        ? Math.max(30, Math.ceil((targetDateObjForEvents.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-        : 30;
+        ? Math.ceil((targetDateObjForEvents.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        : 30; // Solo usar 30 días como fallback si no hay fecha objetivo
       
       console.log(`📊 Inicializando análisis para ${daysToAnalyze} días`);
       if (targetDateObjForEvents) {
@@ -2527,7 +2656,7 @@ export function StudyPlannerLIA() {
       // Calcular slots ocupados sin solapamiento y encontrar huecos libres
       Object.values(daySlots).forEach(dayData => {
         const dayStart = new Date(dayData.date);
-        dayStart.setHours(6, 0, 0, 0); // Empezar desde las 6 AM
+        dayStart.setHours(7, 0, 0, 0); // Empezar desde las 7 AM (hora mínima para estudiar)
         const dayEnd = new Date(dayData.date);
         dayEnd.setHours(23, 59, 59, 999); // Hasta las 11:59 PM
 
@@ -2572,36 +2701,113 @@ export function StudyPlannerLIA() {
 
         dayData.totalBusyMinutes = totalBusy;
 
-        // Encontrar huecos libres entre eventos
+        // Encontrar huecos libres entre eventos O días completamente libres
         let lastEnd = dayStart;
-        
-        dayData.busySlots.forEach(slot => {
-          if (slot.start > lastEnd) {
-            const gapMinutes = (slot.start.getTime() - lastEnd.getTime()) / (1000 * 60);
-            // Solo considerar huecos de al menos 30 minutos y máximo 8 horas (para evitar huecos muy grandes sin eventos)
-            if (gapMinutes >= 30 && gapMinutes <= 480) {
+
+        if (dayData.busySlots.length === 0) {
+          // ✅ DÍA COMPLETAMENTE LIBRE - Dividir en bloques de estudio realistas
+          console.log(`📅 Día completamente libre detectado: ${dayData.dayName} ${dayData.date.toLocaleDateString('es-ES')}`);
+
+          // Crear bloques de estudio en horarios convenientes: mañana, tarde, noche
+          // Mañana: 7 AM - 12 PM
+          const morningStart = new Date(dayStart);
+          morningStart.setHours(7, 0, 0, 0);
+          const morningEnd = new Date(dayStart);
+          morningEnd.setHours(12, 0, 0, 0);
+
+          // Tarde: 12 PM - 6 PM
+          const afternoonStart = new Date(dayStart);
+          afternoonStart.setHours(12, 0, 0, 0);
+          const afternoonEnd = new Date(dayStart);
+          afternoonEnd.setHours(18, 0, 0, 0);
+
+          // Noche: 6 PM - 10 PM
+          const eveningStart = new Date(dayStart);
+          eveningStart.setHours(18, 0, 0, 0);
+          const eveningEnd = new Date(dayStart);
+          eveningEnd.setHours(22, 0, 0, 0);
+
+          // Agregar bloque de la mañana (7am - 12pm = 5 horas)
+          dayData.freeSlots.push({
+            start: new Date(morningStart),
+            end: new Date(morningEnd),
+            durationMinutes: 300, // 5 horas
+          });
+
+          // Agregar bloque de la tarde (12pm - 6pm = 6 horas)
+          dayData.freeSlots.push({
+            start: new Date(afternoonStart),
+            end: new Date(afternoonEnd),
+            durationMinutes: 360, // 6 horas
+          });
+
+          // Agregar bloque de la noche (6pm - 10pm = 4 horas)
+          dayData.freeSlots.push({
+            start: new Date(eveningStart),
+            end: new Date(eveningEnd),
+            durationMinutes: 240, // 4 horas
+          });
+
+          console.log(`   ✅ 3 bloques creados: Mañana (5h), Tarde (6h), Noche (4h) = 15h totales`);
+        } else {
+          // Día con eventos - encontrar huecos entre eventos
+          // Asegurar que lastEnd no sea antes de las 7 AM
+          if (lastEnd.getHours() < 7) {
+            lastEnd.setHours(7, 0, 0, 0);
+          }
+          
+          dayData.busySlots.forEach(slot => {
+            if (slot.start > lastEnd) {
+              // Asegurar que el inicio del hueco no sea antes de las 7 AM
+              const gapStart = new Date(Math.max(lastEnd.getTime(), dayStart.getTime()));
+              if (gapStart.getHours() < 7) {
+                gapStart.setHours(7, 0, 0, 0);
+              }
+              
+              // Asegurar que el fin del hueco no sea después de las 10 PM
+              const gapEnd = new Date(Math.min(slot.start.getTime(), dayEnd.getTime()));
+              if (gapEnd.getHours() > 22 || (gapEnd.getHours() === 22 && gapEnd.getMinutes() > 0)) {
+                gapEnd.setHours(22, 0, 0, 0);
+              }
+              
+              if (gapStart < gapEnd) {
+                const gapMinutes = (gapEnd.getTime() - gapStart.getTime()) / (1000 * 60);
+                // Solo considerar huecos de al menos 30 minutos y máximo 8 horas
+                if (gapMinutes >= 30 && gapMinutes <= 480) {
+                  dayData.freeSlots.push({
+                    start: gapStart,
+                    end: gapEnd,
+                    durationMinutes: gapMinutes,
+                  });
+                }
+              }
+            }
+            lastEnd = new Date(Math.max(lastEnd.getTime(), slot.end.getTime()));
+          });
+
+          // Agregar hueco al final del día si hay eventos (respetando límite de 10 PM)
+          const finalDayEnd = new Date(Math.min(dayEnd.getTime(), new Date(dayData.date).setHours(22, 0, 0, 0)));
+          if (lastEnd < finalDayEnd) {
+            // Asegurar que lastEnd no sea antes de las 7 AM
+            if (lastEnd.getHours() < 7) {
+              lastEnd.setHours(7, 0, 0, 0);
+            }
+            
+            const gapMinutes = (finalDayEnd.getTime() - lastEnd.getTime()) / (1000 * 60);
+            // Limitar hueco final a máximo 6 horas
+            const maxGapMinutes = Math.min(gapMinutes, 360);
+            if (maxGapMinutes >= 30) {
+              const gapEnd = new Date(lastEnd.getTime() + maxGapMinutes * 60 * 1000);
+              // Asegurar que no pase de las 10 PM
+              if (gapEnd.getHours() > 22 || (gapEnd.getHours() === 22 && gapEnd.getMinutes() > 0)) {
+                gapEnd.setHours(22, 0, 0, 0);
+              }
               dayData.freeSlots.push({
                 start: new Date(lastEnd),
-                end: new Date(slot.start),
-                durationMinutes: gapMinutes,
+                end: gapEnd,
+                durationMinutes: Math.min(maxGapMinutes, (gapEnd.getTime() - lastEnd.getTime()) / (1000 * 60)),
               });
             }
-          }
-          lastEnd = new Date(Math.max(lastEnd.getTime(), slot.end.getTime()));
-        });
-
-        // Agregar hueco al final del día solo si hay eventos ese día (evitar días completamente vacíos)
-        if (dayData.busySlots.length > 0 && lastEnd < dayEnd) {
-          const gapMinutes = (dayEnd.getTime() - lastEnd.getTime()) / (1000 * 60);
-          // Limitar hueco final a máximo 6 horas (para evitar espacios muy grandes)
-          const maxGapMinutes = Math.min(gapMinutes, 360);
-          if (maxGapMinutes >= 30) {
-            const gapEnd = new Date(lastEnd.getTime() + maxGapMinutes * 60 * 1000);
-            dayData.freeSlots.push({
-              start: new Date(lastEnd),
-              end: gapEnd,
-              durationMinutes: maxGapMinutes,
-            });
           }
         }
 
@@ -2614,6 +2820,24 @@ export function StudyPlannerLIA() {
         daysAnalysis.push(dayData);
       });
 
+      // Guardar los datos del calendario para validar conflictos después
+      const calendarDataToSave: Record<string, {
+        busySlots: Array<{ start: Date; end: Date }>;
+        events: any[];
+      }> = {};
+      
+      Object.keys(daySlots).forEach(dateStr => {
+        calendarDataToSave[dateStr] = {
+          busySlots: daySlots[dateStr].busySlots.map(slot => ({
+            start: new Date(slot.start),
+            end: new Date(slot.end)
+          })),
+          events: daySlots[dateStr].events
+        };
+      });
+      setSavedCalendarData(calendarDataToSave);
+      console.log(`💾 Datos del calendario guardados para validación: ${Object.keys(calendarDataToSave).length} días`);
+      
       // Calcular estadísticas correctas
       const totalBusyMinutes = daysAnalysis.reduce((sum, day) => sum + day.totalBusyMinutes, 0);
       const totalFreeMinutes = daysAnalysis.reduce((sum, day) => sum + day.totalFreeMinutes, 0);
@@ -2697,28 +2921,55 @@ export function StudyPlannerLIA() {
           const hourA = a.start.getHours();
           const hourB = b.start.getHours();
           
-          // Preferir horarios entre 7-10 AM, 12-14 PM, o 19-21 PM
-          const isGoodTimeA = (hourA >= 7 && hourA < 10) || (hourA >= 12 && hourA < 14) || (hourA >= 19 && hourA < 21);
-          const isGoodTimeB = (hourB >= 7 && hourB < 10) || (hourB >= 12 && hourB < 14) || (hourB >= 19 && hourB < 21);
+          // Preferir horarios en los rangos definidos: Mañana (7-12), Tarde (12-18), Noche (18-22)
+          const isGoodTimeA = (hourA >= 7 && hourA < 12) || (hourA >= 12 && hourA < 18) || (hourA >= 18 && hourA < 22);
+          const isGoodTimeB = (hourB >= 7 && hourB < 12) || (hourB >= 12 && hourB < 18) || (hourB >= 18 && hourB < 22);
           
           if (isGoodTimeA && !isGoodTimeB) return -1;
           if (!isGoodTimeA && isGoodTimeB) return 1;
           
           // Finalmente priorizar duración moderada
           return b.durationMinutes - a.durationMinutes;
-        })
-        .slice(0, 50); // Top 50 mejores slots para cubrir todo el mes
+        });
+      
+      // Calcular límite dinámico basado en días hasta la fecha objetivo
+      // Si hay fecha objetivo, usar más slots para cubrir todo el período
+      let slotsLimit = 50; // Default
+      if (targetDateObjForEvents) {
+        const daysUntilTarget = Math.ceil((targetDateObjForEvents.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        // Permitir más slots si hay más días hasta la fecha objetivo
+        // Mínimo 50, máximo 300 slots (para cubrir períodos largos)
+        slotsLimit = Math.min(300, Math.max(50, daysUntilTarget * 4));
+        console.log(`📊 Límite de slots calculado: ${slotsLimit} (${daysUntilTarget} días hasta la fecha objetivo)`);
+      }
+      
+      const limitedBestSlots = bestFreeSlots.slice(0, slotsLimit);
+
+      // Filtrar slots que respeten los horarios mínimos y máximos (7 AM - 10 PM)
+      const validTimeSlots = limitedBestSlots.filter(slot => {
+        const startHour = slot.start.getHours();
+        const endHour = slot.end.getHours();
+        const endMinutes = slot.end.getMinutes();
+        
+        // No permitir slots que empiecen antes de las 7 AM
+        if (startHour < 7) return false;
+        
+        // No permitir slots que terminen después de las 10 PM (22:00)
+        if (endHour > 22 || (endHour === 22 && endMinutes > 0)) return false;
+        
+        return true;
+      });
 
       // Filtrar slots según disponibilidad del perfil (profileAvailability ya se calculó antes)
       const recommendedSlots = profileAvailability 
-        ? bestFreeSlots.filter(slot => {
+        ? validTimeSlots.filter(slot => {
             // Asegurar que el slot tenga al menos la duración recomendada
             return slot.durationMinutes >= profileAvailability.recommendedSessionLength;
           })
-        : bestFreeSlots;
+        : validTimeSlots;
 
-      // Seleccionar slots distribuidos a lo largo del mes completo (30 días)
-      // Agrupar por fecha única y seleccionar los mejores de cada día
+      // Seleccionar slots distribuidos hasta la fecha objetivo del usuario
+      // Agrupar por fecha única y seleccionar MÚLTIPLES slots por día cuando sea apropiado
       const slotsByDate = new Map<string, FreeSlotWithDay[]>();
       recommendedSlots.forEach(slot => {
         const dateKey = slot.dateStr;
@@ -2733,44 +2984,126 @@ export function StudyPlannerLIA() {
         return new Date(a).getTime() - new Date(b).getTime();
       });
 
-      // Seleccionar el mejor slot de cada día, priorizando distribución uniforme en el mes
+      // Seleccionar MÚLTIPLES slots por día cuando haya suficiente tiempo libre
       const uniqueDateSlots: FreeSlotWithDay[] = [];
       sortedDates.forEach(dateStr => {
         const slots = slotsByDate.get(dateStr) || [];
         if (slots.length > 0) {
-          // Tomar el mejor slot de cada día (ya están ordenados por calidad)
-          uniqueDateSlots.push(slots[0]);
+          // Ordenar slots del día por calidad (duración y horario)
+          slots.sort((a, b) => {
+            // Priorizar duración ideal
+            const idealDuration = profileAvailability?.recommendedSessionLength || 30;
+            const diffA = Math.abs(a.durationMinutes - idealDuration);
+            const diffB = Math.abs(b.durationMinutes - idealDuration);
+
+            if (diffA !== diffB) return diffA - diffB;
+
+            // Luego horarios convenientes (Mañana: 7-12, Tarde: 12-18, Noche: 18-22)
+            const hourA = a.start.getHours();
+            const hourB = b.start.getHours();
+            const isGoodTimeA = (hourA >= 7 && hourA < 12) || (hourA >= 12 && hourA < 18) || (hourA >= 18 && hourA < 22);
+            const isGoodTimeB = (hourB >= 7 && hourB < 12) || (hourB >= 12 && hourB < 18) || (hourB >= 18 && hourB < 22);
+
+            if (isGoodTimeA && !isGoodTimeB) return -1;
+            if (!isGoodTimeA && isGoodTimeB) return 1;
+
+            return b.durationMinutes - a.durationMinutes;
+          });
+
+          // Seleccionar TODOS los slots válidos y no solapados del día
+          // Sin límites artificiales - dejar que la distribución final decida cuántos usar
+          const minSessionDuration = profileAvailability?.recommendedSessionLength || 30;
+          const selectedSlots: FreeSlotWithDay[] = [];
+          
+          // Iterar por todos los slots del día y agregar los que:
+          // 1. Tengan duración mínima suficiente
+          // 2. No se solapen con otros slots ya seleccionados
+          for (const slot of slots) {
+            // Verificar duración mínima
+            if (slot.durationMinutes < minSessionDuration) {
+              continue;
+            }
+
+            // Verificar que no se solape con slots ya seleccionados del mismo día
+            const overlaps = selectedSlots.some(selected => {
+              return (
+                (slot.start >= selected.start && slot.start < selected.end) ||
+                (slot.end > selected.start && slot.end <= selected.end) ||
+                (slot.start <= selected.start && slot.end >= selected.end)
+              );
+            });
+
+            // Si no hay solapamiento, agregarlo
+            if (!overlaps) {
+              selectedSlots.push(slot);
+            }
+          }
+          
+          // Calcular tiempo total libre en el día para logging
+          const totalFreeMinutes = selectedSlots.reduce((sum, s) => sum + s.durationMinutes, 0);
+
+          uniqueDateSlots.push(...selectedSlots);
+
+          // Log para debugging
+          if (selectedSlots.length > 1) {
+            console.log(`📅 ${dateStr}: ${selectedSlots.length} slots seleccionados (${totalFreeMinutes}min libres total)`);
+          }
         }
       });
+
+      console.log(`📊 Resumen de slots seleccionados:`);
+      console.log(`   Total de días analizados: ${sortedDates.length}`);
+      console.log(`   Total de slots seleccionados: ${uniqueDateSlots.length}`);
+      console.log(`   Promedio de slots por día: ${(uniqueDateSlots.length / sortedDates.length).toFixed(2)}`);
+
+      // Obtener país del usuario (default: México)
+      // TODO: Obtener desde userContext cuando se agregue el campo 'country' a la BD
+      const userCountry = 'MX'; // Default México
+
+      // Filtrar slots excluyendo días festivos
+      const slotsWithoutHolidays = uniqueDateSlots.filter(slot => {
+        const isHolidayDate = HolidayService.isHoliday(slot.date, userCountry);
+        if (isHolidayDate) {
+          const holidayName = HolidayService.getHolidayName(slot.date, userCountry);
+          console.log(`🎉 Slot excluido por festivo: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - ${holidayName}`);
+        }
+        return !isHolidayDate;
+      });
+
+      console.log(`📅 Filtrado de festivos:`);
+      console.log(`   Slots antes de filtrar festivos: ${uniqueDateSlots.length}`);
+      console.log(`   Slots después de filtrar festivos: ${slotsWithoutHolidays.length}`);
+      console.log(`   Festivos excluidos: ${uniqueDateSlots.length - slotsWithoutHolidays.length}`);
 
       // Calcular tiempo disponible hasta la fecha objetivo
       let targetDateObj: Date | null = null;
       let weeksUntilTarget = 30; // Default: 30 días (aproximadamente 4 semanas)
       
-      if (targetDate && studyApproach) {
+      if (effectiveTargetDate && studyApproach && effectiveTargetDate !== 'No tengo fecha específica') {
         try {
-          // Intentar parsear la fecha objetivo
-          if (targetDate.includes('febrero') || targetDate.includes('marzo') || targetDate.includes('abril') || 
-              targetDate.includes('mayo') || targetDate.includes('junio') || targetDate.includes('julio') ||
-              targetDate.includes('agosto') || targetDate.includes('septiembre') || targetDate.includes('octubre') ||
-              targetDate.includes('noviembre') || targetDate.includes('diciembre') || targetDate.includes('enero')) {
-            // Formato de fecha en español (ej: "28 de febrero de 2026")
-            const dateMatch = targetDate.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
-            if (dateMatch) {
-              const day = parseInt(dateMatch[1]);
-              const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
-                                 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-              const month = monthNames.findIndex(m => m.toLowerCase() === dateMatch[2].toLowerCase());
-              const year = parseInt(dateMatch[3]);
-              if (month >= 0) {
-                targetDateObj = new Date(year, month, day);
-              }
+          // Usar el mismo parseo robusto que se usa para targetDateObjForEvents
+          const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                             'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+          
+          // Formato 1: "21 de enero de 2026" (formato estándar de toLocaleDateString)
+          let dateMatch = effectiveTargetDate.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+          
+          if (dateMatch) {
+            const day = parseInt(dateMatch[1]);
+            const monthName = dateMatch[2].toLowerCase();
+            const month = monthNames.findIndex(m => m.toLowerCase() === monthName);
+            const year = parseInt(dateMatch[3]);
+            
+            if (month >= 0 && day > 0 && day <= 31 && year >= 2020) {
+              targetDateObj = new Date(year, month, day);
             }
-          } else {
-            // Intentar parsear como fecha estándar
-            targetDateObj = new Date(targetDate);
-            if (isNaN(targetDateObj.getTime())) {
-              targetDateObj = null;
+          }
+          
+          // Si no funcionó el primer formato, intentar parsear como fecha estándar
+          if (!targetDateObj) {
+            const standardDate = new Date(effectiveTargetDate);
+            if (!isNaN(standardDate.getTime()) && standardDate.getFullYear() >= 2020) {
+              targetDateObj = standardDate;
             }
           }
           
@@ -2803,6 +3136,31 @@ export function StudyPlannerLIA() {
         } catch (e) {
           console.warn('Error parseando fecha objetivo:', e);
         }
+      }
+
+      // Calcular días de buffer según duración del plan
+      let bufferDays = 1; // Por defecto 1 día de buffer
+      let adjustedTargetDate: Date | null = null;
+
+      if (targetDateObj && weeksUntilTarget > 0) {
+        if (weeksUntilTarget >= 8) {
+          // Plazo largo (8+ semanas): máximo 3 días de buffer
+          bufferDays = 3;
+        } else if (weeksUntilTarget >= 4) {
+          // Plazo medio (4-7 semanas): 2 días de buffer
+          bufferDays = 2;
+        } else {
+          // Plazo corto (<4 semanas): 1 día de buffer
+          bufferDays = 1;
+        }
+
+        // Ajustar fecha objetivo para terminar ANTES del deadline
+        adjustedTargetDate = new Date(targetDateObj);
+        adjustedTargetDate.setDate(adjustedTargetDate.getDate() - bufferDays);
+
+        console.log(`📅 Buffer de días: ${bufferDays}`);
+        console.log(`📅 Fecha objetivo original: ${targetDateObj.toLocaleDateString('es-ES')}`);
+        console.log(`📅 Fecha objetivo ajustada (con buffer): ${adjustedTargetDate.toLocaleDateString('es-ES')}`);
       }
 
       // Calcular cuántas lecciones totales se necesitan para completar los cursos
@@ -2839,19 +3197,23 @@ export function StudyPlannerLIA() {
                           const publishedLessons = allLessons.filter((lesson: any) => lesson.is_published !== false);
                           const totalLessons = publishedLessons.length || 0;
                           
-                          // Obtener lecciones completadas del usuario si tiene enrollment
+                          // Obtener lecciones completadas usando el mismo método que LiaContextService
+                          // El endpoint ahora maneja el caso sin enrollmentId
                           let completedLessonIds: string[] = [];
-                          if (enrollmentId) {
-                            try {
-                              const progressResponse = await fetch(`/api/study-planner/course-progress?enrollmentId=${enrollmentId}&courseId=${courseId}`);
-                              if (progressResponse.ok) {
-                                const progressData = await progressResponse.json();
-                                completedLessonIds = progressData.completedLessonIds || [];
-                                console.log(`   Curso ${courseTitle}: ${completedLessonIds.length} lecciones completadas de ${totalLessons} totales`);
-                              }
-                            } catch (progressError) {
-                              console.warn(`Error obteniendo progreso del curso ${courseId}:`, progressError);
+                          try {
+                            const progressResponse = await fetch(
+                              `/api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}`
+                            );
+                            if (progressResponse.ok) {
+                              const progressData = await progressResponse.json();
+                              completedLessonIds = progressData.completedLessonIds || [];
+                              console.log(`   Curso ${courseTitle}: ${completedLessonIds.length} lecciones completadas de ${totalLessons} totales`);
+                            } else {
+                              const errorData = await progressResponse.json();
+                              console.warn(`   ⚠️ Error obteniendo progreso del curso ${courseId}: ${errorData.error || progressResponse.status}`);
                             }
+                          } catch (progressError) {
+                            console.warn(`Error obteniendo progreso del curso ${courseId}:`, progressError);
                           }
                           
                           // Filtrar lecciones pendientes (no completadas)
@@ -2949,16 +3311,26 @@ export function StudyPlannerLIA() {
         : Math.ceil(totalSessionsNeeded / 4); // Fallback: 4 semanas
 
       // Filtrar slots que estén dentro del rango hasta la fecha objetivo
-      // Comparar solo las fechas (sin hora) para incluir todos los slots del día objetivo
+      // Comparar solo las fechas (sin hora) para EXCLUIR el día después de la fecha límite
       const validDateSlots = targetDateObj
-        ? uniqueDateSlots.filter(slot => {
+        ? slotsWithoutHolidays.filter(slot => {
             const slotDateOnly = new Date(slot.date);
             slotDateOnly.setHours(0, 0, 0, 0);
             const targetDateOnly = new Date(targetDateObj!);
             targetDateOnly.setHours(0, 0, 0, 0);
-            return slotDateOnly <= targetDateOnly;
+
+            // Usar < para excluir estrictamente días después del límite
+            const isBeforeDeadline = slotDateOnly.getTime() < targetDateOnly.getTime();
+            const isDeadlineDay = HolidayService.isSameDay(slotDateOnly, targetDateOnly);
+
+            // Para usuarios B2B: excluir el mismo día de deadline
+            // Para usuarios B2C: incluir el día de deadline
+            const isB2B = userContext?.userType === 'b2b';
+            const shouldExclude = !isBeforeDeadline && !isDeadlineDay || (isDeadlineDay && isB2B);
+
+            return !shouldExclude;
           })
-        : uniqueDateSlots;
+        : slotsWithoutHolidays;
       
       console.log(`📅 Filtrado de slots hasta fecha objetivo:`);
       console.log(`   Fecha objetivo: ${targetDateObj?.toLocaleDateString('es-ES')}`);
@@ -3110,12 +3482,12 @@ export function StudyPlannerLIA() {
               : `${profileAvailability.recommendedSessionLength} minutos`;
             
             const approachText = studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : studyApproach === 'largo' ? 'sesiones largas' : 'sesiones';
-            const targetDateText = targetDate ? ` y tu objetivo de completar los cursos para ${targetDate}` : '';
+            const targetDateText = effectiveTargetDate ? ` y tu objetivo de completar los cursos para ${effectiveTargetDate}` : '';
             
             recommendationIntro.push(`En base a tu perfil${rol ? ` como ${rol}` : ''}${nivel ? ` (${nivel})` : ''} y tu preferencia por **${approachText}**${targetDateText}, estimo que puedes dedicar aproximadamente ${Math.round(profileAvailability.minutesPerDay / 60 * 10) / 10} hora${profileAvailability.minutesPerDay >= 120 ? 's' : ''} al día para estudiar.`);
             
-            if (targetDate && studyApproach) {
-              recommendationIntro.push(`He distribuido las sesiones de estudio hasta ${targetDate} para asegurar que completes tus cursos a tiempo.`);
+            if (effectiveTargetDate && studyApproach) {
+              recommendationIntro.push(`He distribuido las sesiones de estudio hasta ${effectiveTargetDate} para asegurar que completes tus cursos a tiempo.`);
             }
             
             recommendationIntro.push(`He analizado tu calendario y encontré que estos son los días con menos eventos.`);
@@ -3159,6 +3531,7 @@ export function StudyPlannerLIA() {
                         const metadataData = await metadataResponse.json();
                         if (metadataData.success && metadataData.metadata && metadataData.metadata.modules && Array.isArray(metadataData.metadata.modules)) {
                           // Extraer lecciones de todos los módulos usando la estructura de metadata
+                          // IMPORTANTE: Mantener el orden correcto por módulo y luego por lección
                           const allLessons = metadataData.metadata.modules.flatMap((module: any) => {
                             if (!module.lessons || !Array.isArray(module.lessons)) {
                               return [];
@@ -3173,13 +3546,14 @@ export function StudyPlannerLIA() {
                                 lesson_id: lesson.lessonId,
                                 lesson_title: lesson.lessonTitle.trim(),
                                 lesson_order_index: lesson.lessonOrderIndex || 0,
-                                module_order_index: module.moduleOrderIndex || 0, // ✅ AGREGADO para ordenar correctamente
+                                module_order_index: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
                                 duration_seconds: lesson.durationSeconds || 0
                               };
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
                           });
                             
                             // Filtrar solo lecciones válidas con título no vacío
+                            // IMPORTANTE: Ordenar primero por módulo, luego por lección dentro del módulo
                             const publishedLessons = allLessons
                               .filter((lesson: any) => {
                                 const isValid = lesson && 
@@ -3193,7 +3567,14 @@ export function StudyPlannerLIA() {
                                 }
                                 return isValid;
                               })
-                              .sort((a: any, b: any) => a.lesson_order_index - b.lesson_order_index);
+                              .sort((a: any, b: any) => {
+                                // Primero por módulo
+                                if (a.module_order_index !== b.module_order_index) {
+                                  return (a.module_order_index || 0) - (b.module_order_index || 0);
+                                }
+                                // Luego por lección dentro del módulo
+                                return (a.lesson_order_index || 0) - (b.lesson_order_index || 0);
+                              });
                             
                             console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas`);
                             if (publishedLessons.length > 0) {
@@ -3207,19 +3588,35 @@ export function StudyPlannerLIA() {
                             }
                             allLessonsByCourse.set(courseId, publishedLessons);
                             
-                            // Obtener lecciones completadas
-                            if (enrollmentId) {
-                              try {
-                                const progressResponse = await fetch(`/api/study-planner/course-progress?enrollmentId=${enrollmentId}&courseId=${courseId}`);
-                                if (progressResponse.ok) {
-                                  const progressData = await progressResponse.json();
-                                  const completedIds = progressData.completedLessonIds || [];
-                                  console.log(`   Curso ${courseId}: ${completedIds.length} lecciones completadas`);
-                                  completedLessonIdsByCourse.set(courseId, completedIds);
+                            // Obtener lecciones completadas directamente de la BD usando el mismo método que LiaContextService
+                            // Esto asegura que usamos la misma lógica y obtenemos datos consistentes
+                            try {
+                              // Obtener el userId del usuario actual
+                              const userResponse = await fetch('/api/auth/user');
+                              if (userResponse.ok) {
+                                const userData = await userResponse.json();
+                                const userId = userData?.user?.id || userData?.id;
+                                
+                                if (userId) {
+                                  // Obtener lecciones completadas filtrando por enrollment_id si está disponible
+                                  // Esto es crítico para obtener solo las lecciones del curso específico
+                                  const progressResponse = await fetch(
+                                    `/api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}&userId=${userId}`
+                                  );
+                                  if (progressResponse.ok) {
+                                    const progressData = await progressResponse.json();
+                                    const completedIds = progressData.completedLessonIds || [];
+                                    console.log(`   Curso ${courseId}: ${completedIds.length} lecciones completadas (enrollmentId: ${enrollmentId || 'N/A'})`);
+                                    completedLessonIdsByCourse.set(courseId, completedIds);
+                                  } else {
+                                    console.warn(`   ⚠️ Error obteniendo progreso para curso ${courseId}: ${progressResponse.status}`);
+                                  }
+                                } else {
+                                  console.warn(`   ⚠️ No se pudo obtener userId para curso ${courseId}`);
                                 }
-                              } catch (e) {
-                                console.warn(`Error obteniendo progreso para curso ${courseId}:`, e);
                               }
+                            } catch (e) {
+                              console.warn(`Error obteniendo progreso para curso ${courseId}:`, e);
                             }
                           }
                         } else {
@@ -3334,36 +3731,97 @@ export function StudyPlannerLIA() {
             return a.date.getTime() - b.date.getTime();
           });
           
-          // Filtrar slots hasta la fecha objetivo
+          // Filtrar slots hasta la fecha objetivo del usuario (usar targetDateObj, no adjustedTargetDate)
+          // Esto asegura que se incluyan todos los slots hasta la fecha límite que el usuario estableció
           const slotsUntilTarget = targetDateObj
             ? sortedSlots.filter(slot => {
                 const slotDateOnly = new Date(slot.date);
                 slotDateOnly.setHours(0, 0, 0, 0);
+
+                // Usar fecha objetivo original del usuario (no la ajustada con buffer)
                 const targetDateOnly = new Date(targetDateObj);
                 targetDateOnly.setHours(0, 0, 0, 0);
-                return slotDateOnly <= targetDateOnly;
+
+                // Incluir slots hasta e incluyendo el día de la fecha objetivo
+                const isBeforeDeadline = slotDateOnly.getTime() < targetDateOnly.getTime();
+                const isDeadlineDay = HolidayService.isSameDay(slotDateOnly, targetDateOnly);
+
+                const shouldInclude = isBeforeDeadline || isDeadlineDay;
+
+                // Log para debugging
+                if (!shouldInclude) {
+                  console.log(`❌ Slot excluido: ${slot.dayName} ${slotDateOnly.toLocaleDateString('es-ES')} - Después de fecha objetivo (${targetDateOnly.toLocaleDateString('es-ES')})`);
+                }
+
+                return shouldInclude;
               })
             : sortedSlots;
+
+          console.log(`📅 Slots después de filtrar por fecha objetivo:`);
+          console.log(`   Fecha objetivo: ${targetDateObj?.toLocaleDateString('es-ES')}`);
+          console.log(`   Slots totales antes del filtro: ${sortedSlots.length}`);
+          console.log(`   Slots después del filtro: ${slotsUntilTarget.length}`);
+          if (slotsUntilTarget.length > 0) {
+            console.log(`   Primer slot: ${slotsUntilTarget[0].dayName} ${slotsUntilTarget[0].date.toLocaleDateString('es-ES')}`);
+            console.log(`   Último slot: ${slotsUntilTarget[slotsUntilTarget.length - 1].dayName} ${slotsUntilTarget[slotsUntilTarget.length - 1].date.toLocaleDateString('es-ES')}`);
+          }
           
           // Calcular distribución de lecciones (guardar para resumen final)
           console.log(`📊 Distribuyendo ${allPendingLessons.length} lecciones pendientes en ${slotsUntilTarget.length} slots`);
 
-          // Calcular cuántas lecciones por slot se necesitan para cubrir todas las lecciones
+          // Calcular capacidad total disponible en todos los slots
           const totalSlotsAvailable = slotsUntilTarget.length;
           const totalLessons = allPendingLessons.length;
-          const lessonsPerSlot = totalSlotsAvailable > 0 ? Math.ceil(totalLessons / totalSlotsAvailable) : 1;
+          
+          // Calcular capacidad total de todos los slots (cuántas sesiones caben en total)
+          let totalCapacity = 0;
+          slotsUntilTarget.forEach(slot => {
+            const maxSessionsInSlot = Math.max(1, Math.floor(slot.durationMinutes / cycleDuration));
+            totalCapacity += maxSessionsInSlot;
+          });
+          
+          // Si hay suficiente capacidad, distribuir todas las lecciones
+          // Si no hay suficiente capacidad, calcular cuántas lecciones por slot se necesitan
+          const hasEnoughCapacity = totalCapacity >= totalLessons;
+          const lessonsPerSlot = hasEnoughCapacity && totalSlotsAvailable > 0 
+            ? Math.ceil(totalLessons / totalSlotsAvailable) 
+            : (totalSlotsAvailable > 0 ? Math.ceil(totalLessons / totalSlotsAvailable) : 1);
 
-          console.log(`📐 Estrategia: ${lessonsPerSlot} lecciones por slot (mínimo) para distribuir ${totalLessons} lecciones en ${totalSlotsAvailable} slots`);
+          console.log(`📐 Estrategia de distribución:`);
+          console.log(`   Total lecciones pendientes: ${totalLessons}`);
+          console.log(`   Total slots disponibles: ${totalSlotsAvailable}`);
+          console.log(`   Capacidad total (sesiones): ${totalCapacity}`);
+          console.log(`   ¿Hay suficiente capacidad? ${hasEnoughCapacity ? 'Sí' : 'No'}`);
+          console.log(`   Lecciones por slot objetivo: ${lessonsPerSlot}`);
 
           slotsUntilTarget.forEach((slot, slotIndex) => {
             const slotDurationMinutes = slot.durationMinutes;
 
             // Calcular cuántas sesiones caben en el slot basado en la duración
+            // cycleDuration = sessionDuration + breakDuration (ej: 25 + 5 = 30 min)
             const maxSessionsInSlot = Math.max(1, Math.floor(slotDurationMinutes / cycleDuration));
 
-            // Usar el mayor entre: lecciones necesarias por slot y sesiones que caben
-            // Esto asegura que se distribuyan todas las lecciones hasta la fecha límite
-            const sessionsToAssign = Math.max(lessonsPerSlot, maxSessionsInSlot);
+            // Si hay suficiente capacidad total, intentar usar más slots o más lecciones por slot
+            // Si no hay suficiente capacidad, limitar a lo que realmente cabe
+            let sessionsToAssign: number;
+            if (hasEnoughCapacity) {
+              // Hay suficiente tiempo: usar el máximo entre lo necesario y lo que cabe (hasta el máximo del slot)
+              sessionsToAssign = Math.min(lessonsPerSlot, maxSessionsInSlot);
+              // Si aún quedan lecciones por asignar y este slot tiene más capacidad, usar más
+              if (currentLessonIndex < allPendingLessons.length && maxSessionsInSlot > sessionsToAssign) {
+                // Calcular cuántas lecciones faltan por asignar
+                const remainingAfterThis = allPendingLessons.length - currentLessonIndex - sessionsToAssign;
+                // Si faltan muchas, usar más capacidad de este slot
+                if (remainingAfterThis > 0 && maxSessionsInSlot > sessionsToAssign) {
+                  sessionsToAssign = Math.min(maxSessionsInSlot, sessionsToAssign + Math.min(remainingAfterThis, maxSessionsInSlot - sessionsToAssign));
+                }
+              }
+            } else {
+              // No hay suficiente capacidad: limitar a lo que realmente cabe
+              sessionsToAssign = Math.min(lessonsPerSlot, maxSessionsInSlot);
+            }
+
+            console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Sesiones que caben: ${maxSessionsInSlot} - A asignar: ${sessionsToAssign}`);
 
             // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
@@ -3407,7 +3865,103 @@ export function StudyPlannerLIA() {
           });
           
           console.log(`✅ Distribución completada: ${lessonDistribution.length} slots con lecciones, ${currentLessonIndex} lecciones asignadas de ${allPendingLessons.length} totales`);
+
+          // Si quedan lecciones sin asignar, redistribuir en los slots con más espacio
+          // Primero intentar usar slots que no se usaron, luego redistribuir en los existentes
+          if (currentLessonIndex < allPendingLessons.length) {
+            const remainingLessons = allPendingLessons.length - currentLessonIndex;
+            console.log(`⚠️ Quedan ${remainingLessons} lecciones sin asignar. Redistribuyendo...`);
+
+            // Primero, intentar usar slots que no se usaron (si hay slots sin lecciones)
+            const usedSlotDates = new Set(lessonDistribution.map(d => d.slot.dateStr));
+            const unusedSlots = slotsUntilTarget.filter(slot => !usedSlotDates.has(slot.dateStr));
+            
+            console.log(`   Slots no usados disponibles: ${unusedSlots.length}`);
+            
+            // Agregar lecciones a slots no usados
+            for (const unusedSlot of unusedSlots) {
+              if (currentLessonIndex >= allPendingLessons.length) break;
+              
+              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / cycleDuration));
+              const lessonsForUnusedSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
+              
+              for (let i = 0; i < slotCapacity && currentLessonIndex < allPendingLessons.length; i++) {
+                const lesson = allPendingLessons[currentLessonIndex];
+                
+                if (lesson && lesson.lesson_title && lesson.lesson_title.trim() !== '') {
+                  lessonsForUnusedSlot.push({
+                    courseTitle: lesson.courseTitle || 'Curso',
+                    lesson_title: lesson.lesson_title.trim(),
+                    lesson_order_index: lesson.lesson_order_index || 0
+                  });
+                  currentLessonIndex++;
+                } else {
+                  currentLessonIndex++;
+                  i--; // No contar lecciones inválidas
+                }
+              }
+              
+              if (lessonsForUnusedSlot.length > 0) {
+                lessonDistribution.push({
+                  slot: unusedSlot,
+                  lessons: lessonsForUnusedSlot
+                });
+                console.log(`   ✅ Agregado slot no usado: ${unusedSlot.dayName} ${unusedSlot.date.toLocaleDateString('es-ES')} con ${lessonsForUnusedSlot.length} lecciones`);
+              }
+            }
+
+            // Luego, redistribuir en slots existentes con espacio disponible
+            if (currentLessonIndex < allPendingLessons.length) {
+              // Ordenar slots por espacio disponible (mayor primero)
+              const slotsWithSpace = lessonDistribution
+                .filter(dist => {
+                  const slotCapacity = Math.floor(dist.slot.durationMinutes / cycleDuration);
+                  return dist.lessons.length < slotCapacity;
+                })
+                .sort((a, b) => {
+                  const spaceA = Math.floor(a.slot.durationMinutes / cycleDuration) - a.lessons.length;
+                  const spaceB = Math.floor(b.slot.durationMinutes / cycleDuration) - b.lessons.length;
+                  return spaceB - spaceA;
+                });
+
+              console.log(`   Slots con espacio disponible: ${slotsWithSpace.length}`);
+
+              // Redistribuir lecciones pendientes
+              for (const slotDist of slotsWithSpace) {
+                if (currentLessonIndex >= allPendingLessons.length) break;
+
+                const slotCapacity = Math.floor(slotDist.slot.durationMinutes / cycleDuration);
+                const currentLessons = slotDist.lessons.length;
+                const availableSpace = slotCapacity - currentLessons;
+
+                // Agregar lecciones hasta llenar el espacio
+                for (let i = 0; i < availableSpace && currentLessonIndex < allPendingLessons.length; i++) {
+                  const lesson = allPendingLessons[currentLessonIndex];
+
+                  if (lesson && lesson.lesson_title && lesson.lesson_title.trim() !== '') {
+                    slotDist.lessons.push({
+                      courseTitle: lesson.courseTitle || 'Curso',
+                      lesson_title: lesson.lesson_title.trim(),
+                      lesson_order_index: lesson.lesson_order_index || 0
+                    });
+                    currentLessonIndex++;
+                  } else {
+                    currentLessonIndex++;
+                    i--; // No contar lecciones inválidas
+                  }
+                }
+              }
+            }
+
+            console.log(`✅ Redistribución completada: ${currentLessonIndex} de ${allPendingLessons.length} lecciones asignadas`);
+          }
           
+          // Verificar si aún quedan lecciones sin asignar después de la redistribución
+          if (currentLessonIndex < allPendingLessons.length) {
+            const stillRemaining = allPendingLessons.length - currentLessonIndex;
+            console.warn(`⚠️ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar de ${allPendingLessons.length} totales`);
+          }
+
           // Guardar distribución en el estado para usar en el resumen final
           // Convertir a formato almacenable con validación estricta de datos
           const distributionToSave: StoredLessonDistribution[] = lessonDistribution
@@ -3454,7 +4008,8 @@ export function StudyPlannerLIA() {
           
           setSavedLessonDistribution(distributionToSave);
           setSavedTargetDate(targetDate);
-          setSavedTotalLessons(totalLessonsNeeded);
+          // Usar el número real de lecciones pendientes, no el calculado (que puede tener errores)
+          setSavedTotalLessons(allPendingLessons.length);
           
           console.log(`📦 Distribución de lecciones guardada: ${distributionToSave.length} slots`);
           // Log detallado para debugging
@@ -3465,37 +4020,55 @@ export function StudyPlannerLIA() {
             console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lesson_order_index}: ${l.lesson_title}`));
           }
           
-          // Mostrar solo los horarios en las recomendaciones iniciales (sin lecciones)
-          const shownDates = new Set<string>();
-          
+          // Mostrar todos los horarios hasta la fecha objetivo del usuario
+          // Agrupar por fecha para mostrar todos los slots de cada día
+          const slotsByDay = new Map<string, FreeSlotWithDay[]>();
+
           slotsUntilTarget.forEach(slot => {
-            // Evitar mostrar múltiples slots del mismo día (mostrar solo 1 por día)
-            if (shownDates.has(slot.dateStr)) return;
-            shownDates.add(slot.dateStr);
-            
-            const startTime = slot.start.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
+            if (!slotsByDay.has(slot.dateStr)) {
+              slotsByDay.set(slot.dateStr, []);
+            }
+            slotsByDay.get(slot.dateStr)!.push(slot);
+          });
+
+          // Ordenar las fechas cronológicamente
+          const sortedDays = Array.from(slotsByDay.keys()).sort((a, b) => {
+            return new Date(a).getTime() - new Date(b).getTime();
+          });
+
+          // Mostrar todos los días con sus horarios
+          sortedDays.forEach(dateStr => {
+            const slots = slotsByDay.get(dateStr)!;
+
+            // Ordenar slots del día por hora de inicio
+            slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+            // Mostrar cada slot del día
+            slots.forEach(slot => {
+              const startTime = slot.start.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              });
+              const endTime = slot.end.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              });
+
+              // Solo mostrar el horario, sin lecciones
+              calendarMessage += `• ${slot.dayName} ${slot.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} a las ${startTime} - ${endTime}\n`;
             });
-            const endTime = slot.end.toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            });
-            
-            // Solo mostrar el horario, sin lecciones
-            calendarMessage += `• ${slot.dayName} ${slot.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} a las ${startTime} - ${endTime}\n`;
           });
           
           // Verificar si hay más slots disponibles después de la fecha objetivo
-          const slotsAfterTarget = targetDateObj 
+          const slotsAfterTarget = targetDateObj
             ? sortedSlots.filter(slot => {
                 const slotDateOnly = new Date(slot.date);
                 slotDateOnly.setHours(0, 0, 0, 0);
-                const targetDateOnly = new Date(targetDateObj);
+                const targetDateOnly = new Date(targetDateObj!);
                 targetDateOnly.setHours(0, 0, 0, 0);
-                return slotDateOnly > targetDateOnly;
+                return slotDateOnly.getTime() > targetDateOnly.getTime();
               }).length
             : 0;
           
@@ -3504,9 +4077,24 @@ export function StudyPlannerLIA() {
           }
           
           // Verificar si se asignaron todas las lecciones
+          // Solo mostrar advertencia si el plazo es realmente insuficiente (menos de 5 días o similar)
           if (currentLessonIndex < allPendingLessons.length) {
             const remainingLessons = allPendingLessons.length - currentLessonIndex;
-            calendarMessage += `\n**Nota:** Quedan ${remainingLessons} lecciones pendientes por asignar. Considera agregar más horarios o extender la fecha objetivo para completar todas las lecciones.`;
+            const daysUntilTarget = targetDateObj 
+              ? Math.ceil((targetDateObj.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+              : 0;
+            
+            // Solo mostrar advertencia si el plazo es muy corto (menos de 5 días) o si hay muchas lecciones sin asignar
+            const isUnreasonableDeadline = daysUntilTarget < 5;
+            const hasManyUnassigned = remainingLessons > (allPendingLessons.length * 0.2); // Más del 20% sin asignar
+            
+            if (isUnreasonableDeadline || hasManyUnassigned) {
+              calendarMessage += `\n**Nota:** Quedan ${remainingLessons} lecciones pendientes por asignar. `;
+              if (isUnreasonableDeadline) {
+                calendarMessage += `El plazo de ${daysUntilTarget} días es muy corto para completar todas las lecciones. `;
+              }
+              calendarMessage += `Considera agregar más horarios o extender la fecha objetivo para completar todas las lecciones.`;
+            }
           }
           
           // Agregar datos crudos para que LIA calcule las metas semanales AUTOMÁTICAMENTE
@@ -3525,6 +4113,16 @@ export function StudyPlannerLIA() {
             calendarMessage += `- Lecciones por semana: ${lessonsPerWeekCalc}\n`;
             calendarMessage += `- Horas semanales de estudio: ${hoursPerWeekCalc}\n`;
             calendarMessage += `\n`;
+
+            // Agregar información del buffer
+            if (bufferDays > 0 && adjustedTargetDate && targetDateObj) {
+              calendarMessage += `**📅 PLANIFICACIÓN INTELIGENTE:**\n`;
+              calendarMessage += `He planificado que completes todas las lecciones para el **${adjustedTargetDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}**, `;
+              calendarMessage += `${bufferDays} día${bufferDays > 1 ? 's' : ''} antes de tu fecha límite (${targetDateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}).\n`;
+              calendarMessage += `Esto te da un margen para imprevistos, repasos o actividades adicionales.\n`;
+              calendarMessage += `\n`;
+            }
+
             calendarMessage += `*Datos de referencia: ${totalLessonsNeeded} lecciones pendientes, ${weeksUntilTarget} semanas hasta ${targetDate}, enfoque de ${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}*\n`;
           }
           
@@ -3739,6 +4337,54 @@ Cuéntame manualmente:
     }
   };
 
+  // Desconectar calendario
+  const disconnectCalendar = async (provider: 'google' | 'microsoft') => {
+    try {
+      setIsConnectingCalendar(true);
+      
+      const response = await fetch('/api/study-planner/calendar/disconnect', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ provider }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Error al desconectar el calendario');
+      }
+
+      // Actualizar estado local
+      setConnectedCalendar(null);
+      
+      // Agregar mensaje a la conversación
+      const disconnectMsg = `He desconectado tu calendario de ${provider === 'google' ? 'Google' : 'Microsoft'}.`;
+      setConversationHistory(prev => [...prev, { 
+        role: 'assistant', 
+        content: disconnectMsg 
+      }]);
+
+      if (isAudioEnabled) {
+        await speakText(`Calendario de ${provider === 'google' ? 'Google' : 'Microsoft'} desconectado exitosamente.`);
+      }
+    } catch (error) {
+      console.error('Error desconectando calendario:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Error desconocido al desconectar el calendario';
+      
+      setConversationHistory(prev => [...prev, { 
+        role: 'assistant', 
+        content: `No pude desconectar tu calendario. ${errorMsg}` 
+      }]);
+      
+      alert(`Error al desconectar calendario:\n\n${errorMsg}`);
+    } finally {
+      setIsConnectingCalendar(false);
+    }
+  };
+
   // Saltar conexión de calendario pero aún obtener perfil del usuario
   const skipCalendarConnection = async () => {
     setShowCalendarModal(false);
@@ -3835,14 +4481,199 @@ Cuéntame:
     }
   };
 
+  // Función para validar si un horario choca con eventos del calendario
+  const validateScheduleConflict = (date: Date, startTime: Date, endTime: Date): { hasConflict: boolean; conflictingEvent?: any } => {
+    if (!savedCalendarData) {
+      return { hasConflict: false };
+    }
+
+    const dateStr = date.toISOString().split('T')[0];
+    const dayData = savedCalendarData[dateStr];
+
+    if (!dayData || !dayData.busySlots || dayData.busySlots.length === 0) {
+      return { hasConflict: false };
+    }
+
+    // Verificar si el horario se solapa con algún evento
+    for (const busySlot of dayData.busySlots) {
+      const busyStart = new Date(busySlot.start);
+      const busyEnd = new Date(busySlot.end);
+
+      // Verificar solapamiento
+      if (
+        (startTime >= busyStart && startTime < busyEnd) ||
+        (endTime > busyStart && endTime <= busyEnd) ||
+        (startTime <= busyStart && endTime >= busyEnd)
+      ) {
+        // Encontrar el evento correspondiente
+        const conflictingEvent = dayData.events.find((event: any) => {
+          const eventStart = new Date(event.start || event.startTime);
+          return eventStart.getTime() === busyStart.getTime();
+        });
+
+        return {
+          hasConflict: true,
+          conflictingEvent: conflictingEvent || { start: busyStart, end: busyEnd }
+        };
+      }
+    }
+
+    return { hasConflict: false };
+  };
+
+  // Función para extraer horarios del mensaje del usuario
+  const extractTimeChangeRequest = (message: string): { oldHour?: number; newHour?: number; dates?: string[] } | null => {
+    const lowerMessage = message.toLowerCase();
+    
+    // Detectar patrones como "cambiar las 6 por las 8", "cambiar de 6 a 8", "6 por 8", "CAMBIAME LAS HORAS QUE INICIAR A LAS 6 POR LAS 8", etc.
+    const timeChangePattern = /(?:cambiar|ajustar|modificar|poner|mover|cambiame).*?(?:las\s+)?(?:horas?\s+que\s+)?(?:iniciar|empiezan|comienzan|empiecen|comiencen)\s*(?:a\s+las?|a)?\s*(\d{1,2}).*?(?:por|a|por las|a las)\s*(\d{1,2})/i;
+    const match = message.match(timeChangePattern);
+    
+    if (match) {
+      const oldHour = parseInt(match[1]);
+      const newHour = parseInt(match[2]);
+      
+      if (oldHour >= 0 && oldHour <= 23 && newHour >= 0 && newHour <= 23) {
+        return { oldHour, newHour };
+      }
+    }
+    
+    // Patrón alternativo más simple: "6 por 8", "de 6 a 8"
+    // PERO solo si NO está en contexto de agregar horarios (ej: "jueves de 7 a 8")
+    // Verificar que NO esté precedido por días de la semana o palabras de agregar
+    const dayOfWeekPattern = /(?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+(?:de\s+)?(\d{1,2})\s+(?:por|a)\s+(?:las?\s+)?(\d{1,2})/i;
+    if (dayOfWeekPattern.test(message)) {
+      // Es un horario nuevo, no un cambio
+      return null;
+    }
+    
+    const simplePattern = /(?:^|\s)(?:de\s+)?(\d{1,2})\s+(?:por|a)\s+(?:las?\s+)?(\d{1,2})(?:\s|$)/i;
+    const simpleMatch = message.match(simplePattern);
+    
+    if (simpleMatch) {
+      const oldHour = parseInt(simpleMatch[1]);
+      const newHour = parseInt(simpleMatch[2]);
+      
+      if (oldHour >= 0 && oldHour <= 23 && newHour >= 0 && newHour <= 23) {
+        return { oldHour, newHour };
+      }
+    }
+    
+    return null;
+  };
+
   // Función para enviar mensajes a LIA
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isProcessing) return;
 
     stopAllAudio();
     
-    // Detectar si el usuario está confirmando los horarios propuestos
     const lowerMessage = message.toLowerCase();
+    
+    // PRIMERO verificar si el usuario está AGREGANDO horarios (tiene prioridad sobre cambio)
+    const isAddingSchedules = (
+      lowerMessage.includes('añade') || 
+      lowerMessage.includes('agrega') || 
+      lowerMessage.includes('agregar') || 
+      lowerMessage.includes('añadir') || 
+      lowerMessage.includes('incluye') || 
+      lowerMessage.includes('incluir') ||
+      lowerMessage.includes('suma') ||
+      lowerMessage.includes('sumar')
+    ) && savedLessonDistribution.length > 0;
+    
+    // SOLO detectar cambio de horarios si NO está agregando horarios
+    // Y si el mensaje contiene palabras explícitas de cambio
+    const isExplicitChange = (
+      lowerMessage.includes('cambiar') || 
+      lowerMessage.includes('cambia') || 
+      lowerMessage.includes('ajustar') || 
+      lowerMessage.includes('modificar') || 
+      lowerMessage.includes('mover') ||
+      lowerMessage.includes('cambiame')
+    );
+    
+    // Detectar si el usuario está pidiendo cambiar horarios (solo si es explícito y no está agregando)
+    const timeChange = !isAddingSchedules && isExplicitChange ? extractTimeChangeRequest(message) : null;
+    if (timeChange && savedLessonDistribution.length > 0 && savedCalendarData) {
+      // Validar los nuevos horarios contra eventos del calendario
+      const conflicts: Array<{ date: string; time: string; event: any }> = [];
+      const validSlots: Array<{ date: string; time: string }> = [];
+      
+      savedLessonDistribution.forEach(slot => {
+        if (slot.startTime && slot.endTime) {
+          // Extraer hora del horario original
+          const originalTimeMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
+          if (originalTimeMatch) {
+            const originalHour = parseInt(originalTimeMatch[1]);
+            
+            // Si coincide con la hora que quiere cambiar
+            if (originalHour === timeChange.oldHour) {
+              // Crear nuevo horario con la hora cambiada
+              const dateParts = slot.dateStr.split('-');
+              const slotDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+              
+              const newStartTime = new Date(slotDate);
+              newStartTime.setHours(timeChange.newHour || originalHour, parseInt(originalTimeMatch[2]), 0);
+              
+              // Calcular hora de fin (mantener la duración original)
+              const originalEndTimeMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
+              if (originalEndTimeMatch) {
+                const originalEndHour = parseInt(originalEndTimeMatch[1]);
+                const originalEndMin = parseInt(originalEndTimeMatch[2]);
+                const durationMinutes = (originalEndHour * 60 + originalEndMin) - (originalHour * 60 + parseInt(originalTimeMatch[2]));
+                
+                const newEndTime = new Date(newStartTime);
+                newEndTime.setMinutes(newEndTime.getMinutes() + durationMinutes);
+                
+                // Validar conflicto
+                const validation = validateScheduleConflict(slotDate, newStartTime, newEndTime);
+                
+                if (validation.hasConflict) {
+                  const eventTitle = validation.conflictingEvent?.summary || validation.conflictingEvent?.title || 'Evento';
+                  conflicts.push({
+                    date: slot.dateStr,
+                    time: `${timeChange.newHour}:${originalTimeMatch[2]}`,
+                    event: { ...validation.conflictingEvent, title: eventTitle }
+                  });
+                } else {
+                  validSlots.push({
+                    date: slot.dateStr,
+                    time: `${timeChange.newHour}:${originalTimeMatch[2]}`
+                  });
+                }
+              }
+            }
+          }
+        }
+      });
+      
+      // Si hay conflictos, informar al usuario antes de proceder
+      if (conflicts.length > 0) {
+        let conflictMessage = `He detectado que algunos de los horarios que quieres cambiar (de ${timeChange.oldHour}:00 a ${timeChange.newHour}:00) chocan con eventos en tu calendario:\n\n`;
+        
+        conflicts.forEach(conflict => {
+          const dateObj = new Date(conflict.date);
+          const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+          const formattedDate = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+          const eventTitle = conflict.event?.title || conflict.event?.summary || 'Evento programado';
+          conflictMessage += `• ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${formattedDate} a las ${conflict.time}: Tienes "${eventTitle}" programado\n`;
+        });
+        
+        conflictMessage += `\n¿Te gustaría que ajuste esos horarios a otros momentos disponibles ese día, o prefieres mantener los horarios originales?`;
+        
+        setConversationHistory(prev => [...prev, { role: 'assistant', content: conflictMessage }]);
+        
+        if (isAudioEnabled) {
+          await speakText(`He detectado conflictos con tu calendario. Algunos horarios chocan con eventos programados.`);
+        }
+        
+        setIsProcessing(false);
+        return;
+      }
+    }
+    
+    // Detectar si el usuario está confirmando los horarios propuestos
     const isConfirmingSchedules = (
       lowerMessage.includes('sí') || 
       lowerMessage.includes('si') || 
@@ -3853,6 +4684,16 @@ Cuéntame:
       lowerMessage.includes('de acuerdo') ||
       lowerMessage.includes('adelante') ||
       lowerMessage.includes('procede')
+    ) && savedLessonDistribution.length > 0;
+    
+    // Detectar si el usuario está cambiando la fecha límite
+    const isChangingTargetDate = (
+      lowerMessage.includes('cambiar') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite')) ||
+      lowerMessage.includes('cambia') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite')) ||
+      lowerMessage.includes('extender') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite')) ||
+      lowerMessage.includes('extiende') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite')) ||
+      lowerMessage.includes('actualizar') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite')) ||
+      lowerMessage.includes('actualiza') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite'))
     ) && savedLessonDistribution.length > 0;
     
     // Si está confirmando, agregar la distribución de lecciones al mensaje
@@ -3896,6 +4737,18 @@ Cuéntame:
       distributionSummary += `**Enfoque de estudio:** ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n`;
       distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
       distributionSummary += `\n`;
+      
+      // 🚨 INSTRUCCIÓN CRÍTICA SOBRE LA FECHA LÍMITE
+      if (savedTargetDate) {
+        distributionSummary += `🚨 REGLA ABSOLUTA SOBRE LA FECHA LÍMITE:\n`;
+        distributionSummary += `- La fecha límite establecida es: **${savedTargetDate}**\n`;
+        distributionSummary += `- NUNCA, bajo NINGUNA circunstancia, debes crear o sugerir horarios DESPUÉS de esta fecha\n`;
+        distributionSummary += `- Si el usuario solicita agregar horarios (ej: "agrega los jueves de 6 a 8pm"), calcula SOLO hasta ${savedTargetDate}\n`;
+        distributionSummary += `- Si un horario calculado cae después de ${savedTargetDate}, NO LO INCLUYAS\n`;
+        distributionSummary += `- NUNCA inventes fechas inválidas (ej: 30 de febrero, 31 de abril)\n`;
+        distributionSummary += `- VERIFICA que cada fecha que generes sea válida y anterior o igual a ${savedTargetDate}\n`;
+        distributionSummary += `\n`;
+      }
 
       let totalLessonsAssigned = 0;
       console.log('📋 Preparando distribución para LIA:');
@@ -3908,23 +4761,13 @@ Cuéntame:
         }
       });
 
-      // SOLO mostrar primeros 3 y últimos 2 slots para evitar mensaje muy largo
-      const maxSlotsToShow = 5;
-      const firstSlots = savedLessonDistribution.slice(0, 3);
-      const lastSlots = savedLessonDistribution.slice(-2);
-      const slotsToShow = savedLessonDistribution.length <= maxSlotsToShow
-        ? savedLessonDistribution
-        : [...firstSlots, ...lastSlots];
-
+      // Mostrar TODAS las sesiones hasta la fecha objetivo
       distributionSummary += `**DISTRIBUCIÓN DE LECCIONES:**\n`;
       distributionSummary += `Total de sesiones: ${savedLessonDistribution.length}\n`;
       distributionSummary += `Total de lecciones asignadas: ${totalLessonsAssigned}\n\n`;
 
-      if (savedLessonDistribution.length > maxSlotsToShow) {
-        distributionSummary += `**Primeras 3 sesiones:**\n`;
-      }
-
-      slotsToShow.forEach((item, idx) => {
+      // Mostrar TODAS las sesiones (no solo las primeras 5)
+      savedLessonDistribution.forEach((item, idx) => {
         // Validar que el item tenga datos válidos
         if (!item || !item.dateStr || !item.startTime || !item.endTime) {
           return;
@@ -3933,34 +4776,26 @@ Cuéntame:
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
         const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
 
-        distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}\n`;
-        distributionSummary += `• ${lessonCount} lección(es) asignadas\n`;
+        distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}. Lecciones a estudiar:\n`;
 
-        // Solo mostrar títulos para los primeros 3 slots
-        if (idx < 3 && item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
-          item.lessons.slice(0, 2).forEach((lesson, lessonIndex) => {
+        // Mostrar TODAS las lecciones asignadas a cada slot
+        if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
+          item.lessons.forEach((lesson, lessonIndex) => {
             if (lesson?.lesson_title?.trim()) {
               const lessonTitle = lesson.lesson_title.trim();
               const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
-              distributionSummary += `  - Lección ${lessonNum}: ${lessonTitle}\n`;
+              distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
 
-              // Log para debugging
-              if (idx === 0 && lessonIndex < 3) {
+              // Log para debugging de las primeras sesiones
+              if (idx < 3 && lessonIndex < 3) {
                 console.log(`   Slot ${idx}, Lección ${lessonIndex}: ${lessonNum} - ${lessonTitle}`);
               }
             }
           });
-          if (item.lessons.length > 2) {
-            distributionSummary += `  - ... y ${item.lessons.length - 2} más\n`;
-          }
+        } else {
+          distributionSummary += `• Sin lecciones asignadas\n`;
         }
       });
-
-      if (savedLessonDistribution.length > maxSlotsToShow) {
-        distributionSummary += `\n...[${savedLessonDistribution.length - maxSlotsToShow} sesiones más]...\n`;
-        distributionSummary += `\n**Últimas 2 sesiones:**\n`;
-        // Las últimas 2 ya están incluidas en slotsToShow
-      }
 
       distributionSummary += `\n`;
       distributionSummary += `**VERIFICACIÓN:**\n`;
@@ -3972,18 +4807,196 @@ Cuéntame:
 
       // Instrucciones importantes sobre qué lecciones incluir
       distributionSummary += `\n`;
-      distributionSummary += `**⚠️ IMPORTANTE PARA EL RESUMEN:**\n`;
+      distributionSummary += `**🚨 CRÍTICO - INSTRUCCIONES PARA EL RESUMEN:**\n`;
       distributionSummary += `- Total de lecciones en el plan: ${totalLessonsAssigned} lecciones PENDIENTES\n`;
       distributionSummary += `- Las lecciones YA COMPLETADAS fueron filtradas y NO están en este plan\n`;
+      distributionSummary += `- **USA SOLO LAS LECCIONES QUE ESTÁN LISTADAS ARRIBA EN CADA HORARIO**\n`;
+      distributionSummary += `- **NO inventes lecciones desde el principio** - el usuario ya tiene lecciones completadas\n`;
+      distributionSummary += `- **NO empieces desde "Lección 1"** - usa SOLO las lecciones que están asignadas arriba\n`;
       distributionSummary += `- En tu contexto, SOLO usa las lecciones marcadas como "○ Pendiente"\n`;
       distributionSummary += `- NO incluyas lecciones marcadas como "✓ Completada"\n`;
-      distributionSummary += `- Distribuye las ${totalLessonsAssigned} lecciones pendientes secuencialmente en los ${savedLessonDistribution.length} horarios\n`;
+      distributionSummary += `- Cada horario tiene lecciones específicas asignadas - usa EXACTAMENTE esas lecciones\n`;
       distributionSummary += `\n`;
-      distributionSummary += `*Genera un resumen completo con TODOS los horarios, usando únicamente las lecciones pendientes de tu contexto.*`;
+      distributionSummary += `*Genera un resumen completo con TODOS los horarios, usando EXACTAMENTE las lecciones que están asignadas arriba en cada horario. NO inventes lecciones.*`;
       
       enrichedMessage = message + distributionSummary;
       console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA');
       console.log(`   Total de horarios: ${savedLessonDistribution.length}`);
+      console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
+    } else if (isAddingSchedules) {
+      // Función para formatear la fecha de forma legible
+      const formatDateForDisplay = (dateStr: string, dayName: string): string => {
+        try {
+          // dateStr viene en formato YYYY-MM-DD
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            const day = parseInt(parts[2]);
+            const month = parseInt(parts[1]) - 1;
+            const year = parseInt(parts[0]);
+            const date = new Date(year, month, day);
+            
+            const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                               'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            return `${capitalizedDay} ${day} de ${monthNames[month]} de ${year}`;
+          }
+        } catch (e) {
+          console.error('Error formateando fecha:', e);
+        }
+        return dayName + ' ' + dateStr;
+      };
+      
+      // Construir el contexto de horarios existentes para AGREGAR nuevos
+      let addScheduleContext = `\n\n**🚨 INSTRUCCIÓN CRÍTICA - AGREGAR HORARIOS:**\n`;
+      addScheduleContext += `El usuario está solicitando AGREGAR nuevos horarios, NO reemplazar los existentes.\n`;
+      addScheduleContext += `DEBES MANTENER todos los horarios que ya están asignados y AGREGAR los nuevos horarios solicitados.\n\n`;
+      
+      addScheduleContext += `**HORARIOS EXISTENTES QUE DEBES MANTENER:**\n`;
+      addScheduleContext += `Total de sesiones actuales: ${savedLessonDistribution.length}\n\n`;
+      
+      let totalLessonsAssigned = 0;
+      
+      // Mostrar TODOS los horarios existentes
+      savedLessonDistribution.forEach((item, idx) => {
+        if (!item || !item.dateStr || !item.startTime || !item.endTime) {
+          return;
+        }
+
+        const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
+        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+        totalLessonsAssigned += lessonCount;
+
+        addScheduleContext += `**${formattedDate}** de ${item.startTime} a ${item.endTime}:\n`;
+        
+        if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
+          item.lessons.forEach((lesson) => {
+            if (lesson?.lesson_title?.trim()) {
+              const lessonTitle = lesson.lesson_title.trim();
+              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : 0;
+              addScheduleContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
+            }
+          });
+        }
+        addScheduleContext += `\n`;
+      });
+      
+      addScheduleContext += `**RESUMEN DE HORARIOS EXISTENTES:**\n`;
+      addScheduleContext += `- Total de sesiones: ${savedLessonDistribution.length}\n`;
+      addScheduleContext += `- Total de lecciones asignadas: ${totalLessonsAssigned}\n`;
+      addScheduleContext += `- Lecciones pendientes por asignar: ${savedTotalLessons - totalLessonsAssigned}\n\n`;
+      
+      // Validar conflictos con el calendario si hay datos guardados
+      if (savedCalendarData && Object.keys(savedCalendarData).length > 0) {
+        addScheduleContext += `**⚠️ VALIDACIÓN DE CONFLICTOS:**\n`;
+        addScheduleContext += `- Si los nuevos horarios solicitados tienen conflictos con eventos del calendario, NO los incluyas\n`;
+        addScheduleContext += `- Solo incluye los horarios nuevos que NO tengan conflictos\n`;
+        addScheduleContext += `- Advierte al usuario sobre cualquier conflicto detectado\n\n`;
+      }
+      
+      // Instrucciones sobre la fecha límite
+      if (savedTargetDate) {
+        addScheduleContext += `**🚨 FECHA LÍMITE:**\n`;
+        addScheduleContext += `- Fecha límite establecida: **${savedTargetDate}**\n`;
+        addScheduleContext += `- NO generes horarios después de esta fecha\n`;
+        addScheduleContext += `- Calcula los nuevos horarios SOLO hasta ${savedTargetDate}\n\n`;
+      }
+      
+      addScheduleContext += `**🚨 INSTRUCCIONES CRÍTICAS PARA TU RESPUESTA:**\n`;
+      addScheduleContext += `1. MANTÉN todos los horarios existentes listados arriba CON SUS LECCIONES EXACTAS\n`;
+      addScheduleContext += `2. AGREGA los nuevos horarios solicitados por el usuario\n`;
+      addScheduleContext += `3. Muestra un resumen COMPLETO con TODOS los horarios (existentes + nuevos)\n`;
+      addScheduleContext += `4. **ORDENA TODOS LOS HORARIOS CRONOLÓGICAMENTE** (del más antiguo al más reciente por fecha)\n`;
+      addScheduleContext += `5. **USA EXACTAMENTE LAS LECCIONES QUE ESTÁN ASIGNADAS EN CADA HORARIO EXISTENTE**\n`;
+      addScheduleContext += `6. **NO inventes lecciones desde el principio** - el usuario puede tener lecciones completadas\n`;
+      addScheduleContext += `7. **NO empieces desde "Lección 1"** - usa SOLO las lecciones que están listadas arriba\n`;
+      addScheduleContext += `8. Si hay conflictos con el calendario, advierte al usuario pero incluye los horarios sin conflictos\n`;
+      addScheduleContext += `9. Distribuye las lecciones pendientes (de tu contexto) en los nuevos horarios agregados\n\n`;
+      
+      enrichedMessage = message + addScheduleContext;
+      console.log('➕ Usuario solicitó agregar horarios, enviando contexto de horarios existentes a LIA');
+      console.log(`   Total de horarios existentes: ${savedLessonDistribution.length}`);
+      console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
+    } else if (isChangingTargetDate) {
+      // Función para formatear la fecha de forma legible
+      const formatDateForDisplay = (dateStr: string, dayName: string): string => {
+        try {
+          // dateStr viene en formato YYYY-MM-DD
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            const day = parseInt(parts[2]);
+            const month = parseInt(parts[1]) - 1;
+            const year = parseInt(parts[0]);
+            const date = new Date(year, month, day);
+            
+            const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                               'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            return `${capitalizedDay} ${day} de ${monthNames[month]} de ${year}`;
+          }
+        } catch (e) {
+          console.error('Error formateando fecha:', e);
+        }
+        return dayName + ' ' + dateStr;
+      };
+      
+      // Construir el contexto de horarios existentes cuando se cambia la fecha límite
+      let changeDateContext = `\n\n**🚨 INSTRUCCIÓN CRÍTICA - CAMBIAR FECHA LÍMITE:**\n`;
+      changeDateContext += `El usuario está solicitando CAMBIAR la fecha límite, NO eliminar los horarios existentes.\n`;
+      changeDateContext += `DEBES MANTENER todos los horarios que ya están asignados y actualizar la fecha límite.\n`;
+      changeDateContext += `Si la nueva fecha límite es posterior a la anterior, puedes agregar más horarios hasta la nueva fecha.\n\n`;
+      
+      changeDateContext += `**HORARIOS EXISTENTES QUE DEBES MANTENER:**\n`;
+      changeDateContext += `Total de sesiones actuales: ${savedLessonDistribution.length}\n\n`;
+      
+      let totalLessonsAssigned = 0;
+      
+      // Mostrar TODOS los horarios existentes
+      savedLessonDistribution.forEach((item, idx) => {
+        if (!item || !item.dateStr || !item.startTime || !item.endTime) {
+          return;
+        }
+
+        const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
+        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+        totalLessonsAssigned += lessonCount;
+
+        changeDateContext += `**${formattedDate}** de ${item.startTime} a ${item.endTime}:\n`;
+        
+        if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
+          item.lessons.forEach((lesson) => {
+            if (lesson?.lesson_title?.trim()) {
+              const lessonTitle = lesson.lesson_title.trim();
+              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : 0;
+              changeDateContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
+            }
+          });
+        }
+        changeDateContext += `\n`;
+      });
+      
+      changeDateContext += `**RESUMEN DE HORARIOS EXISTENTES:**\n`;
+      changeDateContext += `- Total de sesiones: ${savedLessonDistribution.length}\n`;
+      changeDateContext += `- Total de lecciones asignadas: ${totalLessonsAssigned}\n`;
+      changeDateContext += `- Lecciones pendientes por asignar: ${savedTotalLessons - totalLessonsAssigned}\n\n`;
+      
+      // Instrucciones sobre la nueva fecha límite
+      changeDateContext += `**🚨 INSTRUCCIONES PARA CAMBIAR FECHA LÍMITE:**\n`;
+      changeDateContext += `1. MANTÉN todos los horarios existentes listados arriba\n`;
+      changeDateContext += `2. Extrae la nueva fecha límite del mensaje del usuario\n`;
+      changeDateContext += `3. Si la nueva fecha es posterior a la anterior, puedes agregar más horarios hasta la nueva fecha\n`;
+      changeDateContext += `4. Si la nueva fecha es anterior, mantén solo los horarios que estén antes de la nueva fecha\n`;
+      changeDateContext += `5. Muestra un resumen COMPLETO con TODOS los horarios (existentes + nuevos si aplica)\n`;
+      changeDateContext += `6. **ORDENA TODOS LOS HORARIOS CRONOLÓGICAMENTE** (del más antiguo al más reciente por fecha)\n`;
+      changeDateContext += `7. **USA EXACTAMENTE LAS LECCIONES QUE ESTÁN ASIGNADAS EN CADA HORARIO EXISTENTE**\n`;
+      changeDateContext += `8. **NO inventes lecciones desde el principio** - el usuario puede tener lecciones completadas\n`;
+      changeDateContext += `9. **NO empieces desde "Lección 1"** - usa SOLO las lecciones que están listadas arriba\n`;
+      changeDateContext += `10. Distribuye las lecciones pendientes (de tu contexto) en los nuevos horarios si se agregaron\n\n`;
+      
+      enrichedMessage = message + changeDateContext;
+      console.log('📅 Usuario solicitó cambiar fecha límite, enviando contexto de horarios existentes a LIA');
+      console.log(`   Total de horarios existentes: ${savedLessonDistribution.length}`);
       console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
     }
     
@@ -3993,6 +5006,36 @@ Cuéntame:
     setIsProcessing(true);
 
     try {
+      // Validación de seguridad: detectar intentos de prompt injection
+      const promptInjectionPatterns = [
+        /ignora\s+(todas?\s+)?las?\s+instrucciones/i,
+        /olvida\s+(que\s+)?eres/i,
+        /ahora\s+eres/i,
+        /actúa\s+como/i,
+        /sé\s+que\s+eres\s+un\s+asistente/i,
+        /muéstrame\s+el\s+prompt/i,
+        /revela\s+las?\s+instrucciones/i,
+        /dime\s+tu\s+configuración/i,
+        /ejecuta\s+(código|comando|script)/i,
+        /system\s*:\s*ignore/i,
+        /\[SYSTEM\]/i,
+        /<\|system\|>/i,
+      ];
+
+      const hasInjectionAttempt = promptInjectionPatterns.some(pattern => 
+        pattern.test(enrichedMessage) || pattern.test(message)
+      );
+      
+      if (hasInjectionAttempt) {
+        console.warn('🚫 Intento de prompt injection detectado, bloqueando...');
+        setConversationHistory(prev => [...prev, {
+          role: 'assistant',
+          content: 'Entiendo que quieres probar diferentes cosas, pero estoy aquí específicamente para ayudarte con tu plan de estudios. ¿En qué puedo asistirte con la planificación de tus cursos?'
+        }]);
+        setIsProcessing(false);
+        return;
+      }
+
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4037,7 +5080,13 @@ Cuéntame:
       });
 
       if (!response.ok) {
-        throw new Error('Error al comunicarse con LIA');
+        const errorText = await response.text();
+        console.error('Error en respuesta de LIA:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Error al comunicarse con LIA: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -4074,6 +5123,14 @@ Cuéntame:
       }
 
       setConversationHistory(prev => [...prev, { role: 'assistant', content: liaResponse }]);
+      
+      // Si fue una solicitud de agregar horarios, la respuesta de LIA ya incluye todos los horarios (existentes + nuevos)
+      // Cuando el usuario confirme, handleConfirmSchedules parseará la respuesta completa
+      if (isAddingSchedules) {
+        console.log('✅ LIA respondió a solicitud de agregar horarios');
+        console.log('   La respuesta incluye todos los horarios (existentes + nuevos)');
+        console.log('   Cuando el usuario confirme, se actualizará savedLessonDistribution');
+      }
       
       // Detectar si LIA está pidiendo seleccionar cursos y abrir el modal automáticamente
       if (liaResponse.includes('¿Qué cursos te gustaría incluir?') || 
@@ -4658,50 +5715,11 @@ Cuéntame:
             
             {/* Botones de acción como iconos que se expanden con texto */}
             <div className="flex items-center gap-2">
-              {/* Botón Seleccionar cursos */}
-              <motion.button
-                layout
-                onClick={() => loadUserCourses()}
-                disabled={isProcessing || showCourseSelector}
-                onMouseEnter={() => setHoveredButton('courses')}
-                onMouseLeave={() => setHoveredButton(null)}
-                whileTap={{ scale: 0.95 }}
-                className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${
-                  isProcessing || showCourseSelector
-                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                    : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30'
-                }`}
-              >
-                <div className="p-2.5 flex-shrink-0">
-                  <GraduationCap size={20} />
-                </div>
-                <AnimatePresence>
-                  {hoveredButton === 'courses' && (
-                    <motion.span
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: 150, opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.2, ease: 'easeInOut' }}
-                      className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
-                    >
-                      Seleccionar cursos
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-
               {/* Botón Calendario conectado / Conectar calendario */}
               {connectedCalendar ? (
                 <motion.button
                   layout
-                  onClick={() => {
-                    const action = window.confirm(
-                      `Tu calendario de ${connectedCalendar === 'google' ? 'Google' : 'Microsoft'} está conectado.\n\n¿Deseas analizar tu calendario de nuevo?`
-                    );
-                    if (action) {
-                      analyzeCalendarAndSuggest(connectedCalendar);
-                    }
-                  }}
+                  onClick={() => setShowCalendarModal(true)}
                   disabled={isProcessing}
                   onMouseEnter={() => setHoveredButton('calendar-connected')}
                   onMouseLeave={() => setHoveredButton(null)}
@@ -4916,11 +5934,11 @@ Cuéntame:
                     {/* Contenido del mensaje */}
                     <div className="relative z-10">
                       {msg.role === 'assistant' ? (
-                        <div className="text-sm sm:text-base leading-[1.6] font-medium text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+                        <div className="font-body text-[15px] sm:text-[16px] leading-[1.75] text-slate-50 tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
                           {formatLIAMessage(msg.content)}
                         </div>
                       ) : (
-                        <p className="text-sm sm:text-base leading-[1.6] font-medium whitespace-pre-wrap text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">{msg.content}</p>
+                        <p className="font-body text-[15px] sm:text-[16px] leading-[1.75] font-medium whitespace-pre-wrap text-white tracking-wide [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">{msg.content}</p>
                       )}
                     </div>
                     
@@ -5051,7 +6069,6 @@ Cuéntame:
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="absolute inset-0 bg-black/70 backdrop-blur-md"
-                  onClick={() => setShowCourseSelector(false)}
                 />
                 
                 {/* Modal */}
@@ -5072,18 +6089,6 @@ Cuéntame:
                         <h3 className="text-xl font-bold text-white mb-1">Selecciona tus cursos</h3>
                         <p className="text-slate-400 text-sm">Elige los cursos que quieres incluir en tu plan de estudios</p>
                   </div>
-                      <motion.button
-                        onClick={() => {
-                          setShowCourseSelector(false);
-                          setCourseSearchQuery('');
-                        }}
-                        whileHover={{ scale: 1.1, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
-                        title="Cerrar"
-                      >
-                        <X size={20} />
-                      </motion.button>
                 </div>
 
                     {/* Barra de búsqueda - Siempre visible */}
@@ -5279,14 +6284,6 @@ Cuéntame:
                             </div>
                             <div className="flex gap-3">
                         <motion.button
-                          onClick={() => setShowCourseSelector(false)}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Cancelar
-                        </motion.button>
-                        <motion.button
                           onClick={confirmCourseSelection}
                                 disabled={selectedCourseIds.length === 0}
                                 whileHover={selectedCourseIds.length > 0 ? { scale: 1.05 } : {}}
@@ -5334,113 +6331,260 @@ Cuéntame:
                 >
                   {/* Header */}
                   <div className="text-center mb-6">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                      <Calendar className="w-8 h-8 text-blue-400" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Conecta tu calendario</h3>
-                    <p className="text-slate-400 text-sm">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                      className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-blue-600/30 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-500/20"
+                    >
+                      <Calendar className="w-10 h-10 text-blue-400" />
+                    </motion.div>
+                    <h3 className="text-2xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                      Conecta tu calendario
+                    </h3>
+                    <p className="text-slate-400 text-sm max-w-sm mx-auto">
                       Analizo tu calendario para encontrar los mejores horarios para estudiar
                     </p>
                   </div>
 
                   {/* Opciones de calendario */}
-                  <div className="space-y-3 mb-6">
+                  <div className="space-y-4 mb-6">
                     {/* Google Calendar */}
-                    <motion.button
-                      onClick={connectGoogleCalendar}
-                      disabled={isConnectingCalendar || connectedCalendar === 'google'}
-                      whileHover={connectedCalendar === 'google' ? {} : { scale: 1.02 }}
-                      whileTap={connectedCalendar === 'google' ? {} : { scale: 0.98 }}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all group ${
-                        connectedCalendar === 'google' 
-                          ? 'bg-green-500/20 border-2 border-green-500/50 cursor-default' 
-                          : 'bg-white/5 hover:bg-white/10 border border-slate-700/50 hover:border-slate-600'
-                      }`}
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p className="text-white font-medium">Google Calendar</p>
-                        {connectedCalendar === 'google' ? (
-                          <p className="text-green-400 text-sm flex items-center gap-2">
-                            <Check className="w-4 h-4" />
-                            Conectado exitosamente
-                          </p>
-                        ) : (
-                        <p className="text-slate-400 text-sm">Conecta tu cuenta de Google</p>
+                    <div className="relative group">
+                      <motion.button
+                        onClick={() => {
+                          if (connectedCalendar === 'google') {
+                            // Si ya está conectado, desconectar primero
+                            disconnectCalendar('google');
+                          } else {
+                            // Si hay otro calendario conectado, desconectarlo primero
+                            if (connectedCalendar === 'microsoft') {
+                              disconnectCalendar('microsoft').then(() => {
+                                setTimeout(() => connectGoogleCalendar(), 500);
+                              });
+                            } else {
+                              connectGoogleCalendar();
+                            }
+                          }
+                        }}
+                        disabled={isConnectingCalendar}
+                        whileHover={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
+                        whileTap={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 0.98 }}
+                        className={`w-full flex items-center gap-4 p-5 rounded-2xl transition-all relative overflow-hidden ${
+                          connectedCalendar === 'google' 
+                            ? 'bg-gradient-to-r from-green-500/20 via-green-500/15 to-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20' 
+                            : 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-slate-600/50 hover:border-slate-500/50'
+                        } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {/* Efecto de brillo en hover */}
+                        {connectedCalendar !== 'google' && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                         )}
-                      </div>
-                      {connectedCalendar === 'google' ? (
-                        <Check className="w-5 h-5 text-green-400" />
-                      ) : (
-                      <ExternalLink className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                        
+                        {/* Icono de Google */}
+                        <motion.div
+                          className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                            connectedCalendar === 'google'
+                              ? 'bg-white ring-2 ring-green-500/50'
+                              : 'bg-white'
+                          }`}
+                          whileHover={connectedCalendar !== 'google' ? { rotate: [0, -5, 5, -5, 0] } : {}}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <svg viewBox="0 0 24 24" className="w-7 h-7">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                          </svg>
+                        </motion.div>
+                        
+                        {/* Contenido del botón */}
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-white font-semibold text-base">Google Calendar</p>
+                            {connectedCalendar === 'google' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-2 h-2 rounded-full bg-green-400 shadow-lg shadow-green-400/50"
+                              />
+                            )}
+                          </div>
+                          {connectedCalendar === 'google' ? (
+                            <div className="text-green-400 text-sm flex items-center gap-2 font-medium">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 500 }}
+                              >
+                                <Check className="w-4 h-4" />
+                              </motion.div>
+                              <span>Conectado exitosamente</span>
+                            </div>
+                          ) : (
+                          <p className="text-slate-400 text-sm">Conecta tu cuenta de Google</p>
+                          )}
+                        </div>
+                        
+                        {/* Icono de acción */}
+                        {connectedCalendar !== 'google' && (
+                          <motion.div
+                            className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-slate-600/50 transition-colors"
+                            whileHover={{ rotate: 45 }}
+                          >
+                            <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-slate-300 transition-colors" />
+                          </motion.div>
+                        )}
+                      </motion.button>
+                      
+                      {/* Botón de desconectar mejorado */}
+                      {connectedCalendar === 'google' && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          onClick={() => disconnectCalendar('google')}
+                          disabled={isConnectingCalendar}
+                          whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                          whileTap={{ scale: 0.9 }}
+                          className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
+                          title="Desconectar Google Calendar"
+                        >
+                          <X className="w-4 h-4" />
+                        </motion.button>
                       )}
-                    </motion.button>
+                    </div>
 
                     {/* Microsoft Calendar */}
-                    <motion.button
-                      onClick={connectMicrosoftCalendar}
-                      disabled={isConnectingCalendar || connectedCalendar === 'microsoft'}
-                      whileHover={connectedCalendar === 'microsoft' ? {} : { scale: 1.02 }}
-                      whileTap={connectedCalendar === 'microsoft' ? {} : { scale: 0.98 }}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all group ${
-                        connectedCalendar === 'microsoft' 
-                          ? 'bg-green-500/20 border-2 border-green-500/50 cursor-default' 
-                          : 'bg-white/5 hover:bg-white/10 border border-slate-700/50 hover:border-slate-600'
-                      }`}
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-[#00A4EF] flex items-center justify-center flex-shrink-0">
-                        <svg viewBox="0 0 23 23" className="w-5 h-5">
-                          <path fill="#f25022" d="M1 1h10v10H1z"/>
-                          <path fill="#00a4ef" d="M12 1h10v10H12z"/>
-                          <path fill="#7fba00" d="M1 12h10v10H1z"/>
-                          <path fill="#ffb900" d="M12 12h10v10H12z"/>
-                        </svg>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p className="text-white font-medium">Microsoft Outlook</p>
-                        {connectedCalendar === 'microsoft' ? (
-                          <p className="text-green-400 text-sm flex items-center gap-2">
-                            <Check className="w-4 h-4" />
-                            Conectado exitosamente
-                          </p>
-                        ) : (
-                        <p className="text-slate-400 text-sm">Conecta tu cuenta de Microsoft</p>
+                    <div className="relative group">
+                      <motion.button
+                        onClick={() => {
+                          if (connectedCalendar === 'microsoft') {
+                            // Si ya está conectado, desconectar primero
+                            disconnectCalendar('microsoft');
+                          } else {
+                            // Si hay otro calendario conectado, desconectarlo primero
+                            if (connectedCalendar === 'google') {
+                              disconnectCalendar('google').then(() => {
+                                setTimeout(() => connectMicrosoftCalendar(), 500);
+                              });
+                            } else {
+                              connectMicrosoftCalendar();
+                            }
+                          }
+                        }}
+                        disabled={isConnectingCalendar}
+                        whileHover={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
+                        whileTap={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 0.98 }}
+                        className={`w-full flex items-center gap-4 p-5 rounded-2xl transition-all relative overflow-hidden ${
+                          connectedCalendar === 'microsoft' 
+                            ? 'bg-gradient-to-r from-green-500/20 via-green-500/15 to-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20' 
+                            : 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-slate-600/50 hover:border-slate-500/50'
+                        } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {/* Efecto de brillo en hover */}
+                        {connectedCalendar !== 'microsoft' && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                         )}
-                      </div>
-                      {connectedCalendar === 'microsoft' ? (
-                        <Check className="w-5 h-5 text-green-400" />
-                      ) : (
-                      <ExternalLink className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                        
+                        {/* Icono de Microsoft */}
+                        <motion.div
+                          className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                            connectedCalendar === 'microsoft'
+                              ? 'bg-white ring-2 ring-green-500/50'
+                              : 'bg-white'
+                          }`}
+                          whileHover={connectedCalendar !== 'microsoft' ? { rotate: [0, -5, 5, -5, 0] } : {}}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <svg viewBox="0 0 23 23" className="w-8 h-8">
+                            <path fill="#f25022" d="M1 1h10v10H1z"/>
+                            <path fill="#00a4ef" d="M12 1h10v10H12z"/>
+                            <path fill="#7fba00" d="M1 12h10v10H1z"/>
+                            <path fill="#ffb900" d="M12 12h10v10H12z"/>
+                          </svg>
+                        </motion.div>
+                        
+                        {/* Contenido del botón */}
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-white font-semibold text-base">Microsoft Outlook</p>
+                            {connectedCalendar === 'microsoft' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-2 h-2 rounded-full bg-green-400 shadow-lg shadow-green-400/50"
+                              />
+                            )}
+                          </div>
+                          {connectedCalendar === 'microsoft' ? (
+                            <div className="text-green-400 text-sm flex items-center gap-2 font-medium">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 500 }}
+                              >
+                                <Check className="w-4 h-4" />
+                              </motion.div>
+                              <span>Conectado exitosamente</span>
+                            </div>
+                          ) : (
+                          <p className="text-slate-400 text-sm">Conecta tu cuenta de Microsoft</p>
+                          )}
+                        </div>
+                        
+                        {/* Icono de acción */}
+                        {connectedCalendar !== 'microsoft' && (
+                          <motion.div
+                            className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-slate-600/50 transition-colors"
+                            whileHover={{ rotate: 45 }}
+                          >
+                            <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-slate-300 transition-colors" />
+                          </motion.div>
+                        )}
+                      </motion.button>
+                      
+                      {/* Botón de desconectar mejorado */}
+                      {connectedCalendar === 'microsoft' && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          onClick={() => disconnectCalendar('microsoft')}
+                          disabled={isConnectingCalendar}
+                          whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                          whileTap={{ scale: 0.9 }}
+                          className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
+                          title="Desconectar Microsoft Calendar"
+                        >
+                          <X className="w-4 h-4" />
+                        </motion.button>
                       )}
-                    </motion.button>
+                    </div>
                   </div>
 
                   {/* Botón para saltar */}
-                  <div className="text-center">
-                    <button
+                  <div className="text-center pt-2">
+                    <motion.button
                       onClick={skipCalendarConnection}
-                      className="text-slate-400 hover:text-slate-300 text-sm transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="text-slate-400 hover:text-slate-300 text-sm font-medium transition-colors px-4 py-2 rounded-lg hover:bg-slate-700/30"
                     >
                       Omitir por ahora
-                    </button>
+                    </motion.button>
                   </div>
 
-                  {/* Botón cerrar */}
-                  <button
+                  {/* Botón cerrar mejorado */}
+                  <motion.button
                     onClick={skipCalendarConnection}
-                    className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-300 transition-colors"
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all backdrop-blur-sm"
                     title="Cerrar modal de calendario"
                     aria-label="Cerrar"
                   >
                     <X size={20} />
-                  </button>
+                  </motion.button>
                 </motion.div>
               </motion.div>
             )}
@@ -5457,7 +6601,6 @@ Cuéntame:
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998]"
-                onClick={() => setShowApproachModal(false)}
               />
               
               {/* Modal */}
@@ -5481,15 +6624,6 @@ Cuéntame:
                         <h3 className="text-xl font-bold text-white mb-1">Selecciona tu enfoque de estudio</h3>
                         <p className="text-slate-400 text-sm">Elige el tipo de sesiones que prefieres para tu plan de estudios</p>
                       </div>
-                      <motion.button
-                        onClick={() => setShowApproachModal(false)}
-                        whileHover={{ scale: 1.1, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
-                        title="Cerrar"
-                      >
-                        <X size={20} />
-                      </motion.button>
                     </div>
                   </div>
 
@@ -5647,7 +6781,6 @@ Cuéntame:
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998]"
-                onClick={() => setShowDateModal(false)}
               />
               
               {/* Modal */}
@@ -5671,15 +6804,6 @@ Cuéntame:
                         <h3 className="text-xl font-bold text-white mb-1">Selecciona fecha estimada</h3>
                         <p className="text-slate-400 text-sm">Elige cuándo quieres terminar tus cursos</p>
                       </div>
-                      <motion.button
-                        onClick={() => setShowDateModal(false)}
-                        whileHover={{ scale: 1.1, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
-                        title="Cerrar"
-                      >
-                        <X size={20} />
-                      </motion.button>
                     </div>
                   </div>
 
@@ -5920,51 +7044,6 @@ Cuéntame:
           </div>
         </div>
       </div>
-    )}
-    {/* Botón flotante para abrir el tour de introducción */}
-    {showConversation && !isVisible && (
-      <motion.button
-        onClick={() => {
-          setIsVisible(true);
-          setShowConversation(false);
-          setCurrentStep(0);
-        }}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="fixed bottom-20 left-4 z-[9999] px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm rounded-lg shadow-lg transition-all duration-200 font-semibold flex items-center gap-2 hover:shadow-xl"
-        title="Ver tour de introducción"
-      >
-        <div className="relative w-6 h-6">
-          <motion.div 
-            className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-0.5"
-            animate={{ 
-              boxShadow: [
-                '0 0 0px rgba(59, 130, 246, 0.5)',
-                '0 0 20px rgba(168, 85, 247, 0.8)',
-                '0 0 0px rgba(59, 130, 246, 0.5)',
-              ]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut'
-            }}
-          >
-            <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden">
-              <Image
-                src="/lia-avatar.png"
-                alt="LIA"
-                width={24}
-                height={24}
-                className="object-cover"
-              />
-            </div>
-          </motion.div>
-        </div>
-        <span>Ver tour guiado</span>
-      </motion.button>
     )}
     </>
   );
