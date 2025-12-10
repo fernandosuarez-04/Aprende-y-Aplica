@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { BusinessLogo } from '../BusinessLogo';
 import { ThemeToggle } from '../ThemeToggle';
-import { Menu, X, ChevronDown, Globe } from 'lucide-react';
+import { LanguageSelector } from '../LanguageSelector';
+import { Menu, X, ChevronDown } from 'lucide-react';
 
 export function BusinessNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -78,6 +79,7 @@ export function BusinessNavbar() {
           {/* Right Actions */}
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
             <ThemeToggle />
+            <LanguageSelector />
             <Link href="/auth">
               <Button variant="outline" size="sm" className="hover:bg-primary/10">
                 Iniciar Sesión
@@ -88,9 +90,6 @@ export function BusinessNavbar() {
                 Comenzar
               </Button>
             </Link>
-            <button className="p-2 hover:bg-glass rounded-lg transition-colors">
-              <Globe className="w-5 h-5 text-text-secondary hover:text-primary" />
-            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -126,8 +125,9 @@ export function BusinessNavbar() {
                   </Link>
                 ))}
                 <div className="flex flex-col gap-2 pt-4 border-t">
-                  <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-2">
                     <ThemeToggle />
+                    <LanguageSelector />
                   </div>
                   <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full">Iniciar Sesión</Button>
