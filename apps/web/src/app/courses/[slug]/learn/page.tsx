@@ -2707,6 +2707,26 @@ Antes de cada respuesta, pregúntate:
         const requiredActivities = currentActivities.filter(a => a.is_required);
         const pendingRequired = requiredActivities.filter(a => !a.is_completed);
         const completedActivities = currentActivities.filter(a => a.is_completed);
+
+        // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
+        // Basado en el tab activo y el scroll/interacciones recientes
+        let currentActivityFocus = null;
+        if (activeTab === 'activities' && pendingRequired.length > 0) {
+          // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
+          currentActivityFocus = pendingRequired[0];
+        } else if (pendingRequired.length > 0) {
+          // Si no está en actividades pero hay pendientes, mencionar que tiene actividades sin completar
+          currentActivityFocus = null;
+        }
+
+        // 🎯 Detectar patrones temporales y de progreso
+        const totalLessonsInCourse = modules.reduce((total, module) => total + module.lessons.length, 0);
+        const currentLessonIndex = getAllLessonsOrdered().findIndex(
+          item => item.lesson.lesson_id === currentLesson?.lesson_id
+        );
+        const progressPercentage = totalLessonsInCourse > 0
+          ? Math.round(((currentLessonIndex + 1) / totalLessonsInCourse) * 100)
+          : 0;
         
         // Construir contexto enriquecido de la lección con información de la dificultad detectada
         // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
@@ -2743,10 +2763,27 @@ Antes de cada respuesta, pregúntate:
               type: a.activity_type,
               isRequired: a.is_required,
               isCompleted: a.is_completed
-            }))
+            })),
+            // 🎯 NUEVO: Actividad actual en foco
+            currentActivityFocus: currentActivityFocus ? {
+              title: currentActivityFocus.activity_title,
+              type: currentActivityFocus.activity_type,
+              isRequired: currentActivityFocus.is_required,
+              description: currentActivityFocus.activity_description || 'Sin descripción'
+            } : null
           },
           // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
           userBehaviorContext: behaviorAnalysis,
+          // 🎯 NUEVO: Contexto de progreso del usuario
+          learningProgressContext: {
+            currentLessonNumber: currentLessonIndex + 1,
+            totalLessons: totalLessonsInCourse,
+            progressPercentage: progressPercentage,
+            currentTab: activeTab, // video, transcript, summary, activities
+            timeInCurrentLesson: currentLesson?.duration_seconds
+              ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
+              : 'Desconocido'
+          },
           // Agregar información de la dificultad detectada al contexto
           difficultyDetected: {
             patterns: analysis.patterns.map(p => ({
@@ -2772,7 +2809,29 @@ Antes de cada respuesta, pregúntate:
               })()
             })),
             overallScore: analysis.overallScore,
-            shouldIntervene: analysis.shouldIntervene
+            shouldIntervene: analysis.shouldIntervene,
+            // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
+            suggestedHelpType: (() => {
+              const primaryPattern = analysis.patterns[0];
+              if (!primaryPattern) return 'general';
+
+              switch (primaryPattern.type) {
+                case 'inactivity':
+                  return activeTab === 'activities' ? 'activity_guidance' : 'content_explanation';
+                case 'excessive_scroll':
+                  return 'content_navigation';
+                case 'failed_attempts':
+                  return 'activity_hints';
+                case 'frequent_deletion':
+                  return 'activity_structure';
+                case 'repetitive_cycles':
+                  return 'concept_clarification';
+                case 'erroneous_clicks':
+                  return 'interface_guidance';
+                default:
+                  return 'general';
+              }
+            })()
           }
         } : getLessonContext();
         
