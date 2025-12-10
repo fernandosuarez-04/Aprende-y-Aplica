@@ -126,11 +126,6 @@
         "actionLabel": "Ver Prompts"
       },
       "5": {
-        "title": "Hablemos un momento",
-        "description": "Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Puedo hablarte por voz sobre lo que necesites saber.",
-        "speech": "Antes de que explores la plataforma, ¿te gustaría hacerme alguna pregunta? Haz clic en el micrófono y háblame. Te responderé por voz."
-      },
-      "6": {
         "title": "¡Estás listo!",
         "description": "Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible en la esquina inferior derecha para ayudarte.",
         "speech": "Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible para ayudarte.",
@@ -140,19 +135,8 @@
     "buttons": {
       "previous": "Anterior",
       "next": "Siguiente",
-      "continueWithoutAsking": "Continuar sin preguntar",
-      "continue": "Continuar",
       "start": "¡Comenzar!",
       "skipIntro": "Saltar introducción"
-    },
-    "voice": {
-      "processing": "Procesando tu pregunta...",
-      "listening": "Escuchando... Habla ahora",
-      "clickToSpeak": "Haz clic en el micrófono para hablar con LIA",
-      "errorProcessing": "Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?",
-      "browserNotSupported": "Tu navegador no soporta reconocimiento de voz. Por favor usa Chrome, Edge o Safari.",
-      "micPermissionNeeded": "Necesito permiso para usar el micrófono.\n\nPor favor:\n1. Haz clic en el icono de micrófono en la barra de direcciones\n2. Permite el acceso al micrófono\n3. Intenta de nuevo",
-      "micError": "Error al acceder al micrófono. Por favor verifica que tu micrófono esté conectado y funcionando."
     }
   },
   "menu": {
