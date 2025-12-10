@@ -120,12 +120,6 @@
         "actionLabel": "Ver Cursos"
       },
       "4": {
-        "title": "Diretório de Prompts",
-        "description": "Descubra e crie prompts de IA profissionais. Uma ferramenta poderosa para maximizar o potencial da inteligência artificial.",
-        "speech": "Descubra e crie prompts de IA profissionais. Uma ferramenta poderosa para maximizar o potencial da inteligência artificial.",
-        "actionLabel": "Ver Prompts"
-      },
-      "5": {
         "title": "Você está pronto!",
         "description": "Agora você pode começar sua aventura. Lembre-se, LIA estará sempre disponível no canto inferior direito para ajudá-lo.",
         "speech": "Agora você pode começar sua aventura. Lembre-se, LIA estará sempre disponível para ajudá-lo.",

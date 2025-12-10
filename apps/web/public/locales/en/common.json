@@ -120,12 +120,6 @@
         "actionLabel": "View Courses"
       },
       "4": {
-        "title": "Prompt Directory",
-        "description": "Discover and create professional AI prompts. A powerful tool to maximize the potential of artificial intelligence.",
-        "speech": "Discover and create professional AI prompts. A powerful tool to maximize the potential of artificial intelligence.",
-        "actionLabel": "View Prompts"
-      },
-      "5": {
         "title": "You're ready!",
         "description": "Now you can start your adventure. Remember, LIA will always be available in the bottom right corner to help you.",
         "speech": "Now you can start your adventure. Remember, LIA will always be available to help you.",

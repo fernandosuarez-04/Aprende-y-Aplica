@@ -56,16 +56,6 @@ function useOnboardingSteps() {
       speech: t('onboarding.steps.4.speech'),
       action: {
         label: t('onboarding.steps.4.actionLabel'),
-        path: '/prompt-directory'
-      }
-    },
-    {
-      id: 5,
-      title: t('onboarding.steps.5.title'),
-      description: t('onboarding.steps.5.description'),
-      speech: t('onboarding.steps.5.speech'),
-      action: {
-        label: t('onboarding.steps.5.actionLabel'),
         path: '/dashboard'
       }
     }
