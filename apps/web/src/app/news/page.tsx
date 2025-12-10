@@ -24,9 +24,11 @@ import { NewsWithMetrics } from '../../features/news/services/news.service'
 import { useFeaturedReels } from '../../features/reels/hooks/useFeaturedReels'
 import { FeaturedReelsSection } from '../../features/reels/components/FeaturedReelsSection'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 
 export default function NewsPage() {
   const router = useRouter()
+  const { t } = useTranslation('news')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,12 +59,12 @@ export default function NewsPage() {
   const { featuredNews, loading: featuredLoading } = useFeaturedNews(3)
   const { reels: featuredReels, loading: reelsLoading, error: reelsError } = useFeaturedReels(6)
   const navigationTabs = [
-    { key: 'news', label: 'Noticias', icon: Newspaper, caption: 'Artículos curados' },
-    { key: 'reels', label: 'Reels', icon: Video, caption: 'Clips en tendencia' }
+    { key: 'news', label: t('tabs.news.label'), icon: Newspaper, caption: t('tabs.news.caption') },
+    { key: 'reels', label: t('tabs.reels.label'), icon: Video, caption: t('tabs.reels.caption') }
   ] as const
   const viewOptions = [
-    { key: 'grid', label: 'Tarjetas', icon: Grid3X3 },
-    { key: 'list', label: 'Lista', icon: List }
+    { key: 'grid', label: t('viewModes.grid'), icon: Grid3X3 },
+    { key: 'list', label: t('viewModes.list'), icon: List }
   ] as const
 
   const filteredNews = news.filter(item =>
@@ -130,7 +132,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
               >
-                Tendencias IA · Tiempo real
+                {t('badge')}
               </motion.p>
               <motion.h1
                 className="mt-4 text-4xl font-bold text-gray-900 dark:text-white leading-tight lg:text-5xl"
@@ -138,7 +140,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Noticias y Actualizaciones
+                {t('title')}
               </motion.h1>
               <motion.p
                 className="mt-6 text-lg text-gray-600 dark:text-gray-300 leading-relaxed"
@@ -146,8 +148,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                Mantente al día con las novedades más relevantes en inteligencia artificial,
-                adopción tecnológica y todo lo relacionado con Chat-Bot-LIA para tu aprendizaje.
+                {t('subtitle')}
               </motion.p>
 
               {/* Stats */}
@@ -159,9 +160,9 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                   transition={{ delay: 0.45 }}
                 >
                   {[
-                    { label: 'Noticias', value: stats.totalNews },
-                    { label: 'Categorías', value: stats.totalCategories },
-                    { label: 'Visualizaciones', value: stats.totalViews }
+                    { label: t('stats.news'), value: stats.totalNews },
+                    { label: t('stats.categories'), value: stats.totalCategories },
+                    { label: t('stats.views'), value: stats.totalViews }
                   ].map((stat) => (
                     <div
                       key={stat.label}
@@ -202,7 +203,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                   >
                     <BookOpen className="mx-auto h-24 w-24 drop-shadow-2xl text-primary dark:text-white" />
                     <p className="mt-6 text-base text-gray-600 dark:text-white/70">
-                      Actualizado cada semana con insights y aprendizajes accionables.
+                      {t('updated')}
                     </p>
                   </motion.div>
                 </div>
@@ -271,8 +272,8 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
         >
           <div className="mx-auto max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Reels</h2>
-              <p className="text-gray-600 dark:text-gray-400">Videos cortos con las últimas noticias y tendencias</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{t('reels.title')}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('reels.subtitle')}</p>
             </div>
             
             {/* Featured Reels */}
@@ -295,8 +296,8 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
         >
           <div className="mx-auto max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Noticias Destacadas</h2>
-              <p className="text-gray-600 dark:text-gray-400">Las noticias más importantes y relevantes del momento</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{t('featured.title')}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('featured.subtitle')}</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -332,7 +333,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent dark:from-gray-950/90 dark:via-gray-950/20" />
                       <div className="absolute top-4 left-4 rounded-full border border-black/10 bg-white/80 text-gray-900 dark:border-white/30 dark:bg-white/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] dark:text-white">
-                        Destacado
+                        {t('featured.badge')}
                       </div>
                     </div>
                     
@@ -363,7 +364,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                           <span>{item.view_count || 0}</span>
                         </div>
                         <div className="flex items-center gap-2 text-primary/80 font-medium">
-                          Leer más
+                          {t('featured.readMore')}
                           <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                         </div>
                       </div>
@@ -398,7 +399,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Buscar noticias..."
+                  placeholder={t('search.placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent border-none pl-12 pr-4 py-4 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-base font-medium"
@@ -442,12 +443,12 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
             </div>
           ) : error ? (
             <div className="text-center py-16">
-              <p className="text-gray-600 dark:text-gray-400">Error al cargar las noticias: {error}</p>
+              <p className="text-gray-600 dark:text-gray-400">{t('errors.loadError', { error })}</p>
             </div>
           ) : filteredNews.length === 0 ? (
             <div className="text-center py-16">
               <Newspaper className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No se encontraron noticias</p>
+              <p className="text-gray-600 dark:text-gray-400">{t('errors.noResults')}</p>
             </div>
           ) : (
             <AnimatePresence mode="wait">
@@ -531,7 +532,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 text-primary/70 font-medium">
-                            Leer artículo
+                            {t('article.readArticle')}
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                           </div>
                         </div>
@@ -555,7 +556,7 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
                 onClick={loadMore}
                 className="group relative inline-flex items-center gap-2 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-primary to-blue-500 px-10 py-4 text-white shadow-[0_20px_60px_rgba(37,99,235,0.35)] transition-all duration-300 hover:translate-y-[-2px]"
               >
-                <span className="relative z-10 font-semibold">Cargar más noticias</span>
+                <span className="relative z-10 font-semibold">{t('loadMore')}</span>
                 <ArrowRight className="relative z-10 w-5 h-5 transition-transform group-hover:translate-x-1" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/20" />
               </button>
