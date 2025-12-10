@@ -72,6 +72,7 @@ import { useSwipe } from '../../../../hooks/useSwipe';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 import { useLanguage } from '../../../../core/providers/I18nProvider';
+import { LanguageSelector } from '../../../../core/components/LanguageSelector';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
@@ -2896,6 +2897,11 @@ Antes de cada respuesta, pregúntate:
             <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0">
               {courseProgress}%
             </span>
+          </div>
+
+          {/* Sección derecha: Selector de idioma */}
+          <div className="flex items-center gap-2 shrink-0">
+            <LanguageSelector className="z-[1000]" />
           </div>
         </div>
       </motion.div>
