@@ -767,8 +767,23 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
     } else {
       modulesAndLessonsInfo = '\n\nNOTA: Este taller aún no tiene módulos o lecciones configuradas.';
     }
-    
-    workshopMetadataInfo = `${workshopInfo}${currentModuleInfo}${currentLessonInfo}${modulesAndLessonsInfo}`;
+
+    // ✅ Información de actividades del taller (si existe)
+    const workshopActivitiesInfo = workshopContext.activitiesContext
+      ? `\n\n📝 INFORMACIÓN DE ACTIVIDADES DE LA LECCIÓN:\n- Total de actividades: ${workshopContext.activitiesContext.totalActivities}\n- Actividades obligatorias: ${workshopContext.activitiesContext.requiredActivities}\n- Actividades completadas: ${workshopContext.activitiesContext.completedActivities}\n- Actividades obligatorias pendientes: ${workshopContext.activitiesContext.pendingRequiredCount}${workshopContext.activitiesContext.pendingRequiredTitles ? `\n- Pendientes: ${workshopContext.activitiesContext.pendingRequiredTitles}` : ''}`
+      : '';
+
+    // ✅ Información de dificultad detectada para talleres (si existe)
+    const workshopDifficultyInfo = workshopContext.difficultyDetected
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${workshopContext.difficultyDetected.patterns.map((p: any) => `- ${p.description}`).join('\n')}\n\n⚠️ IMPORTANTE: El estudiante necesita ayuda específica y práctica. Tu respuesta debe ser directa, útil y enfocada en resolver su dificultad inmediata. Proporciona pasos claros y concretos que pueda seguir.`
+      : '';
+
+    // ✅ Información de comportamiento del usuario en el taller (si existe)
+    const workshopBehaviorInfo = workshopContext.userBehaviorContext
+      ? `\n\n👤 ANÁLISIS DE COMPORTAMIENTO DEL ESTUDIANTE:\n${JSON.stringify(workshopContext.userBehaviorContext, null, 2)}`
+      : '';
+
+    workshopMetadataInfo = `${workshopInfo}${currentModuleInfo}${currentLessonInfo}${modulesAndLessonsInfo}${workshopActivitiesInfo}${workshopDifficultyInfo}${workshopBehaviorInfo}`;
   }
 
   const contexts: Record<string, string> = {

@@ -2777,14 +2777,14 @@ Antes de cada respuesta, pregúntate:
         } : getLessonContext();
         
         try {
-          // Enviar mensaje simple visible + contexto enriquecido en segundo plano
-          // El mensaje se mostrará como usuario normal: "Necesito ayuda con esta lección"
-          // El contexto enriquecido se procesará en el API pero NO se mostrará
+          // Enviar mensaje con contexto enriquecido en segundo plano
+          // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
+          // pero SÍ se enviará al API para que LIA responda con ayuda contextual
           // ✅ Si es un taller, enviar como workshopContext
           if (workshopMetadata && enrichedLessonContext?.contextType === 'workshop') {
-            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, false);
+            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, true);
           } else {
-            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, false);
+            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, undefined, true);
           }
         } catch (error) {
           console.error('❌ Error enviando mensaje proactivo a LIA:', error);
