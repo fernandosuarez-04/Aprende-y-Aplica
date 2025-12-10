@@ -49,15 +49,43 @@ export function useGlobalRecorder() {
       }); // 3 minutos = 180000ms
 
       // Reiniciar grabación cada 3 minutos para mantener el sistema activo
-      restartInterval = setInterval(() => {
-        console.log('🔄 [Global] Reiniciando grabación automáticamente (ciclo de 3 min)...');
-        recorder.stop();
-        // Esperar un tick para limpiar antes de reiniciar
-        setTimeout(() => {
-          recorder.startRecording(180000).catch((error) => {
-            console.error('❌ [Global] Error al reiniciar grabación:', error);
-          });
-        }, 100);
+      // Usar reinicio seguro para evitar race conditions y pérdida de eventos
+      restartInterval = setInterval(async () => {
+        try {
+          console.log('🔄 [Global] Reiniciando grabación automáticamente (ciclo de 3 min)...');
+          
+          // Detener grabación actual de forma segura
+          const stoppedSession = recorder.stop();
+          
+          if (stoppedSession) {
+            console.log(`✅ [Global] Grabación detenida: ${stoppedSession.events.length} eventos capturados`);
+          }
+          
+          // Esperar un tiempo suficiente para asegurar que la limpieza se complete
+          // Esto previene race conditions donde el recorder aún está procesando
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Verificar que el recorder no esté activo antes de reiniciar
+          if (recorder.isActive()) {
+            console.warn('⚠️ [Global] El recorder aún está activo, esperando más tiempo...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+          // Iniciar nueva grabación
+          await recorder.startRecording(180000);
+          console.log('✅ [Global] Nueva grabación iniciada correctamente');
+        } catch (error) {
+          console.error('❌ [Global] Error al reiniciar grabación:', error);
+          // Intentar reiniciar después de un delay más largo en caso de error
+          setTimeout(async () => {
+            try {
+              await recorder.startRecording(180000);
+              console.log('✅ [Global] Grabación reiniciada después de error');
+            } catch (retryError) {
+              console.error('❌ [Global] Error en reintento de grabación:', retryError);
+            }
+          }, 2000);
+        }
       }, 180000); // 3 minutos
     }).catch((error) => {
       console.error('❌ [Global] Error cargando sessionRecorder:', error);

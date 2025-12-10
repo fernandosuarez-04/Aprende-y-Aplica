@@ -8,6 +8,7 @@
 import './mutation-record-patch';
 
 import type { eventWithTime } from '@rrweb/types';
+import { loadRrweb, type RrwebModule, type RrwebRecordOptions } from './rrweb-loader';
 
 /**
  * Verifica que el patch de MutationRecord esté aplicado
@@ -22,108 +23,6 @@ function setupMutationRecordErrorHandler() {
   if (!(window as any).__mutationRecordPatchApplied) {
     console.warn('[SessionRecorder] ⚠️ El patch de MutationRecord no está aplicado. Esto puede causar errores.');
   }
-}
-
-// Tipos personalizados para rrweb sin usar typeof import (evita análisis estático de webpack)
-interface RrwebRecordOptions {
-  emit: (event: eventWithTime) => void;
-  checkoutEveryNms?: number;
-  checkoutEveryNth?: number;
-  recordCanvas?: boolean;
-  recordCrossOriginIframes?: boolean;
-  collectFonts?: boolean;
-  inlineStylesheet?: boolean;
-  sampling?: {
-    mousemove?: boolean;
-    mousemoveCallback?: number;
-    mouseInteraction?: {
-      MouseUp?: boolean;
-      MouseDown?: boolean;
-      Click?: boolean;
-      ContextMenu?: boolean;
-      DblClick?: boolean;
-      Focus?: boolean;
-      Blur?: boolean;
-      TouchStart?: boolean;
-      TouchEnd?: boolean;
-    };
-    scroll?: number;
-    media?: number;
-    input?: 'last' | boolean;
-  };
-  ignoreClass?: string;
-  maskTextClass?: string;
-  maskAllInputs?: boolean;
-  slimDOMOptions?: Record<string, boolean>;
-}
-
-interface RrwebModule {
-  record: (options: RrwebRecordOptions) => () => void;
-  EventType?: Record<string, number>;
-  [key: string]: any;
-}
-
-// Importación dinámica de rrweb - solo se carga en el cliente
-// Usar tipo genérico en lugar de typeof import para evitar análisis estático
-let rrwebModule: RrwebModule | null = null;
-let isRrwebLoading = false;
-let rrwebLoadPromise: Promise<RrwebModule | null> | null = null;
-
-/**
- * Carga dinámicamente el módulo rrweb solo en el cliente
- */
-async function loadRrweb(): Promise<RrwebModule | null> {
-  // Solo cargar en el cliente - verificación estricta
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return null;
-  }
-
-  // Verificar que estamos en un entorno de navegador válido
-  try {
-    if (!window || !document) {
-      return null;
-    }
-  } catch {
-    // Si window o document no están disponibles, estamos en el servidor
-    return null;
-  }
-
-  // Si ya está cargado, retornarlo
-  if (rrwebModule) {
-    return rrwebModule;
-  }
-
-  // Si ya está en proceso de carga, esperar a que termine
-  if (isRrwebLoading && rrwebLoadPromise) {
-    return rrwebLoadPromise;
-  }
-
-  // Iniciar carga con manejo robusto de errores
-  isRrwebLoading = true;
-  rrwebLoadPromise = (async () => {
-    try {
-      // Usar import dinámico con verificación adicional
-      // Usar 'any' para evitar que TypeScript intente analizar el módulo
-      const module = await import('rrweb') as any as RrwebModule;
-      
-      // Verificar que el módulo tiene la función record
-      if (!module || typeof module.record !== 'function') {
-        throw new Error('rrweb.record no está disponible');
-      }
-      
-      rrwebModule = module;
-      isRrwebLoading = false;
-      return module;
-    } catch (error) {
-      console.error('❌ Error cargando rrweb:', error);
-      isRrwebLoading = false;
-      rrwebLoadPromise = null;
-      rrwebModule = null;
-      return null;
-    }
-  })();
-
-  return rrwebLoadPromise;
 }
 
 export interface RecordingSession {
@@ -226,17 +125,34 @@ export class SessionRecorder {
     this.isRecording = true;
 
     try {
+      // Cargar rrweb dinámicamente (ya verificado arriba, pero lo cargamos de nuevo para asegurar)
+      const rrweb = await loadRrweb();
+      
+      // Validación estricta con verificación de tipo en tiempo de ejecución
+      if (!rrweb) {
+        throw new Error('rrweb module no se pudo cargar');
+      }
+      
+      // Verificar que record existe y es una función ANTES de crear recordOptions
+      if (typeof rrweb.record !== 'function') {
+        console.error('[SessionRecorder] rrweb.record no es una función:', {
+          rrweb: rrweb,
+          hasRecord: 'record' in rrweb,
+          recordType: typeof rrweb.record,
+          rrwebKeys: Object.keys(rrweb),
+        });
+        throw new Error('rrweb.record no está disponible o no es una función');
+      }
+
+      // Extraer la función record de forma segura ANTES de usarla
+      const recordFunction = rrweb.record;
+      if (typeof recordFunction !== 'function') {
+        throw new Error('rrweb.record no es una función después de extraerla');
+      }
+
       // Wrapper para capturar errores de MutationRecord
       const originalEmit = (event: any) => {
         try {
-      // Cargar rrweb dinámicamente (ya verificado arriba, pero lo cargamos de nuevo para asegurar)
-      const rrweb = await loadRrweb();
-      if (!rrweb || !rrweb.record) {
-        throw new Error('rrweb.record no está disponible');
-      }
-
-      this.stopRecording = rrweb.record({
-        emit: (event) => {
           // Guardar el snapshot inicial (tipo 2) por separado
           if (event.type === 2 && !this.initialSnapshot) {
             this.initialSnapshot = event;
@@ -271,34 +187,39 @@ export class SessionRecorder {
         }
       };
 
-      // Configuración de rrweb con protección contra errores de MutationRecord
-      const recordOptions = {
+      // Configuración de rrweb balanceada según entorno
+      // En desarrollo: más eventos para mejor debugging
+      // En producción: optimizado para reducir tamaño
+      const isDev = process.env.NODE_ENV === 'development';
+      
+      const recordOptions: RrwebRecordOptions = {
         emit: originalEmit,
         // Configuración optimizada para reducir eventos sin perder contexto importante
-        checkoutEveryNms: 15000, // Checkpoint cada 15 segundos (reducido de 10s)
-        checkoutEveryNth: 300, // Checkpoint cada 300 eventos (aumentado de 200)
+        checkoutEveryNms: isDev ? 10000 : 15000, // Checkpoint más frecuente en dev
+        checkoutEveryNth: isDev ? 200 : 300, // Checkpoint más frecuente en dev
         recordCanvas: false, // No grabar canvas (muy pesado)
         recordCrossOriginIframes: false, // No grabar iframes externos
         collectFonts: false, // No recolectar fuentes (reduce tamaño)
         inlineStylesheet: false, // No inline CSS (reduce eventos)
-        // Sampling agresivo para reducir ruido
+        // Sampling balanceado: más detallado en dev, optimizado en prod
         sampling: {
           mousemove: true,
-          mousemoveCallback: 500, // Sample mousemove cada 500ms (más espaciado)
+          mousemoveCallback: isDev ? 200 : 500, // Más frecuente en dev para mejor debugging
           mouseInteraction: {
-            MouseUp: false, // No capturar mouse up
-            MouseDown: false, // No capturar mouse down
-            Click: true, // Solo clicks (importante para reproducir acciones)
+            // En dev, capturar más eventos para mejor debugging
+            MouseUp: isDev, // Capturar mouse up en dev
+            MouseDown: isDev, // Capturar mouse down en dev
+            Click: true, // Siempre capturar clicks (importante para reproducir acciones)
             ContextMenu: false, // No menu contextual
-            DblClick: true, // Double clicks (importante)
-            Focus: false, // No focus events
-            Blur: false, // No blur events
+            DblClick: true, // Siempre capturar double clicks (importante)
+            Focus: isDev, // Capturar focus en dev para debugging
+            Blur: false, // No blur events (menos importante)
             TouchStart: false, // No touch start
             TouchEnd: false, // No touch end
           },
-          scroll: 300, // Sample scroll cada 300ms (más espaciado)
-          media: 800, // Sample media cada 800ms
-          input: 'last', // Solo el último valor de inputs (no cada keystroke)
+          scroll: isDev ? 150 : 300, // Más frecuente en dev
+          media: isDev ? 500 : 800, // Más frecuente en dev
+          input: isDev ? true : 'last', // En dev capturar todos los cambios, en prod solo el último
         },
         // Ignorar ciertos elementos que generan mucho ruido
         ignoreClass: 'rr-ignore',
@@ -308,7 +229,7 @@ export class SessionRecorder {
         // Esto previene el error "Cannot set property attributeName"
         blockClass: 'rr-block',
         blockSelector: null, // No bloquear selectores específicos
-        ignoreCSSAttributes: new Set(['class', 'style']), // Ignorar cambios en class y style
+        // NOTA: ignoreCSSAttributes no existe en la API oficial de rrweb, se elimina
         slimDOMOptions: {
           script: true, // Remover scripts del DOM
           comment: true, // Remover comentarios
@@ -329,9 +250,14 @@ export class SessionRecorder {
         },
       };
 
-      // Wrapper para capturar errores durante la inicialización de record
+      // Llamar a record con la función extraída (ya validada arriba)
       try {
-        this.stopRecording = record(recordOptions);
+        this.stopRecording = recordFunction(recordOptions);
+        
+        // Verificar que stopRecording es una función
+        if (typeof this.stopRecording !== 'function') {
+          throw new Error('rrweb.record no retornó una función de detención');
+        }
       } catch (recordError) {
         console.error('[SessionRecorder] Error al inicializar record:', recordError);
         // Si falla la inicialización, deshabilitar el recorder
