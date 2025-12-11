@@ -2615,6 +2615,13 @@ export function StudyPlannerLIA() {
         };
       }
 
+      console.log(`📊 daySlots inicializados: ${Object.keys(daySlots).length} días`);
+      if (Object.keys(daySlots).length > 0) {
+        const sortedKeys = Object.keys(daySlots).sort();
+        console.log(`   Primer día en daySlots: ${sortedKeys[0]}`);
+        console.log(`   Último día en daySlots: ${sortedKeys[sortedKeys.length - 1]}`);
+      }
+
       // Procesar eventos con análisis contextual
       sortedEvents.forEach((event: any) => {
         const eventStart = new Date(event.start || event.startTime);
@@ -2642,8 +2649,12 @@ export function StudyPlannerLIA() {
       });
       
       // Marcar días que requieren descanso (día siguiente a eventos pesados)
+      // IMPORTANTE: Solo propagamos el descanso desde días que tienen eventos pesados PROPIOS
+      // (heavyEvents.length > 0), NO desde días que ya fueron marcados como "día después"
+      // para evitar propagación en cascada infinita
       Object.values(daySlots).forEach(dayData => {
-        if (dayData.requiresRestAfter) {
+        // Solo propagar si el día tiene eventos pesados propios (no si fue marcado por propagación)
+        if (dayData.requiresRestAfter && dayData.heavyEvents && dayData.heavyEvents.length > 0) {
           // Marcar el día siguiente también para evitar estudio
           const nextDay = new Date(dayData.date);
           nextDay.setDate(nextDay.getDate() + 1);
@@ -2655,6 +2666,15 @@ export function StudyPlannerLIA() {
           }
         }
       });
+
+      // 🔍 DEBUG: Verificar cuántos días requieren descanso después de marcar el día siguiente
+      const daysWithRestAfterMarking = Object.values(daySlots).filter(d => d.requiresRestAfter);
+      console.log(`📅 Días marcados para descanso después de eventos pesados: ${daysWithRestAfterMarking.length}`);
+      if (daysWithRestAfterMarking.length > 0 && daysWithRestAfterMarking.length <= 10) {
+        daysWithRestAfterMarking.forEach(d => {
+          console.log(`   - ${d.dateStr}: ${d.restReason}`);
+        });
+      }
 
       // Calcular slots ocupados sin solapamiento y encontrar huecos libres
       Object.values(daySlots).forEach(dayData => {
@@ -2823,6 +2843,19 @@ export function StudyPlannerLIA() {
         daysAnalysis.push(dayData);
       });
 
+      // 🔍 DEBUG: Resumen de daysAnalysis después de procesar todos los días
+      console.log(`📊 Resumen de daysAnalysis después de generar slots:`);
+      console.log(`   Total días analizados: ${daysAnalysis.length}`);
+      const daysWithFreeSlotsGenerated = daysAnalysis.filter(d => d.freeSlots.length > 0);
+      const daysWithoutFreeSlots = daysAnalysis.filter(d => d.freeSlots.length === 0);
+      const daysCompletelyFree = daysAnalysis.filter(d => d.busySlots.length === 0);
+      console.log(`   Días con slots libres generados: ${daysWithFreeSlotsGenerated.length}`);
+      console.log(`   Días SIN slots libres: ${daysWithoutFreeSlots.length}`);
+      console.log(`   Días completamente libres (sin eventos): ${daysCompletelyFree.length}`);
+      if (daysWithoutFreeSlots.length > 0 && daysWithoutFreeSlots.length <= 10) {
+        console.log(`   Días sin slots:`, daysWithoutFreeSlots.map(d => `${d.dateStr} (busy:${d.busySlots.length}, rest:${d.requiresRestAfter})`));
+      }
+
       // Guardar los datos del calendario para validar conflictos después
       const calendarDataToSave: Record<string, {
         busySlots: Array<{ start: Date; end: Date }>;
@@ -2891,62 +2924,99 @@ export function StudyPlannerLIA() {
       // Obtener la duración mínima recomendada según el enfoque
       const minSessionDuration = profileAvailability?.recommendedSessionLength || 30;
       
-      const bestFreeSlots: FreeSlotWithDay[] = daysAnalysis
-        .flatMap(day => 
-          day.freeSlots
-            .filter(slot => {
-              // Filtrar slots razonables: mínimo según enfoque (25 min para rápido, 30 min para normal, etc.), máximo 6 horas
-              // Y excluir días que requieren descanso después de eventos pesados
-              return slot.durationMinutes >= minSessionDuration && 
-                     slot.durationMinutes <= 360 &&
-                     !day.requiresRestAfter;
-            })
-            .map(slot => ({
-              ...slot,
-              dayName: day.dayName,
-              dateStr: day.dateStr,
-              date: day.date,
-              requiresRest: day.requiresRestAfter,
-              restReason: day.restReason,
-            }))
-        )
-        .sort((a, b) => {
-          // Priorizar slots de 1-3 horas (no demasiado largos ni cortos)
-          const durationA = a.durationMinutes;
-          const durationB = b.durationMinutes;
-          const isIdealDurationA = durationA >= 60 && durationA <= 180;
-          const isIdealDurationB = durationB >= 60 && durationB <= 180;
-          
-          if (isIdealDurationA && !isIdealDurationB) return -1;
-          if (!isIdealDurationA && isIdealDurationB) return 1;
-          
-          // Luego priorizar horarios convenientes
-          const hourA = a.start.getHours();
-          const hourB = b.start.getHours();
-          
-          // Preferir horarios en los rangos definidos: Mañana (7-12), Tarde (12-18), Noche (18-22)
-          const isGoodTimeA = (hourA >= 7 && hourA < 12) || (hourA >= 12 && hourA < 18) || (hourA >= 18 && hourA < 22);
-          const isGoodTimeB = (hourB >= 7 && hourB < 12) || (hourB >= 12 && hourB < 18) || (hourB >= 18 && hourB < 22);
-          
-          if (isGoodTimeA && !isGoodTimeB) return -1;
-          if (!isGoodTimeA && isGoodTimeB) return 1;
-          
-          // Finalmente priorizar duración moderada
-          return b.durationMinutes - a.durationMinutes;
-        });
-      
-      // Calcular límite dinámico basado en días hasta la fecha objetivo
-      // Si hay fecha objetivo, usar más slots para cubrir todo el período
-      let slotsLimit = 50; // Default
-      if (targetDateObjForEvents) {
-        const daysUntilTarget = Math.ceil((targetDateObjForEvents.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        // Permitir más slots si hay más días hasta la fecha objetivo
-        // Mínimo 50, máximo 300 slots (para cubrir períodos largos)
-        slotsLimit = Math.min(300, Math.max(50, daysUntilTarget * 4));
-        console.log(`📊 Límite de slots calculado: ${slotsLimit} (${daysUntilTarget} días hasta la fecha objetivo)`);
+      // 🔍 DEBUG: Verificar qué días están en daysAnalysis y su estado
+      console.log(`🔍 DEBUG - Total días en daysAnalysis: ${daysAnalysis.length}`);
+      const daysWithRest = daysAnalysis.filter(d => d.requiresRestAfter);
+      const daysWithoutRest = daysAnalysis.filter(d => !d.requiresRestAfter);
+      const daysWithSlots = daysAnalysis.filter(d => d.freeSlots.length > 0);
+      console.log(`   Días que requieren descanso: ${daysWithRest.length}`);
+      console.log(`   Días SIN descanso: ${daysWithoutRest.length}`);
+      console.log(`   Días con slots libres: ${daysWithSlots.length}`);
+      if (daysWithRest.length > 0) {
+        console.log(`   Días con descanso:`, daysWithRest.map(d => `${d.dateStr} (${d.restReason})`).slice(0, 5));
+      }
+      if (daysAnalysis.length > 0) {
+        console.log(`   Primer día: ${daysAnalysis[0].dateStr}`);
+        console.log(`   Último día: ${daysAnalysis[daysAnalysis.length - 1].dateStr}`);
       }
       
-      const limitedBestSlots = bestFreeSlots.slice(0, slotsLimit);
+      // Agrupar slots por día primero, para distribuir a lo largo del período completo
+      const slotsByDayInitial = new Map<string, FreeSlotWithDay[]>();
+      daysAnalysis.forEach(day => {
+        // Excluir días que requieren descanso después de eventos pesados
+        // IMPORTANTE: Solo excluir el día específico, NO afectar días posteriores
+        if (day.requiresRestAfter) {
+          console.log(`   ⏭️ Excluyendo día con descanso: ${day.dateStr} (${day.restReason})`);
+          return;
+        }
+
+        const validSlots = day.freeSlots
+          .filter(slot => {
+            // Filtrar slots razonables: mínimo según enfoque, máximo 6 horas
+            return slot.durationMinutes >= minSessionDuration &&
+                   slot.durationMinutes <= 360;
+          })
+          .map(slot => ({
+            ...slot,
+            dayName: day.dayName,
+            dateStr: day.dateStr,
+            date: day.date,
+            requiresRest: day.requiresRestAfter,
+            restReason: day.restReason,
+          }));
+
+        if (validSlots.length > 0) {
+          // Ordenar los slots del día por calidad
+          validSlots.sort((a, b) => {
+            // Priorizar slots de 1-3 horas (no demasiado largos ni cortos)
+            const durationA = a.durationMinutes;
+            const durationB = b.durationMinutes;
+            const isIdealDurationA = durationA >= 60 && durationA <= 180;
+            const isIdealDurationB = durationB >= 60 && durationB <= 180;
+
+            if (isIdealDurationA && !isIdealDurationB) return -1;
+            if (!isIdealDurationA && isIdealDurationB) return 1;
+
+            // Luego priorizar horarios convenientes
+            const hourA = a.start.getHours();
+            const hourB = b.start.getHours();
+
+            // Preferir horarios en los rangos definidos: Mañana (7-12), Tarde (12-18), Noche (18-22)
+            const isGoodTimeA = (hourA >= 7 && hourA < 12) || (hourA >= 12 && hourA < 18) || (hourA >= 18 && hourA < 22);
+            const isGoodTimeB = (hourB >= 7 && hourB < 12) || (hourB >= 12 && hourB < 18) || (hourB >= 18 && hourB < 22);
+
+            if (isGoodTimeA && !isGoodTimeB) return -1;
+            if (!isGoodTimeA && isGoodTimeB) return 1;
+
+            // Finalmente priorizar duración moderada
+            return b.durationMinutes - a.durationMinutes;
+          });
+
+          slotsByDayInitial.set(day.dateStr, validSlots);
+        }
+      });
+
+      console.log(`📊 Días con slots disponibles: ${slotsByDayInitial.size} días`);
+
+      // Tomar los mejores slots de cada día (máximo 3 por día) para distribuir a lo largo del período
+      const bestFreeSlots: FreeSlotWithDay[] = [];
+      Array.from(slotsByDayInitial.entries())
+        .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()) // Ordenar por fecha
+        .forEach(([dateStr, slots]) => {
+          // Tomar hasta 3 mejores slots del día (ya están ordenados por calidad)
+          const slotsToTake = slots.slice(0, 3);
+          bestFreeSlots.push(...slotsToTake);
+        });
+
+      console.log(`📊 Total de slots seleccionados: ${bestFreeSlots.length}`);
+      if (bestFreeSlots.length > 0) {
+        const firstSlot = bestFreeSlots[0];
+        const lastSlot = bestFreeSlots[bestFreeSlots.length - 1];
+        console.log(`   Primer slot: ${firstSlot.dayName} ${firstSlot.date.toLocaleDateString('es-ES')}`);
+        console.log(`   Último slot: ${lastSlot.dayName} ${lastSlot.date.toLocaleDateString('es-ES')}`);
+      }
+
+      const limitedBestSlots = bestFreeSlots;
 
       // Filtrar slots que respeten los horarios mínimos y máximos (7 AM - 10 PM)
       const validTimeSlots = limitedBestSlots.filter(slot => {

@@ -594,6 +594,12 @@ Es OBLIGATORIO que el usuario conecte su calendario antes de continuar.
 ${context.calendarConnected ? `
 El usuario ya tiene su calendario conectado (${context.calendarProvider}).
 Presenta el análisis de disponibilidad basado en sus eventos.
+
+⚠️ IMPORTANTE: MANEJO DE EVENTOS IMPORTANTES
+- Si detectas eventos importantes (exámenes, presentaciones, evaluaciones), menciona que evitarás esos días
+- Pero aclara que el plan CONTINUARÁ distribuyendo lecciones en los días posteriores
+- Los días con eventos importantes se saltan, pero el resto del calendario sigue disponible
+- Ejemplo: "Veo que tienes un examen el jueves. Evitaré ese día y el viernes para que descanses, pero continuaré con tu plan el sábado."
 ` : `
 El usuario NO tiene calendario conectado.
 DEBES pedirle que conecte su Google Calendar o Microsoft Calendar.
@@ -601,6 +607,7 @@ Explica que esto permitirá:
 - Analizar sus horarios reales
 - Evitar conflictos con reuniones
 - Sugerir los mejores momentos para estudiar
+- Detectar eventos importantes que requieren descanso
 `}
 
 ACCIONES:
@@ -608,6 +615,7 @@ ACCIONES:
 2. Si no está conectado, solicitar la conexión
 3. Una vez conectado, analizar la disponibilidad
 4. Presentar horarios sugeridos basados en el análisis
+5. Si hay eventos importantes, menciona que se evitarán esos días pero se continuará después
 `;
         break;
         
@@ -664,6 +672,28 @@ FASE 6: DÍAS Y HORARIOS
 
 Configura los días y horarios de estudio.
 
+⚠️ IMPORTANTE: MANEJO DE EVENTOS Y FECHAS IMPORTANTES
+- Si detectas eventos importantes (exámenes, presentaciones, evaluaciones), EVITA asignar lecciones en ese día específico y el día siguiente para descanso
+- PERO DEBES CONTINUAR distribuyendo lecciones en todos los demás días disponibles
+- NO te detengas después de un evento importante, simplemente sáltalo y sigue con los días posteriores
+- Los slots disponibles ya excluyen automáticamente los días con eventos importantes, así que usa TODOS los slots que se te proporcionan
+
+EJEMPLO CORRECTO:
+- Día 1: Lección A (normal)
+- Día 2: Lección B (normal)
+- Día 3: EXAMEN → SALTAR (no asignar lecciones)
+- Día 4: → SALTAR (descanso después del examen)
+- Día 5: Lección C (CONTINUAR distribuyendo) ✅
+- Día 6: Lección D (CONTINUAR distribuyendo) ✅
+- ... (seguir hasta completar todas las lecciones)
+
+EJEMPLO INCORRECTO:
+- Día 1: Lección A
+- Día 2: Lección B
+- Día 3: EXAMEN → SALTAR
+- Día 4: → SALTAR (descanso)
+- Día 5 en adelante: (sin lecciones) ❌ INCORRECTO - NO te detengas aquí
+
 ACCIONES:
 1. Pregunta qué días de la semana prefiere estudiar
 2. Pregunta en qué horarios:
@@ -674,6 +704,7 @@ ACCIONES:
    - Permitan sesiones de la duración configurada
    - Incluyan los tiempos de descanso
 4. Si hay conflictos, sugiere alternativas
+5. ASEGÚRATE de distribuir TODAS las lecciones pendientes en los días disponibles
 `;
         break;
         
@@ -688,11 +719,19 @@ Presenta un resumen completo del plan.
 - Verifica que no estés incluyendo lecciones que el usuario ya completó
 - Comienza desde la primera lección no completada de cada curso
 
+⚠️ DISTRIBUCIÓN DE LECCIONES:
+- ASEGÚRATE de haber distribuido TODAS las lecciones pendientes en los días disponibles
+- Si detectaste eventos importantes (exámenes, presentaciones), solo evita esos días específicos y el día siguiente
+- CONTINÚA distribuyendo lecciones en todos los demás días disponibles después del evento
+- NO dejes lecciones sin asignar solo porque hay un evento importante en medio del período
+- Verifica que el número de lecciones en el plan coincida con el número total de lecciones pendientes
+
 EL RESUMEN DEBE INCLUIR:
 - Cursos incluidos y cuántas lecciones pendientes tiene cada uno
 - Tiempo mínimo y máximo de sesiones
 - Tiempos de descanso
 - Días y horarios configurados
+- CONFIRMACIÓN de que TODAS las lecciones pendientes fueron distribuidas
 ${isB2B ? '- Plazos y si se pueden cumplir con la configuración' : '- Meta de finalización (si se configuró)'}
 
 ACCIONES:
@@ -700,6 +739,7 @@ ACCIONES:
 2. Indica si hay advertencias o problemas
 3. Ofrece la opción de modificar cualquier aspecto
 4. Si el usuario acepta, indica que el plan está listo para guardarse
+5. VERIFICA que todas las lecciones pendientes estén distribuidas en el calendario
 `;
         break;
     }
