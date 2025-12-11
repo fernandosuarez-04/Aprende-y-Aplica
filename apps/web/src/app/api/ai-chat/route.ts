@@ -2108,7 +2108,7 @@ export async function POST(request: NextRequest) {
     const hasCourseContext = context === 'course' && courseContext !== undefined;
     const userId = user?.id || null; // Obtener userId para registro de uso
 
-    let responseMetadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
+    let responseMetadata: { tokensUsed?: number; promptTokens?: number; completionTokens?: number; costUsd?: number; promptCostUsd?: number; completionCostUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
     
     if (openaiApiKey) {
       try {
@@ -2162,25 +2162,39 @@ export async function POST(request: NextRequest) {
       try {
         logger.info('[LIA Analytics] Registrando mensajes...', { conversationId: analyticsConversationId });
         
-        // Registrar mensaje del usuario
+        // Registrar mensaje del usuario CON tokens de entrada y costo
         await liaLogger.logMessage(
           'user',
           message,
-          false
+          false,
+          responseMetadata ? {
+            tokensUsed: responseMetadata.promptTokens,
+            costUsd: responseMetadata.promptCostUsd,
+            modelUsed: responseMetadata.modelUsed
+          } : undefined
         );
         
-        // Registrar respuesta del asistente
+        // Registrar respuesta del asistente CON tokens de salida y costo
         await liaLogger.logMessage(
           'assistant',
           response,
           false,
-          responseMetadata
+          responseMetadata ? {
+            tokensUsed: responseMetadata.completionTokens,
+            costUsd: responseMetadata.completionCostUsd,
+            modelUsed: responseMetadata.modelUsed,
+            responseTimeMs: responseMetadata.responseTimeMs
+          } : undefined
         );
         
         logger.info('[LIA Analytics] ✅ Mensajes registrados exitosamente', { 
           conversationId: analyticsConversationId,
-          tokensUsed: responseMetadata?.tokensUsed,
-          costUsd: responseMetadata?.costUsd
+          promptTokens: responseMetadata?.promptTokens,
+          completionTokens: responseMetadata?.completionTokens,
+          totalTokens: responseMetadata?.tokensUsed,
+          promptCostUsd: responseMetadata?.promptCostUsd,
+          completionCostUsd: responseMetadata?.completionCostUsd,
+          totalCostUsd: responseMetadata?.costUsd
         });
         
         // Actualizar conversationId si se creó una nueva
@@ -2280,7 +2294,7 @@ async function callOpenAI(
   isSystemMessage: boolean = false,
   language: SupportedLanguage = 'es',
   context: string = 'general'  // ✅ OPTIMIZACIÓN: Agregar contexto para optimizaciones específicas
-): Promise<{ response: string; metadata?: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
+): Promise<{ response: string; metadata?: { tokensUsed?: number; promptTokens?: number; completionTokens?: number; costUsd?: number; promptCostUsd?: number; completionCostUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
@@ -2509,7 +2523,12 @@ ${antiMarkdownInstructions}
   // Preparar metadatos para retornar
   const metadata = data.usage ? {
     tokensUsed: data.usage.total_tokens,
+    promptTokens: data.usage.prompt_tokens || 0,
+    completionTokens: data.usage.completion_tokens || 0,
     costUsd: estimatedCost,
+    // Calcular costos separados para prompt y completion
+    promptCostUsd: calculateCost(data.usage.prompt_tokens || 0, 0, model),
+    completionCostUsd: calculateCost(0, data.usage.completion_tokens || 0, model),
     modelUsed: model
   } : undefined;
   
