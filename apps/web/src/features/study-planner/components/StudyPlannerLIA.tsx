@@ -3337,53 +3337,65 @@ export function StudyPlannerLIA() {
       console.log(`   Slots totales disponibles: ${uniqueDateSlots.length}`);
       console.log(`   Slots válidos hasta objetivo: ${validDateSlots.length}`);
 
-      // Seleccionar slots distribuidos uniformemente hasta la fecha objetivo
-      const finalSlots: FreeSlotWithDay[] = [];
-      const totalWeeks = Math.max(1, weeksUntilTarget);
-      const slotsPerWeek = Math.max(1, Math.ceil(sessionsPerWeekNeeded));
-      
-      // Distribuir slots uniformemente a lo largo de las semanas hasta la fecha objetivo
-      for (let week = 0; week < totalWeeks; week++) {
-        const weekStart = Math.floor((week * validDateSlots.length) / totalWeeks);
-        const weekEnd = Math.floor(((week + 1) * validDateSlots.length) / totalWeeks);
-        const weekSlots = validDateSlots.slice(weekStart, weekEnd);
-        
-        // Seleccionar los mejores slots de esta semana que cumplan con la duración recomendada
-        const bestWeekSlots = weekSlots
-          .filter(slot => {
-            // Asegurar que el slot tenga al menos la duración recomendada
-            // Para sesiones rápidas, aceptar slots de al menos 25 minutos
-            const minDuration = profileAvailability 
-              ? profileAvailability.recommendedSessionLength
-              : 30;
-            return slot.durationMinutes >= minDuration;
-          })
-          .sort((a, b) => {
-            // Priorizar duración ideal según el enfoque
-            const idealDuration = profileAvailability?.recommendedSessionLength || 30;
-            const diffA = Math.abs(a.durationMinutes - idealDuration);
-            const diffB = Math.abs(b.durationMinutes - idealDuration);
-            
-            if (diffA !== diffB) return diffA - diffB;
-            
-            // Luego priorizar horarios convenientes
-            const hourA = a.start.getHours();
-            const hourB = b.start.getHours();
-            const isGoodTimeA = (hourA >= 7 && hourA < 10) || (hourA >= 12 && hourA < 14) || (hourA >= 19 && hourA < 21);
-            const isGoodTimeB = (hourB >= 7 && hourB < 10) || (hourB >= 12 && hourB < 14) || (hourB >= 19 && hourB < 21);
-            
-            if (isGoodTimeA && !isGoodTimeB) return -1;
-            if (!isGoodTimeA && isGoodTimeB) return 1;
-            
-            return b.durationMinutes - a.durationMinutes;
-          })
-          .slice(0, slotsPerWeek);
-        
-        finalSlots.push(...bestWeekSlots);
+      // ✅ SIMPLIFICADO: Usar TODOS los slots disponibles hasta la fecha objetivo
+      // Filtrar solo por duración mínima (25 minutos para que quepa al menos 1 lección)
+      const MIN_SLOT_DURATION = 25; // Duración mínima de una lección
+      const finalSlots: FreeSlotWithDay[] = validDateSlots
+        .filter(slot => slot.durationMinutes >= MIN_SLOT_DURATION)
+        .sort((a, b) => a.date.getTime() - b.date.getTime()); // Ordenar cronológicamente
+
+      console.log(`   Slots con duración mínima (${MIN_SLOT_DURATION} min): ${finalSlots.length}`);
+
+      // ✅ SIMPLIFICADO: Dividir slots largos según el máximo de sesión del usuario
+      const dividedSlots: FreeSlotWithDay[] = [];
+      const sessionLength = profileAvailability?.recommendedSessionLength || 30;
+      const breakLength = profileAvailability?.recommendedBreak || 10;
+      const cycleLength = sessionLength + breakLength; // Ej: 30 + 10 = 40 min
+
+      // Determinar duración máxima por slot según enfoque de estudio
+      let maxSlotDuration: number;
+      if (studyApproach === 'rapido') {
+        maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min)
+      } else if (studyApproach === 'largo') {
+        maxSlotDuration = cycleLength * 3; // 3 ciclos máximo (ej: 120 min)
+      } else {
+        maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min) - normal
       }
 
-      // Ordenar por fecha para mostrar cronológicamente
-      finalSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
+      console.log(`🔪 Dividiendo slots largos (duración máxima: ${maxSlotDuration} min):`);
+
+      finalSlots.forEach((slot, index) => {
+        if (slot.durationMinutes <= maxSlotDuration) {
+          // Slot ya es suficientemente corto, agregarlo tal cual
+          dividedSlots.push(slot);
+        } else {
+          // Slot es muy largo, dividirlo en múltiples slots más pequeños
+          const numDivisions = Math.ceil(slot.durationMinutes / maxSlotDuration);
+          const actualDivisionDuration = Math.floor(slot.durationMinutes / numDivisions);
+
+          for (let i = 0; i < numDivisions; i++) {
+            const divisionStart = new Date(slot.start.getTime() + (i * actualDivisionDuration * 60 * 1000));
+            const divisionEnd = new Date(divisionStart.getTime() + (actualDivisionDuration * 60 * 1000));
+
+            // Asegurar que no exceda el slot original
+            if (divisionEnd <= slot.end) {
+              dividedSlots.push({
+                ...slot,
+                start: divisionStart,
+                end: divisionEnd,
+                durationMinutes: actualDivisionDuration
+              });
+            }
+          }
+        }
+      });
+
+      console.log(`   Slots después de dividir: ${dividedSlots.length}`);
+
+      // ✅ NO LIMITAR MÁS - Usar todos los slots divididos para distribuir las lecciones
+      // El usuario quiere que las lecciones se distribuyan a lo largo de todo el periodo
+      finalSlots.length = 0;
+      finalSlots.push(...dividedSlots);
 
       // Calcular tiempo disponible por semana basado en las sesiones seleccionadas
       let weeklyAvailableMinutes: number;
@@ -3766,69 +3778,71 @@ export function StudyPlannerLIA() {
             console.log(`   Último slot: ${slotsUntilTarget[slotsUntilTarget.length - 1].dayName} ${slotsUntilTarget[slotsUntilTarget.length - 1].date.toLocaleDateString('es-ES')}`);
           }
           
-          // Calcular distribución de lecciones (guardar para resumen final)
+          // ✅ SIMPLIFICADO: Distribuir lecciones asumiendo 25 min por lección
           console.log(`📊 Distribuyendo ${allPendingLessons.length} lecciones pendientes en ${slotsUntilTarget.length} slots`);
+
+          const MINUTES_PER_LESSON = 25; // Asumir 25 minutos por lección como solicita el usuario
 
           // Calcular capacidad total disponible en todos los slots
           const totalSlotsAvailable = slotsUntilTarget.length;
           const totalLessons = allPendingLessons.length;
-          
-          // Calcular capacidad total de todos los slots (cuántas sesiones caben en total)
+
+          // Calcular capacidad total de todos los slots (cuántas lecciones caben en total)
           let totalCapacity = 0;
           slotsUntilTarget.forEach(slot => {
-            const maxSessionsInSlot = Math.max(1, Math.floor(slot.durationMinutes / cycleDuration));
-            totalCapacity += maxSessionsInSlot;
+            const maxLessonsInSlot = Math.max(1, Math.floor(slot.durationMinutes / MINUTES_PER_LESSON));
+            totalCapacity += maxLessonsInSlot;
           });
-          
-          // Si hay suficiente capacidad, distribuir todas las lecciones
-          // Si no hay suficiente capacidad, calcular cuántas lecciones por slot se necesitan
+
+          console.log(`   Total lecciones: ${totalLessons}`);
+          console.log(`   Total slots: ${totalSlotsAvailable}`);
+          console.log(`   Capacidad total: ${totalCapacity} lecciones`);
+          console.log(`   Minutos por lección: ${MINUTES_PER_LESSON}`);
+
+          // ✅ SIMPLIFICADO: Distribuir uniformemente a lo largo del periodo
           const hasEnoughCapacity = totalCapacity >= totalLessons;
-          const lessonsPerSlot = hasEnoughCapacity && totalSlotsAvailable > 0 
-            ? Math.ceil(totalLessons / totalSlotsAvailable) 
-            : (totalSlotsAvailable > 0 ? Math.ceil(totalLessons / totalSlotsAvailable) : 1);
 
           console.log(`📐 Estrategia de distribución:`);
-          console.log(`   Total lecciones pendientes: ${totalLessons}`);
-          console.log(`   Total slots disponibles: ${totalSlotsAvailable}`);
-          console.log(`   Capacidad total (sesiones): ${totalCapacity}`);
           console.log(`   ¿Hay suficiente capacidad? ${hasEnoughCapacity ? 'Sí' : 'No'}`);
-          console.log(`   Lecciones por slot objetivo: ${lessonsPerSlot}`);
 
           slotsUntilTarget.forEach((slot, slotIndex) => {
             const slotDurationMinutes = slot.durationMinutes;
 
-            // Calcular cuántas sesiones caben en el slot basado en la duración
-            // cycleDuration = sessionDuration + breakDuration (ej: 25 + 5 = 30 min)
-            const maxSessionsInSlot = Math.max(1, Math.floor(slotDurationMinutes / cycleDuration));
+            // Calcular cuántas lecciones caben en el slot basado en 25 min por lección
+            const maxLessonsInSlot = Math.max(1, Math.floor(slotDurationMinutes / MINUTES_PER_LESSON));
 
-            // Si hay suficiente capacidad total, intentar usar más slots o más lecciones por slot
-            // Si no hay suficiente capacidad, limitar a lo que realmente cabe
-            let sessionsToAssign: number;
-            if (hasEnoughCapacity) {
-              // Hay suficiente tiempo: usar el máximo entre lo necesario y lo que cabe (hasta el máximo del slot)
-              sessionsToAssign = Math.min(lessonsPerSlot, maxSessionsInSlot);
-              // Si aún quedan lecciones por asignar y este slot tiene más capacidad, usar más
-              if (currentLessonIndex < allPendingLessons.length && maxSessionsInSlot > sessionsToAssign) {
-                // Calcular cuántas lecciones faltan por asignar
-                const remainingAfterThis = allPendingLessons.length - currentLessonIndex - sessionsToAssign;
-                // Si faltan muchas, usar más capacidad de este slot
-                if (remainingAfterThis > 0 && maxSessionsInSlot > sessionsToAssign) {
-                  sessionsToAssign = Math.min(maxSessionsInSlot, sessionsToAssign + Math.min(remainingAfterThis, maxSessionsInSlot - sessionsToAssign));
-                }
-              }
+            // Calcular cuántas lecciones quedan por asignar
+            const remainingLessons = allPendingLessons.length - currentLessonIndex;
+            const remainingSlots = slotsUntilTarget.length - slotIndex;
+
+            // ✅ NUEVA LÓGICA SIMPLIFICADA: Distribuir uniformemente
+            let lessonsToAssign: number;
+
+            if (remainingLessons === 0) {
+              // No quedan lecciones, no asignar nada
+              lessonsToAssign = 0;
             } else {
-              // No hay suficiente capacidad: limitar a lo que realmente cabe
-              sessionsToAssign = Math.min(lessonsPerSlot, maxSessionsInSlot);
+              // Calcular el promedio de lecciones que deben ir en los slots restantes
+              const avgNeededPerRemainingSlot = remainingSlots > 0
+                ? remainingLessons / remainingSlots
+                : remainingLessons;
+
+              // Asignar el promedio redondeado hacia arriba, limitado solo por la capacidad física del slot
+              // NO limitar a 2 lecciones - llenar según capacidad para distribuir todas las lecciones
+              lessonsToAssign = Math.min(
+                Math.ceil(avgNeededPerRemainingSlot),
+                maxLessonsInSlot
+              );
             }
 
-            console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Sesiones que caben: ${maxSessionsInSlot} - A asignar: ${sessionsToAssign}`);
+            console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Lecciones que caben: ${maxLessonsInSlot} - Quedan ${remainingLessons} lecciones - A asignar: ${lessonsToAssign}`);
 
             // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
 
             // Continuar asignando mientras haya lecciones pendientes y espacio en el slot
             let assignedInSlot = 0;
-            while (assignedInSlot < sessionsToAssign && currentLessonIndex < allPendingLessons.length) {
+            while (assignedInSlot < lessonsToAssign && currentLessonIndex < allPendingLessons.length) {
               const lesson = allPendingLessons[currentLessonIndex];
 
               // Validar que la lección tenga datos válidos antes de asignarla
@@ -3881,8 +3895,8 @@ export function StudyPlannerLIA() {
             // Agregar lecciones a slots no usados
             for (const unusedSlot of unusedSlots) {
               if (currentLessonIndex >= allPendingLessons.length) break;
-              
-              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / cycleDuration));
+
+              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / MINUTES_PER_LESSON));
               const lessonsForUnusedSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
               
               for (let i = 0; i < slotCapacity && currentLessonIndex < allPendingLessons.length; i++) {
@@ -3915,12 +3929,12 @@ export function StudyPlannerLIA() {
               // Ordenar slots por espacio disponible (mayor primero)
               const slotsWithSpace = lessonDistribution
                 .filter(dist => {
-                  const slotCapacity = Math.floor(dist.slot.durationMinutes / cycleDuration);
+                  const slotCapacity = Math.floor(dist.slot.durationMinutes / MINUTES_PER_LESSON);
                   return dist.lessons.length < slotCapacity;
                 })
                 .sort((a, b) => {
-                  const spaceA = Math.floor(a.slot.durationMinutes / cycleDuration) - a.lessons.length;
-                  const spaceB = Math.floor(b.slot.durationMinutes / cycleDuration) - b.lessons.length;
+                  const spaceA = Math.floor(a.slot.durationMinutes / MINUTES_PER_LESSON) - a.lessons.length;
+                  const spaceB = Math.floor(b.slot.durationMinutes / MINUTES_PER_LESSON) - b.lessons.length;
                   return spaceB - spaceA;
                 });
 
@@ -3930,7 +3944,7 @@ export function StudyPlannerLIA() {
               for (const slotDist of slotsWithSpace) {
                 if (currentLessonIndex >= allPendingLessons.length) break;
 
-                const slotCapacity = Math.floor(slotDist.slot.durationMinutes / cycleDuration);
+                const slotCapacity = Math.floor(slotDist.slot.durationMinutes / MINUTES_PER_LESSON);
                 const currentLessons = slotDist.lessons.length;
                 const availableSpace = slotCapacity - currentLessons;
 
