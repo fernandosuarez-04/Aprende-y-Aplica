@@ -443,6 +443,89 @@ EXECUTE FUNCTION set_message_sequence();
 
 ---
 
+## ✅ Tracking Centralizado de OpenAI (Actualización)
+
+### Objetivo
+Registrar el uso de tokens y costos de **TODAS** las llamadas a la API de OpenAI en la plataforma, no solo las conversaciones con LIA.
+
+### Nuevo Módulo: usage-monitor.ts
+
+Se crearon funciones centralizadas en `apps/web/src/lib/openai/usage-monitor.ts`:
+
+```typescript
+// Interface para metadatos de llamadas OpenAI
+export interface OpenAICallMetadata {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  promptCostUsd: number;
+  completionCostUsd: number;
+  totalCostUsd: number;
+  model: string;
+  endpoint: string;
+  userId?: string;
+  responseTimeMs?: number;
+}
+
+// Función para rastrear llamadas
+export async function trackOpenAICall(metadata: OpenAICallMetadata): Promise<void>
+
+// Helper para calcular metadatos
+export function calculateOpenAIMetadata(
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
+  model: string,
+  endpoint: string,
+  userId?: string,
+  responseTimeMs?: number
+): OpenAICallMetadata
+```
+
+### Endpoints Actualizados
+
+| Endpoint | Estado | Archivo |
+|----------|--------|---------|
+| `/api/ai-chat` | ✅ Ya tenía tracking | [route.ts](apps/web/src/app/api/ai-chat/route.ts) |
+| `/api/ai-intent` | ✅ Tracking agregado | [route.ts](apps/web/src/app/api/ai-intent/route.ts) |
+| `/api/lia/context-help` | ✅ Tracking agregado | [route.ts](apps/web/src/app/api/lia/context-help/route.ts) |
+| `/api/lia/proactive-help` | ✅ Tracking agregado | [route.ts](apps/web/src/app/api/lia/proactive-help/route.ts) |
+| `/api/lia/onboarding-chat` | ✅ Delega a `/api/ai-chat` | [route.ts](apps/web/src/app/api/lia/onboarding-chat/route.ts) |
+| `AutoTranslationService` | ✅ Tracking agregado | [autoTranslation.service.ts](apps/web/src/core/services/autoTranslation.service.ts) |
+| `LanguageDetectionService` | ✅ Tracking agregado | [languageDetection.service.ts](apps/web/src/core/services/languageDetection.service.ts) |
+
+### Desglose de Tokens y Costos
+
+El sistema ahora registra por separado:
+- **Prompt Tokens**: Tokens enviados a OpenAI (system prompt + historial + mensaje del usuario)
+- **Completion Tokens**: Tokens generados por OpenAI (respuesta del asistente)
+- **Prompt Cost USD**: Costo de los tokens de entrada
+- **Completion Cost USD**: Costo de los tokens de salida
+- **Total Cost USD**: Suma de ambos costos
+
+### Ejemplo de Uso
+
+```typescript
+import { trackOpenAICall, calculateOpenAIMetadata } from '@/lib/openai/usage-monitor';
+
+// Después de una llamada a OpenAI
+const startTime = Date.now();
+const response = await fetch('https://api.openai.com/v1/chat/completions', {...});
+const data = await response.json();
+const responseTime = Date.now() - startTime;
+
+// Registrar el uso
+if (data.usage) {
+  await trackOpenAICall(calculateOpenAIMetadata(
+    data.usage,
+    'gpt-4-turbo-preview',
+    'mi-endpoint',
+    userId,
+    responseTime
+  ));
+}
+```
+
+---
+
 ## ⚠️ Notas Importantes
 
 1. **No bloquea la experiencia del usuario**: El sistema de analytics es asíncrono, por lo que los usuarios no notan el fallo

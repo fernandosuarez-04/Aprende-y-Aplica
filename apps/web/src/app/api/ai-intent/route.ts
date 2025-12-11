@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import { SessionService } from '../../../features/auth/services/session.service';
+import { trackOpenAICall, calculateOpenAIMetadata } from '../../../lib/openai/usage-monitor';
 
 /**
  * Endpoint para detección avanzada de intenciones con OpenAI
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Llamar a OpenAI para clasificar la intención
+    const startTime = Date.now();
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -92,6 +94,18 @@ NO incluyas ningún texto adicional, SOLO el JSON.`,
     }
 
     const data = await response.json();
+    const responseTime = Date.now() - startTime;
+    
+    // ✅ Registrar uso de OpenAI
+    if (data.usage) {
+      await trackOpenAICall(calculateOpenAIMetadata(
+        data.usage,
+        'gpt-4o-mini',
+        'ai-intent',
+        user.id,
+        responseTime
+      ));
+    }
     
     // 5. Parsear respuesta de OpenAI
     let intentResult;
